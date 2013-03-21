@@ -214,11 +214,8 @@ void AsyncThread::postRunWD ( WD * wd )
 
 void AsyncThread::copyDataIn( WorkDescriptor& work )
 {
-   std::list<CopyData *> inputs;
-
-   prepareInputCopies( work, inputs );
-
-   if ( inputs.empty() ) {
+   // WD has no copies
+   if ( work.getNumCopies() == 0 ) {
       GenericEvent * evt = this->createPreRunEvent( &work );
 #ifdef NANOS_DEBUG_ENABLED
       evt->setDescription( evt->getDescription() + " No inputs, event triggers runWD" );
@@ -236,8 +233,57 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
 
       evt->setPending();
       evt->setRaised();
+
    } else {
-      executeInputCopies( work, inputs );
+      GenericEvent * lastEvt = NULL;
+      CopyData *copies = work.getCopies();
+      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+         uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
+
+         GenericEvent * evt = this->createPreRunEvent( &work );
+   #ifdef NANOS_DEBUG_ENABLED
+         evt->setDescription( evt->getDescription() + " copy input " + toString<uint64_t>( tag ) );
+   #endif
+         evt->setCreated();
+
+         _pendingEvents.push_back( evt );
+         _pendingEventsCounter++;
+
+         if ( cd.isInput() ) {
+            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-in") );
+            NANOS_INSTRUMENT( static nanos_event_value_t value = (nanos_event_value_t) cd.getSize() );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &key, &value ) );
+         }
+
+         if ( cd.isPrivate() ) {
+            runningOn()->registerPrivateAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag  );
+         } else {
+            runningOn()->registerCacheAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag );
+         }
+
+         evt->setPending();
+         Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
+         evt->addNextAction( action );
+   #ifdef NANOS_DEBUG_ENABLED
+         evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
+   #endif
+
+         lastEvt = evt;
+      }
+
+      if ( lastEvt ) {
+         Action * check = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::checkEvents, *this, &work );
+         lastEvt->addNextAction( check );
+   #ifdef NANOS_DEBUG_ENABLED
+         lastEvt->setDescription( lastEvt->getDescription() + " action:AsyncThread::checkEventsWD" );
+   #endif
+         Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, &work );
+         lastEvt->addNextAction( action );
+   #ifdef NANOS_DEBUG_ENABLED
+        lastEvt->setDescription( lastEvt->getDescription() + " action:AsyncThread::runWD" );
+   #endif
+      }
    }
 }
 
@@ -256,11 +302,8 @@ void AsyncThread::waitInputs( WorkDescriptor &work )
 
 void AsyncThread::copyDataOut( WorkDescriptor& work )
 {
-   std::list<CopyData *> outputs;
-
-   prepareOutputCopies( work, outputs );
-
-   if ( outputs.empty() ) {
+   // WD has no copies
+   if ( work.getNumCopies() == 0 ) {
       GenericEvent * evt = this->createPostRunEvent( &work );
 #ifdef NANOS_DEBUG_ENABLED
       evt->setDescription( evt->getDescription() + " No outputs, event triggers finishWork" );
@@ -279,7 +322,58 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
       evt->setPending();
       evt->setRaised();
    } else {
-      executeOutputCopies( work, outputs );
+      GenericEvent * lastEvt = NULL;
+      CopyData *copies = work.getCopies();
+      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+         uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
+
+         GenericEvent * evt = this->createPostRunEvent( &work );
+   #ifdef NANOS_DEBUG_ENABLED
+         evt->setDescription( evt->getDescription() + " copy output" );
+   #endif
+         evt->setCreated();
+
+         _pendingEvents.push_back( evt );
+         _pendingEventsCounter++;
+
+         if ( cd.isOutput() ) {
+            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-out") );
+            NANOS_INSTRUMENT( static nanos_event_value_t value = (nanos_event_value_t) cd.getSize() );
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &key, &value ) );
+         }
+
+         if ( cd.isPrivate() ) {
+            runningOn()->unregisterPrivateAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag );
+         } else {
+            runningOn()->unregisterCacheAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag, cd.isOutput() );
+
+            // We need to create the directory in parent's parent if it does not exist. Otherwise, applications with
+            // at least 3-level nesting tasks with the inner-most level being from a device with separate memory space
+            // will fail because parent's parent directory is NULL
+            if ( work.getParent()->getParent() != work.getParent() && work.getParent()->getParent() != NULL ) {
+               Directory * dir = work.getParent()->getParent()->getDirectory( true );
+               dir->updateCurrentDirectory( tag, *( work.getParent()->getDirectory( true ) ) );
+            }
+         }
+
+         evt->setPending();
+         Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
+         evt->addNextAction( action );
+   #ifdef NANOS_DEBUG_ENABLED
+         evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
+   #endif
+
+         lastEvt = evt;
+      }
+
+      if ( lastEvt ) {
+         Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, ( WD * ) NULL, &work );
+         lastEvt->addNextAction( action );
+   #ifdef NANOS_DEBUG_ENABLED
+         lastEvt->setDescription( lastEvt->getDescription() + " action:Scheduler::finishWork" );
+   #endif
+      }
    }
 }
 
@@ -349,7 +443,6 @@ void AsyncThread::executeInputCopies( WorkDescriptor &work, std::list<CopyData *
       }
 
       evt->setPending();
-      //Action * action = new_action( ( ActionMemFunPtr1<PE, CopyDescriptor>::MemFunPtr1 ) &PE::synchronize, *runningOn(), cd->getCopyDescriptor() );
       Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd->getCopyDescriptor() );
       evt->addNextAction( action );
 #ifdef NANOS_DEBUG_ENABLED
@@ -420,7 +513,6 @@ void AsyncThread::executeOutputCopies( WorkDescriptor& work, std::list<CopyData 
       }
 
       evt->setPending();
-      //Action * action = new_action( ( ActionMemFunPtr1<PE, CopyDescriptor>::MemFunPtr1 ) &PE::synchronize, *runningOn(), cd->getCopyDescriptor() );
       Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd->getCopyDescriptor() );
       evt->addNextAction( action );
 #ifdef NANOS_DEBUG_ENABLED
