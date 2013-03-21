@@ -92,6 +92,19 @@ AC_ARG_ENABLE([icc],
   ]
 )
 
+AC_MSG_CHECKING([for Linux IBM C compiler mode])
+AC_ARG_ENABLE([xlc],
+  AC_HELP_STRING([--enable-xlc],[Enable support fot IBM compiler (off by default)]),
+  [
+    use_xlc=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_xlc=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
 AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
 AC_ARG_ENABLE([mic],
   AC_HELP_STRING([--enable-mic],[Enable support fot Intel MIC compiler (off by default)]),
@@ -110,18 +123,26 @@ AC_ARG_ENABLE([mic],
   ]
 )
 
-if test x$use_icc = xno; then
-	CFLAGS="$CFLAGS -Wredundant-decls"
-	CXXFLAGS="$CXXFLAGS -Wredundant-decls"
-	: ${CC="gcc"}
-	: ${CXX="g++"}
-	: ${FC="gfortran"}
-else
+if test x$use_icc = xyes; then
+    if test x$use_xlc = xyes; then
+        AC_MSG_ERROR([Both Intel and IBM compilers support is enabled. Please, choose only one of them.])
+    else
 	: ${CC="icc"}
 	: ${CXX="icpc"}
 	: ${FC="ifort"}
 	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
 	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
+    fi
+else
+    if test x$use_xlc = xyes; then
+        : ${CC="xlc"}
+        : ${CXX="xlc++"}
+        : ${FC="xlf"}
+    else
+	: ${CC="gcc"}
+	: ${CXX="g++"}
+	: ${FC="gfortran"}
+    fi
 fi
 
 # Check for programs
@@ -137,6 +158,26 @@ AC_PROG_SED
 # Fortran
 AC_PROG_FC([$FC])
 AC_PROG_FC_C_O
+
+# Flags & Compiler dependent stuff
+if test x$ac_cv_cxx_compiler_gnu = xyes; then
+    use_gnu=yes
+fi
+if test x$ac_cv_prog_cc_xlc_c_o = xyes; then
+    use_xlc=yes
+fi
+if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
+    use_xlc=yes
+fi
+
+if test x$use_gnu = xyes; then
+    CFLAGS="$CFLAGS -Wredundant-decls"
+    CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+fi
+
+AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
+AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
+AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
 
 # Check for libraries
 
@@ -166,6 +207,8 @@ AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
 AC_SUBST([SMP_ARCH])
 
+AC_CHECK_SIZEOF([size_t])
+
 #AC_MSG_CHECKING([for architecture])
 smp_ult=yes
 case $host in
@@ -193,18 +236,11 @@ case $host in
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
 
-    case $CC in
-      *-m32*)
-         SMP_ARCH=ppc32
-         ;;
-      *-m64*)
-         SMP_ARCH=ppc64
-         ;;
-      *)
-         # GCC generates ppc32 code by default
-         SMP_ARCH=ppc32
-         ;;
-    esac
+    if test $ac_cv_sizeof_size_t = 8 ; then
+        SMP_ARCH=ppc64
+    else
+        SMP_ARCH=ppc32
+    fi
 
     # Check if it is a Cell system
     if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
@@ -823,6 +859,11 @@ AC_ARG_WITH([chapel],
 
 AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
+
+# Check MKL Support
+AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS],[-lm -lmkl_core])
+AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
+AC_SUBST([MKL_LIBS])
 
 # Output files
 AC_CONFIG_HEADERS([config.h])

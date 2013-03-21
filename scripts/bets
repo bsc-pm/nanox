@@ -342,6 +342,7 @@ run_gen_test ()
    local compile_versions=
    local test_schedule=
    local test_deps_plugins=
+   local test_mode=
    local generator_args=
    clean_test_vars
    clean_${type}_compile_vars
@@ -371,6 +372,9 @@ run_gen_test ()
    fi
    if [ "$test_deps_plugins" ]; then
       generator_args="-d $test_deps_plugins"
+   fi
+   if [ "$test_mode" ]; then
+      generator_args="-m $test_mode"
    fi
 
    if [ "$test_generator" ]; then

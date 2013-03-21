@@ -354,7 +354,7 @@ namespace nanos {
             /* 37 */ registerEventKey("dep-direction", "Dependence direction", true);
 
             /* 38 */ registerEventKey("wd-priority","Priority of a work descriptor");
-                     
+
             /* 39 */ registerEventKey("in-opencl-runtime","Inside OpenCL runtime", true);
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_ALLOC_EVENT", "clCreateBuffer()" );                                     /* 1 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_FREE_EVENT", "clReleaseMemObject()" );                                         /* 2 */
@@ -366,6 +366,7 @@ namespace nanos {
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GET_PROGRAM_EVENT", "Compile, build and clCreateKernel() nanox routine" );                /* 8 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 9 */
 
+            /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }

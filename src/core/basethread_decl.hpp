@@ -118,10 +118,9 @@ namespace nanos
 
          ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
-         int                     _socket;
 
          unsigned int            _maxPrefetch;
-         WDLFQueue               _nextWDs;
+         WDDeque                 _nextWDs;
          unsigned int            _nextWDsCounter;
 
          // Thread status
@@ -173,7 +172,7 @@ namespace nanos
         /*! \brief BaseThread constructor
          */
          BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-            _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ), _socket( 0 ) ,
+            _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
             _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ), _paused( false ),
             _currentWD( NULL  ), _hasTeam( false ), _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
 
@@ -258,12 +257,6 @@ namespace nanos
          int getId() const;
 
          int getCpuId();
-         
-         //! \brief Returns the socket this thread is running on.
-         int getSocket() const;
-         
-         //! \brief Sets the socket this thread is running on.
-         void setSocket( int socket );
 
          bool singleGuard();
          bool enterSingleBarrierGuard ();

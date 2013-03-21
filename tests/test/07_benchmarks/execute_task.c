@@ -16,35 +16,51 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#include "nanos.h"
+#include "common.h"
 
-#ifndef _NANOS_PROCESSING_ELEMENT
-#define _NANOS_PROCESSING_ELEMENT
+/*
+<testinfo>
+test_mode=performance
+test_generator=gens/mcc-openmp-generator
+</testinfo>
+*/
 
-#include <string.h>
-#include "functors.hpp"
-#include "processingelement_decl.hpp"
-#include "workdescriptor.hpp"
-
-using namespace nanos;
-
-inline ProcessingElement::~ProcessingElement()
+// TEST: Task Execution Overhead *******************************************************************
+void test_task_execution_overhead ( stats_t *s )
 {
-   std::for_each(_threads.begin(),_threads.end(),deleter<BaseThread>);
+   int i,j, nthreads = omp_get_max_threads();
+   double times_seq[TEST_NSAMPLES];
+   double times[TEST_NSAMPLES];
+
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      times_seq[i] = GET_TIME;
+      for ( j = 0; j < TEST_NTASKS; j++ ) {
+         task(TEST_TUSECS);
+      }
+      times_seq[i] = GET_TIME - times_seq[i];
+   }
+
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      times[i] = GET_TIME;
+      for ( j = 0; j < TEST_NTASKS; j++ ) {
+#pragma omp task
+         task(TEST_TUSECS);
+      }
+#pragma omp taskwait
+      times[i] = (((GET_TIME - times[i]) - times_seq[i]) * nthreads) / TEST_NTASKS;
+   }
+   stats( s, times, TEST_NSAMPLES);
 }
 
-inline int ProcessingElement::getId() const
+int main ( int argc, char *argv[] )
 {
-   return _id;
+   stats_t s;
+
+   test_task_execution_overhead( &s );
+   print_stats ( "Execute task overhead","warm-up", &s );
+   test_task_execution_overhead( &s );
+   print_stats ( "Execute task overhead","test", &s );
+
+   return 0;
 }
-
-inline const Device & ProcessingElement::getDeviceType () const
-{
-   return *_device;
-}
- 
-inline int ProcessingElement::getNUMANode() const{ return _numaNode; }
-
-inline void ProcessingElement::setNUMANode( int node ){ _numaNode = node; }
-
-#endif
-

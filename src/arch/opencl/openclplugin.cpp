@@ -89,7 +89,9 @@ public:
 
    virtual PE* createPE( unsigned id )
    {
-      return NEW OpenCLProcessor( getBinding( id ) , id );
+      PE * pe = NEW OpenCLProcessor( getBinding( id ) , id );
+      pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
+      return pe;
    }
 
 

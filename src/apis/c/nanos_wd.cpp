@@ -40,7 +40,8 @@ using namespace nanos;
 // Internal definition for const
 struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag 
 {
-   nanos_device_t devices[];
+   // C++ doesn't support C99 flexible array
+   nanos_device_t devices[1];
 };
 
 
