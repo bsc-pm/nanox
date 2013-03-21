@@ -198,7 +198,7 @@ inline void System::loadNUMAInfo ()
    // Same thing, just change the value if the user didn't provide one
    if( _coresPerSocket == 0 )
    {
-      int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_CORE );
+      int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_PU );
       if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
          _coresPerSocket = hwloc_get_nbobjs_by_depth( topology, depth ) / _numSockets;
       }
