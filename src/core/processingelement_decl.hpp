@@ -95,7 +95,6 @@ namespace nanos
 
          virtual BaseThread* getFirstRunningThread();
          virtual BaseThread* getFirstStoppedThread();
-         virtual int getRunningThreads() const;
    };
 
    typedef class ProcessingElement PE;

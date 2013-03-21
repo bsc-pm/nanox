@@ -164,14 +164,3 @@ BaseThread* ProcessingElement::getFirstStoppedThread()
    }
    return NULL;
 }
-
-int ProcessingElement::getRunningThreads() const
-{
-   int n = 0;
-   ThreadList::const_iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->hasTeam() && (*it)->isEligible() )
-         n++;
-   }
-   return n;
-}

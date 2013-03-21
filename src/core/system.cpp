@@ -1197,18 +1197,45 @@ BaseThread * System:: getUnassignedWorker ( void )
    BaseThread *thread;
 
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
-      if ( !_workers[i]->hasTeam() ) {
-         thread = _workers[i];
+      thread = _workers[i];
+      if ( !thread->hasTeam() || !thread->isEligible() ) {
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( thread->hasTeam() ) {
+         if ( thread->hasTeam() && thread->isEligible() ) {
             // we lost it
             thread->unlock();
             continue;
          }
 
          thread->reserve(); // set team flag only
+
+         thread->unlock();
+
+         return thread;
+      }
+   }
+
+   return NULL;
+}
+
+BaseThread * System:: getAssignedWorker ( void )
+{
+   BaseThread *thread;
+
+   ThreadList::reverse_iterator rit;
+   for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
+      thread = *rit;
+      if ( thread->hasTeam() && thread->isEligible() ) {
+
+         // recheck availability with exclusive access
+         thread->lock();
+
+         if ( !thread->hasTeam() || !thread->isEligible() ) {
+            // we lost it
+            thread->unlock();
+            continue;
+         }
 
          thread->unlock();
 
@@ -1340,38 +1367,29 @@ void System::updateActiveWorkers ( int nthreads )
    ThreadTeam *team = myThread->getTeam();
 
    /* Increase _numThreads */
-   for ( unsigned pe_id = 0; nthreads > _numThreads; pe_id++ ) {
+   while ( nthreads - _numThreads > 0 ) {
 
-      fatal_cond( std::abs(_numThreads) < pe_id, "should never get here" );
-      // Create PE & Worker if it does not exist
-      if ( pe_id == _pes.size() ) {
-         createWorker( pe_id );
+      thread = getUnassignedWorker();
+      if ( !thread ) {
+         createWorker( _pes.size() );
+         _numPEs++;
+         continue;
       }
 
-      bool pe_dirty = false;
-      // Double-check the number of threads because we may overflow if the PE has more than one thread
-      while ( nthreads > _numThreads && (thread = _pes[pe_id]->getFirstStoppedThread()) != NULL ) {
-         acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-         thread->signal();
-         _numThreads++;
-         pe_dirty = true;
-      }
-      if ( pe_dirty ) _numPEs++;
+      thread->lock();
+      acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+      thread->signal();
+      thread->unlock();
+      _numThreads++;
    }
 
    /* Decrease _numThreads */
-   for ( unsigned pe_id = _pes.size()-1; nthreads < _numThreads; pe_id-- ) {
-
-      bool pe_dirty = false;
-      // Double-check the number of threads because we may overflow if the PE has more than one thread
-      while ( nthreads < _numThreads && (thread = _pes[pe_id]->getFirstRunningThread()) != NULL ) {
-         thread->sleep();
-         _numThreads--;
-         pe_dirty = true;
-      }
-      if ( pe_dirty ) _numPEs--;
-
-      fatal_cond ( pe_id == 0 && nthreads < _numThreads, "Reached thread 0 and there are still threads to remove" );
+   while ( nthreads - _numThreads < 0 ) {
+      //for ( unsigned th_id = nthreads; nthreads < _numThreads; th_id++ ) {
+      //fatal_cond( th_id >= _workers.size(), "Going through all threads and there are still threads to remove" );
+      thread = getAssignedWorker();
+      thread->sleep();
+      _numThreads--;
    }
 }
 
@@ -1407,8 +1425,10 @@ void System::applyCpuMask()
 
          // This PE should be running
          while ( (thread = _pes[pe_id]->getFirstStoppedThread()) != NULL ) {
+            thread->lock();
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
             thread->signal();
+            thread->unlock();
             _numThreads++;
             pe_dirty = true;
          }

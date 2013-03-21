@@ -365,6 +365,7 @@ namespace nanos
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
+         BaseThread * getAssignedWorker ( void );
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
                                    bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
 
