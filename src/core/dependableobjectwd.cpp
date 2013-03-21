@@ -32,8 +32,10 @@ using namespace nanos;
 
 void DOSubmit::dependenciesSatisfied ( )
 {
-   DependenciesDomain::decreaseTasksInGraph();
-   _submittedWD->submit();
+   if ( needsSubmission() ) {
+      DependenciesDomain::decreaseTasksInGraph();
+      _submittedWD->submit();
+   }
 }
 
 unsigned long DOSubmit::getDescription ( )

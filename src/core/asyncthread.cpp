@@ -133,13 +133,39 @@ void AsyncThread::preRunWD ( WD * wd )
 
 void AsyncThread::runWD ( WD * wd )
 {
+   // Check WD's dependencies
+   if ( wd->getNumDepsPredecessors() != 0 ) {
+      // Its WD predecessor is still running, so enqueue another event
+      // to make this WD wait till the predecessor has finished
+      GenericEvent * deps;
+
+#ifdef NANOS_DEBUG_ENABLED
+      deps = NEW GenericEvent( wd, "Checking WD deps" );
+#else
+      deps = NEW GenericEvent( wd );
+#endif
+
+      Action * depsAction = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, wd );
+      deps->addNextAction( depsAction );
+#ifdef NANOS_DEBUG_ENABLED
+      deps->setDescription( deps->getDescription() + " action:AsyncThread::runWD" );
+#endif
+
+      deps->setRaised();
+
+      // WARNING: push it front to avoid deadlocks
+      _pendingEvents.push_front( deps );
+      _pendingEventsCounter++;
+
+      return;
+   }
+
    debug( "[Async] Running WD " << wd << " : " << wd->getId() );
 
    WD *oldwd = this->getCurrentWD();
    this->setCurrentWD( *wd );
    // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false ) );
-
 
    // This will wait for WD's inputs
    wd->start( WD::IsNotAUserLevelThread );

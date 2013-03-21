@@ -48,6 +48,8 @@ inline void AsyncThread::checkEvents()
          }
          it = _pendingEvents.erase( it );
          _pendingEventsCounter--;
+         // Decrease iterator because it's going to be increased at the end of the loop
+         it--;
       }
    }
 }

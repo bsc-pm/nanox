@@ -221,6 +221,10 @@ namespace nanos
          virtual WD * getNextWD ();
          virtual bool hasNextWD ();
 
+         // Set whether the thread will schedule WDs or not used by getImmediateSuccessor()
+         // If so, WD's dependencies should be kept till WD is finished
+         virtual bool keepWDDeps() { return false; }
+
          // team related methods
          void reserve();
          void enterTeam( TeamData *data = NULL ); 

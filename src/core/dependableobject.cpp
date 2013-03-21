@@ -62,7 +62,7 @@ void DependableObject::finished ( )
    }
 }
 
-DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjectPredicate &condition )
+DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjectPredicate &condition, bool keepDeps )
 {
    DependableObject * found = NULL;
 
@@ -84,7 +84,16 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                   found = NULL;
                } else {
                   NANOS_INSTRUMENT ( instrument ( *found ); )
+
                   DependenciesDomain::decreaseTasksInGraph();
+
+                  if ( keepDeps ) {
+                     // This means that the WD related to this DO does not need to be submitted,
+                     // because someone else will do it
+                     // Keep the dependency to signal when the WD can actually be run respecting dependencies
+                     found->setSubmission( false );
+                     succ.insert( found );
+                  }
                   break;
                }
             }

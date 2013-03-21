@@ -171,7 +171,7 @@ namespace nanos
 
          unsigned                      _depth;        /**< Level (depth) of the task */
 
-         unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
+         unsigned                      _numDevices;   /**< Number of supported devices for this workdescriptor */
          DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
          unsigned int                  _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
 
@@ -184,11 +184,11 @@ namespace nanos
          double                        _executionTime;    /**< WD starting wall-clock time */
          double                        _estimatedExecTime;  /**< WD estimated execution time */
 
-         TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
+         TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's dependencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
          DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
-         LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
+         LazyInit<Directory>           _directory;    /**< Directory to maintain cache coherence */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
@@ -463,6 +463,10 @@ namespace nanos
           */
          TR1::shared_ptr<DOSubmit> & getDOSubmit();
 
+         /*! \brief Returns DOSubmit's number of predecessors
+          */
+         int getNumDepsPredecessors();
+
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
           *  scheduler when its dependencies are satisfied.
@@ -477,7 +481,7 @@ namespace nanos
           */
          void waitOn( size_t numDeps, DataAccess* deps );
 
-         /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
+         /*! If this WorkDescriptor has an immediate successor (i.e., another WD that only depends on him)
              remove it from the dependence graph and return it. */
          WorkDescriptor * getImmediateSuccessor ( BaseThread &thread );
 

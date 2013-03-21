@@ -136,6 +136,10 @@ namespace nanos
          WD * getNextWD ();
          bool hasNextWD ();
 
+         // Set whether the thread will schedule WDs or not used by getImmediateSuccessor()
+         // If so, WD's dependencies should be kept till WD is finished
+         virtual bool keepWDDeps() { return true; }
+
 
          protected:
             void prepareInputCopies( WorkDescriptor &work, std::list<CopyData *> &inputs );

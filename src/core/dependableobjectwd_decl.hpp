@@ -47,7 +47,7 @@ namespace nanos
          /*! \brief DOSubmit copy constructor
           *  \param dos another DOSubmit
           */
-         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos), _submittedWD( dos._submittedWD ) { } 
+         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos), _submittedWD( dos._submittedWD ) { }
 
          /*! \brief DOSubmit assignment operator, can be self-assigned.
           *  \param dos another DOSubmit

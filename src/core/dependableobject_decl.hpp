@@ -55,25 +55,27 @@ namespace nanos
          unsigned int             _id;              /**< DependableObject identifier */
          Atomic<unsigned int>     _numPredecessors; /**< Number of predecessors locking this object */
          unsigned int             _references;      /** References counter */
-         DependableObjectVector   _successors;      /**< List of successiors */
+         DependableObjectVector   _successors;      /**< List of successors */
          DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
          TargetVector             _outputObjects;   /**< List of output objects */
          TargetVector             _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
          volatile bool            _submitted;
+         bool                     _needsSubmission; /**< Does this DependableObject need to be submitted? */
 
       public:
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted(false) {}
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references( 1 ), _successors(), _domain( NULL ), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted( false ), _needsSubmission( false ) {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false) {}
+              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(),
+              _objectLock(), _submitted( false ), _needsSubmission( false ) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -191,9 +193,17 @@ namespace nanos
          */
          bool isSubmitted();
 
-        /*! \breif sets the DO to submitted state
+        /*! \brief sets the DO to submitted state
          */
          void submitted();
+
+         /*! \brief returns true if the DependableObject needs to be submitted in the domain
+          */
+          bool needsSubmission();
+
+         /*! \brief sets the DO as it needs to be submitted
+          */
+          void setSubmission( bool submission );
 
         /*! \brief returns a reference to the object's lock
          */
@@ -209,7 +219,7 @@ namespace nanos
         /*! If there is an object that only depends from this dependable object, then release it and
             return it
          */
-         DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition );
+         DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition, bool keepDeps );
          
    };
 

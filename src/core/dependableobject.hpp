@@ -47,6 +47,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _domain = depObj._domain;
    _outputObjects = depObj._outputObjects;
    _submitted = depObj._submitted;
+   _needsSubmission = depObj._needsSubmission;
    return *this;
 }
 
@@ -153,7 +154,18 @@ inline bool DependableObject::isSubmitted()
 inline void DependableObject::submitted()
 {
    _submitted = true;
+   setSubmission( true );
    memoryFence();
+}
+
+inline bool DependableObject::needsSubmission()
+{
+   return _needsSubmission;
+}
+
+inline void DependableObject::setSubmission( bool submission )
+{
+   _needsSubmission = submission;
 }
 
 inline Lock& DependableObject::getLock()

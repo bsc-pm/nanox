@@ -177,6 +177,8 @@ inline void WorkDescriptor::setEstimatedExecutionTime( double time ) { _estimate
 
 inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
 
+inline int WorkDescriptor::getNumDepsPredecessors() { return ( _doSubmit == NULL ? 0 : _doSubmit->numPredecessors() ); }
+
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
 {
    wd._doSubmit.reset( NEW DOSubmit() );
@@ -215,9 +217,9 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
 {
    if ( _doSubmit == NULL ) return NULL;
    else {
-        DOIsSchedulable predicate(thread);
-        DependableObject * found = _doSubmit->releaseImmediateSuccessor(predicate);
-        return found ? (WD *) found->getRelatedObject() : NULL;
+      DOIsSchedulable predicate( thread );
+      DependableObject * found = _doSubmit->releaseImmediateSuccessor( predicate, thread.keepWDDeps() );
+      return found ? ( WD * ) found->getRelatedObject() : NULL;
    }
 }
 
