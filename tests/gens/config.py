@@ -72,8 +72,8 @@ if options.deps_plugins:
 
 max_cpus=int(max_cpus)
 
-scheduling_small=['--schedule=default','--schedule=affinity']
-scheduling_large=['--schedule=default','--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf', '--schedule=affinity']
+scheduling_small=['--schedule=bf','--schedule=affinity']
+scheduling_large=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf', '--schedule=affinity']
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 barriers=['--barrier=centralized','--barrier=tree']
 binding=['--disable-binding','--no-disable-binding']

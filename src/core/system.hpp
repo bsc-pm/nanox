@@ -140,7 +140,9 @@ inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket =
 
 inline int System::getBindingId ( int pe ) const
 {
-   int tmpId = ( pe * getBindingStride() + getBindingStart() );
+   int stride = getBindingStride();
+   if ( stride == 1 ) stride = 0;
+   int tmpId = ( pe * stride + getBindingStart() );
    return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
 }
 
