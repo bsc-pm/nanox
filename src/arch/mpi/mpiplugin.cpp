@@ -26,11 +26,11 @@ namespace nanos {
 namespace ext {
 
 
-class MPIPlugin : public Plugin
+class MPIPlugin : public ArchPlugin
 {
 
    public:
-      MPIPlugin() : Plugin( "MPI PE Plugin",1 ) {}
+      MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ) {}
 
       virtual void config ( Config& cfg )
       {
@@ -40,6 +40,41 @@ class MPIPlugin : public Plugin
       
       virtual void init() {
       }
+      
+      virtual unsigned getNumHelperPEs() const
+      {
+           return 0;
+      }
+
+      virtual unsigned getNumPEs() const
+      {
+           return 0;
+      }
+
+      virtual unsigned getNumThreads() const
+      {
+           return 0;
+      }
+      
+      
+      virtual void createBindingList()
+      {
+//        /* As we now how many devices we have and how many helper threads we
+//         * need, reserve a PE for them */
+//        for ( unsigned i = 0; i < OpenCLConfig::getOpenCLDevicesCount(); ++i )
+//        {
+//           // TODO: if HWLOC is available, use it.
+//           int node = sys.getNumSockets() - 1;
+//           unsigned pe = sys.reservePE( node );
+//           // Now add this node to the binding list
+//           addBinding( pe );
+//        }
+      }
+
+   virtual PE* createPE( unsigned id )
+   {
+      return NEW MPIProcessor( id , NULL, NULL);
+   }
 };
 }
 }

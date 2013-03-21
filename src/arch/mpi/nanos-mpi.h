@@ -21,9 +21,10 @@
 #define _NANOS_MPI_H_
 
 #include "mpi.h"
-#include "nanos.h" 
-#define MPI_Init nanos_MPI_Init
-#define MPI_Finalize nanos_MPI_Finalize
+#include "nanos-int.h" 
+#include "nanos_error.h"
+#define MPI_Init nanos_mpi_init
+#define MPI_Finalize nanos_mpi_finalize
 
 
 #ifdef __cplusplus
@@ -32,36 +33,41 @@ extern "C" {
 
     typedef struct {
         void (*outline) (void *);
-        MPI_Comm _assignedComm;
-        int _assignedRank;
+        MPI_Comm assignedComm;
+        int assignedRank;
     } nanos_mpi_args_t;
 
     //MPI
     NANOS_API_DECL(void *, nanos_mpi_factory, (void *args));
     
 #define NANOS_MPI_DESC( args ) { nanos_mpi_factory, &( args ) } 
-
-    NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm));
-    NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc_offset, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset));
+    
+    
+    NANOS_API_DECL(int, deep_booster_alloc, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm));
+    NANOS_API_DECL(int, deep_booster_alloc_offset, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset));
 //    NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc_hostfile, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts));
 //    NANOS_API_DECL(nanos_err_t, DEEP_Booster_alloc_hostlist, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts, char* exec_file));
-    NANOS_API_DECL(nanos_err_t, DEEP_Booster_free, (MPI_Comm *intercomm));
-    NANOS_API_DECL(nanos_err_t, DEEP_Booster_free_single, (MPI_Comm *intercomm, int rank));
-    NANOS_API_DECL(nanos_err_t, setMpiExename, (char* new_name));
-    NANOS_API_DECL(nanos_err_t, nanos_MPI_Init, (int* argc, char*** argv));
-    NANOS_API_DECL(nanos_err_t, nanos_MPI_Finalize, (void) );
-    NANOS_API_DECL(nanos_err_t, nanos_set_MPI_control_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size));
+    NANOS_API_DECL(int, deep_booster_free, (MPI_Comm *intercomm));
+    NANOS_API_DECL(int, deep_booster_free_single, (MPI_Comm *intercomm, int rank));
+    NANOS_API_DECL(nanos_err_t, set_mpi_exename, (char* new_name));
+    NANOS_API_DECL(nanos_err_t, nanos_mpi_init, (int* argc, char*** argv));
+    NANOS_API_DECL(void, nanos_mpi_initf, (void));
+    NANOS_API_DECL(nanos_err_t, nanos_mpi_finalize, (void) );
+    NANOS_API_DECL(nanos_err_t, nanos_set_mpi_control_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size));
     //Syncs pointers so device file has exactly the same order than host file
     NANOS_API_DECL(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size,
             unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])()));
-    NANOS_API_DECL(int, nanos_MPI_Send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_MPI_Recv_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
-    NANOS_API_DECL(int, nanos_MPI_Send_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_MPI_Recv_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
-    NANOS_API_DECL(int, nanos_MPI_Send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_MPI_Recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));    
-    NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (char* type));
-    
+    NANOS_API_DECL(int, nanos_mpi_send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
+    NANOS_API_DECL(int, nanos_mpi_recv_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
+    NANOS_API_DECL(int, nanos_mpi_send_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
+    NANOS_API_DECL(int, nanos_mpi_recv_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
+    NANOS_API_DECL(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
+    NANOS_API_DECL(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));   
+    NANOS_API_DECL(int, nanos_mpi_type_create_struct, ( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[],  
+            MPI_Datatype array_of_types[], MPI_Datatype *newtype));
+    NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (char* type));    
+    NANOS_API_DECL(int, nanos_mpi_worker, (void (*ompss_mpi_func_pointers_dev[])()));
+    NANOS_API_DECL(int, nanos_mpi_get_parent, (MPI_Comm* parent_out));
 
 
 #ifdef __cplusplus

@@ -124,6 +124,9 @@ namespace nanos {
 
             static int nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                     MPI_Comm comm, MPI_Status *status);
+            
+            static int nanos_MPI_Type_create_struct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
+                    MPI_Datatype array_of_types[], MPI_Datatype *newtype);
         };
 
     }

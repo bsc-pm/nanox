@@ -153,11 +153,15 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         MPI_Buffer_attach(_bufferPtr, _bufferDefaultSize);
     }
     nanos::MPIDevice::initMPICacheStruct();
-
-    //If this process was spawned, start the daemon-thread
-    if ((*argc) > 1 && !strcmp((*argv)[(*argc) - 1], TAG_MAIN_OMPSS)){
+        
+    MPI_Comm parentcomm; /* intercommunicator */
+    MPI_Comm_get_parent(&parentcomm);
+    //If this process was not spawned, we don't need this daemon-thread
+    if (parentcomm != NULL && parentcomm != MPI_COMM_NULL) {
          //In this case we are child, when nanox spawns us, it fills both args
-        setMpiExename((*argv)[(*argc)-2]);
+        if (argc!=0)
+           setMpiExename((*argv)[(*argc)-2]); //This should not be needed
+        
         //Initialice MPI PE with a communicator and special rank for the cache thread
         PE *mpi = NEW nanos::ext::MPIProcessor(999, MPI_COMM_WORLD, CACHETHREADRANK);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
@@ -383,6 +387,13 @@ int MPIProcessor::nanos_MPI_Send_datastruct(void *buf, int count, MPI_Datatype d
 int MPIProcessor::nanos_MPI_Recv_datastruct(void *buf, int count, MPI_Datatype datatype, int source,
         MPI_Comm comm, MPI_Status *status) {
     return nanos_MPI_Recv(buf, count, datatype, source, TAG_ENV_STRUCT, comm, status);
+}
+
+int MPIProcessor::nanos_MPI_Type_create_struct( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
+        MPI_Datatype array_of_types[], MPI_Datatype *newtype) {
+    int err=MPI_Type_create_struct(count,array_of_blocklengths,array_of_displacements, array_of_types,newtype );
+    MPI_Type_commit(newtype);
+    return err;
 }
 
 int MPIProcessor::nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
