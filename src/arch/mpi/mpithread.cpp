@@ -32,7 +32,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 void MPIThread::initializeDependent() {
-    ((MPIProcessor *) myThread->runningOn())->configureCache(MPIProcessor::_cacheDefaultSize, MPIProcessor::_cachePolicy);
+    ((MPIProcessor *) myThread->runningOn())->configureCache(MPIProcessor::getCacheDefaultSize(), MPIProcessor::getCachePolicy());
 }
 
 void MPIThread::runDependent() {

@@ -153,9 +153,9 @@ NANOS_API_DEF(nanos_err_t, nanos_set_mpi_control_pointers, (int* file_mask, int 
     try {
         int i;
         for (i=0;file_mask[i]==mask;i++);
-        nanos::ext::MPIProcessor::_mpiFileHashname=file_namehash;
-        nanos::ext::MPIProcessor::_mpiFileArrSize=i;
-        nanos::ext::MPIProcessor::_mpiFileSize=file_size;
+        nanos::ext::MPIProcessor::setMpiFileHashname(file_namehash);
+        nanos::ext::MPIProcessor::setMpiFileArrSize(i);
+        nanos::ext::MPIProcessor::setMpiFileSize(file_size);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }

@@ -42,13 +42,7 @@ namespace nanos {
             static size_t _threadsStackSize;
             static size_t _bufferDefaultSize;
             static char* _bufferPtr;
-
-            // disable copy constructor and assignment operator
-            MPIProcessor(const MPIProcessor &pe);
-            const MPIProcessor & operator=(const MPIProcessor &pe);
-
-
-        public:
+            
             //MPI Node data
             static size_t _cacheDefaultSize;
             static System::CachePolicyType _cachePolicy;
@@ -63,11 +57,73 @@ namespace nanos {
             static unsigned int* _mpiFileSize;
             MPI_Comm _communicator;
             int _rank;
+
+            // disable copy constructor and assignment operator
+            MPIProcessor(const MPIProcessor &pe);
+            const MPIProcessor & operator=(const MPIProcessor &pe);
+
+
+        public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
             MPIProcessor(int id, MPI_Comm communicator, int rank);
 
             virtual ~MPIProcessor() {
+            }
+            
+            static size_t getCacheDefaultSize() {
+                return _cacheDefaultSize;
+            }
+
+            static System::CachePolicyType getCachePolicy() {
+                return _cachePolicy;
+            }
+
+            MPI_Comm getCommunicator() const {
+                return _communicator;
+            }
+
+            static int getMpiFileArrSize() {
+                return _mpiFileArrSize;
+            }
+
+            static void setMpiFileArrSize(int mpiFileArrSize) {
+                _mpiFileArrSize = mpiFileArrSize;
+            }
+
+            static unsigned int* getMpiFileHashname() {
+                return _mpiFileHashname;
+            }
+
+            static void setMpiFileHashname(unsigned int* mpiFileHashname) {
+                _mpiFileHashname = mpiFileHashname;
+            }
+
+            static unsigned int* getMpiFileSize() {
+                return _mpiFileSize;
+            }
+
+            static void setMpiFileSize(unsigned int* mpiFileSize) {
+                _mpiFileSize = mpiFileSize;
+            }
+
+            static std::string getMpiFilename() {
+                return _mpiFilename;
+            }
+
+            static std::string getMpiHosts() {
+                return _mpiHosts;
+            }
+            static std::string getMpiHostsFile() {
+                return _mpiHostsFile;
+            }
+
+            static std::string getMpiLauncherFile() {
+                return _mpiLauncherFile;
+            }
+ 
+            int getRank() const {
+                return _rank;
             }
 
             virtual WD & getWorkerWD() const;
@@ -127,9 +183,13 @@ namespace nanos {
             
             static int nanos_MPI_Type_create_struct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
                     MPI_Datatype array_of_types[], MPI_Datatype *newtype);
+            
+            
         };
 
     }
+
+
 }
 
 #endif
