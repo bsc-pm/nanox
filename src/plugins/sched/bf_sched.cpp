@@ -78,9 +78,20 @@ namespace nanos {
 
               return tdata._readyQueue.pop_front( thread );
            }
+
+           WD * atPrefetch ( BaseThread *thread, WD &current )
+           {
+              WD * found = current.getImmediateSuccessor(*thread);
+              return found != NULL ? found : atIdle(thread);
+           }
+        
+           WD * atBeforeExit ( BaseThread *thread, WD &current )
+           {
+              return current.getImmediateSuccessor(*thread);
+           }
       };
 
-      bool BreadthFirst::_useStack = false;
+      bool BreadthFirst::_useStack = true;
 
       class BFSchedPlugin : public Plugin
       {
