@@ -407,6 +407,7 @@ void System::start ()
    // Construct the list of PEs
    for ( unsigned cpu_id = 0; cpu_id < physPes; ++cpu_id )
    {
+      fprintf(stderr, "binding %d to %d\n", cpu_id,getBindingId( cpu_id ));
       _bindings.push_back( getBindingId( cpu_id ) );
    }
    
@@ -1520,7 +1521,7 @@ void System::waitUntilThreadsUnpaused ()
    _unpausedThreadsCond.wait();
 }
 
-unsigned System::reservePE ( unsigned node )
+unsigned System::reservePE ( unsigned node, bool & reserved )
 {
    // For each available PE
    for ( Bindings::reverse_iterator it = _bindings.rbegin(); it != _bindings.rend(); ++it )
@@ -1531,8 +1532,18 @@ unsigned System::reservePE ( unsigned node )
       // If this PE is in the requested node
       if ( currentNode == node )
       {
-         // Take this pe out of the available bindings list.
-         _bindings.erase( --( it.base() ) );
+         // Ensure there is at least one PE for smp
+         if ( _bindings.size() == 1 )
+         {
+            reserved = false;
+            warning( "Cannot reserve PE " << pe << ", there is just one PE left. It will be shared." );
+         }
+         else
+         {
+            // Take this pe out of the available bindings list.
+            _bindings.erase( --( it.base() ) );
+            reserved = true;
+         }
          return pe;
       }
    }

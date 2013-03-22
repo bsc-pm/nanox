@@ -324,10 +324,13 @@ namespace nanos
          /**
           * \brief Reserves a PE to be used exclusively by a certain
           * architecture.
-          * \param node NUMA node to reserve the PE from.
+          * If you try to reserve all PEs, leaving no PEs for SMPs, reserved
+          * will be false and a warning will be displayed.
+          * \param node [in] NUMA node to reserve the PE from.
+          * \param reserved [out] If the PE was successfully reserved or not.
           * \return Id of the PE to reserve.
           */
-         unsigned reservePE ( unsigned node );
+         unsigned reservePE ( unsigned node, bool & reserved );
          
          /**
           * \brief Checks if hwloc is available.
