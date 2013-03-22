@@ -32,7 +32,7 @@ inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, Schedule
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
-                                _wsDescriptor(NULL), _redList()
+                                _wsDescriptor(NULL), _redList(), _lock()
 { }
 
 inline ThreadTeam::~ThreadTeam ()

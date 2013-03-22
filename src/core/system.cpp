@@ -1351,7 +1351,10 @@ void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
 
-   while ( team->size ( ) > 0 ) {}
+   while ( team->size ( ) > 0 ) {
+      // FIXME: Is it really necessary?
+      memoryFence();
+   }
    
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
