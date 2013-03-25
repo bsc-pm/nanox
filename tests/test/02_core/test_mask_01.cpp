@@ -1,6 +1,7 @@
 
 //#define _GNU_SOURCE
 #include <sched.h>
+#include <string.h>
 #include <iostream>
 
 #include "nanos.h"
@@ -70,15 +71,14 @@ int main ( int argc, char *argv[])
    //print_mask( "nanos_mask1: ", &nanos_mask1 );
    //print_mask( "sched_mask1: ", &sched_mask1 );
    //print_mask( "intxn: ", &intxn );
-   //fprintf( stdout, "error is %d\n", error );
 
    CPU_AND( &intxn, &nanos_mask2, &sched_mask2);
    if ( !CPU_EQUAL( &intxn, &sched_mask2 ) ) error++;
-   print_mask( "nanos_mask2: ", &nanos_mask2 );
-   print_mask( "sched_mask2: ", &sched_mask2 );
-   print_mask( "intxn: ", &intxn );
+   //print_mask( "nanos_mask2: ", &nanos_mask2 );
+   //print_mask( "sched_mask2: ", &sched_mask2 );
+   //print_mask( "intxn: ", &intxn );
 
-   //fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
+   fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
 
    return error;
 }

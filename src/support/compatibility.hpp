@@ -116,7 +116,7 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 #endif
 
 // For old machines that do not define CPU_SET macros
-#ifndef CPU_OR
+#if !__GLIBC_PREREQ (2, 7)
 # define __CPU_OP_S(setsize, destset, srcset1, srcset2, op) \
    (__extension__                                                              \
     ({ cpu_set_t *__dest = (destset);                                          \
@@ -128,9 +128,26 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
      ((__cpu_mask *) __dest->__bits)[__i] = __arr1[__i] op __arr2[__i];    \
      __dest; }))
 
+# define __CPU_EQUAL_S(setsize, cpusetp1, cpusetp2) \
+   (__extension__                                                              \
+    ({ __const __cpu_mask *__arr1 = (cpusetp1)->__bits;                        \
+     __const __cpu_mask *__arr2 = (cpusetp2)->__bits;                        \
+     size_t __imax = (setsize) / sizeof (__cpu_mask);                        \
+     size_t __i;                                                             \
+     for (__i = 0; __i < __imax; ++__i)                                      \
+     if (__arr1[__i] != __arr2[__i])                                       \
+     break;                                                              \
+     __i == __imax; }))
+
+# define CPU_AND(destset, srcset1, srcset2) \
+  __CPU_OP_S (sizeof (cpu_set_t), destset, srcset1, srcset2, &)
+
 # define CPU_OR(destset, srcset1, srcset2) \
-   __CPU_OP_S (sizeof (cpu_set_t), destset, srcset1, srcset2, |)
-#endif /* CPU_OR */
+  __CPU_OP_S (sizeof (cpu_set_t), destset, srcset1, srcset2, |)
+
+# define CPU_EQUAL(cpusetp1, cpusetp2) \
+  __CPU_EQUAL_S (sizeof (cpu_set_t), cpusetp1, cpusetp2)
+#endif /* GLIBC < 2.7 */
 
 #endif
 
