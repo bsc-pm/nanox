@@ -159,9 +159,7 @@ RegionCache &SeparateAddressSpace::getCache() {
 }
 
 ProcessingElement &SeparateAddressSpace::getPE() {
-   std::cerr << " get id " << (void *) &_cache << " this " << (void *) this << std::endl;
    memory_space_id_t id = _cache.getMemorySpaceId();
-   std::cerr << " get id " << id << std::endl;
    return sys.getPEWithMemorySpaceId( id );
 }
 

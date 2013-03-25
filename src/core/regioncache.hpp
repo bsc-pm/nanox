@@ -36,7 +36,7 @@ inline void AllocatedChunk::removeReference() {
    */
 }
 
-inline unsigned int AllocatedChunk::getReferenceCount() const { return _refs; }
+inline unsigned int AllocatedChunk::getReferenceCount() const { return _refs.value(); }
 
 inline bool AllocatedChunk::isDirty() const {
    return _dirty;

@@ -880,7 +880,7 @@ AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg ) const 
       else
          allocChunkPtr = NULL;
    }
-   if ( !allocChunkPtr ) { std::cerr << "Error, null region "; reg.key->printRegion( reg.id ); std::cerr << std::endl; }
+   if ( !allocChunkPtr ) { sys.printBt(); std::cerr << "Error, null region "; reg.key->printRegion( reg.id ); std::cerr << std::endl; }
    ensure(allocChunkPtr != NULL, "Chunk not found!");
    if ( allocChunkPtr ) {
       //std::cerr << "AllocChunkPtr is " << allocChunkPtr << std::endl;

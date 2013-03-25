@@ -132,10 +132,15 @@ namespace nanos {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
                         if( sys.usingNewCache() ) {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                           for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
-                                 return false;
+                           if ( !locs.empty() ) {
+                              for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+                                    return false;
+                                 }
                               }
+                           } else {
+                              if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) )
+                                 return false;
                            }
                         } else {
                            NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
@@ -163,10 +168,15 @@ namespace nanos {
                         if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                           for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
-                                 return true;
+                           if ( !locs.empty() ) {
+                              for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+                                    return true;
+                                 }
                               }
+                           } else {
+                              if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) 
+                                 return true;
                            }
                         } else {
                            NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
@@ -193,10 +203,15 @@ namespace nanos {
                         if( sys.usingNewCache() ) {
                            ///NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                           for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0) ) {
-                                 return true;
+                           if ( ! locs.empty() ) {
+                              for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0) ) {
+                                    return true;
+                                 }
                               }
+                           } else {
+                              if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) )
+                                 return true;
                            }
                         } else {
                            NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
@@ -224,11 +239,17 @@ namespace nanos {
                         if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                           for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() )
-                              && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 )  ) {
-                                 return true;
+                           if ( !locs.empty() ) {
+                              for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() )
+                                 && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 )  ) {
+                                    return true;
+                                }
                               }
+                           } else {
+                              if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) &&
+                                 wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) )
+                                 return true;
                            }
                         } else {
                            NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
@@ -256,10 +277,16 @@ namespace nanos {
                         if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                           for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 ) ) {
-                                 return true;
+                           if ( !locs.empty() ) {
+                              for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 ) ) {
+                                    return true;
+                                 }
                               }
+                           } else {
+                                 if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && 
+                                      ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) ) 
+                                    return true;
                            }
                         } else {
                            NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
@@ -286,10 +313,16 @@ namespace nanos {
                         if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                           for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 ) ) {
-                                 return true;
+                           if ( !locs.empty() ) {
+                              for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 ) ) {
+                                    return true;
+                                 }
                               }
+                           } else {
+                              if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) &&
+                                    ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) )
+                                    return true;
                            }
                         } else {
                            NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();

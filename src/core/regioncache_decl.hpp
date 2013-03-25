@@ -115,7 +115,7 @@ namespace nanos {
          unsigned int                      _lruStamp;
          std::size_t                       _roBytes;
          std::size_t                       _rwBytes;
-         unsigned int                      _refs;
+         Atomic<unsigned int>              _refs;
          global_reg_t                      _allocatedRegion;
          
          RegionTree< CachedRegionStatus > *_regions;
