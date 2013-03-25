@@ -426,7 +426,7 @@ AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
 
       CFLAGS="$CFLAGSBACKUP"
       CPPFLAGS="$CPPFLAGSBACKUP"
-      CXXFLAGS="$CFLAGSBACKUP"
+      CXXFLAGS="$CXXFLAGSBACKUP"
       LDFLAGS="$LDFLAGSBACKUP"
       #endtest
 	]
