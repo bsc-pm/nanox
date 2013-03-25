@@ -452,9 +452,11 @@ void System::start ()
    spu->startWorker();
 #endif
 
-   /* Master thread is ready and waiting for the rest of the gang */
-   if ( getSynchronizedStart() )
-     threadReady();
+
+   if ( getSynchronizedStart() ) {
+      // Wait for the rest of the gang to be ready, but do not yet notify master thread is ready
+      while (_initializedThreads.value() < ( _targetThreads - 1 ) ) {}
+   }
 
    switch ( getInitialMode() )
    {
@@ -476,6 +478,10 @@ void System::start ()
    NANOS_INSTRUMENT ( nanos_event_value_t team_size =  (nanos_event_value_t) myThread->getTeam()->size(); )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &team_size); )
    
+   /* Master thread is ready now */
+   if ( getSynchronizedStart() )
+     threadReady();
+
    // Paused threads: set the condition checker 
    _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), _workers.size() ) );
    _unpausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), 0 ) );
