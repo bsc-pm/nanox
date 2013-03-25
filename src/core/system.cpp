@@ -407,7 +407,6 @@ void System::start ()
    // Construct the list of PEs
    for ( unsigned cpu_id = 0; cpu_id < physPes; ++cpu_id )
    {
-      fprintf(stderr, "binding %d to %d\n", cpu_id,getBindingId( cpu_id ));
       _bindings.push_back( getBindingId( cpu_id ) );
    }
    
