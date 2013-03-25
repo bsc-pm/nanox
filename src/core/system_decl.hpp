@@ -42,7 +42,6 @@
 #include "pinnedallocator_decl.hpp"
 #endif
 
-
 namespace nanos
 {
 
@@ -70,11 +69,12 @@ namespace nanos
          //! CPU id binding list
          typedef std::vector<int> Bindings;
          
-         // globla seeds
+         // global seeds
          Atomic<int> _atomicWDSeed;
+         Atomic<int> _threadIdSeed;
 
          // configuration variables
-         int                  _numPEs;
+         unsigned int         _numPEs;
          int                  _numThreads;
          int                  _deviceStackSize;
          int                  _bindingStart;
@@ -95,9 +95,9 @@ namespace nanos
          int                  _currentSocket;
 
 	 // Nanos++ scheduling domain
-   	 cpu_set_t            _cpu_set;
-   	 int                  _cpu_id[CPU_SETSIZE];
-   	 int                  _cpu_count;
+         cpu_set_t            _cpu_set;
+         std::set<int>        _cpu_mask;  /* current mask information */
+         std::vector<int>     _pe_map;    /* binding map of every PE. Only adding is allowed. */
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -165,6 +165,11 @@ namespace nanos
          
          //! CPU id binding list
          Bindings             _bindings;
+         
+         //! hwloc topology structure
+         void *               _hwlocTopology;
+         //! Path to a hwloc topology xml
+         std::string          _topologyPath;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -181,6 +186,14 @@ namespace nanos
          void config ();
          void loadModules();
          void unloadModules();
+         void createWorker( unsigned p );
+         void acquireWorker( ThreadTeam * team, BaseThread * thread, bool enter=true, bool star=false, bool creator=false );
+         void increaseActiveWorkers( unsigned nthreads );
+         void decreaseActiveWorkers( unsigned nthreads );
+         void applyCpuMask();
+         
+         void loadHwloc();
+         void unloadHwloc();
          
          PE * createPE ( std::string pe_type, int pid );
 
@@ -224,21 +237,25 @@ namespace nanos
          void setNumPEs ( int npes );
 
          int getNumPEs () const;
-         
+
          //! \brief Returns the maximum number of threads (SMP + GPU + ...). 
          unsigned getMaxThreads () const; 
-         
+
          void setNumThreads ( int nthreads );
-         
+
          int getNumThreads () const;
 
-         int getCpuId ( int idx ) const;
-	 
          int getCpuCount ( ) const;
+
+         void getCpuMask ( cpu_set_t *mask ) const;
+
+         void setCpuMask ( cpu_set_t *mask );
+
+         void addCpuMask ( cpu_set_t *mask );
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
-         int checkCpuMask(cpu_set_t *mask);
+         int getMaskMaxSize() const;
 
          void setDeviceStackSize ( int stackSize );
 
@@ -305,22 +322,40 @@ namespace nanos
          int getBindingId ( int pe ) const;
          
          /**
-          * \brief Returns a new PE id that takes into account the binding list,
-          * meaning that the first calls to this function will only return the
-          * SMP ids, and then the other architectures' ids will follow.
-          * For instance, in Minotauro (12 HW threads, 2 NUMA nodes, 1 GPU per
-          * node), getBindingId will return 0,1,2,3,4,6,7,8,9,10,5,11, provided
-          * that binding start is 0 and the stride is 1.
-          */
-         int getNUMABinding( int id ) const;
-         
-         /**
           * \brief Reserves a PE to be used exclusively by a certain
           * architecture.
-          * \param node NUMA node to reserve the PE from.
+          * If you try to reserve all PEs, leaving no PEs for SMPs, reserved
+          * will be false and a warning will be displayed.
+          * \param node [in] NUMA node to reserve the PE from.
+          * \param reserved [out] If the PE was successfully reserved or not.
           * \return Id of the PE to reserve.
           */
-         unsigned reservePE( unsigned node );
+         unsigned reservePE ( unsigned node, bool & reserved );
+         
+         /**
+          * \brief Checks if hwloc is available.
+          */
+         bool isHwlocAvailable () const;
+         
+         /**
+          * \brief Returns the hwloc_topology_t structure.
+          * This structure will only be available for a short window during
+          * System::start. Otherwise, NULL will be returned.
+          * In order to avoid surrounding this function by ifdefs, it returns
+          * a void * that you must cast to hwloc_topology_t.
+          */
+         void * getHwlocTopology ();
+         
+         /**
+          * \brief Sets the number of NUMA nodes and cores per node.
+          * Uses hwloc if available, and also checks if both settings make sense.
+          */
+         void loadNUMAInfo ();
+         
+         /** \brief Retrieves the NUMA node of a given PE.
+          *  \note Will use hwloc if available.
+          */
+         unsigned getNodeOfPE ( unsigned pe );
 
          void setUntieMaster ( bool value );
 
@@ -329,8 +364,11 @@ namespace nanos
          void setSynchronizedStart ( bool value );
          bool getSynchronizedStart ( void ) const;
 
+         int nextThreadId ();
+
          // team related methods
          BaseThread * getUnassignedWorker ( void );
+         BaseThread * getAssignedWorker ( void );
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
                                    bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
 
@@ -338,6 +376,8 @@ namespace nanos
 
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
+
+         void updateActiveWorkers ( int nthreads );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

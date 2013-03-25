@@ -196,14 +196,16 @@ inline bool WDDeque::removeWDWithConstraints( BaseThread *thread, WorkDescriptor
 inline void WDDeque::increaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
+   NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
    _nelems++;
 }
 
 inline void WDDeque::decreaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
+   NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
    _nelems--;
 }
 
@@ -380,7 +382,7 @@ template<typename T>
 inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor *wd, bool fifo )
 {
    // Find where to insert the wd
-   BaseContainer::iterator it;
+   WDPQ::BaseContainer::iterator it;
    
    if ( fifo ) {
       // #637: Insert at the back if possible
@@ -402,7 +404,7 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor *wd, bool fifo )
 }
 
 template<typename T>
-inline WDPriorityQueue<T>::BaseContainer::iterator
+inline WDPQ::BaseContainer::iterator
 WDPriorityQueue<T>::upper_bound( const WD *wd )
 {
    if ( _reverse )
@@ -411,7 +413,7 @@ WDPriorityQueue<T>::upper_bound( const WD *wd )
 }
 
 template<typename T>
-inline WDPriorityQueue<T>::BaseContainer::iterator
+inline WDPQ::BaseContainer::iterator
 WDPriorityQueue<T>::lower_bound( const WD *wd )
 {
    if ( _reverse )
@@ -494,7 +496,7 @@ inline WorkDescriptor * WDPriorityQueue<T>::popWithConstraints ( BaseThread *thr
       memoryFence();
 
       if ( !_dq.empty() ) {
-         BaseContainer::iterator it;
+         WDPQ::BaseContainer::iterator it;
          for ( it = _dq.begin(); it != _dq.end() ; ++it ) {
             WD &wd = *(WD *)*it;
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
@@ -527,7 +529,7 @@ inline bool WDPriorityQueue<T>::removeWDWithConstraints( BaseThread *thread, Wor
    if ( !Scheduler::checkBasicConstraints( *toRem, *thread) || !Constraints::check(*toRem, *thread) ) return false;
 
    *next = NULL;
-   BaseContainer::iterator it;
+   WDPQ::BaseContainer::iterator it;
 
    {
       LockBlock lock( _lock );
@@ -558,8 +560,8 @@ inline bool WDPriorityQueue<T>::reorderWD( WorkDescriptor *wd )
    LockBlock l( _lock );
    
    // Find the WD
-   BaseContainer::iterator it =
-      find( _dq.begin(), _dq.end(), wd );
+   WDPQ::BaseContainer::iterator it =
+      std::find( _dq.begin(), _dq.end(), wd );
 
    // If the WD was not found, return false
    if( it == _dq.end() ){
@@ -577,7 +579,8 @@ template<typename T>
 inline void WDPriorityQueue<T>::increaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
+   NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
    _nelems++;
 }
 
@@ -585,7 +588,8 @@ template<typename T>
 inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
+   NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
    _nelems--;
 }
 

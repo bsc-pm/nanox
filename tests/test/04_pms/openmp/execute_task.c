@@ -16,8 +16,8 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#include "nanos.h"
-#include "common.h"
+#include "stdio.h"
+#include "omp.h"
 
 /*
 <testinfo>
@@ -25,41 +25,30 @@ test_generator=gens/mcc-openmp-generator
 </testinfo>
 */
 
-// TEST: Task Execution Overhead *******************************************************************
-void test_task_execution_overhead ( stats_t *s )
-{
-   int i,j, nthreads = omp_get_max_threads();
-   double times_seq[TEST_NSAMPLES];
-   double times[TEST_NSAMPLES];
+#define TEST_NSAMPLES   50 // Number of samples for each test
+#define TEST_NTASKS     50 // Number of tasks (when multiple tasks created)
+#define TEST_TUSECS     50 // Task granularity (usecs) in warming up phase
 
-   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
-      times_seq[i] = GET_TIME;
-      for ( j = 0; j < TEST_NTASKS; j++ ) {
-         task(TEST_TUSECS);
-      }
-      times_seq[i] = GET_TIME - times_seq[i];
-   }
+int A[TEST_NTASKS];
 
-   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
-      times[i] = GET_TIME;
-      for ( j = 0; j < TEST_NTASKS; j++ ) {
-#pragma omp task
-         task(TEST_TUSECS);
-      }
-#pragma omp taskwait
-      times[i] = (((GET_TIME - times[i]) - times_seq[i]) * nthreads) / TEST_NTASKS;
-   }
-   stats( s, times, TEST_NSAMPLES);
-}
+void task ( int i ) { A[i]++; }
 
+// TEST: Task Execution ***************************************************************************
 int main ( int argc, char *argv[] )
 {
-   stats_t s;
+   int i,j; // indexes
+   int result = 0;
 
-   test_task_execution_overhead( &s );
-   print_stats ( "Execute task overhead","warm-up", &s );
-   test_task_execution_overhead( &s );
-   print_stats ( "Execute task overhead","test", &s );
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      for ( j = 0; j < TEST_NTASKS; j++ ) {
+#pragma omp task firstprivate(j)
+         task(j);
+      }
+#pragma omp taskwait
+   }
 
-   return 0;
+      for ( j = 0; j < TEST_NTASKS; j++ ) 
+         if ( A[j] != TEST_NSAMPLES ) { result = 1; break; }
+
+   fprintf(stderr, "Result is %s\n", result? "successful": "UNSUCCESSFUL"); return result;
 }

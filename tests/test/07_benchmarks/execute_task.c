@@ -1,5 +1,4 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -17,49 +16,51 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+#include "nanos.h"
+#include "common.h"
 
-#ifndef NANOS_PM_INTERFACE_DECL
-#define NANOS_PM_INTERFACE_DECL
+/*
+<testinfo>
+test_mode=performance
+test_generator=gens/mcc-openmp-generator
+</testinfo>
+*/
 
-#include "config_fwd.hpp"
-#include "workdescriptor_decl.hpp"
-#include "threadteam_decl.hpp"
-
-class PMInterface
+// TEST: Task Execution Overhead *******************************************************************
+void test_task_execution_overhead ( stats_t *s )
 {
-   protected:
-      std::string    _description; /*< String describing Programming Model Interface */
-   private:
-      /*! \brief PMInterface copy constructor (private)
-       */
-      PMInterface( PMInterface &pmi );
-      /*! \brief PMInterface copy assignment operator (private)
-       */
-      PMInterface& operator= ( PMInterface &pmi );
-   public:
-      /*! \brief PMInterface default constructor
-       */
-      PMInterface() {}
-      /*! \brief PMInterface destructor
-       */
-      virtual ~PMInterface() {}
+   int i,j, nthreads = omp_get_max_threads();
+   double times_seq[TEST_NSAMPLES];
+   double times[TEST_NSAMPLES];
 
-      virtual int getInternalDataSize() const { return 0; }
-      virtual int getInternalDataAlignment() const { return 1; }
-      virtual void initInternalData( void *data ) {}
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      times_seq[i] = GET_TIME;
+      for ( j = 0; j < TEST_NTASKS; j++ ) {
+         task(TEST_TUSECS);
+      }
+      times_seq[i] = GET_TIME - times_seq[i];
+   }
 
-      virtual void config (nanos::Config &cfg) {}
-      virtual void start () { _description = std::string("none"); }
-      virtual void finish() {}
+   for ( i = 0; i < TEST_NSAMPLES; i++ ) {
+      times[i] = GET_TIME;
+      for ( j = 0; j < TEST_NTASKS; j++ ) {
+#pragma omp task
+         task(TEST_TUSECS);
+      }
+#pragma omp taskwait
+      times[i] = (((GET_TIME - times[i]) - times_seq[i]) * nthreads) / TEST_NTASKS;
+   }
+   stats( s, times, TEST_NSAMPLES);
+}
 
-      virtual void setupWD( nanos::WD &wd ) {}
-      virtual void wdStarted( nanos::WD &wd ) {}
-      virtual void wdFinished( nanos::WD &wd ) {}
+int main ( int argc, char *argv[] )
+{
+   stats_t s;
 
-      virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
-      std::string getDescription( void ) { return _description; }
+   test_task_execution_overhead( &s );
+   print_stats ( "Execute task overhead","warm-up", &s );
+   test_task_execution_overhead( &s );
+   print_stats ( "Execute task overhead","test", &s );
 
-      virtual void updateNumThreads() {}
-};
-
-#endif /* PM_INTERFACE_HPP_ */
+   return 0;
+}

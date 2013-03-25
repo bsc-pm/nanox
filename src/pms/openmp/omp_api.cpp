@@ -41,7 +41,7 @@ extern "C"
    NANOS_API_DEF(int, omp_get_max_threads, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      return data->icvs().getNumThreads();
+      return data->icvs()->getNumThreads();
    }
 
    int nanos_omp_get_max_threads ( void ) __attribute__ ((alias ("omp_get_max_threads")));
@@ -50,8 +50,12 @@ extern "C"
    NANOS_API_DEF(void, omp_set_num_threads, ( int nthreads ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setNumThreads(nthreads);
+      data->icvs()->setNumThreads( nthreads );
+      sys.getPMInterface().updateNumThreads();
    }
+
+   int nanos_omp_set_num_threads ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
+   int nanos_omp_set_num_threads_ ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
 
    NANOS_API_DEF(int, omp_get_thread_num, ( void ))
    {
@@ -75,37 +79,37 @@ extern "C"
    NANOS_API_DEF(void, omp_set_dynamic, ( int dynamic_threads ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setDynamic((bool) dynamic_threads);
+      data->icvs()->setDynamic((bool) dynamic_threads);
    }
 
    NANOS_API_DEF(int, omp_get_dynamic, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      return (int) data->icvs().getDynamic();
+      return (int) data->icvs()->getDynamic();
    }
 
    NANOS_API_DEF(void, omp_set_nested, ( int nested ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setNested((bool) nested);
+      data->icvs()->setNested((bool) nested);
    }
 
    NANOS_API_DEF(int, omp_get_nested, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      return (int) data->icvs().getNested();
+      return (int) data->icvs()->getNested();
    }
 
    NANOS_API_DEF(void, omp_set_schedule, ( omp_sched_t kind, int modifier ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setSchedule( LoopSchedule(kind,modifier) );
+      data->icvs()->setSchedule( LoopSchedule(kind,modifier) );
    }
 
    NANOS_API_DEF(void, omp_get_schedule, ( omp_sched_t *kind, int *modifier ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      const LoopSchedule &schedule = data->icvs().getSchedule();
+      const LoopSchedule &schedule = data->icvs()->getSchedule();
 
       *kind = schedule._kind;
       *modifier = schedule._modifier;

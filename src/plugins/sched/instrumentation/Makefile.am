@@ -22,7 +22,6 @@ include $(top_srcdir)/src/common.am
 
 if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES = \
-	libnanox-sched-default.la\
 	libnanox-sched-bf.la \
 	libnanox-sched-dbf.la \
  	libnanox-sched-cilk.la \
@@ -36,10 +35,9 @@ instrumentation_LTLIBRARIES = \
 	$(END)
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
-
-libnanox_sched_default_la_CXXFLAGS = $(nanos_instr_cxxflags)
-libnanox_sched_default_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_sched_default_la_SOURCES = $(default_sources)
+if IBM_C
+nanos_instr_cxxflags += -qnoinline
+endif
 
 libnanox_sched_bf_la_CXXFLAGS = $(nanos_instr_cxxflags)
 libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)

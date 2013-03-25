@@ -81,7 +81,9 @@ public:
       {
          // TODO: if HWLOC is available, use it.
          int node = sys.getNumSockets() - 1;
-         unsigned pe = sys.reservePE( node );
+         bool reserved;
+         unsigned pe = sys.reservePE( node, reserved );
+         
          // Now add this node to the binding list
          addBinding( pe );
       }
@@ -89,7 +91,9 @@ public:
 
    virtual PE* createPE( unsigned id )
    {
-      return NEW OpenCLProcessor( getBinding( id ) , id );
+      PE * pe = NEW OpenCLProcessor( getBinding( id ) , id );
+      pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
+      return pe;
    }
 
 

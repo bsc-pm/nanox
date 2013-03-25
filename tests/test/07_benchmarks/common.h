@@ -109,13 +109,13 @@ void print_stats ( const char *name, const char *desc, stats_t *s )
    nanos_get_default_binding( &binding );
 
 
-   fprintf(stderr, "*:Nanos++:%s:%s:%d:%s:%s:%3.3f:%3.3f:%3.3f:%3.3f:%0.3f:%d:%s:%s:%s\n",
-                   nanos_get_mode(),
-                   nanos_get_pm(),
+   fprintf(stderr, "*:Nanos++:%d:%s:%s:%3.3f:%3.3f:%3.3f:%3.3f:%0.3f:%d:%s:%s:%s:%s:%s\n",
                    get_epoch(),
                    name, desc,
                    s->mean, s->sd, s->min, s->max, s->outliers,
                    omp_get_max_threads(),
+                   nanos_get_mode(),
+                   nanos_get_pm(),
                    binding ? "binding" : "no-biding",
                    nanos_get_default_architecture(),
                    nanos_get_default_scheduler()

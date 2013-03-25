@@ -40,7 +40,8 @@ using namespace nanos;
 // Internal definition for const
 struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag 
 {
-   nanos_device_t devices[];
+   // C++ doesn't support C99 flexible array
+   nanos_device_t devices[1];
 };
 
 
@@ -294,6 +295,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       int pmDataSize = sys.getPMInterface().getInternalDataSize();
       char pmData[pmDataSize];
       if ( pmDataSize > 0 ) {
+        sys.getPMInterface().initInternalData( pmData );
         wd.setInternalData(pmData);
       }
 
