@@ -220,6 +220,10 @@ inline unsigned System::getNodeOfPE ( unsigned pe )
    // Now we have the PU object, go find its parent numa node
    hwloc_obj_t numaNode =
       hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, pu );
+   
+   // If the machine is not NUMA
+   if ( numaNode == NULL )
+      return 0;
 
    return numaNode->os_index;
 #else
