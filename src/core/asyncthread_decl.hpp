@@ -84,7 +84,7 @@ namespace nanos
 
          // TODO: Consider if we need them
          virtual void initializeDependent( void ) {}
-         virtual void runDependent ( void );
+         //virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent ( WD &work );
          virtual bool runWDDependent ( WD &work ) = 0;

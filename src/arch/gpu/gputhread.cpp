@@ -137,7 +137,11 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
-   AsyncThread::runDependent();
+   if ( getTeam() == NULL ) {
+      warning( "This GPUThread needs a team to work, but no team was found. The thread will exit.");
+      return;
+   }
+
 
    dd.getWorkFct()( work.getData() );
 
