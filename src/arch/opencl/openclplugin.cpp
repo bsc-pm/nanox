@@ -36,6 +36,13 @@ namespace ext {
 
 class OpenCLPlugin : public ArchPlugin
 {
+   
+private:
+    
+   static std::string _devTy;
+
+   friend class OpenCLConfig;
+   
 public:
    OpenCLPlugin() : ArchPlugin( "OpenCL PE Plugin", 1 ) { }
 
@@ -43,12 +50,20 @@ public:
 
    void config( Config &cfg )
    {
+      // Select the device to use.
+      cfg.registerConfigOption( "opencl-device-type",
+                                NEW Config::StringVar( _devTy ),
+                                "Defines the OpenCL device type to use "
+                                "(ALL, CPU, GPU, ACCELERATOR)" );
+      cfg.registerEnvOption( "opencl-device-type", "NX_OPENCL_DEVICE_TYPE" );
+      cfg.registerArgOption( "opencl-device-type", "opencl-device-type" );
+   
       OpenCLConfig::prepare( cfg );
    }
 
    void init()
    {
-      OpenCLConfig::apply();
+      OpenCLConfig::apply(_devTy);
    }
    
    /*virtual unsigned getPEsInNode( unsigned node ) const
@@ -95,10 +110,9 @@ public:
       pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
       return pe;
    }
-
-
 };
 
+std::string OpenCLPlugin::_devTy = "ALL";
 } // End namespace ext.
 } // End namespace nanos.
 
