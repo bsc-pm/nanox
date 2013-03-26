@@ -20,4 +20,5 @@ pe_mpi_sources = \
 	$(top_srcdir)/src/arch/mpi/mpiplugin.cpp \
 	$(END)
 
-mpi_api_flags = -I$(top_srcdir)/src/apis/c
+mpi_api_flags = -I$(top_srcdir)/src/apis/c \
+                -DNANOX_PREFIX=\"$(NANOX_MPI_PREFIX)\"

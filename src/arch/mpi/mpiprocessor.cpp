@@ -33,7 +33,7 @@ size_t MPIProcessor::_bufferDefaultSize = 0;
 char* MPIProcessor::_bufferPtr = 0;
 std::string MPIProcessor::_mpiFilename;
 std::string MPIProcessor::_mpiExecFile;
-std::string MPIProcessor::_mpiLauncherFile="./ompss_launch.sh";
+std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/ompss_mpi_launch.sh";
 std::string MPIProcessor::_mpiHosts;
 std::string MPIProcessor::_mpiHostsFile;
 unsigned int* MPIProcessor::_mpiFileHashname;

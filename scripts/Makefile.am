@@ -27,12 +27,14 @@ EXTRA_DIST=\
            Makefile.am \
            preamble.txt \
            extrae_post_process.sh \
+           ompss_mpi_launch.sh \
            nanox.spec \
            nanox\
            $(END)
 
 bin_SCRIPTS=\
-	extrae_post_process.sh\
+	extrae_post_process.sh \
+    ompss_mpi_launch.sh \
    nanox\
 	$(END)
 
