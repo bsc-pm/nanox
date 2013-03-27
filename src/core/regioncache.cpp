@@ -1018,7 +1018,7 @@ void RegionCache::_copyDevToDev( memory_space_id_t copyFrom, uint64_t devAddr, u
    AllocatedChunk *origChunk = sys.getSeparateMemory( copyFrom ).getCache().getAddress( hostAddr, len );
    uint64_t origDevAddr = origChunk->getAddress() + ( hostAddr - origChunk->getHostAddress() );
    origChunk->unlock();
-   CompleteOpFunctor *f = NEW CompleteOpFunctor( ops );
+   CompleteOpFunctor *f = NEW CompleteOpFunctor( ops, origChunk );
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
    //std::cerr << "_device._copyDevToDev( copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len, _pe, sys.getSeparateMemory( copyFrom="<< copyFrom<<" ), ops, wd="<< wd.getId() << ", f="<< f <<" );" <<std::endl;
    if (!fake) _device._copyDevToDev( devAddr, origDevAddr, len, sys.getSeparateMemory( _memorySpaceId ), sys.getSeparateMemory( copyFrom ), ops, wd, f );
@@ -1030,7 +1030,7 @@ void RegionCache::_copyDevToDevStrided1D( memory_space_id_t copyFrom, uint64_t d
    AllocatedChunk *origChunk = sys.getSeparateMemory( copyFrom ).getCache().getAddress( hostAddr, len );
    uint64_t origDevAddr = origChunk->getAddress() + ( hostAddr - origChunk->getHostAddress() );
    origChunk->unlock();
-   CompleteOpFunctor *f = NEW CompleteOpFunctor( ops );
+   CompleteOpFunctor *f = NEW CompleteOpFunctor( ops, origChunk );
    //std::cerr << "_device._copyDevToDevStrided1D( copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len, _pe, sys.getCaches()[ copyFrom="<< copyFrom<<" ]->_pe, ops, wd="<< wd.getId() <<", f="<< f <<" );"<<std::endl;
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
    if (!fake) _device._copyDevToDevStrided1D( devAddr, origDevAddr, len, numChunks, ld, sys.getSeparateMemory( _memorySpaceId ), sys.getSeparateMemory( copyFrom ), ops, wd, f );
@@ -1772,8 +1772,7 @@ bool CacheController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &v
    return (resultSUBR || resultSUPER || resultHIT) ;
 }
 
-CompleteOpFunctor::CompleteOpFunctor( DeviceOps *ops ) {
-   _ops = ops;
+CompleteOpFunctor::CompleteOpFunctor( DeviceOps *ops, AllocatedChunk *chunk ) : _ops( ops ), _chunk( chunk ) {
 }
 
 CompleteOpFunctor::~CompleteOpFunctor() {
@@ -1781,7 +1780,8 @@ CompleteOpFunctor::~CompleteOpFunctor() {
 
 void CompleteOpFunctor::operator()() {
    //fprintf(stderr, "EXECURE FUNCTOR!!! \n");
-   _ops->completeOp();
+   //_ops->completeOp();
+   _chunk->removeReference();
 }
 
 //unsigned int RegionCache::getVersionAllocateChunkIfNeeded( global_reg_t const &reg, bool increaseVersion ) {

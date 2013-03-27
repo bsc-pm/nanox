@@ -78,12 +78,17 @@ void MemController::preInit( ) {
       //std::cerr << _wd.getCopies()[ index ];
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
       hasVersionInfoForRegion( _memCacheCopies[ index ]._reg  , _memCacheCopies[ index ]._version, _memCacheCopies[ index ]._locations );
-      if ( _memCacheCopies[ index ]._version != 0 ) _memCacheCopies[ index ]._locationDataReady = true;
+      if ( _memCacheCopies[ index ]._version != 0 ) {
+         _memCacheCopies[ index ]._locationDataReady = true;
+      } else {
+         _memCacheCopies[ index ].getVersionInfo();
+      }
    }
 }
 
 
 void MemController::copyDataIn( memory_space_id_t destination ) {
+   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
    _memorySpaceId = destination;
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
       _inOps = NEW HostAddressSpaceInOps();
@@ -92,17 +97,20 @@ void MemController::copyDataIn( memory_space_id_t destination ) {
    }
    
  //std::cerr << "### copyDataIn wd " << _wd.getId() << std::endl; 
-   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-      _memCacheCopies[ index ].getVersionInfo();
-  //    std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
-   }
+//   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+//      _memCacheCopies[ index ].getVersionInfo();
+//  //    std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
+//   }
    
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       _memCacheCopies[ index ].generateInOps2( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
    }
 
+   NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
+   NANOS_INSTRUMENT( inst5.close(); );
  //std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
+   NANOS_INSTRUMENT( inst2.close(); );
 }
 
 void MemController::copyDataOut( ) {

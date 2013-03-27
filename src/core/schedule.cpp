@@ -573,7 +573,9 @@ void Scheduler::workerClusterLoop ()
             {
                myClusterThread->addRunningWDSMP( wd );
                Scheduler::preOutlineWork(wd);
+   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
                myThread->outlineWorkDependent(*wd);
+   NANOS_INSTRUMENT( inst2.close(); );
             }
          }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
          thisNode->enableDevice( 1 ); 

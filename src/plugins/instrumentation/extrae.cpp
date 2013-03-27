@@ -275,6 +275,7 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_SEND_PUT_REQ   << "     send put request" << std::endl;
             p_file << NANOS_amWaitRequestPut   << "    NANOS_amWaitRequestPut" << std::endl;
             p_file << NANOS_amRequestPutStrided1D   << "     NANOS_amRequestPutStrided1D" << std::endl;
+            p_file << NANOS_OUTLINE_WORK   << "     NANOS_OUTLINE_WORK" << std::endl;
             p_file << 100                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
 

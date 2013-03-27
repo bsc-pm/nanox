@@ -167,8 +167,9 @@ namespace nanos {
    class CompleteOpFunctor : public Functor {
       private:
          DeviceOps *_ops;
+         AllocatedChunk *_chunk;
       public:
-         CompleteOpFunctor( DeviceOps *ops );
+         CompleteOpFunctor( DeviceOps *ops, AllocatedChunk *_chunk );
          virtual ~CompleteOpFunctor();
          virtual void operator()();
    };
