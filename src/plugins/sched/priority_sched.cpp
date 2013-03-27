@@ -33,16 +33,14 @@ namespace nanos {
             {
                WDPriorityQueue<>           _readyQueue;
                
-               TeamData () : ScheduleTeamData(), _readyQueue( Priority::_optimise ) {}
+              /*!\note Optimise option (received as a parameter in a priority queue) allow that
+               * elements with the same priority as the one in the back will be inserted at the back.
+               * When this is enabled, it will override the LIFO behaviour in the above case.
+               */
+               TeamData () : ScheduleTeamData(), _readyQueue( true /* optimise option */ ) {}
                ~TeamData () {}
             };
          public:
-            /*! \brief When this is enabled, elements with the same priority
-             * as the one in the back will be inserted at the back.
-             * \note When this is enabled, it will override the LIFO behaviour
-             * in the above case.
-             */
-            static bool _optimise;
             //! \brief Insert WDs with the same after the current ones?
             static bool _fifo;
    
@@ -88,7 +86,6 @@ namespace nanos {
             }
       };
       
-      bool Priority::_optimise = true;
       bool Priority::_fifo = true;
 
       class PrioritySchedPlugin : public Plugin
@@ -100,8 +97,6 @@ namespace nanos {
          virtual void config ( Config &cfg )
          {
             cfg.setOptionsSection( "Priority module", "Priority scheduling module" );
-            //cfg.registerConfigOption ( "priority-optimise", NEW Config::FlagOption( Priority::_optimise ), "Insert WDs right in the back of the queue if they have the same or lower priority than the element in the back.");
-            //cfg.registerArgOption( "priority-optimise", "priority-optimise" );
             
             cfg.registerConfigOption ( "priority-fifo", NEW Config::FlagOption( Priority::_fifo ), "When enabled (default behaviour), WDs with the same priority are inserted after the current ones.");
             cfg.registerArgOption( "priority-fifo", "priority-fifo" );
