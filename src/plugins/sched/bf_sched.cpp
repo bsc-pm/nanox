@@ -91,7 +91,7 @@ namespace nanos {
            }
       };
 
-      bool BreadthFirst::_useStack = true;
+      bool BreadthFirst::_useStack = false;
 
       class BFSchedPlugin : public Plugin
       {
