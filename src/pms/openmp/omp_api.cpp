@@ -49,7 +49,6 @@ extern "C"
 
    void omp_set_num_threads( int nthreads )
    {
-      warning( "setting " << nthreads << " OMP threads" )
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
       data->icvs()->setNumThreads( nthreads );
       sys.getPMInterface().updateNumThreads();
