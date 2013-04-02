@@ -25,12 +25,10 @@ using namespace nanos;
 using namespace nanos::ext;
 
 bool OpenCLConfig::_disableOpenCL = false;
-std::string OpenCLConfig::_devTy = "ALL";
 int OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 
-std::vector<cl_platform_id> OpenCLConfig::_plats;
 std::vector<cl_device_id> OpenCLConfig::_devices;
 
 Atomic<unsigned> OpenCLConfig::_freeDevice = 0;
@@ -54,14 +52,6 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerEnvOption( "disable-opencl", "NX_DISABLE_OPENCL" );
    cfg.registerArgOption( "disable-opencl", "disable-opencl" );
 
-   // Select the device to use.
-   cfg.registerConfigOption( "opencl-device-type",
-                             NEW Config::StringVar( _devTy ),
-                             "Defines the OpenCL device type to use "
-                             "(ALL, CPU, GPU, ACCELERATOR)" );
-   cfg.registerEnvOption( "opencl-device-type", "NX_OPENCL_DEVICE_TYPE" );
-   cfg.registerArgOption( "opencl-device-type", "opencl-device-type" );
-   
    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
@@ -89,7 +79,7 @@ void OpenCLConfig::prepare( Config &cfg )
 
 }
 
-void OpenCLConfig::apply()
+void OpenCLConfig::apply(std::string &_devTy)
 {
    if( _disableOpenCL )
      return;
@@ -113,6 +103,7 @@ void OpenCLConfig::apply()
    if( !numPlats )
       fatal0( "No OpenCL platform available" );
 
+   std::vector<cl_platform_id> _plats;
    // Save platforms.
    _plats.assign(plats, plats + numPlats);
    delete [] plats;
@@ -121,9 +112,9 @@ void OpenCLConfig::apply()
    cl_device_type devTy;
 
    // Parse the requested device type.
-   if( _devTy == "" || _devTy == "ALL" ){
+   if( _devTy == "" || _devTy == "ALL" )
       devTy = CL_DEVICE_TYPE_ALL;
-   }  else if( _devTy == "CPU" )
+   else if( _devTy == "CPU" )
       devTy = CL_DEVICE_TYPE_CPU;
    else if( _devTy == "GPU" )
       devTy = CL_DEVICE_TYPE_GPU;

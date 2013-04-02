@@ -50,32 +50,10 @@ inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 
 inline int System::getNumThreads () const { return _numThreads; }
 
-inline int System::getCpuId ( int idx ) const { 
-   ensure( ( ( idx >= 0 ) && ( idx < _cpu_count ) ), "invalid value for cpu idx" );
-   return _cpu_id[idx]; 
-};
-
-inline int System::getCpuCount () const { return _cpu_count; };
-
-inline int System::checkCpuMask(cpu_set_t *mask){
-
-   int idx = 0;
-   int i = 0;
-   while( i < _cpu_count){
-     ensure( idx < CPU_SETSIZE, "_cpu_count != CPU_COUNT(&_cpu_set)" ); 
-     if(CPU_ISSET(idx, &_cpu_set)){
-       i++;
-     } else {
-       if(CPU_ISSET(idx, mask))
-         return 0;
-     }
-     idx++;
-   }
-   return 1;
-}
+inline int System::getCpuCount () const { return _cpu_mask.size(); };
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
-   ensure( checkCpuMask(mask), "invalid CPU mask set" );
+   //ensure( checkCpuMask(mask), "invalid CPU mask set" );
    sched_setaffinity( pid, cpusetsize, mask);
 }
 
@@ -140,8 +118,8 @@ inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket =
 
 inline int System::getBindingId ( int pe ) const
 {
-   int tmpId = ( pe * getBindingStride() + getBindingStart() );
-   return getCpuId( ( tmpId + tmpId/_cpu_count ) % _cpu_count );
+   int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _pe_map.size();
+   return _pe_map[tmpId];
 }
 
 inline bool System::isHwlocAvailable () const
@@ -242,6 +220,10 @@ inline unsigned System::getNodeOfPE ( unsigned pe )
    // Now we have the PU object, go find its parent numa node
    hwloc_obj_t numaNode =
       hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, pu );
+   
+   // If the machine is not NUMA
+   if ( numaNode == NULL )
+      return 0;
 
    return numaNode->os_index;
 #else
@@ -448,6 +430,8 @@ inline void System::registerPluginOption ( const std::string &option, const std:
       cfg.registerConfigOption ( option, NEW Config::StringVar( var ), helpMessage );
    }
 }
+
+inline int System::nextThreadId () { return _threadIdSeed++; }
 
 #endif
 

@@ -45,6 +45,7 @@ extern "C" {
    unsigned int nanos_extrae_node_id();
    unsigned int nanos_extrae_num_nodes();
    void         nanos_ompitrace_instrumentation_barrier();
+   void         Extrae_change_num_threads (unsigned nthreads);
 }
 
 namespace nanos {
@@ -591,6 +592,7 @@ class InstrumentationExtrae: public Instrumentation
          nanos_event_key_t ckey = 0;
          extrae_value_t cvalue = 0;
          nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
+         nanos_event_key_t changeThreads = iD->getEventKey("set-num-threads");
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -634,6 +636,8 @@ class InstrumentationExtrae: public Instrumentation
                   k++;
                   break;
                case NANOS_POINT:
+                  ckey = e.getKey();
+                  if ( ckey == changeThreads ) Extrae_change_num_threads ( sys.getMaskMaxSize() );
                case NANOS_BURST_START:
                   ckey = e.getKey();
                   cvalue = e.getValue();
@@ -690,6 +694,7 @@ class InstrumentationExtrae: public Instrumentation
 
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
+
 #endif
 };
 

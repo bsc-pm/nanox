@@ -108,7 +108,6 @@ namespace nanos
       friend class Scheduler;
 
       private:
-         static Atomic<int>      _idSeed;
          Lock                    _mlock;
 
          // Thread info
@@ -126,6 +125,7 @@ namespace nanos
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
+         volatile bool           _mustSleep;
          volatile bool           _paused;
          WD *                    _currentWD;
 
@@ -171,10 +171,7 @@ namespace nanos
       public:
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-            _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
-            _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ), _paused( false ),
-            _currentWD( NULL  ), _hasTeam( false ), _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
+         BaseThread ( WD &wd, ProcessingElement *creator=0 );
 
         /*! \brief BaseThread destructor
          */
@@ -193,6 +190,8 @@ namespace nanos
          virtual void start () = 0;
          void run();
          void stop();
+         void sleep();
+         void wakeup();
          
          void pause ();
          void unpause ();
@@ -202,6 +201,9 @@ namespace nanos
 
          virtual void join() = 0;
          virtual void bind() {};
+
+         virtual void wait() {};
+         virtual void signal() {};
 
          // set/get methods
          void setCurrentWD ( WD &current );
@@ -246,6 +248,8 @@ namespace nanos
          bool isStarted () const;
 
          bool isRunning () const;
+
+         bool isEligible () const;
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;

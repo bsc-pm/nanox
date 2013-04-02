@@ -25,6 +25,10 @@
 #include "instrumentationmodule_decl.hpp"
 #include "os.hpp"
 
+extern "C" {
+   void DLB_UpdateResources( int max_resources ) __attribute__(( weak ));
+}
+
 using namespace nanos;
 
 void SchedulerConf::config (Config &cfg)
@@ -182,6 +186,8 @@ inline void Scheduler::idleLoop ()
       spins--;
 
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
+
+      if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -726,6 +732,12 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
+   if ( DLB_UpdateResources ) {
+      int needed_resources = sys.getSchedulerStats()._readyTasks.value() - myThread->getTeam()->size();
+      if ( needed_resources > 0 )
+         DLB_UpdateResources( needed_resources );
+   }
+
    // At this point the WD work is done, so we mark it as such and look for other work to do
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack

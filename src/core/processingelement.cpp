@@ -125,6 +125,7 @@ void ProcessingElement::stopAll ()
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;
       thread->stop();
+      thread->signal();
       thread->join();
       if ( thread->hasTeam() )
          thread->leaveTeam();
@@ -142,4 +143,24 @@ void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nan
    void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
    // FIXME: should this be done by using the local copeir of the device?
    memcpy( dst, actualTag, size );
+}
+
+BaseThread* ProcessingElement::getFirstRunningThread()
+{
+   ThreadList::iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      if ( (*it)->hasTeam() && (*it)->isEligible() )
+         return (*it);
+   }
+   return NULL;
+}
+
+BaseThread* ProcessingElement::getFirstStoppedThread()
+{
+   ThreadList::iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      if ( !(*it)->hasTeam() || !(*it)->isEligible() )
+         return (*it);
+   }
+   return NULL;
 }

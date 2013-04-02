@@ -98,12 +98,22 @@ namespace nanos
       return next;
    }
 
+   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
+      _id( sys.nextThreadId() ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
+      _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ),
+      _mustSleep( false ), _paused( false ), _currentWD( NULL), _hasTeam( false ), _teamData(NULL),
+      _nextTeamData(NULL), _allocator() { }
+
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  
    inline void BaseThread::unlock () { _mlock--; }
  
    inline void BaseThread::stop() { _mustStop = true; }
+
+   inline void BaseThread::sleep() { _mustSleep = true; }
+
+   inline void BaseThread::wakeup() { _mustSleep = false; }
    
    inline void BaseThread::pause ()
    {
@@ -185,6 +195,8 @@ namespace nanos
    inline bool BaseThread::isStarted () const { return _started; }
  
    inline bool BaseThread::isRunning () const { return _started && !_mustStop; }
+
+   inline bool BaseThread::isEligible () const { return !_mustSleep; }
    
    inline bool BaseThread::isPaused () const { return _paused; }
  

@@ -27,8 +27,6 @@ using namespace nanos;
 
 __thread BaseThread * nanos::myThread=0;
 
-Atomic<int> BaseThread::_idSeed = 0;
-
 void BaseThread::run ()
 {
    _threadWD.tied().tieTo( *this );

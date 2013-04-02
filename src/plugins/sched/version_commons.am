@@ -1,8 +1,4 @@
 
-default_sources = \
-	$(top_srcdir)/src/plugins/sched/default_sched.cpp \
-	$(END)
-
 bf_sources = \
 	$(top_srcdir)/src/plugins/sched/bf_sched.cpp \
 	$(END)

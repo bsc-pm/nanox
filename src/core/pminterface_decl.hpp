@@ -46,6 +46,7 @@ class PMInterface
 
       virtual int getInternalDataSize() const { return 0; }
       virtual int getInternalDataAlignment() const { return 1; }
+      virtual void initInternalData( void *data ) {}
 
       virtual void config (nanos::Config &cfg) {}
       virtual void start () { _description = std::string("none"); }
@@ -57,6 +58,8 @@ class PMInterface
 
       virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
       std::string getDescription( void ) { return _description; }
+
+      virtual void updateNumThreads() {}
 };
 
 #endif /* PM_INTERFACE_HPP_ */

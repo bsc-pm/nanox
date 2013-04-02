@@ -69,11 +69,12 @@ namespace nanos
          //! CPU id binding list
          typedef std::vector<int> Bindings;
          
-         // globla seeds
+         // global seeds
          Atomic<int> _atomicWDSeed;
+         Atomic<int> _threadIdSeed;
 
          // configuration variables
-         int                  _numPEs;
+         unsigned int         _numPEs;
          int                  _numThreads;
          int                  _deviceStackSize;
          int                  _bindingStart;
@@ -94,9 +95,9 @@ namespace nanos
          int                  _currentSocket;
 
 	 // Nanos++ scheduling domain
-   	 cpu_set_t            _cpu_set;
-   	 int                  _cpu_id[CPU_SETSIZE];
-   	 int                  _cpu_count;
+         cpu_set_t            _cpu_set;
+         std::set<int>        _cpu_mask;  /* current mask information */
+         std::vector<int>     _pe_map;    /* binding map of every PE. Only adding is allowed. */
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -185,6 +186,11 @@ namespace nanos
          void config ();
          void loadModules();
          void unloadModules();
+         void createWorker( unsigned p );
+         void acquireWorker( ThreadTeam * team, BaseThread * thread, bool enter=true, bool star=false, bool creator=false );
+         void increaseActiveWorkers( unsigned nthreads );
+         void decreaseActiveWorkers( unsigned nthreads );
+         void applyCpuMask();
          
          void loadHwloc();
          void unloadHwloc();
@@ -231,21 +237,25 @@ namespace nanos
          void setNumPEs ( int npes );
 
          int getNumPEs () const;
-         
+
          //! \brief Returns the maximum number of threads (SMP + GPU + ...). 
          unsigned getMaxThreads () const; 
-         
+
          void setNumThreads ( int nthreads );
-         
+
          int getNumThreads () const;
 
-         int getCpuId ( int idx ) const;
-	 
          int getCpuCount ( ) const;
+
+         void getCpuMask ( cpu_set_t *mask ) const;
+
+         void setCpuMask ( cpu_set_t *mask );
+
+         void addCpuMask ( cpu_set_t *mask );
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
-         int checkCpuMask(cpu_set_t *mask);
+         int getMaskMaxSize() const;
 
          void setDeviceStackSize ( int stackSize );
 
@@ -314,10 +324,13 @@ namespace nanos
          /**
           * \brief Reserves a PE to be used exclusively by a certain
           * architecture.
-          * \param node NUMA node to reserve the PE from.
+          * If you try to reserve all PEs, leaving no PEs for SMPs, reserved
+          * will be false and a warning will be displayed.
+          * \param node [in] NUMA node to reserve the PE from.
+          * \param reserved [out] If the PE was successfully reserved or not.
           * \return Id of the PE to reserve.
           */
-         unsigned reservePE ( unsigned node );
+         unsigned reservePE ( unsigned node, bool & reserved );
          
          /**
           * \brief Checks if hwloc is available.
@@ -351,8 +364,11 @@ namespace nanos
          void setSynchronizedStart ( bool value );
          bool getSynchronizedStart ( void ) const;
 
+         int nextThreadId ();
+
          // team related methods
          BaseThread * getUnassignedWorker ( void );
+         BaseThread * getAssignedWorker ( void );
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
                                    bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
 
@@ -360,6 +376,8 @@ namespace nanos
 
          void endTeam ( ThreadTeam *team );
          void releaseWorker ( BaseThread * thread );
+
+         void updateActiveWorkers ( int nthreads );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

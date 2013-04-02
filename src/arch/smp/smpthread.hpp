@@ -40,6 +40,9 @@ namespace ext
          size_t      _stackSize;
          bool        _useUserThreads;
 
+         pthread_cond_t          _condWait;
+         static pthread_mutex_t  _mutexWait;
+
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
          const SMPThread & operator= ( const SMPThread &th );
@@ -75,6 +78,9 @@ namespace ext
          /** \brief SMP specific yield implementation
          */
          virtual void yield();
+
+         virtual void wait();
+         virtual void signal();
    };
 
 

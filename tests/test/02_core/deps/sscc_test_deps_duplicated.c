@@ -64,7 +64,7 @@ struct nanos_const_wd_definition_1 const_data_1 =
       }
    }
 };
-int main()
+int main ( int argc, char **argv )
 {
     int a, b, i;
     for (i = 0;
@@ -198,4 +198,5 @@ int main()
         }
     }
     nanos_wg_wait_completion( nanos_current_wd(), 0 );
+    return 0;
 }
