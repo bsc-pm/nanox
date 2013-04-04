@@ -127,6 +127,8 @@ inline bool System::getSynchronizedStart ( void ) const { return _synchronizedSt
 
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
 
+inline int System::getNumCreatedPEs() const { return _pes.size(); }
+
 inline int System::getNumWorkers() const { return _workers.size(); }
 
 inline int System::getNumSockets() const { return _numSockets; }
@@ -137,6 +139,8 @@ inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = cur
 
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
+
+inline Directory* System::getMainDirectory() const { return _mainDirectory; }
 
 inline int System::getBindingId ( int pe ) const
 {

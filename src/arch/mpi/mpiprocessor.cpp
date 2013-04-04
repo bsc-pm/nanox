@@ -40,8 +40,8 @@ unsigned int* MPIProcessor::_mpiFileHashname;
 unsigned int* MPIProcessor::_mpiFileSize;
 int MPIProcessor::_mpiFileArrSize;
 
-MPIProcessor::MPIProcessor(int id, MPI_Comm communicator, int rank) : CachedAccelerator<MPIDevice>(id, &MPI) {
-    _communicator = communicator;
+MPIProcessor::MPIProcessor(int id, void* communicator, int rank) : CachedAccelerator<MPIDevice>(id, &MPI) {
+    _communicator = *((MPI_Comm *)communicator);
     _rank = rank;
 }
 
@@ -132,7 +132,12 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
 /**
  * All this tasks redefine nanox messages
  */
-void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
+void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {    
+   verbose0( "loading MPI support" );
+
+   if ( !sys.loadPlugin( "pe-mpi" ) )
+      fatal0 ( "Couldn't load MPI support" );
+   
     int provided, claimed;
     //TODO: Try with multiple MPI thread
     int initialized;
@@ -163,7 +168,8 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
            setMpiExename((*argv)[(*argc)-2]); //This should not be needed
         
         //Initialice MPI PE with a communicator and special rank for the cache thread
-        PE *mpi = NEW nanos::ext::MPIProcessor(999, MPI_COMM_WORLD, CACHETHREADRANK);
+        MPI_Comm mworld= MPI_COMM_WORLD;
+        PE *mpi = NEW nanos::ext::MPIProcessor(999, &mworld, CACHETHREADRANK);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         mpi->startThread(*wd);
@@ -351,12 +357,15 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         delete[] array_of_argv[i];
     }
     //Register spawned processes so nanox can use them
-    sys.DEEP_Booster_register_spawns(number_of_spawns,intercomm);
+    PE* pes[number_of_spawns];
+    int base_seed=sys.getNumCreatedPEs();
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
     for ( int rank=0; rank<number_of_spawns; rank++ ){
+        pes[rank]=NEW nanos::ext::MPIProcessor(++base_seed ,intercomm, rank);
         nanos_MPI_Send(_mpiFileHashname, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
         nanos_MPI_Send(_mpiFileSize, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
     }
+    sys.addPEsToTeam(pes,number_of_spawns);
 }
 
 int MPIProcessor::nanos_MPI_Send_taskinit(void *buf, int count, MPI_Datatype datatype, int dest,

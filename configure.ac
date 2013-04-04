@@ -1,4 +1,3 @@
-
 AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
@@ -145,7 +144,83 @@ else
     fi
 fi
 
-# Check for programs
+# Check for architecture
+ARCHITECTURES=
+OS=
+
+mpi_enabled=no
+mpi_valid=no
+#mpi support
+AC_ARG_WITH([mpi],
+AS_HELP_STRING([--with-mpi=dir], [Directory of mpi installation]),
+	[
+		MPIPATH="${withval}"
+		mpi_enabled=yes
+	],
+	[
+		MPIPATH=""
+	]
+)
+	
+AC_ARG_ENABLE([mpi],
+  AC_HELP_STRING([--enable-mpi],[Enable support for MPI (off by default)]),
+  [
+	 mpi_enabled=yes
+  ],
+  [
+	 AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$mpi_enabled = xyes; then
+	if test x$use_icc = xyes; then  
+		MPI_CNAME=mpiicc
+		MPI_CXXNAME=mpiicpc
+	else
+		MPI_CNAME=mpicc
+		MPI_CXXNAME=mpicxx
+		CFLAGS="$CFLAGS -lmpi"
+		CXXFLAGS="$CXXFLAGS -lmpi_cxx" 
+	fi
+	if test x$MPIPATH = x; then   	
+		AC_CHECK_PROG( [MPICC], [$MPI_CNAME], yes, no)
+		if test x$MPICC = xno ; then
+			AC_MSG_ERROR([MPI Compiler ($MPI_CNAME) not found in PATH. Modify your PATH or use --with-mpi clause])
+		else
+			CC=$MPI_CNAME
+			CXX=$MPI_CXXNAME
+		fi
+	else
+		mpi_found=no
+		if test -f $MPIPATH/$MPI_CNAME; then 
+			mpi_found=yes 
+			CC=$MPIPATH/$MPI_CNAME
+			CXX=$MPIPATH/$MPI_CXXNAME
+		fi
+		#search in the path without bin
+		if test x$mpi_found = xno; then		
+			mpi_found=no
+			if test -f $MPIPATH/bin/$MPI_CNAME; then 
+				mpi_found=yes 
+				CC=$MPIPATH/bin/$MPI_CNAME
+				CXX=$MPIPATH/bin/$MPI_CXXNAME
+			else
+				AC_MSG_ERROR([MPI Compiler ($MPI_CNAME) not found in --with-mpi directory $MPIPATH or $MPIPATH/bin])
+			fi
+		fi		
+	fi
+	ARCHITECTURES="$ARCHITECTURES mpi"
+	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"
+	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"		
+	NANOX_MPI_PREFIX=$prefix
+	AC_SUBST([NANOX_MPI_PREFIX])
+	mpi_valid=yes
+fi
+
+AC_SUBST([mpi_valid])
+
+
+# Check for programs (every compiler change should be done before this line)
 AC_PROG_LIBTOOL
 AC_PROG_CC([$CC])
 AC_PROG_CPP
@@ -199,9 +274,6 @@ AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
-# Check for architecture
-ARCHITECTURES=
-OS=
 
 AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
@@ -518,81 +590,6 @@ AM_CONDITIONAL([OPENCL_SUPPORT],[test $opencl_valid = yes])
 
 AC_SUBST([opencl_valid])
 
-mpi_enabled=no
-mpi_valid=no
-#mpi support
-AC_ARG_WITH([mpi],
-AS_HELP_STRING([--with-mpi=dir], [Directory of mpi installation]),
-	[
-		MPIPATH="${withval}"
-		mpi_enabled=yes
-	],
-	[
-		MPIPATH=""
-	]
-)
-	
-AC_ARG_ENABLE([mpi],
-  AC_HELP_STRING([--enable-mpi],[Enable support for MPI (off by default)]),
-  [
-	 mpi_enabled=yes
-  ],
-  [
-	 AC_MSG_RESULT([no])
-  ]
-)
-
-if test x$mpi_enabled = xyes; then
-	if test x$use_icc = xyes; then  
-		MPI_CNAME=mpiicc
-		MPI_CXXNAME=mpiicpc
-	else
-		MPI_CNAME=mpicc
-		MPI_CXXNAME=mpicxx
-		CFLAGS="$CFLAGS -lmpi"
-		CXXFLAGS="$CXXFLAGS -lmpi_cxx" 
-	fi
-	if test x$MPIPATH = x; then   	
-		AC_CHECK_PROG( [MPICC], [$MPI_CNAME], yes, no)
-		if test x$MPICC = xno ; then
-			AC_MSG_ERROR([MPI Compiler ($MPI_CNAME) not found in PATH. Modify your PATH or use --with-mpi clause])
-		else
-			CC=$MPI_CNAME
-			CXX=$MPI_CXXNAME
-		fi
-	else
-		mpi_found=no
-		AC_CHECK_FILES([$MPIPATH/$MPI_CNAME], 
-						[						
-						mpi_found=yes 
-						CC=$MPIPATH/$MPI_CNAME
-						CXX=$MPIPATH/$MPI_CXXNAME
-						], 
-						[])
-		#search in the path without bin
-		if test x$mpi_found = xno; then		
-			mpi_found=no
-			AC_CHECK_FILES([$MPIPATH/bin/$MPI_CNAME], 
-							[
-							mpi_found=yes 
-							CC=$MPIPATH/bin/$MPI_CNAME
-							CXX=$MPIPATH/bin/$MPI_CXXNAME
-							],
-							[
-							AC_MSG_ERROR([MPI Compiler ($MPI_CNAME) not found in --with-mpi directory $MPIPATH or $MPIPATH/bin])
-							])
-		fi		
-	fi
-	ARCHITECTURES="$ARCHITECTURES mpi"
-	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"
-	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"		
-	NANOX_MPI_PREFIX=$prefix
-	AC_SUBST([NANOX_MPI_PREFIX])
-	mpi_valid=yes
-fi
-
-AC_SUBST([mpi_valid])
-
 # mcc support
 AC_ARG_WITH([mcc],
 AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
@@ -760,7 +757,6 @@ AC_SUBST([USED_VERSION])
 
 # Check for atomic builtins in GCC
 AC_CHECK_GXX_ATOMIC_BUILTINS()
-
 
 MPITRACE_HOME=""
 MPITRACE_INC=""

@@ -41,12 +41,6 @@
 #include "gpuprocessor_decl.hpp"
 #endif
 
-#ifdef MPI_DEV
-#include "mpiprocessor.hpp"
-#include <stdio.h>
-#include <stdlib.h>
-#endif
-
 #ifdef OpenCL_DEV
 #include "openclprocessor.hpp"
 #endif
@@ -154,14 +148,6 @@ void System::loadModules ()
    if ( !loadPlugin( "pe-gpu" ) )
       fatal0 ( "Couldn't load GPU support" );
 #endif
-   
-#ifdef MPI_DEV
-   verbose0( "loading MPI support" );
-
-   if ( !loadPlugin( "pe-mpi" ) )
-      fatal0 ( "Couldn't load MPI support" );
-#endif
-
    
 #ifdef OpenCL_DEV
    verbose0( "loading OpenCL support" );
@@ -395,7 +381,7 @@ void System::start ()
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
 
    WD &mainWD = *myThread->getCurrentWD();
-   (void) mainWD.getDirectory(true);
+   _mainDirectory= mainWD.getDirectory(true);
    
    if ( _pmInterface->getInternalDataSize() > 0 )
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
@@ -458,9 +444,6 @@ void System::start ()
       }
    }
       
-#ifdef MPI_DEV   
-   nanos::MPIDevice::setMasterDirectory(mainWD.getDirectory(true));
-#endif
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
@@ -1375,15 +1358,12 @@ void * System::getHwlocTopology ()
 {
    return _hwlocTopology;
 }
-
-#ifdef MPI_DEV   
-void System::DEEP_Booster_register_spawns( int number_of_spawns, MPI_Comm *intercomm) {  
-    for (int rank=0; rank<number_of_spawns; rank++){
-        nanos::ext::MPIProcessor* pee=NEW nanos::ext::MPIProcessor(_pes.size(),*intercomm, rank);
-        _pes.push_back ( pee );
-        _workers.push_back( &pee->startWorker() );
+ 
+void System::addPEsToTeam(PE **pes, int num_pes) {  
+    for (int rank=0; rank<num_pes; rank++){
+        _pes.push_back ( pes[rank] );
+        _workers.push_back( &pes[rank]->startWorker() );
     }
     createTeam( _workers.size() );
 }
-#endif
 

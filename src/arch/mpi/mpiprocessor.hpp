@@ -66,7 +66,7 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor(int id, MPI_Comm communicator, int rank);
+            MPIProcessor(int id, void* communicator, int rank);
 
             virtual ~MPIProcessor() {
             }

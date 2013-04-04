@@ -35,7 +35,7 @@ using namespace nanos;
 
 
 MPI_Datatype MPIDevice::cacheStruct;
-Directory* MPIDevice::_masterDir;
+Directory* MPIDevice::_masterDir=sys.getMainDirectory();
 
 MPIDevice::MPIDevice(const char *n) : Device(n) {
 }

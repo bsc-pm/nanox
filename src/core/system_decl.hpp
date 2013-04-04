@@ -20,11 +20,6 @@
 #ifndef _NANOS_SYSTEM_DECL_H
 #define _NANOS_SYSTEM_DECL_H
 
-
-#ifdef MPI_DEV
-#include "mpi.h"
-#endif
-
 #include "processingelement_decl.hpp"
 #include "throttle_decl.hpp"
 #include <vector>
@@ -174,6 +169,9 @@ namespace nanos
          void *               _hwlocTopology;
          //! Path to a hwloc topology xml
          std::string          _topologyPath;
+         
+         //! Main cache directory
+         Directory* _mainDirectory;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -290,6 +288,8 @@ namespace nanos
          int getReadyNum() const;
 
          int getRunningTasks() const;
+         
+         int getNumCreatedPEs() const;
 
          int getNumWorkers() const;
 
@@ -306,6 +306,8 @@ namespace nanos
          int getCoresPerSocket() const;
 
          void setCoresPerSocket ( int coresPerSocket );
+         
+         Directory* getMainDirectory() const;
          
          /**
           * \brief Returns a CPU Id that the given architecture should use
@@ -490,14 +492,13 @@ namespace nanos
          void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
          
                   
-         #ifdef MPI_DEV
         /**
-         * \brief Registers workers spawned by DEEP_Booster_Alloc to current nanox workers/team
-         * \param number_of_spawns number of process spawned
-         * \param intercomm intercommunicator those containing processes
+         * \brief Registers PEs to current nanox workers/team
+         * Function created to serve MPI device
+         * \param num_pes number of process spawned
+         * \param pes pointer to a list of Processing Elements
          */
-         void DEEP_Booster_register_spawns( int number_of_spawns, MPI_Comm *intercomm);
-         #endif
+         void addPEsToTeam(PE **pes, int num_pes);
          
    };
 
