@@ -521,7 +521,7 @@ void System::finish ()
    verbose ( "Joining threads... phase 1" );
    // signal stop PEs
 
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
+   for ( unsigned p = 0; p < _pes.size() ; p++ ) {
       _pes[p]->stopAll();
    }
 
