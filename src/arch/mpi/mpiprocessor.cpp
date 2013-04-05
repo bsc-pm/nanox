@@ -158,6 +158,7 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         MPI_Buffer_attach(_bufferPtr, _bufferDefaultSize);
     }
     nanos::MPIDevice::initMPICacheStruct();
+    nanos::MPIDevice::setMasterDirectory(sys.getMainDirectory());
         
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);
