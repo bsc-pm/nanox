@@ -110,6 +110,8 @@ BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
 
    thread.associate();
 
+   _threads.push_back( &thread );
+
    if ( !untieMain ) {
       worker.tieTo(thread);
    }
@@ -124,6 +126,7 @@ void ProcessingElement::stopAll ()
 
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;
+      if ( thread->getId() == 0) continue; /* Protection for master thread */
       thread->stop();
       thread->signal();
       thread->join();
