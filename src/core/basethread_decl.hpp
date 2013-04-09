@@ -118,9 +118,8 @@ namespace nanos
          ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
 
-         unsigned int            _maxPrefetch;
-         WDDeque                 _nextWDs;
-         unsigned int            _nextWDsCounter;
+         unsigned int            _maxPrefetch;  /**< Maximum number of tasks that the thread can be running simultaneously */
+         WDDeque                 _nextWDs;      /**< Queue with all the tasks that the thread is being run simultaneously */
 
          // Thread status
          bool                    _started;
