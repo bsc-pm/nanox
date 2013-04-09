@@ -501,6 +501,12 @@ namespace nanos
           *  \param cfg Config object.
           */
          void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
+         /*! \brief Returns if there are pendant writes for a given memory address
+          *
+          *  \param [in] addr memory address
+          *  \return {True/False} depending if there are pendant writes
+          */
+         bool haveDependencePendantWrites ( void *addr ) const;
    };
 
    extern System sys;

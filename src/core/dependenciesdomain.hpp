@@ -64,6 +64,11 @@ inline const std::string & DependenciesManager::getName () const
    return _name;
 }
 
+inline bool DependenciesDomain::haveDependencePendantWrites ( void *addr )
+{
+   return true;
+}
+
 }
 
 #endif
