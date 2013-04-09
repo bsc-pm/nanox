@@ -66,9 +66,7 @@ inline const std::string & DependenciesManager::getName () const
 
 inline bool DependenciesDomain::haveDependencePendantWrites ( void *addr )
 {
-   // XXX: This behaviour is very conservative. If that function is not defined in
-   // derived classes just return true as having pendant writes (meaning that no
-   // optimization can be applied to given memory address).
+   fatal("haveDependencePendantWrites service has not been implemented in that dependence plugin!");
    return true;
 }
 
