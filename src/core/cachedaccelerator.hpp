@@ -39,7 +39,7 @@ inline CachedAccelerator::~CachedAccelerator() {
 inline void CachedAccelerator::copyDataInDependent( WorkDescriptor &wd )
 {
    //wd._ccontrol.copyDataIn( &_newCache );
-   wd._mcontrol.copyDataIn( _addressSpaceId );
+   wd._mcontrol.copyDataIn( *this );
 }
 
 inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )

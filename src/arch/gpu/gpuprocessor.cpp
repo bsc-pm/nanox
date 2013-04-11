@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gpuprocessor.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "debug.hpp"
 #include "gpudd.hpp"
 #include "schedule.hpp"
@@ -31,9 +32,9 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId, memory_space_id_t memId ) : CachedAccelerator( id, &GPU , NULL, &GPU, 0, RegionCache::ALLOC_FIT, memId ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(),
-      _initialized( false ), _allocator(), _inputPinnedMemoryBuffer()
+GPUProcessor::GPUProcessor( int id, int gpuId, memory_space_id_t memId, GPUMemorySpace &gpuMem ) : CachedAccelerator( id, &GPU , NULL, &GPU, 0, RegionCache::ALLOC_FIT, memId ),
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), /*_gpuProcessorTransfers(),*/
+      _initialized( false ), _gpuMemory( gpuMem ) /*, _allocator(), _inputPinnedMemoryBuffer()*/
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
@@ -86,7 +87,8 @@ void GPUProcessor::init ()
    GPUConfig::setOverlappingOutputs( outputStream );
 
    // Get GPU memory alignment to allow the use of textures
-   _memoryAlignment = gpuProperties.textureAlignment;
+   //_memoryAlignment = gpuProperties.textureAlignment;
+   _gpuProcessorInfo->setMemoryAlignment( gpuProperties.textureAlignment );
 
    // We allocate the whole GPU memory
    // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
@@ -94,28 +96,30 @@ void GPUProcessor::init ()
    // much bytes as we have asked
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
 
-   std::cerr << "GPU memory: baseAddr=" << baseAddress << " size=" << maxMemoryAvailable << std::endl;
+   //std::cerr << "GPU memory: baseAddr=" << baseAddress << " size=" << maxMemoryAvailable << std::endl;
 
-   _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
+   //_allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
    //configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
 
+   _gpuProcessorInfo->setBaseAddress( baseAddress );
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 
+   _gpuMemory.initialize( inputStream, outputStream, this );
    // If some kind of overlapping is defined, allocate some pinned memory
 
-#ifndef JBUENO_NO_PINNING
-   if ( inputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
-      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-      _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-   }
-
-   if ( outputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
-      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-      _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-   }
-#endif
+//#ifndef JBUENO_NO_PINNING
+//   if ( inputStream ) {
+//      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
+//      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+//      _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+//   }
+//
+//   if ( outputStream ) {
+//      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
+//      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
+//      _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
+//   }
+//#endif
    // WARNING: initTransferStreams() can modify inputStream's and outputStream's value,
    // so call it first
 
@@ -142,9 +146,9 @@ void GPUProcessor::cleanUp()
 
 void GPUProcessor::freeWholeMemory()
 {
-   void * baseAddress = ( void * ) _allocator.getBaseAddress();
+   void * baseAddress = ( void * ) _gpuMemory.getAllocator()->getBaseAddress();
    GPUDevice::freeWholeMemory( baseAddress );
-   _allocator.free( baseAddress );
+   _gpuMemory.getAllocator()->free( baseAddress );
 }
 
 size_t GPUProcessor::getMaxMemoryAvailable ( int id )

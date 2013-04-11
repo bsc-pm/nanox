@@ -45,13 +45,13 @@ namespace nanos
          unsigned int                         _memorySpaceId;
 
       private:
-         /*! \brief ProcessinElement default constructor
+         /*! \brief ProcessingElement default constructor
           */
          ProcessingElement ();
-         /*! \brief ProcessinElement copy constructor (private)
+         /*! \brief ProcessingElement copy constructor (private)
           */
          ProcessingElement ( const ProcessingElement &pe );
-         /*! \brief ProcessinElement copy assignment operator (private)
+         /*! \brief ProcessingElement copy assignment operator (private)
           */
          const ProcessingElement & operator= ( const ProcessingElement &pe );
       protected:
@@ -59,12 +59,12 @@ namespace nanos
          virtual WorkDescriptor & getWorkerWD () const = 0;
          virtual WorkDescriptor & getMultiWorkerWD () const = 0;
       public:
-         /*! \brief ProcessinElement constructor
+         /*! \brief ProcessingElement constructor
           */
          ProcessingElement ( int newId, const Device *arch, const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId )
          { }
 
-         /*! \brief ProcessinElement destructor
+         /*! \brief ProcessingElement destructor
           */
          virtual ~ProcessingElement();
 

@@ -80,13 +80,20 @@ namespace nanos {
            WD * atPrefetch ( BaseThread *thread, WD &current )
            {
               WD * found = current.getImmediateSuccessor(*thread);
+               if ( found ) {
+                  found->_mcontrol.preInit();
+               }
         
               return found != NULL ? found : atIdle(thread);
            }
         
            WD * atBeforeExit ( BaseThread *thread, WD &current )
            {
-              return current.getImmediateSuccessor(*thread);
+              WD * found = current.getImmediateSuccessor(*thread);
+               if ( found ) {
+                  found->_mcontrol.preInit();
+               }
+              return found;
            }
       };
   

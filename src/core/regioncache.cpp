@@ -889,7 +889,6 @@ AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg ) const 
    return allocChunkPtr;
 }
 
-   
 void RegionCache::syncRegion( std::list< std::pair< Region, CacheCopy * > > const &regions, WD const &wd ) {
    std::list< std::pair< Region, CacheCopy *> >::const_iterator it;
    DeviceOps localOps;

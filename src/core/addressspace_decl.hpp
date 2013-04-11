@@ -19,7 +19,7 @@ class HostAddressSpace {
 
    bool lockForTransfer( global_reg_t const &reg, unsigned int version );
    void releaseForTransfer( global_reg_t const &reg, unsigned int version );
-   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd );   
+   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd );
    void getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations );
    void getRegionId( CopyData const &cd, global_reg_t &reg );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );

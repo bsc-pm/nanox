@@ -24,8 +24,9 @@
 #include "gputhread_decl.hpp"
 #include "gpuconfig.hpp"
 #include "gpudevice_decl.hpp"
-#include "gpumemorytransfer.hpp"
 #include "gpuutils.hpp"
+#include "gpumemorytransfer.hpp"
+#include "gpumemoryspace_fwd.hpp"
 #include "malign.hpp"
 #include "simpleallocator_decl.hpp"
 #include "copydescriptor_decl.hpp"
@@ -36,6 +37,26 @@
 namespace nanos {
 namespace ext
 {
+
+    class GPUProcessorTransfers
+    {
+       public:
+          GPUMemoryTransferList * _pendingCopiesIn;
+          GPUMemoryTransferList * _pendingCopiesOut;
+
+
+          GPUProcessorTransfers()
+          {
+             _pendingCopiesIn = NEW GPUMemoryTransferInAsyncList();
+             _pendingCopiesOut = NEW GPUMemoryTransferOutSyncList();
+          }
+
+          ~GPUProcessorTransfers() 
+          {
+             delete _pendingCopiesIn;
+             delete _pendingCopiesOut;
+          }
+    };
 
    class GPUProcessor : public CachedAccelerator
    {
@@ -57,41 +78,21 @@ namespace ext
                }
          };
 
-         class GPUProcessorTransfers
-         {
-            public:
-               GPUMemoryTransferList * _pendingCopiesIn;
-               GPUMemoryTransferList * _pendingCopiesOut;
-
-
-               GPUProcessorTransfers()
-               {
-                  _pendingCopiesIn = NEW GPUMemoryTransferInAsyncList();
-                  _pendingCopiesOut = NEW GPUMemoryTransferOutSyncList();
-               }
-
-               ~GPUProcessorTransfers() 
-               {
-                  delete _pendingCopiesIn;
-                  delete _pendingCopiesOut;
-               }
-         };
 
 
       private:
          // Configuration variables
          static Atomic<int>      _deviceSeed; //! Number of GPU devices assigned to threads
          int                     _gpuDevice; //! Assigned GPU device Id
-         size_t                  _memoryAlignment;
+         //size_t                  _memoryAlignment;
+         GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
          GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
-         GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
          volatile bool           _initialized; //! Object is initialized
+         GPUMemorySpace         &_gpuMemory;
 
 
-         SimpleAllocator               _allocator;
-         BufferManager                 _inputPinnedMemoryBuffer;
-         BufferManager                 _outputPinnedMemoryBuffer;
+         //SimpleAllocator               _allocator;
 
          //! Disable copy constructor and assignment operator
          GPUProcessor( const GPUProcessor &pe );
@@ -101,13 +102,14 @@ namespace ext
 
       public:
          //! Constructors
-         GPUProcessor( int id, int gpuId, memory_space_id_t );
+         GPUProcessor( int id, int gpuId, memory_space_id_t memId, GPUMemorySpace &gpuMem );
 
          virtual ~GPUProcessor();
 
          void init();
          void cleanUp();
          void freeWholeMemory();
+         GPUMemorySpace &getGPUMemory() { return _gpuMemory; }
 
          WD & getWorkerWD () const;
          WD & getMasterWD () const;
@@ -131,35 +133,18 @@ namespace ext
          }
 
          // Allocator interface
-         void * allocate ( size_t size )
-         {
-            return _allocator.allocate( NANOS_ALIGNED_MEMORY_OFFSET( 0, size, _memoryAlignment ) );
-         }
+         //void * allocate ( size_t size )
+         //{
+         //   return _allocator.allocate( NANOS_ALIGNED_MEMORY_OFFSET( 0, size, _memoryAlignment ) );
+         //}
 
-         void free( void * address )
-         {
-            _allocator.free( address );
-         }
+         //void free( void * address )
+         //{
+         //   _allocator.free( address );
+         //}
 
-         void * allocateInputPinnedMemory ( size_t size )
-         {
-            return _inputPinnedMemoryBuffer.allocate( size );
-         }
-
-         void freeInputPinnedMemory ()
-         {
-            _inputPinnedMemoryBuffer.reset();
-         }
-
-         void * allocateOutputPinnedMemory ( size_t size )
-         {
-            return _outputPinnedMemoryBuffer.allocate( size );
-         }
-
-         void freeOutputPinnedMemory ()
-         {
-            _outputPinnedMemoryBuffer.reset();
-         }
+         GPUMemoryTransferList * getOutTransferList ();
+         GPUMemoryTransferList * getInTransferList ();
 
          //! Get information about the GPU that represents this object
          GPUProcessorInfo * getGPUProcessorInfo ()
@@ -182,15 +167,6 @@ namespace ext
             _gpuProcessorStats._bytesDevice += ( unsigned int ) size;
          }
 
-         GPUMemoryTransferList * getInTransferList ()
-         {
-            return _gpuProcessorTransfers._pendingCopiesIn;
-         }
-
-         GPUMemoryTransferList * getOutTransferList ()
-         {
-            return _gpuProcessorTransfers._pendingCopiesOut;
-         }
 
          void printStats ()
          {

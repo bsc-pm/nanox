@@ -23,6 +23,7 @@ support_sources = \
 	$(top_srcdir)/src/support/plugin.hpp \
 	$(top_srcdir)/src/support/plugin.cpp \
 	$(top_srcdir)/src/support/xstring.hpp \
+	$(top_srcdir)/src/support/simpleallocator_fwd.hpp \
 	$(top_srcdir)/src/support/simpleallocator_decl.hpp \
 	$(top_srcdir)/src/support/simpleallocator.hpp \
 	$(top_srcdir)/src/support/simpleallocator.cpp \

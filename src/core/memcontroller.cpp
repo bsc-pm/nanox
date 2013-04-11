@@ -3,7 +3,7 @@
 #include "regiondict.hpp"
 #include "newregiondirectory.hpp"
 namespace nanos {
-MemController::MemController( WD const &wd ) : _wd( wd ), _memorySpaceId( ( memory_space_id_t ) -1 ), _provideLock(), _providedRegions() {
+MemController::MemController( WD const &wd ) : _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions() {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -87,9 +87,9 @@ void MemController::preInit( ) {
 }
 
 
-void MemController::copyDataIn( memory_space_id_t destination ) {
+void MemController::copyDataIn( ProcessingElement &pe ) {
+   _memorySpaceId = pe.getMemorySpaceId();
    NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
-   _memorySpaceId = destination;
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
       _inOps = NEW HostAddressSpaceInOps();
    } else {

@@ -38,6 +38,7 @@
 
 #ifdef GPU_DEV
 #include "gpuprocessor_decl.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "gpudd.hpp"
 #endif
 
@@ -442,16 +443,20 @@ void System::start ()
    //for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
       memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
       SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU );
+      gpuMemory->setNodeNumber( 0 );
+      ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
+      gpuMemory->setSpecificData( gpuMemSpace );
       _separateAddressSpaces[ id ] = gpuMemory;
       
-      PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC, id );
-      _pes.push_back( gpu );
-      _localAccelerators.push_back( dynamic_cast<nanos::ext::GPUProcessor *>( gpu ) );
+      nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( p++, gpuC, id, *gpuMemSpace );
+      //PE *gpu = NEW nanos::ext::GPUProcessor( p++, gpuC, id, *gpuMemory );
+      _pes.push_back( gpuPE );
+      _localAccelerators.push_back( gpuPE );
          _preMainBarrier++;
-      BaseThread *gpuThd = &gpu->startWorker();
+      BaseThread *gpuThd = &gpuPE->startWorker();
       _workers.push_back( gpuThd );
       _masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
-      dynamic_cast<nanos::ext::GPUProcessor *>( gpu )->waitInitialized();
+      gpuPE->waitInitialized();
    }
 #endif
 

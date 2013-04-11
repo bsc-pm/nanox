@@ -20,6 +20,7 @@
 
 #include "gpudevice.hpp"
 #include "gpuutils.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "deviceops.hpp"
@@ -282,41 +283,68 @@ bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addr
    return true;
 }
 
-void *GPUDevice::memAllocate( std::size_t size, ProcessingElement &pe) const {
-   void *mem = allocate( size, &pe );
-   //std::cerr << "GPU memAllocate( " << size << " )  returns: " << mem << std::endl;
-   return mem;
+//void *GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem ) const {
+//   void *mem = allocate( size, &pe );
+//   //std::cerr << "GPU memAllocate( " << size << " )  returns: " << mem << std::endl;
+//   return mem;
+//}
+
+void * GPUDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem ) const
+{
+   void * address = NULL;
+
+   ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
+   SimpleAllocator *allocator = gpuMemData->getAllocator();
+   allocator->lock();
+   address = allocator->allocate( NANOS_ALIGNED_MEMORY_OFFSET( 0, size, gpuMemData->getAlignment() ) );
+   allocator->unlock();
+   return address;
 }
 
-void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WD const &wd ) const {
+void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd ) const {
    CopyDescriptor cd( hostAddr ); cd._ops = ops;
+   ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
+   ext::GPUProcessor *gpu = gpuMemData->getGPU();
    ops->addOp();
-   bool done = copyIn( (void *) devAddr, cd, len, &pe );
+   //bool done = copyIn( (void *) devAddr, cd, len, &pe );
+   bool done = ( myThread->runningOn() == gpu ) ? isMycopyIn2( (void *) devAddr, cd, len, mem, gpu ) : isNotMycopyIn2( (void *) devAddr, cd, len, mem, gpu );
    if ( done ) ops->completeOp();
 }
 
-void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, ProcessingElement &pe, DeviceOps *ops, WD const &wd ) const {
+void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd ) const {
    CopyDescriptor cd( hostAddr ); cd._ops = ops;
+   ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
+   ext::GPUProcessor *gpu = gpuMemData->getGPU();
    ops->addOp();
-   bool done = copyOut( cd, (void *) devAddr, len, &pe );
+   //bool done = copyOut( cd, (void *) devAddr, len, &pe );
+   bool done = ( myThread->runningOn() == gpu ) ? isMycopyOut2( cd, (void *) devAddr, len, mem, gpu ) : isNotMycopyOut2( cd, (void *) devAddr, len, mem, gpu );
    if ( done ) ops->completeOp();
 }
 
-void GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, ProcessingElement &peDest, ProcessingElement &peOrig, DeviceOps *ops, WD const &wd ) const {
-   CopyDescriptor cd( 0xdeaddead ); cd._ops = ops;
+void GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, Functor *f ) const {
+   CopyDescriptor cd( 0xdeaddead ); cd._ops = ops; cd._functor = f;
+   ext::GPUMemorySpace *gpuMemDataOrig = ( ext::GPUMemorySpace * ) memOrig.getSpecificData();
+   ext::GPUMemorySpace *gpuMemDataDest = ( ext::GPUMemorySpace * ) memDest.getSpecificData();
+   ext::GPUProcessor *gpuOrig = gpuMemDataOrig->getGPU();
+   ext::GPUProcessor *gpuDest = gpuMemDataDest->getGPU();
    ops->addOp();
-   bool done = copyDevToDev( (void *) devDestAddr, cd, (void *) devOrigAddr, len, &peDest, &peOrig );
-   if ( done ) ops->completeOp();
+   bool done = copyDevToDev( (void *) devDestAddr, cd, (void *) devOrigAddr, len, gpuDest, gpuOrig );
+   if ( done ) {
+      ops->completeOp(); 
+      if ( f ) {
+         (*f)(); 
+      }
+   }
 }
 
-void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WD const &wd ) {
+void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, WD const &wd ) {
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
 }
 
-void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &pe, DeviceOps *ops, WD const &wd ) {
+void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, WD const &wd ) {
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
 }
 
-void GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, ProcessingElement const &peDest, ProcessingElement const &peOri, DeviceOps *ops, WD const &wd ) const {
+void GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, WD const &wd, Functor *f ) const {
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
 }

@@ -19,6 +19,7 @@
 
 #include "gputhread.hpp"
 #include "gpuprocessor.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
@@ -116,7 +117,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
       // Erase the wait input list and synchronize it with cache
       myGPU.getInTransferList()->clearMemoryTransfers();
-      myGPU.freeInputPinnedMemory();
+      myGPU.getGPUMemory().freeInputPinnedMemory();
    }
 
    // Check if someone is waiting for our data
@@ -129,7 +130,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
       cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      myGPU.freeOutputPinnedMemory();
+      myGPU.getGPUMemory().freeOutputPinnedMemory();
    }
 
    _executedWDs++;

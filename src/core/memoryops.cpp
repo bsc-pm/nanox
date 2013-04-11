@@ -79,7 +79,7 @@ void BaseAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int
    std::cerr << "Error, can not send data from myself." << std::endl; 
 }
 
-void BaseAddressSpaceInOps::issue(WD const &wd) {
+void BaseAddressSpaceInOps::issue( WD const &wd ) {
    for ( MapType::iterator it = _separateTransfers.begin(); it != _separateTransfers.end(); it++ ) {
      sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* region */, wd );
    }

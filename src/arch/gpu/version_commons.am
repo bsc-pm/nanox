@@ -23,6 +23,9 @@ gpu_sources = \
 	$(top_srcdir)/src/arch/gpu/gputhread.cpp \
 	$(top_srcdir)/src/arch/gpu/gpuutils.hpp \
 	$(top_srcdir)/src/arch/gpu/gpuutils.cpp \
+	$(top_srcdir)/src/arch/gpu/gpumemoryspace_decl.hpp \
+	$(top_srcdir)/src/arch/gpu/gpumemoryspace_fwd.hpp \
+	$(top_srcdir)/src/arch/gpu/gpumemoryspace.cpp \
 	$(END)
 
 pe_gpu_sources = \

@@ -22,7 +22,7 @@ class BaseAddressSpaceInOps {
    std::set< DeviceOps * > &getOtherOps();
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
-   virtual void issue(WD const &wd );
+   virtual void issue( WD const &wd );
 
    virtual unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
    virtual void prepareRegion( global_reg_t const &reg, WD const &wd );
