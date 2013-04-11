@@ -1,0 +1,20 @@
+
+plain_sources = \
+	$(top_srcdir)/src/plugins/deps/plain_deps.cpp \
+	$(top_srcdir)/src/plugins/deps/basedependenciesdomain_decl.hpp \
+	$(top_srcdir)/src/plugins/deps/basedependenciesdomain.hpp \
+	$(END)
+
+regions_sources = \
+   $(top_srcdir)/src/plugins/deps/regions_deps.cpp \
+   $(top_srcdir)/src/plugins/deps/basedependenciesdomain_decl.hpp \
+   $(top_srcdir)/src/plugins/deps/basedependenciesdomain.hpp \
+   $(top_srcdir)/src/plugins/deps/baseregionsdependenciesdomain_decl.hpp \
+   $(top_srcdir)/src/plugins/deps/baseregionsdependenciesdomain.hpp \
+   $(END)
+
+perfect_regions_sources = \
+	$(top_srcdir)/src/plugins/deps/perfect_regions_deps.cpp \
+	$(top_srcdir)/src/plugins/deps/basedependenciesdomain_decl.hpp \
+	$(top_srcdir)/src/plugins/deps/basedependenciesdomain.hpp \
+	$(END)

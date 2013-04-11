@@ -17,8 +17,9 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = . src tests scripts
+SUBDIRS = . src tests doc scripts
 DIST_SUBDIRS = tests doc src scripts
+EXTRA_DIST = ChangeLog
 
 ACLOCAL_AMFLAGS=-I m4
 
@@ -28,3 +29,5 @@ rpm: dist-gzip
 deb: dist-gzip
 	$(MAKE) -C scripts deb
 
+dist-hook:
+	sh $(top_srcdir)/dist-package.sh $(top_srcdir) $(distdir)

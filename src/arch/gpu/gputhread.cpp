@@ -70,6 +70,14 @@ void GPUThread::initializeDependent ()
          } else {
             warning( "Couldn't set the context handle for CUBLAS library: unknown error" );
          }
+      } else {
+         // It seems like it is useless, but still do it in case it works some time...
+         // This call is causing a segmentation fault inside CUBLAS library...
+         //cublasErr = cublasSetStream( * ( ( cublasHandle_t * ) _cublasHandle ),
+         //      ( ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream() ) );
+         //if ( cublasErr != CUBLAS_STATUS_SUCCESS ) {
+         //   warning( "Error setting the CUDA stream for the CUBLAS library" );
+         //}
       }
    }
 #endif
@@ -81,8 +89,8 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "CUDA errors occurred during initialization:" << cudaGetErrorString( err ) );
 
-   
-   ( ( GPUProcessor * ) myThread->runningOn() )->setInitialized();
+   // Set the number of look ahead (prefetching) tasks
+   setMaxPrefetch( 8 );
 }
 
 void GPUThread::runDependent ()
@@ -90,7 +98,7 @@ void GPUThread::runDependent ()
    WD &work = getThreadWD();
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
-   sys.preMainBarrier();
+   //sys.preMainBarrier();
    dd.getWorkFct()( work.getData() );
    message("I've prefetched " << _prefetchedWDs << " WDs and I have executed " << _executedWDs );
 
@@ -105,9 +113,8 @@ void GPUThread::runDependent ()
    ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
-void GPUThread::inlineWorkDependent ( WD &wd )
+bool GPUThread::inlineWorkDependent ( WD &wd )
 {
-   GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
    if ( GPUConfig::isOverlappingInputsDefined() ) {
@@ -126,12 +133,7 @@ void GPUThread::inlineWorkDependent ( WD &wd )
    // We wait for wd inputs, but as we have just waited for them, we could skip this step
    wd.start( WD::IsNotAUserLevelThread );
 
-   if ( GPUConfig::isOverlappingOutputsDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
-      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      myGPU.getGPUMemory().freeOutputPinnedMemory();
-   }
+   GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
 
    _executedWDs++;
 
@@ -160,23 +162,29 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       myGPU.getOutTransferList()->executeMemoryTransfers();
    }
    else {
-      // Open a new substate instrumentation phase before copying out the results
-      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
       myGPU.getOutTransferList()->executeMemoryTransfers();
    }
 
    if ( GPUConfig::isPrefetchingDefined() ) {
-      NANOS_INSTRUMENT ( InstrumentSubState inst2( NANOS_RUNTIME ) );
-      // Get next task in order to prefetch data to device memory
-
-      if ( reserveNextWD () ) {
-         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, wd );
-         setReservedNextWD( next );  
-         if ( next != NULL ) { 
-            _prefetchedWDs++;
+      WD * last = &wd;
+      while ( canPrefetch() ) {
+         // Get next task in order to prefetch data to device memory
+         WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
+         if ( next != NULL ) {
             next->init();
+            addNextWD( next );
+            last = next;
+         } else {
+            break;
          }
       }
+   }
+
+   if ( GPUConfig::isOverlappingOutputsDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
+      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+      myGPU.getGPUMemory().freeOutputPinnedMemory();
    }
 
    if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
@@ -191,6 +199,8 @@ void GPUThread::inlineWorkDependent ( WD &wd )
       // when we know the kernel has really finished
       NANOS_INSTRUMENT ( raiseWDClosingEvents() );
    }
+
+   return true;
 }
 
 void GPUThread::yield()

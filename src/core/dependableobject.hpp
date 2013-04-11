@@ -1,22 +1,3 @@
-/*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
-/*                                                                                   */
-/*      This file is part of the NANOS++ library.                                    */
-/*                                                                                   */
-/*      NANOS++ is free software: you can redistribute it and/or modify              */
-/*      it under the terms of the GNU Lesser General Public License as published by  */
-/*      the Free Software Foundation, either version 3 of the License, or            */
-/*      (at your option) any later version.                                          */
-/*                                                                                   */
-/*      NANOS++ is distributed in the hope that it will be useful,                   */
-/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
-/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
-/*      GNU Lesser General Public License for more details.                          */
-/*                                                                                   */
-/*      You should have received a copy of the GNU Lesser General Public License     */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
-/*************************************************************************************/
-
 #ifndef _NANOS_DEPENDABLE_OBJECT
 #define _NANOS_DEPENDABLE_OBJECT
 #include <stdlib.h>
@@ -25,11 +6,18 @@
 #include <vector>
 #include "atomic.hpp"
 #include "dependableobject_decl.hpp"
-#include "regionstatus_fwd.hpp"
 #include "dataaccess.hpp"
+#include "basedependency_decl.hpp"
+#include "functors.hpp"
 #include "workdescriptor_decl.hpp"
 
 using namespace nanos;
+
+inline DependableObject::~DependableObject ( )
+{
+   std::for_each(_outputObjects.begin(),_outputObjects.end(),deleter<BaseDependency>);
+   std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
+}
 
 inline const DependableObject & DependableObject::operator= ( const DependableObject &depObj )
 {
@@ -38,9 +26,9 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
    _successors = depObj._successors;
-   _writtenRegions = depObj._writtenRegions;
+   _domain = depObj._domain;
+   _outputObjects = depObj._outputObjects;
    _submitted = depObj._submitted;
-   _wd = depObj._wd;
    return *this;
 }
 
@@ -71,15 +59,16 @@ inline unsigned int DependableObject::getId ()
 
 inline int DependableObject::increasePredecessors ( )
 {
-	  return _numPredecessors++;
+     return _numPredecessors++;
 }
 
 inline int DependableObject::decreasePredecessors ( DependableObject *predecessor )
 {
-   if ( predecessor != NULL ) getWD()->predecessorFinished( predecessor->getWD() );
+   if ( predecessor != NULL && getWD() != NULL ) {
+      getWD()->predecessorFinished( predecessor->getWD() );
+   }
    int  numPred = --_numPredecessors; 
    if ( numPred == 0 ) {
-      if ( predecessor == NULL )getWD()->initMyGraphRepListNoPred();
       dependenciesSatisfied( );
    }
    return numPred;
@@ -110,24 +99,24 @@ inline void DependableObject::setDependenciesDomain ( DependenciesDomain *depend
    _domain = dependenciesDomain;
 }
 
-inline void DependableObject::addWriteRegion ( Region const &region )
+inline void DependableObject::addWriteTarget ( BaseDependency const &outObj )
 {
-   _writtenRegions.push_back ( region );
+   _outputObjects.push_back ( outObj.clone() );
 }
 
-inline DependableObject::RegionContainer const & DependableObject::getWrittenRegions ( ) const
+inline DependableObject::TargetVector const & DependableObject::getWrittenTargets ( )
 {
-   return _writtenRegions;
+   return _outputObjects;
 }
 
-inline void DependableObject::addReadRegion ( Region const &region )
+inline void DependableObject::addReadTarget ( BaseDependency const &readObj )
 {
-   _readRegions.push_back( region );
+   _readObjects.push_back( readObj.clone() );
 }
 
-inline DependableObject::RegionContainer const & DependableObject::getReadRegions ( ) const
+inline DependableObject::TargetVector const & DependableObject::getReadTargets ( )
 {
-   return _readRegions;
+   return _readObjects;
 }
 
 inline void DependableObject::increaseReferences()

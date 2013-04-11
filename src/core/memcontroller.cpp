@@ -114,6 +114,12 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
 }
 
 void MemController::copyDataOut( ) {
+   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+      if ( _wd.getCopies()[index].isOutput() ) {
+         _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version + 1 );
+      }
+   }
+
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
    } else {
       _outOps = NEW SeparateAddressSpaceOutOps( sys.getSeparateMemory( _memorySpaceId ) );
@@ -130,7 +136,8 @@ uint64_t MemController::getAddress( unsigned int index ) const {
    uint64_t addr = 0;
    //std::cerr << " _getAddress, reg: " << index << " key: " << (void *)_memCacheCopies[ index ]._reg.key << " id: " << _memCacheCopies[ index ]._reg.id << std::endl;
    if ( _memorySpaceId == 0 ) {
-      addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress()) + _wd.getCopies()[ index ].getOffset() ;
+      //addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress()) /*+ _wd.getCopies()[ index ].getOffset() */;
+      addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress()) + _wd.getCopies()[ index ].getOffset();
    } else {
       addr = sys.getSeparateMemory( _memorySpaceId ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress() );
    }
@@ -149,7 +156,16 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
 }
  
 bool MemController::isDataReady() {
-   return _inOps->isDataReady();
+   bool done = _inOps->isDataReady();
+
+   if ( done ) _inOps->updateMetadata();
+   //if ( done ) {
+   //   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+   //      _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version );
+   //   }
+   //}
+
+   return done;
 }
 
 }

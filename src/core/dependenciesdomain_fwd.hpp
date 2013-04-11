@@ -22,6 +22,7 @@
 namespace nanos
 {
    class DependenciesDomain;
+   class DependenciesManager;
 };
 
 #endif

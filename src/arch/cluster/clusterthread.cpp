@@ -89,7 +89,7 @@ void ClusterThread::runDependent () {
 }
 
 
-void ClusterThread::inlineWorkDependent ( WD &wd ) {
+bool ClusterThread::inlineWorkDependent ( WD &wd ) {
    fatal( "inline execution is not supported in this architecture (cluster).");
 }
 
@@ -134,7 +134,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       memcpy( &dimensions[ dimensionIndex ], wd.getCopies()[i].getDimensions(), sizeof( nanos_region_dimension_internal_t ) * wd.getCopies()[i].getNumDimensions());
       newCopies[i].setDimensions( ( nanos_region_dimension_internal_t const *  ) dimensionIndex ); // This is the index because it makes no sense to send an address over the network
       newCopies[i].setHostBaseAddress( (uint64_t) wd.getCopies()[i].getBaseAddress() );
-      //newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
+      //newCopies[i].setBaseAddress( (void *) ( wd._mcontrol.getAddress( i ) /*- wd.getCopies()[i].getOffset()*/ ) );
       newCopies[i].setBaseAddress( (void *) ( wd._mcontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
       dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
@@ -232,7 +232,7 @@ void ClusterThread::idle( bool debug )
    if ( !_pendingRequests.empty() ) {
       std::set<void *>::iterator it = _pendingRequests.begin();
       while ( it != _pendingRequests.end() ) {
-         ext::ClusterDevice::GetRequest *req = (ext::ClusterDevice::GetRequest *) (*it);
+         GetRequest *req = (GetRequest *) (*it);
          if ( req->isCompleted() ) {
            std::set<void *>::iterator toBeDeletedIt = it;
            it++;
@@ -256,3 +256,6 @@ void ClusterThread::switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
 void ClusterThread::exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
 void ClusterThread::initializeDependent( void ) {}
 void ClusterThread::switchToNextThread() {}
+
+void ClusterThread::unlock() { _lock.release(); }
+bool ClusterThread::tryLock() { return _lock.tryAcquire(); }

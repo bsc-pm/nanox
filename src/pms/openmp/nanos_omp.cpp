@@ -15,39 +15,31 @@ namespace nanos
 using namespace nanos;
 using namespace nanos::OpenMP;
 
-nanos_err_t nanos_omp_set_implicit ( nanos_wd_t uwd )
+NANOS_API_DEF(nanos_err_t, nanos_omp_set_implicit, ( nanos_wd_t uwd ))
 {
     WD *wd = (WD *) uwd;
-
-    OmpData *data = (OmpData *) wd->getInternalData();
-
-    data->setImplicit(true);
-
-    myThread->enterTeam();
+    wd->setImplicit(true);
 
     return NANOS_OK;
 }
 
-nanos_err_t nanos_omp_single ( bool *b )
+NANOS_API_DEF(nanos_err_t, nanos_omp_single, ( bool *b ))
 {
-    OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-    
-    if ( data->isImplicit() ) return nanos_single_guard(b);
+    if ( myThread->getCurrentWD()->isImplicit() ) return nanos_single_guard(b);
 
     *b=true;
     return NANOS_OK;
 }
 
-nanos_err_t nanos_omp_barrier ( void )
+NANOS_API_DEF(nanos_err_t, nanos_omp_barrier, ( void ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_barrier",NANOS_SYNCHRONIZATION) );
 
    try {
       WD &wd = *myThread->getCurrentWD();
-      OmpData *data = (OmpData *) wd.getInternalData();
     
       wd.waitCompletion();
-      if ( data->isImplicit() ) {
+      if ( wd.isImplicit() ) {
          myThread->getTeam()->barrier();
       }
    } catch ( ... ) {
@@ -57,13 +49,13 @@ nanos_err_t nanos_omp_barrier ( void )
    return NANOS_OK;
 }
 
-nanos_ws_t nanos_omp_find_worksharing( omp_sched_t kind )
+NANOS_API_DEF(nanos_ws_t, nanos_omp_find_worksharing,( omp_sched_t kind ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_find_worksharing",NANOS_SYNCHRONIZATION) );
    return ((OpenMPInterface&)sys.getPMInterface()).findWorksharing(kind);
 }
 
-nanos_err_t nanos_omp_get_schedule ( omp_sched_t *kind, int *modifier )
+NANOS_API_DEF(nanos_err_t, nanos_omp_get_schedule, ( omp_sched_t *kind, int *modifier ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_get_schedule",NANOS_RUNTIME) );
    try {

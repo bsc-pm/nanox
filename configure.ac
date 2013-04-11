@@ -1,6 +1,10 @@
 
-AC_INIT([nanox], [0.7a], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
+
+configure_orig_arguments="$@"
+
+# New comment
 
 # Environment
 AC_CANONICAL_BUILD
@@ -8,26 +12,173 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall -Werror dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2])
+AC_CONFIG_MACRO_DIR([m4])
+
+dnl Enable silent rules if available
 supported_silent_rules=1
-m4_ifdef([AM_SILENT_RULES], 
-        [AM_SILENT_RULES([yes])],
-        [supported_silent_rules=0])
+m4_ifdef([AM_SILENT_RULES],
+         [AM_SILENT_RULES([yes])],
+         [supported_silent_rules=0])
 
 AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
-AC_CONFIG_MACRO_DIR([m4])
+ 
+dnl Versioning things
+dnl Make sure build_version is double-quoted!
+build_version="\"unknown revision\""
+if test -d $srcdir/.git;
+then
+   AC_PATH_PROG([GIT], [git], [])
+   AC_MSG_CHECKING([revision of git repository])
+   run_git=""
+   if test x"$GIT" != x;
+   then
+      echo "$GIT" "$srcdir" >& AS_MESSAGE_LOG_FD
+      run_gitversion=`"$GIT" --git-dir=$srcdir/.git show "--pretty=format:%h %ci" HEAD | head -n 1`
+      run_gitbranch=`"$GIT" --git-dir=$srcdir/.git branch | grep ^* | sed s/*\ //g`
+      build_version="\"git $run_gitbranch $run_gitversion developer version\""
+   fi
+   if test x"$GIT" = x -o x"$run_gitversion" = x;
+   then
+       build_version="\"unknown git commit\""
+   fi
+   AC_MSG_RESULT([$build_version])
+elif test -e $srcdir/VERSION;
+then
+     AC_MSG_CHECKING([revision of distributed release])
+     run_gitversion=`cat $srcdir/VERSION`
+     build_version="\"$run_gitversion\""
+     AC_MSG_RESULT([$build_version])
+fi
+AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
+
+nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
+AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
+: ${FCFLAGS=""}
+
+# Allocator support
+AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_ARG_ENABLE([allocator],
+  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  [
+    allocator_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    allocator_disabled=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$allocator_disabled = xyes; then
+	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
+	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+fi
+
+AC_MSG_CHECKING([for Linux Intel C compiler mode])
+AC_ARG_ENABLE([icc],
+  AC_HELP_STRING([--enable-icc],[Enable support fot Intel compiler (off by default)]),
+  [
+    use_icc=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_icc=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+AC_MSG_CHECKING([for Linux IBM C compiler mode])
+AC_ARG_ENABLE([xlc],
+  AC_HELP_STRING([--enable-xlc],[Enable support fot IBM compiler (off by default)]),
+  [
+    use_xlc=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_xlc=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
+AC_ARG_ENABLE([mic],
+  AC_HELP_STRING([--enable-mic],[Enable support fot Intel MIC compiler (off by default)]),
+  [
+    use_icc=yes
+    host_alias=$host
+    cross_compiling=maybe
+    CFLAGS="$CFLAGS -mmic"
+    CXXFLAGS="$CXXFLAGS -mmic"
+    FCFLAGS="$FCFLAGS -mmic"
+    LDFLAGS="$LDFLAGS -lsvml -limf -lintlc"
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$use_icc = xyes; then
+    if test x$use_xlc = xyes; then
+        AC_MSG_ERROR([Both Intel and IBM compilers support is enabled. Please, choose only one of them.])
+    else
+	: ${CC="icc"}
+	: ${CXX="icpc"}
+	: ${FC="ifort"}
+	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
+	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
+    fi
+else
+    if test x$use_xlc = xyes; then
+        : ${CC="xlc"}
+        : ${CXX="xlc++"}
+        : ${FC="xlf"}
+    else
+	: ${CC="gcc"}
+	: ${CXX="g++"}
+	: ${FC="gfortran"}
+    fi
+fi
 
 # Check for programs
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_LIBTOOL
-AC_PROG_CC
+AC_PROG_CC([$CC])
 AC_PROG_CPP
 AM_PROG_CC_C_O
-AC_PROG_CXX
+AC_PROG_CXX([$CXX])
 AM_PROG_AS
+
+AC_PROG_SED
+
+# Fortran
+AC_PROG_FC([$FC])
+AC_PROG_FC_C_O
+
+# Flags & Compiler dependent stuff
+if test x$ac_cv_cxx_compiler_gnu = xyes; then
+    use_gnu=yes
+fi
+if test x$ac_cv_prog_cc_xlc_c_o = xyes; then
+    use_xlc=yes
+fi
+if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
+    use_xlc=yes
+fi
+
+if test x$use_gnu = xyes; then
+    CFLAGS="$CFLAGS -Wredundant-decls"
+    CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+fi
+
+AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
+AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
+AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
 
 # Check for libraries
 
@@ -56,6 +207,8 @@ OS=
 AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
 AC_SUBST([SMP_ARCH])
+
+AC_CHECK_SIZEOF([size_t])
 
 #AC_MSG_CHECKING([for architecture])
 smp_ult=yes
@@ -87,20 +240,11 @@ case $host in
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
 
-    case $CC in
-      *-m32*)
-         SMP_ARCH=ppc32
-         ;;
-      *-m64*)
-         SMP_ARCH=ppc64
-         ;;
-      *)
-         # GCC generates ppc32 code by default
-         SMP_ARCH=ppc32
-         ;;
-    esac
-    
-    AM_CONDITIONAL([ARCH_IS_64_BITS], [test x$SMP_ARCH = xppc64])
+    if test $ac_cv_sizeof_size_t = 8 ; then
+        SMP_ARCH=ppc64
+    else
+        SMP_ARCH=ppc32
+    fi
 
     # Check if it is a Cell system
     if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
@@ -272,6 +416,7 @@ AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
 gpu_valid=no
 gpu_enabled=yes
 CUDA=""
+CUDA_RPATH=""
 
 AC_MSG_CHECKING([if the use of GPU devices was disabled])
 AC_ARG_ENABLE([gpu-arch],
@@ -315,12 +460,15 @@ if test x$gpu_enabled = xyes ; then
         else
             CUDA_INC="$CUDADIR/include"
             CUDA_LIB="$CUDADIR/lib"
-            if test -d "$CUDADIR/lib64"; then
+            if test -d "$CUDADIR/lib64" ;
+	    then
                 CUDA_LIB="$CUDADIR/lib64"
             fi
+            CUDA_RPATH="-Xlinker -rpath -Xlinker $CUDA_LIB"
 
             AC_SUBST([CUDA_INC])
             AC_SUBST([CUDA_LIB])
+            AC_SUBST([CUDA_RPATH])
 
             cuda_version_h="$CUDA_INC/cuda.h"
             if test -e $cuda_version_h ;
@@ -349,24 +497,164 @@ AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
 
-# Allocator support
-allocator_disabled=no
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
-AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+#only show warnings when the user tries to specify opencl folders
+opencl_showwarn="no"
+#Check if an OpenCL implementation is installed.
+OPENCLBASE="/usr"
+AC_ARG_WITH([opencl],
+AS_HELP_STRING([--with-opencl=dir], [Directory of OpenCL installation]),
+	[
+		OPENCLBASE="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCLBASE="/usr"
+	]
+)
+
+AC_ARG_WITH([opencl-include],
+AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes]),
+	[
+		OPENCL_INC="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+		OPENCL_INC="$OPENCLBASE/include/"
+	]
+)
+
+AC_ARG_WITH([opencl-lib],
+AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
+	[
+		OPENCL_LIB="${withval}"
+      opencl_showwarn="yes"
+	],
+	[
+      #tests if headers and libraries are usable and correct
+      #backup vars before we do the tests
+      CFLAGSBACKUP="$CFLAGS"
+      CPPFLAGSBACKUP="$CPPFLAGS"
+      CXXFLAGSBACKUP="$CXXFLAGS"
+      LDFLAGSBACKUP="$LDFLAGS"
+
+      CFLAGS="$CFLAGS -L$OPENCLBASE/lib64/"
+      CPPFLAGS="$CPPFLAGS -L$OPENCLBASE/lib64/"
+      CFLAGS="$CXXFLAGS -L$OPENCLBASE/lib64/"
+      LDFLAGS="$LDFLAGS -L$OPENCLBASE/lib64/"
+      AC_CHECK_LIB([OpenCL],
+                   [clGetPlatformIDs],
+                   [OPENCL_LIB="$OPENCLBASE/lib64/"],
+                   [OPENCL_LIB="$OPENCLBASE/lib/"])
+
+      CFLAGS="$CFLAGSBACKUP"
+      CPPFLAGS="$CPPFLAGSBACKUP"
+      CXXFLAGS="$CXXFLAGSBACKUP"
+      LDFLAGS="$LDFLAGSBACKUP"
+      #endtest
+	]
+)
+
+AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
+AC_ARG_ENABLE([opencl-arch],
+  AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
   [
-    allocator_disabled="yes"
-    AC_MSG_RESULT([yes])
+    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
+    then
+        opencl_enabled="yes"        
+        opencl_showwarn="yes"
+        AC_MSG_RESULT([no])
+    else if test x"$enableval" = x"no";
+        then
+            opencl_enabled="no"
+            AC_MSG_RESULT([yes])
+        else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+        fi    
+    fi
   ],
   [
-    allocator_disabled="no"
+    opencl_enabled="yes"
     AC_MSG_RESULT([no])
   ]
 )
-if test x$allocator_disabled = xyes; then
-	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
-	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+
+if test x"$opencl_enabled" = x"yes" ; then
+
+    opencl_valid="no"
+    opencl_libs="no"
+    opencl_headers="no"
+
+    #tests if headers and libraries are usable and correct
+    #backup vars before we do the tests
+    CFLAGSBACKUP="$CFLAGS"
+    CPPFLAGSBACKUP="$CPPFLAGS"
+    CXXFLAGSBACKUP="$CXXFLAGS"
+    LDFLAGSBACKUP="$LDFLAGS"
+
+    CFLAGS="$CFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CPPFLAGS="$CPPFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    LDFLAGS="$LDFLAGS -L$OPENCL_LIB"
+
+    AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_HEADER([OpenCL/opencl.h], [opencl_headers="yes"],[])
+    AC_CHECK_LIB([OpenCL],
+                 [clGetPlatformIDs],
+                 [opencl_libs="yes"],
+                 [])
+
+    CFLAGS="$CFLAGSBACKUP"
+    CPPFLAGS="$CPPFLAGSBACKUP"
+    CXXFLAGS="$CXXFLAGSBACKUP"
+    LDFLAGS="$LDFLAGSBACKUP"
+    #endtest
+
+    if test x"$opencl_libs" = x"yes" ; then
+         if test x"$opencl_headers" = x"yes" ; then
+            opencl_valid="yes"
+         fi
+    fi
+
+    if test x"$opencl_showwarn" = x"yes" ; then
+         if test x"$opencl_libs" = x"no" ; then
+            AC_MSG_WARN([OpenCL library not found in $OPENCL_LIB, specify location using -with-opencl-lib. Disabling OpenCL support])
+         fi
+         if test x"$opencl_headers" = x"no" ; then
+            AC_MSG_WARN([OpenCL headers not found in $OPENCL_INC, specify location using -with-opencl-include. Disabling OpenCL support])
+         fi
+    fi
+else
+    opencl_valid="no"
 fi
+
+if test x"$opencl_valid" = x"yes"; then
+    OPENCL_LD=$OPENCL_LIB
+    OPENCL_INC=$OPENCL_INC
+    CFLAGS="$CFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    ARCHITECTURES="$ARCHITECTURES opencl"
+    AC_SUBST([OPENCL_LD])
+    AC_SUBST([OPENCL_INC])
+fi
+
+AM_CONDITIONAL([OPENCL_SUPPORT],[test $opencl_valid = yes]) 
+
+AC_SUBST([opencl_valid])
+
+# mcc support
+AC_ARG_WITH([mcc],
+AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
+	[
+      mcc_valid=yes
+		MCC="${withval}/bin/mcc"
+	],
+	[
+      mcc_valid=no
+		MCC=""
+	])
+
+AC_SUBST([mcc_valid])
+AC_SUBST([MCC])
 
 AC_MSG_CHECKING([for architecture])
 
@@ -534,18 +822,22 @@ AC_ARG_WITH([mpitrace],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
-                      MPITRACE_LIB="$withval/lib"
+                      MPITRACE_LIB="$withval/lib" ;
+                      if test -d "$MPITRACE_HOME/lib64"
+                      then
+                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
+                      fi
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -557,18 +849,22 @@ AC_ARG_WITH([extrae],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 220;
+                   if test "$extrae_version" -ge 230;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
                       MPITRACE_LIB="$withval/lib"
+                      if test -d "$MPITRACE_HOME/lib64";
+                      then
+                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
+                      fi
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.2.0 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
                 fi
            ]
 )
@@ -580,6 +876,72 @@ AC_SUBST([MPITRACE_BIN])
 
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
+
+# Check NextSim support
+AC_ARG_WITH([nextsim],
+           AS_HELP_STRING([--with-nextsim=dir], [Directory of NextSim installation]),
+           [
+              NEXTSIM_HOME="$withval"
+              NEXTSIM_INC="$withval/include"
+           ]
+)
+AC_SUBST([NEXTSIM_HOME])
+AC_SUBST([NEXTSIM_INC])
+AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
+
+# Check Ayudame support
+AYUDAME_HOME=""
+AYUDAME_INC=""
+AYUDAME_LIB=""
+AYUDAME_BIN=""
+
+AC_ARG_WITH([ayudame],
+           AS_HELP_STRING([--with-ayudame=dir], [Directory of Ayudame installation]),
+           [
+                AYUDAME_HOME="$withval"
+                AYUDAME_INC="$withval/include"
+                AYUDAME_LIB="$withval/lib"
+                AYUDAME_BIN="$withval/bin"
+           ]
+)
+AC_SUBST([AYUDAME_HOME])
+AC_SUBST([AYUDAME_INC])
+AC_SUBST([AYUDAME_LIB])
+AC_SUBST([AYUDAME_BIN])
+
+AM_CONDITIONAL([INSTRUMENTATION_AYUDAME], test x"$AYUDAME_HOME" != x)
+
+# Check hwloc availability
+AC_ARG_WITH([hwloc],
+           AS_HELP_STRING([--with-hwloc=dir], [Directory of Hardware Locality (hwloc) installation]),
+           [
+                hwloc_h=$withval/include/hwloc.h
+                if test -e $hwloc_h ;
+                then
+                   hwloc_version_string=`sed -ne '/^\s*#\s*define\s\+HWLOC_API_VERSION .*$/p' $hwloc_h`
+                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION 0x[0]\+\([0-9]\+\).*$/\1/'`
+                   if test "$hwloc_version" -ge 10200;
+                   then
+                      HWLOC_HOME="$withval"
+                      HWLOC_INC="$withval/include"
+                      HWLOC_LIB="$withval/lib"
+                      HWLOC_BIN="$withval/bin"
+                      AC_MSG_RESULT([checking if Hardware Locality library is compatible... yes])
+                   else
+                      AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
+                   fi
+                else
+                   AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
+                fi
+           ]
+)
+
+AC_SUBST([HWLOC_HOME])
+AC_SUBST([HWLOC_INC])
+AC_SUBST([HWLOC_LIB])
+AC_SUBST([HWLOC_BIN])
+
+AM_CONDITIONAL([HWLOC], test x"$HWLOC_HOME" != x)
 
 # Check for Chapel support
 AC_ARG_WITH([chapel],
@@ -595,6 +957,11 @@ AC_ARG_WITH([chapel],
 
 AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
+
+# Check MKL Support
+AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS],[-lm -lmkl_core])
+AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
+AC_SUBST([MKL_LIBS])
 
 # Output files
 AC_CONFIG_HEADERS([config.h])
@@ -642,6 +1009,11 @@ AC_CONFIG_FILES([Makefile
 		 src/plugins/worksharing/debug/Makefile
 		 src/plugins/worksharing/instrumentation/Makefile
 		 src/plugins/worksharing/instrumentation-debug/Makefile
+		 src/plugins/deps/Makefile
+		 src/plugins/deps/performance/Makefile
+		 src/plugins/deps/debug/Makefile
+		 src/plugins/deps/instrumentation/Makefile
+		 src/plugins/deps/instrumentation-debug/Makefile
 		 src/apis/Makefile
 		 src/apis/c/Makefile
 		 src/apis/c/performance/Makefile
@@ -695,7 +1067,16 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/cluster/debug/Makefile
 		 src/arch/cluster/instrumentation/Makefile
 		 src/arch/cluster/instrumentation-debug/Makefile
+		 src/arch/opencl/Makefile
+		 src/arch/opencl/performance/Makefile
+		 src/arch/opencl/debug/Makefile
+		 src/arch/opencl/instrumentation/Makefile
+		 src/arch/opencl/instrumentation-debug/Makefile
 		 src/utils/Makefile
+		 src/utils/performance/Makefile
+		 src/utils/instrumentation/Makefile
+		 src/utils/debug/Makefile
+		 src/utils/instrumentation-debug/Makefile
 		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile

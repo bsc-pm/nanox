@@ -50,49 +50,9 @@ inline void AllocatedChunk::increaseLruStamp() {
    _lruStamp += 1;
 }
 
+#if 0
 inline Region const &CacheCopy::getRegion() const {
    return _region;
-}
-
-inline Device const &RegionCache::getDevice() const {
-   return _device;
-}
-
-inline bool RegionCache::canCopyFrom( RegionCache const &from ) const {
-   return _device == from._device;
-}
-
-inline unsigned int RegionCache::getLruTime() const {
-   return _lruTime;
-}
-
-inline void RegionCache::increaseLruTime() {
-   _lruTime += 1;
-}
-
-inline bool RegionCache::pin( global_reg_t const &hostMem ) {
-   bool result = false;
-   //uint64_t targetHostAddr = hostMem.getFirstAddress();
-   //std::size_t allocSize = hostMem.getDataSize();
-   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
-   if ( entry ) {
-      entry->addReference();
-      entry->unlock();
-      result = true;
-   }
-   return result;
-}
-
-inline void RegionCache::unpin( global_reg_t const &hostMem ) {
-   //uint64_t targetHostAddr = hostMem.getFirstAddress();
-   //std::size_t allocSize = hostMem.getDataSize();
-   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
-   if ( entry ) {
-      entry->removeReference();
-      entry->unlock();
-   } else {
-      fprintf(stderr, "could not get a CacheEntry!\n");
-   }
 }
 
 inline unsigned int CacheCopy::getVersion() const {
@@ -137,7 +97,50 @@ inline NewLocationInfoList const &CacheCopy::getNewLocations() const {
    return _newLocations;
 }
 
+#endif
 
+inline Device const &RegionCache::getDevice() const {
+   return _device;
+}
+
+inline bool RegionCache::canCopyFrom( RegionCache const &from ) const {
+   return _device == from._device;
+}
+
+inline unsigned int RegionCache::getLruTime() const {
+   return _lruTime;
+}
+
+inline void RegionCache::increaseLruTime() {
+   _lruTime += 1;
+}
+
+inline bool RegionCache::pin( global_reg_t const &hostMem ) {
+   bool result = false;
+   //uint64_t targetHostAddr = hostMem.getFirstAddress();
+   //std::size_t allocSize = hostMem.getDataSize();
+   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
+   if ( entry ) {
+      entry->addReference();
+      entry->unlock();
+      result = true;
+   }
+   return result;
+}
+
+inline void RegionCache::unpin( global_reg_t const &hostMem ) {
+   //uint64_t targetHostAddr = hostMem.getFirstAddress();
+   //std::size_t allocSize = hostMem.getDataSize();
+   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
+   if ( entry ) {
+      entry->removeReference();
+      entry->unlock();
+   } else {
+      fprintf(stderr, "could not get a CacheEntry!\n");
+   }
+}
+
+#if 0
 inline CacheCopy *CacheController::getCacheCopies() const {
    return _cacheCopies;
 }
@@ -145,6 +148,6 @@ inline CacheCopy *CacheController::getCacheCopies() const {
 inline RegionCache *CacheController::getTargetCache() const {
    return _targetCache;
 }
-
+#endif
 
 #endif /* REGIONCACHE_HPP */

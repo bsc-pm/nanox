@@ -21,20 +21,24 @@
 #define _NANOS_DATA_ACCESS
 
 #include "dataaccess_decl.hpp"
+#include <iostream>
 
 using namespace nanos;
 
 inline DataAccess::DataAccess ( void * addr, bool input, bool output,
-             bool canRenameFlag, bool commutative, short dimensionCount,
-             nanos_region_dimension_internal_t const *dims )
+             bool canRenameFlag, bool concurrent,bool commutative,
+             short dimensionCount, nanos_region_dimension_internal_t const *dims,
+             ptrdiff_t someOffset )
 {
    address = addr;
    flags.input = input;
    flags.output = output;
    flags.can_rename = canRenameFlag;
+   flags.concurrent = concurrent; 
    flags.commutative = commutative;
    dimension_count = dimensionCount;
    dimensions = dims;
+   offset = someOffset;
 }
 
 inline DataAccess::DataAccess ( const DataAccess &dataAccess )
@@ -43,9 +47,11 @@ inline DataAccess::DataAccess ( const DataAccess &dataAccess )
    flags.input = dataAccess.flags.input;
    flags.output = dataAccess.flags.output;
    flags.can_rename = dataAccess.flags.can_rename;
+   flags.concurrent = dataAccess.flags.concurrent; 
    flags.commutative = dataAccess.flags.commutative;
    dimension_count = dataAccess.dimension_count;
    dimensions = dataAccess.dimensions;
+   offset = dataAccess.offset;
 }
 
 inline const DataAccess & DataAccess::operator= ( const DataAccess &dataAccess )
@@ -55,9 +61,11 @@ inline const DataAccess & DataAccess::operator= ( const DataAccess &dataAccess )
    flags.input = dataAccess.flags.input;
    flags.output = dataAccess.flags.output;
    flags.can_rename = dataAccess.flags.can_rename;
+   flags.concurrent = dataAccess.flags.concurrent; 
    flags.commutative = dataAccess.flags.commutative;
    dimension_count = dataAccess.dimension_count;
    dimensions = dataAccess.dimensions;
+   offset = dataAccess.offset;
    return *this;
 }
 
@@ -66,6 +74,15 @@ inline void * DataAccess::getAddress() const
    return address;
 }
 
+inline void * DataAccess::getDepAddress() const
+{
+   return (void*)((uintptr_t)address + offset );
+}
+
+inline ptrdiff_t DataAccess::getOffset() const
+{
+   return offset;
+}
 inline bool DataAccess::isInput() const
 {
    return flags.input;
@@ -96,6 +113,16 @@ inline void DataAccess::setCanRename( bool b )
    flags.can_rename = b;
 }
 
+inline bool DataAccess::isConcurrent() const
+{ 
+   return flags.concurrent;
+}
+ 
+inline void DataAccess::setConcurrent( bool b )
+{ 
+   flags.concurrent = b;
+}
+
 inline bool DataAccess::isCommutative() const
 {
    return flags.commutative;
@@ -104,6 +131,31 @@ inline bool DataAccess::isCommutative() const
 inline void DataAccess::setCommutative( bool b )
 {
    flags.commutative = b;
+}
+
+
+namespace nanos {
+   namespace dependencies_domain_internal {
+      inline std::ostream & operator<<( std::ostream &o, AccessType const &accessType)
+      {
+         if ( accessType.input && accessType.output ) {
+            if ( accessType.concurrent ) {
+               o << "CON";
+            } else if ( accessType.commutative ) {
+               o << "COM";
+            } else {
+               o << "INOUT";
+            }
+         } else if ( accessType.input && !accessType.commutative ) {
+            o << "IN";
+         } else if ( accessType.output && !accessType.commutative ) {
+            o << "OUT";
+         } else {
+            o << "ERR";
+         }
+         return o;
+      }
+   }
 }
 
 #endif

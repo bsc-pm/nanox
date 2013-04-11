@@ -41,10 +41,13 @@ namespace ext
          size_t      _stackSize;
          bool        _useUserThreads;
 
+         pthread_cond_t          _condWait;
+         static pthread_mutex_t  _mutexWait;
+
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
          const SMPThread & operator= ( const SMPThread &th );
-
+        
       public:
          // constructor
          SMPThread( WD &w, PE *pe, SMPMultiThread *parent=NULL ) : BaseThread( w,pe, parent ),_stackSize(0), _useUserThreads(true) {}
@@ -63,7 +66,7 @@ namespace ext
          virtual void initializeDependent( void ) {}
          virtual void runDependent ( void );
 
-         virtual void inlineWorkDependent( WD &work );
+         virtual bool inlineWorkDependent( WD &work );
          virtual void outlineWorkDependent( WD &work ) {fatal( "SMPThread does not support outlineWorkDependent()" ); } ;
          virtual void switchTo( WD *work, SchedulerHelper *helper );
          virtual void exitTo( WD *work, SchedulerHelper *helper );
@@ -72,6 +75,7 @@ namespace ext
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
 
          virtual void bind( void );
+         
 
          /** \brief SMP specific yield implementation
          */
@@ -90,6 +94,8 @@ namespace ext
          //virtual int checkStateDependent( int numPe ) {
          //   fatal( "SMPThread does not support checkStateDependent()" );
          //}
+         virtual void wait();
+         virtual void signal();
    };
 
    class SMPMultiThread : public SMPThread

@@ -23,9 +23,9 @@
 // Define GCC Version
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 
-// Define a linker section with GCC
+// Define a linker section with GCC attribute
 #define LINKER_SECTION(name,type,nop) \
-    __attribute__((weak, section( #name ))) type __section_##name = nop; \
+    type __section_##name __attribute__((weak, section( #name ))) = nop; \
     extern type __start_##name; \
     extern type __stop_##name;
 
@@ -34,6 +34,10 @@
 
 #define BROKEN_COMPARE_AND_SWAP
 
+#endif
+
+#if __IBMCPP__
+#define __volatile volatile // defining __volatile to volatile with XLC compiler. But you shouldn't have to do this.
 #endif
 
 // compiler issues
@@ -92,6 +96,11 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 #endif // __GNUC__ == 4 && (__GNUC_MINOR__ == 1 || __GNUC_MINOR__ == 2)
 #endif // __GNUC__
 
+// xlC seems to need this hack also
+#ifdef __IBMCPP__
+#define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
+#endif
+
 #ifdef BROKEN_COMPARE_AND_SWAP
 
 bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
@@ -105,6 +114,40 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 #    endif
 #  endif
 #endif
+
+// For old machines that do not define CPU_SET macros
+#if !__GLIBC_PREREQ (2, 7)
+# define __CPU_OP_S(setsize, destset, srcset1, srcset2, op) \
+   (__extension__                                                              \
+    ({ cpu_set_t *__dest = (destset);                                          \
+     __const __cpu_mask *__arr1 = (srcset1)->__bits;                         \
+     __const __cpu_mask *__arr2 = (srcset2)->__bits;                         \
+     size_t __imax = (setsize) / sizeof (__cpu_mask);                        \
+     size_t __i;                                                             \
+     for (__i = 0; __i < __imax; ++__i)                                      \
+     ((__cpu_mask *) __dest->__bits)[__i] = __arr1[__i] op __arr2[__i];    \
+     __dest; }))
+
+# define __CPU_EQUAL_S(setsize, cpusetp1, cpusetp2) \
+   (__extension__                                                              \
+    ({ __const __cpu_mask *__arr1 = (cpusetp1)->__bits;                        \
+     __const __cpu_mask *__arr2 = (cpusetp2)->__bits;                        \
+     size_t __imax = (setsize) / sizeof (__cpu_mask);                        \
+     size_t __i;                                                             \
+     for (__i = 0; __i < __imax; ++__i)                                      \
+     if (__arr1[__i] != __arr2[__i])                                       \
+     break;                                                              \
+     __i == __imax; }))
+
+# define CPU_AND(destset, srcset1, srcset2) \
+  __CPU_OP_S (sizeof (cpu_set_t), destset, srcset1, srcset2, &)
+
+# define CPU_OR(destset, srcset1, srcset2) \
+  __CPU_OP_S (sizeof (cpu_set_t), destset, srcset1, srcset2, |)
+
+# define CPU_EQUAL(cpusetp1, cpusetp2) \
+  __CPU_EQUAL_S (sizeof (cpu_set_t), cpusetp1, cpusetp2)
+#endif /* GLIBC < 2.7 */
 
 #endif
 

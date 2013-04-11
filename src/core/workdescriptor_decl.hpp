@@ -37,10 +37,10 @@
 #include "basethread_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "wddeque_fwd.hpp"
-//#include "newdirectory_fwd.hpp"
-#include "regiondirectory_fwd.hpp"
 #include "regioncache_decl.hpp"
 #include "memcontroller_decl.hpp"
+
+#include "dependenciesdomain_fwd.hpp"
 
 namespace nanos
 {
@@ -123,6 +123,12 @@ namespace nanos
             return *this;
          }
 
+         /*! \brief Returns the device associated to this DeviceData
+          *
+          *  \return the Device pointer.
+          */
+         const Device * getDevice () const;
+
          /*! \brief Indicates if DeviceData is compatible with a given Device
           *
           *  \param[in] arch is the Device which we have to compare to.
@@ -154,6 +160,9 @@ namespace nanos
       public:
 	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
 
+         typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
+         typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
+
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -177,22 +186,28 @@ namespace nanos
 
          unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
          DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
-         DeviceData                   *_activeDevice; /**< Active device (if any) */
+         unsigned int                  _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */
          CopyData                     *_copies;       /**< Copy-in / Copy-out data */
+         size_t                        _paramsSize;   /**< Total size of WD's parameters */
+
+         unsigned long                 _versionGroupId;     /**< The way to link different implementations of a task into the same group */
+
+         double                        _executionTime;    /**< WD starting wall-clock time */
+         double                        _estimatedExecTime;  /**< WD estimated execution time */
 
          TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
-         LazyInit<DependenciesDomain>  _depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
-         //LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
-         NewDirectory        *_newDirectory;    /**< Directory to mantain cache coherence */
+         DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
+         //NewDirectory                 *_newDirectory;    /**< Directory to mantain cache coherence */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
          //WorkDescriptor * _prefetchedWd;
          bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
+         bool                          _configured;  /**< Has this WD been configured to the Scheduler? */
 
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
          Atomic< std::list<GraphEntry *> * > _myGraphRepList;
@@ -202,8 +217,18 @@ namespace nanos
 
          unsigned int                  _priority;      /**< Task priority */
       public:
-         CacheController                _ccontrol;
+         //CacheController                _ccontrol;
          MemController                  _mcontrol;
+
+         CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
+         WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
+
+         int                           _socket;       /**< The socket this WD was assigned to */
+         unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
+         bool                          _implicit;     /**< is a implicit task (in a team) */
+
+         bool                          _copiesNotInChunk; /**< States whether the buffer of the copies is allocated in the chunk of the WD */
+         char                         *_description; /**< WorkDescriptor description, usually user function name */
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -217,44 +242,12 @@ namespace nanos
          /*! \brief WorkDescriptor constructor - 1
           */
          WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
-                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
-                          _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                          _numDevices ( ndevices ), _devices ( devs ), _activeDevice ( ndevices == 1 ? devs[0] : NULL ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false),
-                          _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
-                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ), _mcontrol( *this ) { 
-                             getGE()->setNoWait();
-                             if ( copies != NULL ) {
-                                for ( unsigned int i = 0; i < numCopies; i += 1 ) {
-                                   copies[i].setHostBaseAddress( 0 );
-                                }
-                             }
-                          }
-                          //_depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted(false), _translateArgs( translate_args ) { }
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
 
          /*! \brief WorkDescriptor constructor - 2
           */
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL )
-                        : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
-                          _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
-                          _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                          _numDevices ( 1 ), _devices ( &_activeDevice ), _activeDevice ( device ),
-                          _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
-                          _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ),
-                          _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
-                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ), _mcontrol( *this ) { 
-                             getGE()->setNoWait();
-                             if ( copies != NULL ) {
-                                for ( unsigned int i = 0; i < numCopies; i += 1 ) {
-                                   copies[i].setHostBaseAddress( 0 );
-                                }
-                             }
-                          }
-                          //_depsDomain(), _directory(),  _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( translate_args ) { }
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -266,16 +259,7 @@ namespace nanos
           *
           *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
           */
-         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL )
-                        : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
-                          _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
-                          _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
-                          _numDevices ( wd._numDevices ), _devices ( devs ), _activeDevice ( wd._numDevices == 1 ? devs[0] : NULL ),
-                          _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
-                          _doSubmit(), _doWait(), _depsDomain(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ),
-                          _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _notifyCopy( NULL ),
-                          _notifyThread ( NULL ), _priority( wd._priority ), _ccontrol( *this ), _mcontrol( *this ) { }
-                          //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
+         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, char *description = NULL );
 
          /*! \brief WorkDescriptor destructor
           *
@@ -284,7 +268,12 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
-            for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
+             for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
+
+             delete _depsDomain;
+
+             if (_copiesNotInChunk)
+                 delete[] _copies;
          }
 
          /*! \brief Has this WorkDescriptor ever run?
@@ -361,6 +350,8 @@ namespace nanos
          bool isTied() const;
 
          BaseThread * isTiedTo() const;
+         
+         bool shouldBeTied() const;
 
          void setData ( void *wdata );
 
@@ -389,13 +380,16 @@ namespace nanos
          unsigned getDepth() const;
 
          /* device related methods */
-         DeviceData * findDeviceData ( const Device &device ) const;
          bool canRunIn ( const Device &device ) const;
          bool canRunIn ( const ProcessingElement &pe ) const;
          DeviceData & activateDevice ( const Device &device );
+         DeviceData & activateDevice ( unsigned int deviceIdx );
          DeviceData & getActiveDevice () const;
 
          bool hasActiveDevice() const;
+
+         void setActiveDeviceIdx( unsigned int idx );
+         unsigned int getActiveDeviceIdx();
 
          void setInternalData ( void *data );
 
@@ -404,6 +398,31 @@ namespace nanos
          void setTranslateArgs( nanos_translate_args_t translateArgs );
          
          nanos_translate_args_t getTranslateArgs( void );
+
+         /*! \brief Returns the socket that this WD was assigned to.
+          * 
+          * \see setSocket
+          */
+         int getSocket() const;
+
+         /*! \brief Changes the socket this WD is assigned to.
+          *
+          * \see getSocket
+          */
+         void setSocket( int socket );
+         
+         /*! \brief Returns the queue this WD should wake up in.
+          *  This will be used by the socket-aware schedule policy.
+          *
+          *  \see setWakeUpQueue
+          */
+         unsigned int getWakeUpQueue() const;
+         
+         /*! \brief Sets the queue this WD should wake up in.
+          *
+          *  \see getWakeUpQueue
+          */
+         void setWakeUpQueue( unsigned int queue );
 
          /*! \brief Get the number of devices
           *
@@ -423,6 +442,14 @@ namespace nanos
           */
          DeviceData ** getDevices ( void );
 
+         /*! \brief Prepare device
+          *
+          *  This function chooses a device from the WD's device list that will run the current WD
+          *
+          *  \see getDevices
+          */
+         void prepareDevice ( void );
+
          /*! \brief WD dequeue 
           *
           *  This function give us the next WD slice to execute. As a default
@@ -438,6 +465,8 @@ namespace nanos
          // headers
          virtual void submit ( void );
 
+         virtual void finish ();
+
          virtual void done ();
 
          void clear ();
@@ -450,6 +479,34 @@ namespace nanos
           */
          CopyData * getCopies() const;
 
+         /*! \brief returns the total size of copy-ins/copy-outs of the WD
+          */
+         size_t getCopiesSize() const;
+
+         /*! \brief returns the total size of the WD's parameters
+          */
+         size_t getParamsSize() const;
+
+         /*! \brief returns the WD's implementation group ID
+          */
+         unsigned long getVersionGroupId( void );
+
+         /*! \brief sets the WD's implementation group ID
+          */
+         void setVersionGroupId( unsigned long id );
+
+         /*! \brief returns the total execution time of the WD
+          */
+         double getExecutionTime() const;
+
+         /*! \brief returns the estimated execution time of the WD
+          */
+         double getEstimatedExecutionTime() const;
+
+         /*! \brief sets the estimated execution time of the WD
+          */
+         void setEstimatedExecutionTime( double time );
+
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */
          TR1::shared_ptr<DOSubmit> & getDOSubmit();
@@ -460,13 +517,13 @@ namespace nanos
           *  \param numDataAccesses Number of data acceddes.
           *  \param dataAccesses Array with DataAccesses associated to the submitted wd.
           */
-         void submitWithDependencies( WorkDescriptor &wd, size_t numDataAccesses, DataAccess const *dataAccesses );
+         void submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps );
 
          /*! \brief Waits untill the (input) dependencies determined by the data accesses passed are satisfied for the _doWait object.
           *  \param numDataAccesses Number of de data accesses.
           *  \param dataAccesses dependencies to wait on, should be input dependencies.
           */
-         void waitOn( size_t numDataAccesses, DataAccess const *dataAccesses );
+         void waitOn( size_t numDeps, DataAccess* deps );
 
          /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
              remove it from the dependence graph and return it. */
@@ -498,11 +555,10 @@ namespace nanos
           *  otherwise it is created (if necessary) and a pointer to it is returned.
           */
          //Directory* getDirectory(bool create=false);
-         NewDirectory* getNewDirectory() const;
-         void initNewDirectory();
+         //NewDirectory* getNewDirectory() const;
+         //void initNewDirectory();
 
          virtual void waitCompletion( bool avoidFlush = false );
-         virtual void waitCompletionAndSignalers( bool avoidFlush = false);
 
          bool isSubmitted( void ) const;
          void submitted( void );
@@ -512,12 +568,15 @@ namespace nanos
 
          void predecessorFinished( WorkDescriptor *predecessorWd );
          
-         void setMyGraphRepList( std::list<GraphEntry *> *myList );
-         void initMyGraphRepListNoPred( );
-         std::list<GraphEntry *> *getMyGraphRepList(  );
+         //void setMyGraphRepList( std::list<GraphEntry *> *myList );
+         //void initMyGraphRepListNoPred( );
+         //std::list<GraphEntry *> *getMyGraphRepList(  );
          void wgdone();
          void listed();
          void printCopies();
+
+         bool isConfigured ( void ) const;
+         void setConfigured ( bool value=true );
 
          void setPriority( unsigned int priority );
          unsigned getPriority() const;
@@ -526,6 +585,35 @@ namespace nanos
          unsigned int getNumReaders();
          unsigned int getNumAllReaders();
          void notifyCopy();
+
+         /*! \brief Store addresses of commutative targets in hash and in child WorkDescriptor.
+          *  Called when a task is submitted.
+          */
+         void initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps, DataAccess* deps );
+         /*! \brief Try to take ownership of all commutative targets for exclusive access.
+          *  Called when a task is invoked.
+          */
+         bool tryAcquireCommutativeAccesses();
+         /*! \brief Release ownership of commutative targets.
+          *  Called when a task is finished.
+          */
+         void releaseCommutativeAccesses(); 
+
+         void setImplicit( bool b = true );
+         bool isImplicit( void );
+
+         /*! \brief Set copies for a given WD
+          * We call this when copies cannot be set at creation time of the work descriptor
+          * Note that this should only be done between creation and submit.
+          * This function shall not be called if the workdescriptor already has copies.
+          *
+          * \param numCopies the number of copies. If zero \a copies must be NULL
+          * \param copies Buffer of copy descriptors. The workdescriptor WILL NOT acquire the ownership of the copy as a private buffer
+          * will be allocated instead
+          */
+         void setCopies(size_t numCopies, CopyData * copies);
+
+         char * getDescription ( void ) const;
    };
 
    typedef class WorkDescriptor WD;

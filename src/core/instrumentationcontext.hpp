@@ -35,8 +35,8 @@ inline bool InstrumentationContext::findBurstByKey ( InstrumentationContextData 
    InstrumentationContextData::BurstIterator it;
 
    for ( it = icd->_burstList.begin() ; !found && (it != icd->_burstList.end()) ; it++ ) {
-      Instrumentation::Event::ConstKVList kvlist = (*it).getKVs();
-      if ( kvlist[0].first == key  ) { ret = it; found = true;}
+      nanos_event_key_t ckey = (*it).getKey();
+      if ( ckey == key  ) { ret = it; found = true;}
   }
 
    return found;
@@ -82,7 +82,6 @@ inline InstrumentationContextData::EventIterator InstrumentationContext::endDefe
 
 inline void InstrumentationContext::disableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = false; }
 inline void InstrumentationContext::enableStateEvents ( InstrumentationContextData *icd ) { icd->_stateEventEnabled = true; }
-inline bool InstrumentationContext::isStateEventEnabled ( InstrumentationContextData *icd ) { return icd->_stateEventEnabled; }
 
 #endif
 

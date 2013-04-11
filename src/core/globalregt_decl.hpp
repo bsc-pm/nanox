@@ -39,6 +39,8 @@ struct global_reg_t {
    void setLocationAndVersion( memory_space_id_t loc, unsigned int version ) const;
    bool contains( global_reg_t const &reg ) const;
    bool isLocatedIn( memory_space_id_t loc ) const;
+   void print() const;
+   void printLocationData() const;
 };
 
 }

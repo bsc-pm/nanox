@@ -1,4 +1,4 @@
-#include "addressspace_decl.hpp"
+
 #include "newregiondirectory.hpp"
 #include "regioncache.hpp"
 #include "system.hpp"
@@ -40,6 +40,7 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
 
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
+   //fprintf(stderr, "calling obtainRegionId from %s\n", __FUNCTION__);
    reg.id = reg.key->obtainRegionId( cd );
 }
 
@@ -51,10 +52,12 @@ void HostAddressSpace::synchronize( bool flushData ) {
    _directory.synchronize2( flushData );
 }
 
+memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
+   return 0;
+}
 
 SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch ) : _cache( memorySpaceId, arch, RegionCache::ALLOC_FIT ), _nodeNumber( 0 )  {
 }
-
 
 bool SeparateAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version ) {
    return _cache.pin( reg );
@@ -84,28 +87,16 @@ void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_
    std::cerr << "unimplemented" << std::endl;
 }
 
-//unsigned int SeparateAddressSpace::lockRegionAndGetCurrentVersion( global_reg_t const &reg, bool increaseVersion ) {
-//   unsigned int version = _cache.getVersionAllocateChunkIfNeeded( reg, increaseVersion );
-//   std::cerr << "set location " << _cache.getMemorySpaceId() << " and version " << ( (increaseVersion ) ? version + 1 : version ) << " for reg "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
-//   reg.setLocationAndVersion( _cache.getMemorySpaceId(), (increaseVersion ) ? version + 1 : version );
-//   return version;
-//}
-
 void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
    _cache.prepareRegion( reg, wd );
 }
 
-unsigned int SeparateAddressSpace::getCurrentVersionSetVersion( global_reg_t const &reg, unsigned int newVersion ) {
-   unsigned int version = _cache.getVersionSetVersion( reg, newVersion );
-   std::cerr << "set location " << _cache.getMemorySpaceId() << " and version " << ( newVersion ) << " for reg "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
-   reg.setLocationAndVersion( _cache.getMemorySpaceId(), newVersion );
-   return version;
-}
-
+#if 0
 void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
    _cache.setRegionVersion( reg, version );
    reg.setLocationAndVersion( _cache.getMemorySpaceId(), version );
 }
+#endif
 
 unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg ) {
    return _cache.getVersion( reg );
@@ -162,5 +153,10 @@ ProcessingElement &SeparateAddressSpace::getPE() {
    memory_space_id_t id = _cache.getMemorySpaceId();
    return sys.getPEWithMemorySpaceId( id );
 }
+
+memory_space_id_t SeparateAddressSpace::getMemorySpaceId() const {
+   return _cache.getMemorySpaceId();
+}
+
 
 }

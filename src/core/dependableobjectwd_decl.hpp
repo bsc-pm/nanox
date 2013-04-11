@@ -22,8 +22,7 @@
 
 #include "synchronizedcondition_decl.hpp"
 #include "dependableobject_decl.hpp"
-//#include "dependableobject.hpp"
-//#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
@@ -33,19 +32,22 @@ namespace nanos
     */
    class DOSubmit : public DependableObject
    {
+      private:
+         WorkDescriptor *_submittedWD; /**< Pointer to the work descriptor represented by this DependableObject */
+
       public:
          /*! \brief DOSubmit default constructor
           */
-         DOSubmit ( ) : DependableObject() { }
+         DOSubmit ( ) : DependableObject(), _submittedWD(NULL) { }
 
          /*! \brief DOSubmit constructor
           */
-         DOSubmit ( WorkDescriptor* wd) : DependableObject ( wd ) { }
+         DOSubmit ( WorkDescriptor* wd) : DependableObject ( ), _submittedWD( wd ) { }
 
          /*! \brief DOSubmit copy constructor
           *  \param dos another DOSubmit
           */
-         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos) { } 
+         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos), _submittedWD( dos._submittedWD ) { } 
 
          /*! \brief DOSubmit assignment operator, can be self-assigned.
           *  \param dos another DOSubmit
@@ -59,6 +61,10 @@ namespace nanos
          /*! \brief Submits WorkDescriptor when dependencies are satisfied
           */
          virtual void dependenciesSatisfied ( );
+
+         /*! \brief TODO 
+          */
+         //void setWD( WorkDescriptor *wd );
 
          /*! \brief TODO 
           */
@@ -78,23 +84,24 @@ namespace nanos
    class DOWait : public DependableObject
    {
       private:
+         WorkDescriptor     *_waitDomainWD; /**< Pointer to the WorkDescriptor that waits on data */
          volatile bool       _depsSatisfied; /**< Condition to satisfy before execution can go forward */
          SingleSyncCond<EqualConditionChecker<bool> >  _syncCond; /**< TODO */
       public:
          /*! \brief DOWait default constructor
           */
-         DOWait ( ) : DependableObject(), _depsSatisfied( false ),
+         DOWait ( ) : DependableObject(), _waitDomainWD(NULL), _depsSatisfied( false ),
             _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
 
          /*! \brief DOWait constructor
           */
-         DOWait ( WorkDescriptor *wd ) : DependableObject( wd ), _depsSatisfied( false ),
+         DOWait ( WorkDescriptor *wd ) : DependableObject(), _waitDomainWD( wd ), _depsSatisfied( false ),
            _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
 
          /*! \brief DOWait copy constructor
           *  \param dos another DOWait
           */
-         DOWait ( const DOWait &dow ) : DependableObject(dow), _depsSatisfied( false ),
+         DOWait ( const DOWait &dow ) : DependableObject(dow), _waitDomainWD( dow._waitDomainWD ), _depsSatisfied( false ),
            _syncCond( EqualConditionChecker<bool>( &_depsSatisfied, true ) ) { }
 
          /*! \brief DOWait assignment operator, can be self-assigned.
@@ -112,7 +119,7 @@ namespace nanos
 
          /*! \brief Wait method blocks execution untill dependencies are satisfied
           */
-         virtual void wait ( std::list<Region> const &deps );
+         virtual void wait ( std::list<uint64_t> const & flushDeps  );
 
          /*! \brief whether the DO gets blocked and no more dependencies can
           *  be submitted until it is satisfied.
@@ -122,6 +129,10 @@ namespace nanos
          /*! \brief Unblock method when dependencies are satisfied
           */
          virtual void dependenciesSatisfied ( );
+
+         /*! \brief TODO
+          */
+         //void setWD( WorkDescriptor *wd );
 
          /*! \brief Get the related object which actually has the dependence
           */
@@ -134,4 +145,3 @@ namespace nanos
 };
 
 #endif
-

@@ -3,6 +3,7 @@ common_libadd=\
 
 common_sources=\
 	$(top_srcdir)/src/core/nanos-int.h \
+	$(top_srcdir)/src/core/nanos_error.h \
 	$(top_srcdir)/src/core/barrier_fwd.hpp \
 	$(top_srcdir)/src/core/barrier_decl.hpp \
 	$(top_srcdir)/src/core/barrier.hpp \
@@ -55,6 +56,9 @@ common_sources=\
 	$(top_srcdir)/src/core/instrumentation.hpp \
 	$(top_srcdir)/src/core/throttle_fwd.hpp \
 	$(top_srcdir)/src/core/throttle_decl.hpp \
+	$(top_srcdir)/src/core/dataaccess_fwd.hpp \
+	$(top_srcdir)/src/core/dataaccess_decl.hpp \
+	$(top_srcdir)/src/core/dataaccess.hpp \
 	$(top_srcdir)/src/core/copydata_fwd.hpp \
 	$(top_srcdir)/src/core/copydata_decl.hpp \
 	$(top_srcdir)/src/core/copydata.hpp \
@@ -87,29 +91,9 @@ common_sources=\
 	$(top_srcdir)/src/core/dataaccess_fwd.hpp \
 	$(top_srcdir)/src/core/dataaccess_decl.hpp \
 	$(top_srcdir)/src/core/dataaccess.hpp \
-	$(top_srcdir)/src/core/region_fwd.hpp \
-	$(top_srcdir)/src/core/region_decl.hpp \
-	$(top_srcdir)/src/core/region.hpp \
-	$(top_srcdir)/src/core/region.cpp \
-	$(top_srcdir)/src/core/regionbuilder_decl.hpp \
-	$(top_srcdir)/src/core/regionbuilder.hpp \
-	$(top_srcdir)/src/core/regionbuilder.cpp \
-	$(top_srcdir)/src/core/regioncollection_fwd.hpp \
-	$(top_srcdir)/src/core/regioncollection_decl.hpp \
-	$(top_srcdir)/src/core/regionpart_fwd.hpp \
-	$(top_srcdir)/src/core/regionpart_decl.hpp \
 	$(top_srcdir)/src/core/regionstatus_fwd.hpp \
 	$(top_srcdir)/src/core/regionstatus_decl.hpp \
 	$(top_srcdir)/src/core/regionstatus.hpp \
-	$(top_srcdir)/src/core/regiontree_fwd.hpp \
-	$(top_srcdir)/src/core/regiontree_decl.hpp \
-	$(top_srcdir)/src/core/regiontree.hpp \
-	$(top_srcdir)/src/core/regiontreenode_decl.hpp \
-	$(top_srcdir)/src/core/regiontreenode.hpp \
-	$(top_srcdir)/src/core/regiondirectory.cpp  \
-	$(top_srcdir)/src/core/regiondirectory.hpp  \
-	$(top_srcdir)/src/core/regiondirectory_decl.hpp  \
-   $(top_srcdir)/src/core/regiondirectory_fwd.hpp \
 	$(top_srcdir)/src/core/regiondict_decl.hpp  \
 	$(top_srcdir)/src/core/regiondict.hpp  \
 	$(top_srcdir)/src/core/regiondict.cpp  \
@@ -144,6 +128,11 @@ common_sources=\
 	$(top_srcdir)/src/core/memoryops.cpp \
 	$(top_srcdir)/src/core/globalregt_decl.hpp \
 	$(top_srcdir)/src/core/globalregt.cpp \
+	$(top_srcdir)/src/core/address_fwd.hpp \
+	$(top_srcdir)/src/core/address_decl.hpp \
+	$(top_srcdir)/src/core/address.hpp \
+	$(top_srcdir)/src/core/basedependency_fwd.hpp \
+	$(top_srcdir)/src/core/basedependency_decl.hpp \
 	$(END)
 
 instr_sources = \

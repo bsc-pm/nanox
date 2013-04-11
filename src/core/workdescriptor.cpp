@@ -24,6 +24,8 @@
 #include "debug.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "os.hpp"
+
 
 using namespace nanos;
 
@@ -40,6 +42,8 @@ void WorkDescriptor::init ()
    //if ( getNewDirectory() == NULL )
    //   initNewDirectory();
    //getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+
+   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() );
 
    if ( getNumCopies() > 0 ) {
       
@@ -114,17 +118,19 @@ void WorkDescriptor::notifyCopy()
    }
 }
 
-void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
+// That function must be called from the thread it will execute it. This is important
+// from the point of view of tiedness and the device activation. Both operation will
+// involves current thread / pe
+void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
-   _activeDevice->lazyInit(*this,isUserLevelThread,previous);
-   
    ProcessingElement *pe = myThread->runningOn();
 
-   if ( getNumCopies() > 0 ) {
-      pe->waitInputs( *this );
-   }
+
+   //if ( getNumCopies() > 0 ) {
+   //   pe->waitInputs( *this );
+   //}
 
    //if ( getNumCopies() > 0 ) {
    //   if ( _ccontrol.dataIsReady() ) {
@@ -132,42 +138,82 @@ void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
    //   }
    //}
 
-   if ( _tie ) tieTo(*myThread);
+   // If there are no active device, choose a compatible one
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
 
+   // Initializing devices
+   _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
+
+   if ( sys.getNetwork()->getNodeNum() == 0 )fprintf(stderr, "[%d] ============= WAIT INPUTS ========> wd %p (%d)\n", sys.getNetwork()->getNodeNum(), this, getId() );
+   // Waiting for copies
+   if ( getNumCopies() > 0 ) pe->waitInputs( *this );
+   if ( sys.getNetwork()->getNodeNum() == 0 )fprintf(stderr, "[%d] ============= WAIT INPUTS DONE ========> wd %p (%d)\n", sys.getNetwork()->getNodeNum(), this, getId() );
+
+   // Tie WD to current thread
+   if ( _tie ) tieTo( *myThread );
+
+   // Call Programming Model interface .started() method.
    sys.getPMInterface().wdStarted( *this );
+
+   // Setting state to ready
    setReady();
 }
 
-DeviceData * WorkDescriptor::findDeviceData ( const Device &device ) const
+void WorkDescriptor::prepareDevice ()
 {
-   for ( unsigned i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return _devices[i];
-      }
+   // Do nothing if there is already an active device
+   if ( _activeDeviceIdx != _numDevices ) return;
+
+   if ( _numDevices == 1 ) {
+      _activeDeviceIdx = 0;
+      return;
    }
 
-   return 0;
+   // Choose between the supported devices
+   message("No active device --> selecting one");
+   _activeDeviceIdx = _numDevices - 1;
 }
 
 DeviceData & WorkDescriptor::activateDevice ( const Device &device )
 {
-   if ( _activeDevice ) {
-      ensure( _activeDevice->isCompatible( device ),"Bogus double device activation" );
-      return *_activeDevice;
+   if ( _activeDeviceIdx != _numDevices ) {
+      ensure( _devices[_activeDeviceIdx]->isCompatible( device ),"Bogus double device activation" );
+      return *_devices[_activeDeviceIdx];
+   }
+   unsigned i = _numDevices;
+   for ( i = 0; i < _numDevices; i++ ) {
+      if ( _devices[i]->isCompatible( device ) ) {
+         _activeDeviceIdx = i;
+         break;
+      }
    }
 
-   DD * dd = findDeviceData( device );
+   ensure( i < _numDevices, "Did not find requested device in activation" );
 
-//   ensure( dd,"Did not find requested device in activation" );
-   _activeDevice = dd;
-   return *dd;
+   return *_devices[_activeDeviceIdx];
+}
+
+DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
+{
+   ensure( _numDevices > deviceIdx, "The requested device number does not exist" );
+
+   _activeDeviceIdx = deviceIdx;
+
+   return *_devices[_activeDeviceIdx];
 }
 
 bool WorkDescriptor::canRunIn( const Device &device ) const
 {
-   if ( _activeDevice ) return _activeDevice->isCompatible( device );
+   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
 
-   return findDeviceData( device ) != NULL;
+   unsigned int i;
+   for ( i = 0; i < _numDevices; i++ ) {
+      if ( _devices[i]->isCompatible( device ) ) {
+         return true;
+      }
+   }
+
+   return false;
 }
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
@@ -184,33 +230,33 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 
 void WorkDescriptor::submit( void )
 {
-   if ( !sys.usingNewCache() ) {
-   if ( getNewDirectory() == NULL )
-      initNewDirectory();
-      getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
-   }
+   //if ( !sys.usingNewCache() ) {
+   //if ( getNewDirectory() == NULL )
+   //   initNewDirectory();
+   //   getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+   //}
    //_ccontrol.preInit();
    _mcontrol.preInit();
    Scheduler::submit( *this );
 } 
 
-void WorkDescriptor::done ()
+void WorkDescriptor::finish ()
 {
    //ProcessingElement *pe = myThread->runningOn();
-   waitCompletionAndSignalers( true );
-   //if ( getNumCopies() > 0 )
-   //  pe->copyDataOut( *this );
-
-   //_ccontrol.copyDataOut();
+   waitCompletion( true );
    if ( getNumCopies() > 0 )
       _mcontrol.copyDataOut();
    
 
-   sys.getPMInterface().wdFinished( *this );
+   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+}
 
-               NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK4 ); );
+void WorkDescriptor::done ()
+{
+   releaseCommutativeAccesses(); 
+
+   sys.getPMInterface().wdFinished( *this );
    this->getParent()->workFinished( *this );
-               NANOS_INSTRUMENT( inst3.close(); );
 
    this->wgdone();
    WorkGroup::done();
@@ -220,6 +266,8 @@ void WorkDescriptor::done ()
 void WorkDescriptor::prepareCopies()
 {
    for (unsigned int i = 0; i < _numCopies; i++ ) {
+      _paramsSize += _copies[i].getSize();
+
       if ( _copies[i].isPrivate() )
          //jbueno new API _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
          _copies[i].setBaseAddress( (void *) ( (uint64_t )_copies[i].getBaseAddress() - (unsigned long)_data ) );
@@ -249,17 +297,18 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    //if (predecessorWd != NULL) predecessorWd->listed();
 
    //message("wd " << getId() << " getting directory from previous wd " << predecessorWd->getId() );
-   if ( !sys.usingNewCache() ) {
-      if ( getNewDirectory() == NULL )
-         initNewDirectory();
-      //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
-      _newDirectory->merge( *predecessorWd->getNewDirectory() );
-   } else {
+   //if ( !sys.usingNewCache() ) {
+   //   if ( getNewDirectory() == NULL )
+   //      initNewDirectory();
+   //   //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
+   //   _newDirectory->merge( *predecessorWd->getNewDirectory() );
+   //} else {
       //_ccontrol.getInfoFromPredecessor( predecessorWd->_ccontrol ); 
       _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
-   }
+   //}
 }
 
+#if 0
 void WorkDescriptor::initMyGraphRepListNoPred( )
 {
    _myGraphRepList = sys.getGraphRepList();
@@ -279,6 +328,7 @@ std::list<GraphEntry *> *WorkDescriptor::getMyGraphRepList(  )
    while ( ! _myGraphRepList.cswap( myList, NULL ) );
    return myList;
 }
+#endif
 
 void WorkDescriptor::wgdone()
 {
@@ -312,16 +362,16 @@ void WorkDescriptor::printCopies()
 }
 void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   if ( !sys.usingNewCache() ) {
-      if ( _newDirectory == NULL ) initNewDirectory();
-      //if (sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "wd " << (unsigned int) wd.getId() <<":" <<(void *) wd.getNewDirectory() << " merging directory into parent " << (unsigned int) this->getId() <<":"<<(void *) _newDirectory << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
-      NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK3); );
-      _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
-      NANOS_INSTRUMENT( inst3.close(); );
-      //if (sys.getNetwork()->getNodeNum() > 0) {
-      //   _newDirectory->consolidate( false );
-      //}
-   }
+   //if ( !sys.usingNewCache() ) {
+   //   if ( _newDirectory == NULL ) initNewDirectory();
+   //   //if (sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "wd " << (unsigned int) wd.getId() <<":" <<(void *) wd.getNewDirectory() << " merging directory into parent " << (unsigned int) this->getId() <<":"<<(void *) _newDirectory << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
+   //   NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK3); );
+   //   _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
+   //   NANOS_INSTRUMENT( inst3.close(); );
+   //   //if (sys.getNetwork()->getNodeNum() > 0) {
+   //   //   _newDirectory->consolidate( false );
+   //   //}
+   //}
 
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();
@@ -354,5 +404,93 @@ unsigned int WorkDescriptor::getNumAllReaders() {
    //   }
    //}
    //return result;
-         return (getParent()->_depsDomain)->getNumAllReaders(  );
+    //return (getParent()->_depsDomain)->getNumAllReaders(  );
+  return 0;
 }
+
+void WorkDescriptor::initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
+{
+   size_t numCommutative = 0;
+
+   for ( size_t i = 0; i < numDeps; i++ )
+      if ( deps[i].isCommutative() )
+         ++numCommutative;
+
+   if ( numCommutative == 0 )
+      return;
+
+   wd._commutativeOwners.reserve(numCommutative);
+
+   for ( size_t i = 0; i < numDeps; i++ ) {
+      if ( !deps[i].isCommutative() )
+         continue;
+
+      // Lookup owner in map in parent WD
+      CommutativeOwnerMap::iterator iter = _commutativeOwnerMap.find( deps[i].getDepAddress() );
+
+      if ( iter != _commutativeOwnerMap.end() ) {
+         // Already in map => insert into owner list in child WD
+         wd._commutativeOwners.push_back( iter->second.get() );
+      }
+      else {
+         // Not in map => allocate new owner pointer container and insert
+         std::pair<CommutativeOwnerMap::iterator, bool> ret =
+               _commutativeOwnerMap.insert( std::make_pair( deps[i].getDepAddress(),
+                                                            TR1::shared_ptr<WorkDescriptor *>( NEW WorkDescriptor *(NULL) ) ) );
+
+         // Insert into owner list in child WD
+         wd._commutativeOwners.push_back( ret.first->second.get() );
+      }
+   }
+}
+
+bool WorkDescriptor::tryAcquireCommutativeAccesses()
+{
+   const size_t n = _commutativeOwners.size();
+   for ( size_t i = 0; i < n; i++ ) {
+
+      WorkDescriptor *owner = *_commutativeOwners[i];
+
+      if ( owner == this )
+         continue;
+
+      if ( owner == NULL &&
+           nanos::compareAndSwap( (void **) _commutativeOwners[i], (void *) NULL, (void *) this ) )
+         continue;
+
+      // Failed to obtain exclusive access to all accesses, release the obtained ones
+
+      for ( ; i > 0; i-- )
+         *_commutativeOwners[i-1] = NULL;
+
+      return false;
+   }
+   return true;
+} 
+
+void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
+{
+    ensure(_numCopies == 0, "This WD already had copies. Overriding them is not possible");
+    ensure((numCopies == 0) == (copies == NULL), "Inconsistency between copies and number of copies");
+
+    _numCopies = numCopies;
+
+    _copies = NEW CopyData[numCopies];
+    _copiesNotInChunk = true;
+
+    // Keep a copy of the copy descriptors
+    std::copy(copies, copies + numCopies, _copies);
+
+    for (unsigned int i = 0; i < numCopies; ++i)
+    {
+        int num_dimensions = copies[i].dimension_count;
+        if ( num_dimensions > 0 ) {
+            nanos_region_dimension_internal_t* copy_dims = NEW nanos_region_dimension_internal_t[num_dimensions];
+            std::copy(copies[i].dimensions, copies[i].dimensions + num_dimensions, copy_dims);
+            _copies[i].dimensions = copy_dims;
+        } else {
+            _copies[i].dimensions = NULL;
+        }
+    }
+}
+

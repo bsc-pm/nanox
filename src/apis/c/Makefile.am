@@ -25,6 +25,25 @@ include $(top_srcdir)/src/common.am
 
 pkginclude_HEADERS=\
 	nanos.h \
+   nanos_version.h \
    nanos_reduction.h \
 	$(END)
 
+BUILT_SOURCES=\
+   nanos_version.h
+
+EXTRA_DIST=\
+   nanos_version.def
+
+CLEANFILES=nanos_version.h
+
+nanos_version.h : $(srcdir)/nanos_version.def
+	$(AM_V_GEN) (\
+       echo "#ifndef  _NANOS_VERSION_H_" > $@; \
+       echo "#define  _NANOS_VERSION_H_" >> $@; \
+       cat $(srcdir)/nanos_version.def | $(SED) -e 's,^\s*\(\S\+\)\s*=\s*\(\S\+\)\s*$$,#define NANOS_API_\U\1 \2,' >> $@; \
+       echo "#ifdef _MERCURIUM" >> $@; \
+       cat $(srcdir)/nanos_version.def | $(SED) -e 's,^\s*\(\S\+\)\s*=\s*\(\S\+\)\s*$$,#pragma nanos interface family(\1) version(\2),' >> $@; \
+       echo "#endif // _MERCURIUM" >> $@; \
+       echo "#endif // _NANOS_VERSION_H_" >> $@; \
+       )

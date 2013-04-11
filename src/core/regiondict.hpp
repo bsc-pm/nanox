@@ -49,7 +49,11 @@ unsigned int ContainerDense< T >::getNumDimensions() const {
 template <class T>
 reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const region[], bool rogue ) {
    if ( rogue ) _rogueLock.acquire();
+   _lock.acquire();
    reg_t id = _root.addNode( region, _dimensionSizes.size(), 0, *this, rogue );
+   _lock.release();
+   //fprintf(stderr, "!!! %d !!! registered region %p %d: [sizes =%zu] ", rogue, this, id, _dimensionSizes.size() ); for ( unsigned int i = 0; i < _dimensionSizes.size(); i++ ) fprintf(stderr, "%zu ", region[ i ].lower_bound ); fprintf(stderr, "\n");
+   //sys.printBt();
    if ( rogue ) _rogueLock.release();
    return id;
 }
@@ -322,6 +326,7 @@ reg_t RegionDictionary<Sparsity>::computeIntersect( reg_t regionIdA, reg_t regio
    ensure( this->checkIntersect( regionIdA, regionIdB ) ," Regions do not intersect." );
    nanos_region_dimension_internal_t resultingRegion[ this->getNumDimensions() ];
    _computeIntersect( regionIdA, regionIdB, resultingRegion );
+   //fprintf(stderr, "calling addRegion from %s\n", __FUNCTION__);
    reg_t regId = this->addRegion( resultingRegion );
 
    //std::cerr << (void *) this << " Computed intersect bewteen " << regionIdA << " and " << regionIdB << " resulting region is "<< regId << std::endl;
@@ -443,6 +448,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
       reg_t addIntersect( reg_t regionIdA, reg_t regionIdB ) {
          nanos_region_dimension_internal_t resultingRegion[ _currentDict.getNumDimensions() ];
          _currentDict._computeIntersect( regionIdA, regionIdB, resultingRegion );
+   //fprintf(stderr, "calling addRegion from %s\n", __FUNCTION__);
          reg_t regId = _currentDict.addRegion( resultingRegion );
          return regId;
       }
@@ -732,6 +738,7 @@ reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd ) {
    if ( cd.getNumDimensions() != this->getNumDimensions() ) {
       std::cerr << "Error, invalid numDimensions" << std::endl;
    } else {
+   //fprintf(stderr, "calling addRegion from %s\n", __FUNCTION__);
       id = this->addRegion( cd.getDimensions() );
    }
    return id;
@@ -739,6 +746,7 @@ reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd ) {
 
 template < template <class> class Sparsity>
 reg_t RegionDictionary< Sparsity >::obtainRegionId( nanos_region_dimension_internal_t region[] ) {
+   //fprintf(stderr, "calling addRegion from 2 %s\n", __FUNCTION__);
    return this->addRegion( region );
 }
 
@@ -946,6 +954,7 @@ void RegionDictionary< Sparsity >::_combine ( nanos_region_dimension_internal_t 
             //   std::cerr << "["<<tmpFragment[this->getDimensionSizes().size()-(i+1)].lower_bound<< ":" << tmpFragment[this->getDimensionSizes().size()-(i+1)].accessed_length << "]";
             //}
             //std::cerr << std::endl;
+   //fprintf(stderr, "calling addRegion from %s\n", __FUNCTION__);
             reg_t id = this->addRegion( tmpFragment );
             //std::cerr << (void *) this <<" computed a subchunk " << id ;this->printRegion( id ); std::cerr << std::endl;
             resultingPieces.push_back( id );

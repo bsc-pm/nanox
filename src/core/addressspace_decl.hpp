@@ -25,6 +25,7 @@ class HostAddressSpace {
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
 
    void synchronize( bool flushData );
+   memory_space_id_t getMemorySpaceId() const;
 };
 
 
@@ -44,16 +45,15 @@ class SeparateAddressSpace {
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void copyFromHost( TransferListType list, WD const &wd );
-
-
+   memory_space_id_t getMemorySpaceId() const;
    
    //unsigned int lockRegionAndGetCurrentVersion( global_reg_t const &reg, bool increaseVersion = false );
    void releaseRegion( global_reg_t const &reg );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress ) const;
    
    void prepareRegion( global_reg_t const &reg, WD const &wd );
-   void setRegionVersion( global_reg_t const &reg, unsigned int version );
-   unsigned int getCurrentVersionSetVersion( global_reg_t const &reg, unsigned int version );
+   //void setRegionVersion( global_reg_t const &reg, unsigned int version );
+   //unsigned int getCurrentVersionSetVersion( global_reg_t const &reg, unsigned int version );
    unsigned int getCurrentVersion( global_reg_t const &reg );
 
    unsigned int getNodeNumber() const;

@@ -27,6 +27,8 @@
 
 class PMInterface
 {
+   protected:
+      std::string    _description; /*< String describing Programming Model Interface */
    private:
       /*! \brief PMInterface copy constructor (private)
        */
@@ -44,9 +46,10 @@ class PMInterface
 
       virtual int getInternalDataSize() const { return 0; }
       virtual int getInternalDataAlignment() const { return 1; }
+      virtual void initInternalData( void *data ) {}
 
       virtual void config (nanos::Config &cfg) {}
-      virtual void start () {}
+      virtual void start () { _description = std::string("none"); }
       virtual void finish() {}
 
       virtual void setupWD( nanos::WD &wd ) {}
@@ -54,6 +57,9 @@ class PMInterface
       virtual void wdFinished( nanos::WD &wd ) {}
 
       virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
+      std::string getDescription( void ) { return _description; }
+
+      virtual void updateNumThreads() {}
 };
 
 #endif /* PM_INTERFACE_HPP_ */

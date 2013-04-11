@@ -35,18 +35,18 @@ namespace nanos {
 
          private:
             Atomic<int> _sem;
-            Atomic<bool> _flag;
+            volatile bool _flag;
             MultipleSyncCond<EqualConditionChecker<bool> > _syncCondTrue;
             MultipleSyncCond<EqualConditionChecker<bool> > _syncCondFalse;
             int _numParticipants;
 
          public:
             CentralizedBarrier () : Barrier(), _sem(0), _flag(false),
-               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), 1 ),
-               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), 1 ) {}
+               _syncCondTrue( EqualConditionChecker<bool>( &_flag, true ), 1 ),
+               _syncCondFalse( EqualConditionChecker<bool>( &_flag, false ), 1 ) {}
             CentralizedBarrier ( const CentralizedBarrier& orig ) : Barrier(orig), _sem(0), _flag(false),
-               _syncCondTrue( EqualConditionChecker<bool>( &(_flag.override()), true ), orig._numParticipants ),
-               _syncCondFalse( EqualConditionChecker<bool>( &(_flag.override()), false ), orig._numParticipants )
+               _syncCondTrue( EqualConditionChecker<bool>( &_flag, true ), orig._numParticipants ),
+               _syncCondFalse( EqualConditionChecker<bool>( &_flag, false ), orig._numParticipants )
                { init( orig._numParticipants ); }
 
             const CentralizedBarrier & operator= ( const CentralizedBarrier & barrier );
@@ -91,39 +91,45 @@ namespace nanos {
 
       void CentralizedBarrier::barrier( int participant )
       {
+         
          int val;
 
+         // the last process incrementing the semaphore sets the flag
+         // releiasing all other threads waiting in the next block
+         if (_flag == false)
+         {
+             val = ++_sem;
 
-         val = ++_sem;
+             if ( val == _numParticipants ) {
+                 computeVectorReductions();
+                 _sem = 0;
 
-         /* the last process incrementing the semaphore sets the flag
-         releasing all other threads waiting in the next block */
-         if ( val == _numParticipants ) {
-            _flag=true;
-            // FIXME: reduction here and remove 2nd phase?
-            _syncCondTrue.signal();
-            computeVectorReductions();
-
-         } else {
-            _syncCondTrue.wait();
+                 _flag=true;
+                 _syncCondTrue.signal();
+             } else {
+                 _syncCondTrue.wait();
+             }
          }
+         else
+         {
+             val = ++_sem;
 
-         val = --_sem;
+             if ( val == _numParticipants ) {
+                 computeVectorReductions();
+                 _sem = 0;
 
-         /* the last thread decrementing the sem for the second time resets the flag.
-         A thread passing in the next barrier will be blocked until this is performed */
-         if ( val == 0 ) {
-            _flag=false;
-            _syncCondFalse.signal();
-         } else {
-            _syncCondFalse.wait();
+                 _flag=false;
+                 _syncCondFalse.signal();
+             } else {
+                 _syncCondFalse.wait();
+             }
          }
       }
 
 
       static Barrier * createCentralizedBarrier()
       {
-         return NEW CentralizedBarrier();
+          return NEW CentralizedBarrier();
       }
 
 

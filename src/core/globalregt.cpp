@@ -175,3 +175,12 @@ bool global_reg_t::contains( global_reg_t const &reg ) const {
 bool global_reg_t::isLocatedIn( memory_space_id_t loc ) const {
    return NewNewRegionDirectory::isLocatedIn( key, id, loc );
 }
+
+void global_reg_t::print() const {
+   key->printRegion( id );
+}
+
+void global_reg_t::printLocationData() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   std::cerr << *entry << std::endl;
+}

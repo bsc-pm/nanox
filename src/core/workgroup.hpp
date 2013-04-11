@@ -39,8 +39,7 @@ inline WorkGroup::WorkGroup()
    _geNext->setCount(1);
 }
 
-inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( /* nanos::System::_atomicWDSeed++*/ 1 ),
-            _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NULL ), _components( 0 ),
+inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
             _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
 {
    if ( wg._parent != NULL ) { 

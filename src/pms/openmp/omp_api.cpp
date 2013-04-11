@@ -23,102 +23,145 @@
 #include "system.hpp"
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
+#include "nanos_omp.h"
 
 using namespace nanos;
 using namespace nanos::OpenMP;
 
 extern "C"
 {
-   int omp_get_num_threads ( void )
+   NANOS_API_DEF(int, omp_get_num_threads, ( void ))
    {
       return myThread->getTeam()->size();
    }
 
-   int omp_get_max_threads ( void )
+   int nanos_omp_get_num_threads ( void ) __attribute__ ((alias ("omp_get_num_threads")));
+   int nanos_omp_get_num_threads_ ( void ) __attribute__ ((alias ("omp_get_num_threads")));
+
+   NANOS_API_DEF(int, omp_get_max_threads, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      return data->icvs().getNumThreads();
+      return data->icvs()->getNumThreads();
    }
+
    int nanos_omp_get_max_threads ( void ) __attribute__ ((alias ("omp_get_max_threads")));
+   int nanos_omp_get_max_threads_ ( void ) __attribute__ ((alias ("omp_get_max_threads")));
 
-   void omp_set_num_threads ( int nthreads )
+   void omp_set_num_threads( int nthreads )
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setNumThreads(nthreads);
+      data->icvs()->setNumThreads( nthreads );
+      sys.getPMInterface().updateNumThreads();
    }
 
-   int omp_get_thread_num ( void )
+   void omp_set_num_threads_(int *nthreads);
+   void omp_set_num_threads_(int *nthreads)
+   {
+      omp_set_num_threads(*nthreads);
+   }
+
+   int nanos_omp_set_num_threads ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
+   int nanos_omp_set_num_threads_ ( int nthreads ) __attribute__ ((alias ("omp_set_num_threads")));
+
+   NANOS_API_DEF(int, omp_get_thread_num, ( void ))
    {
       //TODO: check master always gets a 0
       return myThread->getTeamData()->getId();
    }
 
-   int omp_get_num_procs ( void )
+   int nanos_omp_get_thread_num ( void ) __attribute__ ((alias ("omp_get_thread_num")));
+   int nanos_omp_get_thread_num_ ( void ) __attribute__ ((alias ("omp_get_thread_num")));
+
+   NANOS_API_DEF(int, omp_get_num_procs, ( void ))
    {
-      return sys.getNumPEs();
+      return sys.getCpuCount();
    }
 
-   int omp_in_parallel ( void )
+   NANOS_API_DEF(int, omp_in_parallel, ( void ))
    {
       return myThread->getTeam()->size() > 1;
    }
 
-   void omp_set_dynamic ( int dynamic_threads )
+   void omp_set_dynamic( int dynamic_threads )
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setDynamic((bool) dynamic_threads);
+      data->icvs()->setDynamic((bool) dynamic_threads);
    }
 
-   int omp_get_dynamic ( void )
+   void omp_set_dynamic_( int* dynamic_threads );
+   void omp_set_dynamic_( int* dynamic_threads )
+   {
+      omp_set_dynamic(*dynamic_threads);
+   }
+
+   NANOS_API_DEF(int, omp_get_dynamic, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      return (int) data->icvs().getDynamic();
+      return (int) data->icvs()->getDynamic();
    }
 
    void omp_set_nested ( int nested )
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setNested((bool) nested);
+      data->icvs()->setNested((bool) nested);
    }
 
-   int omp_get_nested ( void )
+   void omp_set_nested_ ( int* nested );
+   void omp_set_nested_ ( int* nested )
+   {
+      omp_set_nested(*nested);
+   }
+
+   NANOS_API_DEF(int, omp_get_nested, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      return (int) data->icvs().getNested();
+      return (int) data->icvs()->getNested();
    }
 
    void omp_set_schedule ( omp_sched_t kind, int modifier )
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs().setSchedule( LoopSchedule(kind,modifier) );
+      data->icvs()->setSchedule( LoopSchedule(kind,modifier) );
    }
 
-   void omp_get_schedule ( omp_sched_t *kind, int *modifier )
+   void omp_set_schedule_ ( omp_sched_t *kind, int *modifier );
+   void omp_set_schedule_ ( omp_sched_t *kind, int *modifier )
+   {
+      omp_set_schedule(*kind, *modifier);
+   }
+
+   NANOS_API_DEF(void, omp_get_schedule, ( omp_sched_t *kind, int *modifier ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      const LoopSchedule &schedule = data->icvs().getSchedule();
+      const LoopSchedule &schedule = data->icvs()->getSchedule();
 
       *kind = schedule._kind;
       *modifier = schedule._modifier;
    }
 
-   int omp_get_thread_limit ( void )
+   NANOS_API_DEF(int, omp_get_thread_limit, ( void ))
    {
       return globalState->getThreadLimit();
    }
 
-   void omp_set_max_active_levels ( int max_active_levels )
+   void omp_set_max_active_levels( int max_active_levels )
    {
       if (!omp_in_parallel() )
          globalState->setMaxActiveLevels(max_active_levels);
    }
 
-   int omp_get_max_active_levels ( void )
+   void omp_set_max_active_levels_( int *max_active_levels );
+   void omp_set_max_active_levels_( int *max_active_levels )
+   {
+      omp_set_max_active_levels(*max_active_levels);
+   }
+
+   NANOS_API_DEF(int, omp_get_max_active_levels, ( void ))
    {
       return globalState->getMaxActiveLevels();
    }
 
-   int omp_get_level ( void )
+   NANOS_API_DEF(int, omp_get_level, ( void ))
    {
       return getMyThreadSafe()->getTeam()->getLevel();
    }
@@ -140,7 +183,13 @@ extern "C"
       return -1;
    }
 
-   int omp_get_team_size ( int level )
+   int omp_get_ancestor_thread_num_(int* level);
+   int omp_get_ancestor_thread_num_(int* level)
+   {
+      return omp_get_ancestor_thread_num(*level);
+   }
+
+   int omp_get_team_size( int level )
    {
       ThreadTeam* ancestor = getMyThreadSafe()->getTeam();
       int currentLevel = ancestor->getLevel();
@@ -155,12 +204,18 @@ extern "C"
       return -1;
    }
 
-   int omp_get_active_level ( void )
+   int omp_get_team_size_ ( int *level );
+   int omp_get_team_size_ ( int *level )
+   {
+      return omp_get_team_size(*level);
+   }
+
+   NANOS_API_DEF(int, omp_get_active_level, ( void ))
    {
       return ((OmpThreadTeamData &)getMyThreadSafe()->getTeam()->getThreadTeamData()).getActiveLevel();
    }
 
-   int omp_in_final ( void )
+   NANOS_API_DEF(int, omp_in_final, ( void ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
       return (int)data->isFinal();

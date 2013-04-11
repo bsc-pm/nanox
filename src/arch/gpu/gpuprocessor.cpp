@@ -107,19 +107,6 @@ void GPUProcessor::init ()
    _gpuMemory.initialize( inputStream, outputStream, this );
    // If some kind of overlapping is defined, allocate some pinned memory
 
-//#ifndef JBUENO_NO_PINNING
-//   if ( inputStream ) {
-//      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
-//      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-//      _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-//   }
-//
-//   if ( outputStream ) {
-//      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 2*1024*1024*1024 );
-//      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-//      _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-//   }
-//#endif
    // WARNING: initTransferStreams() can modify inputStream's and outputStream's value,
    // so call it first
 

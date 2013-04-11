@@ -20,8 +20,7 @@
 #ifndef NANOS_NEWNEWDIRECTORY_H
 #define NANOS_NEWNEWDIRECTORY_H
 
-#include "regiondirectory_decl.hpp"
-#include "regionbuilder.hpp"
+#include "newregiondirectory_decl.hpp"
 #include "deviceops.hpp"
 #include "version.hpp"
 
