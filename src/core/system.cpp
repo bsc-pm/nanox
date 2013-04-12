@@ -352,6 +352,13 @@ void System::start ()
    if ( isHwlocAvailable() )
       loadHwloc();
 
+   
+   // Load & check NUMA config
+   loadNUMAInfo();
+
+   // Modules can be loaded now
+   loadModules();
+
    _targetThreads = _numThreads;
    // Do the same for the architecture plugins
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
@@ -359,12 +366,9 @@ void System::start ()
    {
       _targetThreads += (*it)->getNumThreads();
    }
-   
-   // Load & check NUMA config (depends on _targetThreads being already set)
-   loadNUMAInfo();
 
-   // Modules can be loaded now
-   loadModules();
+   // Check if the NUMA and other arguments make sense (depends on _targetThreads)
+   checkArguments();
 
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );

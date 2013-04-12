@@ -192,6 +192,10 @@ inline void System::loadNUMAInfo ()
    if ( _coresPerSocket == 0 )
       _coresPerSocket = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
 #endif
+}
+
+inline void System::checkArguments()
+{
    // Check NUMA config
    if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
    {
