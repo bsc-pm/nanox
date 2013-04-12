@@ -352,8 +352,6 @@ void System::start ()
    if ( isHwlocAvailable() )
       loadHwloc();
 
-   loadModules();
-
    _targetThreads = _numThreads;
    // Do the same for the architecture plugins
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
@@ -362,6 +360,12 @@ void System::start ()
       _targetThreads += (*it)->getNumThreads();
    }
    
+   // Load & check NUMA config (depends on _targetThreads being already set)
+   loadNUMAInfo();
+
+   // Modules can be loaded now
+   loadModules();
+
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -395,9 +399,6 @@ void System::start ()
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
    
-   // Load & check NUMA config
-   loadNUMAInfo();
-
    // start of new PE/Worker creation
    // How many available physical PEs
    unsigned physPes = getCpuCount();
