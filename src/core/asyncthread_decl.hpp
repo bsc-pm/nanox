@@ -140,13 +140,6 @@ namespace nanos
          // If so, WD's dependencies should be kept till WD is finished
          virtual bool keepWDDeps() { return true; }
 
-
-         protected:
-            void prepareInputCopies( WorkDescriptor &work, std::list<CopyData *> &inputs );
-            void executeInputCopies( WorkDescriptor &work, std::list<CopyData *> &inputs );
-            void prepareOutputCopies( WorkDescriptor &work, std::list<CopyData *> &outputs );
-            void executeOutputCopies( WorkDescriptor& work, std::list<CopyData *> &outputs );
-
    };
 }
 
