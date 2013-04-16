@@ -191,6 +191,7 @@ namespace nanos
          void increaseActiveWorkers( unsigned nthreads );
          void decreaseActiveWorkers( unsigned nthreads );
          void applyCpuMask();
+         void updateCpuMask( bool apply );
          
          void loadHwloc();
          void unloadHwloc();
@@ -249,9 +250,9 @@ namespace nanos
 
          void getCpuMask ( cpu_set_t *mask ) const;
 
-         void setCpuMask ( cpu_set_t *mask );
+         void setCpuMask ( const cpu_set_t *mask, bool apply );
 
-         void addCpuMask ( cpu_set_t *mask );
+         void addCpuMask ( const cpu_set_t *mask, bool apply );
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 

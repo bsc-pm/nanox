@@ -1212,6 +1212,11 @@ BaseThread * System:: getUnassignedWorker ( void )
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
       thread = _workers[i];
       if ( !thread->hasTeam() || !thread->isEligible() ) {
+
+         // skip if the thread is not in the mask
+         if ( sys.getBinding() && _cpu_mask.find( thread->getCpuId() ) == _cpu_mask.end() )
+            continue;
+
          // recheck availability with exclusive access
          thread->lock();
 
@@ -1410,7 +1415,7 @@ void System::updateActiveWorkers ( int nthreads )
 }
 
 // Not thread-safe
-void System::applyCpuMask()
+inline void System::applyCpuMask()
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
@@ -1424,14 +1429,6 @@ void System::applyCpuMask()
 
       // Create PE & Worker if it does not exist
       if ( pe_id == _pes.size() ) {
-
-         // Iterate through _cpu_mask to find the first element not in _pe_map
-         for ( std::set<int>::iterator it = _cpu_mask.begin(); it != _cpu_mask.end(); ++it ) {
-            if ( std::find( _pe_map.begin(), _pe_map.end(), *it ) == _pe_map.end() ) {
-               _pe_map.push_back( *it );
-               break;
-            }
-         }
          createWorker( pe_id );
       }
 
@@ -1469,11 +1466,21 @@ void System::getCpuMask ( cpu_set_t *mask ) const
    memcpy( mask, &_cpu_set, sizeof(cpu_set_t) );
 }
 
-void System::setCpuMask ( cpu_set_t *mask )
+void System::setCpuMask ( const cpu_set_t *mask, bool apply )
 {
    memcpy( &_cpu_set, mask, sizeof(cpu_set_t) );
-   _cpu_mask.clear();
+   sys.updateCpuMask( apply );
+}
 
+void System::addCpuMask ( const cpu_set_t *mask, bool apply )
+{
+   CPU_OR( &_cpu_set, &_cpu_set, mask );
+   sys.updateCpuMask( apply );
+}
+
+inline void System::updateCpuMask( bool apply )
+{
+   _cpu_mask.clear();
    std::ostringstream oss_cpu_idx;
    oss_cpu_idx << "[";
    for ( int i=0; i<CPU_SETSIZE; i++ ) {
@@ -1484,35 +1491,23 @@ void System::setCpuMask ( cpu_set_t *mask )
    }
    oss_cpu_idx << "]";
 
+   // if _bindThreads is enabled, update _pe_map adding new elements of _cpu_mask
    if ( sys.getBinding() ) {
-      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-      sys.applyCpuMask();
-   } else {
-      verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
-      sys.updateActiveWorkers( _cpu_mask.size() );
-   }
-}
-
-void System::addCpuMask ( cpu_set_t *mask )
-{
-   CPU_OR( &_cpu_set, &_cpu_set, mask );
-
-   std::ostringstream oss_cpu_idx;
-   oss_cpu_idx << "[";
-   for ( int i=0; i<CPU_SETSIZE; i++) {
-      if ( CPU_ISSET(i, &_cpu_set) ) {
-         _cpu_mask.insert( i );
-         oss_cpu_idx << i << ", ";
+      for ( std::set<int>::iterator it = _cpu_mask.begin(); it != _cpu_mask.end(); ++it ) {
+         if ( std::find( _pe_map.begin(), _pe_map.end(), *it ) == _pe_map.end() ) {
+            _pe_map.push_back( *it );
+         }
       }
    }
-   oss_cpu_idx << "]";
 
-   if ( sys.getBinding() ) {
-      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-      sys.applyCpuMask();
-   } else {
-      verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
-      sys.updateActiveWorkers( _cpu_mask.size() );
+   if ( apply ) {
+      if ( sys.getBinding() ) {
+         verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
+         sys.applyCpuMask();
+      } else {
+         verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
+         sys.updateActiveWorkers( _cpu_mask.size() );
+      }
    }
 }
 

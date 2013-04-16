@@ -18,6 +18,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <sched.h>
 #include "system.hpp"
 #include <cstdlib>
 #include "config.hpp"
@@ -127,8 +128,33 @@ namespace nanos
          return (ThreadTeamData *) NEW OmpThreadTeamData();
       }
 
-      void OpenMPInterface::updateNumThreads () { }
+      void OpenMPInterface::setNumThreads ( int nthreads )
+      {
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( nthreads );
+      }
 
+      void OpenMPInterface::getCpuMask( cpu_set_t *cpu_set )
+      {
+         sys.getCpuMask( cpu_set );
+      }
+
+      void OpenMPInterface::setCpuMask( const cpu_set_t *cpu_set )
+      {
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
+
+         sys.setCpuMask( cpu_set, /* apply */ false );
+      }
+
+      void OpenMPInterface::addCpuMask( const cpu_set_t *cpu_set )
+      {
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         int old_nthreads = data->icvs()->getNumThreads();
+         data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
+
+         sys.addCpuMask( cpu_set, /* apply */ false );
+      }
 
       /* OmpSs Interface */
       void OmpSsInterface::start ()
@@ -170,15 +196,36 @@ namespace nanos
       }
 
       // update the system threads after the API omp_set_num_threads
-      void OmpSsInterface::updateNumThreads ()
+      void OmpSsInterface::setNumThreads ( int nthreads )
       {
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
-         int omp_threads = data->icvs()->getNumThreads();
+         data->icvs()->setNumThreads( nthreads );
 
-         sys.updateActiveWorkers( omp_threads );
+         sys.updateActiveWorkers( nthreads );
 
-         ensure( sys.getNumThreads() == omp_threads, "Update Number of Threads failed " +
-               toString<unsigned>(sys.getNumThreads()) + " != " + toString<unsigned>(omp_threads) );
+         ensure( sys.getNumThreads() == nthreads, "Update Number of Threads failed " );
+      }
+
+      void OmpSsInterface::getCpuMask( cpu_set_t *cpu_set )
+      {
+         sys.getCpuMask( cpu_set );
+      }
+
+      void OmpSsInterface::setCpuMask( const cpu_set_t *cpu_set )
+      {
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
+
+         sys.setCpuMask( cpu_set, /* apply */ true );
+      }
+
+      void OmpSsInterface::addCpuMask( const cpu_set_t *cpu_set )
+      {
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         int old_nthreads = data->icvs()->getNumThreads();
+         data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
+
+         sys.addCpuMask( cpu_set, /* apply */ true );
       }
    };
 }

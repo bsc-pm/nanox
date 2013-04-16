@@ -21,6 +21,7 @@
 #ifndef _OMP_H_DEF
 #define _OMP_H_DEF
 
+#include <sched.h>
 #include "nanos_omp.h"
 
 /* OpenMP API interface */
@@ -83,6 +84,9 @@ extern double omp_get_wtick(void);
 
 extern int omp_in_final(void);
 
+extern void nanos_omp_get_mask( cpu_set_t *cpu_set );
+extern void nanos_omp_set_mask( const cpu_set_t *cpu_set );
+extern void nanos_omp_add_mask( const cpu_set_t *cpu_set );
 
 #ifdef __cplusplus
 }

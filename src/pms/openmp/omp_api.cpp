@@ -18,6 +18,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <sched.h>
 #include "basethread.hpp"
 #include "threadteam.hpp"
 #include "system.hpp"
@@ -49,9 +50,7 @@ extern "C"
 
    void omp_set_num_threads( int nthreads )
    {
-      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs()->setNumThreads( nthreads );
-      sys.getPMInterface().updateNumThreads();
+      sys.getPMInterface().setNumThreads( nthreads );
    }
 
    void omp_set_num_threads_(int *nthreads);
@@ -220,5 +219,19 @@ extern "C"
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
       return (int)data->isFinal();
    }
-}
 
+   NANOS_API_DEF(void, nanos_omp_get_mask, ( cpu_set_t *cpu_set ))
+   {
+      sys.getPMInterface().getCpuMask( cpu_set );
+   }
+
+   NANOS_API_DEF(void, nanos_omp_set_mask, ( const cpu_set_t *cpu_set ))
+   {
+      sys.getPMInterface().setCpuMask( cpu_set );
+   }
+
+   NANOS_API_DEF(void, nanos_omp_add_mask, ( const cpu_set_t *cpu_set ))
+   {
+      sys.getPMInterface().addCpuMask( cpu_set );
+   }
+}
