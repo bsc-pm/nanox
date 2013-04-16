@@ -352,6 +352,9 @@ void System::start ()
    if ( isHwlocAvailable() )
       loadHwloc();
 
+   // loadNUMAInfo needs _targetThreads when hwloc is not available.
+   // Note that it is not its final value!
+   _targetThreads = _numThreads;
    
    // Load & check NUMA config
    loadNUMAInfo();
@@ -359,8 +362,7 @@ void System::start ()
    // Modules can be loaded now
    loadModules();
 
-   _targetThreads = _numThreads;
-   // Do the same for the architecture plugins
+   // Increase targetThreads, ask the architecture plugins
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
    {
