@@ -220,6 +220,41 @@ extern "C"
       return (int)data->isFinal();
    }
 
+   int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+   {
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+
+      if ( threads_requested <= 0 ) {
+         threads_requested = data->icvs()->getNumThreads();
+      }
+
+      int num_threads = 0;
+      int threads_busy = 1; // FIXME: Should we keep track of it?
+      int active_parallel_regions = getMyThreadSafe()->getTeam()->getLevel();
+      int threads_available = globalState->getThreadLimit() - threads_busy + 1;
+
+      if ( active_parallel_regions >= 1 && !data->icvs()->getNested() ) {
+         num_threads = 1;
+      }
+      else if ( active_parallel_regions == globalState->getMaxActiveLevels() ) {
+         num_threads = 1;
+      }
+      else if ( threads_requested > threads_available ) {
+         num_threads = threads_available;
+      }
+      else {
+         num_threads = threads_requested;
+      }
+
+      return num_threads;
+   }
+
+   int nanos_omp_get_num_threads_next_parallel_ ( int *threads_requested );
+   int nanos_omp_get_num_threads_next_parallel_ ( int *threads_requested )
+   {
+      return nanos_omp_get_num_threads_next_parallel( *threads_requested );
+   }
+
    NANOS_API_DEF(void, nanos_omp_get_mask, ( cpu_set_t *cpu_set ))
    {
       sys.getPMInterface().getCpuMask( cpu_set );

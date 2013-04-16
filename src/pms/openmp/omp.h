@@ -84,6 +84,8 @@ extern double omp_get_wtick(void);
 
 extern int omp_in_final(void);
 
+extern int nanos_omp_get_num_threads_next_parallel( int threads_requested );
+
 extern void nanos_omp_get_mask( cpu_set_t *cpu_set );
 extern void nanos_omp_set_mask( const cpu_set_t *cpu_set );
 extern void nanos_omp_add_mask( const cpu_set_t *cpu_set );
