@@ -31,7 +31,7 @@ namespace ext {
 bool GPUConfig::_disableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
 System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
-bool GPUConfig::_prefetch = false;
+int GPUConfig::_numPrefetch = 1;
 bool GPUConfig::_overlap = false;
 bool GPUConfig::_overlapInputs = false;
 bool GPUConfig::_overlapOutputs = false;
@@ -66,11 +66,11 @@ void GPUConfig::prepare( Config& config )
    config.registerEnvOption ( "gpu-cache-policy", "NX_GPU_CACHE_POLICY" );
    config.registerArgOption( "gpu-cache-policy", "gpu-cache-policy" );
 
-   // Enable / disable prefetching
-   config.registerConfigOption( "gpu-prefetch", NEW Config::FlagOption( _prefetch ),
-                                "Set whether data prefetching must be activated or not (disabled by default)" );
-   config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
-   config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
+   // Set #tasks for prefetching
+   config.registerConfigOption ( "gpu-prefetch", NEW Config::IntegerVar( _numPrefetch ),
+                                 "Defines the maximum number of tasks to prefetch (defaults to 0)" );
+   config.registerEnvOption ( "gpu-prefetch", "NX_GPUPREFETCH" );
+   config.registerArgOption ( "gpu-prefetch", "gpu-prefetch" );
 
    // Enable / disable overlapping
    config.registerConfigOption( "gpu-overlap", NEW Config::FlagOption( _overlap ),
@@ -117,7 +117,7 @@ void GPUConfig::apply()
    if ( _disableCUDA || _numGPUs == 0 ) {
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
-      _prefetch = false;
+      _numPrefetch = 0;
       _overlap = false;
       _overlapInputs = false;
       _overlapOutputs = false;
@@ -135,7 +135,7 @@ void GPUConfig::apply()
          totalCount = 0;
          _numGPUs = 0;
          _cachePolicy = System::DEFAULT;
-         _prefetch = false;
+         _numPrefetch = 0;
          _overlap = false;
          _overlapInputs = false;
          _overlapOutputs = false;
@@ -203,7 +203,7 @@ void GPUConfig::apply()
          cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
          //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
          if ( cudaErr != cudaSuccess )
-            warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( cudaErr ) );
+            warning0( "Couldn't set the GPU device flags: " << cudaGetErrorString( cudaErr ) );
       }
       else {
          // Cannot trace events, as instrumentation has not been initialized yet
@@ -211,7 +211,7 @@ void GPUConfig::apply()
          cudaErr = cudaSetDeviceFlags( cudaDeviceScheduleSpin );
          //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
          if ( cudaErr != cudaSuccess )
-            warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( cudaErr ) );
+            warning0( "Couldn't set the GPU device flags:" << cudaGetErrorString( cudaErr ) );
       }
 
       if ( _initCublas ) {
@@ -230,7 +230,7 @@ void GPUConfig::printConfiguration()
    verbose0( "--- GPUDD configuration ---" );
    verbose0( "  Number of GPU's: " << _numGPUs );
    verbose0( "  GPU cache policy: " << ( _cachePolicy == System::WRITE_THROUGH ? "write-through" : "write-back" ) );
-   verbose0( "  Prefetching: " << ( _prefetch ? "Enabled" : "Disabled" ) );
+   verbose0( "  Prefetching: " << _numPrefetch );
    verbose0( "  Overlapping: " << ( _overlap ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping inputs: " << ( _overlapInputs ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping outputs: " << ( _overlapOutputs ? "Enabled" : "Disabled" ) );

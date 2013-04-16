@@ -128,7 +128,8 @@ void GPUThread::initializeDependent ()
       warning( "CUDA errors occurred during initialization:" << cudaGetErrorString( err ) );
 
    // Set the number of look ahead (prefetching) tasks
-   setMaxPrefetch( 8 );
+   // Add one to also count current workdescriptor
+   setMaxPrefetch( GPUConfig::getNumPrefetch() + 1 );
 }
 
 void GPUThread::runDependent ()

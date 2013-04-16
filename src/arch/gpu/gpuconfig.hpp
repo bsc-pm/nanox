@@ -52,7 +52,7 @@ namespace ext
          static bool                      _disableCUDA; //! Enable/disable all CUDA support
          static int                       _numGPUs; //! Number of CUDA-capable GPUs
          static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by GPU devices
-         static bool                      _prefetch; //! Enable / disable data prefetching (set by the user)
+         static int                       _numPrefetch; //! Maximum number of tasks to prefetch (set by the user)
          static bool                      _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
          static bool                      _overlapInputs;
          static bool                      _overlapOutputs;
@@ -76,7 +76,7 @@ namespace ext
 
          static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
 
-         static bool isPrefetchingDefined ( void ) { return _prefetch; }
+         static int getNumPrefetch ( void ) { return _numPrefetch; }
 
          static bool isOverlappingInputsDefined ( void ) { return _overlapInputs; }
 
