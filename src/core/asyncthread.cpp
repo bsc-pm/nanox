@@ -171,9 +171,6 @@ void AsyncThread::runWD ( WD * wd )
 #endif
    evt->setCreated();
 
-   _pendingEvents.push_back( evt );
-   _pendingEventsCounter++;
-
    // Run WD
    //this->inlineWorkDependent( *wd );
    this->runWDDependent( *wd );
@@ -191,6 +188,8 @@ void AsyncThread::runWD ( WD * wd )
 #ifdef NANOS_DEBUG_ENABLED
    evt->setDescription( evt->getDescription() + " action:AsyncThread::postRunWD" );
 #endif
+
+   addEvent( evt );
 
    this->setCurrentWD( *oldwd );
    // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
@@ -243,8 +242,7 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
 #endif
      evt->setCreated();
 
-      _pendingEvents.push_back( evt );
-      _pendingEventsCounter++;
+     addEvent( evt );
 
       Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, this, &work );
       evt->addNextAction( action );
@@ -268,9 +266,6 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
    #endif
          evt->setCreated();
 
-         _pendingEvents.push_back( evt );
-         _pendingEventsCounter++;
-
          if ( cd.isInput() ) {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-in") );
             NANOS_INSTRUMENT( static nanos_event_value_t value = (nanos_event_value_t) cd.getSize() );
@@ -289,6 +284,8 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
    #ifdef NANOS_DEBUG_ENABLED
          evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
    #endif
+
+         addEvent( evt );
 
          lastEvt = evt;
       }
@@ -331,8 +328,7 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 #endif
       evt->setCreated();
 
-      _pendingEvents.push_back( evt );
-      _pendingEventsCounter++;
+      addEvent( evt );
 
       Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, ( WD * ) NULL, &work );
       evt->addNextAction( action );
@@ -354,9 +350,6 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
          evt->setDescription( evt->getDescription() + " copy output" );
    #endif
          evt->setCreated();
-
-         _pendingEvents.push_back( evt );
-         _pendingEventsCounter++;
 
          if ( cd.isOutput() ) {
             NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-out") );
@@ -384,6 +377,8 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
    #ifdef NANOS_DEBUG_ENABLED
          evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
    #endif
+
+         addEvent( evt );
 
          lastEvt = evt;
       }
