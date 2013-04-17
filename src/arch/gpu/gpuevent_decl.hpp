@@ -48,7 +48,7 @@ namespace nanos
                return;
             }
 
-            _timesToQuery = 100;
+            _timesToQuery = 1;
 
             // Check for the state of the event, to see if it has changed
             NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_QUERY_EVENT );
@@ -95,7 +95,7 @@ namespace nanos
 #ifdef NANOS_GENERICEVENT_DEBUG
          GPUEvent ( WD *wd, cudaStream_t stream = 0, std::string desc = "" ) : GenericEvent( wd, desc ), _timesToQuery( 100 ), _cudaStream( stream )
 #else
-         GPUEvent ( WD *wd, cudaStream_t stream = 0 ) : GenericEvent( wd ), _timesToQuery( 100 ), _cudaStream( stream )
+         GPUEvent ( WD *wd, cudaStream_t stream = 0 ) : GenericEvent( wd ), _timesToQuery( 1 ), _cudaStream( stream )
 #endif
          {
             debug( "[GPUEvt] Creating event " << this
