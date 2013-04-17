@@ -86,7 +86,7 @@ void set_random_mask( void )
    }
    CPU_OR( &new_mask, &new_mask, &master_cpu );
    //print_mask( "New mask: ", &new_mask );
-   sys.setCpuMask( &new_mask );
+   sys.setCpuMask( &new_mask, true );
 }
 
 void main__loop_1 ( void *args )
@@ -141,7 +141,7 @@ int main ( int argc, char **argv )
        */
       if ( A.value() != NUM_ITERS ) check = false;
    }
-   sys.setCpuMask( &default_mask );
+   sys.setCpuMask( &default_mask, true );
 
    if ( check ) {
       fprintf(stderr, "%s : %s\n", argv[0], "successful");
