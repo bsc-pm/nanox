@@ -279,11 +279,16 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
          }
 
          evt->setPending();
-         Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
-         evt->addNextAction( action );
-   #ifdef NANOS_DEBUG_ENABLED
-         evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
-   #endif
+
+         CopyDescriptor cpdesc = cd.getCopyDescriptor();
+
+         if ( cpdesc.copying || cpdesc.flushing ) {
+            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
+            evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+            evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
+#endif
+         }
 
          addEvent( evt );
 
@@ -372,11 +377,16 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
          }
 
          evt->setPending();
-         Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
-         evt->addNextAction( action );
-   #ifdef NANOS_DEBUG_ENABLED
-         evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
-   #endif
+
+         CopyDescriptor cpdesc = cd.getCopyDescriptor();
+
+         if ( cpdesc.copying || cpdesc.flushing ) {
+            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
+            evt->addNextAction( action );
+#ifdef NANOS_DEBUG_ENABLED
+            evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
+#endif
+         }
 
          addEvent( evt );
 
