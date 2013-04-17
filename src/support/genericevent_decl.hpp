@@ -27,6 +27,10 @@
 
 #include "workdescriptor_fwd.hpp"
 
+#ifdef NANOS_DEBUG_ENABLED
+//#define NANOS_GENERICEVENT_DEBUG
+#endif
+
 namespace nanos
 {
    /****** Action definitions ******/
@@ -310,7 +314,7 @@ namespace nanos
 
          std::queue<Action *>    _nextActions; //! Actions that must be done after event's raise
 
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_GENERICEVENT_DEBUG
          std::string             _description; //! Description of the event
 #endif
 
@@ -319,7 +323,7 @@ namespace nanos
          /*! \brief GenericEvent constructor
           */
          GenericEvent ( WD *wd ) : _state( CREATED ), _wd( wd ), _nextActions()
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_GENERICEVENT_DEBUG
          , _description()
 #endif
          {}
@@ -327,12 +331,12 @@ namespace nanos
          /*! \brief GenericEvent constructor
           */
          GenericEvent ( WD *wd, std::queue<Action *> next ) : _state( CREATED ), _wd( wd ), _nextActions( next )
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_GENERICEVENT_DEBUG
          , _description()
 #endif
          {}
 
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_GENERICEVENT_DEBUG
          /*! \brief GenericEvent constructor
           */
          GenericEvent ( WD *wd, std::string desc ) : _state( CREATED ), _wd( wd ), _nextActions(), _description( desc ) {}
@@ -361,7 +365,7 @@ namespace nanos
          virtual void setCompleted() { _state = COMPLETED; }
          virtual bool isCompleted() { return _state == COMPLETED; }
 
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_GENERICEVENT_DEBUG
          void setDescription( std::string desc ) { _description = desc; }
          std::string getDescription() { return _description; }
 #endif

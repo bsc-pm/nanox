@@ -92,7 +92,7 @@ namespace nanos
       public:
         /*! \brief GPUEvent constructor
          */
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_GENERICEVENT_DEBUG
          GPUEvent ( WD *wd, cudaStream_t stream = 0, std::string desc = "" ) : GenericEvent( wd, desc ), _timesToQuery( 100 ), _cudaStream( stream )
 #else
          GPUEvent ( WD *wd, cudaStream_t stream = 0 ) : GenericEvent( wd ), _timesToQuery( 100 ), _cudaStream( stream )
@@ -114,7 +114,7 @@ namespace nanos
 
          /*! \brief GPUEvent constructor
           */
-#ifdef NANOS_DEBUG_ENABLED
+#ifdef NANOS_GENERICEVENT_DEBUG
          GPUEvent ( WD *wd, std::queue<Action *> next, cudaStream_t stream = 0, std::string desc = "" ) : GenericEvent( wd, next, desc )
 #else
          GPUEvent ( WD *wd, std::queue<Action *> next, cudaStream_t stream = 0 ) : GenericEvent( wd, next )
