@@ -436,7 +436,9 @@ void System::start ()
    // Create threads
    for ( int ths = 1; ths < _numThreads; ths++ ) {
       pe = _pes[ ths % numPes ];
-      _workers.push_back( &pe->startWorker() );
+      BaseThread *thread = &pe->startWorker();
+      thread->sleep();
+      _workers.push_back( thread );
    }
    
    // For each plugin create PEs and workers
@@ -1305,8 +1307,12 @@ void System::releaseWorker ( BaseThread * thread )
    //TODO: destroy if too many?
    debug("Releasing thread " << thread << " from team " << team );
 
-   thread->leaveTeam();   
-   team->removeThread(thread_id);
+   if ( thread->getTeamId() == 0 ) {
+      thread->leaveTeam();
+      team->removeThread(thread_id);
+   } else {
+      thread->sleep();
+   }
 }
 
 int System::getNumWorkers( DeviceData *arch )
@@ -1355,7 +1361,10 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
          continue;
       }
 
+      thread->lock();
       acquireWorker( team, thread, enterOthers, starringOthers, /* creator */ false );
+      thread->signal();
+      thread->unlock();
       nthreads--;
    }
 
@@ -1406,8 +1415,6 @@ void System::updateActiveWorkers ( int nthreads )
 
    /* Decrease _numThreads */
    while ( nthreads - _numThreads < 0 ) {
-      //for ( unsigned th_id = nthreads; nthreads < _numThreads; th_id++ ) {
-      //fatal_cond( th_id >= _workers.size(), "Going through all threads and there are still threads to remove" );
       thread = getAssignedWorker();
       thread->sleep();
       _numThreads--;
