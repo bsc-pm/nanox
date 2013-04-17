@@ -195,6 +195,13 @@ namespace nanos
 
             if ( _state == RAISED ) return true;
 
+            // Be consistent: an event should be pending before it is raised. Any other state
+            // should not lead to RAISED directly
+            // In the CUDA case, if an event is CREATED (this means cudaEventRecord() has not been
+            // called yet) and we try to update its state, CUDA will return cudaSuccess and we
+            // will think that the event has been RAISED when it has not even been recorded
+            if ( _state != PENDING ) return false;
+
             // Otherwise, check again for the state of the event, just in case it has changed
             updateState();
 
