@@ -27,11 +27,6 @@ namespace nanos {
    /*! \breif Class representing a copy used to synchronize the device with the cache */
    class CopyDescriptor : public nanos_copy_descriptor_internal_t
    {
-#if 0
-      private:
-         uint64_t _tag;
-         unsigned int _dirVersion;
-#endif
       public:
         /*! \brief Default constructor
          */
