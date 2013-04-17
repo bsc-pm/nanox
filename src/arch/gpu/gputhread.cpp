@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gputhread.hpp"
+#include "asyncthread.hpp"
 #include "gpuprocessor.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
@@ -264,6 +265,14 @@ void GPUThread::idle()
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 
    AsyncThread::idle();
+}
+
+void GPUThread::processTransfers()
+{
+   ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
+   ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
+
+   this->checkEvents();
 }
 
 

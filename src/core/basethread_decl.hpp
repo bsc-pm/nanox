@@ -201,6 +201,7 @@ namespace nanos
          void unpause ();
 
          virtual void idle() {};
+         virtual void processTransfers() {}
          virtual void yield() {};
 
          virtual void join() = 0;

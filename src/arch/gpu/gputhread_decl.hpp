@@ -72,6 +72,8 @@ namespace ext
 
          void idle();
 
+         void processTransfers();
+
          int getGPUDevice ();
 
          void enableWDClosingEvents ();
