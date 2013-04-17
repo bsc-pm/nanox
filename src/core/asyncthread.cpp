@@ -74,7 +74,6 @@ void AsyncThread::idle()
       WD * next = Scheduler::prefetch( ( BaseThread *) this, *last );
 
       if ( next != NULL ) {
-
          debug( "[Async] At idle, adding WD " << next << " : " << next->getId() << " to running WDs list" );
 
          // Add WD to the queue
@@ -148,9 +147,7 @@ void AsyncThread::runWD ( WD * wd )
 
       deps->setRaised();
 
-      // WARNING: push it front to avoid deadlocks
-      _pendingEvents.push_front( deps );
-      _pendingEventsCounter++;
+      addEvent( deps );
 
       return;
    }

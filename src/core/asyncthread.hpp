@@ -36,6 +36,7 @@ namespace nanos
 
 inline void AsyncThread::checkEvents()
 {
+   int i = 0, max = _pendingEventsCounter;
    for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
       GenericEvent * evt = *it;
       if ( evt->isRaised() ) {
@@ -46,32 +47,44 @@ inline void AsyncThread::checkEvents()
             action->run();
             delete action;
          }
-         it = _pendingEvents.erase( it );
-         _pendingEventsCounter--;
-         // Decrease iterator because it's going to be increased at the end of the loop
-         it--;
       }
+
+      i++;
+      if ( i == max ) break;
+   }
+
+   // Delete completed events
+   while ( _pendingEventsCounter && _pendingEvents.front()->isCompleted() ) {
+      _pendingEvents.pop_front();
+      _pendingEventsCounter--;
    }
 }
 
 inline void AsyncThread::checkEvents( WD * wd )
 {
+   int i = 0, max = _pendingEventsCounter;
    for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
       GenericEvent * evt = *it;
       if ( evt->getWD() == wd ) {
          if ( evt->isRaised() ) {
             evt->setCompleted();
-
             // Move to next step if WD's event is raised
             while ( evt->hasNextAction() ) {
                Action * action = evt->getNextAction();
                action->run();
                delete action;
             }
-            it = _pendingEvents.erase( it );
-            _pendingEventsCounter--;
          }
       }
+
+      i++;
+      if ( i == max ) break;
+   }
+
+   // Delete completed events
+   while ( _pendingEventsCounter && _pendingEvents.front()->isCompleted() ) {
+      _pendingEvents.pop_front();
+      _pendingEventsCounter--;
    }
 }
 
