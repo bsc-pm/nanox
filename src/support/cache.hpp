@@ -85,15 +85,16 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
       }
 
       CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
+      c.addReference();
       ce = &(_cache.insert( tag, c, inserted ));
       if (inserted) { // allocate it
          ce->setAddress( _cache.allocate( dir, size ) );
          ce->setAllocSize( size );
          if (input) {
             CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-            ce->setCopying( cd.copying );
+            ce->addTransfer( cd.dirVersion, INPUT, false );
             if ( _cache.copyDataToCache( cd, size ) ) {
-               ce->setCopying(false);
+               ce->finishTransfer( cd.dirVersion, INPUT, false );
             }
             cpdata.setCopyDescriptor( cd );
          }
@@ -108,6 +109,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
       if ( ce == NULL ) {
          // Create a new CacheEntry
          CacheEntry c = CacheEntry( NULL, size, tag, 0, output, input );
+         c.addReference();
          ce = &(_cache.insert( tag, c, inserted ));
          if ( inserted ) { // allocate it
             ce->setAddress( _cache.allocate( dir, size ) );
@@ -131,17 +133,23 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                }
                if ( input ) {
                   CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                  ce->setCopying( cd.copying );
-                  if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), cd, owner->getEntry( tag )->getAddress(), size, *owner ) ) {
-                     ce->setCopying(false);
+                  ce->addTransfer( cd.dirVersion, INPUT, false );
+                  CacheEntry * ownerCE = owner->getEntry( tag );
+                  // TODO: For asynchronous transfers, reference to the owner will never be decreased
+                  ownerCE->addReference();
+                  if ( _cache.copyData( ce->getAddress(), cd, ownerCE->getAddress(), size, *owner ) ) {
+                     ce->finishTransfer( cd.dirVersion, INPUT, false );
+                     ownerCE->deleteReference();
+                     cd.copying = false;
                   }
                   cpdata.setCopyDescriptor( cd );
                }
             } else if ( input ) {
                CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-               ce->setCopying( cd.copying );
+               ce->addTransfer( cd.dirVersion, INPUT, false );
                if ( _cache.copyDataToCache( cd, size ) ) {
-                  ce->setCopying(false);
+                  ce->finishTransfer( cd.dirVersion, INPUT, false );
+                  cd.copying = false;
                }
                cpdata.setCopyDescriptor( cd );
             }
@@ -173,8 +181,6 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
             while ( ce->getAddress() == NULL ) {}
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
-            _cache.addReference( tag );
-
             if ( size != ce->getSize() ) {
                if ( ce->trySetToResizing() ) {
                   // Wait until it's only me using this entry
@@ -190,7 +196,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                      // synchronize invalidation
                      _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_163 ); )
-                     while( de->getOwner() != NULL ) myThread->idle();
+                     while( de->getOwner() != NULL ) myThread->processTransfers(); //myThread->idle();
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
                   }
@@ -201,33 +207,34 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
 
                   if ( input ) {
                      didCopyIn = true;
-                     if ( ce->trySetToCopying() ) {
-                        Cache *owner = de->getOwner();
-                        ensure( &_cache != owner, "Trying to invalidate myself" );
-                        if ( owner != NULL ) {
-                           // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                           owner->invalidateAndFlush( dir, tag, size, de );
-                           owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_185 ); )
-                           while( de->getOwner() != NULL ) myThread->idle();
-                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+                     Cache *owner = de->getOwner();
+                     ensure( &_cache != owner, "Trying to invalidate myself" );
+                     if ( owner != NULL ) {
+                        // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                        owner->invalidateAndFlush( dir, tag, size, de );
+                        owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                        NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_185 ); )
+                        while( de->getOwner() != NULL ) myThread->processTransfers(); //myThread->idle();
+                        NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
-                        }
-
-                        // Copy in
-                        CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                        ce->setCopying( cd.copying );
-                        if ( _cache.copyDataToCache( cd, size ) ) {
-                           ce->setCopying(false);
-                        }
-                        cpdata.setCopyDescriptor( cd );
                      }
+
+                     // Copy in
+                     CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                     ce->setCopying( cd.copying );
+                     if ( _cache.copyDataToCache( cd, size ) ) {
+                        ce->setCopying(false);
+                        cd.copying = false;
+                     }
+                     cpdata.setCopyDescriptor( cd );
                   }
                   ce->setResizing(false);
                }
             }
          }
       } else {
+         ce->addReference();
+
          // Cache entry already exists in the cache
          if ( size != ce->getSize() ) {
             if ( ce->trySetToResizing() ) {
@@ -244,7 +251,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                   // synchronize invalidation
                   _cache.syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_221 ); )
-                  while( de->getOwner() != NULL ) myThread->idle();
+                  while( de->getOwner() != NULL ) myThread->processTransfers(); //myThread->idle();
                   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
                }
@@ -259,39 +266,37 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                      Cache *owner = de->getOwner();
                      owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_239 ); )
-                     while( de->getOwner() != NULL ) myThread->idle();
+                     while( de->getOwner() != NULL ) myThread->processTransfers(); //myThread->idle();
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
-                     if ( ce->trySetToCopying() ) {
-                        // Copy in
-                        CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                        ce->setCopying( cd.copying );
-                        if ( _cache.copyDataToCache( cd, size ) ) {
-                           ce->setCopying(false);
-                        }
-                        cpdata.setCopyDescriptor( cd );
+                     // Copy in
+                     CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                     ce->setCopying( cd.copying );
+                     if ( _cache.copyDataToCache( cd, size ) ) {
+                        ce->setCopying(false);
+                        cd.copying = false;
                      }
+                     cpdata.setCopyDescriptor( cd );
                   } else { 
-                     if ( ce->trySetToCopying() ) {
-                        Cache *owner = de->getOwner();
-                        ensure( &_cache != owner, "Trying to invalidate myself" );
-                        if ( owner != NULL ) {
-                           // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                           owner->invalidateAndFlush( dir, tag, size, de );
-                           owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_260 ); )
-                           while( de->getOwner() != NULL ) myThread->idle();
-                           NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+                     Cache *owner = de->getOwner();
+                     ensure( &_cache != owner, "Trying to invalidate myself" );
+                     if ( owner != NULL ) {
+                        // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                        owner->invalidateAndFlush( dir, tag, size, de );
+                        owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                        NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_260 ); )
+                        while( de->getOwner() != NULL ) myThread->processTransfers(); //myThread->idle();
+                        NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
-                        }
-
-                        // Copy in
-                        CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                        ce->setCopying( cd.copying );
-                        if ( _cache.copyDataToCache( cd, size ) ) {
-                           ce->setCopying(false);
-                        }
-                        cpdata.setCopyDescriptor( cd );
                      }
+
+                     // Copy in
+                     CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                     ce->setCopying( cd.copying );
+                     if ( _cache.copyDataToCache( cd, size ) ) {
+                        ce->setCopying(false);
+                        cd.copying = false;
+                     }
+                     cpdata.setCopyDescriptor( cd );
                   }
                }
                ce->setResizing(false);
@@ -301,60 +306,64 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
          if ( de->getVersion() != ce->getVersion() ) {
             // Version doesn't match the one in the directory
             if ( input && !didCopyIn ) {
-               if ( ce->trySetToCopying() ) {
-                  ce->setVersion( de->getVersion() );
-                  Cache *owner = de->getOwner();
-                  ensure( &_cache != owner, "Trying to invalidate myself" );
+               ce->setVersion( de->getVersion() );
+               Cache *owner = de->getOwner();
+               ensure( &_cache != owner, "Trying to invalidate myself" );
 #ifdef NANOS_GPU_USE_CUDA32
-                  if ( owner != NULL ) {
-                     // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
-                     owner->invalidateAndFlush( dir, tag, size, de );
-                     owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
-                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_292 ); )
-                     while( de->getOwner() != NULL ) myThread->idle();
-                     NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
-
-                  }
-
-                  // Wait while it's resizing
-                  NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_300 ); )
-                  while ( ce->isResizing() ) {}
+               if ( owner != NULL ) {
+                  // Is dirty somewhere else, we need to invalidate 'tag' in 'cache' and wait for synchronization
+                  owner->invalidateAndFlush( dir, tag, size, de );
+                  owner->syncTransfer( tag ); // Ask the device to be nice and prioritize this transfer
+                  NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_292 ); )
+                  while( de->getOwner() != NULL ) myThread->idle();
                   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
-                  // Copy in
-                  CopyDescriptor cd = CopyDescriptor(tag);
-                  if ( _cache.copyDataToCache( cd, size ) ) {
-                     ce->setCopying(false);
-                  }
-                  cpdata.setCopyDescriptor( cd );
+               }
+
+               // Wait while it's resizing
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_300 ); )
+               while ( ce->isResizing() ) {}
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+
+               // Copy in
+               CopyDescriptor cd = CopyDescriptor(tag);
+               if ( _cache.copyDataToCache( cd, size ) ) {
+                  ce->setCopying(false);
+               }
+               cpdata.setCopyDescriptor( cd );
 #else
 
-                  if ( owner != NULL ) {
-                     // Most recent version is in another cache
-                     // It is input for sure, as we have checked it before
-                     if ( output ) {
-                        // I am going to write, so invalidate it from the other cache
-                        // There may be other caches that have the data, so they should check the version at each access
-                        owner->invalidate( dir, tag, de );
-                     }
-
-                     CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->setCopying( cd.copying );
-                     if ( _cache.copyData( _cache.getEntry( tag )->getAddress(), cd, owner->getEntry( tag )->getAddress(), size, *owner ) ) {
-                        ce->setCopying( false );
-                     }
-                     cpdata.setCopyDescriptor( cd );
-
-                  } else {
-                     CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->setCopying( cd.copying );
-                     if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->setCopying( false );
-                     }
-                     cpdata.setCopyDescriptor( cd );
+               if ( owner != NULL ) {
+                  // Most recent version is in another cache
+                  // It is input for sure, as we have checked it before
+                  if ( output ) {
+                     // I am going to write, so invalidate it from the other cache
+                     // There may be other caches that have the data, so they should check the version at each access
+                     owner->invalidate( dir, tag, de );
                   }
-#endif
+
+                  CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                  ce->addTransfer( cd.dirVersion, INPUT, false );
+                  CacheEntry * ownerCE = owner->getEntry( tag );
+                  // TODO: For asynchronous transfers, reference to the owner will never be decreased
+                  ownerCE->addReference();
+                  if ( _cache.copyData( ce->getAddress(), cd, ownerCE->getAddress(), size, *owner ) ) {
+                     ce->finishTransfer( cd.dirVersion, INPUT, false );
+                     ownerCE->deleteReference();
+                     cd.copying = false;
+                  }
+                  cpdata.setCopyDescriptor( cd );
+
+               } else {
+                  CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
+                  ce->addTransfer( cd.dirVersion, INPUT, false );
+                  if ( _cache.copyDataToCache( cd, size ) ) {
+                     ce->finishTransfer( cd.dirVersion, INPUT, false );
+                     cd.copying = false;
+                  }
+                  cpdata.setCopyDescriptor( cd );
                }
+#endif
             } else {
                // Since there's no input, it is output and we don't care about what may be in other caches, just update this version
                ce->setVersion( de->getVersion() );
@@ -387,9 +396,10 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, CopyData &cpdata
    ce.setAllocSize( size );
    if ( input ) {
       CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-      ce.setCopying( cd.copying );
+      ce.addTransfer( cd.dirVersion, INPUT, false );
       if ( _cache.copyDataToCache( cd, size ) ) {
-         ce.setCopying(false);
+         ce.finishTransfer( cd.dirVersion, INPUT, false );
+         cd.copying = false;
       }
       cpdata.setCopyDescriptor( cd );
    }
@@ -399,20 +409,20 @@ inline void CachePolicy::unregisterPrivateAccess( Directory &dir, CopyData &cpda
 {
    size_t size = cpdata.getSize();
    CacheEntry *ce = _cache.getEntry( tag );
-   _cache.deleteReference(tag);
-   _cache.deleteReference(tag);
    ensure ( ce != NULL, "Private access cannot miss in the cache.");
    // FIXME: to use this output it needs to be synchronized now or somewhere in case it is asynchronous
    if ( ce->isDirty() ) {
       CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ false, /* flushing */ true );
-      ce->setFlushing( cd.flushing );
+      ce->addTransfer( cd.dirVersion, OUTPUT, true );
+      ce->deleteReference();
       if ( _cache.copyBackFromCache( cd, size ) ) {
+         ce->finishTransfer( cd.dirVersion, OUTPUT, true );
+         cd.flushing = false;
          _cache.deleteEntry( tag, size );
-      } else {
-         ce->setFlushing( true );
-         ce->setDirty( false );
       }
       cpdata.setCopyDescriptor( cd );
+   } else {
+      ce->deleteReference();
    }
 }
 
@@ -426,26 +436,37 @@ inline void NoCache::registerCacheAccess( Directory& dir, CopyData &cpdata, uint
    CacheEntry& ce = _cache.insert( tag, c, inserted );
    // TODO: The ensure is activated... why?
    //ensure ( inserted, "Private access cannot hit the cache.");
-   ce.setAddress( _cache.allocate( dir, size ) );
-   ce.setAllocSize( size );
+
+   if ( inserted ) {
+      ce.setAddress( _cache.allocate( dir, size ) );
+      ce.setAllocSize( size );
+   }
+
    if ( input ) {
-      CopyDescriptor cd = CopyDescriptor( tag );
+      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
       _cache.copyDataToCache( cd, size );
+      cd.copying = false;
       cpdata.setCopyDescriptor( cd );
       ce.setCopying( false );
    }
+
 }
 
 inline void NoCache::unregisterCacheAccess( Directory& dir, CopyData &cpdata, uint64_t tag, bool output )
 {
    size_t size = cpdata.getSize();
    if ( output ) {
-      CopyDescriptor cd = CopyDescriptor( tag );
+      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ false, /* flushing */ true  );
       _cache.copyBackFromCache( cd, size );
+      cd.flushing = false;
       cpdata.setCopyDescriptor( cd );
    }
 
-   _cache.deleteEntry( tag, size );
+   _cache.deleteReference( tag );
+
+   if ( _cache.getReferences( tag ) == 0 ) {
+      _cache.deleteEntry( tag, size );
+   }
 }
 
 inline void NoCache::registerPrivateAccess( Directory& dir, CopyData &cpdata, uint64_t tag )
@@ -463,23 +484,23 @@ inline void NoCache::unregisterPrivateAccess( Directory &dir, CopyData &cpdata, 
 inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, CopyData &cpdata, uint64_t tag, bool output )
 {
    CacheEntry *ce = _cache.getEntry( tag );
-   // There's two reference deleting calls because getEntry places one reference
-   _cache.deleteReference( tag );
-   _cache.deleteReference( tag );
    DirectoryEntry *de = dir.getEntry( tag );
    if ( output ) {
-         ensure( de != NULL, "Directory has been corrupted" );
+      ensure( de != NULL, "Directory has been corrupted" );
       CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
-      ce->setFlushing( cd.flushing );
+      ce->addTransfer( cd.dirVersion, OUTPUT, true );
       if ( _cache.copyBackFromCache( cd, cpdata.getSize() ) ) {
-         ce->setDirty( false );
-         de->setOwner( NULL );
-      } else {
-         ce->setFlushing( true );
-         ce->setDirty( false );
+         ce->finishTransfer( cd.dirVersion, OUTPUT, true );
+         cd.flushing = false;
+         if ( !ce->isFlushing() ) {
+            de->setOwner( NULL );
+         }
       }
       cpdata.setCopyDescriptor( cd );
    }
+
+   ce->deleteReference();
+
    if ( de != NULL ) {
       de->removeAccess( _cache.getId() );
    } else {
@@ -489,9 +510,10 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, CopyData 
 
 inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, CopyData &cpdata, uint64_t tag, bool output )
 {
-   // There's two reference deleting calls because getEntry places one reference
-   _cache.deleteReference( tag );
-   _cache.deleteReference( tag );
+   CacheEntry * ce = _cache.getEntry( tag );
+   CopyDescriptor cd = CopyDescriptor( tag, ce->getVersion(), /* copying */ false, /* flushing */ false );
+   cpdata.setCopyDescriptor( cd );
+   ce->deleteReference();
 }
 
 inline Cache::Cache() : _id( sys.getCacheMap().registerCache() ) {}
@@ -536,56 +558,80 @@ inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size )
 template <class _T>
 inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
 {
-   CacheHash::KeyList kl;
-   _cache.listUnreferencedKeys( kl );
-   CacheHash::KeyList::iterator it;
-   for ( it = kl.begin(); it != kl.end(); it++ ) {
-      CacheEntry &ce = *( _cache.find( it->second ) );
-      if ( ce.isDirty() ) {
-         DirectoryEntry *de = dir.getEntry( ce.getTag() );
-         if ( ce.trySetToFlushing() ) {
-            if ( de->getOwner() != this ) {
-                  // someone flushed it between setting to invalidated and setting to flushing, do nothing
-                  ce.setFlushing(false);
-            } else {
-               CopyDescriptor cd = CopyDescriptor( ce.getTag(), de->getVersion(), /* copying */ false, /* flushing */ true);
-               ce.setFlushing( cd.flushing );
-               if ( copyBackFromCache( cd, ce.getSize() ) ) {
-                  ce.setFlushing(false);
-                  de->setOwner(NULL);
+   std::list<CacheEntry *> entries;
+   getUnreferencedEntries( entries );
+   std::list<CacheEntry *>::iterator it;
+
+   DirectoryEntry * de2 = NULL;
+   for ( it = entries.begin(); it != entries.end(); it++ ) {
+      de2 = NULL;
+      CacheEntry *ce = *it;
+      CopyDescriptor cd = CopyDescriptor( 0, 0, /* copying */ false, /* flushing */ false);
+      if ( ce->isDirty() ) {
+         DirectoryEntry *de = dir.getEntry( ce->getTag() );
+         de2 = de;
+         if ( de->getOwner() != this ) {
+            // someone flushed it between setting to invalidated and setting to flushing, do nothing
+         } else {
+            // This CE is the owner
+            cd.tag = ce->getTag();
+            cd.dirVersion = de->getVersion();
+            cd.copying = false;
+            cd.flushing = true;
+            ce->addTransfer( cd.dirVersion, OUTPUT, true );
+
+            if ( copyBackFromCache( cd, ce->getSize() ) ) {
+               ce->finishTransfer( cd.dirVersion, OUTPUT, true );
+               cd.flushing = false;
+               if ( !ce->isFlushing() ) {
+                  de->setOwner( NULL );
                }
+               de2 = NULL;
             }
          }
       }
-     /* FIXME: this can be optimized by adding the flushing entries to a
-      * list and go to that list if not enough space was freed
-      */
-     /* Wait loop:
-      *  - requesting the transfer to the device.
-      *  - idle must be done to allow the thread to manage the copies
-      */
+      /* FIXME: this can be optimized by adding the flushing entries to a
+       * list and go to that list if not enough space was freed
+       */
+      /* Wait loop:
+       *  - requesting the transfer to the device.
+       *  - idle must be done to allow the thread to manage the copies
+       */
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_FREE_SPACE_TO_FIT ); )
       {
-         if ( ce.isFlushing() ) ce.setFlushing( 1 );
 
-         while ( ce.isFlushing() ) {
-            _T::syncTransfer( (uint64_t)it->second, _pe );
-            myThread->disableGettingWork();
-            myThread->idle();
+         myThread->disableGettingWork();
+         while ( cd.tag != 0 && ce->isTransferPending( cd.dirVersion, OUTPUT, true ) ) {
+            _T::syncTransfer( ce->getTag(), _pe );
+            //myThread->idle();
+            myThread->processTransfers();
+         }
+
+         if ( de2 != NULL && !ce->isFlushing() ) {
+            de2->setOwner( NULL );
          }
          myThread->enableGettingWork();
       }
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
 
-      // Copy the entry because once erased it can be recycled
-      CacheEntry ce2 = ce;
-      if ( _cache.erase( it->second ) ) {
-         _T::free( ce2.getAddress(), _pe );
-         _usedSize -= ce2.getSize();
-         if ( _usedSize + size <= _size )
-            break;
+      if ( !ce->isFlushing() ) {
+         // Copy the entry because once erased it can be recycled
+         CacheEntry ce2 = *ce;
+
+         while ( _cache.getReferenceCount( ce2.getTag() ) != 0 ) {
+            _cache.deleteReference( ce2.getTag() );
+            _cache.deleteReference( ce2.getTag() );
+         }
+
+         if ( _cache.erase( ce2.getTag() ) ) {
+            _T::free( ce2.getAddress(), _pe );
+            _usedSize -= ce2.getSize();
+            if ( _usedSize + size <= _size )
+               break;
+         }
       }
    }
+
    ensure( _usedSize + size <= _size, "Cache is full" );
 }
 
@@ -688,19 +734,20 @@ inline CacheEntry& DeviceCache<_T>::insert( uint64_t tag, CacheEntry& ce, bool& 
 template <class _T>
 inline CacheEntry* DeviceCache<_T>::getEntry( uint64_t tag )
 {
-   return _cache.findAndReference( tag );
+   CacheEntry * ce = _cache.find( tag );
+   return ce;
 }
 
 template <class _T>
 inline void DeviceCache<_T>::addReference( uint64_t tag )
 {
-   _cache.findAndReference( tag );
+   _cache.find( tag )->addReference();
 }
 
 template <class _T>
 inline void DeviceCache<_T>::deleteReference( uint64_t tag )
 {
-   _cache.deleteReference( tag );
+   _cache.find( tag )->deleteReference();
 }
 
 template <class _T>
@@ -728,42 +775,32 @@ inline void DeviceCache<_T>::unregisterPrivateAccess( Directory &dir, CopyData &
 }
 
 template <class _T>
-inline void DeviceCache<_T>::synchronizeTransfer( uint64_t tag )
-{
-   CacheEntry *ce = _cache.find( tag );
-   ensure( ce != NULL && ce->hasTransfers(), "Cache has been corrupted" );
-   ce->decreaseTransfers();
-}
-
-template <class _T>
 inline void DeviceCache<_T>::synchronizeInternal( SyncData &sd, CopyDescriptor &cd )
 {
-   if ( !cd.isCopying() && !cd.isFlushing() ) return;
+   if ( cd.copying && cd.flushing ) {
+      return;
+   }
 
    CacheEntry *ce = sd._this->_cache.find( cd.getTag() );
    ensure( ce != NULL, "Cache has been corrupted" );
 
-   //ensure( ( ce->isFlushing() && cd.isFlushing() ) || ( ce->isCopying() && cd.isCopying() ), "User program is incorrect"  );
-
-   if ( ce->isFlushing() && cd.isFlushing() ) {
-      ce->setFlushing(false);
+   if ( cd.flushing ) {
       Directory* dir = ce->getFlushTo();
       ensure( dir != NULL, "CopyBack sync lost its directory");
-      ce->setFlushTo(NULL);
       DirectoryEntry *de = dir->getEntry( cd.getTag() );
       //ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
 
+      ce->finishTransfer( cd.dirVersion, OUTPUT, true );
+
       // Make sure we are synchronizing the newest version
       if ( de->getOwner() == sd._this && ce->getVersion() == cd.getDirectoryVersion()) {
-          de->clearOwnerCS( sd._this ); 
+          de->clearOwnerCS( sd._this );
       }
    }
 
-   if ( ce->isCopying() && cd.isCopying() ) {
-      //ensure ( !ce->isFlushing(), "User program is incorrect" );
-      //ensure( ce->isCopying(), "Cache has been corrupted" );
-      ce->setCopying(false);
+   if ( cd.copying ) {
+      ce->finishTransfer( cd.dirVersion, INPUT, false );
    }
 }
 
@@ -824,17 +861,18 @@ template <class _T>
 inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
+
    if ( de->trySetInvalidated() ) {
-      if ( ce->trySetToFlushing() ) {
-         if ( de->getOwner() != this ) {
-               // someone flushed it between setting to invalidated and setting to flushing, do nothing
-               ce->setFlushing(false);
-         } else {
-            CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
-            ce->setFlushing( cd.flushing );
-            if ( copyBackFromCache( cd, ce->getSize() ) ) {
-               ce->setFlushing(false);
-               de->setOwner(NULL);
+      if ( de->getOwner() != this ) {
+         // someone flushed it between setting to invalidated and setting to flushing, do nothing
+      } else {
+         CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
+         ce->addTransfer( cd.dirVersion, OUTPUT, true );
+         if ( copyBackFromCache( cd, ce->getSize() ) ) {
+            ce->finishTransfer( cd.dirVersion, OUTPUT, true );
+            cd.flushing = false;
+            if ( !ce->isFlushing() ) {
+               de->setOwner( NULL );
             }
          }
       }
@@ -845,17 +883,18 @@ template <class _T>
 inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, size_t size, DirectoryEntry *de )
 {
    CacheEntry *ce = _cache.find( tag );
+
    if ( de->trySetInvalidated() ) {
-      if ( ce->trySetToFlushing() ) {
-         if ( de->getOwner() != this ) {
-               // someone flushed it between setting to invalidated and setting to flushing, do nothing
-               ce->setFlushing(false);
-         } else {
-            CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
-            ce->setFlushing( cd.flushing );
-            if ( copyBackFromCache( cd, size ) ) {
-               ce->setFlushing(false);
-               de->setOwner(NULL);
+      if ( de->getOwner() != this ) {
+         // someone flushed it between setting to invalidated and setting to flushing, do nothing
+      } else {
+         CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
+         ce->addTransfer( cd.dirVersion, OUTPUT, true );
+         if ( copyBackFromCache( cd, size ) ) {
+            ce->finishTransfer( cd.dirVersion, OUTPUT, true );
+            cd.flushing = false;
+            if ( !ce->isFlushing() ) {
+               de->setOwner( NULL );
             }
          }
       }
@@ -877,7 +916,16 @@ inline void DeviceCache<_T>::syncTransfer( uint64_t tag )
 template <class _T>
 int DeviceCache<_T>::getReferences( unsigned int tag )
 {
-   return _cache.getReferenceCount( tag );
+   return _cache.find( tag )->getReferences();
+}
+
+template <class _T>
+void DeviceCache<_T>::getUnreferencedEntries(std::list<CacheEntry *> &entries)
+{
+   for ( CacheHash::iterator it = _cache.begin(); it != _cache.end(); it++ ) {
+      CacheEntry &ce = *it;
+      if ( ce.getReferences() == 0 ) entries.push_back( &ce );
+   }
 }
 
 #endif

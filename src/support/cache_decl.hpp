@@ -31,6 +31,29 @@
 
 namespace nanos {
 
+   typedef enum { INPUT, OUTPUT } txDirection;
+
+   class Transfer {
+      public:
+         int            _version;
+         txDirection    _direction;
+         bool           _dirty;
+
+         Transfer( int ver, txDirection dir, bool dirty ) : _version( ver ), _direction ( dir ), _dirty ( dirty ) {}
+
+         ~Transfer() {}
+
+         Transfer& operator==( const Transfer tx ) {
+            _version = tx._version;
+            _direction = tx._direction;
+            _dirty = tx._dirty;
+
+            return *this;
+         }
+
+   };
+
+
   /*! \brief Represents a cache entry identified by an address
    */
    class CacheEntry : public Entry
@@ -42,33 +65,32 @@ namespace nanos {
          size_t _allocSize; /**< Size of the block allocated in the device */
 
          volatile bool _dirty; /**< Dirty flag */
-         Atomic<int> _copying; /**< Copying status of the entry */
-         Atomic<int> _flushing; /**< Flushing status of the entry */
          Directory* _flushTo; /**< If the entry is being flushed, points to the directoryEntry that will be updated. */
-         Atomic<unsigned int> _transfers; /**< Counts the number of in-flight transfers for dev-to-dev copies. */
          Atomic<bool> _resizing; /**< Tells whether the entry is being resized. */
+
+         std::list<Transfer> _pendingTx; /**< List of in-flight input and output transfers related to this entry */
+         Atomic<int> _references; /**< Number of references to this entry */
 
       public:
 
         /*! \brief Default constructor
          */
-         CacheEntry(): Entry(), _addr( NULL ), _size( 0 ), _allocSize( 0 ), _dirty( false ), _copying( 0 ),
-         _flushing( 0 ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
+         CacheEntry(): Entry(), _addr( (void *)1 ), _size( 0 ), _allocSize( 0 ), _dirty( false ),
+         _flushTo( NULL ), _resizing( false ), _pendingTx(), _references( 0 ) {}
 
         /*! \brief Constructor
          *  \param addr: address of the cache entry
          */
          CacheEntry( void *addr, size_t size, uint64_t tag, unsigned int version, bool dirty, bool copying ) :
             Entry( tag, version ), _addr( addr ), _size( size ), _allocSize( 0 ), _dirty( dirty ),
-            _copying( copying ? 1 : 0 ), _flushing( 0 ), _flushTo( NULL ), _transfers( 0 ), _resizing( false ) {}
+            _flushTo( NULL ), _resizing( false ), _pendingTx(), _references( 0 ) {}
 
         /*! \brief Copy constructor
          *  \param Another CacheEntry
          */
          CacheEntry( const CacheEntry &ce ): Entry( ce.getTag(), ce.getVersion() ), _addr( ce._addr ),
-               _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _copying( ce._copying ),
-               _flushing( ce._flushing ), _flushTo( ce._flushTo ), _transfers( ce._transfers ),
-               _resizing( ce._resizing ) {}
+               _size( ce._size ), _allocSize( ce._allocSize ), _dirty( ce._dirty ), _flushTo( ce._flushTo ),
+               _resizing( ce._resizing ), _pendingTx( ce._pendingTx ), _references( ce._references ) {}
 
         /* \brief Destructor
          */
@@ -85,11 +107,10 @@ namespace nanos {
             this->_size = ce._size;
             this->_allocSize = ce._allocSize;
             this->_dirty = ce._dirty;
-            this->_copying = ce._copying;
-            this->_flushing = ce._flushing;
             this->_flushTo = ce._flushTo;
-            this->_transfers = ce._transfers;
             this->_resizing = ce._resizing;
+            this->_pendingTx = ce._pendingTx;
+            this->_references = ce._references;
             return *this;
          }
 
@@ -123,6 +144,53 @@ namespace nanos {
          void setAllocSize( size_t size )
          { _allocSize = size; }
 
+
+         void addTransfer ( int version, txDirection direction, bool dirty = false )
+         {
+            _references++;
+            _pendingTx.push_back( Transfer( version, direction, dirty ) );
+         }
+
+         bool finishTransfer ( int version, txDirection direction, bool dirty = false )
+         {
+            for ( std::list<Transfer>::iterator it = _pendingTx.begin(); it != _pendingTx.end(); it++ ) {
+               Transfer tx = *it;
+               if ( tx._version == version && tx._direction == direction && tx._dirty == dirty ) {
+                  _references--;
+                  it = _pendingTx.erase( it );
+                  return true;
+               }
+            }
+            return false;
+         }
+
+         bool isTransferPending ( int version, txDirection direction, bool dirty = false )
+         {
+            for ( std::list<Transfer>::iterator it = _pendingTx.begin(); it != _pendingTx.end(); it++ ) {
+               Transfer tx = *it;
+               if ( tx._version == version && tx._direction == direction && tx._dirty == dirty ) {
+                  return true;
+               }
+            }
+            return false;
+         }
+
+         void addReference()
+         {
+            _references++;
+         }
+
+         void deleteReference()
+         {
+            _references--;
+         }
+
+         int getReferences()
+         {
+            return _references.value();
+         }
+
+
         /*! \brief Returns whether the entry is dirty
          */
          bool isDirty()
@@ -136,40 +204,30 @@ namespace nanos {
 
         /*! \brief Tells whether the entry is copying
          */
-         bool isCopying() const
-         { return _copying.value() != 0; }
-
-        /*! \brief Set the entry to 'copying'
-         *  \param copying
-         */
-         void setCopying( bool copying )
-         { copying ? _copying++ : _copying--; }
-
-        /*! \brief set copying status to true if it wansn't atomically.
-         */
-         bool trySetToCopying()
+         bool isCopying()
          {
-            //fatal( "trySetToCopying called!" );
-            //Atomic<bool> expected = false;
-            //Atomic<bool> value = true;
-            //return _copying.cswap( expected, value );
-            setCopying( true );
-            return true;
+            for ( std::list<Transfer>::iterator it = _pendingTx.begin(); it != _pendingTx.end(); it++ ) {
+               Transfer tx = *it;
+               if ( tx._direction == INPUT ) {
+                  return true;
+               }
+            }
+            return false;
          }
 
         /*! \brief Tells whether the entry is being flushed
          */
          bool isFlushing()
-         { return _flushing.value() != 0; }
+         {
+            for ( std::list<Transfer>::iterator it = _pendingTx.begin(); it != _pendingTx.end(); it++ ) {
+               Transfer tx = *it;
+               if ( tx._direction == OUTPUT ) {
+                  return true;
+               }
+            }
+            return false;
+         }
 
-        /*! \brief Set the entry to 'flushing'
-         *  \param flushing
-         */
-         void setFlushing( bool flushing )
-         { flushing ? _flushing++ : _flushing--; }
-
-         void setFlushing( int flushing )
-         { _flushing = flushing; }
 
         /*! \brief Returns the directory that will be updated when the entry flush finishes
          */
@@ -182,35 +240,6 @@ namespace nanos {
          void setFlushTo( Directory *dir )
          { _flushTo = dir; }
 
-        /*! \brief set flushing  status to ture if it wansn't atomically.
-         */
-         bool trySetToFlushing()
-         {
-            //fatal( "trySetToCopying called!" );
-            //Atomic<bool> expected = false;
-            //Atomic<bool> value = true;
-            //return _flushing.cswap( expected, value );
-            setFlushing( true );
-            return true;
-         }
-
-        /*! \brief Tells whether the entry has in-flight transfers
-         */
-         bool hasTransfers()
-         { return _transfers.value() > 0; }
-
-        /*! \brief increase the number of thransfers
-         */
-         void increaseTransfers()
-         { _transfers++; }
-
-        /*! \brief decrease the number of thransfers
-         */
-         bool decreaseTransfers()
-         {
-            _transfers--;
-            return hasTransfers();
-         }
 
         /*! \brief Tells whether the entry is resizing
          */
@@ -754,6 +783,8 @@ namespace nanos {
          *  \param tag Identifier of the cache entry
          */
          int getReferences( unsigned int tag );
+
+         void getUnreferencedEntries ( std::list<CacheEntry *> &entries );
    };
 
 }
