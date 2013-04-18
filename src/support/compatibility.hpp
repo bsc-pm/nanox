@@ -149,5 +149,47 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
   __CPU_EQUAL_S (sizeof (cpu_set_t), cpusetp1, cpusetp2)
 #endif /* GLIBC < 2.7 */
 
+#if !__GLIBC_PREREQ (2, 6)
+#include <limits.h>
+inline int __sched_cpucount (size_t setsize, const cpu_set_t *setp)
+{
+   int s = 0;
+   const __cpu_mask *p = setp->__bits;
+   const __cpu_mask *end = &setp->__bits[setsize / sizeof (__cpu_mask)];
+
+   while (p < end)
+   {
+      __cpu_mask l = *p++;
+
+      if (l == 0)
+         continue;
+
+# if LONG_BIT > 32
+      l = (l & 0x5555555555555555ul) + ((l >> 1) & 0x5555555555555555ul);
+      l = (l & 0x3333333333333333ul) + ((l >> 2) & 0x3333333333333333ul);
+      l = (l & 0x0f0f0f0f0f0f0f0ful) + ((l >> 4) & 0x0f0f0f0f0f0f0f0ful);
+      l = (l & 0x00ff00ff00ff00fful) + ((l >> 8) & 0x00ff00ff00ff00fful);
+      l = (l & 0x0000ffff0000fffful) + ((l >> 16) & 0x0000ffff0000fffful);
+      l = (l & 0x00000000fffffffful) + ((l >> 32) & 0x00000000fffffffful);
+# else
+      l = (l & 0x55555555ul) + ((l >> 1) & 0x55555555ul);
+      l = (l & 0x33333333ul) + ((l >> 2) & 0x33333333ul);
+      l = (l & 0x0f0f0f0ful) + ((l >> 4) & 0x0f0f0f0ful);
+      l = (l & 0x00ff00fful) + ((l >> 8) & 0x00ff00fful);
+      l = (l & 0x0000fffful) + ((l >> 16) & 0x0000fffful);
+# endif
+
+      s += l;
+   }
+
+   return s;
+}
+
+# define __CPU_COUNT_S(setsize, cpusetp) \
+  __sched_cpucount (setsize, cpusetp)
+
+# define CPU_COUNT(cpusetp)      __CPU_COUNT_S (sizeof (cpu_set_t), cpusetp)
+#endif /* GLIBC < 2.6 */
+
 #endif
 
