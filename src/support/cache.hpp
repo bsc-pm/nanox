@@ -221,9 +221,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
 
                      // Copy in
                      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->setCopying( cd.copying );
+                     ce->addTransfer( cd.dirVersion, INPUT, false );
                      if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->setCopying(false);
+                        ce->finishTransfer( cd.dirVersion, INPUT, false );
                         cd.copying = false;
                      }
                      cpdata.setCopyDescriptor( cd );
@@ -270,9 +270,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
                      // Copy in
                      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->setCopying( cd.copying );
+                     ce->addTransfer( cd.dirVersion, INPUT, false );
                      if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->setCopying(false);
+                        ce->finishTransfer( cd.dirVersion, INPUT, false );
                         cd.copying = false;
                      }
                      cpdata.setCopyDescriptor( cd );
@@ -291,9 +291,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
 
                      // Copy in
                      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->setCopying( cd.copying );
+                     ce->addTransfer( cd.dirVersion, INPUT, false );
                      if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->setCopying(false);
+                        ce->finishTransfer( cd.dirVersion, INPUT, false );
                         cd.copying = false;
                      }
                      cpdata.setCopyDescriptor( cd );
@@ -447,7 +447,6 @@ inline void NoCache::registerCacheAccess( Directory& dir, CopyData &cpdata, uint
       _cache.copyDataToCache( cd, size );
       cd.copying = false;
       cpdata.setCopyDescriptor( cd );
-      ce.setCopying( false );
    }
 
 }
