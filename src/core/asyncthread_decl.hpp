@@ -40,7 +40,7 @@ namespace nanos
    {
       public:
          typedef std::list<WD *> WDList;
-         typedef std::list<GenericEvent *> GenericEventList;
+         typedef std::deque<GenericEvent *> GenericEventList;
 
       private:
          std::list<WD *>   _runningWDs;

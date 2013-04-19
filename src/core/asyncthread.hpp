@@ -36,9 +36,11 @@ namespace nanos
 
 inline void AsyncThread::checkEvents()
 {
-   int i = 0, max = _pendingEventsCounter;
-   for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
-      GenericEvent * evt = *it;
+   // Save the event counter because the list of pending events can be increased over the loop
+   // and we don't want to have an infinite loop if we keep adding events forever
+   unsigned int max = _pendingEventsCounter;
+   for ( unsigned int i = 0; i < max; i++ ) {
+      GenericEvent * evt = _pendingEvents[i];
       if ( evt->isRaised() ) {
          evt->setCompleted();
          // Move to next step if WD's event is raised
@@ -48,9 +50,6 @@ inline void AsyncThread::checkEvents()
             delete action;
          }
       }
-
-      i++;
-      if ( i == max ) break;
    }
 
    // Delete completed events
@@ -62,9 +61,11 @@ inline void AsyncThread::checkEvents()
 
 inline void AsyncThread::checkEvents( WD * wd )
 {
-   int i = 0, max = _pendingEventsCounter;
-   for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
-      GenericEvent * evt = *it;
+   // Save the event counter because the list of pending events can be increased over the loop
+   // and we don't want to have an infinite loop if we keep adding events forever
+   unsigned int max = _pendingEventsCounter;
+   for ( unsigned int i = 0; i < max; i++ ) {
+      GenericEvent * evt = _pendingEvents[i];
       if ( evt->getWD() == wd ) {
          if ( evt->isRaised() ) {
             evt->setCompleted();
@@ -76,16 +77,12 @@ inline void AsyncThread::checkEvents( WD * wd )
             }
          }
       }
-
-      i++;
-      if ( i == max ) break;
    }
 
-   // Delete completed events
-   while ( _pendingEventsCounter && _pendingEvents.front()->isCompleted() ) {
-      _pendingEvents.pop_front();
-      _pendingEventsCounter--;
-   }
+   // WARNING: Do not delete completed events here because it can interfere with AsyncThread::checkEvents()
+   // Completed events should only be erased at AsyncThread::checkEvents(), or when we are completely sure
+   // that we are not in the middle of the loops of both AsyncThread::checkEvents() and
+   // AsyncThread::checkEvents( WD * wd )
 }
 
 
