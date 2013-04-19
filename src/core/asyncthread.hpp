@@ -22,14 +22,6 @@
 
 #include "asyncthread_decl.hpp"
 
-//#include "workdescriptor_fwd.hpp"
-//#include "atomic.hpp"
-//#include "processingelement.hpp"
-//#include "debug.hpp"
-//#include "schedule_fwd.hpp"
-//#include "threadteam_fwd.hpp"
-//#include "atomic.hpp"
-//#include "system.hpp"
 
 namespace nanos
 {
