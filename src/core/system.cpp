@@ -436,9 +436,7 @@ void System::start ()
    // Create threads
    for ( int ths = 1; ths < _numThreads; ths++ ) {
       pe = _pes[ ths % numPes ];
-      BaseThread *thread = &pe->startWorker();
-      thread->sleep();
-      _workers.push_back( thread );
+      _workers.push_back( &pe->startWorker() );
    }
    
    // For each plugin create PEs and workers
