@@ -81,6 +81,8 @@ namespace ext
 
          virtual void wait();
          virtual void signal();
+         virtual void sleep();
+         virtual void wakeup();
    };
 
 

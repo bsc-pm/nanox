@@ -131,7 +131,10 @@ void SMPThread::wait()
       leaveTeam();
    }
    pthread_mutex_lock( &_mutexWait );
-   pthread_cond_wait( &_condWait, &_mutexWait );
+
+   if (!isEligible())
+      pthread_cond_wait( &_condWait, &_mutexWait );
+
    pthread_mutex_unlock( &_mutexWait );
 
    NANOS_INSTRUMENT ( cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
@@ -141,6 +144,20 @@ void SMPThread::wait()
 void SMPThread::signal()
 {
    pthread_cond_signal( &_condWait );
+}
+
+void SMPThread::sleep()
+{
+   pthread_mutex_lock( &_mutexWait );
+   BaseThread::sleep();
+   pthread_mutex_unlock( &_mutexWait );
+}
+
+void SMPThread::wakeup()
+{
+   pthread_mutex_lock( &_mutexWait );
+   BaseThread::wakeup();
+   pthread_mutex_unlock( &_mutexWait );
 }
 
 // This is executed in between switching stacks
