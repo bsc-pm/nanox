@@ -140,7 +140,7 @@ void System::loadModules ()
      if ( !loadPlugin( "pe-"+getDefaultArch() ) )
        fatal0 ( "Couldn't load host support" );
    }
-   ensure( _hostFactory,"No default host factory" );
+   ensure0( _hostFactory,"No default host factory" );
 
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
@@ -162,14 +162,14 @@ void System::loadModules ()
    if ( !loadPlugin( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
-   ensure( _defSchedulePolicy,"No default system scheduling factory" );
+   ensure0( _defSchedulePolicy,"No default system scheduling factory" );
 
    verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
    if ( !loadPlugin( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
 
-   ensure( _throttlePolicy, "No default throttle policy" );
+   ensure0( _throttlePolicy, "No default throttle policy" );
 
    verbose0( "loading " << getDefaultBarrier() << " barrier algorithm" );
 
@@ -179,7 +179,7 @@ void System::loadModules ()
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 
-   ensure( _defBarrFactory,"No default system barrier factory" );
+   ensure0( _defBarrFactory,"No default system barrier factory" );
    
    // load default dependencies plugin
    verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
@@ -187,7 +187,7 @@ void System::loadModules ()
    if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
       fatal0 ( "Couldn't load main dependencies manager" );
 
-   ensure( _dependenciesManager,"No default dependencies manager" );
+   ensure0( _dependenciesManager,"No default dependencies manager" );
 
 }
 
