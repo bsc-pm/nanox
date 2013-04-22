@@ -20,6 +20,7 @@
 #ifndef _NANOS_OMP_H_
 #define _NANOS_OMP_H_
 
+#include <sched.h>
 #include "nanos.h"
 #include "nanos_reduction.h"
 

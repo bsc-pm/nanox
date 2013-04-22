@@ -21,7 +21,6 @@
 #ifndef _OMP_H_DEF
 #define _OMP_H_DEF
 
-#include <sched.h>
 #include "nanos_omp.h"
 
 /* OpenMP API interface */
