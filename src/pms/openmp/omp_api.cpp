@@ -220,7 +220,7 @@ extern "C"
       return (int)data->isFinal();
    }
 
-   int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+   NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
 
@@ -247,12 +247,6 @@ extern "C"
       }
 
       return num_threads;
-   }
-
-   int nanos_omp_get_num_threads_next_parallel_ ( int *threads_requested );
-   int nanos_omp_get_num_threads_next_parallel_ ( int *threads_requested )
-   {
-      return nanos_omp_get_num_threads_next_parallel( *threads_requested );
    }
 
    NANOS_API_DEF(void, nanos_omp_get_mask, ( cpu_set_t *cpu_set ))
