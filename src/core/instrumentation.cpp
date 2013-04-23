@@ -452,5 +452,13 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
    /* Calling array event's destructor: cleaning events */
    for ( i = 0; i < numEvents; i++ ) e[i].~Event();
+
+   /* Cpuid event is protected by system flags */
+   if ( !sys.getBinding() && sys.isCpuidEventEnabled() )  {
+      static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary();
+      static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid");
+      nanos_event_value_t cpuid_value =  (nanos_event_value_t) sched_getcpu() + 1;
+      sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value);
+   }
 }
 #endif

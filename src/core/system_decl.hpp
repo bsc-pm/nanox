@@ -178,6 +178,7 @@ namespace nanos
          std::list<std::string>    _enableEvents;  //FIXME: only in instrumentation
          std::list<std::string>    _disableEvents; //FIXME: only in instrumentation
          std::string               _instrumentDefault; //FIXME: only in instrumentation
+         bool                      _enable_cpuid_event; //FIXME: only in instrumentation
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -414,6 +415,8 @@ namespace nanos
          Instrumentation * getInstrumentation ( void ) const;
 
          void setInstrumentation ( Instrumentation *instr );
+
+         bool isCpuidEventEnabled ( void ) const;
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 

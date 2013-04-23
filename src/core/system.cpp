@@ -66,7 +66,7 @@ System::System () :
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
-      , _enableEvents(), _disableEvents(), _instrumentDefault("default")
+      , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -328,6 +328,9 @@ void System::config ()
 
    cfg.registerConfigOption ( "instrument-disable", NEW Config::StringVarList ( _disableEvents ), "Remove events to instrumentation event list" );
    cfg.registerArgOption ( "instrument-disable", "instrument-disable" );
+
+   cfg.registerConfigOption ( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ), "Add cpuid event when binding is disabled (expensive)" );
+   cfg.registerArgOption ( "instrument-cpuid", "instrument-cpuid" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );

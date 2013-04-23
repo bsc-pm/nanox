@@ -272,6 +272,8 @@ inline Instrumentation * System::getInstrumentation ( void ) const { return _ins
 
 inline void System::setInstrumentation ( Instrumentation *instr ) { _instrumentation = instr; }
 
+inline bool System::isCpuidEventEnabled ( void ) const { return _enable_cpuid_event; }
+
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
 inline void System::registerWorkSharing ( const std::string &label, WorkSharing *ws) { _worksharings[label] = ws; }
