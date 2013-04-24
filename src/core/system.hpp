@@ -439,6 +439,8 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
 
+inline bool System::dlbEnabled() const { return _enable_dlb; }
+
 inline bool System::haveDependencePendantWrites ( void *addr ) const
 {
    return myThread->getCurrentWD()->getDependenciesDomain().haveDependencePendantWrites ( addr );

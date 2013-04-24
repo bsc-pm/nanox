@@ -55,7 +55,7 @@ System::System () :
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 0 ), _coresPerSocket( 0 ), _throttlePolicy ( NULL ),
+      _numSockets( 0 ), _coresPerSocket( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -331,6 +331,9 @@ void System::config ()
 
    cfg.registerConfigOption ( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ), "Add cpuid event when binding is disabled (expensive)" );
    cfg.registerArgOption ( "instrument-cpuid", "instrument-cpuid" );
+
+   cfg.registerConfigOption ( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ), "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
+   cfg.registerArgOption ( "enable-dlb", "enable-dlb" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -1308,11 +1311,12 @@ void System::releaseWorker ( BaseThread * thread )
    //TODO: destroy if too many?
    debug("Releasing thread " << thread << " from team " << team );
 
-   if ( thread->getTeamId() == 0 ) {
+   if ( _enable_dlb && thread->getTeamId() != 0 ) {
+      // teamless threads will only sleep if DLB is enabled
+      thread->sleep();
+   } else {
       thread->leaveTeam();
       team->removeThread(thread_id);
-   } else {
-      thread->sleep();
    }
 }
 

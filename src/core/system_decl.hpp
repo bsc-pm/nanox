@@ -93,6 +93,8 @@ namespace nanos
          int                  _coresPerSocket;
          //! The socket that will be assigned to the next WD
          int                  _currentSocket;
+         //! Enable Dynamic Load Balancing library
+         bool                 _enable_dlb;
 
 	 // Nanos++ scheduling domain
          cpu_set_t            _cpu_set;
@@ -374,6 +376,8 @@ namespace nanos
          bool getSynchronizedStart ( void ) const;
 
          int nextThreadId ();
+
+         bool dlbEnabled() const;
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );

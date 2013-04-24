@@ -167,7 +167,7 @@ namespace nanos
          sys.setInitialMode( System::POOL );
          sys.setUntieMaster(true);
 
-         if ( DLB_UpdateResources ) sys.setUntieMaster(false);
+         if ( sys.dlbEnabled() && DLB_UpdateResources ) sys.setUntieMaster(false);
       }
 
       int OmpSsInterface::getInternalDataSize() const { return sizeof(OmpSsData); }

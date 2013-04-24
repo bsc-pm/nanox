@@ -732,7 +732,7 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
-   if ( DLB_UpdateResources ) {
+   if ( sys.dlbEnabled() && DLB_UpdateResources ) {
       int needed_resources = sys.getSchedulerStats()._readyTasks.value() - myThread->getTeam()->size();
       if ( needed_resources > 0 )
          DLB_UpdateResources( needed_resources );
