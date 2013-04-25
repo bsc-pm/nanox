@@ -242,7 +242,7 @@ NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (char* type)) {
     } else if (strcmp(type, "__mpitype_ompss_long_double") == 0) {
         result = MPI_LONG_DOUBLE;
     } else if (strcmp(type, "__mpitype_ompss_bool") == 0) {
-        //result=MPI_BOOL;
+        result = MPI_LOGICAL;
     } else if (strcmp(type, "__mpitype_ompss_byte") == 0) {
         result = MPI_BYTE;
     } else if (strcmp(type, "__mpitype_ompss_unsigned_long") == 0) {

@@ -207,6 +207,12 @@ static inline void trim(std::string& params){
 }
 
 void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset) {  
+    //IF MPI not initialized, do it
+    int initialized;
+    MPI_Initialized(&initialized);
+    if (!initialized)
+        nanos_MPI_Init(0,0);
+    
     std::list<std::string> tmp_storage;
     std::vector<std::string> tokens_params;
     std::vector<std::string> tokens_host;   
