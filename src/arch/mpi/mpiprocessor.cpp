@@ -368,7 +368,7 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
     int base_seed=sys.getNumCreatedPEs();
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
     for ( int rank=0; rank<number_of_spawns; rank++ ){
-        pes[rank]=NEW nanos::ext::MPIProcessor(++base_seed ,intercomm, rank);
+        pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(++base_seed) ,intercomm, rank);
         nanos_MPI_Send(_mpiFileHashname, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
         nanos_MPI_Send(_mpiFileSize, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
     }
