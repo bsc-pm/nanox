@@ -97,12 +97,14 @@ class GPUPlugin : public ArchPlugin
                fNode.close();
 
             }
-            // Fallback:
-            if ( node < 0 )
+            // Fallback / safety measure
+            if ( node < 0 || sys.getNumSockets() == 1 )
                node = sys.getNumSockets() - 1;
-            unsigned pe = sys.reservePE( node );
             
-            verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe );
+            bool reserved;
+            unsigned pe = sys.reservePE( node, reserved );
+            
+            verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
             // Now add this node to the binding list
             addBinding( pe );
          }

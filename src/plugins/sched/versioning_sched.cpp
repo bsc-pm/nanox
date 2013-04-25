@@ -350,6 +350,12 @@ namespace ext
          }
 
 
+         /*
+          * Activate the device for the given WD.
+          * If the current thread can run it, add it to its queue, otherwise, enqueue the task again (and it will
+          * be picked by a thread compatible with WD's active device
+          *
+          */
          WD * setDevice ( BaseThread *thread, WD *wd, unsigned int deviceIdx, bool getTask = true, double time = 1 )
          {
             wd->activateDevice( deviceIdx );
@@ -369,6 +375,8 @@ namespace ext
                   next = tdata._executionMap[thread->getId()]->getFirstTask( thread );
 
 #ifdef CHOOSE_ALWAYS_BEST
+                  // TODO: Check this option: it seems like next should be enqueued again, and the pointer
+                  // set to NULL because this task should not be returned to the current thread
                   unsigned int version = findBestVersion( thread, next );
                   if ( next->getActiveDeviceIdx() != version ) next->activateDevice( version );
 #endif
@@ -406,10 +414,19 @@ namespace ext
             }
          }
 
-         // TODO: Check this function to return the appropriate values
-         // it should return the information that atBeforeExit needs to schedule a bunch of tasks at a time, too
-         // Don't add tasks here, this function should only be used for checking:
-         // setEarliestExecutionWorker() should be used for planning next tasks
+         /*
+          * TODO: Check this function to return the appropriate values
+          *
+          * Try to find the earliest execution worker for a WD, taking into account the estimated busy time
+          * of each worker. Then, idle workers are also taken into account, even if they are not the fastest
+          * executors of the given task
+          *
+          * It should return the information that atBeforeExit needs to schedule a bunch of tasks at a time, too
+          *
+          * Don't add tasks to thread queues here, this function should only be used for checking:
+          * setEarliestExecutionWorker() should be used for planning next tasks
+          *
+          */
          int findEarliestExecutionWorker ( TeamData & tdata, WD *next, double &bestTime, double &time, unsigned int &devIdx  )
          {
             unsigned int w;
@@ -478,6 +495,11 @@ namespace ext
          }
 
 
+         /*
+          * Try to find the earliest execution worker for the given WD.
+          * If found, set it. Otherwise, enqueue the WD again
+          *
+          */
          int setEarliestExecutionWorker ( TeamData & tdata, WD *next )
          {
             double bestTime = 0, totalTime = 0;
@@ -516,8 +538,11 @@ namespace ext
          }
 
 
-         // Given a WD and a device (from PE), choose the best versionId to run this task
-         // We assume that wd has at least 1 implementation that the given device can run
+         /*
+          * Given a WD and a device (from PE), choose the best versionId to run this task
+          * We assume that wd has at least 1 implementation that the given device can run
+          *
+          */
          unsigned int findBestVersion ( BaseThread * thread, WD * wd, double &bestTime )
          {
             TeamData & tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
@@ -598,10 +623,15 @@ namespace ext
          }
 
 
+         /*
+          * Choose the device where the task will be executed
+          * Check we have recorded good (and reliable) enough results for each versionId and
+          * if not, force running the appropriate versionIds to finally get statistics from
+          * all WD's versionIds.
+          *
+          */
          WD * selectWD ( TeamData & tdata, BaseThread *thread, WD *next )
          {
-            // Choose the device where the task will be executed
-            // Check we have recorded good (and reliable) enough results for each versionId
             unsigned long wdId =  next->getVersionGroupId();
             size_t paramsSize = next->getParamsSize();
             WDExecInfoKey key = std::make_pair( wdId, paramsSize );
@@ -833,6 +863,8 @@ namespace ext
             // Reaching this point means that we have enough records to decide
             // It may happen that not all versionIds have been run
             // Choose the best versionId we have found by now
+            // There is no need to care about 'next', since setEarliestExecutionWorker()
+            // will deal with it
             setEarliestExecutionWorker( tdata, next );
 
             WD * wd = NULL;

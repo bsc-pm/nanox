@@ -30,7 +30,7 @@ public:
 
 private:
   static void prepare( Config &cfg );
-  static void apply();
+  static void apply(std::string& _devTy);
 
 private:
   // These properties contains raw info set by the user.
@@ -41,8 +41,6 @@ private:
   // The platform to use.
   static std::string _platName;
 
-  // The device type to consider.
-  static std::string _devTy;
   
   //! Defines the cache policy used by OpenCL devices
   static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by GPU devices
@@ -56,7 +54,7 @@ private:
   // These properties contains runtime info, not directly settable by the user.
 
   // All found OpenCL platforms.
-  static std::vector<cl_platform_id> _plats;
+  //static std::vector<cl_platform_id> _plats;
 
   // All found devices.
   static std::vector<cl_device_id> _devices;

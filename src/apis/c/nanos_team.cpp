@@ -45,6 +45,9 @@ using namespace nanos;
 NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
                                nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info ))
 {
+   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) nthreads); )
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_team",NANOS_RUNTIME) );
 
    try {

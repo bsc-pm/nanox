@@ -27,8 +27,6 @@ using namespace nanos;
 
 __thread BaseThread * nanos::myThread=0;
 
-Atomic<int> BaseThread::_idSeed = 0;
-
 void BaseThread::run ()
 {
    _threadWD.tied().tieTo( *this );
@@ -46,9 +44,7 @@ void BaseThread::addNextWD ( WD *next )
 {
    if ( next != NULL ) {
       debug("Add next WD as: " << next << ":??" << " @ thread " << _id );
-      _nextWDsCounter++;
-      ensure( _nextWDsCounter > 0, "Trying to increase a negative counter..." );
-     _nextWDs.push_back( next );
+      _nextWDs.push_back( next );
    }
 }
 
@@ -59,10 +55,6 @@ WD * BaseThread::getNextWD ()
 
    WD * next = _nextWDs.pop_front( this );
 
-   if ( next ) {
-      ensure( _nextWDsCounter > 0, "Trying to decrease a negative counter..." );
-      _nextWDsCounter--;
-   }
    return next;
 }
 

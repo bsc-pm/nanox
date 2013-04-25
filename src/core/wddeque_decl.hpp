@@ -204,14 +204,6 @@ namespace nanos
 
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
-#if 0
-         template <typename Constraints>
-         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
-         template <typename Constraints>
-         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
-         template <typename Constraints>
-         bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
-#endif
    };
    
    /*! \brief Class used to compare WDs by priority.

@@ -221,6 +221,7 @@ AC_SUBST([mpi_valid])
 
 
 # Check for programs (every compiler change should be done before this line)
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_LIBTOOL
 AC_PROG_CC([$CC])
 AC_PROG_CPP
@@ -497,7 +498,7 @@ AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
 
       CFLAGS="$CFLAGSBACKUP"
       CPPFLAGS="$CPPFLAGSBACKUP"
-      CXXFLAGS="$CFLAGSBACKUP"
+      CXXFLAGS="$CXXFLAGSBACKUP"
       LDFLAGS="$LDFLAGSBACKUP"
       #endtest
 	]
@@ -542,7 +543,7 @@ if test x"$opencl_enabled" = x"yes" ; then
 
     CFLAGS="$CFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
     CPPFLAGS="$CPPFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
-    CFLAGS="$CXXFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
+    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
     LDFLAGS="$LDFLAGS -L$OPENCL_LIB"
 
     AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
@@ -554,7 +555,7 @@ if test x"$opencl_enabled" = x"yes" ; then
 
     CFLAGS="$CFLAGSBACKUP"
     CPPFLAGS="$CPPFLAGSBACKUP"
-    CXXFLAGS="$CFLAGSBACKUP"
+    CXXFLAGS="$CXXFLAGSBACKUP"
     LDFLAGS="$LDFLAGSBACKUP"
     #endtest
 

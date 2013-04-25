@@ -111,8 +111,9 @@ typedef struct {
    void *original;
    void *privates;
    size_t element_size;
+   size_t num_scalars;
    void *descriptor; // This is only used in Fortran, it holds a Fortran array descriptor
-   void (*bop)( void *, void *);
+   void (*bop)( void *, void *, int num_scalars);
    void (*vop)( int n, void *, void *);
    void (*cleanup)(void *);
 } nanos_reduction_t;

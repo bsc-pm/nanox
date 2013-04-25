@@ -349,22 +349,12 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
    return false;
 }
 
-#if 0
-         template <typename Constraints>
-         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
-         template <typename Constraints>
-         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
-         template <typename Constraints>
-         bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
-#endif
-
 template <typename T>
 inline WDPriorityQueue<T>::WDPriorityQueue( bool optimise, bool reverse, PriorityValueFun getter )
    : _dq(), _lock(), _nelems(0), _optimise( optimise ), _reverse( reverse ),
      _getter( getter )
 {
 }
-
 
 template<typename T>
 inline bool WDPriorityQueue<T>::empty ( void ) const
@@ -518,7 +508,6 @@ inline WorkDescriptor * WDPriorityQueue<T>::popWithConstraints ( BaseThread *thr
 
    return found;
 }
-
 
 template <typename T>
 template <typename Constraints>
