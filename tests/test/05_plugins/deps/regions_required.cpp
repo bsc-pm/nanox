@@ -21,6 +21,7 @@
 <testinfo>
 test_generator=gens/mixed-generator
 test_deps_plugins=regions,plain,perfect-regions
+test_schedule=bf
 </testinfo>
 */
 
