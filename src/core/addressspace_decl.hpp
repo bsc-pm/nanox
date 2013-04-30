@@ -47,13 +47,10 @@ class SeparateAddressSpace {
    void copyFromHost( TransferListType list, WD const &wd );
    memory_space_id_t getMemorySpaceId() const;
    
-   //unsigned int lockRegionAndGetCurrentVersion( global_reg_t const &reg, bool increaseVersion = false );
    void releaseRegion( global_reg_t const &reg );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress ) const;
    
    void prepareRegion( global_reg_t const &reg, WD const &wd );
-   //void setRegionVersion( global_reg_t const &reg, unsigned int version );
-   //unsigned int getCurrentVersionSetVersion( global_reg_t const &reg, unsigned int version );
    unsigned int getCurrentVersion( global_reg_t const &reg );
 
    unsigned int getNodeNumber() const;
@@ -75,7 +72,6 @@ class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
    MemSpace<T>( memory_space_id_t memSpaceId, Device &d );
-   //virtual void copy( MemSpace from, TransferListType list ) = 0;
    void copy( MemSpace< SeparateAddressSpace > &from, TransferListType list, WD const &wd );
    void releaseRegions( MemSpace< SeparateAddressSpace > &from, TransferListType list, WD const &wd );
 };

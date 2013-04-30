@@ -8,7 +8,6 @@ void MemSpace< T >::copy( MemSpace< SeparateAddressSpace > &from, TransferListTy
    for ( TransferListType::iterator it = list.begin(); it != list.end(); it++ ) {
       if ( from.lockForTransfer( it->first, it->second ) ) {
          this->doOp( from, it->first, it->second, wd );
-         //from.releaseForTransfer( it->first, it->second );
       } else {
          this->failToLock( from, it->first, it->second );
       }

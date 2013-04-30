@@ -150,7 +150,6 @@ void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAdd
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, size );
-      fprintf(stderr, "[%d] doing PUT to node %d addr %p (wd=%p %d)\n", getNodeNum(), remoteNode, localAddr, &wd, wd.getId() );
       _api->put( remoteNode, remoteAddr, localAddr, size, wdId, wd );
    }
 }
@@ -168,8 +167,7 @@ void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAdd
 {
    if ( _api != NULL )
    {
-      GetRequest *getReq = ( GetRequest * ) req;
-      fprintf(stderr, "doing GET [%d] %p <= [%d] %p\n", getNodeNum(), getReq->getHostAddr(), remoteNode, remoteAddr );
+      //GetRequest *getReq = ( GetRequest * ) req;
       _api->get( localAddr, remoteNode, remoteAddr, size, req );
    }
 }
@@ -465,7 +463,6 @@ void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, 
    // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
    // TODO    invalidateDataFromDevice( (uint64_t) realTag, len, count, ld );
    // TODO }
-   fprintf(stderr, "[%d] received PUT data from %d, tag is %p [ %f ]\n", getNodeNum(), from, (void*) realTag, *((double *) realTag ) );
    _recvWdData.addData( wdId, len*count );
    if ( from != 0 ) { /* check for delayed putReqs or gets */
       _waitingPutRequestsLock.acquire();
@@ -628,11 +625,9 @@ bool GetRequest::isCompleted() const {
 }
 
 void GetRequest::clear() {
-   //fprintf(stderr, "clearing request %p, op obj is %p\n", this, _ops);
    ::memcpy( _hostAddr, _recvAddr, _size );
    sys.getNetwork()->freeReceiveMemory( _recvAddr );
    _ops->completeOp();
-   //fprintf(stderr, "cleared request %p\n", this);
 }
 
 char *GetRequest::getHostAddr() const {

@@ -40,7 +40,6 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
 
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
-   //fprintf(stderr, "calling obtainRegionId from %s\n", __FUNCTION__);
    reg.id = reg.key->obtainRegionId( cd );
 }
 
@@ -90,13 +89,6 @@ void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_
 void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
    _cache.prepareRegion( reg, wd );
 }
-
-#if 0
-void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
-   _cache.setRegionVersion( reg, version );
-   reg.setLocationAndVersion( _cache.getMemorySpaceId(), version );
-}
-#endif
 
 unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg ) {
    return _cache.getVersion( reg );

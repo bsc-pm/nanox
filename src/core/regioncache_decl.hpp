@@ -32,73 +32,6 @@
 #include "memoryops_fwd.hpp"
 
 namespace nanos {
-#if 0
-
-   Separate::hasAllData() {
-      _regiocnCache->NewAddRead/write();
-   }
-   
-   Separate::hasAllData() {
-      _regiocnCache->NewAddRead/write();
-   }
-
-   class Chunk {
-      copy( AddressSpace from, global_reg_t reg );
-      lockFailure();
-      hasAllData();
-   }
-   
-  HostMemChunk::copy( reg, from ) {
-     from.tryLock( reg )
-     if ( succeeded ) {
-        from.giveData( reg );
-        from.unlock( reg );
-     } else {
-        waitForData( reg );
-     }
-  }
-
-  //separate addr space
-  SeparateMemChunk::copy( reg, from ) {
-     origChunk = from.tryLock( reg )
-     if ( succeeded ) {
-        origChunk.giveData( reg );
-        origChunk.unlock( reg );
-     } else {
-        origChunk = hostMem.tryLock( reg );
-        origChunk.giveDataWhenReady( reg );
-        origChunk.unlock();
-     }
-  }
-
-   WD::copyDataIn() {
-      for (unsigned int index = 0; index < _numCopies; index++ ) {
-         if (! versionInfo ) hostMem.getVersionInfo( reg, ver, locs );
-
-         chunk = myMem.getMyChuk( reg );
-        
-         if ( !chunk.hasAllData( reg, ver ) ) {
-            for each region fragment
-               chunk.copy( regFragment, from ); 
-         } else {
-            // good 2 go
-         }
-      }
-   }
-
-
-   class HostAddressSpace : public BaseAddressSpace {
-      NewRegionDirectory _dir;
-
-      getVersionInfo( global_reg_t reg, parts... ); //getLocation
-   }
-
-   class SeparateAddressSpace : public BaseAddressSpace {
-      RegionCache _cache; // map reg -> chunk
-      HostAddressSpace &_hostMem;
-      synchronize( global_reg_t );
-   }
-#endif
 
    class RegionCache;
 
@@ -116,14 +49,10 @@ namespace nanos {
          std::size_t                       _rwBytes;
          Atomic<unsigned int>              _refs;
          global_reg_t                      _allocatedRegion;
-         
-         //RegionTree< CachedRegionStatus > *_regions;
-
          CacheRegionDictionary *_newRegions;
 
       public:
          static Atomic<int> numCall;
-         //AllocatedChunk( );
          AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddr, std::size_t size, global_reg_t const &allocatedRegion );
          AllocatedChunk( AllocatedChunk const &chunk );
          AllocatedChunk &operator=( AllocatedChunk const &chunk );
@@ -141,7 +70,6 @@ namespace nanos {
          void addWriteRegion( Region const &reg, unsigned int version );
          void clearRegions();
          void clearNewRegions( global_reg_t const &newAllocatedRegion );
-         //RegionTree< CachedRegionStatus > *getRegions();
          CacheRegionDictionary *getNewRegions();
          bool isReady( Region reg );
          bool isInvalidated() const;
@@ -157,7 +85,6 @@ namespace nanos {
          unsigned int getReferenceCount() const;
          void confirmCopyIn( reg_t id, unsigned int version );
          unsigned int getVersion( global_reg_t const &reg );
-         //unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
 
          DeviceOps *getDeviceOps( global_reg_t const &reg );
          void prepareRegion( reg_t reg, unsigned int version );
@@ -185,7 +112,6 @@ namespace nanos {
          MemoryMap<AllocatedChunk>  _chunks;
          Lock                       _lock;
          Device                    &_device;
-         //ProcessingElement         &_pe;
          memory_space_id_t          _memorySpaceId;
          CacheOptions               _flags;
          unsigned int               _lruTime;
@@ -218,17 +144,14 @@ namespace nanos {
                void doStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, std::size_t count, std::size_t ld, DeviceOps *ops, WD const &wd, bool fake ) ;
          } _copyOutObj;
 
-         void doOp( Op *opObj, Region const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
          void doOp( Op *opObj, global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, WD const &wd ); 
-         //void _generateRegionOps( Region const &reg, std::map< uintptr_t, MemoryMap< uint64_t > * > &opMap );
 
       public:
          RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags );
-         //AllocatedChunk *getAddress( global_reg_t const &reg, RegionTree< CachedRegionStatus > *&regsToInvalidate, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
          AllocatedChunk *getAddress( global_reg_t const &reg, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg ) const;
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
-         AllocatedChunk **selectChunkToInvalidate( /*CopyData const &cd, uint64_t addr,*/ std::size_t allocSize/*, RegionTree< CachedRegionStatus > *&regsToInval, CacheRegionDictionary *&newRegsToInval*/ );
+         AllocatedChunk **selectChunkToInvalidate( std::size_t allocSize );
          void syncRegion( Region const &r ) ;
          void syncRegion( std::list< std::pair< Region, CacheCopy * > > const &regions, WD const &wd ) ;
          void syncRegion( global_reg_t const &r ) ;
@@ -262,92 +185,13 @@ namespace nanos {
          bool pin( global_reg_t const &hostMem );
          void unpin( global_reg_t const &hostMem );
 
-         //unsigned int getVersionAllocateChunkIfNeeded( global_reg_t const &hostMem, bool increaseVersion );
-         //unsigned int getVersionSetVersion( global_reg_t const &hostMem, unsigned int newVersion );
          unsigned int getVersion( global_reg_t const &hostMem );
          void releaseRegion( global_reg_t const &hostMem );
          void prepareRegion( global_reg_t const &hostMem, WD const &wd );
-         //void setRegionVersion( global_reg_t const &hostMem, unsigned int version );
 
          void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
          void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
    };
-#if 0
-   class CacheController;
-   class CacheCopy {
-
-      private:
-         CopyData const &_copy;
-         AllocatedChunk *_cacheEntry;
-         std::list< std::pair<Region, CachedRegionStatus const &> > _cacheDataStatus;
-         Region _region;
-         uint64_t _offset;
-         unsigned int _version;
-         unsigned int _newVersion;
-         NewRegionDirectory::LocationInfoList _locations;
-         NewLocationInfoList _newLocations;
-         DeviceOps _operations;
-         std::set< DeviceOps * > _otherPendingOps;
-         reg_t _regId;
-
-      public:
-         global_reg_t _reg;
-         CacheCopy();
-         CacheCopy( WD const &wd, unsigned int index, CacheController &ccontrol );
-         CacheCopy( WD const &wd, unsigned int index );
-         
-         bool isReady();
-         void setUpDeviceAddress( RegionCache *targetCache, NewRegionDirectory *dir );
-         void generateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< Region, CacheCopy * > > > &opsBySourceRegions ) ;
-         void NEWgenerateCopyInOps( RegionCache *targetCache, std::map<unsigned int, std::list< std::pair< global_reg_t, CacheCopy * > > > &opsBySourceRegions ) ;
-         bool tryGetLocation( WD const &wd, unsigned int index );
-         void copyDataOut( RegionCache *targetCache );
-
-         bool tryGetLocationNewInit( WD const &wd, unsigned int copyIndex );
-         void getVersionInfo( WD const &wd, unsigned int copyIndex, CacheController &ccontrol );
-
-         NewRegionDirectory::LocationInfoList const &getLocations() const;
-         NewLocationInfoList const &getNewLocations() const;
-         uint64_t getDeviceAddress() const;
-         DeviceOps *getOperations();
-         Region const &getRegion() const;
-         unsigned int getVersion() const;
-         unsigned int getNewVersion() const;
-         void confirmCopyIn( unsigned int memorySpaceId );
-         CopyData const & getCopyData() const;
-         reg_t getRegId() const;
-         NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey() const;
-   };
-
-
-   class CacheController {
-
-      private:
-         WD const &_wd;
-         unsigned int _numCopies;
-         CacheCopy *_cacheCopies;
-         RegionCache *_targetCache;  
-         bool _registered;
-         Lock _provideLock;
-         std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
-
-      public:
-         CacheController();
-         CacheController( WD const &wd );
-         ~CacheController();
-         bool isCreated() const;
-         void preInit( );
-         void copyDataIn( RegionCache *targetCache );
-         bool dataIsReady() ;
-         uint64_t getAddress( unsigned int copyIndex ) const;
-         void copyDataOut();
-         void getInfoFromPredecessor( CacheController const &predecessorController );
-         bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations ) ;
-
-         CacheCopy *getCacheCopies() const;
-         RegionCache *getTargetCache() const;
-   };
-#endif
 }
 
 #endif

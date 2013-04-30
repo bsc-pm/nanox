@@ -74,8 +74,6 @@ bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &ver
 void MemController::preInit( ) {
    unsigned int index;
    for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
-      //std::cerr << "WD "<< _wd.getId() << " Depth: "<< _wd.getDepth() <<" Creating copy "<< index << std::endl;
-      //std::cerr << _wd.getCopies()[ index ];
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
       hasVersionInfoForRegion( _memCacheCopies[ index ]._reg  , _memCacheCopies[ index ]._version, _memCacheCopies[ index ]._locations );
       if ( _memCacheCopies[ index ]._version != 0 ) {
@@ -96,20 +94,13 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
       _inOps = NEW SeparateAddressSpaceInOps( sys.getSeparateMemory( _memorySpaceId ) );
    }
    
- //std::cerr << "### copyDataIn wd " << _wd.getId() << std::endl; 
-//   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-//      _memCacheCopies[ index ].getVersionInfo();
-//  //    std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
-//   }
-   
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-      _memCacheCopies[ index ].generateInOps2( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
+      _memCacheCopies[ index ].generateInOps( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
    }
 
    NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
    NANOS_INSTRUMENT( inst5.close(); );
- //std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
    NANOS_INSTRUMENT( inst2.close(); );
 }
 
@@ -145,12 +136,10 @@ uint64_t MemController::getAddress( unsigned int index ) const {
 }
 
 void MemController::getInfoFromPredecessor( MemController const &predecessorController ) {
-   //std::cerr << _wd.getId() <<" checking predecessor info from " << predecessorController._wd.getId() << std::endl;
    _provideLock.acquire();
    for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
       std::map< reg_t, unsigned int > &regs = _providedRegions[ predecessorController._memCacheCopies[ index ]._reg.key ];
       regs[ predecessorController._memCacheCopies[ index ]._reg.id ] = ( ( predecessorController._wd.getCopies()[index].isOutput() ) ? predecessorController._memCacheCopies[ index ]._version + 1 : predecessorController._memCacheCopies[ index ]._version );
-      //std::cerr << "provided data for copy " << index << " reg ("<<predecessorController._cacheCopies[ index ]._reg.key<<"," << predecessorController._cacheCopies[ index ]._reg.id << ") with version " << ( ( predecessorController._cacheCopies[index].getCopyData().isOutput() ) ? predecessorController._cacheCopies[ index ].getNewVersion() + 1 : predecessorController._cacheCopies[ index ].getNewVersion() ) << " isOut "<< predecessorController._cacheCopies[index].getCopyData().isOutput()<< " isIn "<< predecessorController._cacheCopies[index].getCopyData().isInput() << std::endl;
    }
    _provideLock.release();
 }
@@ -159,11 +148,6 @@ bool MemController::isDataReady() {
    bool done = _inOps->isDataReady();
 
    if ( done ) _inOps->updateMetadata();
-   //if ( done ) {
-   //   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-   //      _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version );
-   //   }
-   //}
 
    return done;
 }

@@ -100,11 +100,6 @@ void BaseAddressSpaceInOps::updateMetadata() {
 
 void BaseAddressSpaceInOps::prepareRegion( global_reg_t const &reg, WD const &wd ) {
 }
-#if 0
-void BaseAddressSpaceInOps::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
-   reg.setLocationAndVersion( 0, version );
-}
-#endif
 
 unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {
    return reg.getHostVersion(false);
@@ -114,8 +109,6 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
    DeviceOps *thisRegOps = reg.getDeviceOps();
    if ( reg.getHostVersion( false ) != version ) {
       if ( thisRegOps->addCacheOp() ) {
-         //fprintf(stderr, "addr is %p [reg id = %d] add op to object %p, im thd %d\n", (void*)reg.getFirstAddress(), reg.id, thisRegOps, myThread->getId() );
-         //reg.key->printRegion(reg.id); fprintf(stderr, "\n");
          _ownDeviceOps.insert( thisRegOps );
          for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
             global_reg_t region_shape( it->first, reg.key );
@@ -127,28 +120,19 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
                   thisOps->addCacheOp();
                   _ownDeviceOps.insert( thisOps );
                }
-               //std::cerr << "HOST mustcopy: reg " << reg.id << " version " << version << "  region shape: " << region_shape.id << " data source: " << data_source.id << " location "<< location << std::endl;
                ensure( location > 0, "Wrong location.");
                addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
             }
          }
-         //reg.setLocationAndVersion( 0, version + ( output ? 1 : 0 ) );
       } else {
-   //fprintf(stderr, "1 %s address %p [reg id = %d] added %p to otherDevOps\n", __FUNCTION__, (void *)reg.getFirstAddress(), reg.id, thisRegOps );
-   //      reg.key->printRegion(reg.id); fprintf(stderr, "\n");
          _otherDeviceOps.insert( thisRegOps );
-         // Do not call "setLocationAndVersion" because another op will set it.
       }
    } else {
-   //fprintf(stderr, "2 %s address %p [reg id = %d] added %p to otherDevOps\n", __FUNCTION__, (void *)reg.getFirstAddress(), reg.id, thisRegOps );
-   //      reg.key->printRegion(reg.id); fprintf(stderr, "\n");
       _otherDeviceOps.insert( thisRegOps );
-      //reg.setLocationAndVersion( 0, version + ( output ? 1 : 0 ) );
    }
 }
 
 void BaseAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {
-   //std::cerr << "FIXME "<< __FUNCTION__ << std::endl;
    reg.setLocationAndVersion( 0, version );
 }
 
@@ -176,17 +160,6 @@ void SeparateAddressSpaceInOps::issue( WD const &wd ) {
 void SeparateAddressSpaceInOps::prepareRegion( global_reg_t const &reg, WD const &wd ) {
    _destination.prepareRegion( reg, wd );
 }
-
-#if 0
-void SeparateAddressSpaceInOps::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
-   _destination.setRegionVersion( reg, version );
-}
-#endif
-#if 0
-unsigned int SeparateAddressSpaceInOps::getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion  ) {
-   return _destination.getCurrentVersionSetVersion( reg, newVersion );
-}
-#endif
 
 unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {
    return _destination.getCurrentVersion( reg );

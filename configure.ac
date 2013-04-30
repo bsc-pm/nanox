@@ -959,7 +959,7 @@ AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
 
 # Check MKL Support
-AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS],[-lm -lmkl_core])
+AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
 

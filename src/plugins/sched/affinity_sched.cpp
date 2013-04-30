@@ -821,6 +821,7 @@ namespace nanos {
                      actualClusterThread->unlock();
                      return;
                   }
+                  actualClusterThread->unlock();
                }
             }
          }
