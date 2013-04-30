@@ -16,7 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_err.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,11 +45,17 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
       default:
 
       case NANOS_UNKNOWN_ERR:
-         fprintf( stderr,"Unknown NANOS error detected\n" );
+         fprintf( stderr,"Nanox: Unknown NANOS error detected\n" );
          break;
 
       case NANOS_UNIMPLEMENTED:
-         fprintf( stderr,"Requested NANOS service not implemented\n" );
+         fprintf( stderr,"Nanox: Requested NANOS service not implemented\n" );
+         break;
+      case NANOS_ENOMEM:
+         fprintf( stderr,"Nanox: Cannot allocate enough memory to run the program\n" );
+         break;
+      case NANOS_INVALID_PARAM:
+         fprintf( stderr, "Nanox: invalid parameter\n" );
          break;
    }
 

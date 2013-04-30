@@ -40,10 +40,13 @@ namespace ext
          size_t      _stackSize;
          bool        _useUserThreads;
 
+         pthread_cond_t          _condWait;
+         static pthread_mutex_t  _mutexWait;
+
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
          const SMPThread & operator= ( const SMPThread &th );
-
+        
       public:
          // constructor
          SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
@@ -70,10 +73,16 @@ namespace ext
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
 
          virtual void bind( void );
+         
 
          /** \brief SMP specific yield implementation
          */
          virtual void yield();
+
+         virtual void wait();
+         virtual void signal();
+         virtual void sleep();
+         virtual void wakeup();
    };
 
 

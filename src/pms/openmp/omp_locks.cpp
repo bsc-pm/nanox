@@ -21,7 +21,6 @@
 #include "omp.h"
 #include "nanos.h"
 #include "atomic.hpp"
-#include "nanos_c_api_macros.h"
 
 extern "C"
 {

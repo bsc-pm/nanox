@@ -24,13 +24,15 @@
 
 using namespace nanos;
 
-inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, size_t storageSize )
+inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off )
 {
-   address = addr;
+   address = (void *) addr;
    sharing = nxSharing;
    flags.input = input;
    flags.output = output;
-   size = storageSize;
+   dimension_count = numDimensions;
+   dimensions = dims;
+   offset = off;
    cpDesc.tag = addr;
    cpDesc.dirVersion = 0;
    cpDesc.copying = false;
@@ -43,7 +45,9 @@ inline CopyData::CopyData ( const CopyData &cd )
    sharing = cd.sharing;
    flags.input = cd.flags.input;
    flags.output = cd.flags.output;
-   size = cd.size;
+   dimension_count = cd.dimension_count;
+   dimensions = cd.dimensions;
+   offset = cd.offset;
    cpDesc = cd.cpDesc;
 }
 
@@ -54,17 +58,19 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    sharing = cd.sharing;
    flags.input = cd.flags.input;
    flags.output = cd.flags.output;
-   size = cd.size;
+   dimension_count = cd.dimension_count;
+   dimensions = cd.dimensions;
+   offset = cd.offset;
    cpDesc = cd.cpDesc;
    return *this;
 }
 
-inline uint64_t CopyData::getAddress() const
+inline void *CopyData::getBaseAddress() const
 {
    return address;
 }
 
-inline void CopyData::setAddress( uint64_t addr )
+inline void CopyData::setBaseAddress( void *addr )
 {
    address = addr;
 }
@@ -89,8 +95,13 @@ inline void CopyData::setOutput( bool b )
    flags.output = b;
 }
 
-inline size_t CopyData::getSize() const
+inline std::size_t CopyData::getSize() const
 {
+   std::size_t size = 0;
+   ensure( dimension_count >= 1, "Wrong dimension_count ");
+   size = dimensions[0].accessed_length;
+   for ( int i = 1; i < dimension_count; i += 1 )
+      size *= dimensions[i].accessed_length;
    return size;
 }
 
@@ -107,6 +118,26 @@ inline bool CopyData::isPrivate() const
 inline nanos_sharing_t CopyData::getSharing() const
 {
    return sharing;
+}
+
+inline std::size_t CopyData::getNumDimensions() const
+{
+   return dimension_count;
+}
+
+inline nanos_region_dimension_internal_t const *CopyData::getDimensions() const
+{
+   return dimensions;
+}
+
+inline void CopyData::setDimensions(nanos_region_dimension_internal_t const *dims)
+{
+   dimensions = dims;
+}
+
+inline uint64_t CopyData::getAddress() const
+{
+   return ( (uint64_t) address ); 
 }
 
 inline CopyDescriptor CopyData::getCopyDescriptor() const

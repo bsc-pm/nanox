@@ -16,12 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
+/*! \file nanos_atomic.cpp
+ *  \brief 
+ */
 #ifdef HAVE_CONFIG_H
    #include "config.h"
 #endif
 
-#include "nanos_c_api_macros.h"
 #include "nanos_atomic.h"
 
 #include "atomic.hpp"
@@ -133,6 +134,16 @@ struct atomic_type_trait
     typedef typename suitable_integer_type<sizeof(T_)>::T T;
 };
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+extern "C"
+{
+    // For some reason g++, #include <complex.h> in C++2011 does not include C99 complex.h when in C++98 does
+    // We repeat the declarations here so they link with a C99 -lm
+    extern _Complex float cpowf(_Complex float, _Complex float);
+    extern _Complex float cpow(_Complex double, _Complex double);
+    extern _Complex float cpowl(_Complex long double, _Complex long double);
+}
+#endif
 
 namespace
 {

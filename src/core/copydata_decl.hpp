@@ -37,8 +37,8 @@ namespace nanos
          *  \param input Whether the CopyData is input or not 
          *  \param output Whether the CopyData is output or not
          */
-         CopyData ( uint64_t addr = NULL, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false,
-                    bool output = false, size_t storageSize = 0 );
+         CopyData ( uint64_t addr = 0, nanos_sharing_t nxSharing = NANOS_SHARED, bool input = false,
+                    bool output = false, std::size_t numDimensions = 0, nanos_region_dimension_internal_t const *dims = NULL, ptrdiff_t off = 0 );
 
         /*! \brief CopyData copy constructor
          *  \param obj another CopyData
@@ -56,11 +56,11 @@ namespace nanos
          
         /*! \brief Obtain the CopyData's address address
          */
-         uint64_t getAddress() const;
+         void *getBaseAddress() const;
          
         /*! \brief Set the CopyData's address address
          */
-         void setAddress( uint64_t addr );
+         void setBaseAddress( void *addr );
          
         /*! \brief returns true if it is an input CopyData
          */
@@ -91,6 +91,12 @@ namespace nanos
          bool isPrivate() const;
 
          nanos_sharing_t getSharing() const;
+
+         std::size_t getNumDimensions() const;
+         nanos_region_dimension_internal_t const *getDimensions() const;
+         void setDimensions(nanos_region_dimension_internal_t const *);
+         
+         uint64_t getAddress() const ;
 
          /*! \brief  returns the CopyData's CopyDescriptor
           */

@@ -19,8 +19,6 @@
 #ifndef _NANOS_ALLOCATOR_HPP
 #define _NANOS_ALLOCATOR_HPP
 #include "allocator_decl.hpp"
-#include "debug.hpp"
-#include "basethread.hpp"
 #include <vector>
 #include <cstdlib>
 #include <cstring>
@@ -29,18 +27,6 @@
 namespace nanos {
 
 extern Allocator *allocator;
-
-inline Allocator & getAllocator ( void )
-{
-   if (!allocator) {
-      allocator = (Allocator *) malloc(sizeof(Allocator));
-      new (allocator) Allocator();
-   }
-
-   BaseThread *my_thread = getMyThreadSafe();
-   if ( my_thread == NULL ) return *allocator;
-   else return my_thread->getAllocator();
-}
 
 inline size_t Allocator::Arena::getObjectSize () const
 {
@@ -71,6 +57,7 @@ inline void * Allocator::allocateBigObject ( size_t size )
    ObjectHeader * ptr = NULL;
 
    ptr = (ObjectHeader *) malloc( size + _headerSize );
+   if ( ptr == NULL ) throw(NANOS_ENOMEM);
    ptr->_arena = NULL; 
 
    return  ((char *) ptr ) + _headerSize;
@@ -100,6 +87,7 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
    if ( it == _arenas.end() ) {
       // no arena found for that size, create a new one
       arena = (Arena *) malloc ( sizeof(Arena) );
+      if ( arena == NULL ) throw(NANOS_ENOMEM);
       new ( arena ) Arena( realSize );
       _arenas.push_back( arena );
    }
@@ -113,6 +101,7 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
       if ( ptr == NULL ) { 
           if ( arena->getNext() == NULL ) {
              Arena *next = ( Arena *) malloc ( sizeof(Arena) );
+             if ( next == NULL ) throw(NANOS_ENOMEM);
              new (next) Arena(realSize);
              arena->setNext( next );
           }
@@ -127,6 +116,8 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
 
 inline void Allocator::deallocate ( void *object, const char *file, int line )
 {
+   if ( object == NULL ) return;
+
    ObjectHeader * ptr = (ObjectHeader *) ( ((char *)object) - _headerSize );
 
    Arena *arena = ptr->_arena;

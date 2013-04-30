@@ -17,19 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
+SUBDIRS = performance debug instrumentation instrumentation-debug
+
 include $(top_srcdir)/src/common.am
-
-bin_PROGRAMS = nanox
-
-
-nanox_CPPFLAGS = $(common_includes) $(bin_cxxflags) -DPLUGIN_DIR=\"$(@USED_VERSION@dir)\"
-
-nanox_SOURCES=\
-	nanox.cpp \
-	$(END)
-
-nanox_LDADD=\
-	-ldl \
-	../core/@USED_VERSION@/libnanox.la \
-	$(END)
 

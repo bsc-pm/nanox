@@ -96,10 +96,10 @@ void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key, Instrum
       new (e) Event(*it);
    }
 }
-void Instrumentation::createPointEvent ( Event *e, nanos_event_key_t keys, nanos_event_value_t values )
+void Instrumentation::createPointEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value )
 {
    /* Creating a point event */
-   new (e) Point ( keys, values );
+   new (e) Point ( key, value );
 
 }
 
@@ -124,7 +124,7 @@ void Instrumentation::createDeferredPointEvent ( WorkDescriptor &wd, unsigned in
                                       nanos_event_value_t *values )
 {
    unsigned int i,ne=0; // Number of events
-   Event e[nkvs]; /* Event array */
+   Event *e = (Event *) alloca(sizeof(Event) * nkvs ); /* Event array */
 
    InstrumentationContextData *icd = wd.getInstrumentationContextData();                                             
 
@@ -176,7 +176,7 @@ void Instrumentation::createDeferredPtPEnd ( WorkDescriptor &wd, nanos_event_dom
 void Instrumentation::raisePointEvents ( unsigned int nkvs, nanos_event_key_t *key, nanos_event_value_t *val )
 {
    unsigned int i,ne=0; // Number of events
-   Event e[nkvs]; /* Event array */
+   Event *e = (Event *) alloca(sizeof(Event) * nkvs ); /* Event array */
 
    /* Create point event */
    for ( i = 0; i < nkvs; i++ )
@@ -304,7 +304,7 @@ void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key )
 
 void Instrumentation::wdCreate( WorkDescriptor* newWD )
 {
-   Event e1,e2; /* Event */
+   Event e1,e2,e3; /* Event */
 
    /* Gets key for wd-id bursts and wd->id as value*/
    InstrumentationContextData *icd = newWD->getInstrumentationContextData();
@@ -317,6 +317,10 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
       createBurstEvent( &e2, key, wd_id, icd );
    }
    
+   static nanos_event_key_t priorityKey = getInstrumentationDictionary()->getEventKey("wd-priority");
+   nanos_event_value_t wd_priority = newWD->getPriority() + 1;
+   createBurstEvent( &e3, priorityKey, wd_priority, icd );
+   
    /* Create event: STATE */
    if ( _emitStateEvents == true ) createStateEvent( &e1, NANOS_RUNTIME, icd );
 
@@ -324,6 +328,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    if ( !_instrumentationContext.isContextSwitchEnabled() ) {
       if ( _emitStateEvents == true ) _instrumentationContext.insertDeferredEvent( icd, e1 );
       if ( key != 0 ) _instrumentationContext.insertDeferredEvent( icd, e2 );
+      if ( priorityKey != 0 )_instrumentationContext.insertDeferredEvent( icd, e3 );
    }
 }
 
@@ -447,5 +452,13 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
    /* Calling array event's destructor: cleaning events */
    for ( i = 0; i < numEvents; i++ ) e[i].~Event();
+
+   /* Cpuid event is protected by system flags */
+   if ( !sys.getBinding() && sys.isCpuidEventEnabled() )  {
+      static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary();
+      static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid");
+      nanos_event_value_t cpuid_value =  (nanos_event_value_t) sched_getcpu() + 1;
+      sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value);
+   }
 }
 #endif

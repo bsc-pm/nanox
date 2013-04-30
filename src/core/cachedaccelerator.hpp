@@ -28,7 +28,7 @@ using namespace nanos;
 
 
 template <class Device>
-void CachedAccelerator<Device>::configureCache( int cacheSize, System::CachePolicyType cachePolicy )
+void CachedAccelerator<Device>::configureCache( size_t cacheSize, System::CachePolicyType cachePolicy )
 {
    if ( _cache == NULL )
       _cache = NEW DeviceCache<Device>( cacheSize, NULL, this );

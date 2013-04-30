@@ -48,7 +48,6 @@ namespace ext
 
          void raiseWDClosingEvents ( WD * wd );
 
-
          WD * getNextTask ( WD &wd );
          void prefetchNextTask( WD * next );
          void executeRequestedTransfers( GPUProcessor & myGPU );

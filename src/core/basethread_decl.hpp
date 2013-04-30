@@ -20,7 +20,7 @@
 #ifndef _BASE_THREAD_DECL
 #define _BASE_THREAD_DECL
 
-#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "debug.hpp"
 #include "atomic_decl.hpp"
@@ -98,7 +98,7 @@ namespace nanos
 
         /*! \brief Returns next global worksharing descriptor for _team 
          */
-         nanos_ws_desc_t *getTeamWorkSharingDescriptor( bool *b );
+         nanos_ws_desc_t *getTeamWorkSharingDescriptor( BaseThread * thread, bool *b );
 
          void setParentTeamData ( TeamData *data ) { _parentData = data; }
          TeamData * getParentTeamData () const { return _parentData; }
@@ -109,7 +109,6 @@ namespace nanos
       friend class Scheduler;
 
       private:
-         static Atomic<int>      _idSeed;
          Lock                    _mlock;
 
          // Thread info
@@ -119,15 +118,14 @@ namespace nanos
 
          ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
-         int                     _socket;
 
-         unsigned int            _maxPrefetch;
-         WDLFQueue               _nextWDs;
-         unsigned int            _nextWDsCounter;
+         unsigned int            _maxPrefetch;  /**< Maximum number of tasks that the thread can be running simultaneously */
+         WDDeque                 _nextWDs;      /**< Queue with all the tasks that the thread is being run simultaneously */
 
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
+         volatile bool           _mustSleep;
          volatile bool           _paused;
          volatile bool           _canGetWork;   /**< Set whether the thread can get more WDs to run or not */
          WD *                    _currentWD;
@@ -174,10 +172,7 @@ namespace nanos
       public:
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator=0 ) :
-            _id( _idSeed++ ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ), _socket( 0 ) ,
-            _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ), _paused( false ),
-            _canGetWork( true ), _currentWD( NULL ), _hasTeam( false ), _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
+         BaseThread ( WD &wd, ProcessingElement *creator=0 );
 
         /*! \brief BaseThread destructor
          */
@@ -196,6 +191,8 @@ namespace nanos
          virtual void start () = 0;
          void run();
          void stop();
+         virtual void sleep();
+         virtual void wakeup();
          
          void pause ();
          void unpause ();
@@ -206,6 +203,9 @@ namespace nanos
 
          virtual void join() = 0;
          virtual void bind() {};
+
+         virtual void wait() {};
+         virtual void signal() {};
 
          // set/get methods
          void setCurrentWD ( WD &current );
@@ -254,6 +254,8 @@ namespace nanos
          bool isStarted () const;
 
          bool isRunning () const;
+
+         bool isEligible () const;
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;
@@ -268,15 +270,9 @@ namespace nanos
 
          void associate();
 
-         int getId();
+         int getId() const;
 
          int getCpuId();
-         
-         //! \brief Returns the socket this thread is running on.
-         int getSocket() const;
-         
-         //! \brief Sets the socket this thread is running on.
-         void setSocket( int socket );
 
          bool singleGuard();
          bool enterSingleBarrierGuard ();

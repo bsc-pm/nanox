@@ -25,6 +25,10 @@
 #include "instrumentationmodule_decl.hpp"
 #include "os.hpp"
 
+extern "C" {
+   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
+}
+
 using namespace nanos;
 
 void SchedulerConf::config (Config &cfg)
@@ -48,9 +52,6 @@ void Scheduler::submit ( WD &wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
-
-   sys.getSchedulerStats()._createdTasks++;
-   sys.getSchedulerStats()._totalTasks++;
 
    debug ( "submitting task " << wd.getId() );
 
@@ -116,13 +117,21 @@ void Scheduler::submitAndWait ( WD &wd )
    submit( wd );
 
    // Wait for WD to be finished
-   myWG.waitCompletionAndSignalers();
+   myWG.waitCompletion();
+}
+
+void Scheduler::updateCreateStats ( WD &wd )
+{
+   sys.getSchedulerStats()._createdTasks++;
+   sys.getSchedulerStats()._totalTasks++;
+   wd.setConfigured(); 
+
 }
 
 void Scheduler::updateExitStats ( WD &wd )
 {
-   if ( wd.isSubmitted() ) 
-     sys.getSchedulerStats()._totalTasks--;
+   sys.throttleTaskOut();
+   if ( wd.isConfigured() ) sys.getSchedulerStats()._totalTasks--;
 }
 
 template<class behaviour>
@@ -177,6 +186,8 @@ inline void Scheduler::idleLoop ()
       spins--;
 
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
+
+      if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -448,35 +459,32 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
-
+   
    if ( wd->isBlocked() ) {
       /* Setting ready wd */
       wd->setReady();
-      if ( checkBasicConstraints ( *wd, *myThread ) ) {
-         WD *next = NULL;
-         if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
-            // The thread is not paused, mark it as so
-            myThread->unpause();
-            
-            next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+      WD *next = NULL;
+      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is not paused, mark it as so
+         myThread->unpause();
+         
+         /* atWakeUp must check basic constraints */
+         next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+      }
+      else {
+         // Pause this thread
+         myThread->pause();
+      }
+      /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+         that WorkDescriptor */
+      if ( next ) {
+         WD *slice;
+         /* We must ensure this 'next' has no sliced components. If it have them we have to
+          * queue the remaining parts of 'next' */
+         if ( !next->dequeue(&slice) ) {
+            myThread->getTeam()->getSchedulePolicy().queue( myThread, *next );
          }
-         else {
-            // Pause this thread
-            myThread->pause();
-         }
-         /* If SchedulePolicy have returned a 'next' value, we have to context switch to
-            that WorkDescriptor */
-         if ( next ) {
-            WD *slice;
-            /* We must ensure this 'next' has no sliced components. If it have them we have to
-             * queue the remaining parts of 'next' */
-            if ( !next->dequeue(&slice) ) {
-               myThread->getTeam()->getSchedulePolicy().queue( myThread, *next );
-            }
-            switchTo ( slice );
-         }
-      } else {
-         myThread->getTeam()->getSchedulePolicy().queue( myThread, *wd );
+         switchTo ( slice );
       }
    }
 }
@@ -812,6 +820,12 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
+   if ( sys.dlbEnabled() && DLB_UpdateResources_max ) {
+      int needed_resources = sys.getSchedulerStats()._readyTasks.value() - myThread->getTeam()->size();
+      if ( needed_resources > 0 )
+         DLB_UpdateResources_max( needed_resources );
+   }
+
    // At this point the WD work is done, so we mark it as such and look for other work to do
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack

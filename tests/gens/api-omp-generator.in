@@ -19,7 +19,14 @@ PLUGINS_debug=@PLUGINS_DEBUG@
 PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
 PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
 
-common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$SRC/pms/openmp"
+# Workaround to compile in Juqueen, see #712
+case \$HOSTNAME in
+   juqueen*)
+      HASH_STYLE="-Wl,--hash-style=sysv"
+      ;;
+esac
+
+common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$BUILD/apis/c -I\$SRC/pms/openmp"
 
 compile_versions="@COMPILE_VERSIONS@"
 
@@ -38,16 +45,16 @@ test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS"
 test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
 test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
 
-test_LDFLAGS_performance="\$BUILD/pms/openmp/performance/.libs/libnanox-omp.so \$BUILD/apis/c/performance/.libs/libnanox-c.so \$BUILD/core/performance/.libs/libnanox.so -pthread -lrt"
+test_LDFLAGS_performance="\$BUILD/pms/openmp/performance/.libs/libnanox-omp.so \$BUILD/apis/c/performance/.libs/libnanox-c.so \$BUILD/core/performance/.libs/libnanox.so -pthread -lrt \$HASH_STYLE"
 test_ENV_performance="LD_LIBRARY_PATH=\$BUILD/core/performance/.libs:\$BUILD/apis/c/performance/.libs/:\$BUILD/pms/openmp/performance/.libs:\$PLUGINS_performance:$LD_LIBRARY_PATH"
 
-test_LDFLAGS_debug="\$BUILD/pms/openmp/debug/.libs/libnanox-omp.so \$BUILD/apis/c/debug/.libs/libnanox-c.so \$BUILD/core/debug/.libs/libnanox.so -pthread -lrt"
+test_LDFLAGS_debug="\$BUILD/pms/openmp/debug/.libs/libnanox-omp.so \$BUILD/apis/c/debug/.libs/libnanox-c.so \$BUILD/core/debug/.libs/libnanox.so -pthread -lrt \$HASH_STYLE"
 test_ENV_debug="LD_LIBRARY_PATH=\$BUILD/core/debug/.libs:\$BUILD/apis/c/debug/.libs/:\$BUILD/pms/openmp/debug/.libs:\$PLUGINS_debug:$LD_LIBRARY_PATH"
 
-test_LDFLAGS_instrumentation="\$BUILD/pms/openmp/instrumentation/.libs/libnanox-omp.so \$BUILD/apis/c/instrumentation/.libs/libnanox-c.so \$BUILD/core/instrumentation/.libs/libnanox.so -pthread -lrt"
+test_LDFLAGS_instrumentation="\$BUILD/pms/openmp/instrumentation/.libs/libnanox-omp.so \$BUILD/apis/c/instrumentation/.libs/libnanox-c.so \$BUILD/core/instrumentation/.libs/libnanox.so -pthread -lrt \$HASH_STYLE"
 test_ENV_instrumentation="LD_LIBRARY_PATH=\$BUILD/core/instrumentation/.libs:\$BUILD/apis/c/instrumentation/.libs/:\$BUILD/pms/openmp/instrumentation/.libs/:\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
 
-test_LDFLAGS_instrumentation_debug="\$BUILD/pms/openmp/instrumentation-debug/.libs/libnanox-omp.so \$BUILD/apis/c/instrumentation-debug/.libs/libnanox-c.so \$BUILD/core/instrumentation-debug/.libs/libnanox.so -pthread -lrt"
+test_LDFLAGS_instrumentation_debug="\$BUILD/pms/openmp/instrumentation-debug/.libs/libnanox-omp.so \$BUILD/apis/c/instrumentation-debug/.libs/libnanox-c.so \$BUILD/core/instrumentation-debug/.libs/libnanox.so -pthread -lrt \$HASH_STYLE"
 test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\$BUILD/core/instrumentation-debug/.libs:\$BUILD/apis/c/instrumentation-debug/.libs/:\$BUILD/pms/openmp/instrumentation-debug/.libs/:\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
 
 `@SRCDIR@/tests/gens/config.py $*`

@@ -65,7 +65,7 @@ namespace nanos
 
          unsigned int getMemorySpaceId() const { return _cache->getId(); }
 
-         void configureCache( int cacheSize, System::CachePolicyType cachePolicy );
+         void configureCache( size_t cacheSize, System::CachePolicyType cachePolicy );
 
          void registerCacheAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag );
 

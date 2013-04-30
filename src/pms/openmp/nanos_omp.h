@@ -20,9 +20,9 @@
 #ifndef _NANOS_OMP_H_
 #define _NANOS_OMP_H_
 
+#include <sched.h>
 #include "nanos.h"
 #include "nanos_reduction.h"
-#include "nanos_c_api_macros.h"
 
 typedef enum nanos_omp_sched_t {
    omp_sched_static = 1,
@@ -33,11 +33,6 @@ typedef enum nanos_omp_sched_t {
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifdef _MERCURIUM
-// define OpenMP API version
-#pragma nanos interface family(openmp) version(6)
 #endif
 
 #define NANOS_OMP_WS_TSIZE 5
@@ -52,9 +47,16 @@ NANOS_API_DECL(nanos_err_t, nanos_omp_set_implicit, ( nanos_wd_t uwd ));
 NANOS_API_DECL(int, nanos_omp_get_max_threads, ( void ));
 NANOS_API_DECL(int, nanos_omp_get_num_threads, ( void ));
 NANOS_API_DECL(int, nanos_omp_get_thread_num, ( void ));
+NANOS_API_DECL(int, nanos_omp_set_num_threads, ( int nthreads ));
 
 NANOS_API_DECL(nanos_ws_t, nanos_omp_find_worksharing, ( nanos_omp_sched_t kind ));
 NANOS_API_DECL(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, int *modifier ));
+
+NANOS_API_DECL(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ));
+
+NANOS_API_DECL(void, nanos_omp_get_mask,( cpu_set_t *cpu_set ));
+NANOS_API_DECL(void, nanos_omp_set_mask,( const cpu_set_t *cpu_set ));
+NANOS_API_DECL(void, nanos_omp_add_mask,( const cpu_set_t *cpu_set ));
 
 #ifdef __cplusplus
 }

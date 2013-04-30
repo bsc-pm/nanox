@@ -69,6 +69,7 @@ namespace nanos
          static WD * prefetch ( BaseThread *thread, WD &wd );
 
          static void updateExitStats ( WD &wd );
+         static void updateCreateStats ( WD &wd );
 
          /*! \brief checks if a WD is elegible to run in a given thread */
          static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
@@ -102,6 +103,7 @@ namespace nanos
          unsigned int getNumSpins () const;
          void setNumSpins ( const unsigned int num );
          int getNumSleeps () const;
+         void setNumSleeps ( const unsigned int num );
          int getTimeSleep () const;
          void setSchedulerEnabled ( bool value ) ;
          bool getSchedulerEnabled () const;
@@ -112,7 +114,8 @@ namespace nanos
    {
          friend class WDDeque;
          friend class WDLFQueue;
-         friend class WDPriorityQueue;
+         friend class WDPriorityQueue<unsigned>;
+         friend class WDPriorityQueue<double>;
          friend class Scheduler;
          friend class System;
 
@@ -144,6 +147,7 @@ namespace nanos
          int getCreatedTasks();
          int getReadyTasks();
          int getTotalTasks();
+         volatile int * getTotalTasksAddr( void ) { return &_totalTasks.override(); }
    };
 
    class ScheduleTeamData {
@@ -244,6 +248,15 @@ namespace nanos
           \param successor ...
           */
          virtual void successorFound( DependableObject *predecessor, DependableObject *successor ) {}
+
+         /*! \brief Enables or disables stealing */
+         virtual void setStealing( bool value ) {}
+         
+         /*! \brief Returns the status of stealing */
+         virtual bool getStealing()
+         {
+            return false;
+         }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */

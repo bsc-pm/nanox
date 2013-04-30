@@ -56,11 +56,12 @@ namespace nanos {
 
 #ifdef NANOS_DISABLE_ALLOCATOR
          void *p = malloc ( size );
+         if ( p == NULL ) throw(NANOS_ENOMEM);
 #else
          void *p = nanos::getAllocator().allocate( size );
 #endif
 
-         if ( p ) {
+         if ( p != NULL ) {
             _blocks[p] = BlockInfo(size,file,line, thread_id);
             _numBlocks++;
             _totalMem += size;
@@ -69,18 +70,22 @@ namespace nanos {
             _stats[size]._max = std::max( _stats[size]._max, _stats[size]._current );
             _maxMem = std::max( _maxMem, _totalMem );
          } else {
-            throw std::bad_alloc();
+            throw(NANOS_ENOMEM);
          }
 
          return p;
       }
 
       // If MemTracker is disabled, call malloc() directly
-      return malloc ( size );
+      void *p =  malloc ( size );
+      if ( p == NULL ) throw(NANOS_ENOMEM);
+      return p;
    }
 
    inline void MemTracker::deallocate ( void * p, const char *file, int line )
    {
+      if ( p == NULL ) return;
+
       LockBlock_noinst guard(_lock);
 
       AddrMap::iterator it = _blocks.find( p );

@@ -49,23 +49,34 @@ void WorkDescriptor::init ()
    setStart();
 }
 
-void WorkDescriptor::start(ULTFlag isUserLevelThread, WorkDescriptor *previous)
+// That function must be called from the thread it will execute it. This is important
+// from the point of view of tiedness and the device activation. Both operations will
+// involve current thread / pe
+void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
+   // If there is no active device, choose a compatible one
+   ProcessingElement *pe = myThread->runningOn();
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( pe->getDeviceType() );
+
+   // Initializing devices
+   _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
+   
    ensure ( _activeDeviceIdx != _numDevices, "This WD has no active device. If you are using 'implements' feature, please use versioning scheduler." );
 
-   _devices[_activeDeviceIdx]->lazyInit(*this,isUserLevelThread,previous);
-   
-   //ProcessingElement *pe = myThread->runningOn();
-
+   // Waiting for copies
    if ( getNumCopies() > 0 ) {
       myThread->waitInputs( *this );
    }
 
-   if ( _tie ) tieTo(*myThread);
+   // Tie WD to current thread
+   if ( _tie ) tieTo( *myThread );
 
+   // Call Programming Model interface .started() method.
    sys.getPMInterface().wdStarted( *this );
+
+   // Setting state to ready
    setReady();
 }
 
@@ -100,6 +111,7 @@ DeviceData & WorkDescriptor::activateDevice ( const Device &device )
    }
 
    ensure( i < _numDevices, "Did not find requested device in activation" );
+
    return *_devices[_activeDeviceIdx];
 }
 
@@ -139,8 +151,7 @@ void WorkDescriptor::submit( void )
 
 void WorkDescriptor::finish ()
 {
-   //ProcessingElement *pe = myThread->runningOn();
-   waitCompletionAndSignalers();
+   waitCompletion();
    if ( getNumCopies() > 0 )
       myThread->copyDataOut( *this );
 
@@ -162,7 +173,8 @@ void WorkDescriptor::prepareCopies()
       _paramsSize += _copies[i].getSize();
 
       if ( _copies[i].isPrivate() )
-         _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
+         //jbueno new API _copies[i].setAddress( ( (uint64_t)_copies[i].getAddress() - (unsigned long)_data ) );
+         _copies[i].setBaseAddress( (void *) ( (uint64_t )_copies[i].getBaseAddress() - (unsigned long)_data ) );
    }
 }
 
@@ -225,4 +237,30 @@ bool WorkDescriptor::tryAcquireCommutativeAccesses()
    }
    return true;
 } 
+
+void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
+{
+    ensure(_numCopies == 0, "This WD already had copies. Overriding them is not possible");
+    ensure((numCopies == 0) == (copies == NULL), "Inconsistency between copies and number of copies");
+
+    _numCopies = numCopies;
+
+    _copies = NEW CopyData[numCopies];
+    _copiesNotInChunk = true;
+
+    // Keep a copy of the copy descriptors
+    std::copy(copies, copies + numCopies, _copies);
+
+    for (unsigned int i = 0; i < numCopies; ++i)
+    {
+        int num_dimensions = copies[i].dimension_count;
+        if ( num_dimensions > 0 ) {
+            nanos_region_dimension_internal_t* copy_dims = NEW nanos_region_dimension_internal_t[num_dimensions];
+            std::copy(copies[i].dimensions, copies[i].dimensions + num_dimensions, copy_dims);
+            _copies[i].dimensions = copy_dims;
+        } else {
+            _copies[i].dimensions = NULL;
+        }
+    }
+}
 

@@ -15,13 +15,13 @@ namespace nanos {
       };
 
       /**! per tasks-icvs */
-      class TaskICVs {
+      class TaskICVs
+      {
          private:
-         
-         bool             _dynVar;
-         bool             _nestVar;
-         unsigned int     _nthreadsVar;
-         LoopSchedule     _runSchedVar;
+            bool             _dynVar;
+            bool             _nestVar;
+            unsigned int     _nthreadsVar;
+            LoopSchedule     _runSchedVar;
 
             TaskICVs ( const TaskICVs &);
 
@@ -43,69 +43,119 @@ namespace nanos {
 
             TaskICVs & operator= ( const TaskICVs & parent )
             {
-              _dynVar = parent._dynVar;
-              _nestVar = parent._nestVar;
-              _runSchedVar = parent._runSchedVar;
-              _nthreadsVar = parent._nthreadsVar;
-              return *this;
+               _dynVar = parent._dynVar;
+               _nestVar = parent._nestVar;
+               _runSchedVar = parent._runSchedVar;
+               _nthreadsVar = parent._nthreadsVar;
+               return *this;
             }
       };
 
-      class OmpData {
-         private:
-            TaskICVs         _icvs;
-            bool             _implicit;
-            bool             _final; /**< This is a final WD */
+      /* OpenMP and OmpSs common data */
+      class OmpData
+      {
+         protected:
+            bool _final; /**< This is a final WD */
 
-            explicit OmpData ( const OmpData & );
          public:
+            /*! \brief OmpData default constructor
+             */
+            OmpData() {}
+            /*! \brief OmpData destructor
+             */
+            virtual ~OmpData() {}
+            /*! \brief Set the Data to be final
+             */
+            void setFinal ( bool final ) { _final = final; }
+            /*! \brief Whether the WD is final or not
+             */
+            bool isFinal ( void ) const { return _final; }
 
-           /*! \brief Default constructor
-            *  NOTE: This constructor is never called because the object is allocated by the system
-            *  and initialized in omp_init by setting its fields individually or copying from another object.
-            */
-            OmpData() : _icvs(), _implicit(false), _final(false) { }
-
-            ~OmpData() {}
-
-            TaskICVs & icvs() { return _icvs; }
+            virtual TaskICVs * icvs() = 0;
+            virtual void setICVs ( TaskICVs *icvs_in ) = 0;
 
             OmpData & operator= ( const OmpData & parent )
             {
-              if ( &parent != this ) {
-                 _icvs = parent._icvs;
-                 _final = parent._final;
-              }
-              return *this;
+               if ( &parent != this ) {
+                  _final = parent._final;
+               }
+               return *this;
             }
-
-            void setImplicit( bool implicit ) { _implicit = implicit; }
-	    bool isImplicit ( void ) const { return _implicit; }
-
-           /*! \brief Set the Data to be final
-            */
-            void setFinal ( bool final ) { _final = final; }
-           /*! \brief Whether the WD is final or not
-            */
-            bool isFinal ( void ) const { return _final; }
       };
 
-      class OmpState {
+      class OpenMPData : public OmpData
+      {
+         private:
+            TaskICVs _icvs;
+
+            explicit OpenMPData ( const OpenMPData & );
+
+         public:
+            OpenMPData() : OmpData() , _icvs() { }
+            ~OpenMPData() {}
+
+            TaskICVs * icvs() { return &_icvs; }
+            void setICVs ( TaskICVs *icvs_in ) { _icvs = *icvs_in; }
+
+            OpenMPData & operator= ( const OpenMPData & parent )
+            {
+               OmpData::operator= ( parent );
+               if ( &parent != this ) {
+                  _icvs = parent._icvs;
+               }
+               return *this;
+            }
+      };
+
+      class OmpSsData : public OmpData
+      {
+         private:
+            TaskICVs *_icvs;
+
+            explicit OmpSsData ( const OmpSsData & );
+
+         public:
+            OmpSsData() : OmpData(), _icvs(NULL) { }
+            ~OmpSsData() {}
+
+            TaskICVs * icvs() { return _icvs; }
+            void setICVs ( TaskICVs *icvs_in ) { _icvs = icvs_in; }
+
+            OmpSsData & operator= ( const OmpSsData & parent )
+            {
+               OmpData::operator= ( parent );
+               if ( &parent != this ) {
+                  _icvs = parent._icvs;
+               }
+               return *this;
+            }
+      };
+
+      class OmpState
+      {
          private:
             /* global ICVs */
-    	      TaskICVs     _globalICVs;
-            /* def-sched-var */
-            /* stacksize-var */
-            /* wait-policy-var */
-            unsigned int _threadLimit;
-            unsigned int _maxActiveLevels;
+            TaskICVs    _globalICVs;
+            int         _threadLimitVar;
+            int         _maxActiveLevelsVar;
+
+            /* bindVar becomes local per task in OpenMP 4.0 */
+            // bool         _bindVar;
+
+            /* Not implemented global ICV's */
+            // unsigned int _stacksizeVar;
+            // LoopSchedule _defSchedVar;
+            // WaitPolicy   _waitPolicyVar;
 
          public:
 
-            unsigned int getThreadLimit () const { return _threadLimit; }
+            OmpState() : _globalICVs(), _threadLimitVar(INT_MAX), _maxActiveLevelsVar(INT_MAX) {}
+            ~OmpState() {}
 
-            unsigned int getMaxActiveLevels() const { return _maxActiveLevels; }
-            void setMaxActiveLevels( unsigned int levels ) { _maxActiveLevels = levels; }
+            int getThreadLimit () const { return _threadLimitVar; }
+
+            int getMaxActiveLevels() const { return _maxActiveLevelsVar; }
+            void setMaxActiveLevels( unsigned int levels ) { _maxActiveLevelsVar = levels; }
 
             TaskICVs & getICVs () { return _globalICVs; }
       };

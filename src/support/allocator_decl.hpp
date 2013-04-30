@@ -18,6 +18,7 @@
 /*************************************************************************************/
 #ifndef _NANOS_ALLOCATOR_DECL_HPP
 #define _NANOS_ALLOCATOR_DECL_HPP
+#include "nanos_error.h"
 #include "allocator_fwd.hpp"
 #include "new_decl.hpp"
 #include "malign.hpp"
@@ -117,6 +118,7 @@ class Allocator
             Arena ( size_t objectSize ) : _objectSize(objectSize), _next (NULL), _free(true)
             {
                _arena = (char *) malloc( (objectSize + sizeof(bitmap_entry) ) * numObjects );
+               if ( _arena == NULL ) throw ( NANOS_ENOMEM );
                _bitmap = (bitmap_entry *) (_arena + objectSize * numObjects);
                for ( size_t i = 0; i < numObjects; i++ ) _bitmap[i]._bit = true;
             }
@@ -197,7 +199,7 @@ class Allocator
 };
 
 
-inline Allocator & getAllocator ( void );
+Allocator & getAllocator ( void );
 
 
 } // namespace: nanos

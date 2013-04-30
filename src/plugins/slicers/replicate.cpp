@@ -24,31 +24,37 @@ void SlicerReplicate::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: Replicate" );
 
-  /* Getting thread map info: thread vector is only guaranteed to be available during submit phase, so
-   * if the map is needed further than that it will be needed a copy */
-   BaseThread **threads = (BaseThread**) (*(( nanos_ws_desc_t ** )work.getData()))->threads;
-   int n = (*(( nanos_ws_desc_t ** )work.getData()))->nths;
-
    nanos_ws_desc_t *wsd_current = *(( nanos_ws_desc_t ** )work.getData());
 
-   n--;
+   int i = myThread->getTeam()->size() - 1;
 
-   // Creating (n-1) tied workdescriptors and submitting them
-   while ( n > 0 ) {
-      WorkDescriptor *slice = NULL;
-      sys.duplicateWD( &slice, &work );
-      sys.setupWD(*slice, &work);
-      slice->tieTo( *threads[n] );
-      ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) slice->getData() );
-      threads[n]->addNextWD( slice );
-      n--;
+   BaseThread *thread = &(myThread->getTeam()->getThread(i));
+   if ( thread == myThread ) {
+      i--;
+      thread = &(myThread->getTeam()->getThread(i));
+   }
+
+   BaseThread *last_thread = thread;
+   i--;
+   while ( i >= 0 ) {
+      thread = &(myThread->getTeam()->getThread(i));
+      if ( thread != myThread ) {
+         WorkDescriptor *slice = NULL;
+         sys.duplicateWD( &slice, &work );
+         sys.setupWD(*slice, &work );
+         slice->tieTo( *thread );
+         ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) slice->getData() );
+         thread->addNextWD( slice );
+      }
+      i--;
    }
 
    // Converting original workdescriptor to a regular tied one and submitting it
    work.convertToRegularWD();
-   work.tieTo( *threads[0] );
+   work.tieTo( *last_thread );
    ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) work.getData() );
-   threads[0]->addNextWD( (WorkDescriptor *) &work);
+   last_thread->addNextWD( (WorkDescriptor *) &work );
+
 }
 
 /* \brief Dequeue a Replicate SlicedWD

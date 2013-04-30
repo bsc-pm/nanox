@@ -135,6 +135,13 @@ namespace nanos
         /*! \brief Release object's lock
          */
          static void unlock ( );
+
+        /*! \brief Returns if a given memory address has any pendant write
+         *
+         *  \param [in] addr memory address
+         *  \return if there are any pendant write on the address passed as a parameter
+         */
+         virtual bool haveDependencePendantWrites ( void *addr ) ;
    };
    
    /*! \class DependenciesManager.

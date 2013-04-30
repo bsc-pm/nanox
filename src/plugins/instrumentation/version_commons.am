@@ -5,6 +5,8 @@ mpitrace_ldflags=-L@MPITRACE_LIB@ -lnanostrace
 ayudame_cxxflags=-I@AYUDAME_INC@ -DPREFIX='"$(prefix)"'
 ayudame_ldflags=-L@AYUDAME_LIB@ -layudame
 
+nextsim_cxxflags=-I@NEXTSIM_INC@ -DPREFIX='"$(prefix)"'
+
 empty_sources = \
 	$(top_srcdir)/src/plugins/instrumentation/empty_trace.cpp \
 	$(END)
@@ -22,3 +24,11 @@ ayudame_sources = \
 	$(top_srcdir)/src/plugins/instrumentation/ayudame.cpp \
 	$(END)
 
+nextsim_sources = \
+	$(top_srcdir)/src/plugins/instrumentation/nextsim.cpp \
+	$(END)
+
+graph_sources = \
+    $(top_srcdir)/src/plugins/instrumentation/graph_utils.hpp \
+	$(top_srcdir)/src/plugins/instrumentation/graph.cpp \
+	$(END)

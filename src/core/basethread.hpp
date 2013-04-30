@@ -41,11 +41,19 @@ namespace nanos
 
    inline void TeamData::setStar ( bool v ) { _star = v; }
 
-   inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( bool *b )
+   inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( BaseThread *thread, bool *b )
    {
       nanos_ws_desc_t *next = NULL, *myNext = NULL;
 
       *b = false;
+
+      // If current WorkDescriptor in not implicit, 
+      if ( thread->getCurrentWD()->isImplicit() == false ) {
+         if ( _team == NULL ) fatal("Asking for team WorkSharing with no associated team.");
+         next = NEW nanos_ws_desc_t();
+         *b = true;
+         return next;
+      }
 
       if ( _wsDescriptor ) {
          // Having a previous _wsDescriptor
@@ -90,12 +98,22 @@ namespace nanos
       return next;
    }
 
+   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
+      _id( sys.nextThreadId() ), _name( "Thread" ), _description( "" ), _pe( creator ), _threadWD( wd ),
+      _maxPrefetch( 1 ), _nextWDs(), _started( false ), _mustStop( false ),
+      _mustSleep( false ), _paused( false ), _canGetWork( true ), _currentWD( NULL ), _hasTeam( false ),
+      _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
+
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  
    inline void BaseThread::unlock () { _mlock--; }
  
    inline void BaseThread::stop() { _mustStop = true; }
+
+   inline void BaseThread::sleep() { _mustSleep = true; }
+
+   inline void BaseThread::wakeup() { _mustSleep = false; }
    
    inline void BaseThread::pause ()
    {
@@ -130,7 +148,7 @@ namespace nanos
 
    inline void BaseThread::setMaxPrefetch ( int max ) { _maxPrefetch = max; }
 
-   inline bool BaseThread::canPrefetch () const { return _nextWDsCounter < _maxPrefetch; }
+   inline bool BaseThread::canPrefetch () const { return _nextWDs.size() < _maxPrefetch; }
 
    inline bool BaseThread::hasNextWD () { return !_nextWDs.empty(); }
  
@@ -167,7 +185,7 @@ namespace nanos
 
    inline nanos_ws_desc_t *BaseThread::getTeamWorkSharingDescriptor( bool *b )
    {
-      if ( _teamData ) return _teamData->getTeamWorkSharingDescriptor ( b );
+      if ( _teamData ) return _teamData->getTeamWorkSharingDescriptor ( this,  b );
       else return NULL;
    }
  
@@ -177,6 +195,8 @@ namespace nanos
    inline bool BaseThread::isStarted () const { return _started; }
  
    inline bool BaseThread::isRunning () const { return _started && !_mustStop; }
+
+   inline bool BaseThread::isEligible () const { return !_mustSleep; }
    
    inline bool BaseThread::isPaused () const { return _paused; }
 
@@ -188,13 +208,9 @@ namespace nanos
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
  
-   inline int BaseThread::getId() { return _id; }
+   inline int BaseThread::getId() const { return _id; }
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
- 
-   inline int BaseThread::getSocket() const{ return _socket; }
-   
-   inline void BaseThread::setSocket( int socket ){ _socket = socket; }
  
    inline bool BaseThread::isStarring ( const ThreadTeam *t ) const
    {
