@@ -114,6 +114,14 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
 }
 
 void MemController::copyDataOut( ) {
+
+   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+      if ( _wd.getCopies()[index].isOutput() ) {
+         _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version + 1 );
+      }
+   }
+
+
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
    } else {
       _outOps = NEW SeparateAddressSpaceOutOps( sys.getSeparateMemory( _memorySpaceId ) );

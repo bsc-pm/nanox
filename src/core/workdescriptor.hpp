@@ -163,11 +163,11 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
         if ( found ) {
            WD *successor = (WD *) found->getRelatedObject();
            successor->predecessorFinished( this );
-            if (!sys.usingNewCache() ) {
-   successor->getNewDirectory()->setParent( ( successor->getParent() != NULL ) ? successor->getParent()->getNewDirectory() : NULL );   
-   //successor->_ccontrol.preInit();
-   successor->_mcontrol.preInit();
-           }
+   //         if (!sys.usingNewCache() ) {
+   //successor->getNewDirectory()->setParent( ( successor->getParent() != NULL ) ? successor->getParent()->getNewDirectory() : NULL );   
+   ////successor->_ccontrol.preInit();
+   //successor->_mcontrol.preInit();
+   //        }
            return successor;
         } else {
            return NULL;

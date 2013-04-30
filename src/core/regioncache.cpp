@@ -1824,10 +1824,12 @@ uint64_t RegionCache::getDeviceAddress( global_reg_t const &reg, uint64_t baseAd
 }
 
 void RegionCache::prepareRegion( global_reg_t const &reg, WD const &wd ) {
+   _lock.acquire();
    RegionTree< CachedRegionStatus > *regsToInvalidate = NULL;
    CacheRegionDictionary *newRegsToInvalidate = NULL;
    AllocatedChunk *chunk = getAddress( reg, regsToInvalidate, newRegsToInvalidate, wd );
    chunk->unlock();
+   _lock.release();
 }
 
 void RegionCache::setRegionVersion( global_reg_t const &hostMem, unsigned int version ) {
@@ -1837,6 +1839,7 @@ void RegionCache::setRegionVersion( global_reg_t const &hostMem, unsigned int ve
 }
 
 void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
+   _lock.acquire();
    AllocatedChunk *chunk = getAllocatedChunk( reg );
    std::set< reg_t > notPresentParts;
    //      std::cerr << "locations:  ";
@@ -1847,15 +1850,18 @@ void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const 
    if ( chunk->NEWaddReadRegion2( ops, reg.id, version, ops.getOtherOps(), notPresentParts, ops.getOwnOps(), output, locations ) ) {
    }
 
-   reg.setLocationAndVersion( _memorySpaceId, version + ( output ? 1 : 0 ) );
+   //reg.setLocationAndVersion( _memorySpaceId, version + (output ? 1 : 0) );
    chunk->unlock();
+   _lock.release();
 }
 
 void RegionCache::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {
+   _lock.acquire();
    AllocatedChunk *chunk = getAllocatedChunk( reg );
    chunk->NEWaddWriteRegion( reg.id, version );
    reg.setLocationAndVersion( _memorySpaceId, version );
    chunk->unlock();
+   _lock.release();
 }
 
 

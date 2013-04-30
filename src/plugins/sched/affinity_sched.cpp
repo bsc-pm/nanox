@@ -773,7 +773,6 @@ namespace nanos {
                            wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
                         tdata._readyQueues[selectedNode].push_front( wd );
 
-                        actualClusterThread->unlock();
                         data._helped++;
                         data._fetch++;
                         actualClusterThread->unlock();

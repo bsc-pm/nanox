@@ -788,8 +788,8 @@ void GASNetAPI::amRequestPut( gasnet_token_t token,
       gasnet_handlerarg_t wdLo,
       gasnet_handlerarg_t wdHi,
       gasnet_handlerarg_t dst,
-      gasnet_handlerarg_t functorHi,
-      gasnet_handlerarg_t functorLo )
+      gasnet_handlerarg_t functorLo,
+      gasnet_handlerarg_t functorHi )
 {
    gasnet_node_t src_node;
    void *origAddr = ( void * ) MERGE_ARG( origAddrHi, origAddrLo );

@@ -18,6 +18,15 @@ void BaseAddressSpaceInOps::addOp( SeparateMemoryAddressSpace *from, global_reg_
    list.push_back( std::make_pair( reg, version ) );
 }
 
+//void BaseAddressSpaceInOps::updateMetadata() {
+//   for ( MapType::iterator mit = _separateTransfers.begin(); mit != _separateTransfers.end(); mit++ ) {
+//      for ( TransferListType::iterator lit = mit->second.begin(); lit != mit->second.end(); lit++ ) {
+//         lit->first.setLocationAndVersion( mit->first->getMemorySpaceId(), lit->second );
+//      }
+//   }
+//}
+
+
 bool BaseAddressSpaceInOps::isDataReady() {
    bool allReady = true;
    //std::cerr << "Own Objects to wait: "; 
@@ -89,24 +98,13 @@ void BaseAddressSpaceInOps::issue( WD const &wd ) {
 void BaseAddressSpaceInOps::prepareRegion( global_reg_t const &reg, WD const &wd ) {
 }
 
-void BaseAddressSpaceInOps::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
-   reg.setLocationAndVersion( 0, version );
-}
-
-unsigned int BaseAddressSpaceInOps::getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion) {
-   unsigned int current_version = reg.getHostVersion(false);
-   reg.setLocationAndVersion( 0, newVersion );
-   return current_version;
-}
-
 unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {
    return reg.getHostVersion(false);
 }
 
 void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
-   DeviceOps *thisRegOps = NULL;
+   DeviceOps *thisRegOps = reg.getDeviceOps();
    if ( reg.getHostVersion( false ) != version ) {
-      thisRegOps = reg.getDeviceOps();
       if ( thisRegOps->addCacheOp() ) {
          _ownDeviceOps.insert( thisRegOps );
          for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
@@ -124,9 +122,13 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
                addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
             }
          }
+         //reg.setLocationAndVersion( 0, version );
+      } else {
+         _otherDeviceOps.insert( thisRegOps );
       }
+   } else {
+      _otherDeviceOps.insert( thisRegOps );
    }
-   reg.setLocationAndVersion( 0, version + ( output ? 1 : 0 ) );
 }
 
 void BaseAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {
@@ -153,14 +155,6 @@ void SeparateAddressSpaceInOps::issue( WD const &wd ) {
 
 void SeparateAddressSpaceInOps::prepareRegion( global_reg_t const &reg, WD const &wd ) {
    _destination.prepareRegion( reg, wd );
-}
-
-void SeparateAddressSpaceInOps::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
-   _destination.setRegionVersion( reg, version );
-}
-
-unsigned int SeparateAddressSpaceInOps::getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion  ) {
-   return _destination.getCurrentVersionSetVersion( reg, newVersion );
 }
 
 unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {

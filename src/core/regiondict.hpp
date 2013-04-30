@@ -52,6 +52,7 @@ reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const re
    _lock.acquire();
    reg_t id = _root.addNode( region, _dimensionSizes.size(), 0, *this, rogue );
    _lock.release();
+   if ( rogue ) _rogueLock.release();
    return id;
 }
 
