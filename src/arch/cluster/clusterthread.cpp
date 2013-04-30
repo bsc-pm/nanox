@@ -72,7 +72,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
 }
 
 //ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
-ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( w, pe, parent ), _clusterNode( device ) {
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( w, pe, parent ), _clusterNode( device ), _lock() {
    setCurrentWD( w );
 }
 
@@ -256,3 +256,11 @@ void ClusterThread::switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
 void ClusterThread::exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
 void ClusterThread::initializeDependent( void ) {}
 void ClusterThread::switchToNextThread() {}
+
+void ClusterThread::unlock() {
+   _lock.release();
+}
+
+bool ClusterThread::tryLock() {
+   return _lock.tryAcquire();
+}

@@ -66,6 +66,7 @@ typedef unsigned int reg_t;
       std::vector< std::size_t >                    _dimensionSizes;
       RegionNode                                    _root;
       Lock _rogueLock;
+      Lock                        _lock;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );

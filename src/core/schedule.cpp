@@ -563,38 +563,41 @@ void Scheduler::workerClusterLoop ()
       if ( parent != myThread ) // if parent == myThread, then there are no "soft" threads and just do nothing but polling.
       {
          ext::ClusterThread * volatile myClusterThread = dynamic_cast< ext::ClusterThread * >( myThread );
-         ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
-         thisNode->disableDevice( 1 ); 
-         myClusterThread->clearCompletedWDsSMP2();
-         if ( ( (int) myClusterThread->numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() )
-         {
-            WD * wd = getClusterWD( myThread, 0 );
-            if ( wd )
+         if ( myClusterThread->tryLock() ) {
+            ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
+            thisNode->disableDevice( 1 ); 
+            myClusterThread->clearCompletedWDsSMP2();
+            if ( ( (int) myClusterThread->numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() )
             {
-               myClusterThread->addRunningWDSMP( wd );
-               Scheduler::preOutlineWork(wd);
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
-               myThread->outlineWorkDependent(*wd);
-   NANOS_INSTRUMENT( inst2.close(); );
-            }
-         }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
-         thisNode->enableDevice( 1 ); 
+               WD * wd = getClusterWD( myThread, 0 );
+               if ( wd )
+               {
+                  myClusterThread->addRunningWDSMP( wd );
+                  Scheduler::preOutlineWork(wd);
+                  NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                  myThread->outlineWorkDependent(*wd);
+                  NANOS_INSTRUMENT( inst2.close(); );
+               }
+            }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+            thisNode->enableDevice( 1 ); 
 #ifdef GPU_DEV
-         thisNode->disableDevice( 0 ); 
-         myClusterThread->clearCompletedWDsGPU2();
-         if ( ( (int) myClusterThread->numRunningWDsGPU() ) < ext::ClusterInfo::getGpuPresend() )
-         {
-            WD* newwd = getClusterWD( myThread, 1 );
-            if ( newwd )
+            thisNode->disableDevice( 0 ); 
+            myClusterThread->clearCompletedWDsGPU2();
+            if ( ( (int) myClusterThread->numRunningWDsGPU() ) < ext::ClusterInfo::getGpuPresend() )
             {
-               //message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << newwd->getId());
-               myClusterThread->addRunningWDGPU( newwd );
-               Scheduler::preOutlineWork(newwd);
-               myThread->outlineWorkDependent(*newwd);
+               WD* newwd = getClusterWD( myThread, 1 );
+               if ( newwd )
+               {
+                  //message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << newwd->getId());
+                  myClusterThread->addRunningWDGPU( newwd );
+                  Scheduler::preOutlineWork(newwd);
+                  myThread->outlineWorkDependent(*newwd);
+               }
             }
-         }
-         thisNode->enableDevice( 0 ); 
+            thisNode->enableDevice( 0 ); 
 #endif
+            myClusterThread->unlock();
+         }
       }
       sys.getNetwork()->poll(parent->getId());
       myThread = myThread->getNextThread();

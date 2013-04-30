@@ -757,64 +757,71 @@ namespace nanos {
                
                ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
 
-               if ( data._fetch < 1 ) {
-               if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<SiCopySiMasterInit> ( actualThread ) ) != NULL ) {
-                  NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) SICOPYSIMASTERINIT );)
-                  //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
-                  
-                  //actualClusterThread->addRunningWDSMP( wd );
-                  //Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
-                  //actualClusterThread->outlineWorkDependent(*wd);
-                  
-                  //wd->initWithPE( sys.getCaches()[ selectedNode ]->getPE() );
-                  wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
-                  tdata._readyQueues[selectedNode].push_front( wd );
+               if ( actualClusterThread->tryLock() ) {
 
-                  data._helped++;
-                  data._fetch++;
-                  return;
+                  if ( data._fetch < 1 ) {
+                     if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<SiCopySiMasterInit> ( actualThread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+                           NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) SICOPYSIMASTERINIT );)
+                           //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
+
+                           //actualClusterThread->addRunningWDSMP( wd );
+                           //Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
+                           //actualClusterThread->outlineWorkDependent(*wd);
+
+                           //wd->initWithPE( sys.getCaches()[ selectedNode ]->getPE() );
+                           wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+                        tdata._readyQueues[selectedNode].push_front( wd );
+
+                        actualClusterThread->unlock();
+                        data._helped++;
+                        data._fetch++;
+                        actualClusterThread->unlock();
+                        return;
+                     }
+                  }
+
+                  if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<AlreadyDataInit> ( actualThread ) ) != NULL ) {
+                     NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) SICOPYNOMASTERINIT );)
+                        //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
+                        //wd->initWithPE( sys.getCaches()[ selectedNode ]->getPE() );
+
+                        //std::cerr << "add running wd "<<std::endl;
+                     actualClusterThread->addRunningWDSMP( wd );
+                     //std::cerr << "ore outline with thd "<<std::endl;
+                     Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
+                     //std::cerr << "start wd at "<< selectedNode <<std::endl;
+                     actualClusterThread->outlineWorkDependent(*wd);
+                     //std::cerr << "done start wd at "<< selectedNode <<std::endl;
+
+                     //tdata._readyQueues[selectedNode].push_front( wd );
+                     data._helped++;
+                     actualClusterThread->unlock();
+                     return;
+                  }
+
+                  if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<SiCopyNoMasterInit> ( actualThread ) ) != NULL ) {
+                     NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) SICOPYNOMASTERINIT );)
+                        //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
+                        wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+
+                     //std::cerr << "add running wd "<<std::endl;
+                     actualClusterThread->addRunningWDSMP( wd );
+                     //std::cerr << "ore outline with thd "<<std::endl;
+                     Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
+                     //std::cerr << "start wd at "<< selectedNode <<std::endl;
+                     actualClusterThread->outlineWorkDependent(*wd);
+                     //std::cerr << "done start wd at "<< selectedNode <<std::endl;
+
+                     //tdata._readyQueues[selectedNode].push_front( wd );
+                     data._helped++;
+                     actualClusterThread->unlock();
+                     return;
+                  }
+                  actualClusterThread->unlock();
                }
-               }
-
-               if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<AlreadyDataInit> ( actualThread ) ) != NULL ) {
-                  NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) SICOPYNOMASTERINIT );)
-                  //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
-                  //wd->initWithPE( sys.getCaches()[ selectedNode ]->getPE() );
-
-                  //std::cerr << "add running wd "<<std::endl;
-                  actualClusterThread->addRunningWDSMP( wd );
-                  //std::cerr << "ore outline with thd "<<std::endl;
-                  Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
-                  //std::cerr << "start wd at "<< selectedNode <<std::endl;
-                  actualClusterThread->outlineWorkDependent(*wd);
-                  //std::cerr << "done start wd at "<< selectedNode <<std::endl;
-
-                  //tdata._readyQueues[selectedNode].push_front( wd );
-                  data._helped++;
-                  return;
-               }
-
-               if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<SiCopyNoMasterInit> ( actualThread ) ) != NULL ) {
-                  NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) SICOPYNOMASTERINIT );)
-                  //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
-                  wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
-
-                  //std::cerr << "add running wd "<<std::endl;
-                  //actualClusterThread->addRunningWDSMP( wd );
-                  //std::cerr << "ore outline with thd "<<std::endl;
-                  //Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
-                  //std::cerr << "start wd at "<< selectedNode <<std::endl;
-                  //actualClusterThread->outlineWorkDependent(*wd);
-                  //std::cerr << "done start wd at "<< selectedNode <<std::endl;
-
-                  tdata._readyQueues[selectedNode].push_front( wd );
-                  data._helped++;
-                  return;
-               }
-
             }
          }
       }

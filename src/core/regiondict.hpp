@@ -9,7 +9,7 @@
 namespace nanos {
 
 template <class T>
-ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container( MAX_REG_ID, RegionVectorEntry() ), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), sparse( false ) {
+ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container( MAX_REG_ID, RegionVectorEntry() ), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), sparse( false ) {
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx += 1 ) {
       _dimensionSizes[ idx ] = cd.getDimensions()[ idx ].size;
    }
@@ -49,8 +49,9 @@ unsigned int ContainerDense< T >::getNumDimensions() const {
 template <class T>
 reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const region[], bool rogue ) {
    if ( rogue ) _rogueLock.acquire();
+   _lock.acquire();
    reg_t id = _root.addNode( region, _dimensionSizes.size(), 0, *this, rogue );
-   if ( rogue ) _rogueLock.release();
+   _lock.release();
    return id;
 }
 
