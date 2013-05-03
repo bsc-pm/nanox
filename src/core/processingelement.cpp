@@ -25,7 +25,6 @@
 #include "copydata.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
-#include "regiondirectory.hpp"
 
 using namespace nanos;
 

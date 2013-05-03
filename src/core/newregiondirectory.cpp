@@ -344,55 +344,6 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
    return *getRegionDictionary( cd );
 }
 
-void NewNewRegionDirectory::synchronize( bool flushData ) {
-   if ( flushData ) {
-      //std::cerr << "SYNC DIR" << std::endl;
-      int c = 0;
-      print();
-      for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
-         std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->second <<") ================="<<std::endl;
-         std::list< std::pair< reg_t, reg_t > > missingParts;
-         unsigned int version = 0;
-   //double tini = OS::getMonotonicTime();
-         /*reg_t lol =*/ it->second->registerRegion(1, missingParts, version, true);
-   //double tfini = OS::getMonotonicTime();
-   //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
-         //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
-         //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-         //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
-         //}
-         //std::cerr << "}"<<std::endl;
-         for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-            //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
-            if ( it->second->getRegionData( mit->first ) != NULL ) {
-               if ( !isLocatedIn( it->second, mit->first, 0 ) ) {
-                  NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *it->second, mit->first );
-                  std::cerr << "\t" << mit->first << " " << mit->second; it->second->printRegion( mit->first );  std::cerr <<" MUST SYNC. "<< *regEntry <<std::endl;
-                  sys.getCaches()[ getFirstLocation( it->second, mit->first ) ]->syncRegion( global_reg_t( mit->first, it->second ) );
-                  regEntry->addAccess( 0, regEntry->getVersion() );
-               } else {
-                  //std::cerr << "\t" << mit->first << " " << mit->second <<" already in loc 0." <<std::endl;
-                  std::cerr << "\t" << mit->first << " " << mit->second; it->second->printRegion( mit->first );  std::cerr <<" already in loc 0. " <<std::endl;
-               }
-            } else if ( it->second->getRegionData( mit->second ) != NULL ) {
-                  NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *it->second, mit->second );
-                  std::cerr << "\t" << mit->first << " " << mit->second; it->second->printRegion( mit->first );  std::cerr <<" no data for first entry. "<< *regEntry <<std::endl;
-               //if ( !isLocatedIn( it->second, mit->second, 0, version ) ) {
-               //   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *it->second, mit->first );
-               //   std::cerr << "\t" << mit->first << " " << mit->second <<" MUST SYNC. "<< *regEntry <<std::endl;
-               //   sys.getCaches()[ getFirstLocation( it->second, mit->first ) ]->syncRegion( global_reg_t( mit->first, it->second ) );
-               //} else {
-               //   std::cerr << "\t" << mit->first << " " << mit->second <<" already in loc 0." <<std::endl;
-               //}
-            } else {
-               std::cerr << "FIXME" << std::endl;
-            }
-         }
-         std::cerr << "=============================================================="<<std::endl;
-      }
-   }
-}
-
 void NewNewRegionDirectory::synchronize2( bool flushData ) {
    if ( flushData ) {
       //std::cerr << "SYNC DIR" << std::endl;
@@ -467,38 +418,7 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
       } while ( !allDone );
    }
 }
-#if 0
-void NewNewRegionDirectory::invalidate( CacheRegionDictionary *regions, unsigned int from ) {
-   std::cerr << " inval from " << from << std::endl;
-   std::list< RegionVectorEntry * > regionEntries;
 
-   for ( std::map<reg_t, RegionVectorEntry>::const_iterator it = regions->begin(); it != regions->end(); it++ ) {
-      std::cerr << "have to inval region " << it->first << std::endl;
-      NewNewDirectoryEntryData *regEntry = ( NewNewDirectoryEntryData * ) regions->getGlobalRegionData(it->first);
-      if ( !regEntry->isLocatedIn( 0 ) ) {
-          sys.getCaches()[ from ]->syncRegion( global_reg_t( it->first, regions->getGlobalDirectoryKey() ) );
-          regEntry->addAccess( 0, regEntry->getVersion() );
-      } else {
-          regEntry->delAccess( from );
-      }
-   }
-   //regions->fill( regionEntries );
-   
-   //NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *regions, id );
-   //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
-   //regEntry->addAccess( memorySpaceId, version );
-   
-}
-#endif
-
-#if 0
-void NewNewRegionDirectory::setOps( RegionDirectoryKey dict, reg_t id, DeviceOps *ops ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   if ( regEntry != NULL ) {
-      regEntry->setOps( ops );
-   }
-}
-#endif
 DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    DeviceOps *ops = NULL;

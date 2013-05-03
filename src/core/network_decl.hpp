@@ -22,6 +22,7 @@
 #define _NANOX_NETWORK
 
 #include <string>
+#include <set>
 #include "functor_decl.hpp"
 #include "requestqueue_decl.hpp"
 #include "networkapi.hpp"

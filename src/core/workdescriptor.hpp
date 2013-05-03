@@ -34,8 +34,6 @@
 #include "schedule.hpp"
 #include "dependenciesdomain.hpp"
 #include "allocator_decl.hpp"
-//#include "newdirectory_decl.hpp"
-#include "regiondirectory_decl.hpp"
 
 using namespace nanos;
 
@@ -121,14 +119,7 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
-//<<<<<<< HEAD
-   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_POST_OUTLINE_WORK5) );
    _depsDomain->submitDependableObject( *(wd._doSubmit), numDataAccesses, dataAccesses );
-   //NANOS_INSTRUMENT( inst2.close() );
-//=======
-//   SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
-//   _depsDomain->submitDependableObject( *(wd._doSubmit), numDeps, deps, &cb );
-//>>>>>>> cluster
 }
 
 inline void WorkDescriptor::waitOn( size_t numDataAccesses, DataAccess const *dataAccesses )
@@ -163,11 +154,6 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
         if ( found ) {
            WD *successor = (WD *) found->getRelatedObject();
            successor->predecessorFinished( this );
-   //         if (!sys.usingNewCache() ) {
-   //successor->getNewDirectory()->setParent( ( successor->getParent() != NULL ) ? successor->getParent()->getNewDirectory() : NULL );   
-   ////successor->_ccontrol.preInit();
-   //successor->_mcontrol.preInit();
-   //        }
            return successor;
         } else {
            return NULL;
@@ -175,61 +161,22 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
    }
 }
 
-//inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
-//{
-//   if ( _newDirectory == NULL ) initNewDirectory();
-//   _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
-//   if ( wd._doSubmit != NULL )
-//      wd._doSubmit->finished();
-//   //if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
-//}
-
 inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
 {
    return *_depsDomain;
 }
-
 
 inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
 inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
-   //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletion, " << getId() ); }
-   //if ( _directory.isInitialized() && !avoidFlush )
-   //   _directory->synchronizeHost();
-   if ( !sys.usingNewCache() ) {
-    getNewDirectory()->consolidate( !avoidFlush );
-   } else {
-    //sys.getMasterRegionDirectory().synchronize( !avoidFlush );
-    sys.getHostMemory().synchronize( !avoidFlush );
-   }
+   sys.getHostMemory().synchronize( !avoidFlush );
 }
 
 inline void WorkDescriptor::waitCompletionAndSignalers( bool avoidFlush )
 {
    this->WorkGroup::waitCompletionAndSignalers();
-   //getNewDirectory()->consolidate();
-   //if (sys.getNetwork()->getNodeNum()==0){ message("WorkDescriptor::waitCompletionAndSignalers, " << getId() ); }
-   //if ( _directory.isInitialized() && !avoidFlush )
-   //   _directory->synchronizeHost();
-}
-
-//inline Directory* WorkDescriptor::getDirectory(bool create)
-//{
-//   if ( !_directory.isInitialized() && create == false ) {
-//      return NULL;
-//   }
-//   _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
-//   return &(*_directory);
-//}
-inline NewDirectory* WorkDescriptor::getNewDirectory() const
-{
-   return _newDirectory;
-}
-inline void WorkDescriptor::initNewDirectory()
-{
-   _newDirectory = NEW NewDirectory() ;
 }
 
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }

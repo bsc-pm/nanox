@@ -50,10 +50,6 @@ inline void AllocatedChunk::increaseLruStamp() {
    _lruStamp += 1;
 }
 
-inline Region const &CacheCopy::getRegion() const {
-   return _region;
-}
-
 inline Device const &RegionCache::getDevice() const {
    return _device;
 }
@@ -94,57 +90,5 @@ inline void RegionCache::unpin( global_reg_t const &hostMem ) {
       fprintf(stderr, "could not get a CacheEntry!\n");
    }
 }
-
-inline unsigned int CacheCopy::getVersion() const {
-   return _version;
-}
-
-inline unsigned int CacheCopy::getNewVersion() const {
-   return _newVersion;
-}
-
-inline CopyData const &CacheCopy::getCopyData() const {
-   return _copy;
-}
-
-inline reg_t CacheCopy::getRegId() const {
-   return _reg.id;
-}
-
-inline NewNewRegionDirectory::RegionDirectoryKey CacheCopy::getRegionDirectoryKey() const {
-   return _reg.key;
-}
-
-inline uint64_t CacheCopy::getDeviceAddress() const {
-   uint64_t addr = 0;
-   if ( _cacheEntry ) {
-      addr = ( _cacheEntry->getAddress() - ( _cacheEntry->getHostAddress() - (uint64_t) _copy.getBaseAddress() ) ) + _copy.getOffset();
-   } else {
-      addr = ( (uint64_t) _copy.getBaseAddress() + _copy.getOffset() );
-   }
-   return addr;
-}
-
-inline DeviceOps *CacheCopy::getOperations() {
-   return &_operations;
-}
-
-inline NewRegionDirectory::LocationInfoList const &CacheCopy::getLocations() const {
-   return _locations;
-}
-
-inline NewLocationInfoList const &CacheCopy::getNewLocations() const {
-   return _newLocations;
-}
-
-
-inline CacheCopy *CacheController::getCacheCopies() const {
-   return _cacheCopies;
-}
-
-inline RegionCache *CacheController::getTargetCache() const {
-   return _targetCache;
-}
-
 
 #endif /* REGIONCACHE_HPP */

@@ -37,8 +37,6 @@
 #include "basethread_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "wddeque_fwd.hpp"
-//#include "newdirectory_fwd.hpp"
-#include "regiondirectory_fwd.hpp"
 #include "regioncache_decl.hpp"
 #include "memcontroller_decl.hpp"
 
@@ -187,7 +185,7 @@ namespace nanos
 
          LazyInit<DependenciesDomain>  _depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
          //LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
-         NewDirectory        *_newDirectory;    /**< Directory to mantain cache coherence */
+         NewNewRegionDirectory        *_newDirectory;    /**< Directory to mantain cache coherence */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
@@ -202,7 +200,6 @@ namespace nanos
 
          unsigned int                  _priority;      /**< Task priority */
       public:
-         CacheController                _ccontrol;
          MemController                  _mcontrol;
 
       private: /* private methods */
@@ -225,7 +222,7 @@ namespace nanos
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted(false),
                           _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
-                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ), _mcontrol( *this ) { 
+                          _notifyThread( NULL ), _priority( 0 ), _mcontrol( *this ) { 
                              getGE()->setNoWait();
                              if ( copies != NULL ) {
                                 for ( unsigned int i = 0; i < numCopies; i += 1 ) {
@@ -246,7 +243,7 @@ namespace nanos
                           _numCopies( numCopies ), _copies( copies ), _doSubmit(), _doWait(),
                           _depsDomain(), _newDirectory( NULL ), _instrumentationContextData(), _submitted( false ),
                           _translateArgs( translate_args ),_myGraphRepList(NULL), _listed(false), _notifyCopy( NULL ),
-                          _notifyThread( NULL ), _priority( 0 ), _ccontrol( *this ), _mcontrol( *this ) { 
+                          _notifyThread( NULL ), _priority( 0 ), _mcontrol( *this ) { 
                              getGE()->setNoWait();
                              if ( copies != NULL ) {
                                 for ( unsigned int i = 0; i < numCopies; i += 1 ) {
@@ -274,7 +271,7 @@ namespace nanos
                           _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ),
                           _doSubmit(), _doWait(), _depsDomain(), _newDirectory( wd._newDirectory ), _instrumentationContextData(), _submitted( false ),
                           _translateArgs( wd._translateArgs ),_myGraphRepList(wd._myGraphRepList) , _listed(wd._listed), _notifyCopy( NULL ),
-                          _notifyThread ( NULL ), _priority( wd._priority ), _ccontrol( *this ), _mcontrol( *this ) { }
+                          _notifyThread ( NULL ), _priority( wd._priority ), _mcontrol( *this ) { }
                           //_doSubmit(), _doWait(), _depsDomain(), _directory(), _instrumentationContextData(), _peId ( 0 ), /*_prefetchedWd(NULL),*/ _submitted( false ), _translateArgs( wd._translateArgs ) { }
 
          /*! \brief WorkDescriptor destructor
@@ -489,18 +486,6 @@ namespace nanos
           */
          void prepareCopies();
 
-         //unsigned int getPeId( void ) { return _peId; }
-         //void setPeId( unsigned int id ) { _peId = id; }
-         //WorkDescriptor * getPrefetchedWD() { return _prefetchedWd; }
-         //void setPrefetchedWD( WorkDescriptor * _p ) {  _prefetchedWd = _p; }
-         /*! \brief Get the WorkDescriptor's directory.
-          *  if create is true and directory is not initialized returns NULL,
-          *  otherwise it is created (if necessary) and a pointer to it is returned.
-          */
-         //Directory* getDirectory(bool create=false);
-         NewDirectory* getNewDirectory() const;
-         void initNewDirectory();
-
          virtual void waitCompletion( bool avoidFlush = false );
          virtual void waitCompletionAndSignalers( bool avoidFlush = false);
 
@@ -523,8 +508,6 @@ namespace nanos
          unsigned getPriority() const;
          void setNotifyCopyFunc( void (*func)(WD &, BaseThread const &) );
 
-         unsigned int getNumReaders();
-         unsigned int getNumAllReaders();
          void notifyCopy();
    };
 

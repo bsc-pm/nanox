@@ -24,7 +24,6 @@
 #include "memtracker.hpp"
 #include "clusterthread_decl.hpp"
 #include "regioncache.hpp"
-#include "regiondirectory.hpp"
 #include "newregiondirectory.hpp"
 
 namespace nanos {
@@ -130,7 +129,6 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        if( sys.usingNewCache() ) {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
@@ -142,15 +140,6 @@ namespace nanos {
                               if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) )
                                  return false;
                            }
-                        } else {
-                           NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                           for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) {
-                                 //std::cerr <<"data is not here " << thread.runningOn()->getMemorySpaceId() << " addr " << (void *) it->first.getFirstValue() << " " << it->second << std::endl;
-                                 return false;
-                              }
-                           }
-                        }
                      }
                   }
                   return true;
@@ -165,7 +154,6 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
@@ -178,14 +166,6 @@ namespace nanos {
                               if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) 
                                  return true;
                            }
-                        } else {
-                           NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                           for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) {
-                                 return true;
-                              }
-                           }
-                        }
                      }
                   }
                   return false;
@@ -200,7 +180,6 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        if( sys.usingNewCache() ) {
                            ///NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( ! locs.empty() ) {
@@ -213,14 +192,6 @@ namespace nanos {
                               if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) )
                                  return true;
                            }
-                        } else {
-                           NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                           for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && it->second.isLocatedIn(0)  ) {
-                                 return true;
-                              }
-                           }
-                        }
                      }
                   }
                   return false;
@@ -236,7 +207,6 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
@@ -251,14 +221,6 @@ namespace nanos {
                                  wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) )
                                  return true;
                            }
-                        } else {
-                           NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                           for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && it->second.isLocatedIn(0)  ) {
-                                 return true;
-                              }
-                           }
-                        }
                      }
                   }
                   return false;
@@ -274,7 +236,6 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
@@ -288,14 +249,6 @@ namespace nanos {
                                       ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) ) 
                                     return true;
                            }
-                        } else {
-                           NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                           for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && !it->second.isLocatedIn(0)  ) {
-                                 return true;
-                              }
-                           }
-                        }
                      }
                   }
                   return false;
@@ -310,7 +263,6 @@ namespace nanos {
                   CopyData * copies = wd.getCopies();
                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
                      if ( !copies[i].isPrivate() && copies[i].isInput() ) {
-                        if( sys.usingNewCache() ) {
                            //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
@@ -324,14 +276,6 @@ namespace nanos {
                                     ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( 0 ) )
                                     return true;
                            }
-                        } else {
-                           NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                           for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                              if ( !it->second.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) && !it->second.isLocatedIn(0)  ) {
-                                 return true;
-                              }
-                           }
-                        }
                      }
                   }
                   return false;
@@ -631,11 +575,9 @@ namespace nanos {
                      }
                      
                      bool locationDataIsAvailable = true;
-                     if ( sys.usingNewCache() ) {
                         for ( unsigned int i = 0; i < wd.getNumCopies() && locationDataIsAvailable; i++ ) {
                            locationDataIsAvailable = ( wd._mcontrol._memCacheCopies[ i ]._locationDataReady );
                         }
-                     }
 
                      if ( locationDataIsAvailable ) {
                      //std::cerr <<"all data is available, ranking... wd "<< wd.getId() << std::endl;
@@ -1228,7 +1170,6 @@ namespace nanos {
          //std::cerr << "RANKING WD " << wd.getId() << " numCopies " << wd.getNumCopies() << std::endl;
          for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
             if ( !copies[i].isPrivate() && copies[i].isInput() && copies[i].isOutput() ) {
-               if ( sys.usingNewCache() ) {
                   //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
                   NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                   if ( locs.empty() ) {
@@ -1246,16 +1187,6 @@ namespace nanos {
                         ranks[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                      }
                   }
-               } else {
-                  NewDirectory::LocationInfoList const &locs = wd._ccontrol.getCacheCopies()[ i ].getLocations();
-                  for ( NewDirectory::LocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                     int loc = ( it->second.hasWriteLocation() ) ? it->second.getWriteLocation() : it->second.getFirstLocation();
-                     //if( it->second.getNumLocations() > 1 ) std::cerr <<" WARRRRRRRRRRRRNINC lets see write loc "<< it->second.getWriteLocation() <<std::endl;
-                     //if( sys.getNetwork()->getNodeNum() == 0) std::cerr /*<< it->first*/ << " copy "<< i << " is in " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " size " << it->first.getBreadth() / ( 16 * 512 * 512 ) << " " << std::endl;
-                     ranks[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += it->first.getBreadth();
-                     //  if (sys.getNetwork()->getNodeNum() == 0 ) {message("wd " << wd.getId() << " selected queue " << ( loc != 0 ? sys.getCaches()[ loc ]->getNodeNumber() : 0 ) << " loc is " << loc << " nded: " << it->second  ); }
-                  }
-               }
             } //else { std::cerr << "ignored copy "<< std::endl; }
          }
          //if (wd.getId() > 55 ) { tdata._readyQueues[ 0 ].push_back( &wd ); return; }

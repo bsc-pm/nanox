@@ -374,8 +374,6 @@ void System::start ()
      mainWD.setInternalData( NEW char[_pmInterface->getInternalDataSize()] );
       
    _pmInterface->setupWD( mainWD );
-   mainWD.initNewDirectory();
-   mainWD.getNewDirectory()->setRoot();
    //message0("mainWD is id " << mainWD.getId() << " and dir addr is " << (void *) mainWD.getNewDirectory() );
 
    /* Renaming currend thread as Master */

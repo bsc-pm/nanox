@@ -184,24 +184,14 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 
 void WorkDescriptor::submit( void )
 {
-   if ( !sys.usingNewCache() ) {
-   if ( getNewDirectory() == NULL )
-      initNewDirectory();
-      getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
-   }
-   //_ccontrol.preInit();
    _mcontrol.preInit();
    Scheduler::submit( *this );
 } 
 
 void WorkDescriptor::done ()
 {
-   //ProcessingElement *pe = myThread->runningOn();
    waitCompletionAndSignalers( true );
-   //if ( getNumCopies() > 0 )
-   //  pe->copyDataOut( *this );
 
-   //_ccontrol.copyDataOut();
    if ( getNumCopies() > 0 )
       _mcontrol.copyDataOut();
    
@@ -233,31 +223,7 @@ void WorkDescriptor::notifyOutlinedCompletion()
 }
 void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
 {
-   //if ( predecessorWd != NULL )
-   //{
-   //   setMyGraphRepList( predecessorWd->getMyGraphRepList() );
-   //}
-
-   //if ( _myGraphRepList == NULL ) {
-   //   _myGraphRepList = sys.getGraphRepList();
-   //   if ( predecessorWd != NULL ) {
-   //      _myGraphRepList.value()->push_back( predecessorWd->getGE() );
-   //      predecessorWd->listed();
-   //   }
-   //}
-   //_myGraphRepList.value()->push_back( getGE() );
-   //if (predecessorWd != NULL) predecessorWd->listed();
-
-   //message("wd " << getId() << " getting directory from previous wd " << predecessorWd->getId() );
-   if ( !sys.usingNewCache() ) {
-      if ( getNewDirectory() == NULL )
-         initNewDirectory();
-      //std::cerr << "wd " << (unsigned int)  getId() << " getting directory from " << (unsigned int)predecessorWd->getId() << std::endl;
-      _newDirectory->merge( *predecessorWd->getNewDirectory() );
-   } else {
-      //_ccontrol.getInfoFromPredecessor( predecessorWd->_ccontrol ); 
-      _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
-   }
+   _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
 }
 
 void WorkDescriptor::initMyGraphRepListNoPred( )
@@ -312,47 +278,9 @@ void WorkDescriptor::printCopies()
 }
 void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   if ( !sys.usingNewCache() ) {
-      if ( _newDirectory == NULL ) initNewDirectory();
-      //if (sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "wd " << (unsigned int) wd.getId() <<":" <<(void *) wd.getNewDirectory() << " merging directory into parent " << (unsigned int) this->getId() <<":"<<(void *) _newDirectory << " num successors " << (int) ( wd._doSubmit != NULL ? wd._doSubmit->getSuccessors().size() : -1 ) << std::endl;
-      NANOS_INSTRUMENT( InstrumentState inst3(NANOS_POST_OUTLINE_WORK3); );
-      _newDirectory->mergeOutput( *(wd.getNewDirectory()) );
-      NANOS_INSTRUMENT( inst3.close(); );
-      //if (sys.getNetwork()->getNodeNum() > 0) {
-      //   _newDirectory->consolidate( false );
-      //}
-   }
-
    if ( wd._doSubmit != NULL )
       wd._doSubmit->finished();
-   //if (sys.getNetwork()->getNodeNum()==0){ message("a child, " << wd.getId() << " has finished, im " << getId() ); }
 }
 void WorkDescriptor::setNotifyCopyFunc( void (*func)(WD &, BaseThread const&) ) {
    _notifyCopy = func;
-}
-
-unsigned int WorkDescriptor::getNumReaders() {
-   unsigned int result = 0;
-   //CopyData *copies = getCopies();
-   //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
-   //   CopyData & cd = copies[i];
-   //   if ( !cd.isPrivate() && cd.isOutput() ) {
-   //      result += (getParent()->_depsDomain)->getNumReaders( _ccontrol._cacheCopies[i]._region );
-   //   }
-   //}
-   //std::cerr << "getNumReaders: succ from dosubmit "<< _doSubmit->getSuccessors().size() << std::endl;
-   result = _doSubmit->getSuccessors().size();
-   return result;
-}
-
-unsigned int WorkDescriptor::getNumAllReaders() {
-   //unsigned int result = 0;
-   //CopyData *copies = getCopies();
-   //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
-   //   CopyData & cd = copies[i];
-   //   if ( !cd.isPrivate() && cd.isOutput() ) {
-   //   }
-   //}
-   //return result;
-         return (getParent()->_depsDomain)->getNumAllReaders(  );
 }

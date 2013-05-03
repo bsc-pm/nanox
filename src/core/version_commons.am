@@ -106,10 +106,6 @@ common_sources=\
 	$(top_srcdir)/src/core/regiontree.hpp \
 	$(top_srcdir)/src/core/regiontreenode_decl.hpp \
 	$(top_srcdir)/src/core/regiontreenode.hpp \
-	$(top_srcdir)/src/core/regiondirectory.cpp  \
-	$(top_srcdir)/src/core/regiondirectory.hpp  \
-	$(top_srcdir)/src/core/regiondirectory_decl.hpp  \
-   $(top_srcdir)/src/core/regiondirectory_fwd.hpp \
 	$(top_srcdir)/src/core/regiondict_decl.hpp  \
 	$(top_srcdir)/src/core/regiondict.hpp  \
 	$(top_srcdir)/src/core/regiondict.cpp  \

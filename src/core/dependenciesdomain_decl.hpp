@@ -234,9 +234,6 @@ namespace nanos
          */
          static void unlock ( );
          
-         unsigned int getNumReaders( Region const &region );
-         unsigned int getNumAllReaders();
-         
          void dump(std::string const &function = "", std::string const &file = "", size_t line = 0);
    };
 
