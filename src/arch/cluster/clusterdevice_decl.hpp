@@ -36,32 +36,6 @@ namespace nanos
          Packer _packer;
       public:
 
-         struct GetRequest {
-            volatile int _complete;
-            char* _hostAddr;
-            std::size_t _size;
-            char* _recvAddr;
-            DeviceOps *_ops;
-            Packer *_packer;
-
-            GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops );
-            virtual ~GetRequest();
-
-            void complete();
-            bool isCompleted() const;
-            virtual void clear();
-         };
-
-         struct GetRequestStrided : public GetRequest {
-            std::size_t _count;
-            std::size_t _ld;
-            Packer *_packer;
-
-            GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer );
-            virtual ~GetRequestStrided();
-
-            virtual void clear();
-         };
 
          /*! \brief ClusterDevice constructor
           */

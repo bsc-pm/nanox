@@ -32,43 +32,6 @@ using namespace nanos::ext;
 
 ClusterDevice nanos::ext::Cluster( "SMP" );
 
-ClusterDevice::GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) : _complete(0),
-   _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) {
-}
-
-ClusterDevice::GetRequest::~GetRequest() {
-}
-
-void ClusterDevice::GetRequest::complete() {
-   _complete = 1;
-}
-
-bool ClusterDevice::GetRequest::isCompleted() const {
-   return _complete == 1;
-}
-
-void ClusterDevice::GetRequest::clear() {
-   ::memcpy( _hostAddr, _recvAddr, _size );
-   sys.getNetwork()->freeReceiveMemory( _recvAddr );
-   _ops->completeOp();
-}
-
-ClusterDevice::GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
-   GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) {
-}
-
-ClusterDevice::GetRequestStrided::~GetRequestStrided() {
-}
-
-void ClusterDevice::GetRequestStrided::clear() {
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
-   for ( unsigned int j = 0; j < _count; j += 1 ) {
-      ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
-   }
-   NANOS_INSTRUMENT( inst2.close(); );
-   _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );
-   _ops->completeOp();
-}
 
 ClusterDevice::ClusterDevice ( const char *n ) : Device ( n ) {
 }

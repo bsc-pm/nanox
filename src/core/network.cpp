@@ -602,3 +602,41 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
    //  //else { /*if ( sys.getNetwork()->getNodeNum() == 0)*/ std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"]  All ok, checked directory " << _newMasterDir  <<" location is " << it->second << std::endl; }
    //}
 }
+
+GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) : _complete(0),
+   _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) {
+}
+
+GetRequest::~GetRequest() {
+}
+
+void GetRequest::complete() {
+   _complete = 1;
+}
+
+bool GetRequest::isCompleted() const {
+   return _complete == 1;
+}
+
+void GetRequest::clear() {
+   ::memcpy( _hostAddr, _recvAddr, _size );
+   sys.getNetwork()->freeReceiveMemory( _recvAddr );
+   _ops->completeOp();
+}
+
+GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
+   GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) {
+}
+
+GetRequestStrided::~GetRequestStrided() {
+}
+
+void GetRequestStrided::clear() {
+   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
+   for ( unsigned int j = 0; j < _count; j += 1 ) {
+      ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
+   }
+   NANOS_INSTRUMENT( inst2.close(); );
+   _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );
+   _ops->completeOp();
+}

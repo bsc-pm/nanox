@@ -232,7 +232,7 @@ void ClusterThread::idle( bool debug )
    if ( !_pendingRequests.empty() ) {
       std::set<void *>::iterator it = _pendingRequests.begin();
       while ( it != _pendingRequests.end() ) {
-         ext::ClusterDevice::GetRequest *req = (ext::ClusterDevice::GetRequest *) (*it);
+         GetRequest *req = (GetRequest *) (*it);
          if ( req->isCompleted() ) {
            std::set<void *>::iterator toBeDeletedIt = it;
            it++;

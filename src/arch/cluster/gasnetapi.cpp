@@ -618,7 +618,7 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
       gasnet_handlerarg_t waitObjHi)
 {
    gasnet_node_t src_node;
-   ClusterDevice::GetRequest *waitObj = ( ClusterDevice::GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
+   GetRequest *waitObj = ( GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -648,7 +648,7 @@ void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
       gasnet_handlerarg_t waitObjHi)
 {
    gasnet_node_t src_node;
-   ClusterDevice::GetRequest *waitObj = ( ClusterDevice::GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
+   GetRequest *waitObj = ( GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
