@@ -24,12 +24,21 @@ if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES = \
 	libnanox-instrumentation-empty_trace.la \
 	libnanox-instrumentation-print_trace.la \
+	libnanox-instrumentation-graph.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
 extrae_mpitrace_cxxflags=$(mpitrace_cxxflags)
 extrae_mpitrace_ldflags=$(mpitrace_ldflags)
 instrumentation_LTLIBRARIES+=libnanox-instrumentation-extrae.la
+endif
+
+if INSTRUMENTATION_AYUDAME
+instrumentation_LTLIBRARIES+=libnanox-instrumentation-ayudame.la
+endif
+
+if INSTRUMENTATION_NEXTSIM
+instrumentation_LTLIBRARIES+=libnanox-instrumentation-nextsim.la
 endif
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
@@ -42,10 +51,28 @@ libnanox_instrumentation_print_trace_la_CXXFLAGS = $(nanos_instr_cxxflags)
 libnanox_instrumentation_print_trace_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_instrumentation_print_trace_la_SOURCES = $(print_sources)
 
+libnanox_instrumentation_graph_la_CXXFLAGS = $(nanos_instr_cxxflags)
+libnanox_instrumentation_graph_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentation_graph_la_SOURCES = $(graph_sources)
+
 if INSTRUMENTATION_EXTRAE
 libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_instr_cxxflags) $(extrae_mpitrace_cxxflags)
 libnanox_instrumentation_extrae_la_LDFLAGS = $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
 libnanox_instrumentation_extrae_la_SOURCES = $(extrae_sources)
+endif
+
+if INSTRUMENTATION_AYUDAME
+libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_instr_cxxflags) $(ayudame_cxxflags)
+libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
+libnanox_instrumentation_ayudame_la_LIBADD=$(top_builddir)/src/apis/c/instrumentation/libnanox-c.la
+libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
+libnanox_instrumentation_ayudame_la_DEPENDENCIES=$(top_builddir)/src/apis/c/instrumentation/libnanox-c.la
+endif
+
+if INSTRUMENTATION_NEXTSIM
+libnanox_instrumentation_nextsim_la_CXXFLAGS = $(nanos_instr_cxxflags) $(nextsim_cxxflags)
+libnanox_instrumentation_nextsim_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentation_nextsim_la_SOURCES = $(nextsim_sources)
 endif
 
 endif

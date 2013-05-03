@@ -32,11 +32,11 @@ namespace nanos {
 
             struct TeamData : public ScheduleTeamData
             {
-               WDPriorityQueue*  _readyQueues;
+               WDPriorityQueue<>*  _readyQueues;
  
                TeamData ( unsigned int size ) : ScheduleTeamData()
                {
-                  _readyQueues = NEW WDPriorityQueue[size];
+                  _readyQueues = NEW WDPriorityQueue<>[size];
                }
 
                ~TeamData () { delete[] _readyQueues; }
@@ -100,44 +100,10 @@ namespace nanos {
 
                 if ( wd.isTied() ) {
                     unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                    tdata._readyQueues[index].push ( &wd );
+                    tdata._readyQueues[index].push_back ( &wd );
                     return;
                 }
-                //if ( wd.getNumCopies() > 0 ){
-                //   unsigned int numCaches = sys.getCacheMap().getSize();
-                //   unsigned int ranks[numCaches];
-                //   for (unsigned int i = 0; i < numCaches; i++ ) {
-                //      ranks[i] = 0;
-                //   }
-                //   CopyData * copies = wd.getCopies();
-                //   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-                //      if ( !copies[i].isPrivate() ) {
-                //         WorkDescriptor* parent = wd.getParent();
-                //         if ( parent != NULL ) {
-                //            Directory *dir = parent->getDirectory();
-                //            if ( dir != NULL ) {
-                //               DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
-                //               if ( de != NULL ) {
-                //                  for ( unsigned int j = 0; j < numCaches; j++ ) {
-                //                     ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
-                //                  }
-                //               }
-                //            }
-                //         }
-                //      }
-                //   }
-                //   unsigned int winner = 0;
-                //   unsigned int maxRank = 0;
-                //   for ( unsigned int i = 0; i < numCaches; i++ ) {
-                //      if ( ranks[i] > maxRank ) {
-                //         winner = i+1;
-                //         maxRank = ranks[i];
-                //      }
-                //   }
-                //   tdata._readyQueues[winner].push( &wd );
-                //} else {
-                   tdata._readyQueues[0].push ( &wd );
-                //}
+                tdata._readyQueues[0].push_back ( &wd );
             }
 
             /*!
@@ -245,24 +211,24 @@ namespace nanos {
          /*
           *  First try to schedule the thread with a task from its queue
           */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop ( thread ) ) != NULL ) {
+         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
             /*
              * Then try to get it from the global queue
              */
-             wd = tdata._readyQueues[0].pop ( thread );
+             wd = tdata._readyQueues[0].pop_front ( thread );
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
                if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
@@ -286,24 +252,24 @@ namespace nanos {
          /*
           *  First try to schedule the thread with a task from its queue
           */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop ( thread ) ) != NULL ) {
+         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
             /*
              * Then try to get it from the global queue
              */
-             wd = tdata._readyQueues[0].pop ( thread );
+             wd = tdata._readyQueues[0].pop_front ( thread );
          }
          if ( wd == NULL ) {
             for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }
             for ( unsigned int i = 0; i < data._cacheId; i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) { 
-                  wd = tdata._readyQueues[i+1].pop( thread );
+                  wd = tdata._readyQueues[i+1].pop_front( thread );
                   return wd;
                } 
             }

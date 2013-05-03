@@ -1,10 +1,10 @@
-include $(abs_top_srcdir)/src/common.am
+include $(top_srcdir)/src/common.am
 
-EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in config.py
+EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in config.py
 
-noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator
+noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator
 
-CLEANFILES = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator
+CLEANFILES = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator
 
 api-generator: api-generator.in
 	rm -f api-generator
@@ -251,4 +251,51 @@ api-omp-generator: api-omp-generator.in
 		$(srcdir)/api-omp-generator.in > api-omp-generator.tmp
 	mv api-omp-generator.tmp api-omp-generator
 	chmod 755 api-omp-generator
+
+mcc-openmp-generator: mcc-openmp-generator.in
+	rm -f mcc-openmp-generator
+	tmp_plugins_perfo=`cat $(abs_top_builddir)/src/plugins-list | grep ^performance\= | cut -d'=' -f2` ;\
+	tmp_plugins_debug=`cat $(abs_top_builddir)/src/plugins-list | grep ^debug\= | cut -d'=' -f2` ;\
+	tmp_plugins_instr=`cat $(abs_top_builddir)/src/plugins-list | grep ^instrumentation\= | cut -d'=' -f2` ;\
+	tmp_plugins_instr_debug=`cat $(abs_top_builddir)/src/plugins-list | grep ^instrumentation_debug\= | cut -d'=' -f2` ;\
+	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
+	tmp_mcc_valid='"$(mcc_valid)"' ; \
+	tmp_mcc='"$(MCC)"' ; \
+	tmp_ldflags='"$(LDFLAGS)"' ; \
+	sed \
+		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
+		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
+		-e's,@PLUGINS_PERFORMANCE\@,'"$$tmp_plugins_perfo"',g' \
+		-e's,@PLUGINS_DEBUG\@,'"$$tmp_plugins_debug"',g' \
+		-e's,@PLUGINS_INSTRUMENTATION\@,'"$$tmp_plugins_instr"',g' \
+		-e's,@PLUGINS_INSTRUMENTATION_DEBUG\@,'"$$tmp_plugins_instr_debug"',g' \
+		-e's,@COMPILE_VERSIONS\@,'"$$tmp_compile_versions"',g' \
+		-e's,@PERFO_CFLAGS\@,'"$$tmp_perfo_cflags"',g' \
+		-e's,@DEBUG_CFLAGS\@,'"$$tmp_debug_cflags"',g' \
+		-e's,@INSTR_CFLAGS\@,'"$$tmp_instr_cflags"',g' \
+		-e's,@INSTRDEBUG_CFLAGS\@,'"$$tmp_instrdebug_cflags"',g' \
+		-e's,@PERFO_CXXFLAGS\@,'"$$tmp_perfo_cxxflags"',g' \
+		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
+		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
+		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
+		-e's,@MCC_SUPPORT\@,'"$$tmp_mcc_valid"',g' \
+		-e's,@MCC\@,'"$$tmp_mcc"',g' \
+		-e's,@LDFLAGS\@,'"$$tmp_ldflags"',g' \
+		$(srcdir)/mcc-openmp-generator.in > mcc-openmp-generator.tmp
+	mv mcc-openmp-generator.tmp mcc-openmp-generator
+	chmod 755 mcc-openmp-generator
 

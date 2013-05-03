@@ -42,7 +42,7 @@ unsigned long DOSubmit::getDescription ( )
 
 void DOSubmit::instrument ( DependableObject &successor )
 {
-   //NANOS_INSTRUMENT ( void * pred = getRelatedObject(); )
+   NANOS_INSTRUMENT ( void * pred = getRelatedObject(); )
    NANOS_INSTRUMENT ( void * succ = successor.getRelatedObject(); )
    NANOS_INSTRUMENT (
                       if ( succ == NULL ) {
@@ -53,12 +53,12 @@ void DOSubmit::instrument ( DependableObject &successor )
                          return;
                       }
                     )
-   //NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-   //NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
-   //NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
-   //NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-   //NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
-   //NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd_receiver, NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+   NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_WD_DEPENDENCY, id, 0, 0 ); )
+   NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd_receiver, NANOS_WD_DEPENDENCY, id, 0, 0 ); )
 }
 
 
@@ -72,7 +72,7 @@ void DOWait::init()
    _depsSatisfied = false;
 }
 
-void DOWait::wait ( std::list<Region> const &regions )
+void DOWait::wait ( std::list<uint64_t> const & flushDeps )
 {
    _syncCond.wait();
 }
@@ -87,7 +87,7 @@ void DOWait::dependenciesSatisfied ( )
 
 void DOWait::instrument ( DependableObject &successor )
 {
-   //NANOS_INSTRUMENT ( void * pred = getRelatedObject(); )
+   NANOS_INSTRUMENT ( void * pred = getRelatedObject(); )
    NANOS_INSTRUMENT ( void * succ = successor.getRelatedObject(); )
    NANOS_INSTRUMENT (
                       if ( succ == NULL ) {
@@ -98,11 +98,11 @@ void DOWait::instrument ( DependableObject &successor )
                          return;
                       }
                     )
-   //NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-   //NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
-   //NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
-   //NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-   //NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
-   //NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd_receiver, NANOS_WD_DEPENDENCY, id, 0, NULL, NULL ); )
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) pred; )
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) succ; )
+   NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+   NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_WD_DEPENDENCY, id, 0, 0 ); )
+   NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd_receiver, NANOS_WD_DEPENDENCY, id, 0, 0 ); )
 }
 

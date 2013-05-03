@@ -98,30 +98,6 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
 #if LOCK_TRANSFER
    _transferLock.acquire();
 #endif
-   //CopyData *copies = work.getCopies();
-   //for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-   //   CopyData & cd = copies[i];
-   //   uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long) cd.getAddress()) : cd.getAddress();
-   //   if ( cd.isOutput() ) {
-   //      NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-out") );
-	//	NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) cd.getSize() ) );
-   //   }
-   //   if ( cd.isPrivate() ) {
-   //      this->unregisterPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize() );
-   //   } else {
-   //      this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isOutput() );
-/*
-   //      // FIXME: This part is commented out because it is reduntant with the next step. Just keep it in case the change has to be reverted
-   //      if ( cd.isOutput() && (work.getDirectory(false) != NULL) ) {
-   //         work.getParent()->getDirectory(false)->updateCurrentDirectory( tag, *(work.getDirectory(true)) );
-   //      }
-*/
-   //      if ( work.getParent()->getParent() != work.getParent() && work.getParent()->getParent()!= NULL ) {
-   //         Directory * dir = work.getParent()->getParent()->getDirectory(false);
-   //         dir->updateCurrentDirectory( tag, *(work.getParent()->getDirectory(false)) );
-   //      }
-   //   }
-   //}
 #if LOCK_TRANSFER
    _transferLock.release();
 #endif

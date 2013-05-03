@@ -22,8 +22,7 @@
 
 #include "synchronizedcondition_decl.hpp"
 #include "dependableobject_decl.hpp"
-//#include "dependableobject.hpp"
-//#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
@@ -112,7 +111,7 @@ namespace nanos
 
          /*! \brief Wait method blocks execution untill dependencies are satisfied
           */
-         virtual void wait ( std::list<Region> const &deps );
+         virtual void wait ( std::list<uint64_t> const & flushDeps  );
 
          /*! \brief whether the DO gets blocked and no more dependencies can
           *  be submitted until it is satisfied.

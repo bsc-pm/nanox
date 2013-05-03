@@ -69,7 +69,7 @@ namespace ext
       bool tryLock();
 
       virtual void runDependent ( void );
-      virtual void inlineWorkDependent ( WD &wd );
+      virtual bool inlineWorkDependent ( WD &wd );
       virtual void outlineWorkDependent ( WD &wd );
 
       void addRunningWDSMP( WorkDescriptor *wd );

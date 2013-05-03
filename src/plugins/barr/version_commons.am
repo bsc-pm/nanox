@@ -1,3 +1,6 @@
+old_centralized_sources = \
+	$(top_srcdir)/src/plugins/barr/old_centralized_barrier.cpp \
+	$(END)
 
 centralized_sources = \
 	$(top_srcdir)/src/plugins/barr/centralized_barrier.cpp \

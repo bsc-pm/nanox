@@ -43,6 +43,7 @@ namespace nanos
          const Device *                       _subDeviceNo;
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
+         int                                  _numaNode;
 
       private:
          /*! \brief ProcessingElement default constructor
@@ -61,8 +62,7 @@ namespace nanos
       public:
          /*! \brief ProcessingElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch, const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _device ( arch ) , _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId )
-         { }
+         ProcessingElement ( int newId, const Device *arch, const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
 
          /*! \brief ProcessingElement destructor
           */
@@ -70,6 +70,12 @@ namespace nanos
 
          /* get/put methods */
          int getId() const;
+         
+         //! \brief Returns the socket this thread is running on.
+         int getNUMANode() const;
+         
+         //! \brief Sets the socket this thread is running on.
+         void setNUMANode( int node );
 
          const Device * getDeviceType () const;
          const Device * getSubDeviceType () const;
@@ -112,8 +118,10 @@ namespace nanos
          virtual void waitInputs( WorkDescriptor& wd );
 
          virtual bool isGPU() const = 0;
-         //virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const = 0;
          BaseThread *getFirstThread() const { return _threads[0]; }
+
+         virtual BaseThread* getFirstRunningThread();
+         virtual BaseThread* getFirstStoppedThread();
    };
 
    typedef class ProcessingElement PE;

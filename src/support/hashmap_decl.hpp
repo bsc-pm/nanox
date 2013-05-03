@@ -49,7 +49,29 @@ class Hash
       *  \param size size of the map
       */
       virtual size_t operator()( _KeyType key, size_t sz )
-         { return ((size_t)key) % sz; }
+      { return ( ( size_t ) key % sz ) ; }
+};
+
+/*! \class PairHash
+ *  \brief Hash function template for std::pair
+ */
+template<typename _t1, typename _t2>
+class PairHash
+{
+   public:
+     /*! \brief Default constructor
+      */
+      PairHash() {}
+     /*! \brief Destructor
+      */
+      virtual ~PairHash() {}
+
+     /*! \brief PairHash operation for the given key and map size
+      *  \param key compute the hash value for this key
+      *  \param size size of the map
+      */
+      virtual size_t operator()( std::pair<_t1, _t2> key, size_t sz )
+      { return ( ( ( size_t ) key.first % sz ) ^ ( ( size_t ) key.second % sz ) ) % sz; }
 };
 
 
@@ -230,6 +252,11 @@ class HashMap
                }
                return *this;
             }
+
+            /*! \breif Returns a reference to the key in the Map pointed by the iterator
+             */
+             _KeyType const& getKey()
+                { return _currentItem->getKey(); }
 
            /*! \brief Returns a reference to the element in the Map pointed by the iterator
             */

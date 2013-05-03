@@ -40,26 +40,26 @@ inline void GenericSyncCond::unlock()
 }
 
 template <class _T>
-void SynchronizedCondition< _T>::wait()
+inline void SynchronizedCondition< _T>::wait()
 {
    Scheduler::waitOnCondition(this);
 }
 
 template <class _T>
-void SynchronizedCondition< _T>::reference()
+inline void SynchronizedCondition< _T>::reference()
 {
    _refcount++;
    memoryFence();
 }
 
 template <class _T>
-void SynchronizedCondition< _T>::unreference()
+inline void SynchronizedCondition< _T>::unreference()
 {
    _refcount--;
 }
 
 template <class _T>
-void SynchronizedCondition< _T>::waitConditionAndSignalers()
+inline void SynchronizedCondition< _T>::waitConditionAndSignalers()
 {
    Scheduler::waitOnCondition(this);
    while ( _refcount.value() > 0 ) {
@@ -68,7 +68,7 @@ void SynchronizedCondition< _T>::waitConditionAndSignalers()
 }
 
 template <class _T>
-void SynchronizedCondition< _T>::signal()
+inline void SynchronizedCondition< _T>::signal()
 {
    lock();
    while ( hasWaiters() ) {
@@ -79,7 +79,7 @@ void SynchronizedCondition< _T>::signal()
 }
 
 template <class _T>
-void SynchronizedCondition< _T>::signal_one()
+inline void SynchronizedCondition< _T>::signal_one()
 {
    lock();
    if ( hasWaiters() ) {

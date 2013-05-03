@@ -23,12 +23,16 @@
 #include "system.hpp"
 #include <iostream>
 #include <sched.h>
+#include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 #include "clusterdevice_decl.hpp"
 
+
 using namespace nanos;
 using namespace nanos::ext;
+
+pthread_mutex_t SMPThread::_mutexWait = PTHREAD_MUTEX_INITIALIZER;
 
 void * smp_bootthread ( void *arg )
 {
@@ -36,7 +40,14 @@ void * smp_bootthread ( void *arg )
 
    self->run();
 
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+
    pthread_exit ( 0 );
+   // We should never get here!
+   return NULL;
 }
 
 // TODO: detect at configure
@@ -62,6 +73,9 @@ void SMPThread::start ()
 
    if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
       fatal( "couldn't create thread" );
+
+   if ( pthread_cond_init( &_condWait, NULL ) < 0 )
+      fatal( "couldn't create pthread condition wait" );
 }
 
 void SMPThread::runDependent ()
@@ -76,20 +90,27 @@ void SMPThread::runDependent ()
 
 void SMPThread::join ()
 {
+   if ( pthread_cond_destroy( &_condWait ) < 0 )
+      fatal( "couldn't destroy pthread condition wait" );
+
    pthread_join( _pth,NULL );
    joined();
 }
 
 void SMPThread::bind( void )
 {
-   cpu_set_t cpu_set;
-   int cpu_id = ( getCpuId() * sys.getBindingStride() ) + sys.getBindingStart();
+   int cpu_id = getCpuId();
 
-   ensure( ( ( cpu_id >= 0 ) && ( cpu_id < CPU_SETSIZE ) ), "invalid value for cpu id" );
+   cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
-   verbose( "Binding thread " << getId() << " to cpu " << cpu_id );
-   sched_setaffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
+   sys.setCpuAffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
 void SMPThread::yield()
@@ -119,6 +140,49 @@ void SMPThread::idle( bool debug )
    }
 }
 
+void SMPThread::wait()
+{
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+
+   ThreadTeam *team = getTeam();
+   if ( team != NULL ) {
+      team->removeThread( getTeamId() );
+      leaveTeam();
+   }
+   pthread_mutex_lock( &_mutexWait );
+
+   if (!isEligible())
+      pthread_cond_wait( &_condWait, &_mutexWait );
+
+   pthread_mutex_unlock( &_mutexWait );
+
+   NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+   NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+}
+
+void SMPThread::signal()
+{
+   pthread_cond_signal( &_condWait );
+}
+
+void SMPThread::sleep()
+{
+   pthread_mutex_lock( &_mutexWait );
+   BaseThread::sleep();
+   pthread_mutex_unlock( &_mutexWait );
+}
+
+void SMPThread::wakeup()
+{
+   pthread_mutex_lock( &_mutexWait );
+   BaseThread::wakeup();
+   pthread_mutex_unlock( &_mutexWait );
+}
+
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 {
@@ -126,18 +190,19 @@ void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
    dd.setState( (intptr_t *) oldState );
 }
 
-void SMPThread::inlineWorkDependent ( WD &wd )
+bool SMPThread::inlineWorkDependent ( WD &wd )
 {
-   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
-
    // Now the WD will be inminently run
    wd.start(WD::IsNotAUserLevelThread);
+
+   SMPDD &dd = ( SMPDD & )wd.getActiveDevice();
 
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
    ( dd.getWorkFct() )( wd.getData() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
+   return true;
 }
 
 void SMPThread::switchTo ( WD *wd, SchedulerHelper *helper )

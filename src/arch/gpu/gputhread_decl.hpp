@@ -50,7 +50,7 @@ namespace ext
          void prefetchNextTask( WD * next );
          void executeRequestedTransfers( GPUProcessor & myGPU );
          void executeOutputTransfers( GPUProcessor & myGPU );
-
+         
       public:
          // constructor
          GPUThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _gpuDevice( device ),
@@ -62,7 +62,7 @@ namespace ext
          void initializeDependent( void );
          void runDependent ( void );
 
-         void inlineWorkDependent( WD &work );
+         bool inlineWorkDependent( WD &work );
 
          virtual void yield();
 

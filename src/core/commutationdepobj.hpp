@@ -29,11 +29,16 @@ inline void CommutationDO::dependenciesSatisfied ( )
 {
    DependenciesDomain *domain = getDependenciesDomain( );
    if ( domain ) {
-      domain->removeCommDO ( this, _region );
+      domain->removeCommDO ( this, *_target );
    }
    
    finished();
 }
+
+inline bool CommutationDO::isCommutative() const 
+{ 
+   return _commutative; 
+} 
 
 #endif
 

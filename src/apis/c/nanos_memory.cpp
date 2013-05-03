@@ -16,10 +16,21 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+/*! \file nanos_memory.cpp
+ *  \brief 
+ */
 #include "nanos.h"
 #include "allocator.hpp"
 #include "memtracker.hpp"
 #include "instrumentation_decl.hpp"
+#include "instrumentationmodule_decl.hpp"
+
+#include <cstring>
+
+/*! \defgroup capi_mem C/C++ API: Memory services. */
+/*! \addtogroup capi_mem
+ *  \{
+ */
 
 NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ))
 {
@@ -33,8 +44,8 @@ NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *fi
 #else
       *p = nanos::getAllocator().allocate ( size );
 #endif
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
@@ -51,9 +62,23 @@ NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
 #else
       nanos::getAllocator().deallocate ( p );
 #endif
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+   } catch ( nanos_err_t e) {
+      return e;
    }
 
    return NANOS_OK;
 }
+
+NANOS_API_DEF(void, nanos_free0, ( void *p ))
+{
+   nanos_free(p);
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n))
+{
+    std::memcpy(dest, src, n);
+    return NANOS_OK;
+}
+/*!
+ * \}
+ */ 

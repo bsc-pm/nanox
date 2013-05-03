@@ -21,8 +21,7 @@
 #define _NANOS_COMMUTATONDEPOBJ_DECL
 
 #include "dependableobject_decl.hpp"
-#include "region_decl.hpp"
-
+#include "basedependency_decl.hpp"
 
 namespace nanos
 {
@@ -32,17 +31,21 @@ namespace nanos
    class CommutationDO : public DependableObject
    {
       private:
-         Region   _region; //! Region that determines the reduction
-         
+         //! Base address that determines the reduction
+         BaseDependency*  _target;
+         //! Flag to separate between concurrent and commutative accesses. 
+         bool             _commutative; 
       public:
         /*! \brief Default constructor
          */
-         CommutationDO ( Region const &region ) : DependableObject(), _region ( region ) { }
+         CommutationDO ( BaseDependency const& target, bool isCommutativeFlag )
+            : DependableObject(), _target( target.clone() ), _commutative( isCommutativeFlag ) { }
 
         /*! \brief Copy constructor
          *  \param cdo another CommutationDO
          */
-         CommutationDO( const CommutationDO &cdo ) : DependableObject(), _region ( cdo._region )  { }
+         CommutationDO( const CommutationDO &cdo )
+            : DependableObject(), _target( cdo._target->clone() ), _commutative( cdo._commutative ) { }
 
         /*! \brief Assignment operator
          *  \param cdo another CommutationDO
@@ -51,17 +54,25 @@ namespace nanos
          {
             if ( this == &cdo ) return *this;
             DependableObject::operator= ( cdo );
-            _region = cdo._region;
+            _target = cdo._target->clone();
+            _commutative = cdo._commutative; 
             return *this;
          }
 
         /*! \brief virtual destructor
          */
-         virtual ~CommutationDO() {}
+         virtual ~CommutationDO()
+         {
+            delete _target;
+         }
 
          /*! \brief All predecessors finished, will just execute finished and trigger its successors
           */
          virtual void dependenciesSatisfied ( );
+ 
+         /*! \brief Returns true if this is for commutative accesses rather than concurrent ones. 
+          */ 
+         bool isCommutative() const; 
    };
 };
 

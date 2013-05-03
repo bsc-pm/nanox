@@ -23,7 +23,6 @@
 #include "copydata.hpp"
 #include "atomic.hpp"
 #include "processingelement.hpp"
-#include "regiontree.hpp"
 #include "system.hpp"
 #include "deviceops.hpp"
 #ifdef GPU_DEV

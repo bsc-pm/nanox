@@ -43,10 +43,6 @@ Atomic<int> wdindc = 0;
 WD* buffWD = NULL;
 #endif
 
-typedef struct {
-   void (*outline) (void *);
-} nanos_smp_args_t;
-
 #define VERBOSE_AM( x )
 
 #ifdef GPU_DEV
@@ -338,7 +334,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       fprintf(stderr, "Unsupported architecture\n");
    }
 
-   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate );
+   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate, NULL );
 
    std::memcpy(data, work_data, dataSize);
 
@@ -361,7 +357,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
-      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, 0, 0 ); )
    }
 
    getInstance()->_net->notifyWork(expectedData, localWD, seq);

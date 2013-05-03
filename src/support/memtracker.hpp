@@ -28,7 +28,8 @@
 
 namespace nanos {
 
-   inline MemTracker::MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock(), _showStats( false ), _setZeroDeallocate(false)
+   inline MemTracker::MemTracker() : _blocks(),_stats(), _totalMem( 0 ), _numBlocks( 0 ),_maxMem( 0 ), _lock(), _showStats( false ), _setZeroDeallocate( false ),
+         _trackMemory( true )
    {
       Config config;
       config.registerConfigOption ( "mem-stats", NEW Config::FlagOption( _showStats ), "Show memory leak stats" );
@@ -42,38 +43,49 @@ namespace nanos {
 
    inline void * MemTracker::allocate ( size_t size, const char *file, int line )
    {
-      int thread_id;
+      if ( _trackMemory ) {
 
-      BaseThread *thread = getMyThreadSafe();
+         int thread_id;
 
-      if ( thread != NULL ) thread_id = thread->getId();
-      else thread_id = -1;
+         BaseThread *thread = getMyThreadSafe();
 
-      LockBlock_noinst guard(_lock);
+         if ( thread != NULL ) thread_id = thread->getId();
+         else thread_id = -1;
+
+         LockBlock_noinst guard(_lock);
 
 #ifdef NANOS_DISABLE_ALLOCATOR
-      void *p = malloc ( size );
+         void *p = malloc ( size );
+         if ( p == NULL ) throw(NANOS_ENOMEM);
 #else
-      void *p = nanos::getAllocator().allocate( size );
+         void *p = nanos::getAllocator().allocate( size );
 #endif
 
-      if ( p ) {
-         _blocks[p] = BlockInfo(size,file,line, thread_id);
-         _numBlocks++;
-         _totalMem += size;
-         _stats[size]._current++;
-         _stats[size]._total++;
-         _stats[size]._max = std::max( _stats[size]._max, _stats[size]._current );
-         _maxMem = std::max( _maxMem, _totalMem );
-      } else {
-         throw std::bad_alloc();
+         if ( p != NULL ) {
+            _blocks[p] = BlockInfo(size,file,line, thread_id);
+            _numBlocks++;
+            _totalMem += size;
+            _stats[size]._current++;
+            _stats[size]._total++;
+            _stats[size]._max = std::max( _stats[size]._max, _stats[size]._current );
+            _maxMem = std::max( _maxMem, _totalMem );
+         } else {
+            throw(NANOS_ENOMEM);
+         }
+
+         return p;
       }
 
+      // If MemTracker is disabled, call malloc() directly
+      void *p =  malloc ( size );
+      if ( p == NULL ) throw(NANOS_ENOMEM);
       return p;
    }
 
    inline void MemTracker::deallocate ( void * p, const char *file, int line )
    {
+      if ( p == NULL ) return;
+
       LockBlock_noinst guard(_lock);
 
       AddrMap::iterator it = _blocks.find( p );
@@ -96,9 +108,10 @@ namespace nanos {
 
          _blocks.erase( it );
          _stats[size]._current--;
-      } else {
+      } else if ( _trackMemory ) {
          guard.release();
 
+         // If MemTracker is enabled, crash because we are trying to free an invalid pointer
          if ( file != NULL ) {
             message0("Trying to free invalid pointer " << p << " at " << file << ":" << line);
          } else {
@@ -106,6 +119,13 @@ namespace nanos {
             sys.printBt();
          }    
          throw std::bad_alloc();
+      } else {
+         guard.release();
+
+         // If MemTracker is disabled, do not crash and call free() directly
+         // In this case, the memory was probably allocated before MemTracker creation.
+         // Thus, MemTracker has not been able to find 'p' in its '_blocks'
+         free( p );
       }
    }
 

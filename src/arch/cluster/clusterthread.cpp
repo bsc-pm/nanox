@@ -89,8 +89,9 @@ void ClusterThread::runDependent () {
 }
 
 
-void ClusterThread::inlineWorkDependent ( WD &wd ) {
+bool ClusterThread::inlineWorkDependent ( WD &wd ) {
    fatal( "inline execution is not supported in this architecture (cluster).");
+   return true;
 }
 
 void ClusterThread::outlineWorkDependent ( WD &wd )

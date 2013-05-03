@@ -23,9 +23,9 @@
 // Define GCC Version
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
 
-// Define a linker section with GCC
+// Define a linker section with GCC attribute
 #define LINKER_SECTION(name,type,nop) \
-    __attribute__((weak, section( #name ))) type __section_##name = nop; \
+    type __section_##name __attribute__((weak, section( #name ))) = nop; \
     extern type __start_##name; \
     extern type __stop_##name;
 
@@ -34,6 +34,10 @@
 
 #define BROKEN_COMPARE_AND_SWAP
 
+#endif
+
+#if __IBMCPP__
+#define __volatile volatile // defining __volatile to volatile with XLC compiler. But you shouldn't have to do this.
 #endif
 
 // compiler issues
@@ -92,6 +96,11 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 #endif // __GNUC__ == 4 && (__GNUC_MINOR__ == 1 || __GNUC_MINOR__ == 2)
 #endif // __GNUC__
 
+// xlC seems to need this hack also
+#ifdef __IBMCPP__
+#define ASSIGN_EVENT(event,type,args) do {type tmp_event args; event = tmp_event;} while(0)
+#endif
+
 #ifdef BROKEN_COMPARE_AND_SWAP
 
 bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
@@ -105,6 +114,93 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 #    endif
 #  endif
 #endif
+
+// For old machines that do not define CPU_SET macros
+#if !__GLIBC_PREREQ (2, 7)
+# define __CPU_OP_S(setsize, destset, srcset1, srcset2, op) \
+   (__extension__                                                              \
+    ({ cpu_set_t *__dest = (destset);                                          \
+     __const __cpu_mask *__arr1 = (srcset1)->__bits;                         \
+     __const __cpu_mask *__arr2 = (srcset2)->__bits;                         \
+     size_t __imax = (setsize) / sizeof (__cpu_mask);                        \
+     size_t __i;                                                             \
+     for (__i = 0; __i < __imax; ++__i)                                      \
+     ((__cpu_mask *) __dest->__bits)[__i] = __arr1[__i] op __arr2[__i];    \
+     __dest; }))
+
+# define __CPU_EQUAL_S(setsize, cpusetp1, cpusetp2) \
+   (__extension__                                                              \
+    ({ __const __cpu_mask *__arr1 = (cpusetp1)->__bits;                        \
+     __const __cpu_mask *__arr2 = (cpusetp2)->__bits;                        \
+     size_t __imax = (setsize) / sizeof (__cpu_mask);                        \
+     size_t __i;                                                             \
+     for (__i = 0; __i < __imax; ++__i)                                      \
+     if (__arr1[__i] != __arr2[__i])                                       \
+     break;                                                              \
+     __i == __imax; }))
+
+# define CPU_AND(destset, srcset1, srcset2) \
+  __CPU_OP_S (sizeof (cpu_set_t), destset, srcset1, srcset2, &)
+
+# define CPU_OR(destset, srcset1, srcset2) \
+  __CPU_OP_S (sizeof (cpu_set_t), destset, srcset1, srcset2, |)
+
+# define CPU_EQUAL(cpusetp1, cpusetp2) \
+  __CPU_EQUAL_S (sizeof (cpu_set_t), cpusetp1, cpusetp2)
+#endif /* GLIBC < 2.7 */
+
+#if !__GLIBC_PREREQ (2, 6)
+#include <limits.h>
+inline int __sched_cpucount (size_t setsize, const cpu_set_t *setp)
+{
+   int s = 0;
+   const __cpu_mask *p = setp->__bits;
+   const __cpu_mask *end = &setp->__bits[setsize / sizeof (__cpu_mask)];
+
+   while (p < end)
+   {
+      __cpu_mask l = *p++;
+
+      if (l == 0)
+         continue;
+
+# if LONG_BIT > 32
+      l = (l & 0x5555555555555555ul) + ((l >> 1) & 0x5555555555555555ul);
+      l = (l & 0x3333333333333333ul) + ((l >> 2) & 0x3333333333333333ul);
+      l = (l & 0x0f0f0f0f0f0f0f0ful) + ((l >> 4) & 0x0f0f0f0f0f0f0f0ful);
+      l = (l & 0x00ff00ff00ff00fful) + ((l >> 8) & 0x00ff00ff00ff00fful);
+      l = (l & 0x0000ffff0000fffful) + ((l >> 16) & 0x0000ffff0000fffful);
+      l = (l & 0x00000000fffffffful) + ((l >> 32) & 0x00000000fffffffful);
+# else
+      l = (l & 0x55555555ul) + ((l >> 1) & 0x55555555ul);
+      l = (l & 0x33333333ul) + ((l >> 2) & 0x33333333ul);
+      l = (l & 0x0f0f0f0ful) + ((l >> 4) & 0x0f0f0f0ful);
+      l = (l & 0x00ff00fful) + ((l >> 8) & 0x00ff00fful);
+      l = (l & 0x0000fffful) + ((l >> 16) & 0x0000fffful);
+# endif
+
+      s += l;
+   }
+
+   return s;
+}
+
+# define __CPU_COUNT_S(setsize, cpusetp) \
+  __sched_cpucount (setsize, cpusetp)
+
+# define CPU_COUNT(cpusetp)      __CPU_COUNT_S (sizeof (cpu_set_t), cpusetp)
+
+inline int sched_getcpu (void)
+{
+#ifdef __NR_getcpu
+   unsigned int cpu;
+   int r = getcpu( &cpu, NULL, NULL );
+   return r == -1 ? r : cpu;
+#else
+   return -1;
+#endif
+}
+#endif /* GLIBC < 2.6 */
 
 #endif
 

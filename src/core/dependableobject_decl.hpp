@@ -24,10 +24,9 @@
 #include <set>
 #include <vector>
 #include "atomic_decl.hpp"
-#include "regionstatus_fwd.hpp"
 #include "dataaccess_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"
-#include "region_fwd.hpp"
+#include "basedependency_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 
 namespace nanos
@@ -51,7 +50,7 @@ namespace nanos
    {
       public:
          typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
-         typedef std::vector<Region> RegionContainer; /**< Container of Regions accessed */
+         typedef std::vector<BaseDependency*> TargetVector; /**< Type vector of output objects */
          
       private:
          unsigned int             _id;              /**< DependableObject identifier */
@@ -59,8 +58,8 @@ namespace nanos
          unsigned int             _references;      /** References counter */
          DependableObjectVector   _successors;      /**< List of successiors */
          DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
-         RegionContainer          _writtenRegions;  /**< List of written regions */
-         RegionContainer          _readRegions;     /**< List of read regions */
+         TargetVector             _outputObjects;   /**< List of output objects */
+         TargetVector             _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
          volatile bool            _submitted;
          WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
@@ -69,17 +68,17 @@ namespace nanos
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ),
-               _writtenRegions(), _readRegions(), _objectLock(), _submitted(false), _wd( NULL )  {}
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted(false), _wd( NULL ) {}
          DependableObject ( WorkDescriptor *wd ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ),
-               _writtenRegions(), _readRegions(), _objectLock(), _submitted(false), _wd( wd )  {}
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted(false), _wd( wd ) {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _domain ( depObj._domain ), _readRegions(), _objectLock(), _submitted(false), _wd( depObj._wd ) {}
+              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false), _wd( depObj._wd ) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -88,14 +87,24 @@ namespace nanos
 
         /*! \brief DependableObject virtual destructor
          */
-         virtual ~DependableObject ( ) { }
+         virtual ~DependableObject ( );
 
         // FIXME DOC NEEDED FOR THIS FUNCTIONS
          virtual void init ( ) { }
 
          virtual void dependenciesSatisfied ( ) { }
 
-         virtual void wait ( std::list<Region> const &regions ) { }
+         /*! \brief Waits until the dependencies with the given addresses
+          * are satisfied.
+          * \param flushDeps List of memory addresses.
+          * \note Previously we were passing a list of Dependency pointers,
+          * and used getDepAddress to create the flushDeps list inside this 
+          * function. As the regions code passes regions and does the same,
+          * the list will have to be created before calling this function.
+          * The regions code will call Region::getFirstValue() and the
+          * non region code will use the address + the offset.
+          */
+         virtual void wait ( std::list<uint64_t>const & flushDeps  ) { }
 
          virtual bool waits ( );
 
@@ -155,21 +164,26 @@ namespace nanos
          */
          void setDependenciesDomain ( DependenciesDomain *dependenciesDomain );
 
-        /*! \brief Add a written region to the list.
+        /*! \brief Add an output object to the list.
+         *  \sa TrackableObject
          */
-         void addWriteRegion ( Region const &region );
+         void addWriteTarget ( BaseDependency const &outObj );
 
-        /*! \brief Get the list of written objects.
+        /*! \brief Get the list of output objects.
+         *  \sa TrackableObject
          */
-         RegionContainer const & getWrittenRegions ( ) const;
+         TargetVector const & getWrittenTargets ( );
          
         /*! \brief Add a read object to the list.
+         *  \sa TrackableObject
          */
-         void addReadRegion ( Region const &region );
+         void addReadTarget ( BaseDependency const &readObj );
+         
          
         /*! \brief Get the list of read objects.
+         *  \sa TrackableObject
          */
-         RegionContainer const & getReadRegions ( ) const;
+         TargetVector const & getReadTargets ( );
 
         /*! \brief Increases the object's references counter
          */
@@ -205,7 +219,6 @@ namespace nanos
 
          void setWD( WorkDescriptor *wd );
          WorkDescriptor * getWD( void );
-         
    };
 
 };

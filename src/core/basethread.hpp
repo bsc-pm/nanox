@@ -41,11 +41,19 @@ namespace nanos
 
    inline void TeamData::setStar ( bool v ) { _star = v; }
 
-   inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( bool *b )
+   inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( BaseThread *thread, bool *b )
    {
       nanos_ws_desc_t *next = NULL, *myNext = NULL;
 
       *b = false;
+
+      // If current WorkDescriptor in not implicit, 
+      if ( thread->getCurrentWD()->isImplicit() == false ) {
+         if ( _team == NULL ) fatal("Asking for team WorkSharing with no associated team.");
+         next = NEW nanos_ws_desc_t();
+         *b = true;
+         return next;
+      }
 
       if ( _wsDescriptor ) {
          // Having a previous _wsDescriptor
@@ -90,12 +98,22 @@ namespace nanos
       return next;
    }
 
+   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
+      _id( sys.nextThreadId() ), _name("Thread"), _description(""), _parent( parent ), _pe( creator ), _threadWD( wd ),
+      _maxPrefetch( 1 ), _nextWDs(), _started( false ), _mustStop( false ),
+      _mustSleep( false ), _paused( false ), _currentWD( NULL), _hasTeam( false ), _teamData(NULL),
+      _nextTeamData(NULL), _allocator() { }
+
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  
    inline void BaseThread::unlock () { _mlock--; }
  
    inline void BaseThread::stop() { _mustStop = true; }
+
+   inline void BaseThread::sleep() { _mustSleep = true; }
+
+   inline void BaseThread::wakeup() { _mustSleep = false; }
    
    inline void BaseThread::pause ()
    {
@@ -126,33 +144,13 @@ namespace nanos
  
    inline WD & BaseThread::getThreadWD () const { return _threadWD; }
  
-   inline void BaseThread::resetNextWD () {
-      compareAndSwap( &_nextWD, _nextWD, (WD *) NULL );
-   }
- 
-   inline bool BaseThread::setNextWD ( WD *next ) { 
-      debug("Set next WD as: " << next << ":??" << " @ thread " << _id );
-      return compareAndSwap( &_nextWD, (WD *) NULL, next);
-   }
- 
-   inline bool BaseThread::reserveNextWD ( void ) { 
-      return compareAndSwap( &_nextWD, (WD *) NULL, (WD *) 1);
-   }
- 
-   inline bool BaseThread::setReservedNextWD ( WD *next ) { 
-      debug("Set next WD as: " << next << ":??" << " @ thread " << _id );
-      return compareAndSwap( &_nextWD, (WD *) 1, next);
-   }
- 
-   inline WD * BaseThread::getNextWD () const
-   { 
-      if ( !sys.getSchedulerConf().getSchedulerEnabled() )
-         return NULL;
-      /* First copy value to avoid race conditions */
-      WD * retWD = _nextWD;
-      if ( retWD == (WD *) 1 ) return NULL;
-      return retWD;
-   }
+   inline int BaseThread::getMaxPrefetch () const { return _maxPrefetch; }
+
+   inline void BaseThread::setMaxPrefetch ( int max ) { _maxPrefetch = max; }
+
+   inline bool BaseThread::canPrefetch () const { return _nextWDs.size() < _maxPrefetch; }
+
+   inline bool BaseThread::hasNextWD () { return !_nextWDs.empty(); }
  
    inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
 
@@ -189,7 +187,7 @@ namespace nanos
 
    inline nanos_ws_desc_t *BaseThread::getTeamWorkSharingDescriptor( bool *b )
    {
-      if ( _teamData) return _teamData->getTeamWorkSharingDescriptor ( b );
+      if ( _teamData ) return _teamData->getTeamWorkSharingDescriptor ( this,  b );
       else return NULL;
    }
  
@@ -199,12 +197,14 @@ namespace nanos
    inline bool BaseThread::isStarted () const { return _started; }
  
    inline bool BaseThread::isRunning () const { return _started && !_mustStop; }
+
+   inline bool BaseThread::isEligible () const { return !_mustSleep; }
    
    inline bool BaseThread::isPaused () const { return _paused; }
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
  
-   inline int BaseThread::getId() { return _id; }
+   inline int BaseThread::getId() const { return _id; }
  
    inline int BaseThread::getCpuId() { return runningOn()->getId(); }
  

@@ -18,16 +18,25 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
+#include "archplugin.hpp"
 #include "gpuconfig.hpp"
+#include "gpuprocessor.hpp"
 #include "system_decl.hpp"
+#include <fstream>
+#include <sstream>
+
+#ifdef HWLOC
+#include <hwloc.h>
+#include <hwloc/cudart.h>
+#endif
 
 namespace nanos {
 namespace ext {
 
-class GPUPlugin : public Plugin
+class GPUPlugin : public ArchPlugin
 {
    public:
-      GPUPlugin() : Plugin( "GPU PE Plugin", 1 ) {}
+      GPUPlugin() : ArchPlugin( "GPU PE Plugin", 1 ) {}
 
       void config( Config& cfg )
       {
@@ -37,6 +46,76 @@ class GPUPlugin : public Plugin
       void init()
       {
          GPUConfig::apply();
+      }
+      
+      virtual unsigned getNumHelperPEs() const
+      {
+         return GPUConfig::getGPUCount();
+      }
+
+      virtual unsigned getNumPEs() const
+      {
+         return GPUConfig::getGPUCount();
+      }
+
+      virtual unsigned getNumThreads() const
+      {
+            return GPUConfig::getGPUCount();
+      }
+            
+      virtual void createBindingList()
+      {
+         /* As we now how many devices we have and how many helper threads we
+          * need, reserve a PE for them */
+         for ( int i = 0; i < GPUConfig::getGPUCount(); ++i )
+         {
+            int node = -1;
+            if ( sys.isHwlocAvailable() )
+            {
+#ifdef HWLOC
+               hwloc_topology_t topology = ( hwloc_topology_t ) sys.getHwlocTopology();
+               
+               hwloc_obj_t obj = hwloc_cudart_get_device_pcidev ( topology, i );
+               if ( obj != NULL ) {
+                  hwloc_obj_t objNode = hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, obj );
+                  if ( objNode != NULL ){
+                     node = objNode->os_index;
+                  }
+               }
+#endif
+            }
+            else
+            {
+               // Warning: Linux specific:
+               char pciDevice[20]; // 13 min
+               cudaDeviceGetPCIBusId( pciDevice, 20, i );
+               std::stringstream ss;
+               ss << "/sys/bus/pci/devices/" << pciDevice << "/numa_node";
+               std::ifstream fNode( ss.str().c_str() );
+               if ( fNode.good() )
+                  fNode >> node;
+               fNode.close();
+
+            }
+            // Fallback / safety measure
+            if ( node < 0 || sys.getNumSockets() == 1 )
+               node = sys.getNumSockets() - 1;
+            
+            bool reserved;
+            unsigned pe = sys.reservePE( node, reserved );
+            
+            verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            // Now add this node to the binding list
+            addBinding( pe );
+         }
+      }
+
+      virtual PE* createPE( unsigned id )
+      {
+         verbose( "Calling getBinding for id " << id << ", result: " << getBinding( id ) );
+         PE* pe = NEW GPUProcessor( getBinding( id ) , id );
+         pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
+         return pe;
       }
 };
 

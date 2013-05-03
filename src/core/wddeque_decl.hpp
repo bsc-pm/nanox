@@ -21,10 +21,11 @@
 #define _NANOS_LIB_WDDEQUE_DECL_H
 
 #include <list>
+#include <functional>
 #include "atomic_decl.hpp"
 #include "debug.hpp"
-#include "workdescriptor_decl.hpp"
-#include "basethread_decl.hpp"
+#include "workdescriptor_fwd.hpp"
+#include "basethread_fwd.hpp"
 
 #define NANOS_ABA_MASK (15)
 #define NANOS_ABA_PTR(x) ((volatile WDNode *)(((uintptr_t)(x))& ~(uintptr_t)NANOS_ABA_MASK))
@@ -63,7 +64,7 @@ namespace nanos
          WDPool() {}
          /*! \brief WDPool destructor
           */
-         ~WDPool() {}
+         virtual ~WDPool() {}
 
          virtual bool empty ( void ) const = 0;
          virtual size_t size() const = 0; /*FIXME: Try to remove this functions, use empty, there is a global counter for ready tasks  */
@@ -106,7 +107,7 @@ namespace nanos
       public:
          /*! \brief WDDeque default constructor
           */
-         WDDeque() : _dq(), _lock(), _nelems( 0 ) {}
+         WDDeque() : _dq(), _lock(), _nelems(0) {}
          /*! \brief WDDeque destructor
           */
          ~WDDeque() {}
@@ -204,43 +205,85 @@ namespace nanos
 
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
-#if 0
-         template <typename Constraints>
-         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
-         template <typename Constraints>
-         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
-         template <typename Constraints>
-         bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
-#endif
    };
-
+   
    /*! \brief Class used to compare WDs by priority.
     *  \see WDPriorityQueue::push
     */
-   struct WDPriorityComparison
+   template <typename T>
+   struct WDPriorityComparisonBase : public std::binary_function< WD*, WD*, bool>
    {
-      bool operator() ( const WD* wd1, const WD* wd2 ) const
+      /*! \brief Type of the functor */
+      typedef std::const_mem_fun_t<T, WD> PriorityValueFun;
+      
+      PriorityValueFun _getter;
+      
+      WDPriorityComparisonBase( PriorityValueFun functor ) : _getter( functor ) {}
+   };
+   
+   /*! \brief Class used to compare WDs by priority.
+    */
+   template <typename T>
+   struct WDPriorityComparison : public WDPriorityComparisonBase<T>
+   {
+      typedef WDPriorityComparisonBase<T> Base;
+      
+      WDPriorityComparison( typename Base::PriorityValueFun functor ) 
+         : Base( functor ) {}
+      
+      bool operator() ( const WD *wd1, const WD *wd2 ) const
       {
-         return wd1->getPriority() > wd2->getPriority();
+         return this->_getter( wd1 ) > this->_getter( wd2 );
+      }
+   };
+   
+   /*! \brief Class used to compare WDs by priority reversely.
+    */
+   template <typename T>
+   struct WDPriorityComparisonReverse : public WDPriorityComparisonBase<T>
+   {
+      typedef WDPriorityComparisonBase<T> Base;
+      
+      WDPriorityComparisonReverse( typename Base::PriorityValueFun functor ) 
+         : Base( functor ) {}
+      bool operator() ( const WD *wd1, const WD *wd2 ) const
+      {
+         return this->_getter( wd1 ) <= this->_getter( wd2 );
       }
    };
 
+   /*! \brief Namespace used to refer WDPriorityQueue BaseContainer.
+    */
+   namespace WDPQ
+   {
+       typedef std::list<WorkDescriptor *> BaseContainer;
+   }
+
+   template<typename T = unsigned>
    class WDPriorityQueue : public WDPool
    {
+      public:
+         typedef T         type;
+         typedef std::const_mem_fun_t<T, WD> PriorityValueFun;
       private:
          // TODO (gmiranda): Measure if vector is better as a container
-         typedef std::list<WorkDescriptor *> BaseContainer;
-         BaseContainer     _dq;
-         Lock              _lock;
-         size_t            _nelems;
+         WDPQ::BaseContainer _dq;
+         Lock                _lock;
+         size_t              _nelems;
          /*! \brief When this is enabled, elements with the same priority
           * as the one in the back will be inserted at the back.
           * \note When this is enabled, it will override the LIFO behaviour
           * in the above case.
           */
          bool              _optimise;
-         //! \brief Insert WDs with the same after the current ones?
-         bool              _fifo;
+         
+         /*! \brief Revert insertion */
+         bool              _reverse;
+         
+         /*! \brief Functor that will be used to get the priority or
+          *  deadline */
+         PriorityValueFun  _getter;
+      
 
       private:
          /*! \brief WDPriorityQueue copy constructor (private)
@@ -251,12 +294,21 @@ namespace nanos
          const WDPriorityQueue & operator= ( const WDPriorityQueue & );
          
          /*! \brief Inserts a WD in the expected order.
+          *  \param fifo Insert WDs with the same after the current ones?
           */
-         void insertOrdered ( WorkDescriptor *wd );
+         void insertOrdered ( WorkDescriptor *wd, bool fifo = true );
+         
+         /*! \brief Performs upper bound reversely or not depending on the settings */
+         WDPQ::BaseContainer::iterator upper_bound( const WD *wd );
+        
+         /*! \brief Performs lower bound reversely or not depending on the settings */
+         WDPQ::BaseContainer::iterator lower_bound( const WD *wd );
       public:
          /*! \brief WDPriorityQueue default constructor
           */
-         WDPriorityQueue( bool optimise = true, bool fifo = true);
+         WDPriorityQueue( bool optimise = true, bool reverse = false,
+               PriorityValueFun getter = std::mem_fun( &WD::getPriority ) );
+         
          /*! \brief WDPriorityQueue destructor
           */
          ~WDPriorityQueue() {}
@@ -264,7 +316,6 @@ namespace nanos
          bool empty ( void ) const;
          size_t size() const;
 
-         void push ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
          void push_front( WorkDescriptor *wd );
 
@@ -273,7 +324,6 @@ namespace nanos
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
-         WorkDescriptor * pop ( BaseThread *thread );
          WorkDescriptor * pop_back ( BaseThread *thread );
          WorkDescriptor * pop_front ( BaseThread *thread );
 
@@ -284,7 +334,7 @@ namespace nanos
           * It is needed when the priority of a WD is changed.
           * \note This just removes and pushes the WD into the list.
           * \return If the WD was found or not.
-          * \note This method sets the lock uppon entry (using LockBlock).
+          * \note This method sets the lock upon entry (using LockBlock).
           */
          bool reorderWD( WorkDescriptor *wd );
 
