@@ -114,8 +114,11 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
             if ( location != 0 ) {
                if ( region_shape.id != reg.id ) {
                   DeviceOps *thisOps = region_shape.getDeviceOps();
-                  thisOps->addCacheOp();
-                  _ownDeviceOps.insert( thisOps );
+                  if ( thisOps->addCacheOp() ) {
+                     _ownDeviceOps.insert( thisOps );
+                  } else {
+                     std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
+                  }
                }
                //std::cerr << "HOST mustcopy: reg " << reg.id << " version " << version << "  region shape: " << region_shape.id << " data source: " << data_source.id << " location "<< location << std::endl;
                ensure( location > 0, "Wrong location.");
