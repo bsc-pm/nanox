@@ -112,10 +112,11 @@ class GPUPlugin : public ArchPlugin
 
       virtual PE* createPE( unsigned id )
       {
-         verbose( "Calling getBinding for id " << id << ", result: " << getBinding( id ) );
-         PE* pe = NEW GPUProcessor( getBinding( id ) , id );
-         pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
-         return pe;
+         //jbueno: disabled verbose( "Calling getBinding for id " << id << ", result: " << getBinding( id ) );
+         //jbueno: disabled PE* pe = NEW GPUProcessor( getBinding( id ) , id );
+         //jbueno: disabled pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
+         //jbueno: disabled return pe;
+         return NULL;
       }
 };
 
