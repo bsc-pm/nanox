@@ -26,7 +26,7 @@
 #include "os.hpp"
 
 extern "C" {
-   void DLB_UpdateResources( int max_resources ) __attribute__(( weak ));
+   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
 }
 
 using namespace nanos;
@@ -732,10 +732,10 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
-   if ( DLB_UpdateResources ) {
+   if ( sys.dlbEnabled() && DLB_UpdateResources_max ) {
       int needed_resources = sys.getSchedulerStats()._readyTasks.value() - myThread->getTeam()->size();
       if ( needed_resources > 0 )
-         DLB_UpdateResources( needed_resources );
+         DLB_UpdateResources_max( needed_resources );
    }
 
    // At this point the WD work is done, so we mark it as such and look for other work to do

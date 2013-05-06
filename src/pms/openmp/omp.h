@@ -83,7 +83,6 @@ extern double omp_get_wtick(void);
 
 extern int omp_in_final(void);
 
-
 #ifdef __cplusplus
 }
 

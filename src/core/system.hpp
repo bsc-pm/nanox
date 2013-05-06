@@ -192,6 +192,10 @@ inline void System::loadNUMAInfo ()
    if ( _coresPerSocket == 0 )
       _coresPerSocket = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
 #endif
+}
+
+inline void System::checkArguments()
+{
    // Check NUMA config
    if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
    {
@@ -267,6 +271,8 @@ inline WorkSharing * System::getWorkSharing( const std::string &label ) const
 inline Instrumentation * System::getInstrumentation ( void ) const { return _instrumentation; }
 
 inline void System::setInstrumentation ( Instrumentation *instr ) { _instrumentation = instr; }
+
+inline bool System::isCpuidEventEnabled ( void ) const { return _enable_cpuid_event; }
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
@@ -432,6 +438,8 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 }
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
+
+inline bool System::dlbEnabled() const { return _enable_dlb; }
 
 inline bool System::haveDependencePendantWrites ( void *addr ) const
 {

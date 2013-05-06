@@ -55,7 +55,7 @@ System::System () :
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 0 ), _coresPerSocket( 0 ), _throttlePolicy ( NULL ),
+      _numSockets( 0 ), _coresPerSocket( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -66,7 +66,7 @@ System::System () :
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
-      , _enableEvents(), _disableEvents(), _instrumentDefault("default")
+      , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -140,7 +140,7 @@ void System::loadModules ()
      if ( !loadPlugin( "pe-"+getDefaultArch() ) )
        fatal0 ( "Couldn't load host support" );
    }
-   ensure( _hostFactory,"No default host factory" );
+   ensure0( _hostFactory,"No default host factory" );
 
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
@@ -162,14 +162,14 @@ void System::loadModules ()
    if ( !loadPlugin( "sched-"+getDefaultSchedule() ) )
       fatal0 ( "Couldn't load main scheduling policy" );
 
-   ensure( _defSchedulePolicy,"No default system scheduling factory" );
+   ensure0( _defSchedulePolicy,"No default system scheduling factory" );
 
    verbose0( "loading " << getDefaultThrottlePolicy() << " throttle policy" );
 
    if ( !loadPlugin( "throttle-"+getDefaultThrottlePolicy() ) )
       fatal0( "Could not load main cutoff policy" );
 
-   ensure( _throttlePolicy, "No default throttle policy" );
+   ensure0( _throttlePolicy, "No default throttle policy" );
 
    verbose0( "loading " << getDefaultBarrier() << " barrier algorithm" );
 
@@ -179,7 +179,7 @@ void System::loadModules ()
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 
-   ensure( _defBarrFactory,"No default system barrier factory" );
+   ensure0( _defBarrFactory,"No default system barrier factory" );
    
    // load default dependencies plugin
    verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
@@ -187,7 +187,7 @@ void System::loadModules ()
    if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
       fatal0 ( "Couldn't load main dependencies manager" );
 
-   ensure( _dependenciesManager,"No default dependencies manager" );
+   ensure0( _dependenciesManager,"No default dependencies manager" );
 
 }
 
@@ -329,6 +329,12 @@ void System::config ()
    cfg.registerConfigOption ( "instrument-disable", NEW Config::StringVarList ( _disableEvents ), "Remove events to instrumentation event list" );
    cfg.registerArgOption ( "instrument-disable", "instrument-disable" );
 
+   cfg.registerConfigOption ( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ), "Add cpuid event when binding is disabled (expensive)" );
+   cfg.registerArgOption ( "instrument-cpuid", "instrument-cpuid" );
+
+   cfg.registerConfigOption ( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ), "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
+   cfg.registerArgOption ( "enable-dlb", "enable-dlb" );
+
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
@@ -352,16 +358,26 @@ void System::start ()
    if ( isHwlocAvailable() )
       loadHwloc();
 
+   // loadNUMAInfo needs _targetThreads when hwloc is not available.
+   // Note that it is not its final value!
+   _targetThreads = _numThreads;
+   
+   // Load & check NUMA config
+   loadNUMAInfo();
+
+   // Modules can be loaded now
    loadModules();
 
-   _targetThreads = _numThreads;
-   // Do the same for the architecture plugins
+   // Increase targetThreads, ask the architecture plugins
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
    {
       _targetThreads += (*it)->getNumThreads();
    }
-   
+
+   // Check if the NUMA and other arguments make sense (depends on _targetThreads)
+   checkArguments();
+
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -395,9 +411,6 @@ void System::start ()
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
    
-   // Load & check NUMA config
-   loadNUMAInfo();
-
    // start of new PE/Worker creation
    // How many available physical PEs
    unsigned physPes = getCpuCount();
@@ -451,9 +464,11 @@ void System::start ()
    spu->startWorker();
 #endif
 
-   /* Master thread is ready and waiting for the rest of the gang */
-   if ( getSynchronizedStart() )
-     threadReady();
+
+   if ( getSynchronizedStart() ) {
+      // Wait for the rest of the gang to be ready, but do not yet notify master thread is ready
+      while (_initializedThreads.value() < ( _targetThreads - 1 ) ) {}
+   }
 
    switch ( getInitialMode() )
    {
@@ -475,6 +490,10 @@ void System::start ()
    NANOS_INSTRUMENT ( nanos_event_value_t team_size =  (nanos_event_value_t) myThread->getTeam()->size(); )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &team_size); )
    
+   /* Master thread is ready now */
+   if ( getSynchronizedStart() )
+     threadReady();
+
    // Paused threads: set the condition checker 
    _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), _workers.size() ) );
    _unpausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), 0 ) );
@@ -1199,6 +1218,11 @@ BaseThread * System:: getUnassignedWorker ( void )
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
       thread = _workers[i];
       if ( !thread->hasTeam() || !thread->isEligible() ) {
+
+         // skip if the thread is not in the mask
+         if ( sys.getBinding() && _cpu_mask.find( thread->getCpuId() ) == _cpu_mask.end() )
+            continue;
+
          // recheck availability with exclusive access
          thread->lock();
 
@@ -1287,8 +1311,13 @@ void System::releaseWorker ( BaseThread * thread )
    //TODO: destroy if too many?
    debug("Releasing thread " << thread << " from team " << team );
 
-   thread->leaveTeam();   
-   team->removeThread(thread_id);
+   if ( _enable_dlb && thread->getTeamId() != 0 ) {
+      // teamless threads will only sleep if DLB is enabled
+      thread->sleep();
+   } else {
+      thread->leaveTeam();
+      team->removeThread(thread_id);
+   }
 }
 
 int System::getNumWorkers( DeviceData *arch )
@@ -1337,7 +1366,10 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
          continue;
       }
 
+      thread->lock();
       acquireWorker( team, thread, enterOthers, starringOthers, /* creator */ false );
+      thread->signal();
+      thread->unlock();
       nthreads--;
    }
 
@@ -1388,8 +1420,6 @@ void System::updateActiveWorkers ( int nthreads )
 
    /* Decrease _numThreads */
    while ( nthreads - _numThreads < 0 ) {
-      //for ( unsigned th_id = nthreads; nthreads < _numThreads; th_id++ ) {
-      //fatal_cond( th_id >= _workers.size(), "Going through all threads and there are still threads to remove" );
       thread = getAssignedWorker();
       thread->sleep();
       _numThreads--;
@@ -1397,7 +1427,7 @@ void System::updateActiveWorkers ( int nthreads )
 }
 
 // Not thread-safe
-void System::applyCpuMask()
+inline void System::applyCpuMask()
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
@@ -1411,14 +1441,6 @@ void System::applyCpuMask()
 
       // Create PE & Worker if it does not exist
       if ( pe_id == _pes.size() ) {
-
-         // Iterate through _cpu_mask to find the first element not in _pe_map
-         for ( std::set<int>::iterator it = _cpu_mask.begin(); it != _cpu_mask.end(); ++it ) {
-            if ( std::find( _pe_map.begin(), _pe_map.end(), *it ) == _pe_map.end() ) {
-               _pe_map.push_back( *it );
-               break;
-            }
-         }
          createWorker( pe_id );
       }
 
@@ -1456,11 +1478,21 @@ void System::getCpuMask ( cpu_set_t *mask ) const
    memcpy( mask, &_cpu_set, sizeof(cpu_set_t) );
 }
 
-void System::setCpuMask ( cpu_set_t *mask )
+void System::setCpuMask ( const cpu_set_t *mask, bool apply )
 {
    memcpy( &_cpu_set, mask, sizeof(cpu_set_t) );
-   _cpu_mask.clear();
+   sys.updateCpuMask( apply );
+}
 
+void System::addCpuMask ( const cpu_set_t *mask, bool apply )
+{
+   CPU_OR( &_cpu_set, &_cpu_set, mask );
+   sys.updateCpuMask( apply );
+}
+
+inline void System::updateCpuMask( bool apply )
+{
+   _cpu_mask.clear();
    std::ostringstream oss_cpu_idx;
    oss_cpu_idx << "[";
    for ( int i=0; i<CPU_SETSIZE; i++ ) {
@@ -1471,35 +1503,23 @@ void System::setCpuMask ( cpu_set_t *mask )
    }
    oss_cpu_idx << "]";
 
+   // if _bindThreads is enabled, update _pe_map adding new elements of _cpu_mask
    if ( sys.getBinding() ) {
-      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-      sys.applyCpuMask();
-   } else {
-      verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
-      sys.updateActiveWorkers( _cpu_mask.size() );
-   }
-}
-
-void System::addCpuMask ( cpu_set_t *mask )
-{
-   CPU_OR( &_cpu_set, &_cpu_set, mask );
-
-   std::ostringstream oss_cpu_idx;
-   oss_cpu_idx << "[";
-   for ( int i=0; i<CPU_SETSIZE; i++) {
-      if ( CPU_ISSET(i, &_cpu_set) ) {
-         _cpu_mask.insert( i );
-         oss_cpu_idx << i << ", ";
+      for ( std::set<int>::iterator it = _cpu_mask.begin(); it != _cpu_mask.end(); ++it ) {
+         if ( std::find( _pe_map.begin(), _pe_map.end(), *it ) == _pe_map.end() ) {
+            _pe_map.push_back( *it );
+         }
       }
    }
-   oss_cpu_idx << "]";
 
-   if ( sys.getBinding() ) {
-      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-      sys.applyCpuMask();
-   } else {
-      verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
-      sys.updateActiveWorkers( _cpu_mask.size() );
+   if ( apply ) {
+      if ( sys.getBinding() ) {
+         verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
+         sys.applyCpuMask();
+      } else {
+         verbose0( "PID[" << getpid() << "]. Num threads: " << _cpu_mask.size() );
+         sys.updateActiveWorkers( _cpu_mask.size() );
+      }
    }
 }
 

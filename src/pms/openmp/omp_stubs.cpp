@@ -116,5 +116,10 @@ extern "C"
    {
       return 0;
    }
+
+   int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+   {
+      return 1;
+   }
 }
 

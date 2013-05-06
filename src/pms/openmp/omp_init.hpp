@@ -21,6 +21,7 @@
 #ifndef _NANOX_OMP_INIT
 #define _NANOX_OMP_INIT
 
+#include <sched.h>
 #include "system.hpp"
 #include <cstdlib>
 #include "config.hpp"
@@ -55,7 +56,10 @@ namespace nanos
 
             virtual ThreadTeamData * getThreadTeamData();
 
-            virtual void updateNumThreads();
+            virtual void setNumThreads( int nthreads );
+            virtual void getCpuMask( cpu_set_t *cpu_set );
+            virtual void setCpuMask( const cpu_set_t *cpu_set );
+            virtual void addCpuMask( const cpu_set_t *cpu_set );
 
          public:
             nanos_ws_t findWorksharing( omp_sched_t kind ) ;
@@ -69,7 +73,10 @@ namespace nanos
             virtual int getInternalDataAlignment() const ;
             virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
-            virtual void updateNumThreads();
+            virtual void setNumThreads( int nthreads );
+            virtual void getCpuMask( cpu_set_t *cpu_set );
+            virtual void setCpuMask( const cpu_set_t *cpu_set );
+            virtual void addCpuMask( const cpu_set_t *cpu_set );
       };
    }
 }

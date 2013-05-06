@@ -135,9 +135,9 @@ namespace nanos {
       {
          private:
             /* global ICVs */
-            TaskICVs     _globalICVs;
-            unsigned int _threadLimitVar;
-            unsigned int _maxActiveLevelsVar;
+            TaskICVs    _globalICVs;
+            int         _threadLimitVar;
+            int         _maxActiveLevelsVar;
 
             /* bindVar becomes local per task in OpenMP 4.0 */
             // bool         _bindVar;
@@ -149,9 +149,12 @@ namespace nanos {
 
          public:
 
-            unsigned int getThreadLimit () const { return _threadLimitVar; }
+            OmpState() : _globalICVs(), _threadLimitVar(INT_MAX), _maxActiveLevelsVar(INT_MAX) {}
+            ~OmpState() {}
 
-            unsigned int getMaxActiveLevels() const { return _maxActiveLevelsVar; }
+            int getThreadLimit () const { return _threadLimitVar; }
+
+            int getMaxActiveLevels() const { return _maxActiveLevelsVar; }
             void setMaxActiveLevels( unsigned int levels ) { _maxActiveLevelsVar = levels; }
 
             TaskICVs & getICVs () { return _globalICVs; }

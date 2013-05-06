@@ -189,8 +189,8 @@ namespace nanos
          virtual void start () = 0;
          void run();
          void stop();
-         void sleep();
-         void wakeup();
+         virtual void sleep();
+         virtual void wakeup();
          
          void pause ();
          void unpause ();

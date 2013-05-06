@@ -637,7 +637,9 @@ class InstrumentationExtrae: public Instrumentation
                   break;
                case NANOS_POINT:
                   ckey = e.getKey();
-                  if ( ckey == changeThreads ) Extrae_change_num_threads ( sys.getMaskMaxSize() );
+                  if ( ckey == changeThreads ) {
+                        Extrae_change_num_threads( std::max((int)e.getValue(), sys.getMaskMaxSize()) );
+                  }
                case NANOS_BURST_START:
                   ckey = e.getKey();
                   cvalue = e.getValue();
