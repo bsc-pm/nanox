@@ -48,7 +48,7 @@ class SeparateAddressSpace {
 
    
    //unsigned int lockRegionAndGetCurrentVersion( global_reg_t const &reg, bool increaseVersion = false );
-   void releaseRegion( global_reg_t const &reg );
+   void releaseRegion( global_reg_t const &reg, WD const &wd );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress ) const;
    
    void prepareRegion( global_reg_t const &reg, WD const &wd );

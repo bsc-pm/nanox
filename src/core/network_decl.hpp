@@ -53,9 +53,9 @@ namespace nanos {
       std::size_t _size;
       char* _recvAddr;
       DeviceOps *_ops;
-      Packer *_packer;
+      Functor *_f;
 
-      GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops );
+      GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops, Functor *f );
       virtual ~GetRequest();
 
       void complete();
@@ -68,7 +68,7 @@ namespace nanos {
       std::size_t _ld;
       Packer *_packer;
 
-      GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer );
+      GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Functor *f, Packer *packer );
       virtual ~GetRequestStrided();
 
       virtual void clear();

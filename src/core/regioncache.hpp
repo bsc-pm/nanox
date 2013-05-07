@@ -22,11 +22,11 @@ inline std::size_t AllocatedChunk::getSize() const {
 }
 
 inline void AllocatedChunk::addReference() {
-   _refs += 1;
+   _refs++;
 }
 
 inline void AllocatedChunk::removeReference() {
-   _refs -= 1;
+   _refs--;
    /*
    if ( _refs == (unsigned int) -1 ) {
       std::cerr << "overflow at references chunk "<< (void*)this << std::endl; sys.printBt();
@@ -48,6 +48,10 @@ inline unsigned int AllocatedChunk::getLruStamp() const {
 
 inline void AllocatedChunk::increaseLruStamp() {
    _lruStamp += 1;
+}
+
+inline global_reg_t AllocatedChunk::getAllocatedRegion() const {
+   return _allocatedRegion;
 }
 
 inline Device const &RegionCache::getDevice() const {
@@ -72,6 +76,8 @@ inline bool RegionCache::pin( global_reg_t const &hostMem ) {
    //std::size_t allocSize = hostMem.getDataSize();
    AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
    if ( entry ) {
+     global_reg_t reg = entry->getAllocatedRegion();
+   std::cerr << "+p [" << 0 << "," << _memorySpaceId << ","<< entry->getReferenceCount() <<"] " << (void*) entry << " "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
       entry->addReference();
       entry->unlock();
       result = true;
@@ -84,6 +90,8 @@ inline void RegionCache::unpin( global_reg_t const &hostMem ) {
    //std::size_t allocSize = hostMem.getDataSize();
    AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
    if ( entry ) {
+     global_reg_t reg = entry->getAllocatedRegion();
+   std::cerr << "-p [" << 0 << "," << _memorySpaceId << ","<< entry->getReferenceCount() <<"] " << (void *) entry << " "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
       entry->removeReference();
       entry->unlock();
    } else {

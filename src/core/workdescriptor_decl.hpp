@@ -83,12 +83,12 @@ namespace nanos
          const char * getName ( void ) const { return _name; }
 
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem ) const { return (void *) 0xdeadbeef; }
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, WorkDescriptor const &wd, Functor *f ) const { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, WorkDescriptor const &wd ) { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, WorkDescriptor const &wd ) { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, WorkDescriptor const &wd, Functor *f ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) const { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual void _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }
    };
 
   /*! \brief This class holds the specific data for a given device

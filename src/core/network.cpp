@@ -603,14 +603,15 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
    //}
 }
 
-GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) : _complete(0),
-   _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) {
+GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops, Functor *f ) : _complete(0),
+   _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ), _f( f ) {
 }
 
 GetRequest::~GetRequest() {
 }
 
 void GetRequest::complete() {
+   (*_f)();
    _complete = 1;
 }
 
@@ -624,8 +625,8 @@ void GetRequest::clear() {
    _ops->completeOp();
 }
 
-GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
-   GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) {
+GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Functor *f, Packer *packer ) :
+   GetRequest( hostAddr, size, recvAddr, ops, f ), _count( count ), _ld( ld ), _packer( packer ) {
 }
 
 GetRequestStrided::~GetRequestStrided() {

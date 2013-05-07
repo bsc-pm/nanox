@@ -92,8 +92,8 @@ unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg ) 
    return _cache.getVersion( reg );
 }
 
-void SeparateAddressSpace::releaseRegion( global_reg_t const &reg ) {
-   _cache.releaseRegion( reg );
+void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd ) {
+   _cache.releaseRegion( reg, wd );
 }
 
 void SeparateAddressSpace::copyFromHost( TransferListType list, WD const &wd ) {

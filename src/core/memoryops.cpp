@@ -67,13 +67,13 @@ bool BaseAddressSpaceInOps::isDataReady() {
          }
       }
    }
-   if ( allReady ) {
-      for ( MapType::iterator mit = _separateTransfers.begin(); mit != _separateTransfers.end(); mit++ ) {
-         for ( TransferListType::iterator lit = mit->second.begin(); lit != mit->second.end(); lit++ ) {
-            mit->first->releaseForTransfer( lit->first, lit->second );
-         }
-      }
-   }
+   //if ( allReady ) {
+   //   for ( MapType::iterator mit = _separateTransfers.begin(); mit != _separateTransfers.end(); mit++ ) {
+   //      for ( TransferListType::iterator lit = mit->second.begin(); lit != mit->second.end(); lit++ ) {
+   //         mit->first->releaseForTransfer( lit->first, lit->second );
+   //      }
+   //   }
+   //}
    return allReady;
 }
 
@@ -180,7 +180,7 @@ void SeparateAddressSpaceOutOps::issue( WD const &wd, MemCacheCopy *memCacheCopi
    //do copies back to memory
 
    for ( unsigned int index = 0; index < wd.getNumCopies(); index++ ) {
-      _source.releaseRegion( memCacheCopies[ index ]._reg ) ;
+      _source.releaseRegion( memCacheCopies[ index ]._reg, wd ) ;
    }
 }
 

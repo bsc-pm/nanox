@@ -102,6 +102,7 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
 //  //    std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
 //   }
    
+   if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       _memCacheCopies[ index ].generateInOps2( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
    }
@@ -130,6 +131,7 @@ void MemController::copyDataOut( ) {
          _memCacheCopies[ index ].generateOutOps( *_outOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput() );
       }
 
+      if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;
       _outOps->issue( _wd, _memCacheCopies );
    }
 }
