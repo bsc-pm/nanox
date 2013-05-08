@@ -26,4 +26,4 @@ pe_opencl_sources = \
 
 opencl_api_flags = -I$(top_srcdir)/src/apis/c
 opencl_ldflags = -L@OPENCL_LD@ -lOpenCL
-opencl_includes = -I@OPENCL_INC@
+opencl_includes = -isystem @OPENCL_INC@
