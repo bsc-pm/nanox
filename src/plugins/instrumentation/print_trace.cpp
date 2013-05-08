@@ -73,7 +73,7 @@ class InstrumentationPrintTrace: public Instrumentation
                      WorkDescriptor *wd = (WorkDescriptor *) value;
                      int64_t wd_id = wd->getId();
                      int64_t funct_id = (int64_t) ((ext::SMPDD &) (wd->getActiveDevice ())).getWorkFct ();
-                     fprintf(stderr,"NANOS++: Executing %ld function within task %ld in thread %d\n",funct_id,wd_id, myThread->getId());
+                     fprintf(stderr,"NANOS++: Executing %lld function within task %lld in thread %d\n",funct_id,wd_id, myThread->getId());
 
                   }
                   break;
