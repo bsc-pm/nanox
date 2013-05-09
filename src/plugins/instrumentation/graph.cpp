@@ -163,7 +163,9 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
          // Create the graph image from the dot file
          std::string command = "dot -Tpdf " + std::string( dot_file_name ) + " -o " + std::string( pdf_file_name );
-         system( command.c_str( ) );
+         if ( system( command.c_str( ) ) != 0 ) {
+            warning( "dot command failed" );
+         }
       }
 
       void disable( void ) {}
