@@ -265,7 +265,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                     std::string description = iD->getValueDescription( user_funct_location, e.getValue( ) );
                     int pos2 = description.find_first_of( "(" );
                     int pos1 = description.find_last_of ( " ", pos2 );
-                    _funct_id_to_funct_decl_map[ e.getValue( ) ] = description.substr( pos1+1, pos2-pos1-1 );
+                    _funct_id_to_funct_decl_map[ e.getValue( ) ] = '\"' + description.substr( pos1+1, pos2-pos1-1 ) + '\"';
                 }
             }
          }
