@@ -70,7 +70,7 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
          _writeLocation = -1;
       }
    } else {
-     //std::cerr << "FIXME: wrong case" << std::endl;
+     std::cerr << "FIXME: wrong case" << std::endl;
    }
 }
 
@@ -152,10 +152,6 @@ inline int NewNewDirectoryEntryData::getNumLocations() const {
 
 inline DeviceOps *NewNewDirectoryEntryData::getOps() {
    return &_ops;
-}
-
-inline void NewNewDirectoryEntryData::setOps( DeviceOps *ops ) {
-   return _opsPtr.set( ops );
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {

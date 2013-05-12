@@ -713,9 +713,15 @@ void System::finish ()
    message0("Network traffic: " << sys.getNetwork()->getTotalBytes() << " bytes");
 
    // signal stop PEs
-   if ( _net.getNodeNum() == 0 ) message("Created " << createdWds << " WDs.");
    for ( unsigned p = 0; p < _pes.size() ; p++ ) {
       _pes[p]->stopAll();
+   }
+
+   if ( _net.getNodeNum() == 0 ) {
+      message("Created " << createdWds << " WDs.");
+      for ( unsigned int idx = 1; idx < _separateMemorySpacesCount; idx += 1 ) {
+         message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getInvalidationCount() << " invalidations." );
+      }
    }
 
    verbose ( "Joining threads... phase 2" );

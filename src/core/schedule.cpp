@@ -565,7 +565,7 @@ void Scheduler::workerClusterLoop ()
             ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
             thisNode->disableDevice( 1 ); 
             myClusterThread->clearCompletedWDsSMP2();
-            if ( ( (int) myClusterThread->numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() )
+            if ( myClusterThread->acceptsWDsSMP() )
             {
                WD * wd = getClusterWD( myThread, 0 );
                if ( wd )

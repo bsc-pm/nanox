@@ -265,3 +265,7 @@ void ClusterThread::unlock() {
 bool ClusterThread::tryLock() {
    return _lock.tryAcquire();
 }
+
+bool ClusterThread::acceptsWDsSMP() const {
+   return ( ( (int) numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() );
+}

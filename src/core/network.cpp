@@ -24,6 +24,7 @@
 #include "requestqueue.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "deviceops.hpp"
 
 using namespace nanos;
 
@@ -461,6 +462,7 @@ void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, 
    // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
    // TODO    invalidateDataFromDevice( (uint64_t) realTag, len, count, ld );
    // TODO }
+   //std::cerr << "ADD wd data for wd "<< wdId << " len " << len*count << std::endl;
    _recvWdData.addData( wdId, len*count );
    if ( from != 0 ) { /* check for delayed putReqs or gets */
       _waitingPutRequestsLock.acquire();

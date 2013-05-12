@@ -321,7 +321,7 @@ bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, unsi
 
 bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry << " version requested " << version<< std::endl;
+   //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
    return (regEntry) ? regEntry->isLocatedIn( loc ) : 0;
 }
 
@@ -349,6 +349,7 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
       //std::cerr << "SYNC DIR" << std::endl;
       //int c = 0;
       //print();
+      SeparateAddressSpaceOutOps outOps;
       std::set< DeviceOps * > ops;
       std::set< DeviceOps * > myOps;
       for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
@@ -366,56 +367,23 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
          //std::cerr << "}"<<std::endl;
          for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
             //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
-            if ( it->second->getRegionData( mit->first ) != NULL ) {
-               if ( !isLocatedIn( it->second, mit->first, 0 ) ) {
-                  NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *it->second, mit->first );
-                  //std::cerr << "\t" << mit->first << " " << mit->second << " "; it->second->printRegion( mit->first );  std::cerr <<" MUST SYNC. "<< *regEntry <<std::endl;
-                  DeviceOps *thisOps = regEntry->getOps();
-                  if ( thisOps->addCacheOp() ) {
-                     sys.getSeparateMemory( getFirstLocation( it->second, mit->first ) ).copyOut( global_reg_t( mit->first, it->second ), regEntry->getVersion() );
-                     myOps.insert( thisOps );
-                  } else {
-                     ops.insert( thisOps );
-                  }
-                  //regEntry->addAccess( 0, regEntry->getVersion() );
-               } else {
-                  //std::cerr << "\t" << mit->first << " " << mit->second <<" already in loc 0." <<std::endl;
-                  //std::cerr << "\t" << mit->first << " " << mit->second << " "; it->second->printRegion( mit->first );  std::cerr <<" already in loc 0. " <<std::endl;
-               }
-            } else if ( it->second->getRegionData( mit->second ) != NULL ) {
-               //   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *it->second, mit->second );
-                  //std::cerr << "\t" << mit->first << " " << mit->second << " "; it->second->printRegion( mit->first );  std::cerr <<" no data for first entry. "<< *regEntry <<std::endl;
-               //if ( !isLocatedIn( it->second, mit->second, 0, version ) ) {
-               //   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *it->second, mit->first );
-               //   std::cerr << "\t" << mit->first << " " << mit->second <<" MUST SYNC. "<< *regEntry <<std::endl;
-               //   sys.getCaches()[ getFirstLocation( it->second, mit->first ) ]->syncRegion( global_reg_t( mit->first, it->second ) );
-               //} else {
-               //   std::cerr << "\t" << mit->first << " " << mit->second <<" already in loc 0." <<std::endl;
-               //}
-            } else {
-               std::cerr << "FIXME" << std::endl;
+            global_reg_t reg( mit->first, it->second );
+            if ( !reg.isLocatedIn( 0 ) ) {
+              DeviceOps *thisOps = reg.getDeviceOps();
+              if ( thisOps->addCacheOp() ) {
+                 outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
+                 //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                 outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps );
+              } else {
+                 outOps.getOtherOps().insert( thisOps );
+              }
+              //regEntry->addAccess( 0, regEntry->getVersion() );
             }
          }
          //std::cerr << "=============================================================="<<std::endl;
       }
-      bool allDone = true;
-      do {
-         allDone = true;
-         for ( std::set< DeviceOps *>::iterator it = myOps.begin(); it != myOps.end(); it++ ) {
-            allDone = allDone && (*it)->allCompleted();
-         }
-         myThread->idle( true);
-      } while ( !allDone );
-      for ( std::set< DeviceOps *>::iterator it = myOps.begin(); it != myOps.end(); it++ ) {
-         (*it)->completeCacheOp();
-      }
-
-      do {
-         for ( std::set< DeviceOps *>::iterator it = ops.begin(); it != ops.end(); it++ ) {
-            allDone = (*it)->allCacheOpsCompleted();
-         }
-         myThread->idle( true);
-      } while ( !allDone );
+      outOps.issue( *( (WD *) NULL ) );
+      while ( !outOps.isDataReady() ) { myThread->idle(); }
    }
 }
 

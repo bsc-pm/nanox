@@ -175,3 +175,7 @@ bool global_reg_t::contains( global_reg_t const &reg ) const {
 bool global_reg_t::isLocatedIn( memory_space_id_t loc ) const {
    return NewNewRegionDirectory::isLocatedIn( key, id, loc );
 }
+
+unsigned int global_reg_t::getVersion() const {
+   return NewNewRegionDirectory::getVersion( key, id, false );
+}

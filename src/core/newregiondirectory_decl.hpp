@@ -31,7 +31,6 @@ namespace nanos
       private:
          int _writeLocation;
          int _invalidated;
-         DeviceOpsPtr _opsPtr;
          DeviceOps _ops;
          std::set< int > _location;
       public:

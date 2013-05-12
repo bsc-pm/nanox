@@ -60,13 +60,14 @@ typedef unsigned int reg_t;
 
    template < class T >
    class ContainerDense {
-      std::vector< T > _container;
-      Atomic<unsigned int> _leafCount;
-      Atomic<reg_t>                                 _idSeed;
-      std::vector< std::size_t >                    _dimensionSizes;
-      RegionNode                                    _root;
-      Lock _rogueLock;
+      std::vector< T >            _container;
+      Atomic<unsigned int>        _leafCount;
+      Atomic<reg_t>               _idSeed;
+      std::vector< std::size_t >  _dimensionSizes;
+      RegionNode                  _root;
+      Lock                        _rogueLock;
       Lock                        _lock;
+      Lock                        _invalidationsLock;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
@@ -82,6 +83,8 @@ typedef unsigned int reg_t;
       reg_t checkIfRegionExists( nanos_region_dimension_internal_t const region[] );
       reg_t getMaxRegionId() const;
       std::vector< std::size_t > const &getDimensionSizes() const;
+      void invalLock();
+      void invalUnlock();
    };
 
    template < template <class> class > class RegionDictionary;

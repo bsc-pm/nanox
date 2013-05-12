@@ -686,33 +686,36 @@ namespace nanos {
                   return;
                }
             }
-            { // then attempt a task of a remote node
-               unsigned int selectedNode = tdata._lastNodeScheduled;
-               //unsigned int selectedNodeCopy = selectedNode;
-               selectedNode = (selectedNode == 1) ? tdata._numNodes - 1 : selectedNode - 1;
-               //std::cerr <<"I can help with node " << selectedNode << " orig "<< selectedNodeCopy << " im node " << sys.getNetwork()->getNodeNum()<< std::endl;
 
-               tdata._lastNodeScheduled = selectedNode;
-               
-               BaseThread const *actualThread = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
-               BaseThread *actualThreadNC = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
 
-               if ( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getNodeNumber() != selectedNode ) {
-                  std::cerr <<"ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
-               }
-               
-               ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
+            // then attempt a task of a remote node
+            unsigned int selectedNode = tdata._lastNodeScheduled;
+            //unsigned int selectedNodeCopy = selectedNode;
+            selectedNode = (selectedNode == 1) ? tdata._numNodes - 1 : selectedNode - 1;
+            //std::cerr <<"I can help with node " << selectedNode << " orig "<< selectedNodeCopy << " im node " << sys.getNetwork()->getNodeNum()<< std::endl;
 
+            tdata._lastNodeScheduled = selectedNode;
+            
+            BaseThread const *actualThread = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
+            BaseThread *actualThreadNC = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
+
+            if ( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getNodeNumber() != selectedNode ) {
+               std::cerr <<"ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
+            }
+            
+            ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
+
+            if ( actualClusterThread->acceptsWDsSMP() ) {
                if ( actualClusterThread->tryLock() ) {
                   //std::cerr << __FUNCTION__ << ":" << __LINE__ << " picking WD to initialize... " << std::endl;
 
                   if ( data._fetch < 1 ) {
                      if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<SiCopySiMasterInit> ( actualThread ) ) != NULL ) {
                         NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-                        NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTERINIT ;)
-                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                  //std::cerr << __FUNCTION__ << ":" << __LINE__ << " n:" << selectedNode << " SiCopySiMasterInit: wdId " << wd->getId() << std::endl;
-                        wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+                           NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTERINIT ;)
+                           NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                           //std::cerr << __FUNCTION__ << ":" << __LINE__ << " n:" << selectedNode << " SiCopySiMasterInit: wdId " << wd->getId() << std::endl;
+                           wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
                         tdata._readyQueuesAlreadyInit[selectedNode].push_back( wd );
 
                         data._helped++;
@@ -722,13 +725,12 @@ namespace nanos {
                      }
                   }
 
-                  //if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<AlreadyDataInit> ( actualThread ) ) != NULL ) {
                   if ( ( wd = tdata._readyQueuesAlreadyInit[selectedNode].pop_front( actualThreadNC ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                  //std::cerr << __FUNCTION__ << ":" << __LINE__ << " n:" << selectedNode << " AlreadyDataInit: wdId " << wd->getId() << std::endl;
-                     actualClusterThread->addRunningWDSMP( wd );
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        //std::cerr << __FUNCTION__ << ":" << __LINE__ << " n:" << selectedNode << " AlreadyDataInit: wdId " << wd->getId() << std::endl;
+                        actualClusterThread->addRunningWDSMP( wd );
                      Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
                      actualClusterThread->outlineWorkDependent(*wd);
 
@@ -739,11 +741,11 @@ namespace nanos {
 
                   if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints<SiCopyNoMasterInit> ( actualThread ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
-                  //std::cerr << __FUNCTION__ << ":" << __LINE__ << " n:" << selectedNode << " SiCopyNoMasterInit: wdId " << wd->getId() << std::endl;
-                     wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        //std::cerr <<"help init wd "<< wd->getId() << " TC " << (void *) wd->_mcontrol._targetCache <<std::endl;
+                        //std::cerr << __FUNCTION__ << ":" << __LINE__ << " n:" << selectedNode << " SiCopyNoMasterInit: wdId " << wd->getId() << std::endl;
+                        wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
 
                      //std::cerr << "add running wd "<<std::endl;
                      actualClusterThread->addRunningWDSMP( wd );

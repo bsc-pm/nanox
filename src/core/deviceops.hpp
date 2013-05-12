@@ -8,112 +8,44 @@
 
 using namespace nanos;
 
-inline DeviceOpsPtr::DeviceOpsPtr( DeviceOpsPtr const &p ) {
-   DeviceOps *tmpValue = p._value;
-   _value = NULL;
-   if ( tmpValue != NULL ) {
-      if ( tmpValue->addRef( this, const_cast<DeviceOpsPtr &>( p ) ) )
-         _value = tmpValue;
-   }
-}
-
-inline DeviceOpsPtr::DeviceOpsPtr( DeviceOpsPtr &p ) {
-   DeviceOps *tmpValue = p._value;
-   _value = NULL;
-   if ( tmpValue != NULL ) {
-      if ( tmpValue->addRef( this, p ) )
-         _value = tmpValue;
-   }
-}
-
-inline DeviceOpsPtr::~DeviceOpsPtr() {
-   if ( _value != NULL)  {
-      _value->delRef( this );
-   }
-}
-
-inline DeviceOpsPtr & DeviceOpsPtr::operator=( DeviceOpsPtr const &p ) {
-   DeviceOps *tmpValue = p._value;
-   _value = NULL;
-   if ( tmpValue != NULL ) {
-      if ( tmpValue->addRef( this, const_cast<DeviceOpsPtr &>( p ) ) )
-         _value = tmpValue;
-   }
-   return *this;
-}
-
-inline DeviceOpsPtr & DeviceOpsPtr::operator=( DeviceOpsPtr &p ) {
-   DeviceOps *tmpValue = p._value;
-   _value = NULL;
-   if ( tmpValue != NULL ) {
-      if ( tmpValue->addRef( this, p ) )
-         _value = tmpValue;
-   }
-   return *this;
-}
-
-inline void DeviceOpsPtr::set( DeviceOps *ops ) {
-   _value = ops;
-   _value->addFirstRef( this );
-}
-
-inline DeviceOps *DeviceOpsPtr::get() const {
-   return _value;
-}
-
-inline void DeviceOpsPtr::clear() {
-   _value = NULL;
-}
-
-inline bool DeviceOpsPtr::isNotSet() const {
-   return _value == NULL;
-}
-
-inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ), _lock(), _refs() {
+inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ), _lock()/*, _refs()*/ {
 }
 
 inline DeviceOps::~DeviceOps() {
 }
 
-inline unsigned int DeviceOps::getNumOps() {
-   _lock.acquire();
-   unsigned int val = _pendingDeviceOps.value();
-   _lock.release();
-   return val;
-}
-
 inline void DeviceOps::addOp() {
-   _lock.acquire();
    _pendingDeviceOps++;
-   _lock.release();
 }
 
 inline bool DeviceOps::allCompleted() {
-   _lock.acquire();
    bool b = ( _pendingDeviceOps.value() == 0);
-   _lock.release();
    return b;
 }
 
-
 inline bool DeviceOps::addCacheOp() {
-   return _pendingCacheOp.tryAcquire();
+   bool b = _pendingCacheOp.tryAcquire();
+   return b;
 }
 
 inline bool DeviceOps::allCacheOpsCompleted() {
    return _pendingCacheOp.getState() == NANOS_LOCK_FREE;
 }
 
-inline void DeviceOps::delRef( DeviceOpsPtr *opsPtr ) {
-  _lock.acquire();
-  _refs.erase( opsPtr );
-  _lock.release();
+inline void DeviceOps::syncAndDisableInvalidations() {
+   _lock.acquire();
 }
 
-inline void DeviceOps::addFirstRef( DeviceOpsPtr *opsPtr ) {
-   _lock.acquire();
-   _refs.insert( opsPtr );
+inline void DeviceOps::resumeInvalidations() {
    _lock.release();
+}
+
+inline void DeviceOps::completeOp() {
+   _pendingDeviceOps--;
+}
+
+inline void DeviceOps::completeCacheOp() {
+   _pendingCacheOp.release();
 }
 
 #endif /* DEVICEOPS_HPP */

@@ -12,39 +12,22 @@ namespace nanos {
          Atomic<unsigned int> _pendingDeviceOps;
          Lock _pendingCacheOp;
          Lock _lock;
-         std::set<DeviceOpsPtr *> _refs;
       public:
          DeviceOps();
          ~DeviceOps();
          void completeOp();
          void addOp();
-         unsigned int getNumOps() ;
          bool allCompleted() ;
-         bool addRef( DeviceOpsPtr *opsPtr, DeviceOpsPtr &p );
-         void delRef( DeviceOpsPtr *opsPtr );
-         void addFirstRef( DeviceOpsPtr *opsPtr );
 
          bool addCacheOp();
          void completeCacheOp();
          bool allCacheOpsCompleted();
-   };
-   
-   class DeviceOpsPtr {
-      private:
-         DeviceOps *_value;
-      public:
-         DeviceOpsPtr() : _value( NULL ) {}
-         DeviceOpsPtr( DeviceOpsPtr const &p );
-         DeviceOpsPtr( DeviceOpsPtr &p );
-         ~DeviceOpsPtr();
-         DeviceOpsPtr & operator=( DeviceOpsPtr const &p );
-         DeviceOpsPtr & operator=( DeviceOpsPtr &p );
-         //DeviceOps & operator*() const;
-         //DeviceOps * operator->() const;
-         void set( DeviceOps *ops );
-         DeviceOps *get() const;
-         void clear();
-         bool isNotSet() const;
+
+         bool setInvalidating();
+         void clearInvalidating();
+
+         void syncAndDisableInvalidations();
+         void resumeInvalidations();
    };
 }
 #endif /* DEVICEOPS_DECL_HPP */

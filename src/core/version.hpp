@@ -39,4 +39,8 @@ inline void Version::setVersion( unsigned int version ) {
    }
    _version = version;
 }
+
+inline void Version::resetVersion() {
+   _version = 0;
+}
 #endif /* VERSION_HPP */

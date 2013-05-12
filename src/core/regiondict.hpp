@@ -79,6 +79,16 @@ reg_t ContainerDense< T >::getMaxRegionId() const {
 }
 
 template <class T>
+void ContainerDense< T >::invalLock() {
+   return _invalidationsLock.acquire();
+}
+
+template <class T>
+void ContainerDense< T >::invalUnlock() {
+   return _invalidationsLock.release();
+}
+
+template <class T>
 ContainerSparse< T >::ContainerSparse( RegionDictionary< ContainerDense > &orig ) : _container(), _orig( orig ), sparse( true ) {
 }
 

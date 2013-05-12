@@ -4,10 +4,10 @@
 #include "version.hpp"
 using namespace nanos; 
 
-inline CachedRegionStatus::CachedRegionStatus() : Version(), _ops() {
+inline CachedRegionStatus::CachedRegionStatus() : Version(), _ops(), _dirty( false ) {
 }
 
-inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus const &rs ) : Version( rs ), _ops ( ) {
+inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus const &rs ) : Version( rs ), _ops ( ), _dirty( rs._dirty ) {
 }
 
 inline DeviceOps *CachedRegionStatus::getDeviceOps() {
@@ -16,22 +16,26 @@ inline DeviceOps *CachedRegionStatus::getDeviceOps() {
 
 inline CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus const &rs ) {
    Version::operator=(rs);
+   _dirty = rs._dirty;
    return *this;
 }
 
-inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus &rs ) : Version( rs ), _ops () {
+inline CachedRegionStatus::CachedRegionStatus( CachedRegionStatus &rs ) : Version( rs ), _ops (), _dirty( rs._dirty ) {
 }
 
 inline CachedRegionStatus &CachedRegionStatus::operator=( CachedRegionStatus &rs ) {
-   _waitObject = rs._waitObject;
+   Version::operator=(rs);
+   _dirty = rs._dirty;
    return *this;
 }
 
-inline void CachedRegionStatus::setCopying( DeviceOps *ops ) {
-   _waitObject.set( ops );
+inline bool CachedRegionStatus::isDirty() const {
+   return _dirty;
 }
-
-inline bool CachedRegionStatus::isReady( ) {
-   return _waitObject.isNotSet();
+inline void CachedRegionStatus::setDirty() {
+   _dirty = true;
+}
+inline void CachedRegionStatus::clearDirty() {
+   _dirty = false;
 }
 #endif /* CACHEDREGIONSTATUS_HPP */

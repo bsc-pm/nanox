@@ -97,6 +97,8 @@ namespace ext
          virtual void initializeDependent( void );
 
          virtual void switchToNextThread();
+
+      bool acceptsWDsSMP() const;
    };
 
 

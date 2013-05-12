@@ -47,14 +47,17 @@ bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &ver
             }
             resultSUBR = true;
             version = versionSUBR;
+            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS FORM THIS REG!!! and version computed is " << version << std::endl;
          }
       }
       if ( !resultSUBR && ( resultSUPER || resultHIT ) ) {
          if ( versionHIT >= versionSUPER ) {
             version = versionHIT;
+            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS HIT!!! and version computed is " << version << std::endl;
             locations.push_back( std::make_pair( reg.id, reg.id ) );
          } else {
             version = versionSUPER;
+            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
             locations.push_back( std::make_pair( reg.id, superPart ) );
             NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
             NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
@@ -96,13 +99,16 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
       _inOps = NEW SeparateAddressSpaceInOps( sys.getSeparateMemory( _memorySpaceId ) );
    }
    
- //std::cerr << "### copyDataIn wd " << _wd.getId() << std::endl; 
-//   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-//      _memCacheCopies[ index ].getVersionInfo();
-//  //    std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
-//   }
+   //if ( sys.getNetwork()->getNodeNum() == 0 ) {
+   //   std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << std::endl; 
+   //   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+   //      std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
+   //   }
+   //}
+
+   _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
    
-   if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;
+   //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       _memCacheCopies[ index ].generateInOps2( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
    }
@@ -110,7 +116,9 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
    NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
    NANOS_INSTRUMENT( inst5.close(); );
- //std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
+   //if ( sys.getNetwork()->getNodeNum() == 0 ) {
+   //   std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
+   //}
    NANOS_INSTRUMENT( inst2.close(); );
 }
 
@@ -125,14 +133,18 @@ void MemController::copyDataOut( ) {
 
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
    } else {
-      _outOps = NEW SeparateAddressSpaceOutOps( sys.getSeparateMemory( _memorySpaceId ) );
+      _outOps = NEW SeparateAddressSpaceOutOps();
 
       for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
          _memCacheCopies[ index ].generateOutOps( *_outOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput() );
       }
 
-      if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;
-      _outOps->issue( _wd, _memCacheCopies );
+      //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;
+      _outOps->issue( _wd );
+
+      for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+         sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd ) ;
+      }
    }
 }
 
@@ -148,7 +160,6 @@ uint64_t MemController::getAddress( unsigned int index ) const {
 }
 
 void MemController::getInfoFromPredecessor( MemController const &predecessorController ) {
-   //std::cerr << _wd.getId() <<" checking predecessor info from " << predecessorController._wd.getId() << std::endl;
    _provideLock.acquire();
    for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
       std::map< reg_t, unsigned int > &regs = _providedRegions[ predecessorController._memCacheCopies[ index ]._reg.key ];

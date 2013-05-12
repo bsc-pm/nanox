@@ -72,12 +72,8 @@ inline void RegionCache::increaseLruTime() {
 
 inline bool RegionCache::pin( global_reg_t const &hostMem ) {
    bool result = false;
-   //uint64_t targetHostAddr = hostMem.getFirstAddress();
-   //std::size_t allocSize = hostMem.getDataSize();
    AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
    if ( entry ) {
-     global_reg_t reg = entry->getAllocatedRegion();
-   std::cerr << "+p [" << 0 << "," << _memorySpaceId << ","<< entry->getReferenceCount() <<"] " << (void*) entry << " "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
       entry->addReference();
       entry->unlock();
       result = true;
@@ -86,17 +82,18 @@ inline bool RegionCache::pin( global_reg_t const &hostMem ) {
 }
 
 inline void RegionCache::unpin( global_reg_t const &hostMem ) {
-   //uint64_t targetHostAddr = hostMem.getFirstAddress();
-   //std::size_t allocSize = hostMem.getDataSize();
    AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
    if ( entry ) {
-     global_reg_t reg = entry->getAllocatedRegion();
-   std::cerr << "-p [" << 0 << "," << _memorySpaceId << ","<< entry->getReferenceCount() <<"] " << (void *) entry << " "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
       entry->removeReference();
       entry->unlock();
    } else {
       fprintf(stderr, "could not get a CacheEntry!\n");
    }
 }
+
+inline unsigned int RegionCache::getInvalidationCount() const {
+   return _invalidationCount.value();
+}
+
 
 #endif /* REGIONCACHE_HPP */

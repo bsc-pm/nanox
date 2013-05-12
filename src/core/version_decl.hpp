@@ -13,6 +13,7 @@ namespace nanos {
          unsigned int getVersion() const;
          unsigned int getVersion(bool increaseVersion);
          void setVersion( unsigned int version );
+         void resetVersion();
    };
 }
 #endif /* VERSION_DECL_HPP */

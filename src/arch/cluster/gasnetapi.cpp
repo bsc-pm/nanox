@@ -598,6 +598,7 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
       NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
       for ( int i = 0; i < count; i += 1 ) {
          ::memcpy( &realAddrPtr[ i * ld ], &localAddrPtr[ i * size ], size );
+         //if (i == 0)fprintf(stderr, "amPutStrided1D: dst[%p]=%f buff[%p]=%f\n", &realAddrPtr[ i * ld], *((double*)&realAddrPtr[i*ld]), &localAddrPtr[i*size], *((double*)&localAddrPtr[i*size]) );
       }
       NANOS_INSTRUMENT( inst2.close(); );
       uintptr_t localAddr = ( ( uintptr_t ) buf ) + ( ( uintptr_t ) len ) - ( uintptr_t ) totalLen;

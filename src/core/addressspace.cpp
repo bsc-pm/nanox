@@ -23,9 +23,9 @@ bool HostAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int ve
 void HostAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version ) {
 }
 
-void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd ) {
+void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {
    if ( reg.setCopying( from ) ) {
-     from.copyOut( reg, version );
+     from.copyOut( reg, version, ops );
    } else {
      reg.waitCopy();
    } 
@@ -51,6 +51,9 @@ void HostAddressSpace::synchronize( bool flushData ) {
    _directory.synchronize2( flushData );
 }
 
+memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
+   return 0;
+}
 
 SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch ) : _cache( memorySpaceId, arch, RegionCache::ALLOC_FIT ), _nodeNumber( 0 )  {
 }
@@ -64,16 +67,16 @@ void SeparateAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned
    _cache.unpin( reg );
 }
 
-void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version ) {
-   _cache.NEWcopyOut( reg, version, *((WD*)NULL) );
+void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops ) {
+   _cache.NEWcopyOut( reg, version, *((WD*)NULL), ops );
 }
 
-void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd ) {
-   _cache.NEWcopyIn( from._cache.getMemorySpaceId(), reg, version, wd );
+void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {
+   _cache.NEWcopyIn( from._cache.getMemorySpaceId(), reg, version, wd, ops );
 }
 
-void SeparateAddressSpace::doOp( HostMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd ) {
-   _cache.NEWcopyIn( 0, reg, version, wd );
+void SeparateAddressSpace::doOp( HostMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {
+   _cache.NEWcopyIn( 0, reg, version, wd, ops );
 }
 
 void SeparateAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {
@@ -84,9 +87,13 @@ void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_
    std::cerr << "unimplemented" << std::endl;
 }
 
-void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
-   _cache.prepareRegion( reg, wd );
+void SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   _cache.prepareRegions( memCopies, numCopies, wd );
 }
+
+//void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
+//   _cache.prepareRegion( reg, wd );
+//}
 
 unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg ) {
    return _cache.getVersion( reg );
@@ -96,13 +103,13 @@ void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd 
    _cache.releaseRegion( reg, wd );
 }
 
-void SeparateAddressSpace::copyFromHost( TransferListType list, WD const &wd ) {
-   for ( TransferListType::iterator it = list.begin(); it != list.end(); it++ ) {
-      if ( sys.getHostMemory().lockForTransfer( it->first, it->second ) ) {
-         this->doOp( sys.getHostMemory(), it->first, it->second, wd );
-         sys.getHostMemory().releaseForTransfer( it->first, it->second );
+void SeparateAddressSpace::copyFromHost( TransferList list, WD const &wd ) {
+   for ( TransferList::const_iterator it = list.begin(); it != list.end(); it++ ) {
+      if ( sys.getHostMemory().lockForTransfer( it->getRegion(), it->getVersion() ) ) {
+         this->doOp( sys.getHostMemory(), it->getRegion(), it->getVersion(), wd, it->getDeviceOps() );
+         sys.getHostMemory().releaseForTransfer( it->getRegion(), it->getVersion() );
       } else {
-         this->failToLock( sys.getHostMemory(), it->first, it->second );
+         this->failToLock( sys.getHostMemory(), it->getRegion(), it->getVersion() );
       }
    }
 }
@@ -142,6 +149,14 @@ RegionCache &SeparateAddressSpace::getCache() {
 ProcessingElement &SeparateAddressSpace::getPE() {
    memory_space_id_t id = _cache.getMemorySpaceId();
    return sys.getPEWithMemorySpaceId( id );
+}
+
+memory_space_id_t SeparateAddressSpace::getMemorySpaceId() const {
+   return _cache.getMemorySpaceId();
+}
+
+unsigned int SeparateAddressSpace::getInvalidationCount() const {
+   return _cache.getInvalidationCount();
 }
 
 }
