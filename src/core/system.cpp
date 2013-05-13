@@ -67,6 +67,7 @@ System::System () :
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
       , _enableEvents(), _disableEvents(), _instrumentDefault("default")
+      , _lockPoolSize(37), _lockPool( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -104,6 +105,8 @@ System::System () :
       // No number of PEs given? Use 1 thread per PE
       setNumPEs(  _numThreads );
    }
+
+   _lockPool = NEW Lock[_lockPoolSize];
 
    if ( !_delayedStart ) {
       start();

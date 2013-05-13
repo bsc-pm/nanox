@@ -182,6 +182,7 @@ NANOS_API_DECL(nanos_err_t, nanos_set_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_unset_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result ));
 NANOS_API_DECL(nanos_err_t, nanos_destroy_lock, ( nanos_lock_t *lock ));
+NANOS_API_DECL(nanos_err_t, nanos_get_lock_address, ( void *addr, nanos_lock_t **lock ));
 
 // Device copies
 NANOS_API_DECL(nanos_err_t, nanos_set_copies, (nanos_wd_t wd, int num_copies, nanos_copy_data_t *copies));

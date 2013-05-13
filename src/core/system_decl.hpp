@@ -179,6 +179,9 @@ namespace nanos
          std::list<std::string>    _disableEvents; //FIXME: only in instrumentation
          std::string               _instrumentDefault; //FIXME: only in instrumentation
 
+         const int                 _lockPoolSize;
+         Lock *                    _lockPool;
+
          // disable copy constructor & assignment operation
          System( const System &sys );
          const System & operator= ( const System &sys );
@@ -501,6 +504,8 @@ namespace nanos
           *  \param cfg Config object.
           */
          void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
+
+         Lock * getLockAddress(void *addr ) const;
    };
 
    extern System sys;

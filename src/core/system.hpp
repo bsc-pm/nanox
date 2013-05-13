@@ -433,5 +433,7 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
 
+inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((long long)addr)>>8)%_lockPoolSize)];} ;
+
 #endif
 
