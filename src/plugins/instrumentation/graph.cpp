@@ -100,8 +100,8 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                 for( std::map<int, double>::iterator it = _wd_id_to_time_map.begin( );
                     it != _wd_id_to_time_map.end( ); ++it )
                 {
-                    _dot_file << "  " << it->first << "[width=" << (double)(it->second/time_avg)
-                                                << ", height=" << (double)(it->second/time_avg) << "];\n";
+                    double size = std::max( 0.01, std::abs( (double)(it->second/time_avg) ) );
+                    _dot_file << "  " << it->first << "[width=" << size << ", height=" << size << "];\n";
                 }
             }
 
@@ -164,7 +164,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
          // Create the graph image from the dot file
          std::string command = "dot -Tpdf " + std::string( dot_file_name ) + " -o " + std::string( pdf_file_name );
          if ( system( command.c_str( ) ) != 0 ) {
-            warning( "dot command failed" );
+            warning( "Could not create the pdf file" );
          }
       }
 
