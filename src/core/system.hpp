@@ -439,16 +439,14 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
 
-<<<<<<< HEAD
 inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((long long)addr)>>8)%_lockPoolSize)];} ;
-=======
+
 inline bool System::dlbEnabled() const { return _enable_dlb; }
 
 inline bool System::haveDependencePendantWrites ( void *addr ) const
 {
    return myThread->getCurrentWD()->getDependenciesDomain().haveDependencePendantWrites ( addr );
 }
->>>>>>> 82b7a3a2c9b9a3c1013fa4b575ec9d3fffa3bcfa
 
 #endif
 
