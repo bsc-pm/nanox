@@ -55,7 +55,7 @@ int main ( int argc, char *argv[])
    // test
    CPU_SET( 0, &nanos_mask2 );
    CPU_SET( 1, &nanos_mask2 );
-   sys.setCpuMask( &nanos_mask2 );
+   sys.setCpuMask( &nanos_mask2, true );
    sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask2 );
    if ( myThread->getTeam()->size() != 2 ) error++;
 

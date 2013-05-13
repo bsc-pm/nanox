@@ -25,19 +25,19 @@ program=""
 
 while [ "$1" ]; do
   case $1 in
-    "--ins")
+    "--ins" | "--instrument")
       program="nanox-ins"
       shift
       ;;
-    "--pfm")
+    "--pfm" | "--performance")
       program="nanox-pfm"
       shift
       ;;
-    "--dbg")
+    "--dbg" | "--debug")
       program="nanox-dbg"
       shift
       ;;
-    "--ins-dbg")
+    "--ins-dbg" | "--instrument --debug" | "--debug --instrument")
       program="nanox-ins-dbg"
       shift
       ;;

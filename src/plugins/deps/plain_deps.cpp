@@ -238,6 +238,18 @@ namespace nanos {
             {
                submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
             }
+
+            bool haveDependencePendantWrites ( void *addr )
+            {
+               DepsMap::iterator it = _addressDependencyMap.find( addr ); 
+               if ( it == _addressDependencyMap.end() ) {
+                  return false;
+               } else {
+                  TrackableObject* status = it->second;
+                  DependableObject *lastWriter = status->getLastWriter();
+                  return (lastWriter != NULL);
+               }
+            }
             
          
       };

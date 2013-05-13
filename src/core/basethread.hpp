@@ -100,7 +100,7 @@ namespace nanos
 
    inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
       _id( sys.nextThreadId() ), _name("Thread"), _description(""), _pe( creator ), _threadWD( wd ),
-      _maxPrefetch( 1 ), _nextWDs(), _nextWDsCounter( 0 ), _started( false ), _mustStop( false ),
+      _maxPrefetch( 1 ), _nextWDs(), _started( false ), _mustStop( false ),
       _mustSleep( false ), _paused( false ), _currentWD( NULL), _hasTeam( false ), _teamData(NULL),
       _nextTeamData(NULL), _allocator() { }
 
@@ -148,18 +148,18 @@ namespace nanos
 
    inline void BaseThread::setMaxPrefetch ( int max ) { _maxPrefetch = max; }
 
-   inline bool BaseThread::canPrefetch () const { return _nextWDsCounter < _maxPrefetch; }
+   inline bool BaseThread::canPrefetch () const { return _nextWDs.size() < _maxPrefetch; }
 
    inline bool BaseThread::hasNextWD () { return !_nextWDs.empty(); }
  
    // team related methods
-   inline void BaseThread::reserve() { _hasTeam = 1; }
+   inline void BaseThread::reserve() { _hasTeam = true; }
  
    inline void BaseThread::enterTeam( TeamData *data )
    { 
       if ( data != NULL ) _teamData = data;
       else _teamData = _nextTeamData;
-      _hasTeam=1;
+      _hasTeam = true;
    }
  
    inline bool BaseThread::hasTeam() const { return _hasTeam; }

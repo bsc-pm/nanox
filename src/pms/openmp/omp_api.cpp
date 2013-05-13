@@ -18,6 +18,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <sched.h>
 #include "basethread.hpp"
 #include "threadteam.hpp"
 #include "system.hpp"
@@ -49,9 +50,7 @@ extern "C"
 
    void omp_set_num_threads( int nthreads )
    {
-      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      data->icvs()->setNumThreads( nthreads );
-      sys.getPMInterface().updateNumThreads();
+      sys.getPMInterface().setNumThreads( nthreads );
    }
 
    void omp_set_num_threads_(int *nthreads);
@@ -220,5 +219,48 @@ extern "C"
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
       return (int)data->isFinal();
    }
-}
 
+   NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
+   {
+      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+
+      if ( threads_requested <= 0 ) {
+         threads_requested = data->icvs()->getNumThreads();
+      }
+
+      int num_threads = 0;
+      int threads_busy = 1; // FIXME: Should we keep track of it?
+      int active_parallel_regions = getMyThreadSafe()->getTeam()->getLevel();
+      int threads_available = globalState->getThreadLimit() - threads_busy + 1;
+
+      if ( active_parallel_regions >= 1 && !data->icvs()->getNested() ) {
+         num_threads = 1;
+      }
+      else if ( active_parallel_regions == globalState->getMaxActiveLevels() ) {
+         num_threads = 1;
+      }
+      else if ( threads_requested > threads_available ) {
+         num_threads = threads_available;
+      }
+      else {
+         num_threads = threads_requested;
+      }
+
+      return num_threads;
+   }
+
+   NANOS_API_DEF(void, nanos_omp_get_mask, ( cpu_set_t *cpu_set ))
+   {
+      sys.getPMInterface().getCpuMask( cpu_set );
+   }
+
+   NANOS_API_DEF(void, nanos_omp_set_mask, ( const cpu_set_t *cpu_set ))
+   {
+      sys.getPMInterface().setCpuMask( cpu_set );
+   }
+
+   NANOS_API_DEF(void, nanos_omp_add_mask, ( const cpu_set_t *cpu_set ))
+   {
+      sys.getPMInterface().addCpuMask( cpu_set );
+   }
+}

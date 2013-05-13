@@ -64,6 +64,12 @@ inline const std::string & DependenciesManager::getName () const
    return _name;
 }
 
+inline bool DependenciesDomain::haveDependencePendantWrites ( void *addr )
+{
+   fatal("haveDependencePendantWrites service has not been implemented in that dependence plugin!");
+   return true;
+}
+
 }
 
 #endif

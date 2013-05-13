@@ -17,10 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+// FIXME: add priority queue option to this benchmark see #807
 /*
 <testinfo>
 test_generator=gens/api-omp-generator
-test_schedule=priority
+test_schedule=bf
+test_ignore_fail=yes
 </testinfo>
 */
 

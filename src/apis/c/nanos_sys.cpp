@@ -45,36 +45,6 @@ NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_get_mask, ( cpu_set_t *cpu_set ))
-{
-   try {
-      sys.getCpuMask( cpu_set );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_set_mask, ( cpu_set_t *cpu_set ))
-{
-   try {
-      sys.setCpuMask( cpu_set );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_add_mask, ( cpu_set_t *cpu_set ))
-{
-   try {
-      sys.addCpuMask( cpu_set );
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-   return NANOS_OK;
-}
-
 NANOS_API_DEF(nanos_err_t, nanos_delay_start, ())
 {
    try {

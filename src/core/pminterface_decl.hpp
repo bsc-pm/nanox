@@ -59,7 +59,11 @@ class PMInterface
       virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
       std::string getDescription( void ) { return _description; }
 
-      virtual void updateNumThreads() {}
+      virtual void setNumThreads( int nthreads ) {}
+
+      virtual void getCpuMask( cpu_set_t *cpu_set ) {}
+      virtual void setCpuMask( const cpu_set_t *cpu_set ) {}
+      virtual void addCpuMask( const cpu_set_t *cpu_set ) {}
 };
 
 #endif /* PM_INTERFACE_HPP_ */

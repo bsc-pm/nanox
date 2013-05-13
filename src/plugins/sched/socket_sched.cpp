@@ -219,7 +219,7 @@ namespace nanos {
                   }
 #endif
                   // Avoid unused variable warning.
-                  worker = NULL;
+                  worker = worker;
                }
                // Initialise the structure that will cycle through gpu nodes
                // when giving away GPU tasks

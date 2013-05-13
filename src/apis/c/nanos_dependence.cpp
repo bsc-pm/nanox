@@ -37,10 +37,11 @@ using namespace nanos;
  */
 NANOS_API_DEF(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *addr ))
 {
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","dependence_pendant_writes",NANOS_RUNTIME) );
    try {
-      *res = true;
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
+      *res = ( bool ) sys.haveDependencePendantWrites( addr );
+   } catch ( nanos_err_t e) {
+      return e;                                                                                                                          
    }
    return NANOS_OK;
 }

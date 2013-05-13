@@ -20,7 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/mixed-generator
-test_schedule=cilk
+test_schedule=wf
 </testinfo>
 */
 

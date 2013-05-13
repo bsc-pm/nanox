@@ -163,7 +163,9 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
          // Create the graph image from the dot file
          std::string command = "dot -Tpdf " + std::string( dot_file_name ) + " -o " + std::string( pdf_file_name );
-         system( command.c_str( ) );
+         if ( system( command.c_str( ) ) != 0 ) {
+            warning( "dot command failed" );
+         }
       }
 
       void disable( void ) {}
@@ -265,7 +267,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                     std::string description = iD->getValueDescription( user_funct_location, e.getValue( ) );
                     int pos2 = description.find_first_of( "(" );
                     int pos1 = description.find_last_of ( " ", pos2 );
-                    _funct_id_to_funct_decl_map[ e.getValue( ) ] = description.substr( pos1+1, pos2-pos1-1 );
+                    _funct_id_to_funct_decl_map[ e.getValue( ) ] = '\"' + description.substr( pos1+1, pos2-pos1-1 ) + '\"';
                 }
             }
          }

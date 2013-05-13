@@ -247,6 +247,7 @@ namespace nanos {
             registerEventValue("api","get_num_nonready_tasks","nanos_get_num_nonready_tasks()");
             registerEventValue("api","get_num_blocked_tasks","nanos_get_num_blocked_tasks()");
             registerEventValue("api","get_num_running_tasks","nanos_get_num_running_tasks()");
+            registerEventValue("api","dependence_pendant_writes","nanos_dependence_pendant_writes()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 

@@ -93,6 +93,8 @@ namespace nanos
          int                  _coresPerSocket;
          //! The socket that will be assigned to the next WD
          int                  _currentSocket;
+         //! Enable Dynamic Load Balancing library
+         bool                 _enable_dlb;
 
 	 // Nanos++ scheduling domain
          cpu_set_t            _cpu_set;
@@ -178,6 +180,7 @@ namespace nanos
          std::list<std::string>    _enableEvents;  //FIXME: only in instrumentation
          std::list<std::string>    _disableEvents; //FIXME: only in instrumentation
          std::string               _instrumentDefault; //FIXME: only in instrumentation
+         bool                      _enable_cpuid_event; //FIXME: only in instrumentation
 
          const int                 _lockPoolSize;
          Lock *                    _lockPool;
@@ -194,6 +197,7 @@ namespace nanos
          void increaseActiveWorkers( unsigned nthreads );
          void decreaseActiveWorkers( unsigned nthreads );
          void applyCpuMask();
+         void updateCpuMask( bool apply );
          
          void loadHwloc();
          void unloadHwloc();
@@ -252,9 +256,9 @@ namespace nanos
 
          void getCpuMask ( cpu_set_t *mask ) const;
 
-         void setCpuMask ( cpu_set_t *mask );
+         void setCpuMask ( const cpu_set_t *mask, bool apply );
 
-         void addCpuMask ( cpu_set_t *mask );
+         void addCpuMask ( const cpu_set_t *mask, bool apply );
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
@@ -354,6 +358,13 @@ namespace nanos
           * Uses hwloc if available, and also checks if both settings make sense.
           */
          void loadNUMAInfo ();
+
+         /**
+          * \brief Verifies that NUMA-related arguments (and others, possibly)
+          * make sense, such as the number of cores per node, number of nodes,
+          * and number of threads.
+          */
+         void checkArguments ();
          
          /** \brief Retrieves the NUMA node of a given PE.
           *  \note Will use hwloc if available.
@@ -368,6 +379,8 @@ namespace nanos
          bool getSynchronizedStart ( void ) const;
 
          int nextThreadId ();
+
+         bool dlbEnabled() const;
 
          // team related methods
          BaseThread * getUnassignedWorker ( void );
@@ -409,6 +422,8 @@ namespace nanos
          Instrumentation * getInstrumentation ( void ) const;
 
          void setInstrumentation ( Instrumentation *instr );
+
+         bool isCpuidEventEnabled ( void ) const;
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 
@@ -505,7 +520,16 @@ namespace nanos
           */
          void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
 
+         /*! \brief Returns one of the system lock (belonging to the pool of locks)
+          */
          Lock * getLockAddress(void *addr ) const;
+
+         /*! \brief Returns if there are pendant writes for a given memory address
+          *
+          *  \param [in] addr memory address
+          *  \return {True/False} depending if there are pendant writes
+          */
+         bool haveDependencePendantWrites ( void *addr ) const;
    };
 
    extern System sys;
