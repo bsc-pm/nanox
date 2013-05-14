@@ -27,6 +27,7 @@ using namespace nanos::ext;
 bool OpenCLConfig::_disableOpenCL = false;
 int OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
+unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 
 std::vector<cl_device_id> OpenCLConfig::_devices;
@@ -166,6 +167,7 @@ void OpenCLConfig::apply(std::string &_devTy)
          if( available && _devices.size()<_devNum)
            _devices.push_back( *j );
       }
+	  _currNumDevices=_devices.size();
 
       delete [] devs;
    }
