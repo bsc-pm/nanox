@@ -27,7 +27,7 @@ instrdebug_LTLIBRARIES = \
  	libnanox-sched-wf.la \
  	libnanox-sched-affinity.la \
  	libnanox-sched-versioning.la \
- 	libnanox-sched-priority.la \
+ 	libnanox-sched-affinity-smartpriority.la \
  	libnanox-sched-socket.la \
 	$(END)
 
