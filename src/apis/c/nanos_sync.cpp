@@ -324,6 +324,19 @@ NANOS_API_DEF(nanos_err_t, nanos_memory_fence, (void))
     nanos::memoryFence();
     return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_get_lock_address, ( void *addr, nanos_lock_t **lock ))
+{
+   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","nanos_get_lock",NANOS_SYNCHRONIZATION) );
+
+   try {
+      *lock = sys.getLockAddress(addr);
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
 /*!
  * \}
  */

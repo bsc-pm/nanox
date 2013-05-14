@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include "plugin.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
@@ -73,7 +75,7 @@ class InstrumentationPrintTrace: public Instrumentation
                      WorkDescriptor *wd = (WorkDescriptor *) value;
                      int64_t wd_id = wd->getId();
                      int64_t funct_id = (int64_t) ((ext::SMPDD &) (wd->getActiveDevice ())).getWorkFct ();
-                     fprintf(stderr,"NANOS++: Executing %lld function within task %lld in thread %d\n",funct_id,wd_id, myThread->getId());
+                     fprintf(stderr,"NANOS++: Executing %"PRId64" function within task %"PRId64" in thread %d\n",funct_id,wd_id, myThread->getId());
 
                   }
                   break;
