@@ -526,6 +526,9 @@ void System::finish ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
 
+   verbose ( "NANOS++ statistics");
+   verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
+
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
    myThread->getCurrentWD()->waitCompletion( true );

@@ -292,6 +292,8 @@ namespace nanos
 
          bool useYield() const;
 
+         int getCreatedTasks() const ;
+
          int getTaskNum() const;
 
          int getIdleNum() const;
