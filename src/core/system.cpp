@@ -94,6 +94,7 @@ System::System () :
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false ), _atomicSeedMemorySpace( 1 )
+      , _lockPoolSize(37), _lockPool( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -131,6 +132,8 @@ System::System () :
       // No number of PEs given? Use 1 thread per PE
       setNumPEs(  _numThreads );
    }
+
+   _lockPool = NEW Lock[_lockPoolSize];
 
    if ( !_delayedStart ) {
    std::cerr << "NX_ARGS is:" << (char *)(OS::getEnvironmentVariable( "NX_ARGS" ) != NULL ? OS::getEnvironmentVariable( "NX_ARGS" ) : "NO NX_ARGS: GG!") << std::endl;
@@ -622,11 +625,11 @@ void System::start ()
       _net.nodeBarrier();
    }
 
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t team_size =  (nanos_event_value_t) myThread->getTeam()->size(); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &team_size); )
+   // FIXME: temporary fix to prevent Extrae to get a full node mask as num-threads. See #828
+   //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   //NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+   //NANOS_INSTRUMENT ( nanos_event_value_t team_size =  (nanos_event_value_t) myThread->getTeam()->size(); )
+   //NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &team_size); )
    
    // Paused threads: set the condition checker 
    _pausedThreadsCond.setConditionChecker( EqualConditionChecker<unsigned int >( &_pausedThreads.override(), _workers.size() ) );
@@ -677,6 +680,9 @@ void System::finish ()
    /* Instrumentation: First removing RUNNING state from top of the state statck */
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
+
+   verbose ( "NANOS++ statistics");
+   verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );

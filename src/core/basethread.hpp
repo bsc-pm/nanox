@@ -155,13 +155,13 @@ namespace nanos
    inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
 
    // team related methods
-   inline void BaseThread::reserve() { _hasTeam = 1; }
+   inline void BaseThread::reserve() { _hasTeam = true; }
  
    inline void BaseThread::enterTeam( TeamData *data )
    { 
       if ( data != NULL ) _teamData = data;
       else _teamData = _nextTeamData;
-      _hasTeam=1;
+      _hasTeam = true;
    }
  
    inline bool BaseThread::hasTeam() const { return _hasTeam; }

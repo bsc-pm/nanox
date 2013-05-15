@@ -78,6 +78,13 @@ namespace nanos {
                std::list<DataAccess *> filteredDeps;
                for ( iterator it = begin; it != end; it++ ) {
                   DataAccess& newDep = (*it);
+
+                  // if address == NULL, just ignore it
+                  if ( newDep.getDepAddress() == NULL ) {
+                     continue;
+                  }
+
+                  
                   bool found = false;
                   // For every dependency processed earlier
                   for ( std::list<DataAccess *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {

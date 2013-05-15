@@ -18,7 +18,7 @@ hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc
 endif
 
 if GNU_C
-common_cflags= -Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags)
+common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags)
 common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC
 no_inline_flag= -fno-inline
 endif

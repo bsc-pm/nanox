@@ -89,6 +89,8 @@ inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline bool System::useYield() const { return _useYield; }
 
+inline int System::getCreatedTasks() const { return _schedStats._createdTasks.value(); }
+
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
@@ -456,6 +458,8 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 }
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
+
+inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
 inline bool System::dlbEnabled() const { return _enable_dlb; }
 

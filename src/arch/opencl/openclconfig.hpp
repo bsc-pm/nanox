@@ -20,7 +20,7 @@ class OpenCLConfig {
 public:
   OpenCLConfig() {}
   ~OpenCLConfig() {}
-  static unsigned getOpenCLDevicesCount() { return _devices.size(); }
+  static unsigned getOpenCLDevicesCount() { return _currNumDevices; }
   static cl_device_id getFreeDevice();
 
   static size_t getDevCacheSize() { return _devCacheSize; }
@@ -58,6 +58,7 @@ private:
 
   // All found devices.
   static std::vector<cl_device_id> _devices;
+  static unsigned int _currNumDevices;
 
   // These properties manages mutable state.
 

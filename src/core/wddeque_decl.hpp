@@ -320,7 +320,9 @@ namespace nanos
          void push_front( WorkDescriptor *wd );
 
          template <typename Constraints>
-         WorkDescriptor * popWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
+         template <typename Constraints>
+         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
