@@ -93,8 +93,8 @@ System::System () :
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
-      , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false ), _atomicSeedMemorySpace( 1 )
-      , _lockPoolSize(37), _lockPool( NULL )
+      , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
+      , _lockPoolSize(37), _lockPool( NULL ), _atomicSeedMemorySpace( 1 )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
