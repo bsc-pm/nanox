@@ -22,7 +22,6 @@
 
 #include <stdexcept>
 #include <vector>
-#include <list>
 #include "compatibility.hpp"
 #include <memory>
 #include <sstream>
@@ -30,17 +29,6 @@
 
 namespace nanos
 {
-
-#if 0
-   class StringList {
-      private:
-         std::list<std::string> _stringList;
-      public:
-         StringList() : _stringList() {}
-         ~StringList() {}
-         StringList & operator= ( const std::string s) { _stringList.push_back(s); return *this; }
-   };
-#endif
 
    class Config
    {
@@ -194,39 +182,7 @@ namespace nanos
                virtual VarOption * clone ();
          };
 
-         // ListOption: Option modifies a list of variables
-         template<typename T, class helpFormat, typename checkT= CheckValue<T> >
-         class ListOption : public ActionOption<T,helpFormat,checkT>
-         {
-
-            private:
-               std::list<T> &_var;
-               // assignment operator
-               const ListOption & operator= ( const ListOption &opt );
-
-            public:
-               //constructors
-               ListOption( const std::string &name, std::list<T> &ref ) :
-                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
-
-               ListOption( const char *name, std::list<T> &ref ) :
-                     ActionOption<T,helpFormat,checkT>( name ),_var( ref ) {}
-
-               ListOption( std::list<T> &ref ) :
-                     ActionOption<T,helpFormat,checkT>(), _var( ref ) {}
-
-               // copy constructor
-               ListOption( const ListOption &opt ) :
-                     ActionOption<T,helpFormat,checkT>( opt ),_var( opt._var ) {}
-
-               //destructor
-               virtual ~ListOption() {}
-
-               virtual void setValue ( const T &value );
-
-               virtual ListOption * clone ();
-         };
-         // shortcuts for ListOptions and ActionOptions
+         // shortcuts for VarOptions and ActionOptions
 
 
          class HelpFormat
@@ -275,10 +231,7 @@ namespace nanos
 
          typedef class VarOption<std::string, StringHelpFormat>                 StringVar;
 
-         typedef class ListOption<std::string, StringHelpFormat>                StringVarList;
-
          typedef class VarOption<int,PositiveHelpFormat,isPositive<int> >       PositiveVar;
-
          typedef class VarOption<unsigned int,PositiveHelpFormat,isPositive<unsigned int> >
                                                                                 UintVar;
          
@@ -407,23 +360,6 @@ namespace nanos
                virtual void setValue ( const T &value );
 
                virtual MapVar * clone ();
-         };
-
-         class PluginVar : public MapVar<std::string>
-         {
-            public:
-               //constructors
-               PluginVar( std::string &ref, const char* validList[], size_t validListCount ) :
-                     MapVar<std::string>( ref )
-               {
-                  for ( size_t i = 0; i < validListCount; ++i )
-                     addOption( validList[i] );
-               }
-
-               // copy constructor
-               PluginVar( const PluginVar &opt ) : MapVar<std::string>( opt ) {}
-               
-               PluginVar & addOption ( const std::string & value );
          };
 
          class ActionFlag : public Option
@@ -684,9 +620,6 @@ namespace nanos
 
          /**< Stores ConfigOptions by name */
          typedef TR1::unordered_map<std::string, BaseConfigOption *> ConfigOptionMap;
-         
-         /**< Arguments that have been processed */
-         typedef TR1::unordered_map<std::string, bool> ConfigOrphansMap;
 
       private:
 
@@ -700,9 +633,6 @@ namespace nanos
 
          /**< Gathers help messages of all Configs used in the runtime */
          static NanosHelp *_nanosHelp;
-
-         /**< Map of parameters that haven't been reclaimed */
-         static ConfigOrphansMap *_orphanOptionsMap;
 
       protected:
 
@@ -727,7 +657,6 @@ namespace nanos
         /* \brief initializes the config object
          */
          void init();
-         
 
         /* \brief Sets the current section in which new ConfigOptions will be listed
          * \param sectionName name of the section to be set as current
@@ -764,16 +693,6 @@ namespace nanos
         /* Returns the formatted help text for the nanox runtime library
          */
          static const std::string getNanosHelp();
-         
-        /* \brief Returns a vector of arguments that were not processed.
-         */
-         static std::vector<std::string> getOrphanOptionsList();
-         
-        /* \brief Returns a comma separated list of unprocessed arguments.
-           \note The static options map will be deleted. This method is meant
-           to be called just *once*.
-         */
-         static std::string getOrphanOptions();
    };
 
    /** exceptions */

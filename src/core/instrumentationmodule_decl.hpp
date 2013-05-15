@@ -97,6 +97,36 @@ namespace nanos {
           */
 	 void close() { _closed=true; _inst.raiseCloseStateEvent();  }
    };
+
+   class InstrumentSubState {
+      private:
+         Instrumentation     &_inst; /**< Instrumentation object */
+      private:
+         /*! \brief InstrumentSubState default constructor (private)
+          */
+         InstrumentSubState ();
+         /*! \brief InstrumentSubState copy constructor (private)
+          */
+         InstrumentSubState ( InstrumentSubState &iss );
+         /*! \brief InstrumentSubState copy assignment operator (private)
+          */
+         InstrumentSubState& operator= ( InstrumentSubState &iss );
+      public:
+         /*! \brief InstrumentSubState constructor
+          */
+         InstrumentSubState ( nanos_event_state_value_t subState )
+            : _inst(*sys.getInstrumentation())
+         {
+            _inst.disableStateEvents(subState);
+         }
+         /*! \brief InstrumentSubState destructor
+          */
+         ~InstrumentSubState ()
+         {
+            _inst.enableStateEvents();
+         }
+   };
+
    class InstrumentBurst {
       private:
          Instrumentation     &_inst;   /**< Instrumentation object*/

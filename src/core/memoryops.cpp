@@ -28,16 +28,12 @@ bool BaseAddressSpaceInOps::isDataReady() {
 
    std::set< DeviceOps * >::iterator it = _ownDeviceOps.begin();
    while ( it != _ownDeviceOps.end() && allReady ) {
-      DeviceOps *ops = *it;
       //if ( *it == NULL || ( *it != NULL && (*it)->allCompleted() ) ) {
-      if ( ops->allCompleted() ) {
+      if ( (*it)->allCompleted() ) {
          //(*it)->completeCacheOp();
          //std::set< DeviceOps * >::iterator toBeRemovedIt = it;
          it++;
          //_ownDeviceOps.erase( toBeRemovedIt );
-         
-         //fprintf(stderr, "op %p is complete! \n", ops);
-         //sys.printBt();
       } else {
          allReady = false;
       }
@@ -89,33 +85,29 @@ void BaseAddressSpaceInOps::issue( WD const &wd ) {
    }
 }
 
-void BaseAddressSpaceInOps::updateMetadata() {
-   for ( MapType::iterator mit = _separateTransfers.begin(); mit != _separateTransfers.end(); mit++ ) {
-      for ( TransferListType::iterator lit = mit->second.begin(); lit != mit->second.end(); lit++ ) {
-         lit->first.setLocationAndVersion( mit->first->getMemorySpaceId(), lit->second );
-      }
-   }
-}
-
 
 void BaseAddressSpaceInOps::prepareRegion( global_reg_t const &reg, WD const &wd ) {
 }
-#if 0
+
 void BaseAddressSpaceInOps::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
    reg.setLocationAndVersion( 0, version );
 }
-#endif
+
+unsigned int BaseAddressSpaceInOps::getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion) {
+   unsigned int current_version = reg.getHostVersion(false);
+   reg.setLocationAndVersion( 0, newVersion );
+   return current_version;
+}
 
 unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {
    return reg.getHostVersion(false);
 }
 
 void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
-   DeviceOps *thisRegOps = reg.getDeviceOps();
+   DeviceOps *thisRegOps = NULL;
    if ( reg.getHostVersion( false ) != version ) {
+      thisRegOps = reg.getDeviceOps();
       if ( thisRegOps->addCacheOp() ) {
-         //fprintf(stderr, "addr is %p [reg id = %d] add op to object %p, im thd %d\n", (void*)reg.getFirstAddress(), reg.id, thisRegOps, myThread->getId() );
-         //reg.key->printRegion(reg.id); fprintf(stderr, "\n");
          _ownDeviceOps.insert( thisRegOps );
          for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
             global_reg_t region_shape( it->first, reg.key );
@@ -132,28 +124,14 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
                addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
             }
          }
-         //reg.setLocationAndVersion( 0, version + ( output ? 1 : 0 ) );
-      } else {
-   //fprintf(stderr, "1 %s address %p [reg id = %d] added %p to otherDevOps\n", __FUNCTION__, (void *)reg.getFirstAddress(), reg.id, thisRegOps );
-   //      reg.key->printRegion(reg.id); fprintf(stderr, "\n");
-         _otherDeviceOps.insert( thisRegOps );
-         // Do not call "setLocationAndVersion" because another op will set it.
       }
-   } else {
-   //fprintf(stderr, "2 %s address %p [reg id = %d] added %p to otherDevOps\n", __FUNCTION__, (void *)reg.getFirstAddress(), reg.id, thisRegOps );
-   //      reg.key->printRegion(reg.id); fprintf(stderr, "\n");
-      _otherDeviceOps.insert( thisRegOps );
-      //reg.setLocationAndVersion( 0, version + ( output ? 1 : 0 ) );
    }
+   reg.setLocationAndVersion( 0, version + ( output ? 1 : 0 ) );
 }
 
 void BaseAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {
    //std::cerr << "FIXME "<< __FUNCTION__ << std::endl;
    reg.setLocationAndVersion( 0, version );
-}
-
-memory_space_id_t BaseAddressSpaceInOps::getDestination() const {
-   return 0;
 }
 
 SeparateAddressSpaceInOps::SeparateAddressSpaceInOps( MemSpace<SeparateAddressSpace> &destination ) : BaseAddressSpaceInOps(), _destination( destination ), _hostTransfers() {
@@ -177,16 +155,13 @@ void SeparateAddressSpaceInOps::prepareRegion( global_reg_t const &reg, WD const
    _destination.prepareRegion( reg, wd );
 }
 
-#if 0
 void SeparateAddressSpaceInOps::setRegionVersion( global_reg_t const &reg, unsigned int version ) {
    _destination.setRegionVersion( reg, version );
 }
-#endif
-#if 0
+
 unsigned int SeparateAddressSpaceInOps::getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion  ) {
    return _destination.getCurrentVersionSetVersion( reg, newVersion );
 }
-#endif
 
 unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {
    return _destination.getCurrentVersion( reg );
@@ -200,9 +175,6 @@ void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, u
    _destination.allocateOutputMemory( reg, version );
 }
 
-memory_space_id_t SeparateAddressSpaceInOps::getDestination() const {
-   return _destination.getMemorySpaceId();
-}
 
 SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( SeparateMemoryAddressSpace &source ) : _source ( source ){
 }

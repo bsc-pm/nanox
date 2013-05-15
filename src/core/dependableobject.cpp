@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "dependableobject.hpp"
+#include "regionstatus.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
 
@@ -29,26 +30,35 @@ void DependableObject::finished ( )
       DependableObject& depObj = *this;
       // This step guarantees that any Object that wants to add depObj as a successor has done it
       // before we continue or, alternatively, won't do it.
-      //DependableObject::RegionContainer const &outs = depObj.getWrittenRegions();
-      TargetVector const &outs = depObj.getWrittenTargets();
+//<<<<<<< HEAD
+//      DependableObject::TrackableObjectVector &outs = depObj.getOutputObjects();
+//      if ( !outs.empty() ) {
+//         {
+//            SyncLockBlock lock( depObj.getLock() );
+//            for ( unsigned int i = 0; i < outs.size(); i++ ) {
+//               outs[i]->deleteLastWriter(depObj);
+//            }
+//=======
+      DependableObject::RegionContainer const &outs = depObj.getWrittenRegions();
       DependenciesDomain *domain = depObj.getDependenciesDomain();
       if ( domain != 0 && outs.size() > 0 ) {
          SyncRecursiveLockBlock lock1( domain->getInstanceLock() ); // This is needed here to avoid a dead-lock
          SyncLockBlock lock2( depObj.getLock() );
          for ( unsigned int i = 0; i < outs.size(); i++ ) {
-            BaseDependency const &target = *outs[i];
+            Region const &region = outs[i];
             
-            domain->deleteLastWriter ( depObj, target );
+            domain->deleteLastWriter ( depObj, region );
+//>>>>>>> regions
          }
       }
       
       //  Delete depObj from all trackableObjects it reads 
       if ( domain != 0 ) {
-         DependableObject::TargetVector const &reads = depObj.getReadTargets();
-         for ( DependableObject::TargetVector::const_iterator it = reads.begin(); it != reads.end(); it++ ) {
-            BaseDependency const & target = *(*it);
+         DependableObject::RegionContainer const &reads = depObj.getReadRegions();
+         for ( DependableObject::RegionContainer::const_iterator it = reads.begin(); it != reads.end(); it++ ) {
+            Region const & region = *it;
             
-            domain->deleteReader ( depObj, target );
+            domain->deleteReader ( depObj, region );
          }
       }
 

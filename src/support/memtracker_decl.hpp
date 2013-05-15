@@ -36,72 +36,67 @@ namespace nanos {
 
 class MemTracker
 {
-   struct BlockInfo {
-      size_t       _size;
-      const char * _file;
-      int          _line;
-      int          _thread;
+      struct BlockInfo {
+	size_t       _size;
+	const char * _file;
+	int          _line;
+        int          _thread;
 
-      BlockInfo ( ) { }
-      BlockInfo ( const size_t size, const char *file, const int line, const int thread ) : _size(size), _file(file), _line(line), _thread(thread) {}
-   };
+	BlockInfo ( ) { }
+	BlockInfo ( const size_t size, const char *file, const int line, const int thread ) : _size(size), _file(file), _line(line), _thread(thread) {}
+      };
 
-   struct DistrInfo {
-      size_t _current;
-      size_t _max;
-      size_t _total;
-   };
+      struct DistrInfo {
+	size_t _current;
+	size_t _max;
+	size_t _total;
+      };
 
-   template<class K, class T>
-   struct InternalMap {
-      typedef std::map <K, T, std::less<K>, InternalAllocator<std::pair<const K,T> > > type;
-   };
+      template<class K, class T>
+      struct InternalMap {
+         typedef std::map <K, T, std::less<K>, InternalAllocator<std::pair<const K,T> > > type;
+      };
 
-   typedef InternalMap<void *,BlockInfo>::type AddrMap;
-   typedef InternalMap<size_t,DistrInfo>::type SizeMap;
+      typedef InternalMap<void *,BlockInfo>::type AddrMap;
+      typedef InternalMap<size_t,DistrInfo>::type SizeMap;
 
-   AddrMap     _blocks;
-   SizeMap     _stats;
+      AddrMap     _blocks;
+      SizeMap     _stats;
+      
+      size_t      _totalMem;
+      size_t      _numBlocks;
+      size_t      _maxMem;
 
-   size_t      _totalMem;
-   size_t      _numBlocks;
-   size_t      _maxMem;
+      Lock        _lock;
+      bool        _showStats;
+      bool        _setZeroDeallocate;
 
-   Lock        _lock;
-   bool        _showStats;
-   bool        _setZeroDeallocate;
-   bool        _trackMemory;
-
-   public:
+  public:
 
       MemTracker();
 
-      ~MemTracker() { showStats(); _trackMemory = false; }
+      ~MemTracker() { showStats(); }
 
       void *allocate ( size_t size, const char *file = 0, int line = 0 );
       void deallocate ( void * p, const char *file = 0, int line = 0 );
       void showStats ();
-      void trackMemory ( bool track ) { _trackMemory = track; }
 };
 
 extern MemTracker *mem;
-
-inline MemTracker & getMemTracker ();
 
 inline MemTracker & getMemTracker ()
 {
    if (!mem) {
       mem = (MemTracker *) malloc(sizeof(MemTracker));
-      if ( mem == NULL ) throw(NANOS_ENOMEM);
       new (mem) MemTracker();
    }
    return *mem;
 }
 
 class NanosMemTrackerHelper {
-   public:
-      NanosMemTrackerHelper() { getMemTracker(); }
-      ~NanosMemTrackerHelper() { getMemTracker().showStats(); getMemTracker().trackMemory( false ); }
+  public:
+    NanosMemTrackerHelper() { getMemTracker(); }
+    ~NanosMemTrackerHelper() { getMemTracker().showStats(); }
 };
 
 

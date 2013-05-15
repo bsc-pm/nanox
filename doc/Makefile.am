@@ -17,12 +17,6 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include paraver_configs.mk
-
-paraverconfigdir = ${docdir}
-
-nobase_dist_paraverconfig_DATA = $(paraver_config_files)
-
 doxygen : doxy-nanox
 	@echo "-- Running doxygen"
 	doxygen doxy-nanox
@@ -32,3 +26,4 @@ doxygen-pdf : doxygen
 
 clean-local:
 	-rm -fr html latex
+

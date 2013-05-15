@@ -24,8 +24,6 @@
 #include "regioncache_decl.hpp"
 #include "functor_decl.hpp"
 
-#include <stdint.h>
-
 namespace nanos {
 
    /*! \breif Class representing a copy used to synchronize the device with the cache */

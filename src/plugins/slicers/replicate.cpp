@@ -24,37 +24,32 @@ void SlicerReplicate::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: Replicate" );
 
+  /* Getting thread map info: thread vector is only guaranteed to be availabe during submit phase, so
+   * if the map is needed further than that it will be needed a copy */
+   BaseThread **threads = (BaseThread**) (*(( nanos_ws_desc_t ** )work.getData()))->threads;
+   int n = (*(( nanos_ws_desc_t ** )work.getData()))->nths;
+
    nanos_ws_desc_t *wsd_current = *(( nanos_ws_desc_t ** )work.getData());
 
-   int i = myThread->getTeam()->size() - 1;
+   n--;
 
-   BaseThread *thread = &(myThread->getTeam()->getThread(i));
-   if ( thread == myThread ) {
-      i--;
-      thread = &(myThread->getTeam()->getThread(i));
+   // Creating (n-1) tied workdescriptors and submiting them
+   while ( n > 0 ) {
+      WorkDescriptor *slice = NULL;
+      sys.duplicateWD( &slice, &work );
+      slice->tieTo( *threads[n] );
+      ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) slice->getData() );
+      if ( threads[n]->setNextWD( slice ) == false ) Scheduler::submit ( *slice );
+      n--;
    }
 
-   BaseThread *last_thread = thread;
-   i--;
-   while ( i >= 0 ) {
-      thread = &(myThread->getTeam()->getThread(i));
-      if ( thread != myThread ) {
-         WorkDescriptor *slice = NULL;
-         sys.duplicateWD( &slice, &work );
-         sys.setupWD(*slice, &work );
-         slice->tieTo( *thread );
-         ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) slice->getData() );
-         thread->addNextWD( slice );
-      }
-      i--;
-   }
-
-   // Converting original workdescriptor to a regular tied one and submitting it
+   // Converting original workdescriptor to a regular tied one and submiting it
    work.convertToRegularWD();
-   work.tieTo( *last_thread );
+   work.tieTo( *threads[0] );
    ((WorkSharing *)(wsd_current->ws))->duplicateWS( wsd_current, ( nanos_ws_desc_t ** ) work.getData() );
-   last_thread->addNextWD( (WorkDescriptor *) &work );
-
+   if ( threads[0]->setNextWD( (WorkDescriptor *) &work) == false ) {
+     Scheduler::submit ( work );
+   }
 }
 
 /* \brief Dequeue a Replicate SlicedWD

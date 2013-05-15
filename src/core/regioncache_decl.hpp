@@ -28,6 +28,7 @@
 #include "workdescriptor_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "deviceops_decl.hpp"
+#include "regiondirectory_decl.hpp"
 #include "newregiondirectory_decl.hpp"
 #include "memoryops_fwd.hpp"
 
@@ -117,7 +118,7 @@ namespace nanos {
          Atomic<unsigned int>              _refs;
          global_reg_t                      _allocatedRegion;
          
-         //RegionTree< CachedRegionStatus > *_regions;
+         RegionTree< CachedRegionStatus > *_regions;
 
          CacheRegionDictionary *_newRegions;
 
@@ -141,7 +142,7 @@ namespace nanos {
          void addWriteRegion( Region const &reg, unsigned int version );
          void clearRegions();
          void clearNewRegions( global_reg_t const &newAllocatedRegion );
-         //RegionTree< CachedRegionStatus > *getRegions();
+         RegionTree< CachedRegionStatus > *getRegions();
          CacheRegionDictionary *getNewRegions();
          bool isReady( Region reg );
          bool isInvalidated() const;
@@ -157,7 +158,7 @@ namespace nanos {
          unsigned int getReferenceCount() const;
          void confirmCopyIn( reg_t id, unsigned int version );
          unsigned int getVersion( global_reg_t const &reg );
-         //unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
+         unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
 
          DeviceOps *getDeviceOps( global_reg_t const &reg );
          void prepareRegion( reg_t reg, unsigned int version );
@@ -224,8 +225,7 @@ namespace nanos {
 
       public:
          RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags );
-         //AllocatedChunk *getAddress( global_reg_t const &reg, RegionTree< CachedRegionStatus > *&regsToInvalidate, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
-         AllocatedChunk *getAddress( global_reg_t const &reg, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
+         AllocatedChunk *getAddress( global_reg_t const &reg, RegionTree< CachedRegionStatus > *&regsToInvalidate, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg ) const;
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          AllocatedChunk **selectChunkToInvalidate( /*CopyData const &cd, uint64_t addr,*/ std::size_t allocSize/*, RegionTree< CachedRegionStatus > *&regsToInval, CacheRegionDictionary *&newRegsToInval*/ );
@@ -233,7 +233,7 @@ namespace nanos {
          void syncRegion( std::list< std::pair< Region, CacheCopy * > > const &regions, WD const &wd ) ;
          void syncRegion( global_reg_t const &r ) ;
          void syncRegion( std::list< std::pair< global_reg_t, CacheCopy * > > const &regions, WD const &wd ) ;
-         memory_space_id_t getMemorySpaceId() const;
+         unsigned int getMemorySpaceId();
          /* device stubs */
          void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, WD const &wd, bool fake );
          void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops, WD const &wd, bool fake );
@@ -263,16 +263,16 @@ namespace nanos {
          void unpin( global_reg_t const &hostMem );
 
          //unsigned int getVersionAllocateChunkIfNeeded( global_reg_t const &hostMem, bool increaseVersion );
-         //unsigned int getVersionSetVersion( global_reg_t const &hostMem, unsigned int newVersion );
+         unsigned int getVersionSetVersion( global_reg_t const &hostMem, unsigned int newVersion );
          unsigned int getVersion( global_reg_t const &hostMem );
          void releaseRegion( global_reg_t const &hostMem );
          void prepareRegion( global_reg_t const &hostMem, WD const &wd );
-         //void setRegionVersion( global_reg_t const &hostMem, unsigned int version );
+         void setRegionVersion( global_reg_t const &hostMem, unsigned int version );
 
          void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
          void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
    };
-#if 0
+
    class CacheController;
    class CacheCopy {
 
@@ -347,7 +347,6 @@ namespace nanos {
          CacheCopy *getCacheCopies() const;
          RegionCache *getTargetCache() const;
    };
-#endif
 }
 
 #endif

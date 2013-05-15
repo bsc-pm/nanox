@@ -30,9 +30,6 @@
 #include "processingelement.hpp"
 #endif
 
-// xlc/icc compilers require the next include to emit the vtable of WDDeque
-#include <wddeque.hpp>
-
 //TODO: Make smp independent from pthreads? move it to OS?
 
 namespace nanos {

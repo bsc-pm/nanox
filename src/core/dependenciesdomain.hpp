@@ -26,15 +26,42 @@
 #include "dependenciesdomain_decl.hpp"
 #include "atomic.hpp"
 #include "dependableobject.hpp"
-#include "trackableobject.hpp"
-#include "dataaccess_decl.hpp"
-#include "commutationdepobj.hpp"
+#include "regiontree.hpp"
+#include "regionstatus.hpp"
+#include "dataaccess.hpp"
+#include "compatibility.hpp"
 
 
-namespace nanos {
+using namespace nanos;
+
+inline DependenciesDomain::DependenciesDomain ( ) :  _id( _atomicSeed++ ), _lastDepObjId ( 0 ), _regionMap( )
+{
+}
+
+inline DependenciesDomain::DependenciesDomain ( const DependenciesDomain &depDomain )
+   : _id( _atomicSeed++ ), _lastDepObjId ( depDomain._lastDepObjId ),
+      _regionMap ( depDomain._regionMap )
+{
+}
 
 inline DependenciesDomain::~DependenciesDomain ( )
 {
+}
+
+//<<<<<<< HEAD
+inline int DependenciesDomain::getId()
+{
+   return _id;
+}
+
+inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<DataAccess> const &dataAccesses )
+{
+   submitDependableObjectInternal ( depObj, dataAccesses.begin(), dataAccesses.end() );
+}
+
+inline void DependenciesDomain::submitDependableObject ( DependableObject& depObj, size_t numDataAccesses, const DataAccess* dataAccesses)
+{
+   submitDependableObjectInternal ( depObj, dataAccesses, dataAccesses+numDataAccesses );
 }
 
 inline RecursiveLock& DependenciesDomain::getInstanceLock()
@@ -46,6 +73,17 @@ inline Lock& DependenciesDomain::getLock()
 {
    return _lock;
 }
+//=======
+//inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, std::vector<Dependency> &deps, SchedulePolicySuccessorFunctor* callback )
+//{
+//   submitDependableObjectInternal ( depObj, deps.begin(), deps.end(), callback );
+//}
+//
+//inline void DependenciesDomain::submitDependableObject ( DependableObject &depObj, size_t numDeps, Dependency* deps, SchedulePolicySuccessorFunctor* callback )
+//{
+//   submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
+//}
+//>>>>>>> cluster
 
 inline void DependenciesDomain::lock ( )
 {
@@ -59,17 +97,5 @@ inline void DependenciesDomain::unlock ( )
    _lock.release();
 }
 
-inline const std::string & DependenciesManager::getName () const
-{
-   return _name;
-}
-
-inline bool DependenciesDomain::haveDependencePendantWrites ( void *addr )
-{
-   fatal("haveDependencePendantWrites service has not been implemented in that dependence plugin!");
-   return true;
-}
-
-}
-
 #endif
+

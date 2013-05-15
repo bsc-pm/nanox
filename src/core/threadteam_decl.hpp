@@ -52,12 +52,10 @@ namespace nanos
 
    class ThreadTeam
    {
+         typedef std::list<nanos_reduction_t*> ReductionList;  /**< List of Reduction op's (Bursts) */
       private:
-         typedef std::list<nanos_reduction_t*>     ReductionList;  /**< List of Reduction op's (Bursts) */
-         typedef std::map<unsigned, BaseThread *>  ThreadTeamList;
-
-         ThreadTeamList               _threads;
-         unsigned                     _idCounter;
+         BaseThread **                _threads;
+         Atomic<size_t>               _size;
          Atomic<size_t>               _starSize;
          int                          _idleThreads;
          int                          _numTasks;
@@ -71,7 +69,6 @@ namespace nanos
          int                          _creatorId;        /**< Team Id of the thread that created the team */
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
          ReductionList                _redList;          /**< Reduction List */
-         Lock                         _lock;
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -110,7 +107,7 @@ namespace nanos
           */
          void resized ();
 
-         const BaseThread & getThread ( int i ) const;
+         BaseThread & getThread ( int i ) const;
          BaseThread & getThread ( int i );
 
          const BaseThread & operator[]  ( int i ) const;
@@ -124,10 +121,6 @@ namespace nanos
          /*! \brief removes a thread from the team pool
           */
          void removeThread ( unsigned id );
-
-         /*! \brief removes and returns the last thread from the team pool
-          */
-         BaseThread * popThread();
 
          void barrier();
 
@@ -187,11 +180,7 @@ namespace nanos
          */
          void *getReductionPrivateData ( void* s );
 
-        /*! \brief Returns private data for a given source data
-         */
-         nanos_reduction_t *getReduction ( void* s );
-
-        /*! \brief Clean readuction list
+        /*! \brief Clean readuction list 
          */
          void cleanUpReductionList ( void );
 

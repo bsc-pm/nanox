@@ -5,6 +5,7 @@ readonly bets_version=0.9
 
 #color constants
 
+machine_output=""
 output_filter=""
 
 define_colors()
@@ -29,9 +30,6 @@ pass=0
 fail=0
 faulty=0
 
-export junit_log_OUT=
-export junit_log_ERR=
-
 #utility functions
 log ()
 {
@@ -42,27 +40,22 @@ log ()
     echo -e $n $* >> $logfile
 }
 
-junit_log()
-{
-    echo $* >> $junit_logfile
-}
-
 debug ()
 {
     log $*
-    [ -n "$junit_log_ERR" ] && (echo "$*" >> $junit_log_ERR)
 }
 
 logcmd ()
 {
     log $*
-    [ -n "$junit_log_ERR" ] && (echo "$*" >> $junit_log_ERR)
     $* 
 }
 
 buffer=
 filtered_message ()
 {
+    [ -n "$machine_output" ] && return
+
     local n
     if [ "$1" = "-n" ]; then
       shift; n=-n
@@ -75,6 +68,8 @@ filtered_message ()
 
 message ()
 {
+    [ -n "$machine_output" ] && return
+
     local n
     if [ "$1" = "-n" ]; then
       shift; n=-n
@@ -83,12 +78,6 @@ message ()
       echo -e $buffer "$*" 
       buffer=""
     fi
-}
-
-escape_xml ()
-{
-    # Got from http://www.daemonforums.org/showthread.php?t=4054
-    cat $1 | sed -e 's~&~\&amp;~g' -e 's~<~\&lt;~g'  -e  's~>~\&gt;~g' 1> $2
 }
 
 # action functions
@@ -101,76 +90,31 @@ passfail ()
    local full_test_name=$1
    shift
 
-   export junit_log_OUT=$(mktemp)
-   export junit_log_ERR=$(mktemp)
-
-   # Note that >> is right here since $* may have appended stuff already
-   START=$(date "+%s.%N")
-   $* 1>> $junit_log_OUT 2>> $junit_log_ERR || ret=1
-   END=$(date "+%s.%N")
-
-   ELAPSED=$(echo $END - $START | bc -l)
-
-   cat $junit_log_ERR $junit_log_OUT >> $logfile
+   $* 1>> $logfile 2>> $logfile || ret=1
 
    if [ "$test_fail" ]; then
      reverse='!'
    fi
 
-   junit_log "<testcase name=\"${full_test_name}\" time=\"$ELAPSED\">"
-
    if [ $reverse $ret -eq 0 ]; then
      if [ ! "$test_faulty" ];
      then
        filtered_message "${GREEN}passed${NORMAL}"
+       [ -n "$machine_output" ] && echo "${full_test_name}:passed"
        log "passed"
      else
        filtered_message "${YELLOW}passed (faulty)${NORMAL}"
+       [ -n "$machine_output" ] && echo "${full_test_name}:passed (faulty)"
        log "passed (faulty)"
        let faulty=faulty+1
-       # Note in jUnit output these tests are not flagged in any special way!
      fi
      let pass=pass+1
    else
-     if [ ! "$test_ignore_fail" ]; then
-       filtered_message "${RED}failed${NORMAL}!"
-       log "failed!"
-       junit_log "<error />"
-       let fail=fail+1
-     else
-       # Note in jUnit output these tests are not flagged in any special way!
-       filtered_message "${YELLOW}failed (ignored)${NORMAL}!"
-       log "failed (ignored)"
-     fi
+     filtered_message "${RED}failed${NORMAL}!"
+     [ -n "$machine_output" ] && echo "${full_test_name}:failed"
+     log "failed!"
+     let fail=fail+1
    fi
-
-   escaped_xml_OUT=$(mktemp)
-   escaped_xml_ERR=$(mktemp)
-
-   junit_log "<system-out>"
-   escape_xml $junit_log_OUT $escaped_xml_OUT
-   cat $escaped_xml_OUT >> $junit_logfile
-   junit_log "</system-out>"
-
-   junit_log "<system-err>"
-   escape_xml $junit_log_ERR $escaped_xml_ERR
-   cat $escaped_xml_ERR >> $junit_logfile
-   junit_log "</system-err>"
-
-   junit_log "</testcase>"
-
-   rm -f $escaped_xml_OUT
-   rm -f $escaped_xml_ERR
-
-   rm -f $junit_log_OUT
-   rm -f $junit_log_ERR
-
-   # Not sure if needed
-   junit_log_OUT=""
-   junit_log_ERR=""
-   unset junit_log_OUT
-   unset junit_log_ERR
-
    return $ret
 }
 
@@ -256,48 +200,6 @@ compile_cpp ()
    return $ret
 }
 
-compile_fortran ()
-{
-   local version=$1
-   local source=$2
-   local exec=$3
-   local srcdir=$4
-
-   # Not using fc as it is a shell command
-   local fc_
-   local fflags
-   local ldflags
-   local tmp
-   
-   #defaults
-   fc_=${FC:=f95}
-
-   #test values
-   fc_=${test_FC:-$fc_}
-   fflags=${test_FFLAGS:-$FFLAGS}
-   ldflags=${test_LDFLAGS:-$LDFLAGS}
-
-   #version values
-   eval tmp=\${test_FC_$version}
-   fc_=${tmp:-$fc_}
-   eval tmp=\"\${test_FFLAGS_$version}\"
-   fflags="$tmp $fflags"
-   if [ "$test_nolink" ]; then
-      fflags="-c $fflags"
-      ldflags=""
-   else
-     eval tmp=\"\${test_LDFLAGS_$version}\"
-     ldflags="$tmp $ldflags"
-   fi
-
-   pushd $tmpdir
-   logcmd $fc_ $fflags $ldflags -o $exec $srcdir/$source 
-   local ret=$?
-   popd
-
-   return $ret
-}
-
 execute ()
 {
    local version=$1
@@ -324,21 +226,14 @@ execute ()
 
 merge_c_compile_vars ()
 {
-   eval test_CC_$1="\${test_CC_$2:=\$test_CC_$3}"
+   eval test_CC_$1=\${test_CC_$2}
    eval test_CFLAGS_$1=\"\${test_CFLAGS_$2} \${test_CFLAGS_$3}\"
-   eval test_LDFLAGS_$1=\"\${test_LDFLAGS_$2} \${test_LDFLAGS_$3}\"
-}
-
-merge_fortran_compile_vars ()
-{
-   eval test_FC_$1="\${test_FC_$2:=\$test_FC_$3}"
-   eval test_FFLAGS_$1=\"\${test_FFLAGS_$2} \${test_FFLAGS_$3}\"
    eval test_LDFLAGS_$1=\"\${test_LDFLAGS_$2} \${test_LDFLAGS_$3}\"
 }
 
 merge_cpp_compile_vars ()
 {
-   eval test_CXX_$1="\${test_CXX_$2:=\$test_CXX_$3}"
+   eval test_CXX_$1=\${test_CXX_$2}
    eval test_CXXFLAGS_$1=\"\${test_CXXFLAGS_$2} \${test_CXXFLAGS_$3}\"
    eval test_LDFLAGS_$1=\"\${test_LDFLAGS_$2} \${test_LDFLAGS_$3}\"
 }
@@ -356,13 +251,6 @@ clean_c_compile_vars ()
    unset test_LDFLAGS
 }
 
-clean_fortran_compile_vars ()
-{
-   unset test_FC
-   unset test_FFLAGS
-   unset test_LDFLAGS
-}
-
 clean_cpp_compile_vars ()
 {
    unset test_CXX
@@ -374,15 +262,6 @@ clean_c_compile_version_vars ()
 {
    unset test_CC_$1
    unset test_CFLAGS_$1
-   unset test_LDFLAGS_$1
-   unset test_compile_fail_$1
-   unset test_compile_faulty_$1
-}
-
-clean_fortran_compile_version_vars ()
-{
-   unset test_FC_$1
-   unset test_FFLAGS_$1
    unset test_LDFLAGS_$1
    unset test_compile_fail_$1
    unset test_compile_faulty_$1
@@ -425,8 +304,6 @@ clean_test_vars ()
    unset test_nolink
    unset test_noexec
    unset test_ignore
-   unset test_ignore_reason
-   unset test_ignore_fail
 }
 
 # run functions
@@ -456,34 +333,21 @@ run_gen_test ()
    local all_exec_versions=
    local exec_versions=
    local compile_versions=
-   local test_max_cpus=
    local test_schedule=
-   local test_deps_plugins=
-   local test_mode=
-   local generator_args=
    clean_test_vars
    clean_${type}_compile_vars
    clean_exec_vars
 
    # get file options
-   # This ! is for Fortran
-   local start=$(egrep -n "(\![[:blank:]]*)?<testinfo>" $srcdir/$source | cut -d: -f1)
+   local start=$(grep -n "<testinfo>" $srcdir/$source | cut -d: -f1)
    let start=start+1
-   local end=$(egrep -n "(\![[:blank:]]*)?</testinfo>" $srcdir/$source | cut -d: -f1)
+   local end=$(grep -n "</testinfo>" $srcdir/$source | cut -d: -f1)
    let end=end-1
 
-   SED_SCRIPT='/<testinfo>/,/<\/testinfo>/{
-       /<testinfo>/d
-       /<\/testinfo>/d
-       # Remove Fortran/C++ comments if any
-       s/[[:blank:]]*\(!\|\/\/\)[[:blank:]]*\(.*\)/\2/
-       # Remove DOS CR characters if any
-       s/\r//g
-       p
-   }'
-
-   sed -e "${SED_SCRIPT}" -n $srcdir/$source > $tmpfile
-   source $tmpfile >> $logfile
+   if [ $end -gt 1 ]; then
+     sed -e "${start},${end}p" -n $srcdir/$source > $tmpfile
+     source $tmpfile >> $logfile
+   fi
 
    test_generator=${test_generator:-$TEST_GENERATOR}
 
@@ -493,25 +357,14 @@ run_gen_test ()
    compile_versions=
    exec_versions=
    
-   if [ "$test_max_cpus" ]; then
-      export NX_TEST_MAX_CPUS="$test_max_cpus"
-   fi
    if [ "$test_schedule" ]; then
       export NX_TEST_SCHEDULE="$test_schedule"
-   fi
-   if [ "$test_deps_plugins" ]; then
-      generator_args="-d $test_deps_plugins"
-   fi
-   if [ "$test_mode" ]; then
-      generator_args="-m $test_mode"
    fi
 
    if [ "$test_generator" ]; then
       debug "Using version generator $test_generator"
-      export TEST_LANGUAGE=$type
       export TEST_SOURCE=$source
-      $basedir/$test_generator $generator_args > $tmpfile
-      unset TEST_LANGUAGE
+      $basedir/$test_generator > $tmpfile
       unset TEST_SOURCE
       source $tmpfile >> $logfile
       if [ "$compile_versions" -a ! "$test_ignore" ]; then
@@ -566,13 +419,8 @@ run_gen_test ()
    
    test_noexec=${test_noexec:-$test_nolink}
    if [ "$test_ignore" ]; then
-      junit_log "<testcase name=\"${name}\"><skipped>Ignored test</skipped></testcase>"
-      local test_ignore_message="${YELLOW}ignored${NORMAL}"
-      if [ "$test_ignore_reason" ];
-      then
-          test_ignore_message="$test_ignore_message (${test_ignore_reason})"
-      fi
-      filtered_message "Test $name $test_ignore_message"
+      [ -n "$machine_output" ] && echo "${name}:ignored"
+      filtered_message "Test $name ${YELLOW}ignored${NORMAL}"
    else    
      for v in $all_compile_versions; do
         filtered_message -n "Compile test $name-$v "
@@ -595,7 +443,6 @@ run_gen_test ()
              eval test_faulty=\${test_exec_faulty_${v}_${e}}
              eval test_faulty=\${test_faulty:-\$test_exec_faulty_${e}}
              test_faulty=${test_faulty:-$test_exec_faulty}
-             eval test_ignore_fail=\${test_ignore_fail}
              passfail "$name-$v-$e" execute $e $name $v
              log "***End execute test $name-$v-$e"
           done
@@ -604,10 +451,6 @@ run_gen_test ()
      done
    fi
    
-   if [ "$test_max_cpus" ]; then
-      unset NX_TEST_MAX_CPUS
-   fi
-
    if [ "$test_schedule" ]; then
       unset NX_TEST_SCHEDULE
    fi
@@ -635,16 +478,13 @@ run_file()
      *.c)
        run_gen_test $file c 
        ;;
-     *.f|*.F|*.f77|*.F77|*.f90|*.F90|*.f95|*.F95)
-       run_gen_test $file fortran
-       ;;
-     *.c.bz2)
+    *.c.bz2)
        run_gen_test $file c compressed
        ;;
-     *.cpp|*.cu) 
+    *.cpp|*.cu) 
        run_gen_test $file cpp 
        ;;
-     *.cpp.bz2)
+    *.cpp.bz2)
        run_gen_test $file cpp compressed
        ;;
    esac
@@ -656,6 +496,7 @@ run_dir()
 
   debug "Testing $base"
   message "===Entering directory $base==="
+  [ -n "$machine_output" ] && echo "$base:dir>"
 
   #test subdirs
   local dirs=$(find . -maxdepth 1 -type d -path "./*" | cut -c3- | sort)
@@ -665,15 +506,12 @@ run_dir()
      cd ..
   done
 
-  testsuite_name=$(echo $base | tr . _)
-  junit_log "<testsuite name=\"$testsuite_name\" tests=\"\">"
-
   #run test
   for file in $(find . -maxdepth 1 -type f | sort ); do
      run_file $file
   done
 
-  junit_log "</testsuite>"
+  [ -n "$machine_output" ] && echo "$base:dir<"
 }
 
 # mode functions
@@ -712,17 +550,9 @@ do_run ()
 
    if [ "${logfile:0:1}" != "/" ]; then
      logfile=$basedir/$logfile
-     junit_logfile=${logfile}.xml
    fi
    readonly logfile
-   readonly junit_logfile
    echo > $logfile
-
-   # Start junit log
-   cat > $junit_logfile << EOF
-<?xml version="1.0" encoding="UTF-8" ?>
-<testsuites>
-EOF
 
    message "===Running tests==="
    
@@ -738,9 +568,7 @@ EOF
         if [ -f $t ]; then
           old_dir=$(pwd)
           cd $(dirname $t)
-          junit_log "<testsuite name=\"singleton\" tests=\"\">"
           run_file $(basename $t)
-          junit_log "</testsuite>"
           cd "$old_dir"
         fi
      done
@@ -750,11 +578,6 @@ EOF
    
    #clean-up
    rm -fr $tmpdir
-
-   # End junit log
-   cat >> $junit_logfile << EOF
-</testsuites>
-EOF
    
    if [ $fail -eq 0 -a $pass -eq 0 ]; then
      message "No test run. Any files in here? :-)"
@@ -811,6 +634,10 @@ while [ -z $done ]; do
 case $1 in
     -h)
        mode=help; shift
+       ;;
+    --ants)
+       machine_output="1"; 
+       use_color=no; shift
        ;;
     --list)
        mode=list; shift

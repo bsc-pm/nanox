@@ -54,12 +54,12 @@ void InstrumentationContext::insertBurst ( InstrumentationContextData *icd, cons
 {
    bool found = false;
    InstrumentationContextData::EventList::iterator it;
-   nanos_event_key_t key = e.getKey();
+   nanos_event_key_t key = e.getKVs()[0].first;
 
    /* if found an event with the same key in the main list, send it to the backup list */
    for ( it = icd->_burstList.begin() ; !found && (it != icd->_burstList.end()) ; it++ ) {
-      nanos_event_key_t ckey = (*it).getKey();
-      if ( ckey == key  )
+      Event::ConstKVList kvlist = (*it).getKVs();
+      if ( kvlist[0].first == key  )
       {
          icd->_burstBackup.splice ( icd->_burstBackup.begin(), icd->_burstList, it );
          found = true;
@@ -87,15 +87,15 @@ void InstrumentationContextDisabled::insertBurst ( InstrumentationContextData *i
 void InstrumentationContext::removeBurst ( InstrumentationContextData *icd, InstrumentationContextData::BurstIterator it )
 {
    bool found = false;
-   nanos_event_key_t key = (*it).getKey();
+   nanos_event_key_t key = (*it).getKVs()[0].first;
 
    /* remove event from the list */
    icd->_burstList.erase ( it );
 
    /* if found an event with the same key in the backup list, recover it to the main list */
    for ( it = icd->_burstBackup.begin() ; !found && (it != icd->_burstBackup.end()) ; it++ ) {
-      nanos_event_key_t ckey = (*it).getKey();
-      if ( ckey == key  )
+      Event::ConstKVList kvlist = (*it).getKVs();
+      if ( kvlist[0].first == key  )
       {
          icd->_burstList.splice ( icd->_burstList.begin(), icd->_burstBackup, it );
          found = true;
@@ -118,21 +118,24 @@ void InstrumentationContextDisabled::removeBurst ( InstrumentationContextData *i
 /* InstrumentationContext is default implementation: pushState */
 void InstrumentationContext::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state )
 {
-   icd->_stateStack.push_back( state );
+   if ( icd->_stateEventEnabled ) icd->_stateStack.push_back( state );
+   else icd->_subStateStack.push_back ( state );
 }
 void InstrumentationContextDisabled::pushState ( InstrumentationContextData *icd, nanos_event_state_value_t state ) {}
 
 
 void InstrumentationContext::popState ( InstrumentationContextData *icd )
 {
-   if ( !(icd->_stateStack.empty()) ) icd->_stateStack.pop_back();
+   if ( (icd->_stateEventEnabled ) && !(icd->_stateStack.empty()) ) icd->_stateStack.pop_back();
+   else if ( !(icd->_subStateStack.empty()) ) icd->_subStateStack.pop_back();
 }
 void InstrumentationContextDisabled::popState ( InstrumentationContextData *icd ) {}
 
 
 nanos_event_state_value_t InstrumentationContext::topState ( InstrumentationContextData *icd )
 {
-   if ( !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   if ( (icd->_stateEventEnabled) && !(icd->_stateStack.empty()) ) return icd->_stateStack.back();
+   else if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
    else return NANOS_ERROR;
 }
 nanos_event_state_value_t InstrumentationContextDisabled::topState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
@@ -144,8 +147,20 @@ nanos_event_state_value_t InstrumentationContext::getState ( InstrumentationCont
 }
 nanos_event_state_value_t InstrumentationContextDisabled::getState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
 
+
+nanos_event_state_value_t InstrumentationContext::getSubState ( InstrumentationContextData *icd )
+{
+   if ( !(icd->_subStateStack.empty()) ) return icd->_subStateStack.back();
+   else return NANOS_ERROR;
+}
+nanos_event_state_value_t InstrumentationContextDisabled::getSubState ( InstrumentationContextData *icd ) { return NANOS_ERROR; }
+
+
 size_t InstrumentationContext::getStateStackSize ( InstrumentationContextData *icd ) { return (size_t) icd->_stateStack.size(); }
 size_t InstrumentationContextDisabled::getStateStackSize ( InstrumentationContextData *icd ) { return (size_t) 0; }
+
+size_t InstrumentationContext::getSubStateStackSize ( InstrumentationContextData *icd ) { return (size_t) icd->_subStateStack.size(); }
+size_t InstrumentationContextDisabled::getSubStateStackSize ( InstrumentationContextData *icd ) { return (size_t) 0; }
 
 size_t InstrumentationContext::getNumBursts( InstrumentationContextData *icd ) const { return icd->_burstList.size(); }
 size_t InstrumentationContextDisabled::getNumBursts( InstrumentationContextData *icd ) const { return (size_t) 0; }
@@ -154,6 +169,29 @@ size_t InstrumentationContext::getNumStates( InstrumentationContextData *icd ) c
 size_t InstrumentationContextStackedStates::getNumStates( InstrumentationContextData *icd ) const { return icd->_stateStack.size(); }
 size_t InstrumentationContextStackedStatesAndBursts::getNumStates( InstrumentationContextData *icd ) const { return icd->_stateStack.size(); }
 size_t InstrumentationContextDisabled::getNumStates( InstrumentationContextData *icd ) const { return (size_t) 0; }
+
+
+
+size_t InstrumentationContext::getNumSubStates( InstrumentationContextData *icd ) const 
+{
+   if ( !icd->_stateEventEnabled ) return (size_t) icd->_subStateStack.size() < 1 ? 0 : 1;
+   else return (size_t) 0;
+}
+size_t InstrumentationContextStackedStates::getNumSubStates( InstrumentationContextData *icd ) const {
+   if ( !icd->_stateEventEnabled ) return icd->_subStateStack.size();
+   else return (size_t) 0;
+}
+size_t InstrumentationContextStackedStatesAndBursts::getNumSubStates( InstrumentationContextData *icd ) const
+{
+   if ( !icd->_stateEventEnabled ) return icd->_subStateStack.size();
+   else return (size_t) 0;
+}
+size_t InstrumentationContextDisabled::getNumSubStates( InstrumentationContextData *icd ) const 
+{
+   return (size_t) 0;
+}
+
+
 
 InstrumentationContextData::ConstStateIterator InstrumentationContext::beginState( InstrumentationContextData *icd ) const
 {
@@ -176,4 +214,33 @@ InstrumentationContextData::ConstStateIterator InstrumentationContext::endState(
 {
    return icd->_stateStack.end();
 }
+
+InstrumentationContextData::ConstStateIterator InstrumentationContext::beginSubState( InstrumentationContextData *icd ) const
+{
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
+   if ( !(icd->_subStateStack.empty()) ) return --(icd->_subStateStack.end());
+   else return icd->_subStateStack.end();
+}
+
+
+
+InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStates::beginSubState( InstrumentationContextData *icd ) const
+{
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
+   return icd->_subStateStack.begin();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContextStackedStatesAndBursts::beginSubState( InstrumentationContextData *icd ) const
+{
+   if ( icd->_stateEventEnabled ) return icd->_subStateStack.end();
+   return icd->_subStateStack.begin();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContextDisabled::beginSubState( InstrumentationContextData *icd ) const
+{
+   return icd->_subStateStack.end();
+}
+InstrumentationContextData::ConstStateIterator InstrumentationContext::endSubState( InstrumentationContextData *icd ) const
+{
+   return icd->_subStateStack.end();
+}
+
 #endif

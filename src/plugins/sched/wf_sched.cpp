@@ -114,7 +114,7 @@ namespace nanos {
       };
 
       bool WorkFirst::_stealParent = true;
-      WorkFirst::QueuePolicy WorkFirst::_localPolicy = WorkFirst::LIFO;
+      WorkFirst::QueuePolicy WorkFirst::_localPolicy = WorkFirst::FIFO;
       WorkFirst::QueuePolicy WorkFirst::_stealPolicy = WorkFirst::FIFO;
 
       /*!
@@ -185,9 +185,9 @@ namespace nanos {
             {
                cfg.setOptionsSection( "WF module", "Work-first scheduling module" );
 
-               cfg.registerConfigOption ( "schedule-steal-parent", NEW Config::FlagOption( WorkFirst::_stealParent ),
+               cfg.registerConfigOption ( "wf-steal-parent", NEW Config::FlagOption( WorkFirst::_stealParent ),
                                              "Defines if tries to steal the parent" );
-               cfg.registerArgOption ( "schedule-steal-parent", "schedule-parent" );
+               cfg.registerArgOption ( "wf-steal-parent", "steal-parent" );
 
                typedef Config::MapVar<WorkFirst::QueuePolicy> QueueConfig;
                
@@ -195,18 +195,18 @@ namespace nanos {
                queuePolicyLocalConfig
                   ->addOption ( "FIFO", WorkFirst::FIFO )
                    .addOption ( "LIFO", WorkFirst::LIFO );
-               cfg.registerConfigOption ( "schedule-local-policy", queuePolicyLocalConfig,
+               cfg.registerConfigOption ( "wf-local-policy", queuePolicyLocalConfig,
                                              "Defines the local queue access policy");
-               cfg.registerArgOption ( "schedule-local-policy", "schedule-local-policy" );
+               cfg.registerArgOption ( "wf-local-policy", "wf-local-policy" );
  
                QueueConfig *queuePolicyStealConfig = NEW QueueConfig ( WorkFirst::_stealPolicy );
                queuePolicyStealConfig
                   ->addOption ( "FIFO", WorkFirst::FIFO )
                    .addOption ( "LIFO", WorkFirst::LIFO );
 
-               cfg.registerConfigOption ( "schedule-steal-policy", queuePolicyStealConfig,
+               cfg.registerConfigOption ( "wf-steal-policy", queuePolicyStealConfig,
                                              "Defines the steal access policy");
-               cfg.registerArgOption ( "schedule-steal-policy", "schedule-steal-policy" );
+               cfg.registerArgOption ( "wf-steal-policy", "wf-steal-policy" );
 
             }
 

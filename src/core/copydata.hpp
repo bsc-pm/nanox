@@ -144,7 +144,9 @@ inline void CopyData::setDimensions(nanos_region_dimension_internal_t const *dim
 
 inline uint64_t CopyData::getAddress() const
 {
-   return ( (uint64_t) address ); 
+   //message0("This is wrong. addr returned is " << (void *) address);
+   //System::printBt();
+   return (uint64_t) address; 
 }
 inline uint64_t CopyData::getOffset() const
 {

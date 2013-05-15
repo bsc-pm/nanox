@@ -46,10 +46,6 @@ inline const Device * ProcessingElement::getSubDeviceType () const
 {
    return _subDevice;
 }
- 
-inline int ProcessingElement::getNUMANode() const{ return _numaNode; }
-
-inline void ProcessingElement::setNUMANode( int node ){ _numaNode = node; }
 
 #endif
 

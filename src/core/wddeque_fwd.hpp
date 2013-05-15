@@ -25,7 +25,7 @@ namespace nanos
    class WDPool;
    class WDDeque;
    class WDLFQueue;
-   template<typename T> class WDPriorityQueue;
+   class WDPriorityQueue;
 };
 
 #endif

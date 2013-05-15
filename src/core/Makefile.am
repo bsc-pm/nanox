@@ -21,5 +21,5 @@ SUBDIRS = performance debug instrumentation instrumentation-debug
 
 include $(top_srcdir)/src/common.am
 
-pkginclude_HEADERS=nanos-int.h nanos_error.h
+pkginclude_HEADERS=nanos-int.h
 

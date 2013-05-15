@@ -25,25 +25,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-/*! \file nanos_c_api_macros.h
- *  \brief 
- */
-#define NANOS_API_DECL(Type, Name, Params) \
-    extern Type Name##_ Params; \
-    extern Type Name Params
-
-#ifdef _NANOS_INTERNAL
-
-   #define NANOS_API_DEF(Type, Name, Params) \
-       __attribute__((alias(#Name))) Type Name##_ Params; \
-       Type Name Params
-
-#endif
-
-/*! \defgroup capi C/C++ API */
-/*! \addtogroup capi
- *  \{
- */
 
 #ifdef __cplusplus
 extern "C"
@@ -56,9 +37,11 @@ typedef struct {
 
    /* Lower bound in terms of the size of the previous dimension. */
    size_t lower_bound;
+
    /* Accessed length in terms of the size of the previous dimension. */
    size_t accessed_length;
 } nanos_region_dimension_internal_t;
+
 
 #ifdef __cplusplus
 extern "C"
@@ -71,7 +54,8 @@ typedef struct {
    bool  commutative: 1;
 } nanos_access_type_internal_t;
 
-/* This structure is initialized in dataaccess.hpp. Any change in
+
+/* This structure is initialized in dependency.hpp. Any change in
  * its contents has to be reflected in DataAccess constructor
  */
 #ifdef __cplusplus
@@ -80,27 +64,32 @@ extern "C"
 typedef struct {
    /* Base address of the accessed range */
    void *address;
-   
+
    nanos_access_type_internal_t flags;
-   
+
    /* Number of dimensions */
    short dimension_count;
-   
-   /* The first dimension will be the contiguous one, and its size and
-    * offset must be expressed in bytes, not elements.
-    */
-#if defined(_MERCURIUM) && defined(_MF03)
-   // Fortran makes a strong separation between pointers and arrays and they
-   // cannot be mixed in any way. To the eyes of Mercurium the original
-   // declaration would be a pointer to a scalar, not a pointer to an array
-   void* dimensions;
-#else
+
    nanos_region_dimension_internal_t const *dimensions;
-#endif
-   
-   /* Offset of the first element */
+
    ptrdiff_t offset;
 } nanos_data_access_internal_t;
+
+/* This structure is initialized in dependency.hpp. Any change in
+ * its contents has to be reflected in Dependency constructor  
+ */
+typedef struct {
+   void **address;
+   ptrdiff_t offset;
+   struct {
+     bool  input: 1;
+     bool  output: 1;
+     bool  can_rename:1;
+     bool  commutative: 1;
+   } flags;
+   size_t  size;
+} nanos_dependence_internal_t;
+
 
 typedef enum {
    NANOS_PRIVATE,
@@ -110,10 +99,7 @@ typedef enum {
 typedef struct {
    void *original;
    void *privates;
-   size_t element_size;
-   size_t num_scalars;
-   void *descriptor; // This is only used in Fortran, it holds a Fortran array descriptor
-   void (*bop)( void *, void *, int num_scalars);
+   void (*bop)( void *, void *);
    void (*vop)( int n, void *, void *);
    void (*cleanup)(void *);
 } nanos_reduction_t;
@@ -129,24 +115,20 @@ typedef struct {
       bool output: 1;
    } flags;
    short dimension_count;
-
-#if defined(_MERCURIUM) && defined(_MF03)
-   // Fortran makes a strong separation between pointers and arrays and they
-   // cannot be mixed in any way. To the eyes of Mercurium the original
-   // declaration would be a pointer to a scalar, not a pointer to an array
-   void* dimensions;
-#else
    nanos_region_dimension_internal_t const *dimensions;
-#endif
    ptrdiff_t offset;
    uint64_t _hostBaseAddress;
 } nanos_copy_data_internal_t;
 
+
 typedef nanos_access_type_internal_t nanos_access_type_t;
 typedef nanos_region_dimension_internal_t nanos_region_dimension_t;
 
+
 #ifndef _NANOS_INTERNAL
 
+//typedef nanos_dependence_internal_t nanos_data_access_t;
+//typedef nanos_dependence_internal_t nanos_dependence_t;
 typedef nanos_data_access_internal_t nanos_data_access_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
 
@@ -158,6 +140,8 @@ namespace nanos {
 }
 typedef nanos::DataAccess nanos_data_access_t;
 typedef nanos::CopyData nanos_copy_data_t;
+//typedef nanos_dependence_internal_t nanos_dependence_t;
+//typedef nanos_dependence_internal_t nanos_data_access_t;
 
 #endif
 
@@ -181,11 +165,9 @@ typedef struct {
    int upper;
    int step;
    bool last;
-   bool wait;
    int chunk;
    int stride;
    int thid;
-   int threads;
    void *args;
 } nanos_loop_info_t;
 
@@ -221,12 +203,12 @@ typedef struct nanos_ws_desc {
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
-   bool clear_chunk:1;
    bool reserved0:1;
    bool reserved1:1;
    bool reserved2:1;
    bool reserved3:1;
    bool reserved4:1;
+   bool reserved5:1;
 } nanos_wd_props_t;
 
 typedef struct {
@@ -240,30 +222,11 @@ typedef struct {
   void * arg;
 } nanos_device_t;
 
-/*! \todo Move nanos_smp_args_t to some dependent part ? */
-typedef struct {
-   void (*outline) (void *);
-} nanos_smp_args_t;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-// factories
-// smp
-NANOS_API_DECL(void *, nanos_smp_factory,( void *args));
-#define NANOS_SMP_DESC( args ) { nanos_smp_factory, &( args ) }
-
-#ifdef __cplusplus
-};
-#endif
 // instrumentation structures
 
 typedef enum { NANOS_STATE_START, NANOS_STATE_END, NANOS_SUBSTATE_START, NANOS_SUBSTATE_END,
                NANOS_BURST_START, NANOS_BURST_END, NANOS_PTP_START, NANOS_PTP_END, NANOS_POINT, EVENT_TYPES
 } nanos_event_type_t; /**< Event types  */
-
-typedef unsigned int         nanos_event_key_t; /**< Key (on key-value pair) */
-typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
 
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
@@ -275,23 +238,50 @@ typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDO
 
 typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET,
                NANOS_AM_WORK, NANOS_AM_WORK_DONE, NANOS_XFER_WAIT_REQ_PUT, NANOS_XFER_FREE_TMP_BUFF } nanos_event_domain_t; /**< Specifies a domain */
+typedef long long  nanos_event_id_t;                   /**< Used as unique id within a given domain */
 
-typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
+typedef unsigned int         nanos_event_key_t;   /**< Key (on key-value pair) */
+typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair) */
   
 typedef struct {
-   nanos_event_type_t   type;
    nanos_event_key_t    key;
    nanos_event_value_t  value;
+} nanos_event_burst_t;
+
+typedef struct {
+   nanos_event_state_value_t value;
+} nanos_event_state_t;
+
+typedef struct {
+   unsigned int        nkvs;
+   nanos_event_key_t   *keys;
+   nanos_event_value_t *values;
+} nanos_event_point_t;
+
+typedef struct {
    nanos_event_domain_t domain; 
    nanos_event_id_t     id;
+   unsigned int         nkvs;
+   nanos_event_key_t    *keys;
+   nanos_event_value_t  *values;
+} nanos_event_ptp_t;
+
+typedef struct {
+   nanos_event_type_t       type;
+   union {
+      nanos_event_burst_t   burst;
+      nanos_event_state_t   state;
+      nanos_event_point_t   point;
+      nanos_event_ptp_t     ptp;
+   } info;
 } nanos_event_t;
 
 /* Lock C interface */
 typedef enum { NANOS_LOCK_FREE = 0, NANOS_LOCK_BUSY = 1 } nanos_lock_state_t;
 typedef struct nanos_lock_t {
-   volatile nanos_lock_state_t state_;
+   volatile nanos_lock_state_t _state;
 #ifdef __cplusplus
-   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : state_(init) {}
+   nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : _state(init) {}
 #endif
 } nanos_lock_t;
 
@@ -304,9 +294,5 @@ typedef struct {
    nanos_init_func_t  *func;
    void               *data;
 } nanos_init_desc_t;
-
-/*!
- * \}
- */ 
 
 #endif

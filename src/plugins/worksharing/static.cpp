@@ -29,7 +29,7 @@ class WorkSharingStaticFor : public WorkSharing {
 
          debug("Loop create -> lower: " << loop_info->lower_bound << " upper: " << loop_info->upper_bound << " step: " << loop_info->loop_step << " chunk size: " << loop_info->chunk_size );
 
-         return myThread->singleGuard();
+         return myThread->getTeam()->singleGuard( myThread->getTeamData()->nextSingleGuard() );
       }
 
      /*! \brief Duplicate related data
@@ -77,7 +77,6 @@ class WorkSharingStaticFor : public WorkSharing {
                              + ( (adjust > thid) ? thid * loop_data->loopStep : adjust * loop_data->loopStep );
             loop_item->upper = loop_item->lower + schunk + ((adjust > thid ) ? loop_data->loopStep : 0);
             loop_data->lowerBound = loop_data->upperBound + loop_data->loopStep;
-            if ( loop_item->upper == loop_data->upperBound ) loop_item->last = true;
          } else {
             // interleaved distribution
             loop_item->lower = loop_data->lowerBound + (loop_data->chunkSize * loop_data->loopStep ) * thid;

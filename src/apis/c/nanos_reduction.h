@@ -16,9 +16,6 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_reduction.h
- *  \brief 
- */
 #include "nanos-int.h"
 
 #ifndef _NANOS_REDUCTION_H_
@@ -41,50 +38,23 @@ extern "C"
 #define NANOS_REDUCTION_OP_MIN(a,b) ((a < b)? a : b)
 
 #define NANOS_REDUCTION_DECL(Op,Type)\
-   void nanos_reduction_bop_##Op##_##Type ( void *arg1, void *arg2); \
-   void nanos_reduction_bop_##Op##_##Type##_ ( void *arg1, void *arg2); \
-   void nanos_reduction_vop_##Op##_##Type ( int i, void *arg1, void *arg2); \
-   void nanos_reduction_vop_##Op##_##Type##_ ( int i, void *arg1, void *arg2); \
-
-#define NANOS_STRINGIZE(X) #X
+   void nanos_reduction_bop_##Op## _##Type ( void *arg1, void *arg2); \
+   void nanos_reduction_vop_##Op## _##Type ( int i, void *arg1, void *arg2); \
 
 #define NANOS_REDUCTION_DEF(Op,Op2,Type,Type2) \
-   void nanos_reduction_bop_##Op##_##Type ( void *arg1, void *arg2) \
+   void nanos_reduction_bop_##Op## _##Type ( void *arg1, void *arg2) \
    { \
       Type2 *s = (Type2 *) arg1; \
       Type2 *v = (Type2 *) arg2; \
       *s = Op2(*s,*v); \
    } \
-   __attribute__((alias(NANOS_STRINGIZE(nanos_reduction_bop_##Op## _##Type)))) \
-   void nanos_reduction_bop_##Op##_##Type##_ ( void *arg1, void *arg2); \
-   void nanos_reduction_vop_##Op##_##Type ( int n, void *arg1, void *arg2) \
+   void nanos_reduction_vop_##Op## _##Type ( int n, void *arg1, void *arg2) \
    { \
       int i; \
       Type2 *s = (Type2 *) arg1; \
       Type2 *v = (Type2 *) arg2; \
       for (i = 0; i < n; i++) *s = Op2(*s,v[i]); \
-   } \
-   __attribute__((alias(NANOS_STRINGIZE(nanos_reduction_bop_##Op## _##Type)))) \
-   void nanos_reduction_vop_##Op##_##Type##_ ( int n, void *arg1, void *arg2); \
-
-#define NANOS_REDUCTION_COMPLEX_DEF(Op,Op2,Type,Type2) \
-   void nanos_reduction_bop_##Op##_##Type ( void *arg1, void *arg2) \
-   { \
-      Type2 *s = (Type2 *) arg1; \
-      Type2 *v = (Type2 *) arg2; \
-      *s = Op2(__real__ *s, __real__ *v); \
-   } \
-   __attribute__((alias(NANOS_STRINGIZE(nanos_reduction_bop_##Op## _##Type)))) \
-   void nanos_reduction_bop_##Op##_##Type##_ ( void *arg1, void *arg2); \
-   void nanos_reduction_vop_##Op##_##Type ( int n, void *arg1, void *arg2) \
-   { \
-      int i; \
-      Type2 *s = (Type2 *) arg1; \
-      Type2 *v = (Type2 *) arg2; \
-      for (i = 0; i < n; i++) *s = Op2(__real__ *s, __real__ v[i]); \
-   } \
-   __attribute__((alias(NANOS_STRINGIZE(nanos_reduction_bop_##Op## _##Type)))) \
-   void nanos_reduction_vop_##Op##_##Type##_ ( int n, void *arg1, void *arg2); \
+   }
 
 #define NANOS_REDUCTION_INT_TYPES_DECL(Op) \
    NANOS_REDUCTION_DECL(Op,char) \
@@ -105,11 +75,6 @@ extern "C"
    NANOS_REDUCTION_DECL(Op,double) \
    NANOS_REDUCTION_DECL(Op,longdouble)
 
-#define NANOS_REDUCTION_COMPLEX_TYPES_DECL(Op) \
-   NANOS_REDUCTION_DECL(Op,cfloat) \
-   NANOS_REDUCTION_DECL(Op,cdouble) \
-   NANOS_REDUCTION_DECL(Op,clongdouble)
-
 #define NANOS_REDUCTION_INT_TYPES_DEF(Op,Op2) \
    NANOS_REDUCTION_DEF(Op,Op2,char,char) \
    NANOS_REDUCTION_DEF(Op,Op2,uchar,unsigned char) \
@@ -128,23 +93,15 @@ extern "C"
    NANOS_REDUCTION_DEF(Op,Op2,double,double) \
    NANOS_REDUCTION_DEF(Op,Op2,longdouble,long double)
 
-#define NANOS_REDUCTION_COMPLEX_TYPES_DEF(Op,Op2) \
-   NANOS_REDUCTION_COMPLEX_DEF(Op,Op2,cfloat,_Complex float) \
-   NANOS_REDUCTION_COMPLEX_DEF(Op,Op2,cdouble,_Complex double) \
-   NANOS_REDUCTION_COMPLEX_DEF(Op,Op2,clongdouble,_Complex long double)
-
 // REDUCTION BUILTIN DECLARATION
 NANOS_REDUCTION_INT_TYPES_DECL(add)
 NANOS_REDUCTION_REAL_TYPES_DECL(add)
-NANOS_REDUCTION_COMPLEX_TYPES_DECL(add)
 
 NANOS_REDUCTION_INT_TYPES_DECL(sub)
 NANOS_REDUCTION_REAL_TYPES_DECL(sub)
-NANOS_REDUCTION_COMPLEX_TYPES_DECL(sub)
 
 NANOS_REDUCTION_INT_TYPES_DECL(prod)
 NANOS_REDUCTION_REAL_TYPES_DECL(prod)
-NANOS_REDUCTION_COMPLEX_TYPES_DECL(prod)
 
 NANOS_REDUCTION_INT_TYPES_DECL(and)
 
@@ -153,12 +110,10 @@ NANOS_REDUCTION_INT_TYPES_DECL(or)
 NANOS_REDUCTION_INT_TYPES_DECL(xor)
 
 NANOS_REDUCTION_INT_TYPES_DECL(land)
-NANOS_REDUCTION_REAL_TYPES_DECL(land)
-NANOS_REDUCTION_COMPLEX_TYPES_DECL(land)
+NANOS_REDUCTION_REAL_TYPES_DECL(land) /* XXX */
 
 NANOS_REDUCTION_INT_TYPES_DECL(lor)
-NANOS_REDUCTION_REAL_TYPES_DECL(lor)
-NANOS_REDUCTION_COMPLEX_TYPES_DECL(lor)
+NANOS_REDUCTION_REAL_TYPES_DECL(lor) /* XXX */
 
 NANOS_REDUCTION_INT_TYPES_DECL(max)
 NANOS_REDUCTION_REAL_TYPES_DECL(max)
@@ -192,12 +147,7 @@ NANOS_REDUCTION_CLEANUP_DECL(_Bool, _Bool)
 NANOS_REDUCTION_CLEANUP_DECL(float, float)
 NANOS_REDUCTION_CLEANUP_DECL(double, double)
 NANOS_REDUCTION_CLEANUP_DECL(longdouble, long double)
-NANOS_REDUCTION_CLEANUP_DECL(cfloat, _Complex float)
-NANOS_REDUCTION_CLEANUP_DECL(cdouble, _Complex double)
-NANOS_REDUCTION_CLEANUP_DECL(clongdouble, _Complex long double)
-
-NANOS_API_DECL(void, nanos_reduction_default_cleanup_fortran, (void*));
-
+   
 #ifdef __cplusplus
 }
 #endif

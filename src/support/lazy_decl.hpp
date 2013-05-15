@@ -20,16 +20,14 @@
 #ifndef _NANOS_LAZY_INIT_DECL
 #define _NANOS_LAZY_INIT_DECL
 
-#include "atomic_decl.hpp"
-
-using namespace nanos;
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
 template <class T>
 class LazyInit {
    private:
       T *  _ptr;
       char _storage[sizeof(T)] __attribute__((aligned(8)));
-      Lock _initLock;
 
       void construct ();
 

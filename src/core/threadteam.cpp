@@ -56,15 +56,7 @@ void ThreadTeam::cleanUpReductionList( void )
    nanos_reduction_t *red;
    while ( !_redList.empty() ) {
       red = _redList.back();
-      red->cleanup( red->descriptor ); 
-      if ( red->descriptor != red->privates ) 
-      { 
-#ifdef NANOS_DEBUG_ENABLED 
-         nanos::getMemTracker().deallocate( red->descriptor ); 
-#else 
-         nanos::getAllocator().deallocate ( red->descriptor ); 
-#endif 
-      } 
+      red->cleanup( red );
 #ifdef NANOS_DEBUG_ENABLED
       nanos::getMemTracker().deallocate( (void *) red );
 #else

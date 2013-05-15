@@ -20,7 +20,7 @@
 #ifndef _BASE_THREAD_DECL
 #define _BASE_THREAD_DECL
 
-#include "workdescriptor_decl.hpp"
+#include "workdescriptor_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "debug.hpp"
 #include "atomic_decl.hpp"
@@ -28,7 +28,6 @@
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
 #include <set>
-#include "wddeque_decl.hpp"
 
 namespace nanos
 {
@@ -98,7 +97,7 @@ namespace nanos
 
         /*! \brief Returns next global worksharing descriptor for _team 
          */
-         nanos_ws_desc_t *getTeamWorkSharingDescriptor( BaseThread * thread, bool *b );
+         nanos_ws_desc_t *getTeamWorkSharingDescriptor( bool *b );
 
          void setParentTeamData ( TeamData *data ) { _parentData = data; }
          TeamData * getParentTeamData () const { return _parentData; }
@@ -113,6 +112,7 @@ namespace nanos
       friend class Scheduler;
 
       private:
+         static Atomic<int>      _idSeed;
          Lock                    _mlock;
 
          // Thread info
@@ -124,15 +124,12 @@ namespace nanos
          ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
          WD &                    _threadWD;
 
-         unsigned int            _maxPrefetch;  /**< Maximum number of tasks that the thread can be running simultaneously */
-         WDDeque                 _nextWDs;      /**< Queue with all the tasks that the thread is being run simultaneously */
-
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
-         volatile bool           _mustSleep;
          volatile bool           _paused;
          WD *                    _currentWD;
+         WD *                    _nextWD;
 
          // Team info
          bool                    _hasTeam;
@@ -149,7 +146,7 @@ namespace nanos
          // These must be called through the Scheduler interface
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
-         virtual bool inlineWorkDependent (WD &work) = 0;
+         virtual void inlineWorkDependent (WD &work) = 0;
          virtual void outlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
@@ -178,13 +175,10 @@ namespace nanos
          std::set<void *> _pendingRequests;
         /*! \brief BaseThread constructor
          */
-//<<<<<<< HEAD
-//         BaseThread ( WD &wd, ProcessingElement *creator=0, ext::SMPMultiThread *parent=NULL ) :
-//               _id( _idSeed++ ), _name("Thread"), _description(""), _parent( parent ), _pe( creator ), _threadWD( wd ),
-//               _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
-//               _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() {}
-//=======
-         BaseThread ( WD &wd, ProcessingElement *creator=0, ext::SMPMultiThread *parent=NULL );
+         BaseThread ( WD &wd, ProcessingElement *creator=0, ext::SMPMultiThread *parent=NULL ) :
+               _id( _idSeed++ ), _name("Thread"), _description(""), _parent( parent ), _pe( creator ), _threadWD( wd ),
+               _started( false ), _mustStop( false ), _paused( false ), _currentWD( NULL),
+               _nextWD( NULL), _hasTeam( false ), _teamData(NULL), _nextTeamData(NULL), _allocator() {}
 
         /*! \brief BaseThread destructor
          */
@@ -203,8 +197,6 @@ namespace nanos
          virtual void start () = 0;
          void run();
          void stop();
-         void sleep();
-         void wakeup();
          
          void pause ();
          void unpause ();
@@ -215,9 +207,6 @@ namespace nanos
          virtual void join() = 0;
          virtual void bind() {};
 
-         virtual void wait() {};
-         virtual void signal() {};
-
          // set/get methods
          void setCurrentWD ( WD &current );
 
@@ -225,13 +214,13 @@ namespace nanos
 
          WD & getThreadWD () const;
 
-         // Prefetching related methods used also by slicers
-         int getMaxPrefetch () const;
-         void setMaxPrefetch ( int max );
-         bool canPrefetch () const;
-         void addNextWD ( WD *next );
-         WD * getNextWD ();
-         bool hasNextWD ();
+         void resetNextWD ();
+         bool setNextWD ( WD *next );
+
+         bool reserveNextWD ( void );
+         bool setReservedNextWD ( WD *next );
+
+         WD * getNextWD () const;
 
          ext::SMPMultiThread *getParent() ;
          virtual BaseThread *getNextThread() = 0;
@@ -264,8 +253,6 @@ namespace nanos
          bool isStarted () const;
 
          bool isRunning () const;
-
-         bool isEligible () const;
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;
@@ -274,7 +261,7 @@ namespace nanos
 
          void associate();
 
-         int getId() const;
+         int getId();
 
          int getCpuId();
 

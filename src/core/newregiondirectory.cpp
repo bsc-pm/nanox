@@ -344,7 +344,6 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
    return *getRegionDictionary( cd );
 }
 
-#if 0
 void NewNewRegionDirectory::synchronize( bool flushData ) {
    if ( flushData ) {
       //std::cerr << "SYNC DIR" << std::endl;
@@ -393,7 +392,6 @@ void NewNewRegionDirectory::synchronize( bool flushData ) {
       }
    }
 }
-#endif
 
 void NewNewRegionDirectory::synchronize2( bool flushData ) {
    if ( flushData ) {

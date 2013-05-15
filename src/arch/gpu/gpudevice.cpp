@@ -67,17 +67,8 @@ void * GPUDevice::allocateWholeMemory( size_t &size )
 
    size = ( size_t ) ( size * percentage );
 
-   if ( err != cudaSuccess ) {
-      size_t free, total;
-      cudaMemGetInfo( &free, &total );
-
-      fatal_cond( size > free, "Trying to allocate " + ext::bytesToHumanReadable( size )
-            + " of device memory with cudaMalloc() when available memory is only "
-            + ext::bytesToHumanReadable( free ) );
-
-      fatal_cond( err != cudaSuccess, "Trying to allocate " +  ext::bytesToHumanReadable( size )
-            + " of device memory with cudaMalloc(): " +  cudaGetErrorString( err ) );
-   }
+   fatal_cond( err != cudaSuccess, "Trying to allocate " +  ext::bytesToHumanReadable( size ) +
+         + " of device memory with cudaMalloc(): " +  cudaGetErrorString( err ) );
 
    // Reset CUDA errors that may have occurred during this memory allocation
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
@@ -105,8 +96,7 @@ void * GPUDevice::allocatePinnedMemory( size_t size )
    cudaError_t err = cudaMallocHost( &address, size );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
-   ensure( address != NULL, "cudaMallocHost() returned a NULL pointer while trying to allocate "
-         + ext::bytesToHumanReadable( size ) + ". Error returned by CUDA is: " + cudaGetErrorString( err ) );
+   ensure( address != NULL, "cudaMallocHost() returned a NULL pointer" );
 
    fatal_cond( err != cudaSuccess, "Trying to allocate " +  ext::bytesToHumanReadable( size ) +
          + " of host memory with cudaMallocHost(): " +  cudaGetErrorString( err ) );

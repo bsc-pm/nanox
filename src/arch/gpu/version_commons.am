@@ -12,7 +12,6 @@ gpu_sources = \
 	$(top_srcdir)/src/arch/gpu/gpudevice.cpp \
 	$(top_srcdir)/src/arch/gpu/gpudd.hpp \
 	$(top_srcdir)/src/arch/gpu/gpudd.cpp \
-	$(top_srcdir)/src/arch/gpu/gpumemorytransfer_decl.hpp \
 	$(top_srcdir)/src/arch/gpu/gpumemorytransfer.hpp \
 	$(top_srcdir)/src/arch/gpu/gpumemorytransfer.cpp \
 	$(top_srcdir)/src/arch/gpu/gpuprocessor_fwd.hpp \

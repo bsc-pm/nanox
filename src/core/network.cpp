@@ -109,7 +109,7 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
       {
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) ) ; )
-         NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_WD_REMOTE, id, 0, 0, dest ); )
+         NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, dest ); )
       
          std::size_t expectedData = _sentWdData.getSentData( wdId );
          _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd, expectedData );
@@ -150,7 +150,6 @@ void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAdd
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, size );
-      fprintf(stderr, "[%d] doing PUT to node %d addr %p (wd=%p %d)\n", getNodeNum(), remoteNode, localAddr, &wd, wd.getId() );
       _api->put( remoteNode, remoteAddr, localAddr, size, wdId, wd );
    }
 }
@@ -168,8 +167,6 @@ void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAdd
 {
    if ( _api != NULL )
    {
-      GetRequest *getReq = ( GetRequest * ) req;
-      fprintf(stderr, "doing GET [%d] %p <= [%d] %p\n", getNodeNum(), getReq->getHostAddr(), remoteNode, remoteAddr );
       _api->get( localAddr, remoteNode, remoteAddr, size, req );
    }
 }
@@ -281,7 +278,6 @@ void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, len );
-      std::cerr << "send request put: " << dest << " : " << (void*) origAddr << " => " << dataDest << " : " << dstAddr << std::endl;
       _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd, f );
    }
 }
@@ -465,7 +461,6 @@ void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, 
    // TODO if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
    // TODO    invalidateDataFromDevice( (uint64_t) realTag, len, count, ld );
    // TODO }
-   fprintf(stderr, "[%d] received PUT data from %d, tag is %p [ %f ]\n", getNodeNum(), from, (void*) realTag, *((double *) realTag ) );
    _recvWdData.addData( wdId, len*count );
    if ( from != 0 ) { /* check for delayed putReqs or gets */
       _waitingPutRequestsLock.acquire();
@@ -525,7 +520,7 @@ void Network::notifyGet( SendDataRequest *req ) {
    if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
    {
       //delayAmGet( src_node, tagAddr, destAddr, tagAddr, waitObj, realLen );
-      message("this is node "<< getNodeNum() << "addr " << req->getOrigAddr() << " => (host addr) "<< req->getDestAddr() << " found! erasing from waiting list");
+      message("addr " << req->getOrigAddr() << " found! erasing from waiting list");
       message("WARNING: this amGet SHOULD BE DELAYED!!!");
    } //else { message("addr " << tagAddr << " not found at waiting list");}
    _waitingPutRequestsLock.release();
@@ -574,10 +569,6 @@ void *SendDataRequest::getOrigAddr() const {
    return _origAddr;
 }
 
-void *SendDataRequest::getDestAddr() const {
-   return _destAddr;
-}
-
 void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld ) {
    //NewDirectory::LocationInfoList locations;
    //unsigned int currentVersion;
@@ -610,60 +601,4 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
    //   }
    //  //else { /*if ( sys.getNetwork()->getNodeNum() == 0)*/ std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"]  All ok, checked directory " << _newMasterDir  <<" location is " << it->second << std::endl; }
    //}
-}
-
-GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) : _complete(0),
-   _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) {
-}
-
-GetRequest::~GetRequest() {
-}
-
-void GetRequest::complete() {
-   _complete = 1;
-}
-
-bool GetRequest::isCompleted() const {
-   return _complete == 1;
-}
-
-void GetRequest::clear() {
-   //fprintf(stderr, "clearing request %p, op obj is %p\n", this, _ops);
-   ::memcpy( _hostAddr, _recvAddr, _size );
-   sys.getNetwork()->freeReceiveMemory( _recvAddr );
-   _ops->completeOp();
-   //fprintf(stderr, "cleared request %p\n", this);
-}
-
-char *GetRequest::getHostAddr() const {
-   return _hostAddr;
-}
-
-char *GetRequest::getTmpAddr() const {
-   return _recvAddr;
-}
-
-std::size_t GetRequest::getSize() const {
-   return _size;
-}
-
-DeviceOps *GetRequest::getOps() const {
-   return _ops;
-}
-
-GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
-   GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) {
-}
-
-GetRequestStrided::~GetRequestStrided() {
-}
-
-void GetRequestStrided::clear() {
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
-   for ( unsigned int j = 0; j < _count; j += 1 ) {
-      ::memcpy( &(getHostAddr()[ j  * _ld ]), &(getTmpAddr()[ j * getSize() ]), getSize() );
-   }
-   NANOS_INSTRUMENT( inst2.close(); );
-   _packer->free_pack( (uint64_t) getHostAddr(), getSize(), _count, getTmpAddr() );
-   getOps()->completeOp();
 }

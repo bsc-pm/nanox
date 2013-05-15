@@ -17,8 +17,8 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include $(top_srcdir)/src/common.am
 include $(top_srcdir)/src/apis/c/version_commons.am
+include $(top_srcdir)/src/common.am
 
 if DEBUG_VERSION
 debug_LTLIBRARIES=libnanox-c.la
@@ -28,11 +28,9 @@ nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(gpu_includes)
 else
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
 endif
-nanos_debug_fcflags=$(common_includes) $(common_debug_fcflags)
 
-libnanox_c_la_FCFLAGS=$(nanos_debug_fcflags)
 libnanox_c_la_CXXFLAGS=$(nanos_debug_cxxflags)
-libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
+libnanox_c_la_LDFLAGS=$(version_flags)
 libnanox_c_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la
 libnanox_c_la_SOURCES=$(nanos_c_sources)
 libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la

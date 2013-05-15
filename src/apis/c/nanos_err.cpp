@@ -16,27 +16,10 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_err.cpp
- *  \brief 
- */
+
 #include "nanos.h"
 #include <stdlib.h>
 #include <stdio.h>
-
-#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "instrumentation-debug";
-#elif defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "debug";
-#elif !defined(NANOS_DEBUG_ENABLED) && defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "instrumentation";
-#elif !defined(NANOS_DEBUG_ENABLED) && !defined(NANOS_INSTRUMENTATION_ENABLED)
-   char nanos_mode[] = "performance";
-#endif
-
-NANOS_API_DEF(char *, nanos_get_mode, ( void ))
-{
-   return nanos_mode;
-}
 
 NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
 {
@@ -45,17 +28,11 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
       default:
 
       case NANOS_UNKNOWN_ERR:
-         fprintf( stderr,"Nanox: Unknown NANOS error detected\n" );
+         fprintf( stderr,"Unknown NANOS error detected\n" );
          break;
 
       case NANOS_UNIMPLEMENTED:
-         fprintf( stderr,"Nanox: Requested NANOS service not implemented\n" );
-         break;
-      case NANOS_ENOMEM:
-         fprintf( stderr,"Nanox: Cannot allocate enough memory to run the program\n" );
-         break;
-      case NANOS_INVALID_PARAM:
-         fprintf( stderr, "Nanox: invalid parameter\n" );
+         fprintf( stderr,"Requested NANOS service not implemented\n" );
          break;
    }
 

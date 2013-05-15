@@ -16,9 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_sync.cpp
- *  \brief
- */
+
 #include "workgroup.hpp"
 #include "nanos.h"
 #include "schedule.hpp"
@@ -27,27 +25,17 @@
 #include "instrumentationmodule_decl.hpp"
 #include "instrumentation.hpp"
 
-/*! \defgroup capi_sync C/C++ API: Synchronization services. */
-/*! \addtogroup capi_sync
- *  \{
- */
-
 using namespace nanos;
 
 NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoid_flush ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wg_wait_completion",NANOS_SYNCHRONIZATION) );
 
-   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT( static nanos_event_key_t taskwait  = ID->getEventKey("taskwait"); )
-   NANOS_INSTRUMENT( unsigned wd_id = ((WG *)uwg)->getId( ); )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &taskwait, (nanos_event_value_t *) &wd_id); )
-
    try {
       WG *wg = ( WG * )uwg;
       wg->waitCompletion( avoid_flush );
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -59,8 +47,8 @@ NANOS_API_DEF(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync
 
    try {
       *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -72,8 +60,8 @@ NANOS_API_DEF(nanos_err_t, nanos_create_bool_sync_cond, ( nanos_sync_cond_t *syn
 
    try {
       *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -86,8 +74,8 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_cond_wait, ( nanos_sync_cond_t sync_cond )
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       syncCond->wait();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -100,8 +88,8 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_cond_signal, ( nanos_sync_cond_t sync_cond
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       syncCond->signal();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -114,8 +102,8 @@ NANOS_API_DEF(nanos_err_t, nanos_destroy_sync_cond, ( nanos_sync_cond_t sync_con
    try {
       GenericSyncCond * syncCond = (GenericSyncCond *) sync_cond;
       delete syncCond;
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -139,7 +127,7 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data
    NANOS_INSTRUMENT ( Keys[1] = wd_data_accesses_ptr; );
    NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) data_accesses; )
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(2, Keys, Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(2, Keys, Values); )
 
    try {
       if ( data_accesses != NULL ) {
@@ -147,8 +135,8 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_on, ( size_t num_data_accesses, nanos_data
          return NANOS_OK;
       }
 
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -162,25 +150,12 @@ NANOS_API_DEF(nanos_err_t, nanos_init_lock, ( nanos_lock_t **lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) *lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       *lock = new Lock();
-   } catch ( nanos_err_t e) {
-      return e;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_init_lock_at, ( nanos_lock_t *lock ))
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","init_lock",NANOS_RUNTIME) );
-
-   try {
-      new ( lock ) Lock();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -194,13 +169,13 @@ NANOS_API_DEF(nanos_err_t, nanos_set_lock, ( nanos_lock_t *lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       Lock &l = *( Lock * ) lock;
       l++;
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -214,13 +189,13 @@ NANOS_API_DEF(nanos_err_t, nanos_unset_lock, ( nanos_lock_t *lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       Lock &l = *( Lock * ) lock;
       l--;
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -234,14 +209,14 @@ NANOS_API_DEF(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       Lock &l = *( Lock * ) lock;
 
       *result = l.tryAcquire();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -255,12 +230,12 @@ NANOS_API_DEF(nanos_err_t, nanos_destroy_lock, ( nanos_lock_t *lock ))
 
    NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEventNkvs(1, &Keys, &Values); )
 
    try {
       delete ( Lock * )lock;
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -273,8 +248,8 @@ NANOS_API_DEF(nanos_err_t, nanos_single_guard, ( bool *b ))
 
    try {
       *b = myThread->singleGuard();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -286,8 +261,8 @@ NANOS_API_DEF(nanos_err_t, nanos_enter_sync_init, ( bool *b ))
 
    try {
       *b = myThread->enterSingleBarrierGuard();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -299,8 +274,8 @@ NANOS_API_DEF(nanos_err_t, nanos_wait_sync_init, ( void ))
 
    try {
       myThread->waitSingleBarrierGuard();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
@@ -312,18 +287,10 @@ NANOS_API_DEF(nanos_err_t, nanos_release_sync_init, ( void ))
 
    try {
       myThread->releaseSingleBarrierGuard();
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
 
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_memory_fence, (void))
-{
-    nanos::memoryFence();
-    return NANOS_OK;
-}
-/*!
- * \}
- */

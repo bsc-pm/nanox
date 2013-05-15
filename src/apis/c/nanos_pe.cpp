@@ -16,9 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_pe.cpp
- *  \brief 
- */
+
 #include "nanos.h"
 #include "basethread.hpp"
 #include "debug.hpp"
@@ -28,11 +26,6 @@
 #include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
-
-/*! \defgroup capi_pe C/C++ API: Processing Elements services. */
-/*! \addtogroup capi_pe
- *  \{
- */
 
 NANOS_API_DEF(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd ))
 {

@@ -22,7 +22,6 @@ include $(top_srcdir)/src/common.am
 
 if DEBUG_VERSION
 debug_LTLIBRARIES = \
-        libnanox-barrier-old-centralized.la \
         libnanox-barrier-centralized.la \
 	$(END)
 #        libnanox-barrier-posix.la \
@@ -30,10 +29,6 @@ debug_LTLIBRARIES = \
 #        libnanox-barrier-tree.la 
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
-
-libnanox_barrier_old_centralized_la_CXXFLAGS=$(nanos_debug_cxxflags)
-libnanox_barrier_old_centralized_la_LDFLAGS=$(ld_plugin_flags)
-libnanox_barrier_old_centralized_la_SOURCES=$(old_centralized_sources)
 
 libnanox_barrier_centralized_la_CXXFLAGS=$(nanos_debug_cxxflags)
 libnanox_barrier_centralized_la_LDFLAGS=$(ld_plugin_flags)

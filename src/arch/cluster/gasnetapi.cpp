@@ -43,9 +43,9 @@ Atomic<int> wdindc = 0;
 WD* buffWD = NULL;
 #endif
 
-//typedef struct {
-//   void (*outline) (void *);
-//} nanos_smp_args_t;
+typedef struct {
+   void (*outline) (void *);
+} nanos_smp_args_t;
 
 #define VERBOSE_AM( x )
 
@@ -338,7 +338,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       fprintf(stderr, "Unsupported architecture\n");
    }
 
-   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate, NULL );
+   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate );
 
    std::memcpy(data, work_data, dataSize);
 
@@ -361,7 +361,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
-      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, 0, 0 ); )
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *localWD, NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
    }
 
    getInstance()->_net->notifyWork(expectedData, localWD, seq);
@@ -618,7 +618,7 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
       gasnet_handlerarg_t waitObjHi)
 {
    gasnet_node_t src_node;
-   GetRequest *waitObj = ( GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
+   ClusterDevice::GetRequest *waitObj = ( ClusterDevice::GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -648,7 +648,7 @@ void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
       gasnet_handlerarg_t waitObjHi)
 {
    gasnet_node_t src_node;
-   GetRequest *waitObj = ( GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
+   ClusterDevice::GetRequest *waitObj = ( ClusterDevice::GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -788,8 +788,8 @@ void GASNetAPI::amRequestPut( gasnet_token_t token,
       gasnet_handlerarg_t wdLo,
       gasnet_handlerarg_t wdHi,
       gasnet_handlerarg_t dst,
-      gasnet_handlerarg_t functorLo,
-      gasnet_handlerarg_t functorHi )
+      gasnet_handlerarg_t functorHi,
+      gasnet_handlerarg_t functorLo )
 {
    gasnet_node_t src_node;
    void *origAddr = ( void * ) MERGE_ARG( origAddrHi, origAddrLo );

@@ -21,8 +21,6 @@
 #define _NANOS_DATA_ACCESS_DECL
 
 #include "nanos-int.h"
-#include <cstddef>
-#include <iosfwd>
 // 
 namespace nanos
 {
@@ -39,16 +37,12 @@ namespace nanos
           *  \param input Whether the access is input or not 
           *  \param output Whether the access is output or not
           *  \param canRename Whether the access can rename or not
-          *  \param concurrent If the accesses can run concurrently
-          *  \param commutative If accesses may occur in any order, but not concurrently
           *  \param dimensionCount Number of dimensions
           *  \param dimensions Array of dimension descriptors from least significant to most significant
-          *  \param offset Offset of the first element
           */
          DataAccess ( void * addr, bool input, bool output,
-                      bool canRename, bool concurrent, bool commutative,
-                      short dimensionCount, nanos_region_dimension_internal_t const *dimensions,
-                      ptrdiff_t offset );
+                      bool canRename, bool commutative, short dimensionCount,
+                      nanos_region_dimension_internal_t const *dimensions );
 
          /*! \brief DataAccess copy constructor
           *
@@ -69,15 +63,6 @@ namespace nanos
         /*! \brief Obtain the base address of the access
          */
          void * getAddress() const;
-         
-        /*! \brief Obtain the dependency's address address
-    */
-    ptrdiff_t getOffset() const;
-         
-        /*! \brief Compute the address of the first element
-         * (address + offset)
-         */
-         void * getDepAddress() const;
          
         /*! \brief returns true if it is an input access
          */
@@ -103,16 +88,8 @@ namespace nanos
          */
          void setCanRename( bool b );
 
-        /*! \brief returns true if this access can occur concurrent with other concurrent accesses
+        /*! \brief returns true if there is commutativity over this access
          */
-         bool isConcurrent() const;
-
-        /*! \brief sets the access to be concurrent
-         */
-         void setConcurrent( bool b );
-
-        /*! \brief returns true if this access can be reordered with other commutative accesses
-          */
          bool isCommutative() const;
 
         /*! \brief sets the access to be commutative
@@ -120,50 +97,6 @@ namespace nanos
          void setCommutative( bool b );
          
    };
-   
-   
-   namespace dependencies_domain_internal {
-      class AccessType: public nanos_access_type_internal_t {
-      public:
-         AccessType()
-            {
-               input = 0;
-               output = 0;
-               // can_rename: see below remark.
-               can_rename = true;
-               /*
-                * #605 (gmiranda): this has to be initialised to true, otherwise
-                * operator&= will always set it to false.
-                * When we have 2 accesses to the same region, if one of them is
-                * concurrent and the other is not, we want it to be non
-                * concurrent.
-                */
-               concurrent = true; 
-               commutative = true;
-            }
-         
-         AccessType(nanos_access_type_internal_t const &accessType)
-            {
-               input = accessType.input;
-               output = accessType.output;
-               can_rename = accessType.can_rename;
-               concurrent = accessType.concurrent;
-               commutative = accessType.commutative;
-            }
-         
-         AccessType const &operator|=(nanos_access_type_internal_t const &accessType)
-            {
-               input |= accessType.input;
-               output |= accessType.output;
-               can_rename &= accessType.can_rename;
-               concurrent &= accessType.concurrent;
-               commutative &= accessType.commutative;
-               
-               return *this;
-            }
-         friend std::ostream &operator<<( std::ostream &o, AccessType const &accessType);
-      };
-   } // namespace dependencies_domain_internal
 }
 
 #endif

@@ -49,7 +49,6 @@ bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
       debug0 ( "Dequeueing sliced work: keeping former wd" );
       *slice = NULL;
       sys.duplicateWD( slice, wd );
-      sys.setupWD(**slice, wd);
 
       return false;
    }

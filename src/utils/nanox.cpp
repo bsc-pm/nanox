@@ -27,68 +27,14 @@
 #include <iostream>
 #include <dirent.h>
 #include <stdlib.h>
-#include <list>
 #include "compatibility.hpp"
 
 using namespace nanos;
-
-// Keep the plugin name list here
-typedef std::pair<std::string,Plugin*> PluginInfo;
-typedef std::list<PluginInfo> PluginList;
-PluginList* pluginNames;
 
 void utilInit ( void * );
 
 void utilInit ( void * ) 
 {
-   struct dirent **namelist;
-   int n;
-   
-   // Initialise here
-   pluginNames = new PluginList();
-   
-   n = scandir( PLUGIN_DIR, &namelist, 0, alphasort );
-
-   if ( n < 0 )
-      perror( "scandir" );
-   else {
-      while ( n-- ) {
-         std::string name( namelist[n]->d_name );
-
-         if (   ( name.compare( 0,15,"libnanox-sched-" ) != 0 ) 
-              &&( name.compare( 0,17,"libnanox-barrier-"  ) != 0 )
-              &&( name.compare( 0,14,"libnanox-deps-"  ) != 0 )
-              &&( name.compare( 0,16,"libnanox-slicer-"  ) != 0 )
-              &&( name.compare( 0,18,"libnanox-throttle-"  ) != 0 )
-              &&( name.compare( 0,21,"libnanox-worksharing-"  ) != 0 )
-              &&( name.compare( 0,25,"libnanox-instrumentation-"  ) != 0 )
-            ) continue;
-
-         if ( name.compare( name.size()-3,3,".so" ) == 0 ) {
-            name.erase( name.size()-3 );
-            name.erase( 0, std::string("libnanox-").size() );
-
-            Plugin *plugin = sys.loadAndGetPlugin( name );
-
-            if ( plugin != NULL ) {
-               size_t separator = name.find( "-" );
-               std::string module = name.substr( 0, separator );
-               // The option name of the plugin (i.e. sched-priority -> priority)
-               std::string pluginName = name.substr( separator + 1 );
-               
-               sys.setValidPlugin( module, pluginName );
-               
-               pluginNames->push_back( PluginInfo( name, plugin ) );
-               
-            }
-         }
-
-         free( namelist[n] );
-      }
-
-      free( namelist );
-   }
-   
    sys.setDelayedStart(true);
 }
 
@@ -101,7 +47,10 @@ int _nanox_main (int argc, char* argv[]);
 
 int _nanox_main (int argc, char* argv[])
 {
-   bool listVersion = false;
+
+   struct dirent **namelist;
+   int n;
+
    bool listHelp = false;
    bool listPlugins = false;
    std::string arg;
@@ -113,35 +62,44 @@ int _nanox_main (int argc, char* argv[])
          listHelp = true;
       } else if ( arg.compare( "--list-modules" ) == 0 ) {
          listPlugins = true;
-      } else if ( arg.compare( "--version" ) == 0 ) {
-         listVersion = true;
       } else {
-         std::cout << "usage: " << argv[0] << " [--version] [--help] [--list-modules]" << std::endl;
+         std::cout << "usage: " << argv[0] << " [--help] [--list-modules]" << std::endl;
          exit(0);
       }
    } 
 
-   if ( !listPlugins && !listHelp && !listVersion) {
-      std::cout << "usage: " << argv[0] << " [--version] [--help] [--list-modules]" << std::endl;
+   if ( !listPlugins && !listHelp ) {
+      std::cout << "usage: " << argv[0] << " [--help] [--list-modules]" << std::endl;
       exit(0);
    }
 
-   if ( listVersion ) {
-      std::cout << PACKAGE << " " << VERSION << " (" << NANOX_BUILD_VERSION << ")" <<  std::endl;
-      std::cout << "Configured with: " << NANOX_CONFIGURE_ARGS << std::endl;
-   }
-
-   if ( listPlugins ){
+   if ( listPlugins )
       std::cout << "Nanox runtime library available plugins at '" << PLUGIN_DIR << "':" << std::endl;
-   
-      for ( PluginList::const_iterator it = pluginNames->begin();
-           it != pluginNames->end(); ++it )
-      {
-         const std::string name = it->first;
-         const Plugin* plugin = it->second;
-         
-         std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+
+   n = scandir( PLUGIN_DIR, &namelist, 0, alphasort );
+
+   if ( n < 0 )
+      perror( "scandir" );
+   else {
+      while ( n-- ) {
+         std::string name( namelist[n]->d_name );
+
+         if ( name.compare( 0,9,"libnanox-" ) != 0 ) continue;
+
+         if ( name.compare( name.size()-3,3,".so" ) == 0 ) {
+            name.erase( name.size()-3 );
+            name.erase( 0, std::string("libnanox-").size() );
+
+            Plugin *plugin = sys.loadAndGetPlugin( name );
+
+            if ( listPlugins && plugin != NULL )
+               std::cout << "   " << name << " - " << plugin->getName() << " - version " << plugin->getVersion() << std::endl;
+         }
+
+         free( namelist[n] );
       }
+
+      free( namelist );
    }
 
    if ( listHelp ) {
@@ -161,8 +119,5 @@ int _nanox_main (int argc, char* argv[])
 
       std::cout << Config::getNanosHelp();
    }
-   
-   delete pluginNames;
-
    return 0;
 }

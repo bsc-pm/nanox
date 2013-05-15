@@ -17,16 +17,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_worksharing.cpp
- *  \brief 
- */
+
 #include "nanos.h"
 #include "worksharing_decl.hpp"
-
-/*! \defgroup capi_ws C/C++ API: Worksharing services. */
-/*! \addtogroup capi_ws
- *  \{
- */
 
 using namespace nanos;
 
@@ -37,8 +30,8 @@ NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, na
    try {
       if ( b ) *b = ((WorkSharing *) ws)->create( wsd, info );
       else ((WorkSharing *) ws)->create( wsd, info );
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
    return NANOS_OK;
 }
@@ -49,12 +42,9 @@ NANOS_API_DEF(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, 
 
    try {
       ((WorkSharing *) wsd->ws)->nextItem( wsd, wsi );
-   } catch ( nanos_err_t e) {
-      return e;
+   } catch ( ... ) {
+      return NANOS_UNKNOWN_ERR;
    }
    return NANOS_OK;
 
 }
-/*!
- * \}
- */ 

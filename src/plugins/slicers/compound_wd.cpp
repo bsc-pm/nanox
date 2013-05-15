@@ -48,6 +48,7 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
 
    /* As the wd's has not been submitted we need to configure it */
    for ( int i = 0; i < data->nsect; i++) {
+    //  slice = ((WorkDescriptor**)data->lwd)[i];
       slice = (WorkDescriptor*)data->lwd[i];
       sys.setupWD(*slice, &work);
    }
@@ -125,8 +126,6 @@ void SlicerCompoundWD::executeWDs ( nanos_compound_wd_data_t *data )
    for ( int i = 0; i < data->nsect; i++ ) {
       slice = (WorkDescriptor*)data->lwd[i];
       Scheduler::inlineWork( slice );
-      slice->~WorkDescriptor();
-      delete[] (char *)slice;
    }
 
 }

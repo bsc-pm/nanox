@@ -23,7 +23,6 @@
 #include <string>
 #include <vector>
 #include <stdlib.h>
-#include <unistd.h>
 #include <dlfcn.h>
 #include <time.h>
 #include "nanos-int.h"
@@ -102,7 +101,6 @@ namespace nanos
          static char **getArgv() { return _argv; }
 
          static double getMonotonicTime ();
-         static double getMonotonicTimeUs ();
          static double getMonotonicTimeResolution ();
          
          static const InitList & getInitializationFunctions ( ) { return *_initList;}
@@ -125,18 +123,6 @@ namespace nanos
       clock_gettime(CLOCK_MONOTONIC,&ts);
 
       t = (double) (ts.tv_sec)  + (double) ts.tv_nsec * 1.0e-9;
-
-      return t;
-   }
-
-   inline double OS::getMonotonicTimeUs ()
-   {
-      struct timespec ts;
-      double t;
-
-      clock_gettime( CLOCK_MONOTONIC, &ts );
-
-      t = ( double ) ( ts.tv_sec * 1.0e6 )  + ( double ) ( ts.tv_nsec * 1.0e-3 );
 
       return t;
    }

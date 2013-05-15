@@ -26,18 +26,18 @@ extern "C" {
 #ifdef GPU_DEV
 #ifdef CLUSTER_DEV
       /* GPU_DEV & CLUSTER_DEV */
-      return sys.getMaxThreads() + nanos::ext::GPUConfig::getGPUCount() + nanos::ext::ClusterInfo::getExtraPEsCount();
+      return sys.getNumPEs() + nanos::ext::GPUConfig::getGPUCount() + nanos::ext::ClusterInfo::getExtraPEsCount();
 #else
       /* GPU_DEV & no CLUSTER_DEV */
-      return sys.getMaxThreads() + nanos::ext::GPUConfig::getGPUCount();
+      return sys.getNumPEs() + nanos::ext::GPUConfig::getGPUCount();
 #endif
 #else
 #ifdef CLUSTER_DEV
       /* no GPU_DEV & CLUSTER_DEV */
-      return sys.MaxThreads() + nanos::ext::ClusterInfo::getExtraPEsCount();
+      return sys.getNumPEs() + nanos::ext::ClusterInfo::getExtraPEsCount();
 #else
       /* no GPU_DEV & no CLUSTER_DEV */
-      return sys.MaxThreads();
+      return sys.getNumPEs();
 #endif
 #endif
    }

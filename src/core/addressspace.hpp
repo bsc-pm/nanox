@@ -3,6 +3,33 @@
 #include "addressspace_decl.hpp"
 namespace nanos {
 
+#if 0
+template <>
+template <>
+void MemSpace< HostAddressSpace >::copy( MemSpace< SeparateAddressSpace > &from, TransferListType list, DeviceOps *ops ) {
+   for ( TransferListType::iterator it = list.begin(); it != list.end(); it++ ) {
+      if ( from.lockForTransfer( *it ) ) {
+         doOp( from, *it, ops );
+         from.releaseForTransfer( *it );
+      } else {
+         failToLock( from, *it, ops );
+      }
+   }
+}
+template <>
+template < class T2 >
+void MemSpace< SeparateAddressSpace >::copy( MemSpace< T2 > &from, TransferListType list, DeviceOps *ops ) {
+   for ( TransferListType::iterator it = list.begin(); it != list.end(); it++ ) {
+      if ( from.lockForTransfer( *it ) ) {
+         doOp( from, *it, ops );
+         from.releaseForTransfer( *it );
+      } else {
+         failToLock( from, *it, ops );
+      }
+   }
+}
+#else
+
 template < class T>
 void MemSpace< T >::copy( MemSpace< SeparateAddressSpace > &from, TransferListType list, WD const &wd ) {
    for ( TransferListType::iterator it = list.begin(); it != list.end(); it++ ) {
@@ -14,6 +41,8 @@ void MemSpace< T >::copy( MemSpace< SeparateAddressSpace > &from, TransferListTy
       }
    }
 }
+
+#endif
 
 }
 #endif /* ADDRESSSPACE_H */

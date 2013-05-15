@@ -61,6 +61,11 @@ void WorkGroup::exitWork ( WorkGroup &work )
 
 void WorkGroup::waitCompletion ( bool avoidFlush )
 {
+     _syncCond.wait();
+}
+
+void WorkGroup::waitCompletionAndSignalers ( bool avoidFlush )
+{
      _syncCond.waitConditionAndSignalers();
 }
 
@@ -78,9 +83,9 @@ void WorkGroup::done ()
      for ( WGList::iterator it = _partOf.begin(); it != _partOf.end(); it++ ) {
         if ( *it ) {
            NANOS_INSTRUMENT ( if ( ((WorkDescriptor *)(*it))->isBlocked()) { )
-              NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + (*it)->getId(); )
-              NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
-              NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *((WorkDescriptor *)(*it)), NANOS_WAIT, id, 0, 0 ); )
+           NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + (*it)->getId(); )
+           NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs ( NANOS_WAIT, id, 0, NULL, NULL );)
+           NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *((WorkDescriptor *)(*it)), NANOS_WAIT, id, 0, NULL, NULL ); )
            NANOS_INSTRUMENT ( } )
            ( *it )->exitWork( *this );
         }

@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <vector>
 #include "functor_decl.hpp"
+#include "regiondirectory_decl.hpp"
 #include "simpleallocator_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "workdescriptor_fwd.hpp"

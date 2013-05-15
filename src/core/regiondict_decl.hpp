@@ -60,13 +60,12 @@ typedef unsigned int reg_t;
 
    template < class T >
    class ContainerDense {
-      std::vector< T >            _container;
-      Atomic<unsigned int>        _leafCount;
-      Atomic<reg_t>               _idSeed;
-      std::vector< std::size_t >  _dimensionSizes;
-      RegionNode                  _root;
-      Lock                        _rogueLock;
-      Lock                        _lock;
+      std::vector< T > _container;
+      Atomic<unsigned int> _leafCount;
+      Atomic<reg_t>                                 _idSeed;
+      std::vector< std::size_t >                    _dimensionSizes;
+      RegionNode                                    _root;
+      Lock _rogueLock;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );

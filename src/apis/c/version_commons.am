@@ -1,5 +1,3 @@
-common_includes += -I $(top_builddir)/src/apis/c
-
 nanos_c_sources = \
 	$(top_srcdir)/src/apis/c/nanos.h\
 	$(top_srcdir)/src/apis/c/nanos_pe.cpp\
@@ -12,11 +10,7 @@ nanos_c_sources = \
 	$(top_srcdir)/src/apis/c/nanos_sys.cpp\
 	$(top_srcdir)/src/apis/c/nanos_instrument.cpp\
 	$(top_srcdir)/src/apis/c/nanos_memory.cpp\
-	$(top_srcdir)/src/apis/c/nanos_atomic.h\
-	$(top_srcdir)/src/apis/c/nanos_atomic.cpp\
 	$(top_srcdir)/src/apis/c/nanos_reduction.h\
 	$(top_srcdir)/src/apis/c/nanos_reduction.cpp\
-	$(top_srcdir)/src/apis/c/nanos_sched.cpp\
-	$(top_srcdir)/src/apis/c/nanos_dependence.cpp\
 	$(END) 
 

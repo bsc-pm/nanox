@@ -34,7 +34,7 @@ namespace nanos {
 
             NumTasksThrottle ( const NumTasksThrottle & );
             const NumTasksThrottle & operator= ( const NumTasksThrottle & );
-
+            
          public:
             //must be public: used in the plugin
             static const int _defaultLimit;
@@ -78,8 +78,8 @@ namespace nanos {
             {
                cfg.setOptionsSection( "Num tasks throttle", "Scheduling throttle policy based on the number of tasks" );
                cfg.registerConfigOption ( "throttle-limit",
-                     NEW Config::PositiveVar( _actualLimit ),
-                     "Defines the number of tasks per thread allowed" );
+                  NEW Config::PositiveVar( _actualLimit ),
+                  "Defines the number of tasks per thread allowed" );
                cfg.registerArgOption ( "throttle-limit", "throttle-limit" );
             }
 

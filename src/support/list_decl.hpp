@@ -115,7 +115,7 @@ class List {
            /*! \brief Returns whether this node has external references or not
             */
             bool hasRefs() const
-               { return this->_refs > 0; }
+               { return _refs > 0; }
 
            /*! \brief Returns the external reference counter
             */
@@ -389,6 +389,11 @@ class List {
                if ( _node != _list->_end )
                   _node->decreaseRefs();
             }
+
+           /*! \brief Cast to const_iterator
+            */
+            operator const_iterator () const
+               { return const_iterator( _node, _list ); }
 
            /*! \brief Skips invalid elements in the list
             */

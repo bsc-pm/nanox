@@ -21,7 +21,6 @@
 #include "smpprocessor.hpp"
 #include "smpdd.hpp"
 #include "system.hpp"
-#include "archplugin.hpp"
 
 namespace nanos {
 namespace ext {
@@ -33,11 +32,11 @@ nanos::PE * smpProcessorFactory ( int id )
    return new SMPProcessor( id );
 }
 
-class SMPPlugin : public ArchPlugin
+class SMPPlugin : public Plugin
 {
 
    public:
-      SMPPlugin() : ArchPlugin( "SMP PE Plugin",1 ) {}
+      SMPPlugin() : Plugin( "SMP PE Plugin",1 ) {}
 
       virtual void config ( Config& cfg )
       {
@@ -48,29 +47,6 @@ class SMPPlugin : public ArchPlugin
 
       virtual void init() {
          sys.setHostFactory( smpProcessorFactory );
-      }
-      
-      virtual unsigned getPEsInNode( unsigned node ) const
-      {
-         // TODO (gmiranda): if HWLOC is available, use it.
-         return sys.getCoresPerSocket();
-      }
-
-      virtual unsigned getNumPEs() const
-      {
-         // TODO (gmiranda): create PEs here and not in system
-         return 0;
-      }
-
-      virtual unsigned getNumThreads() const
-      {
-         //return sys.getNumThreads();
-         return 0;
-      }
-
-      virtual ProcessingElement* createPE( unsigned id )
-      {
-         return NULL;
       }
 };
 }

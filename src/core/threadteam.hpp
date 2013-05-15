@@ -28,16 +28,19 @@ using namespace nanos;
 
 inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data,
                                 Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
-                              : _idCounter(0), _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
+                              : _size(0), _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
-                                _wsDescriptor(NULL), _redList(), _lock()
-{ }
+                                _wsDescriptor(NULL), _redList()
+{
+      _threads = NEW BaseThread *[maxThreads];
+}
 
 inline ThreadTeam::~ThreadTeam ()
 {
    ensure(size() == 0, "Destroying non-empty team!");
+   delete[] _threads;
    delete &_barrier;
    delete _scheduleData;
    delete &_threadTeamData;
@@ -45,7 +48,7 @@ inline ThreadTeam::~ThreadTeam ()
 
 inline unsigned ThreadTeam::size() const
 {
-   return _threads.size();
+   return _size.value();
 }
 
 inline void ThreadTeam::init ()
@@ -60,14 +63,14 @@ inline void ThreadTeam::resized ()
    _barrier.resize(size());
 }
 
-inline const BaseThread & ThreadTeam::getThread ( int i ) const
+inline BaseThread & ThreadTeam::getThread ( int i ) const
 {
-   return *_threads.find(i)->second;
+   return *_threads[i];
 }
 
 inline BaseThread & ThreadTeam::getThread ( int i )
 {
-   return *_threads.find(i)->second;
+   return *_threads[i];
 }
 
 inline const BaseThread & ThreadTeam::operator[]  ( int i ) const
@@ -82,12 +85,8 @@ inline BaseThread & ThreadTeam::operator[]  ( int i )
 
 inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool creator )
 {
-   unsigned id;
-   {
-      LockBlock Lock( _lock );
-      id = _idCounter++;
-      _threads[id] = thread;
-   }
+   unsigned id = _size++;
+   _threads[id] =  thread;
    if ( star ) _starSize++;
    if ( creator ) {
       _creatorId = (int) id;
@@ -97,24 +96,9 @@ inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool crea
 
 inline void ThreadTeam::removeThread ( unsigned id )
 {
-   LockBlock Lock( _lock );
-   _threads.erase( id );
+   _threads[id] = 0;
+   _size--;
 }
-
-inline BaseThread * ThreadTeam::popThread ( )
-{
-   BaseThread * thread;
-   {
-      LockBlock Lock( _lock );
-      ThreadTeamList::iterator last = _threads.end();
-      --last;
-      thread = last->second;
-      _threads.erase( last );
-      _idCounter--;
-   }
-   return thread;
-}
-
 
 inline nanos_ws_desc_t  *ThreadTeam::getWorkSharingDescriptor( void ) { return _wsDescriptor; }
 
@@ -162,14 +146,10 @@ inline unsigned ThreadTeam::getNumStarringThreads( void ) const
 
 inline unsigned ThreadTeam::getStarringThreads( BaseThread **list_of_threads ) const
 {
-   unsigned nThreadsQuery = 0;
-   ThreadTeamList::const_iterator it;
-   BaseThread *thread;
-
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      thread = it->second;
-      if ( thread->isStarring( this ) ) {
-         list_of_threads[nThreadsQuery++] = thread;
+   unsigned i,nThreadsQuery = 0;
+   for ( i = 0; i < _size.value(); i++ ) {
+      if ( _threads[i]->isStarring( this ) ) {
+         list_of_threads[nThreadsQuery++] = _threads[i];
       }
    }
    return nThreadsQuery;
@@ -177,19 +157,15 @@ inline unsigned ThreadTeam::getStarringThreads( BaseThread **list_of_threads ) c
 
 inline unsigned ThreadTeam::getNumSupportingThreads( void ) const
 {
-   return size() - _starSize.value();
+   return _size.value() - _starSize.value();
 }
 
 inline unsigned ThreadTeam::getSupportingThreads( BaseThread **list_of_threads ) const
 {
-   unsigned nThreadsQuery = 0;
-   ThreadTeamList::const_iterator it;
-   BaseThread *thread;
-
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      thread = it->second;
-      if ( !thread->isStarring( this ) ) {
-         list_of_threads[nThreadsQuery++] = thread;
+   unsigned i,nThreadsQuery = 0;
+   for ( i = 0; i < _size.value(); i++ ) {
+      if ( !_threads[i]->isStarring( this ) ) {
+         list_of_threads[nThreadsQuery++] = _threads[i];
       }
    }
    return nThreadsQuery;
@@ -207,10 +183,7 @@ inline void ThreadTeam::computeVectorReductions ( void )
          red->vop( this->size(), red->original, red->privates );
       } else {
          unsigned i;
-         char *privates = reinterpret_cast<char*>(red->privates);
          for ( i = 0; i < this->size(); i++ ) {
-             char* current = privates + i * red->element_size;
-             red->bop(red->original, current, red->num_scalars);
          }
       }
    }
@@ -222,16 +195,6 @@ inline void *ThreadTeam::getReductionPrivateData ( void* s )
    for ( it = _redList.begin(); it != _redList.end(); it++) {
       if ((*it)->original == s) return (*it)->privates;
    }
-   return NULL;
-}
-
-inline nanos_reduction_t *ThreadTeam::getReduction ( void* s )
-{
-   ReductionList::iterator it;
-   for ( it = _redList.begin(); it != _redList.end(); it++) {
-      if ((*it)->original == s) return *it;
-   }
-
    return NULL;
 }
 

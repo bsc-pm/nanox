@@ -22,11 +22,8 @@
 #define _NANOX_NETWORK
 
 #include <string>
-#include <set>
 #include "functor_decl.hpp"
 #include "requestqueue_decl.hpp"
-#include "packer_decl.hpp"
-#include "deviceops_fwd.hpp"
 #include "networkapi.hpp"
 
 namespace nanos {
@@ -43,42 +40,8 @@ namespace nanos {
          virtual ~SendDataRequest();
          void doSend();
          void *getOrigAddr() const;
-         void *getDestAddr() const;
          virtual void doSingleChunk() = 0;
          virtual void doStrided( void *localAddr ) = 0;
-   };
-
-   class GetRequest {
-      volatile int _complete;
-      char* _hostAddr;
-      std::size_t _size;
-      char* _recvAddr;
-      DeviceOps *_ops;
-      //Packer *_packer;
-
-      public:
-      GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops );
-      virtual ~GetRequest();
-      char *getHostAddr() const;
-      char *getTmpAddr() const;
-      std::size_t getSize() const;
-      DeviceOps *getOps() const;
-
-      void complete();
-      bool isCompleted() const;
-      virtual void clear();
-   };
-
-   class GetRequestStrided : public GetRequest {
-      std::size_t _count;
-      std::size_t _ld;
-      Packer *_packer;
-
-      public:
-      GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer );
-      virtual ~GetRequestStrided();
-
-      virtual void clear();
    };
 
    class Network

@@ -25,6 +25,7 @@
 #include "copydata.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
+#include "regiondirectory.hpp"
 
 using namespace nanos;
 
@@ -52,7 +53,7 @@ BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )
 {
    WD & worker = getWorkerWD();
 
-   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, NULL, NULL ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
 
@@ -63,7 +64,7 @@ BaseThread& ProcessingElement::startMultiWorker ( unsigned int numPEs, Processin
 {
    WD & worker = getMultiWorkerWD();
 
-   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, NULL, NULL ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
 
@@ -95,15 +96,13 @@ BaseThread & ProcessingElement::startMultiThread ( WD &work, unsigned int numPEs
 BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
 {
    WD & worker = getMasterWD();
-   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEventNkvs ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, NULL, NULL ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
    
    BaseThread &thread = createThread( worker );
 
    thread.associate();
-
-   _threads.push_back( &thread );
 
    if ( !untieMain ) {
       worker.tieTo(thread);
@@ -119,9 +118,7 @@ void ProcessingElement::stopAll ()
 
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;
-      if ( thread->getId() == 0) continue; /* Protection for master thread */
       thread->stop();
-      thread->signal();
       thread->join();
       if ( thread->hasTeam() )
          thread->leaveTeam();
@@ -129,25 +126,5 @@ void ProcessingElement::stopAll ()
 }
 
 Device const *ProcessingElement::getCacheDeviceType() const {
-   return NULL;
-}
-
-BaseThread* ProcessingElement::getFirstRunningThread()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->hasTeam() && (*it)->isEligible() )
-         return (*it);
-   }
-   return NULL;
-}
-
-BaseThread* ProcessingElement::getFirstStoppedThread()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() || !(*it)->isEligible() )
-         return (*it);
-   }
    return NULL;
 }

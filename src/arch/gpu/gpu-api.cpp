@@ -17,7 +17,9 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include "nanos.h"
 #include "nanos-gpu.h"
+#include "basethread.hpp"
 #include "gpudd.hpp"
 #include "gpuprocessor.hpp"
 

@@ -32,11 +32,6 @@
 #endif
 */
 
-namespace nanos
-{
-   /** \brief Forwared declaration required by RecursiveLock */
-   class BaseThread;
-}
 
 namespace nanos
 {

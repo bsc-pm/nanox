@@ -25,7 +25,14 @@
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
+#ifdef NANOS_INSTRUMENTATION_ENABLED
 #include "instrumentationmodule_decl.hpp"
+#else
+#ifdef NANOS_INSTRUMENT
+#undef NANOS_INSTRUMENT
+#endif
+#define NANOS_INSTRUMENT(x)
+#endif
 
 /* TODO: move to configure
 #include <ext/atomicity.h>
@@ -178,12 +185,12 @@ inline Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
 
 inline Lock::state_t Lock::operator* () const
 {
-   return state_;
+   return _state;
 }
 
 inline Lock::state_t Lock::getState () const
 {
-   return state_;
+   return _state;
 }
 
 inline void Lock::operator++ ( int val )
@@ -198,16 +205,16 @@ inline void Lock::operator-- ( int val )
 
 inline void Lock::acquire ( void )
 {
-   if ( (state_ == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return;
+   if ( (_state == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return;
 
    // Disabling lock instrumentation; do not remove follow code which can be reenabled for testing purposes
    // NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
 
 spin:
 
-   while ( state_ == NANOS_LOCK_BUSY ) {}
+   while ( _state == NANOS_LOCK_BUSY ) {}
 
-   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
+   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
 
    // NANOS_INSTRUMENT( inst.close() )
 }
@@ -215,30 +222,26 @@ spin:
 inline void Lock::acquire_noinst ( void )
 {
 spin:
-   while ( state_ == NANOS_LOCK_BUSY ) {}
-   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
+   while ( _state == NANOS_LOCK_BUSY ) {}
+   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
 }
 
 inline bool Lock::tryAcquire ( void )
 {
-   if ( state_ == NANOS_LOCK_FREE ) {
-      if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
+   if ( _state == NANOS_LOCK_FREE ) {
+      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
       else return true;
    } else return false;
 }
 
 inline void Lock::release ( void )
 {
-   __sync_lock_release( &state_ );
+   __sync_lock_release( &_state );
 }
 
 inline void nanos::memoryFence ()
 {
-#ifndef __MIC__
     __sync_synchronize();
-#else
-    __asm__ __volatile__("" ::: "memory");
-#endif
 }
 
 template<typename T>
@@ -299,12 +302,12 @@ inline SyncLockBlock::~SyncLockBlock ( )
 
 inline RecursiveLock::state_t RecursiveLock::operator* () const
 {
-   return state_;
+   return _state;
 }
 
 inline RecursiveLock::state_t RecursiveLock::getState () const
 {
-   return state_;
+   return _state;
 }
 
 inline void RecursiveLock::operator++ ( int )
@@ -326,9 +329,9 @@ inline void RecursiveLock::acquire ( )
    }
    
 spin:
-   while ( state_ == NANOS_LOCK_BUSY ) {}
+   while ( _state == NANOS_LOCK_BUSY ) {}
 
-   if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
+   if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) goto spin;
    
    _holderThread = getMyThreadSafe();
    _recursionCount++;
@@ -341,8 +344,8 @@ inline bool RecursiveLock::tryAcquire ( )
       return true;
    }
    
-   if ( state_ == NANOS_LOCK_FREE ) {
-      if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
+   if ( _state == NANOS_LOCK_FREE ) {
+      if ( __sync_lock_test_and_set( &_state,NANOS_LOCK_BUSY ) ) return false;
       else
       {
          _holderThread = getMyThreadSafe();
@@ -358,7 +361,7 @@ inline void RecursiveLock::release ( )
    if ( _recursionCount == 0UL )
    {
       _holderThread = 0UL;
-      __sync_lock_release( &state_ );
+      __sync_lock_release( &_state );
    }
 }
 
@@ -391,5 +394,9 @@ inline SyncRecursiveLockBlock::~SyncRecursiveLockBlock ( )
 {
    memoryFence();
 }
+
+#ifndef NANOS_INSTRUMENTATION_ENABLED
+#undef NANOS_INSTRUMENT
+#endif
 
 #endif

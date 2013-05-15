@@ -22,10 +22,6 @@
 namespace nanos
 {
    class DataAccess;
-
-   namespace dependencies_domain_internal {
-      class AccessType;
-   }
 };
 
 #endif

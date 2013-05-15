@@ -23,12 +23,12 @@
 
 extern "C"
 {
-   NANOS_API_DEF(double, omp_get_wtime, ( void ))
+   double omp_get_wtime ( void )
    {
       return nanos::OS::getMonotonicTime();
    }
 
-   NANOS_API_DEF(double, omp_get_wtick, ( void ))
+   double omp_get_wtick ( void )
    {
       return nanos::OS::getMonotonicTimeResolution();
    }

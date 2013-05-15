@@ -23,7 +23,7 @@
 #include <cuda_runtime.h>
 #include <vector_types.h>
 
-#include "nanos-int.h"
+#include "nanos.h"
 
 #ifdef NANOS_GPU_USE_CUDA32
 #include <cublas_api.h>

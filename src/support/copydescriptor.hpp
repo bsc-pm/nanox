@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #ifndef _NANOS_COPY_DESCRIPTOR_
-#define _NANOS_COPY_DESCRIPTOR_
+#define _NANOS_COPY_DESCRIPTOR
 
 #include "copydescriptor_decl.hpp"
 
