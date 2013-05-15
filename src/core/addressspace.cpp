@@ -159,4 +159,9 @@ unsigned int SeparateAddressSpace::getInvalidationCount() const {
    return _cache.getInvalidationCount();
 }
 
+bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations ) {
+   return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations );
+}
+
+
 }

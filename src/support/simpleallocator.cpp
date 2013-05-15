@@ -228,6 +228,38 @@ void SimpleAllocator::unlock() {
    _lock.release();
 }
 
+void SimpleAllocator::canAllocate( std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const {
+   bool *allocated = (bool *) alloca( numChunks * sizeof(bool) );
+   unsigned int allocated_chunks = 0;
+   for ( unsigned int idx = 0; idx < numChunks; idx += 1 ) {
+      allocated[ idx ] = false;
+   }
+   for ( SegmentMap::const_iterator mapIter = _freeChunks.begin(); mapIter != _freeChunks.end(); mapIter++ ) {
+      std::size_t thisSize = mapIter->second;
+      for ( unsigned int idx = 0; idx < numChunks; idx += 1 ) {
+         if ( allocated[ idx ] == false && sizes[ idx ] <= thisSize ) {
+            allocated[ idx ] = true;
+            thisSize -= sizes[ idx ];
+            allocated_chunks += 1;
+         }
+      }
+   }
+   if ( allocated_chunks < numChunks ) {
+      unsigned int remaining_count = 0;
+      for ( unsigned int idx = 0; idx < numChunks; idx += 1 ) {
+         if ( allocated[ idx ] == false ) {
+            remainingSizes[ remaining_count ] = sizes[ idx ];
+            remaining_count += 1;
+         }
+      }
+      if ( remaining_count < numChunks ) {
+         remainingSizes[ remaining_count ] = 0;
+      }
+   } else {
+      remainingSizes[ 0 ] = 0;
+   }
+}
+
 BufferManager::BufferManager( void * address, std::size_t size )
 {
    init(address,size);

@@ -107,39 +107,6 @@ void ClusterInfo::prepare( Config& cfg ) {
 }
 
 void ClusterInfo::setUpCache() {
-   // Check if the use of caches has been disabled
-   if ( sys.isCacheEnabled() ) {
-      // Check if the cache policy for GPUs has been defined
-      if ( _cachePolicy == System::DEFAULT ) {
-         // The user has not defined a specific cache policy for GPUs,
-         // check if he has defined a global cache policy
-         _cachePolicy = sys.getCachePolicy();
-         if ( _cachePolicy == System::DEFAULT ) {
-            // There is no global cache policy specified, assign it the default value (write-back)
-            _cachePolicy = System::WRITE_BACK;
-         }
-      }
-   } else {
-      _cachePolicy = System::NONE;
-   }
-   //switch ( _cachePolicy )
-   //{
-   //   case System::NONE:
-   //      message0("Cluster Cache policy: None.");
-   //      break;
-   //   case System::WRITE_THROUGH:
-   //      message0("Cluster Cache policy: Write Through.");
-   //      break;
-   //   case System::WRITE_BACK:
-   //      message0("Cluster Cache policy: Write Back.");
-   //      break;
-   //   case System::DEFAULT:
-   //      message0("Cluster Cache policy: Default (This should not happen).");
-   //      break;
-   //   default:
-   //      message0("Cluster Cache policy: Unknown (This should not happen).");
-   //      break;
-   //}
 }
 
 std::size_t ClusterInfo::getNodeMem() {

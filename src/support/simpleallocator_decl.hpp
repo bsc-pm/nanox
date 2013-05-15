@@ -50,18 +50,17 @@ namespace nanos {
          SimpleAllocator() : _baseAddress( 0 ), _remaining( 0 )  { }
 
          void init( uint64_t baseAddress, std::size_t len );
+         uint64_t getBaseAddress ();
+         void lock();
+         void unlock();
 
          void * allocate( std::size_t len );
          void * allocateSizeAligned( std::size_t len );
-
-         uint64_t getBaseAddress ();
-
          std::size_t free( void *address );
 
-         void printMap();
+         void canAllocate( std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const;
 
-         void lock();
-         void unlock();
+         void printMap();
    };
 
    class BufferManager

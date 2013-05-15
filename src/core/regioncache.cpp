@@ -567,8 +567,7 @@ AllocatedChunk *RegionCache::getAddress( global_reg_t const &reg, CacheRegionDic
          //std::cerr << "malloc returns " << (void *)deviceMem << std::endl;
          if ( deviceMem == NULL ) {
             // Device is full, free some chunk
-            //std::cerr << " INVAL ! "<<std::endl;
-            allocChunkPtrPtr = selectChunkToInvalidate( /*cd, results.front().first->getAddress(),*/ allocSize/*, regsToInval, newRegsToInval*/ );
+            allocChunkPtrPtr = selectChunkToInvalidate( allocSize );
             if ( allocChunkPtrPtr != NULL ) {
                allocChunkPtr = *allocChunkPtrPtr;
                allocChunkPtr->invalidate( this, wd );
@@ -626,22 +625,35 @@ AllocatedChunk *RegionCache::getAddress( uint64_t hostAddr, std::size_t len ) {
 }
 
 AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg ) const {
+   return _getAllocatedChunk( reg, true );
+}
+
+AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg, bool complain ) {
+   _lock.acquire();
+   AllocatedChunk *chunk = _getAllocatedChunk( reg, complain );
+   _lock.release();
+   return chunk;
+}
+
+AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool complain ) const {
    ConstChunkList results;
    AllocatedChunk *allocChunkPtr = NULL;
    _chunks.getChunk3( reg.getFirstAddress(), reg.getBreadth(), results );
-   if ( results.size() != 1 ) {
-         std::cerr <<"Requested addr " << (void *) reg.getFirstAddress() << " size " << reg.getBreadth() << std::endl;
-      message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
-      for ( ConstChunkList::const_iterator it = results.begin(); it != results.end(); it++ )
-         std::cerr << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
-   } else {
+   if ( results.size() == 1 ) {
       if ( results.front().second )
          allocChunkPtr = *(results.front().second);
       else
          allocChunkPtr = NULL;
+   } else if ( results.size() > 1 ) {
+         std::cerr <<"Requested addr " << (void *) reg.getFirstAddress() << " size " << reg.getBreadth() << std::endl;
+      message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
+      for ( ConstChunkList::const_iterator it = results.begin(); it != results.end(); it++ )
+         std::cerr << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
    }
-   if ( !allocChunkPtr ) { sys.printBt(); std::cerr << "Error, null region "; reg.key->printRegion( reg.id ); std::cerr << std::endl; }
-   ensure(allocChunkPtr != NULL, "Chunk not found!");
+   if ( !allocChunkPtr && complain ) {
+      sys.printBt(); std::cerr << "Error, null region "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
+      ensure(allocChunkPtr != NULL, "Chunk not found!");
+   }
    if ( allocChunkPtr ) {
       //std::cerr << "AllocChunkPtr is " << allocChunkPtr << std::endl;
       allocChunkPtr->lock(); 
@@ -719,11 +731,11 @@ void RegionCache::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::s
 void RegionCache::_syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
    ensure( f == NULL, " Error, functor received is not null.");
    DeviceOps *cout = NEW DeviceOps();
-   AllocatedChunk *origChunk = sys.getCaches()[ syncFrom ]->getAddress( hostAddr, len );
+   AllocatedChunk *origChunk = sys.getSeparateMemory( syncFrom ).getCache().getAddress( hostAddr, len );
    uint64_t origDevAddr = origChunk->getAddress() + ( hostAddr - origChunk->getHostAddress() );
    origChunk->unlock();
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
-   sys.getCaches()[ syncFrom ]->_copyOut( hostAddr, origDevAddr, len, cout, fsource, wd, fake );
+   sys.getSeparateMemory( syncFrom ).getCache()._copyOut( hostAddr, origDevAddr, len, cout, fsource, wd, fake );
    while ( !cout->allCompleted() ){ myThread->idle(); }
    delete cout;
    this->_copyIn( devAddr, hostAddr, len, ops, (CompleteOpFunctor *) NULL, wd, fake );
@@ -732,11 +744,11 @@ void RegionCache::_syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint6
 void RegionCache::_syncAndCopyInStrided1D( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
    ensure( f == NULL, " Error, functor received is not null.");
    DeviceOps *cout = NEW DeviceOps();
-   AllocatedChunk *origChunk = sys.getCaches()[ syncFrom ]->getAddress( hostAddr, len );
+   AllocatedChunk *origChunk = sys.getSeparateMemory( syncFrom ).getCache().getAddress( hostAddr, len );
    uint64_t origDevAddr = origChunk->getAddress() + ( hostAddr - origChunk->getHostAddress() );
    origChunk->unlock();
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
-   sys.getCaches()[ syncFrom ]->_copyOutStrided1D( hostAddr, origDevAddr, len, numChunks, ld, cout, fsource, wd, fake );
+   sys.getSeparateMemory( syncFrom ).getCache()._copyOutStrided1D( hostAddr, origDevAddr, len, numChunks, ld, cout, fsource, wd, fake );
    while ( !cout->allCompleted() ){ myThread->idle(); }
    delete cout;
    this->_copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, ops, (CompleteOpFunctor *) NULL, wd, fake );
@@ -989,4 +1001,88 @@ void RegionCache::allocateOutputMemory( global_reg_t const &reg, unsigned int ve
    _lock.release();
 }
 
+std::size_t RegionCache::getAllocatableSize( global_reg_t const &reg ) const {
+   global_reg_t allocated_region;
+   allocated_region.key = reg.key;
+   if ( _flags == ALLOC_WIDE ) {
+      allocated_region.id = 1;
+   } else if ( _flags == ALLOC_FIT ) {
+      allocated_region.id = reg.getFitRegionId();
+   } else {
+      std::cerr <<"RegionCache ERROR: Undefined _flags value."<<std::endl;
+   }
+   return allocated_region.getDataSize();
+}
+
+bool RegionCache::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations ) {
+   bool result = true;
+   bool *present_regions = (bool *) alloca( numCopies * sizeof(bool) );
+   std::size_t *sizes = (std::size_t *) alloca( numCopies * sizeof(std::size_t) );
+   unsigned int needed_chunks = 0;
+   
+   /* check if the desired region is already allocated */
+   for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
+      AllocatedChunk *chunk = getAllocatedChunk( memCopies[ idx ]._reg , false );
+      if ( chunk != NULL ) {
+         present_regions[ idx ] = true;
+         sizes[ idx ] = 0;
+         chunk->unlock();
+      } else {
+         present_regions[ idx ] = false;
+         sizes[ needed_chunks ] = getAllocatableSize( memCopies[ idx ]._reg );
+         needed_chunks += 1;
+      }
+   }
+
+   //std::cerr << __FUNCTION__ << " needed chunks is " << needed_chunks << std::endl;
+
+   if ( needed_chunks != 0 ) {
+      std::size_t *remaining_sizes = (std::size_t *) alloca( needed_chunks * sizeof(std::size_t) );
+      /* compute if missing chunks can be allocated in the device memory */
+      _device._canAllocate( sys.getSeparateMemory( _memorySpaceId ), sizes, needed_chunks, remaining_sizes );
+
+      unsigned int remaining_count;
+      for ( remaining_count = 0; remaining_count < needed_chunks && remaining_sizes[ remaining_count ] != 0; remaining_count +=1 );
+
+      if ( remaining_count > 0 ) {
+         /* check if data can be invalidated in order to allocate the memory */
+         if ( considerInvalidations ) {
+            result = canInvalidateToFit( remaining_sizes, remaining_count );
+         } else {
+            result = false;
+         }
+      }
+   }
+
+   return result;
+}
+
+bool RegionCache::canInvalidateToFit( std::size_t *sizes, unsigned int numChunks ) const {
+   unsigned int allocated_count = 0;
+   bool *allocated = (bool *) alloca( numChunks * sizeof(bool) );
+   for (unsigned int idx = 0; idx < numChunks; idx += 1) {
+      allocated[ idx ] = false;
+   }
+
+   MemoryMap<AllocatedChunk>::const_iterator it;
+   //int count =0;
+   for ( it = _chunks.begin(); it != _chunks.end() && ( allocated_count < numChunks ); it++ ) {
+      // if ( it->second != NULL ) {
+      //    global_reg_t thisreg = it->second->getAllocatedRegion();
+      //    std::cerr << "["<< count++ << "] mmm this chunk: " << ((void *) it->second) << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getSize() << " ";
+      //    thisreg.key->printRegion( thisreg.id );
+      //    std::cerr << std::endl;
+      // }
+      if ( it->second != NULL && it->second->getReferenceCount() == 0 ) {
+         for ( unsigned int idx = 0; idx < numChunks && ( allocated_count < numChunks ); idx += 1 ) {
+            if ( !allocated[ idx ] && it->second->getSize() == sizes[ idx ] ) {
+               allocated[ idx ] = true;
+               allocated_count += 1;
+            }
+         }
+      }
+   }
+   
+   return ( allocated_count == numChunks );
+}
 

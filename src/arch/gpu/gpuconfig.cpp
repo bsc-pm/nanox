@@ -171,21 +171,22 @@ void GPUConfig::apply()
          _numGPUs = deviceCount;
       }
 
-      // Check if the use of caches has been disabled
-      if ( sys.isCacheEnabled() ) {
-         // Check if the cache policy for GPUs has been defined
-         if ( _cachePolicy == System::DEFAULT ) {
-            // The user has not defined a specific cache policy for GPUs,
-            // check if he has defined a global cache policy
-            _cachePolicy = sys.getCachePolicy();
-            if ( _cachePolicy == System::DEFAULT ) {
-               // There is no global cache policy specified, assign it the default value (write-back)
-               _cachePolicy = System::WRITE_BACK;
-            }
-         }
-      } else {
+      //// Check if the use of caches has been disabled
+      //if ( sys.isCacheEnabled() ) {
+      //   // Check if the cache policy for GPUs has been defined
+      //   if ( _cachePolicy == System::DEFAULT ) {
+      //      // The user has not defined a specific cache policy for GPUs,
+      //      // check if he has defined a global cache policy
+      //      _cachePolicy = sys.getCachePolicy();
+      //      if ( _cachePolicy == System::DEFAULT ) {
+      //         // There is no global cache policy specified, assign it the default value (write-back)
+      //         _cachePolicy = System::WRITE_BACK;
+      //      }
+      //   }
+      //} else {
+      //   _cachePolicy = System::NONE;
+      //}
          _cachePolicy = System::NONE;
-      }
 
       // Check overlappings
       _overlapInputs = _overlap ? true : _overlapInputs;

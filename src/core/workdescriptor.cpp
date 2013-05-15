@@ -383,3 +383,6 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
     }
 }
 
+bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalidations ) const {
+   return _mcontrol.canAllocateMemory( thd.runningOn()->getMemorySpaceId(), considerInvalidations );
+}

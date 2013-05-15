@@ -132,3 +132,7 @@ void ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOr
    ops->completeOp();
 }
 
+void ClusterDevice::_canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const {
+   SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
+   allocator->canAllocate( sizes, numChunks, remainingSizes );
+}

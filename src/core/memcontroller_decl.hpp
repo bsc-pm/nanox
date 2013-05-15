@@ -28,6 +28,7 @@ public:
    void copyDataOut();
    bool isDataReady();
    uint64_t getAddress( unsigned int index ) const;
+   bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
 };
 
 }

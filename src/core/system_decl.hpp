@@ -160,7 +160,6 @@ namespace nanos
          /*! Cluster: system Network object */
          Network              _net;
          bool                 _usingCluster;
-         bool                 _usingNewCache;
          bool                 _usingNode2Node;
          bool                 _usingPacking;
          std::string          _conduit;
@@ -179,19 +178,10 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         //! Enable or disable the use of caches
-         bool                 _useCaches;
-         //! General cache policy (if not specifically redefined for a certain architecture)
-         CachePolicyType      _cachePolicy;
-         //! CacheMap register
-         CacheMap             _cacheMap;
          NewNewRegionDirectory _masterRegionDirectory;
          
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
-         BaseThread *_auxThd;
-
-         std::vector< RegionCache *> _regCaches;
 
          unsigned int _separateMemorySpacesCount;
          std::vector< SeparateMemoryAddressSpace * > _separateAddressSpaces;
@@ -529,8 +519,6 @@ namespace nanos
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;
          bool isCacheEnabled();
-         CachePolicyType getCachePolicy();
-         CacheMap& getCacheMap();
          
          /**! \brief Register an architecture plugin.
           *   \param plugin A pointer to the plugin.
@@ -556,9 +544,6 @@ namespace nanos
          unsigned int getMemorySpaceId();
          unsigned int getRootMemorySpaceId();
          unsigned int getNumMemorySpaces();
-         std::vector< RegionCache *> &getCaches() { return _regCaches; }
-         void setAuxThd( BaseThread * t ) { _auxThd = t; }
-         BaseThread * getAuxThd( void ) const { return _auxThd; }
 
          HostMemoryAddressSpace &getHostMemory() { return _hostMemory; }
           

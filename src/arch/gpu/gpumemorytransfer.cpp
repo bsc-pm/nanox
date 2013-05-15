@@ -21,6 +21,7 @@
 #include "gpumemorytransfer.hpp"
 #include "gpuprocessor.hpp"
 #include "gpumemoryspace_decl.hpp"
+#include "deviceops.hpp"
 #include "instrumentationmodule_decl.hpp"
 
 

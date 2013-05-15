@@ -21,7 +21,6 @@
 #define _NANOS_OpenCL_CACHE
 
 #include "basethread_decl.hpp"
-#include "cache_decl.hpp"
 #include "copydescriptor_decl.hpp"
 #include "simpleallocator.hpp"
 #include "system_decl.hpp"

@@ -86,9 +86,9 @@ System::System () :
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
-      _usingCluster( false ),_usingNewCache( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
+      _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
-      _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap(), _masterGpuThd( NULL ), _auxThd( NULL ),_regCaches(1024), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP )
+      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP )
 
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
@@ -339,18 +339,6 @@ void System::config ()
    cfg.registerArgOption ( "architecture", "architecture" );
    cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
 
-   cfg.registerConfigOption ( "no-caches", NEW Config::FlagOption( _useCaches, false ), "Disables the use of caches" );
-   cfg.registerArgOption ( "no-caches", "disable-caches" );
-
-   CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
-   cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
-   cachePolicyCfg->addOption("wb", System::WRITE_BACK );
-   cachePolicyCfg->addOption( "nocache", System::NONE );
-
-   cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
-   cfg.registerArgOption ( "cache-policy", "cache-policy" );
-   cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
-   
    registerPluginOption( "deps", "deps", _defDepsManager, "Defines the dependencies plugin", cfg );
    cfg.registerArgOption ( "deps", "deps" );
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
@@ -390,9 +378,6 @@ void System::config ()
    cfg.registerArgOption ( "device-priority", "--use-device");
    cfg.registerEnvOption ( "device-priority", "NX_USE_DEVICE");
 
-   cfg.registerConfigOption ( "enable-newcache", NEW Config::FlagOption ( _usingNewCache, true ), "Enables the usage of Nanos++ Cluster" );
-   cfg.registerArgOption ( "enable-newcache", "newcache" );
-
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
@@ -410,8 +395,6 @@ PE * System::createPE ( std::string pe_type, int pid )
 
 void System::start ()
 {
-   if ( !_useCaches ) _cachePolicy = System::NONE;
-   
    // Load hwloc now, in order to make it available for modules
    if ( isHwlocAvailable() )
       loadHwloc();
@@ -593,7 +576,6 @@ void System::start ()
             smpRepThd->getThreadWD().setInternalData(NEW char[_pmInterface->getInternalDataSize()]);
          //_pmInterface->setupWD( smpRepThd->getThreadWD() );
          _workers.push_back( smpRepThd ); 
-         setAuxThd( smpRepThd );
          setSlaveParentWD( &mainWD );
 #ifdef GPU_DEV
          if ( nanos::ext::GPUConfig::getGPUCount() > 0 ) {
@@ -620,11 +602,6 @@ void System::start ()
    if ( getSynchronizedStart() )
      threadReady();
 
-   if ( usingCluster() )
-   {
-      _net.nodeBarrier();
-   }
-
    switch ( getInitialMode() )
    {
       case POOL:
@@ -639,6 +616,12 @@ void System::start ()
          fatal("Unknown initial mode!");
          break;
    }
+
+   if ( usingCluster() )
+   {
+      _net.nodeBarrier();
+   }
+
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )

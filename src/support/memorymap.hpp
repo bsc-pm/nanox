@@ -1449,8 +1449,8 @@ void MemoryMap< _Type >::getChunk2( uint64_t addr, std::size_t len, ConstMemChun
       //   //   else fprintf(stderr, "entry is null!! \n");
       //   //else fprintf(stderr, "entry ptr is null!! \n");
       //}
-      if ( resultEntries.size() == 0 )
-         fprintf(stderr, "result entry EMPTY!\n" );
+      //if ( resultEntries.size() == 0 )
+      //   fprintf(stderr, "result entry EMPTY!\n" );
 
    }
    else
@@ -1481,8 +1481,8 @@ void MemoryMap< _Type >::getChunk3( uint64_t addr, std::size_t len, ConstMemChun
       //   //   else fprintf(stderr, "entry is null!! \n");
       //   //else fprintf(stderr, "entry ptr is null!! \n");
       //}
-      if ( resultEntries.size() == 0 )
-         fprintf(stderr, "result entry EMPTY!\n" );
+      //if ( resultEntries.size() == 0 )
+      //   fprintf(stderr, "result entry EMPTY!\n" );
 
    }
    else

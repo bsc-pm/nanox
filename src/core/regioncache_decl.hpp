@@ -88,6 +88,7 @@ namespace nanos {
          void prepareRegion( reg_t reg, unsigned int version );
          global_reg_t getAllocatedRegion() const;
 
+
          //void clearDirty( global_reg_t const &reg );
    };
 
@@ -152,6 +153,8 @@ namespace nanos {
          AllocatedChunk *tryGetAddress( global_reg_t const &reg, WD const &wd );
          AllocatedChunk *getAddress( global_reg_t const &reg, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg ) const;
+         AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, bool complain );
+         AllocatedChunk *_getAllocatedChunk( global_reg_t const &reg, bool complain ) const;
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          AllocatedChunk **selectChunkToInvalidate( /*CopyData const &cd, uint64_t addr,*/ std::size_t allocSize/*, RegionTree< CachedRegionStatus > *&regsToInval, CacheRegionDictionary *&newRegsToInval*/ );
          void syncRegion( global_reg_t const &r ) ;
@@ -192,7 +195,10 @@ namespace nanos {
          void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
          void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
 
-         unsigned int  getInvalidationCount() const;
+         unsigned int getInvalidationCount() const;
+         bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations );
+         bool canInvalidateToFit( std::size_t *sizes, unsigned int numChunks ) const;
+         std::size_t getAllocatableSize( global_reg_t const &reg ) const;
    };
 }
 

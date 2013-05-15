@@ -112,6 +112,7 @@ class SeparateAddressSpace {
    memory_space_id_t getMemorySpaceId() const;
 
    unsigned int getInvalidationCount() const;
+   bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations );
 };
 
 template <class T>

@@ -59,11 +59,6 @@ void Scheduler::submit ( WD &wd )
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = getMyThreadSafe();
 
-   if ( mythread == NULL ) {
-      //submitting from a gasnet progress thread, "emulate" another thread
-      mythread = sys.getAuxThd();
-   }
-
    debug ( "submitting task " << wd.getId() );
 
    wd.submitted();

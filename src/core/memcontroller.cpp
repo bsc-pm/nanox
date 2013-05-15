@@ -173,4 +173,12 @@ bool MemController::isDataReady() {
    return _inOps->isDataReady();
 }
 
+bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const {
+   if ( memId > 0 ) {
+      return sys.getSeparateMemory( memId ).canAllocateMemory( _memCacheCopies, _wd.getNumCopies(), considerInvalidations );
+   } else {
+      return true;
+   }
+}
+
 }
