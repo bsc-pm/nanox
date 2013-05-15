@@ -25,8 +25,11 @@ class BaseAddressSpaceInOps {
    virtual void issue( WD const &wd );
    void updateMetadata();
 
+   //virtual unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
    virtual void prepareRegion( global_reg_t const &reg, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg );
+   //virtual void setRegionVersion( global_reg_t const &reg, unsigned int version );
+   //virtual unsigned int increaseVersion( global_reg_t const &reg );
 
    virtual void copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
@@ -48,8 +51,11 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
    virtual void issue( WD const &wd );
 
+   //virtual unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
    virtual void prepareRegion( global_reg_t const &reg, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg );
+   //virtual void setRegionVersion( global_reg_t const &reg, unsigned int version );
+   //virtual unsigned int increaseVersion( global_reg_t const &reg );
 
    virtual void copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
