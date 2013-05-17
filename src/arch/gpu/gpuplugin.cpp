@@ -70,6 +70,8 @@ class GPUPlugin : public ArchPlugin
          for ( int i = 0; i < GPUConfig::getGPUCount(); ++i )
          {
             int node = -1;
+            // Is NUMA info is available
+            bool numa = true;
             if ( sys.isHwlocAvailable() )
             {
 #ifdef HWLOC
@@ -112,13 +114,21 @@ class GPUPlugin : public ArchPlugin
 
             }
             // Fallback / safety measure
-            if ( node < 0 || sys.getNumSockets() == 1 )
-               node = sys.getNumSockets() - 1;
+            if ( node < 0 || sys.getNumSockets() == 1 ) {
+               node = 0;
+               // As we don't have NUMA info, don't request an specific node
+               numa = false;
+            }
             
             bool reserved;
-            unsigned pe = sys.reservePE( node, reserved );
+            unsigned pe = sys.reservePE( numa, node, reserved );
             
-            verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            if ( numa ) {
+               verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            }
+            else {
+               verbose( "Reserving for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            }
             // Now add this node to the binding list
             addBinding( pe );
          }

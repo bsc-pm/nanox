@@ -1550,7 +1550,7 @@ void System::waitUntilThreadsUnpaused ()
    _unpausedThreadsCond.wait();
 }
 
-unsigned System::reservePE ( unsigned node, bool & reserved )
+unsigned System::reservePE ( bool reserveNode, unsigned node, bool & reserved )
 {
    // For each available PE
    for ( Bindings::reverse_iterator it = _bindings.rbegin(); it != _bindings.rend(); ++it )
@@ -1558,8 +1558,9 @@ unsigned System::reservePE ( unsigned node, bool & reserved )
       unsigned pe = *it;
       unsigned currentNode = getNodeOfPE( pe );
       
-      // If this PE is in the requested node
-      if ( currentNode == node )
+      // If this PE is in the requested node or we don't need to reserve in
+      // a certain node
+      if ( currentNode == node || !reserveNode )
       {
          // Ensure there is at least one PE for smp
          if ( _bindings.size() == 1 )
