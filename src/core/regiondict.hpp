@@ -117,6 +117,7 @@ Version *ContainerSparse< T >::getRegionData( reg_t id ) {
       //fatal0(  "Error, RegionMap::getRegionData does not contain region " );
       it = _container.insert( it, std::map< reg_t, RegionVectorEntry >::value_type( id, RegionVectorEntry() ) );
       it->second.setLeaf( _orig.getRegionNode( id ) );
+      return NULL;
    }
    return it->second.getData();
 }
@@ -446,7 +447,7 @@ void RegionDictionary< Sparsity >::getRegionIntersects( reg_t id, unsigned int v
 }
 
 template < template <class> class Sparsity>
-void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise ) {
+void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise, bool giveSubFragmentsWithSameVersion ) {
    class LocalFunction {
       RegionDictionary &_currentDict;
       public:
@@ -682,7 +683,8 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 
    for ( RegionDictionary<Sparsity>::RegionList::iterator it = subParts.begin(); it != subParts.end(); it++ ) {
       unsigned int itVersion = ( this->getRegionData( *it ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( *it )->getVersion() );
-      if ( itVersion > bgVersion ) {
+      //std::cerr << (void *)this <<" processing part "<< *it << " bgVersion " << bgVersion << " this version " << itVersion << " thisEnrty "<< this->getRegionData( *it ) << std::endl;
+      if ( ( itVersion > bgVersion && !giveSubFragmentsWithSameVersion ) || ( itVersion >= bgVersion && giveSubFragmentsWithSameVersion ) ) {
          //bool intersect = false;
          bool subpart = false;
          for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
@@ -788,7 +790,13 @@ reg_t RegionDictionary< Sparsity >::registerRegion( CopyData const &cd, std::lis
 
 template < template <class> class Sparsity>
 reg_t RegionDictionary< Sparsity >::registerRegion( reg_t id, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise ) {
-   this->addRegionAndComputeIntersects( id, missingParts, version, superPrecise );
+   this->addRegionAndComputeIntersects( id, missingParts, version, superPrecise, false );
+   return id;
+}
+
+template < template <class> class Sparsity>
+reg_t RegionDictionary< Sparsity >::registerRegionReturnSameVersionSubparts( reg_t id, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise ) {
+   this->addRegionAndComputeIntersects( id, missingParts, version, superPrecise, true );
    return id;
 }
 

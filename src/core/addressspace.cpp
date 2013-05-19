@@ -25,7 +25,7 @@ void HostAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int
 
 void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {
    if ( reg.setCopying( from ) ) {
-     from.copyOut( reg, version, ops );
+     from.copyOut( reg, version, ops, wd );
    } else {
      reg.waitCopy();
    } 
@@ -67,8 +67,8 @@ void SeparateAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned
    _cache.unpin( reg );
 }
 
-void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops ) {
-   _cache.NEWcopyOut( reg, version, *((WD*)NULL), ops );
+void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd ) {
+   _cache.NEWcopyOut( reg, version, wd, ops );
 }
 
 void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {

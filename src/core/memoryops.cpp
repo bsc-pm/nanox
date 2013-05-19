@@ -5,6 +5,7 @@
 #include "workdescriptor.hpp"
 #include "deviceops.hpp"
 #include "regiondict.hpp"
+#include "regioncache.hpp"
 
 namespace nanos {
 
@@ -28,7 +29,7 @@ void BaseOps::OwnOp::commitMetadata() const {
    _reg.setLocationAndVersion( _location, _version );
 }
 
-BaseOps::BaseOps() : _ownDeviceOps(), _otherDeviceOps() {
+BaseOps::BaseOps( bool delayedCommit ) : _delayedCommit( delayedCommit ), _ownDeviceOps(), _otherDeviceOps() {
 }
 
 BaseOps::~BaseOps() {
@@ -50,7 +51,9 @@ bool BaseOps::isDataReady() {
    if ( allReady ) {
       for ( it = _ownDeviceOps.begin(); it != _ownDeviceOps.end(); it++ ) {
          it->_ops->completeCacheOp();
-         it->commitMetadata();
+         if ( _delayedCommit ) { 
+            it->commitMetadata();
+         }
       }
       _ownDeviceOps.clear();
    }
@@ -74,10 +77,14 @@ std::set< DeviceOps * > &BaseOps::getOtherOps() {
 }
 
 void BaseOps::insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location ) {
-   _ownDeviceOps.insert( OwnOp( ops, reg, version, location ) );
+   OwnOp op( ops, reg, version, location );
+   _ownDeviceOps.insert( op );
+   if ( !_delayedCommit ) {
+      op.commitMetadata();
+   }
 }
 
-BaseAddressSpaceInOps::BaseAddressSpaceInOps() : BaseOps() , _separateTransfers() {
+BaseAddressSpaceInOps::BaseAddressSpaceInOps( bool delayedCommit ) : BaseOps( delayedCommit ) , _separateTransfers() {
 }
 
 BaseAddressSpaceInOps::~BaseAddressSpaceInOps() {
@@ -105,43 +112,123 @@ unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) 
    return reg.getHostVersion(false);
 }
 
+void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, memory_space_id_t thisLocation ) {
+   std::map< memory_space_id_t, std::set< global_reg_t > > parts;
+   for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
+      global_reg_t region_shape( it->first, reg.key );
+      global_reg_t data_source( it->second, reg.key );
+      //if ( !data_source.isLocatedIn( thisLocation ) ) {
+         memory_space_id_t location = data_source.getFirstLocation();
+         if ( location != thisLocation ) {
+            parts[ location ].insert( data_source );
+         }
+      //}
+   }
+   std::cerr << "avoiding... process region " << reg.id << " got locked chunks: " << std::endl;
+   for ( std::map< memory_space_id_t, std::set< global_reg_t > >::iterator mIt = parts.begin(); mIt != parts.end(); mIt++ ) {
+      std::cerr << " from location " << mIt->first << std::endl;
+      sys.getSeparateMemory( mIt->first ).getCache().prepareRegionsToCopyToHost( mIt->second, version, _lockedChunks );
+   }
+   std::cerr << "safe from invalidations... process region " << reg.id << " got locked chunks: ";
+   for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
+      std::cerr << " " << *it;
+   }
+   std::cerr << std::endl;
+}
+
+void BaseAddressSpaceInOps::releaseLockedSourceChunks() {
+   for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
+      //(*it)->removeReference();
+      (*it)->unlock();
+   }
+   _lockedChunks.clear();
+}
+
 void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
 
-   std::set< DeviceOps * > ops;
-   ops.insert( reg.getDeviceOps() );
+   //std::set< DeviceOps * > ops;
+   //ops.insert( reg.getDeviceOps() );
 
-   for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
-      global_reg_t data_source( it->second, reg.key );
-      ops.insert( data_source.getDeviceOps() );
-   }
+   //for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
+   //   global_reg_t data_source( it->second, reg.key );
+   //   ops.insert( data_source.getDeviceOps() );
+   //}
  
-   reg.key->invalLock();
-   for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
-      (*opIt)->syncAndDisableInvalidations();
-   }
-   reg.key->invalUnlock();
+   //for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
+   //   (*opIt)->syncAndDisableInvalidations();
+   //}
 
+   lockSourceChunks( reg, version, locations, 0 );
+
+#if 1
    DeviceOps *thisRegOps = reg.getDeviceOps();
    if ( reg.getHostVersion( false ) != version ) {
+      std::cerr << "I have to copy region " << reg.id << " dont have it "<<std::endl;
       if ( thisRegOps->addCacheOp() ) {
-         insertOwnOp( thisRegOps, reg, version, 0 );
-         for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
-            global_reg_t region_shape( it->first, reg.key );
-            global_reg_t data_source( it->second, reg.key );
-            memory_space_id_t location = data_source.getFirstLocation();
-            if ( location != 0 ) {
-               if ( region_shape.id != reg.id ) {
+         insertOwnOp( thisRegOps, reg, version, 0 ); //i've got the responsability of copying this region
+
+         if ( locations.size() == 1 ) {
+            global_reg_t region_shape( locations.begin()->first, reg.key );
+            global_reg_t data_source( locations.begin()->second, reg.key );
+            ensure( region_shape.id == reg.id, "Wrong region" );
+            if ( !data_source.isLocatedIn( 0 ) ) {
+               memory_space_id_t location = data_source.getFirstLocation();
+               ensure( location > 0, "Wrong location.");
+               addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
+            } else {
+               //memory_space_id_t location = data_source.getFirstLocation();
+               //std::cerr << "This should not happen, reg " << data_source.id << " reported to be in 0 (first loc " << location << " ) shape is " << region_shape.id << std::endl;
+               //fatal("Impossible path!");
+               getOtherOps().insert( data_source.getDeviceOps() );
+            }
+         } else {
+            //bool opEmitted = false;
+            for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
+               global_reg_t region_shape( it->first, reg.key );
+               global_reg_t data_source( it->second, reg.key );
+               ensure( region_shape.id != reg.id, "Wrong region" );
+#if 1
+               //if ( region_shape.id == data_source.id ) {
+                  if ( !data_source.isLocatedIn( 0 ) ) {
+                     memory_space_id_t location = data_source.getFirstLocation();
+                     DeviceOps *thisOps = region_shape.getDeviceOps(); //FIXME: we assume that region_shape has a directory entry, it may be a wrong assumption
+                     if ( thisOps->addCacheOp() ) {
+                        insertOwnOp( thisOps, region_shape, version, 0 );
+                     } else {
+                        std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
+                     }
+                     //std::cerr << " added a op! ds= " << it->second << " rs= " << it->first <<std::endl;
+                     addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
+                     //opEmitted = true;
+                  } else {
+                     std::cerr << " WTFFFFFFFFFFFFFFFFFFFFFFFFFFF! ds= " << it->second << " rs= " << it->first <<std::endl;
+                     getOtherOps().insert( data_source.getDeviceOps() );
+                  }
+               //} else {
+               //}
+#else
+
+
+               memory_space_id_t location = data_source.getFirstLocation();
+               if ( location != 0 ) {
                   DeviceOps *thisOps = region_shape.getDeviceOps();
                   if ( thisOps->addCacheOp() ) {
                      insertOwnOp( thisOps, region_shape, version, 0 );
                   } else {
                      std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
                   }
+                  //std::cerr << "HOST mustcopy: reg " << reg.id << " version " << version << "  region shape: " << region_shape.id << " data source: " << data_source.id << " location "<< location << std::endl;
+                  ensure( location > 0, "Wrong location.");
+                  addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
+               } else {
+                  std::cerr << " WTFFFFFFFFFFFFFFFFFFFFFFFFFFF! ds= " << it->second << " rs= " << it->first <<std::endl;
+                  getOtherOps().insert( data_source.getDeviceOps() );
                }
-               //std::cerr << "HOST mustcopy: reg " << reg.id << " version " << version << "  region shape: " << region_shape.id << " data source: " << data_source.id << " location "<< location << std::endl;
-               ensure( location > 0, "Wrong location.");
-               addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
+#endif
             }
+            //if ( !opEmitted ) {
+            //   thisRegOps->completeCacheOp();
+            //}
          }
       } else {
          getOtherOps().insert( thisRegOps );
@@ -149,10 +236,11 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
    } else {
       getOtherOps().insert( thisRegOps );
    }
+#endif
 
-   for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
-      (*opIt)->resumeInvalidations();
-   }
+   //for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
+   //   (*opIt)->resumeInvalidations();
+   //}
 }
 
 void BaseAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {
@@ -160,7 +248,7 @@ void BaseAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsig
    reg.setLocationAndVersion( 0, version );
 }
 
-SeparateAddressSpaceInOps::SeparateAddressSpaceInOps( MemSpace<SeparateAddressSpace> &destination ) : BaseAddressSpaceInOps(), _destination( destination ), _hostTransfers() {
+SeparateAddressSpaceInOps::SeparateAddressSpaceInOps( bool delayedCommit, MemSpace<SeparateAddressSpace> &destination ) : BaseAddressSpaceInOps( delayedCommit ), _destination( destination ), _hostTransfers() {
 }
 
 SeparateAddressSpaceInOps::~SeparateAddressSpaceInOps() {
@@ -194,7 +282,7 @@ void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, u
 }
 
 
-SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps() : BaseOps(), _transfers() {
+SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( bool delayedCommit ) : BaseOps( delayedCommit ), _transfers() {
 }
 
 SeparateAddressSpaceOutOps::~SeparateAddressSpaceOutOps() {

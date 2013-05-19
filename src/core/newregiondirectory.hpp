@@ -24,22 +24,25 @@
 #include "version.hpp"
 
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation( -1 ), _invalidated( 0 ), _ops(), _location() {
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation( -1 ), _ops(), _location(), _setLock() {
 }
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ): Version( de ), _writeLocation( de._writeLocation ),
-   _invalidated( de._invalidated ), _ops(), _location( de._location ) {
+   _ops(), _location( de._location ), _setLock() {
 }
 
 inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
 }
 
-inline const NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( const NewNewDirectoryEntryData &de ) {
+inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDirectoryEntryData &de ) {
    Version::operator=( de );
-   _invalidated = de._invalidated;
    _writeLocation = de._writeLocation;
+   _setLock.acquire();
    _location.clear();
+   de._setLock.acquire();
    _location.insert( de._location.begin(), de._location.end() );
+   de._setLock.release();
+   _setLock.release();
    return *this;
 }
 
@@ -56,12 +59,12 @@ inline void NewNewDirectoryEntryData::setWriteLocation( int id ) {
 }
 
 inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) {
+   _setLock.acquire();
    if ( version > this->getVersion() ) {
       _location.clear();
       _writeLocation = id;
       this->setVersion( version );
       _location.insert( id );
-      _invalidated = 0;
    } else if ( version == this->getVersion() ) {
       // entry is going to be replicated, so it must be that multiple copies are used as inputs only
       _location.insert( id );
@@ -72,49 +75,62 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
    } else {
      std::cerr << "FIXME: wrong case" << std::endl;
    }
+   _setLock.release();
 }
 
 inline bool NewNewDirectoryEntryData::delAccess( int from ) {
+   bool result;
+   _setLock.acquire();
    _location.erase( from );
-   return _location.empty();
+   result = _location.empty();
+   _setLock.release();
+   return result;
 }
 
-inline bool NewNewDirectoryEntryData::isLocatedIn( int id, unsigned int version ) const {
-   return ( version <= this->getVersion() && _location.count( id ) > 0 );
+inline bool NewNewDirectoryEntryData::isLocatedIn( int id, unsigned int version ) {
+   bool result;
+   _setLock.acquire();
+   result = ( version <= this->getVersion() && _location.count( id ) > 0 );
+   _setLock.release();
+   return result;
 }
 
-inline void NewNewDirectoryEntryData::invalidate() {
-   _invalidated = 1;
+//inline void NewNewDirectoryEntryData::invalidate() {
+//   _invalidated = 1;
+//}
+//
+//inline bool NewNewDirectoryEntryData::hasBeenInvalidated() const {
+//   return _invalidated == 1;
+//}
+
+inline bool NewNewDirectoryEntryData::isLocatedIn( int id ) {
+   bool result;
+   _setLock.acquire();
+   result = ( _location.count( id ) > 0 );
+   _setLock.release();
+   return result;
 }
 
-inline bool NewNewDirectoryEntryData::hasBeenInvalidated() const {
-   return _invalidated == 1;
-}
-
-inline bool NewNewDirectoryEntryData::isLocatedIn( int id ) const {
-   return ( _location.count( id ) > 0 );
-}
-
-inline void NewNewDirectoryEntryData::merge( const NewNewDirectoryEntryData &de ) {
-   //if ( hasWriteLocation() && de.hasWriteLocation() ) {
-   //   if ( getWriteLocation() != de.getWriteLocation() && this->getVersion() == de.getVersion() ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
-   //} 
-   /*else if ( de.hasWriteLocation() ) {
-      setWriteLocation( de.getWriteLocation() );
-   } else setWriteLocation( -1 );*/
-
-   if ( this->getVersion() == de.getVersion() ) {
-      _location.insert( de._location.begin(), de._location.end() );
-   }
-   else if ( this->getVersion() < de.getVersion() ){
-      setWriteLocation( de.getWriteLocation() );
-      _location.clear();
-      _location.insert( de._location.begin(), de._location.end() );
-      this->setVersion( de.getVersion() );
-   } /*else {
-      std::cerr << "version mismatch! WARNING !!! two write locations!, missing dependencies? current " << this->getVersion() << " inc " << de.getVersion() << std::endl;
-   }*/
-}
+//inline void NewNewDirectoryEntryData::merge( const NewNewDirectoryEntryData &de ) {
+//   //if ( hasWriteLocation() && de.hasWriteLocation() ) {
+//   //   if ( getWriteLocation() != de.getWriteLocation() && this->getVersion() == de.getVersion() ) std::cerr << "write loc mismatch WARNING !!! two write locations!, missing dependencies?" << std::endl;
+//   //} 
+//   /*else if ( de.hasWriteLocation() ) {
+//      setWriteLocation( de.getWriteLocation() );
+//   } else setWriteLocation( -1 );*/
+//
+//   if ( this->getVersion() == de.getVersion() ) {
+//      _location.insert( de._location.begin(), de._location.end() );
+//   }
+//   else if ( this->getVersion() < de.getVersion() ){
+//      setWriteLocation( de.getWriteLocation() );
+//      _location.clear();
+//      _location.insert( de._location.begin(), de._location.end() );
+//      this->setVersion( de.getVersion() );
+//   } /*else {
+//      std::cerr << "version mismatch! WARNING !!! two write locations!, missing dependencies? current " << this->getVersion() << " inc " << de.getVersion() << std::endl;
+//   }*/
+//}
 inline void NewNewDirectoryEntryData::print() const {
    std::cerr << "WL: " << _writeLocation << " V: " << this->getVersion() << " Locs: ";
    for ( std::set< int >::iterator it = _location.begin(); it != _location.end(); it++ ) {
@@ -123,31 +139,39 @@ inline void NewNewDirectoryEntryData::print() const {
    std::cerr << std::endl;
 }
 
-inline bool NewNewDirectoryEntryData::equal( const NewNewDirectoryEntryData &d ) const {
-   bool soFarOk = ( this->getVersion() == d.getVersion() && _writeLocation == d._writeLocation );
-   for ( std::set< int >::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {
-      soFarOk = ( soFarOk && d._location.count( *it ) == 1 );
-   }
-   for ( std::set< int >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
-      soFarOk = ( soFarOk && _location.count( *it ) == 1 );
-   }
-   return soFarOk;
+//inline bool NewNewDirectoryEntryData::equal( const NewNewDirectoryEntryData &d ) const {
+//   bool soFarOk = ( this->getVersion() == d.getVersion() && _writeLocation == d._writeLocation );
+//   for ( std::set< int >::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {
+//      soFarOk = ( soFarOk && d._location.count( *it ) == 1 );
+//   }
+//   for ( std::set< int >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+//      soFarOk = ( soFarOk && _location.count( *it ) == 1 );
+//   }
+//   return soFarOk;
+//}
+//
+//inline bool NewNewDirectoryEntryData::contains( const NewNewDirectoryEntryData &d ) const {
+//   bool soFarOk = ( this->getVersion() == d.getVersion() && _writeLocation == d._writeLocation );
+//   for ( std::set< int >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
+//      soFarOk = ( soFarOk && _location.count( *it ) == 1 );
+//   }
+//   return soFarOk;
+//}
+
+inline int NewNewDirectoryEntryData::getFirstLocation() {
+   int result;
+   _setLock.acquire();
+   result = *(_location.begin());
+   _setLock.release();
+   return result;
 }
 
-inline bool NewNewDirectoryEntryData::contains( const NewNewDirectoryEntryData &d ) const {
-   bool soFarOk = ( this->getVersion() == d.getVersion() && _writeLocation == d._writeLocation );
-   for ( std::set< int >::iterator it = d._location.begin(); it != d._location.end() && soFarOk; it++ ) {
-      soFarOk = ( soFarOk && _location.count( *it ) == 1 );
-   }
-   return soFarOk;
-}
-
-inline int NewNewDirectoryEntryData::getFirstLocation() const {
-   return *(_location.begin());
-}
-
-inline int NewNewDirectoryEntryData::getNumLocations() const {
-   return _location.size();
+inline int NewNewDirectoryEntryData::getNumLocations() {
+   int result;
+   _setLock.acquire();
+   result = _location.size();
+   _setLock.release();
+   return result;
 }
 
 inline DeviceOps *NewNewDirectoryEntryData::getOps() {

@@ -79,7 +79,7 @@ class SeparateAddressSpace {
 
    bool lockForTransfer( global_reg_t const &reg, unsigned int version );
    void releaseForTransfer( global_reg_t const &reg, unsigned int version );
-   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops );
+   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd );
    void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops );
    void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );

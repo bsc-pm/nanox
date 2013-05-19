@@ -94,17 +94,17 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
    _memorySpaceId = pe.getMemorySpaceId();
    NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
-      _inOps = NEW HostAddressSpaceInOps();
+      _inOps = NEW HostAddressSpaceInOps( false );
    } else {
-      _inOps = NEW SeparateAddressSpaceInOps( sys.getSeparateMemory( _memorySpaceId ) );
+      _inOps = NEW SeparateAddressSpaceInOps( false, sys.getSeparateMemory( _memorySpaceId ) );
    }
    
-   //if ( sys.getNetwork()->getNodeNum() == 0 ) {
-   //   std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << std::endl; 
-   //   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-   //      std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
-   //   }
-   //}
+   if ( sys.getNetwork()->getNodeNum() == 0 ) {
+      std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << std::endl; 
+      for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+         std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
+      }
+   }
 
    _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
    
@@ -116,9 +116,9 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
    NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
    NANOS_INSTRUMENT( inst5.close(); );
-   //if ( sys.getNetwork()->getNodeNum() == 0 ) {
-   //   std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
-   //}
+   if ( sys.getNetwork()->getNodeNum() == 0 ) {
+      std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
+   }
    NANOS_INSTRUMENT( inst2.close(); );
 }
 
@@ -129,11 +129,12 @@ void MemController::copyDataOut( ) {
          _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version + 1 );
       }
    }
+   std::cerr << "### copyDataOut wd " << _wd.getId() << " metadata set, not released yet" << std::endl;
 
 
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
    } else {
-      _outOps = NEW SeparateAddressSpaceOutOps();
+      _outOps = NEW SeparateAddressSpaceOutOps( false );
 
       for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
          _memCacheCopies[ index ].generateOutOps( *_outOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput() );
@@ -170,7 +171,12 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
 }
  
 bool MemController::isDataReady() {
-   return _inOps->isDataReady();
+   bool result = _inOps->isDataReady();
+   if ( result ) {
+      std::cerr << "Data is ready for wd " << _wd.getId() << std::endl;
+      _inOps->releaseLockedSourceChunks();
+   }
+   return result;
 }
 
 bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const {

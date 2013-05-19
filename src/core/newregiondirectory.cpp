@@ -48,7 +48,7 @@ using namespace nanos;
 
 std::ostream & nanos::operator<< (std::ostream &o, nanos::NewNewDirectoryEntryData const &ent)
 {
-   o << "WL: " << ent._writeLocation << " V: " << ent.getVersion() << " Inv: " << ent._invalidated << " Locs: ";
+   o << "WL: " << ent._writeLocation << " V: " << ent.getVersion() << " Locs: ";
    for ( std::set<int>::iterator it = ent._location.begin(); it != ent._location.end(); it++ ) {
       o << *it << " ";
    }
@@ -241,21 +241,21 @@ void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsign
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
 }
 
-void NewNewRegionDirectory::addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
-{
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   if ( regEntry == NULL ) {
-     regEntry = NEW NewNewDirectoryEntryData();
-     dict->setRegionData( id, regEntry );
-   }
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "ADD ACCESS if needed "<< (void*) dict << ":" << id << " to "<< memorySpaceId << std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
-   //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
-   regEntry->addAccess( memorySpaceId, version );
-   //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
-}
+//void NewNewRegionDirectory::addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
+//{
+//   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+//   if ( regEntry == NULL ) {
+//     regEntry = NEW NewNewDirectoryEntryData();
+//     dict->setRegionData( id, regEntry );
+//   }
+//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "ADD ACCESS if needed "<< (void*) dict << ":" << id << " to "<< memorySpaceId << std::endl;
+//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
+//   //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
+//   regEntry->addAccess( memorySpaceId, version );
+//   //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
+//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
+//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
+//}
 
 NewNewDirectoryEntryData *NewNewRegionDirectory::getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id ) {
    NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict.getRegionData( id );
@@ -277,15 +277,26 @@ bool NewNewRegionDirectory::delAccess( RegionDirectoryKey dict, reg_t id, unsign
    return res;
 }
 
-void NewNewRegionDirectory::invalidate( RegionDirectoryKey dict, reg_t id ) {
+bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   regEntry->invalidate();
+   bool res;
+   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "DEL ACCESS "<< (void*) dict << ":" << id << " from "<< memorySpaceId << std::endl;
+   //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
+   res = ( ( regEntry->isLocatedIn( memorySpaceId ) ) && ( regEntry->getNumLocations() == 1 ) );
+   //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
+   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
+   return res;
 }
 
-bool NewNewRegionDirectory::hasBeenInvalidated( RegionDirectoryKey dict, reg_t id ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   return regEntry->hasBeenInvalidated();
-}
+//void NewNewRegionDirectory::invalidate( RegionDirectoryKey dict, reg_t id ) {
+//   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+//   regEntry->invalidate();
+//}
+
+//bool NewNewRegionDirectory::hasBeenInvalidated( RegionDirectoryKey dict, reg_t id ) {
+//   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+//   return regEntry->hasBeenInvalidated();
+//}
 
 void NewNewRegionDirectory::updateFromInvalidated( RegionDirectoryKey dict, reg_t id, reg_t from ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
@@ -349,7 +360,7 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
       //std::cerr << "SYNC DIR" << std::endl;
       //int c = 0;
       //print();
-      SeparateAddressSpaceOutOps outOps;
+      SeparateAddressSpaceOutOps outOps( false );
       std::set< DeviceOps * > ops;
       std::set< DeviceOps * > myOps;
       for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
@@ -371,9 +382,13 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
             if ( !reg.isLocatedIn( 0 ) ) {
               DeviceOps *thisOps = reg.getDeviceOps();
               if ( thisOps->addCacheOp() ) {
-                 outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
+                 NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                 std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id ); 
+                  if ( entry ) std::cerr << " " << *entry << std::endl;
+                  else std::cerr << " nil " << std::endl;
                  //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps );
+                 outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
               } else {
                  outOps.getOtherOps().insert( thisOps );
               }

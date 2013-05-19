@@ -20,11 +20,12 @@ class BaseOps {
       void commitMetadata() const;
    };
    private:
+   bool _delayedCommit;
    std::set< OwnOp > _ownDeviceOps;
    std::set< DeviceOps * > _otherDeviceOps;
 
    public:
-   BaseOps();
+   BaseOps( bool delayedCommit );
    ~BaseOps();
    std::set< DeviceOps * > &getOtherOps();
    void insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location );
@@ -35,12 +36,15 @@ class BaseAddressSpaceInOps : public BaseOps {
    protected:
    typedef std::map< SeparateMemoryAddressSpace *, TransferList > MapType;
    MapType _separateTransfers;
+   std::set< AllocatedChunk * > _lockedChunks;
 
    public:
-   BaseAddressSpaceInOps();
+   BaseAddressSpaceInOps( bool delayedCommit );
    virtual ~BaseAddressSpaceInOps();
 
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version );
+   void lockSourceChunks( global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, memory_space_id_t thisLocation );
+   void releaseLockedSourceChunks();
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
    virtual void issue( WD const &wd );
@@ -60,7 +64,7 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    TransferList _hostTransfers;
 
    public:
-   SeparateAddressSpaceInOps( SeparateMemoryAddressSpace &destination );
+   SeparateAddressSpaceInOps( bool delayedCommit, SeparateMemoryAddressSpace &destination );
    ~SeparateAddressSpaceInOps();
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
@@ -78,7 +82,7 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    MapType _transfers;
 
    public:
-   SeparateAddressSpaceOutOps();
+   SeparateAddressSpaceOutOps( bool delayedCommit );
    ~SeparateAddressSpaceOutOps();
 
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops );

@@ -39,7 +39,7 @@ namespace nanos {
    class AllocatedChunk {
       private:
          RegionCache                      &_owner;
-         Lock                              _lock;
+         RecursiveLock                     _lock;
          uint64_t                          _address;
          uint64_t                          _hostAddress;
          std::size_t                       _size;
@@ -75,6 +75,7 @@ namespace nanos {
 
          void lock();
          void unlock();
+         bool locked() const;
          bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations );
          void NEWaddWriteRegion( reg_t reg, unsigned int version );
          void addReference();
@@ -110,7 +111,7 @@ namespace nanos {
          };
       private:
          MemoryMap<AllocatedChunk>  _chunks;
-         Lock                       _lock;
+         RecursiveLock              _lock;
          Device                    &_device;
          //ProcessingElement         &_pe;
          memory_space_id_t          _memorySpaceId;
@@ -154,7 +155,7 @@ namespace nanos {
          AllocatedChunk *getAddress( global_reg_t const &reg, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg ) const;
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, bool complain );
-         AllocatedChunk *_getAllocatedChunk( global_reg_t const &reg, bool complain ) const;
+         AllocatedChunk *_getAllocatedChunk( global_reg_t const &reg, bool complain, bool lock ) const;
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          AllocatedChunk **selectChunkToInvalidate( /*CopyData const &cd, uint64_t addr,*/ std::size_t allocSize/*, RegionTree< CachedRegionStatus > *&regsToInval, CacheRegionDictionary *&newRegsToInval*/ );
          void syncRegion( global_reg_t const &r ) ;
@@ -199,6 +200,7 @@ namespace nanos {
          bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations );
          bool canInvalidateToFit( std::size_t *sizes, unsigned int numChunks ) const;
          std::size_t getAllocatableSize( global_reg_t const &reg ) const;
+         void prepareRegionsToCopyToHost( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks  ) ;
    };
 }
 

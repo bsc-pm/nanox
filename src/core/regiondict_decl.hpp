@@ -128,7 +128,7 @@ typedef unsigned int reg_t;
       Lock _lock;
 
       public:
-      void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise = false );
+      void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise = false, bool giveSubFragmentsWithSameVersion = false );
       void getRegionIntersects( reg_t id, unsigned int version, std::list< reg_t > &superParts, std::list< reg_t > &subParts );
       void lock();
       bool tryLock();
@@ -140,6 +140,7 @@ typedef unsigned int reg_t;
       RegionDictionary( GlobalRegionDictionary &dict );
       reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version );
       reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
+      reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t obtainRegionId( CopyData const &cd );
       reg_t obtainRegionId( nanos_region_dimension_internal_t region[] );
       reg_t tryObtainRegionId( CopyData const &cd );

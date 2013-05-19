@@ -3,7 +3,7 @@
 #include "addressspace_decl.hpp"
 namespace nanos {
 
-template < class T>
+template < class T >
 void MemSpace< T >::copy( MemSpace< SeparateAddressSpace > &from, TransferList list, WD const &wd ) {
    for ( TransferList::const_iterator it = list.begin(); it != list.end(); it++ ) {
       if ( from.lockForTransfer( it->getRegion(), it->getVersion() ) ) {

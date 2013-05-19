@@ -30,29 +30,30 @@ namespace nanos
    class NewNewDirectoryEntryData : public Version {
       private:
          int _writeLocation;
-         int _invalidated;
+         //int _invalidated;
          DeviceOps _ops;
          std::set< int > _location;
+         Lock _setLock;
       public:
          NewNewDirectoryEntryData();
          NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de );
          ~NewNewDirectoryEntryData();
-         const NewNewDirectoryEntryData & operator= ( const NewNewDirectoryEntryData &de );
+         NewNewDirectoryEntryData & operator= ( NewNewDirectoryEntryData &de );
          bool hasWriteLocation() const ;
          int getWriteLocation() const ;
          void setWriteLocation( int id ) ;
          void addAccess( int id, unsigned int version ); 
          bool delAccess( int id ); 
-         void invalidate(); 
-         bool hasBeenInvalidated() const; 
-         bool isLocatedIn( int id, unsigned int version ) const ;
-         bool isLocatedIn( int id ) const ;
-         void merge( const NewNewDirectoryEntryData &de ) ;
+         //void invalidate(); 
+         //bool hasBeenInvalidated() const; 
+         bool isLocatedIn( int id, unsigned int version );
+         bool isLocatedIn( int id );
+         //void merge( const NewNewDirectoryEntryData &de ) ;
          void print() const ;
-         bool equal( const NewNewDirectoryEntryData &d ) const ;
-         bool contains( const NewNewDirectoryEntryData &d ) const ;
-         int getFirstLocation() const ;
-         int getNumLocations() const ;
+         //bool equal( const NewNewDirectoryEntryData &d ) const ;
+         //bool contains( const NewNewDirectoryEntryData &d ) const ;
+         int getFirstLocation();
+         int getNumLocations();
          void setOps( DeviceOps *ops );
          DeviceOps *getOps() ;
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
@@ -116,8 +117,9 @@ namespace nanos
          static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
          static unsigned int getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion );
          static void addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
-         static void addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
+         //static void addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
          static bool delAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId );
+         static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId );
          static void invalidate( RegionDirectoryKey dict, reg_t id );
          static bool hasBeenInvalidated( RegionDirectoryKey dict, reg_t id );
          static void updateFromInvalidated( RegionDirectoryKey dict, reg_t id, reg_t from );
