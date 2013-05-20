@@ -32,6 +32,8 @@
 #include "cachedregionstatus_decl.hpp"
 #include "memcachecopy_fwd.hpp"
 
+#define VERBOSE_CACHE 0
+
 namespace nanos {
 
    class RegionCache;

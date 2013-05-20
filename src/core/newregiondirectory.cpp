@@ -383,9 +383,11 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
               DeviceOps *thisOps = reg.getDeviceOps();
               if ( thisOps->addCacheOp() ) {
                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
-                 std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id ); 
-                  if ( entry ) std::cerr << " " << *entry << std::endl;
-                  else std::cerr << " nil " << std::endl;
+                  if ( VERBOSE_CACHE ) {
+                     std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                     if ( entry ) std::cerr << " " << *entry << std::endl;
+                     else std::cerr << " nil " << std::endl; 
+                  }
                  //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps );
                  outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );

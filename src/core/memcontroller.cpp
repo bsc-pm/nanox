@@ -99,10 +99,12 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
       _inOps = NEW SeparateAddressSpaceInOps( false, sys.getSeparateMemory( _memorySpaceId ) );
    }
    
-   if ( sys.getNetwork()->getNodeNum() == 0 ) {
-      std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << std::endl; 
-      for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-         std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
+   if ( VERBOSE_CACHE ) {
+      if ( sys.getNetwork()->getNodeNum() == 0 ) {
+         std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << std::endl; 
+         for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+            std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
+         }
       }
    }
 
@@ -116,8 +118,10 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
    NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
    NANOS_INSTRUMENT( inst5.close(); );
-   if ( sys.getNetwork()->getNodeNum() == 0 ) {
-      std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
+   if ( VERBOSE_CACHE ) {
+      if ( sys.getNetwork()->getNodeNum() == 0 ) {
+         std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
+      }
    }
    NANOS_INSTRUMENT( inst2.close(); );
 }
@@ -129,7 +133,7 @@ void MemController::copyDataOut( ) {
          _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version + 1 );
       }
    }
-   std::cerr << "### copyDataOut wd " << _wd.getId() << " metadata set, not released yet" << std::endl;
+   if ( VERBOSE_CACHE ) { std::cerr << "### copyDataOut wd " << _wd.getId() << " metadata set, not released yet" << std::endl; }
 
 
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
@@ -173,7 +177,7 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
 bool MemController::isDataReady() {
    bool result = _inOps->isDataReady();
    if ( result ) {
-      std::cerr << "Data is ready for wd " << _wd.getId() << std::endl;
+      if ( VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << std::endl; }
       _inOps->releaseLockedSourceChunks();
    }
    return result;

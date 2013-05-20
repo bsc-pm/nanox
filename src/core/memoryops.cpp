@@ -124,21 +124,22 @@ void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned 
          }
       //}
    }
-   std::cerr << "avoiding... process region " << reg.id << " got locked chunks: " << std::endl;
+   if ( VERBOSE_CACHE ) { std::cerr << "avoiding... process region " << reg.id << " got locked chunks: " << std::endl; }
    for ( std::map< memory_space_id_t, std::set< global_reg_t > >::iterator mIt = parts.begin(); mIt != parts.end(); mIt++ ) {
-      std::cerr << " from location " << mIt->first << std::endl;
+      if ( VERBOSE_CACHE ) { std::cerr << " from location " << mIt->first << std::endl; }
       sys.getSeparateMemory( mIt->first ).getCache().prepareRegionsToCopyToHost( mIt->second, version, _lockedChunks );
    }
-   std::cerr << "safe from invalidations... process region " << reg.id << " got locked chunks: ";
-   for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
-      std::cerr << " " << *it;
+   if ( VERBOSE_CACHE ) {
+      std::cerr << "safe from invalidations... process region " << reg.id << " got locked chunks: ";
+      for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
+         std::cerr << " " << *it;
+      }
+      std::cerr << std::endl;
    }
-   std::cerr << std::endl;
 }
 
 void BaseAddressSpaceInOps::releaseLockedSourceChunks() {
    for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
-      //(*it)->removeReference();
       (*it)->unlock();
    }
    _lockedChunks.clear();
@@ -160,10 +161,9 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
 
    lockSourceChunks( reg, version, locations, 0 );
 
-#if 1
    DeviceOps *thisRegOps = reg.getDeviceOps();
    if ( reg.getHostVersion( false ) != version ) {
-      std::cerr << "I have to copy region " << reg.id << " dont have it "<<std::endl;
+      if ( VERBOSE_CACHE ) { std::cerr << "I have to copy region " << reg.id << " dont have it "<<std::endl; }
       if ( thisRegOps->addCacheOp() ) {
          insertOwnOp( thisRegOps, reg, version, 0 ); //i've got the responsability of copying this region
 
@@ -182,12 +182,10 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
                getOtherOps().insert( data_source.getDeviceOps() );
             }
          } else {
-            //bool opEmitted = false;
             for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
                global_reg_t region_shape( it->first, reg.key );
                global_reg_t data_source( it->second, reg.key );
                ensure( region_shape.id != reg.id, "Wrong region" );
-#if 1
                //if ( region_shape.id == data_source.id ) {
                   if ( !data_source.isLocatedIn( 0 ) ) {
                      memory_space_id_t location = data_source.getFirstLocation();
@@ -197,38 +195,15 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
                      } else {
                         std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
                      }
-                     //std::cerr << " added a op! ds= " << it->second << " rs= " << it->first <<std::endl;
+                     if ( VERBOSE_CACHE ) { std::cerr << " added a op! ds= " << it->second << " rs= " << it->first <<std::endl; }
                      addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
-                     //opEmitted = true;
                   } else {
-                     std::cerr << " WTFFFFFFFFFFFFFFFFFFFFFFFFFFF! ds= " << it->second << " rs= " << it->first <<std::endl;
+                     if ( VERBOSE_CACHE ) { std::cerr << " sync with other op! ds= " << it->second << " rs= " << it->first <<std::endl; }
                      getOtherOps().insert( data_source.getDeviceOps() );
                   }
                //} else {
                //}
-#else
-
-
-               memory_space_id_t location = data_source.getFirstLocation();
-               if ( location != 0 ) {
-                  DeviceOps *thisOps = region_shape.getDeviceOps();
-                  if ( thisOps->addCacheOp() ) {
-                     insertOwnOp( thisOps, region_shape, version, 0 );
-                  } else {
-                     std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
-                  }
-                  //std::cerr << "HOST mustcopy: reg " << reg.id << " version " << version << "  region shape: " << region_shape.id << " data source: " << data_source.id << " location "<< location << std::endl;
-                  ensure( location > 0, "Wrong location.");
-                  addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
-               } else {
-                  std::cerr << " WTFFFFFFFFFFFFFFFFFFFFFFFFFFF! ds= " << it->second << " rs= " << it->first <<std::endl;
-                  getOtherOps().insert( data_source.getDeviceOps() );
-               }
-#endif
             }
-            //if ( !opEmitted ) {
-            //   thisRegOps->completeCacheOp();
-            //}
          }
       } else {
          getOtherOps().insert( thisRegOps );
@@ -236,7 +211,6 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
    } else {
       getOtherOps().insert( thisRegOps );
    }
-#endif
 
    //for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
    //   (*opIt)->resumeInvalidations();
