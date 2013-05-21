@@ -285,7 +285,7 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
             de->setVersion( de->getVersion()+1 );
          } else {
             // Froce copy back
-            c->invalidate( *this, de->getTag(), de );
+            c->invalidateAndFlush( *this, de->getTag(), de );
             flushings.push_back( de );
          }
       }

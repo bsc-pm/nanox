@@ -488,10 +488,11 @@ void System::start ()
          break;
    }
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t team_size =  (nanos_event_value_t) myThread->getTeam()->size(); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &team_size); )
+   // FIXME: temporary fix to prevent Extrae to get a full node mask as num-threads. See #828
+   //NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   //NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+   //NANOS_INSTRUMENT ( nanos_event_value_t team_size =  (nanos_event_value_t) myThread->getTeam()->size(); )
+   //NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &team_size); )
    
    /* Master thread is ready now */
    if ( getSynchronizedStart() )
@@ -528,6 +529,9 @@ void System::finish ()
    /* Instrumentation: First removing RUNNING state from top of the state statck */
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
+
+   verbose ( "NANOS++ statistics");
+   verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
 
    verbose ( "NANOS++ shutting down.... init" );
    verbose ( "Wait for main workgroup to complete" );
@@ -1546,7 +1550,7 @@ void System::waitUntilThreadsUnpaused ()
    _unpausedThreadsCond.wait();
 }
 
-unsigned System::reservePE ( unsigned node, bool & reserved )
+unsigned System::reservePE ( bool reserveNode, unsigned node, bool & reserved )
 {
    // For each available PE
    for ( Bindings::reverse_iterator it = _bindings.rbegin(); it != _bindings.rend(); ++it )
@@ -1554,8 +1558,9 @@ unsigned System::reservePE ( unsigned node, bool & reserved )
       unsigned pe = *it;
       unsigned currentNode = getNodeOfPE( pe );
       
-      // If this PE is in the requested node
-      if ( currentNode == node )
+      // If this PE is in the requested node or we don't need to reserve in
+      // a certain node
+      if ( currentNode == node || !reserveNode )
       {
          // Ensure there is at least one PE for smp
          if ( _bindings.size() == 1 )

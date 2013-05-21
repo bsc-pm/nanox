@@ -24,9 +24,10 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-bool OpenCLConfig::_disableOpenCL = false;
+bool OpenCLConfig::_enableOpenCL = false;
 int OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
+unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 
 std::vector<cl_device_id> OpenCLConfig::_devices;
@@ -45,12 +46,12 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.setOptionsSection( "OpenCL Arch", "OpenCL specific options" );
 
    // Enable/disable OpenCL.
-   cfg.registerConfigOption( "disable-opencl",
-                             NEW Config::FlagOption( _disableOpenCL ),
-                             "Enable or disable the use of "
-                             "OpenCL back-end (enabled by default)" );
-   cfg.registerEnvOption( "disable-opencl", "NX_DISABLE_OPENCL" );
-   cfg.registerArgOption( "disable-opencl", "disable-opencl" );
+   cfg.registerConfigOption( "enable-opencl",
+                             NEW Config::FlagOption( _enableOpenCL ),
+                             "Enable the use of "
+                             "OpenCL back-end (disabled by default)" );
+   cfg.registerEnvOption( "enable-opencl", "NX_ENABLEOPENCL" );
+   cfg.registerArgOption( "enable-opencl", "enable-opencl" );
 
    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
@@ -81,7 +82,7 @@ void OpenCLConfig::prepare( Config &cfg )
 
 void OpenCLConfig::apply(std::string &_devTy)
 {
-   if( _disableOpenCL )
+   if( !_enableOpenCL )
      return;
 
    cl_int errCode;
@@ -166,6 +167,7 @@ void OpenCLConfig::apply(std::string &_devTy)
          if( available && _devices.size()<_devNum)
            _devices.push_back( *j );
       }
+	  _currNumDevices=_devices.size();
 
       delete [] devs;
    }

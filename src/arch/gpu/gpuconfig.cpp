@@ -28,7 +28,7 @@
 namespace nanos {
 namespace ext {
 
-bool GPUConfig::_disableCUDA = false;
+bool GPUConfig::_enableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
 System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
 bool GPUConfig::_prefetch = false;
@@ -46,10 +46,10 @@ void GPUConfig::prepare( Config& config )
    config.setOptionsSection( "GPU Arch", "GPU specific options" );
 
    // Enable / disable CUDA
-   config.registerConfigOption( "disable-cuda", NEW Config::FlagOption( _disableCUDA ),
-                                "Enable or disable the use of GPUs with CUDA (enabled by default)" );
-   config.registerEnvOption( "disable-cuda", "NX_DISABLECUDA" );
-   config.registerArgOption( "disable-cuda", "disable-cuda" );
+   config.registerConfigOption( "enable-cuda", NEW Config::FlagOption( _enableCUDA ),
+                                "Enable the use of GPUs with CUDA (disabled by default)" );
+   config.registerEnvOption( "enable-cuda", "NX_ENABLECUDA" );
+   config.registerArgOption( "enable-cuda", "enable-cuda" );
 
    // Set #GPUs
    config.registerConfigOption ( "num-gpus", NEW Config::IntegerVar( _numGPUs ),
@@ -114,7 +114,7 @@ void GPUConfig::prepare( Config& config )
 
 void GPUConfig::apply()
 {
-   if ( _disableCUDA || _numGPUs == 0 ) {
+   if ( !_enableCUDA || _numGPUs == 0 ) {
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
       _prefetch = false;
