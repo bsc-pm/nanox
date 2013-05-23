@@ -50,7 +50,7 @@ inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 
 inline int System::getNumThreads () const { return _numThreads; }
 
-inline int System::getCpuCount () const { return _cpu_mask.size(); };
+inline int System::getCpuCount () const { return CPU_COUNT( &_cpu_set ) ; };
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
    //ensure( checkCpuMask(mask), "invalid CPU mask set" );
@@ -120,8 +120,7 @@ inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket =
 
 inline int System::getBindingId ( int pe ) const
 {
-   int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _pe_map.size();
-   return _pe_map[tmpId];
+   return _bindings[ pe % _bindings.size() ];
 }
 
 inline bool System::isHwlocAvailable () const

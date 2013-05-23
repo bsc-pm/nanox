@@ -700,6 +700,8 @@ namespace nanos {
 
          virtual void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
 
+         virtual void incrementMaxThreads( void ) {}
+
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *
           *  Each of (specific) instrumentation modules have to implement this function in order
