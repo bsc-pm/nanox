@@ -25,10 +25,13 @@ using namespace nanos;
 using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
+bool OpenCLConfig::_forceDisableOpenCL = false;
 int OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
+//This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
+extern __attribute__((weak)) char ompss_uses_opencl;
 
 std::vector<cl_device_id> OpenCLConfig::_devices;
 
@@ -49,9 +52,17 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerConfigOption( "enable-opencl",
                              NEW Config::FlagOption( _enableOpenCL ),
                              "Enable the use of "
-                             "OpenCL back-end (disabled by default)" );
+                             "OpenCL back-end" );
    cfg.registerEnvOption( "enable-opencl", "NX_ENABLEOPENCL" );
    cfg.registerArgOption( "enable-opencl", "enable-opencl" );
+   
+   // Enable/disable OpenCL.
+   cfg.registerConfigOption( "disable-opencl",
+                             NEW Config::FlagOption( _forceDisableOpenCL ),
+                             "Disable the use of "
+                             "OpenCL back-end" );
+   cfg.registerEnvOption( "disable-opencl", "NX_DISABLEOPENCL" );
+   cfg.registerArgOption( "disable-opencl", "disable-opencl" );
 
    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
@@ -82,7 +93,12 @@ void OpenCLConfig::prepare( Config &cfg )
 
 void OpenCLConfig::apply(std::string &_devTy)
 {
-   if( !_enableOpenCL )
+    //Auto-enable CUDA if it was not done before
+   if (!_enableOpenCL) {
+       //ompss_uses_cuda pointer will be null (is extern) if the compiler didnt fill it
+      _enableOpenCL=((&ompss_uses_opencl)!=0);
+   }
+   if( _forceDisableOpenCL || !_enableOpenCL )
      return;
 
    cl_int errCode;

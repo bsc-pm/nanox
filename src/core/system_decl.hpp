@@ -269,7 +269,7 @@ namespace nanos
          int getDeviceStackSize () const;
 
          void setBindingStart ( int value );
-
+        
          int getBindingStart () const;
 
          void setBindingStride ( int value );
@@ -504,6 +504,7 @@ namespace nanos
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
+         char* getOmpssUsesCuda();
 #endif
 
          void threadReady ();
