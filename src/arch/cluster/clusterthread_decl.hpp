@@ -53,6 +53,7 @@ namespace ext
       unsigned int                     _clusterNode; // Assigned Cluster device Id
       RunningWDQueue _runningWDs[2]; //0: SMP, 1: GPU
       Lock _lock;
+      WD *_pendingInitWD;
 
       // disable copy constructor and assignment operator
       ClusterThread( const ClusterThread &th );
@@ -99,6 +100,10 @@ namespace ext
          virtual void switchToNextThread();
 
       bool acceptsWDsSMP() const;
+
+      bool hasAPendingWDToInit() const;
+      WD *getPendingInitWD();
+      void setPendingInitWD( WD *wd );
    };
 
 

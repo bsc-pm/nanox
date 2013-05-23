@@ -49,7 +49,7 @@ class BaseAddressSpaceInOps : public BaseOps {
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
    virtual void issue( WD const &wd );
 
-   virtual void prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+   virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg );
 
    virtual void copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
@@ -70,7 +70,7 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
    virtual void issue( WD const &wd );
 
-   virtual void prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+   virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg );
 
    virtual void copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );

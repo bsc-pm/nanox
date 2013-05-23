@@ -111,7 +111,7 @@ namespace nanos
          virtual unsigned int getMyNodeNumber() const { return 0; }
 
          /* Memory space suport */
-         virtual void copyDataIn( WorkDescriptor& wd );
+         void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
          //virtual bool dataCanBlockUs( WorkDescriptor& wd );
 

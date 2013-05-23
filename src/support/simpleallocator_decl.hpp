@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <map>
+#include <list>
 #include "atomic_decl.hpp"
 
 namespace nanos {
@@ -43,6 +44,8 @@ namespace nanos {
          
 
       public:
+         typedef std::list< std::pair< uint64_t, std::size_t > > ChunkList;
+
          SimpleAllocator( uint64_t baseAddress, std::size_t len );
 
          // WARNING: Calling this constructor requires calling init() at some time
@@ -59,6 +62,7 @@ namespace nanos {
          std::size_t free( void *address );
 
          void canAllocate( std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const;
+         void getFreeChunksList( ChunkList &list ) const;
 
          void printMap();
    };

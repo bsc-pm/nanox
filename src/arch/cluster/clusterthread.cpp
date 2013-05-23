@@ -72,7 +72,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
 }
 
 //ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
-ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( w, pe, parent ), _clusterNode( device ), _lock() {
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( w, pe, parent ), _clusterNode( device ), _lock(), _pendingInitWD( NULL ) {
    setCurrentWD( w );
 }
 
@@ -268,4 +268,18 @@ bool ClusterThread::tryLock() {
 
 bool ClusterThread::acceptsWDsSMP() const {
    return ( ( (int) numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() );
+}
+
+bool ClusterThread::hasAPendingWDToInit() const {
+   return _pendingInitWD != NULL;
+}
+
+WD *ClusterThread::getPendingInitWD() {
+   WD *wd = _pendingInitWD;
+   _pendingInitWD = NULL;
+   return wd;
+}
+
+void ClusterThread::setPendingInitWD( WD *wd ) {
+   _pendingInitWD = wd;
 }

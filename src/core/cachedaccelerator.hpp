@@ -36,12 +36,6 @@ inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch,
 inline CachedAccelerator::~CachedAccelerator() {
 }
 
-inline void CachedAccelerator::copyDataInDependent( WorkDescriptor &wd )
-{
-   //wd._ccontrol.copyDataIn( &_newCache );
-   wd._mcontrol.copyDataIn( *this );
-}
-
 inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
 {
    while ( !wd._mcontrol.isDataReady() ) { myThread->idle(); } 

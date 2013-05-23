@@ -31,7 +31,7 @@ using namespace nanos;
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
    //work._ccontrol.copyDataIn( NULL );
-   work._mcontrol.copyDataIn( *this );
+   work._mcontrol.copyDataIn();
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )

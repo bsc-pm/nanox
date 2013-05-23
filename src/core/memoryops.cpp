@@ -105,7 +105,8 @@ void BaseAddressSpaceInOps::issue( WD const &wd ) {
    }
 }
 
-void BaseAddressSpaceInOps::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+bool BaseAddressSpaceInOps::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   return true;
 }
 
 unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {
@@ -239,8 +240,8 @@ void SeparateAddressSpaceInOps::issue( WD const &wd ) {
    _destination.copyFromHost( _hostTransfers, wd );
 }
 
-void SeparateAddressSpaceInOps::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
-   _destination.prepareRegions( memCopies, numCopies, wd );
+bool SeparateAddressSpaceInOps::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   return _destination.prepareRegions( memCopies, numCopies, wd );
 }
 
 unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg ) {

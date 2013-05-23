@@ -56,13 +56,11 @@ namespace nanos
 
          virtual bool hasSeparatedMemorySpace() const { return true; }
 
-         virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
          //virtual bool dataCanBlockUs( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
 
-         virtual void copyDataInDependent( WorkDescriptor &wd ) = 0;
          //virtual void waitInputDependent( uint64_t tag ) = 0;
 
          //virtual bool checkBlockingCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;

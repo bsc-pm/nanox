@@ -560,18 +560,38 @@ void Scheduler::workerClusterLoop ()
             ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
             thisNode->disableDevice( 1 ); 
             myClusterThread->clearCompletedWDsSMP2();
-            if ( myClusterThread->acceptsWDsSMP() )
-            {
-               WD * wd = getClusterWD( myThread, 0 );
-               if ( wd )
-               {
+            if ( myClusterThread->hasAPendingWDToInit() ) {
+               WD * wd = myClusterThread->getPendingInitWD();
+               if ( Scheduler::tryPreOutlineWork(wd) ) {
+                        //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                   myClusterThread->addRunningWDSMP( wd );
-                  Scheduler::preOutlineWork(wd);
                   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
                   myThread->outlineWorkDependent(*wd);
                   NANOS_INSTRUMENT( inst2.close(); );
+               } else {
+                        //std::cerr << "REPEND WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                  myClusterThread->setPendingInitWD( wd );
                }
-            }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+            } else {
+               if ( myClusterThread->acceptsWDsSMP() )
+               {
+                  WD * wd = getClusterWD( myThread, 0 );
+                  if ( wd )
+                  {
+                     Scheduler::prePreOutlineWork(wd); 
+                     if ( Scheduler::tryPreOutlineWork(wd) ) {
+                        //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                        myClusterThread->addRunningWDSMP( wd );
+                        NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                        myThread->outlineWorkDependent(*wd);
+                        NANOS_INSTRUMENT( inst2.close(); );
+                     } else {
+                        //std::cerr << "ADDED A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                        myClusterThread->setPendingInitWD( wd );
+                     }
+                  }
+               }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+            }
             thisNode->enableDevice( 1 ); 
 #ifdef GPU_DEV
             thisNode->disableDevice( 0 ); 
@@ -705,6 +725,36 @@ void Scheduler::preOutlineWork ( WD *wd )
    NANOS_INSTRUMENT( inst2.close(); );
 }
 
+void Scheduler::prePreOutlineWork ( WD *wd )
+{
+   BaseThread *thread = getMyThreadSafe();
+   wd->_mcontrol.initialize( *(thread->runningOn()) );
+}
+
+bool Scheduler::tryPreOutlineWork ( WD *wd )
+{
+   bool result = false;
+   BaseThread *thread = getMyThreadSafe();
+
+   if ( wd->_mcontrol.allocateInputMemory() ) {
+      NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
+
+      result = true;
+      wd->tieTo( *thread );
+      thread->setCurrentWD( *wd );
+      if ( !wd->started() ) {
+         wd->init();
+      }
+
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
+      NANOS_INSTRUMENT( inst2.close(); );
+   }
+   return result;
+}
+
 void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
 {
    BaseThread *thread = owner;
@@ -779,6 +829,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    //std::cerr << " ççç RUN TASK " << wd->getId() << " Depth " << wd->getDepth() << " ççç " << std::endl;
    // Initializing wd if necessary
    // It will be started later in inlineWorkDependent call
+   
+   wd->_mcontrol.initialize( *(thread->runningOn()) );
+   bool result;
+   do {
+      result = wd->_mcontrol.allocateInputMemory();
+   } while( result == false );
+
    if ( !wd->started() ) wd->init();
 
    // This ensures that when we return from the inlining is still the same thread

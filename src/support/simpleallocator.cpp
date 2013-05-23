@@ -260,6 +260,12 @@ void SimpleAllocator::canAllocate( std::size_t *sizes, unsigned int numChunks, s
    }
 }
 
+void SimpleAllocator::getFreeChunksList( SimpleAllocator::ChunkList &list ) const {
+   for ( SegmentMap::const_iterator mapIter = _freeChunks.begin(); mapIter != _freeChunks.end(); mapIter++ ) {
+      list.push_back( *mapIter );
+   }
+}
+
 BufferManager::BufferManager( void * address, std::size_t size )
 {
    init(address,size);

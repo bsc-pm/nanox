@@ -47,7 +47,9 @@ namespace nanos
          static void idleLoop (void);
 
       public:
+         static bool tryPreOutlineWork ( WD *work );
          static void preOutlineWork ( WD *work );
+         static void prePreOutlineWork ( WD *work );
          static void preOutlineWorkWithThread ( BaseThread *thread, WD *work );
          static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
          static bool inlineWork ( WD *work, bool schedule = false );

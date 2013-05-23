@@ -73,7 +73,7 @@ namespace nanos {
          void clearNewRegions( global_reg_t const &newAllocatedRegion );
          CacheRegionDictionary *getNewRegions();
          bool isInvalidated() const;
-         void invalidate(RegionCache *targetCache, WD const &wd );
+         void invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess );
 
          void lock();
          void unlock();
@@ -154,12 +154,14 @@ namespace nanos {
       public:
          RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags );
          AllocatedChunk *tryGetAddress( global_reg_t const &reg, WD const &wd );
-         AllocatedChunk *getAddress( global_reg_t const &reg, CacheRegionDictionary *&newRegsToInvalidate, WD const &wd );
+         AllocatedChunk *getOrCreateChunk( global_reg_t const &reg, WD const &wd );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg ) const;
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, bool complain );
          AllocatedChunk *_getAllocatedChunk( global_reg_t const &reg, bool complain, bool lock ) const;
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
-         AllocatedChunk **selectChunkToInvalidate( /*CopyData const &cd, uint64_t addr,*/ std::size_t allocSize/*, RegionTree< CachedRegionStatus > *&regsToInval, CacheRegionDictionary *&newRegsToInval*/ );
+         AllocatedChunk **selectChunkToInvalidate( std::size_t allocSize );
+         AllocatedChunk *invalidate( global_reg_t const &allocatedRegion, WD const &wd );
+         void selectChunksToInvalidate( std::size_t allocSize, std::set< AllocatedChunk ** > &chunksToInvalidate );
          void syncRegion( global_reg_t const &r ) ;
          //void syncRegion( std::list< std::pair< global_reg_t, CacheCopy * > > const &regions, WD const &wd ) ;
          unsigned int getMemorySpaceId() const;
@@ -192,7 +194,7 @@ namespace nanos {
          //unsigned int getVersionSetVersion( global_reg_t const &hostMem, unsigned int newVersion );
          unsigned int getVersion( global_reg_t const &hostMem );
          void releaseRegion( global_reg_t const &hostMem, WD const &wd );
-         void prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+         bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version );
 
          void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );

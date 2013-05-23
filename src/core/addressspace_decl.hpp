@@ -92,7 +92,7 @@ class SeparateAddressSpace {
    void releaseRegion( global_reg_t const &reg, WD const &wd );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress ) const;
    
-   void prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+   bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    //void prepareRegion( global_reg_t const &reg, WD const &wd );
    void setRegionVersion( global_reg_t const &reg, unsigned int version );
    unsigned int getCurrentVersionSetVersion( global_reg_t const &reg, unsigned int version );

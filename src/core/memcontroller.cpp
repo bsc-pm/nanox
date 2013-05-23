@@ -89,15 +89,22 @@ void MemController::preInit( ) {
    }
 }
 
-
-void MemController::copyDataIn( ProcessingElement &pe ) {
+void MemController::initialize( ProcessingElement &pe ) {
    _memorySpaceId = pe.getMemorySpaceId();
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
       _inOps = NEW HostAddressSpaceInOps( false );
    } else {
       _inOps = NEW SeparateAddressSpaceInOps( false, sys.getSeparateMemory( _memorySpaceId ) );
    }
+}
+
+bool MemController::allocateInputMemory() {
+   ensure( _inOps != NULL, "NULL ops." );
+   return _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
+}
+
+void MemController::copyDataIn() {
    
    if ( VERBOSE_CACHE ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
@@ -107,8 +114,6 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
          }
       }
    }
-
-   _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
    
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
@@ -123,7 +128,7 @@ void MemController::copyDataIn( ProcessingElement &pe ) {
          std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
       }
    }
-   NANOS_INSTRUMENT( inst2.close(); );
+   //NANOS_INSTRUMENT( inst2.close(); );
 }
 
 void MemController::copyDataOut( ) {

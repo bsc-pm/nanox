@@ -53,7 +53,6 @@ namespace nanos
          */
          virtual ~CachedAccelerator();
 
-         void copyDataInDependent( WorkDescriptor &wd );
          void waitInputsDependent( WorkDescriptor &wd );
          virtual Device const *getCacheDeviceType() const;
    };

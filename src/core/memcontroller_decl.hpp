@@ -24,7 +24,9 @@ public:
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );
    void preInit();
-   void copyDataIn( ProcessingElement &pe );
+   void initialize( ProcessingElement &pe );
+   bool allocateInputMemory();
+   void copyDataIn();
    void copyDataOut();
    bool isDataReady();
    uint64_t getAddress( unsigned int index ) const;

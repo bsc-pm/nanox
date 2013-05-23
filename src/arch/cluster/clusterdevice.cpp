@@ -42,8 +42,7 @@ ClusterDevice::ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {
 ClusterDevice::~ClusterDevice() {
 }
 
-void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem ) const
-{
+void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem ) const {
    void *retAddr = NULL;
 
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
@@ -51,6 +50,13 @@ void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem 
    retAddr = allocator->allocate( size );
    allocator->unlock();
    return retAddr;
+}
+
+void ClusterDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {
+   SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
+   allocator->lock();
+   allocator->free( (void *) addr );
+   allocator->unlock();
 }
 
 void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd ) const {
@@ -135,4 +141,8 @@ void ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOr
 void ClusterDevice::_canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const {
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
    allocator->canAllocate( sizes, numChunks, remainingSizes );
+}
+void ClusterDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
+   SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
+   allocator->getFreeChunksList( list );
 }

@@ -51,34 +51,6 @@ bool Accelerator::dataCanBlockUs( WorkDescriptor &work )
 }
 #endif
 
-void Accelerator::copyDataIn( WorkDescriptor &work )
-{
-#if LOCK_TRANSFER
-   _transferLock.acquire();
-#endif
-   //CopyData *copies = work.getCopies();
-
-   this->copyDataInDependent( work );
-
-   //for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-   //   CopyData & cd = copies[i];
-   //   uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
-   //   if ( cd.isInput() ) {
-   //      NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-in") );
-   //      NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvent( key, (nanos_event_value_t) cd.getSize() ) );
-   //   }
-
-   //   if ( cd.isPrivate() ) {
-   //      this->registerPrivateAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() );
-   //   } else {
-   //      this->registerCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() );
-   //   }
-   //}
-#if LOCK_TRANSFER
-   _transferLock.release();
-#endif
-}
-
 void Accelerator::waitInputs( WorkDescriptor &work )
 {
    //CopyData *copies = work.getCopies();

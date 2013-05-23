@@ -87,8 +87,8 @@ void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_
    std::cerr << "unimplemented" << std::endl;
 }
 
-void SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
-   _cache.prepareRegions( memCopies, numCopies, wd );
+bool SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   return _cache.prepareRegions( memCopies, numCopies, wd );
 }
 
 //void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
