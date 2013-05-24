@@ -204,6 +204,7 @@ namespace nanos {
          bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations );
          bool canInvalidateToFit( std::size_t *sizes, unsigned int numChunks ) const;
          std::size_t getAllocatableSize( global_reg_t const &reg ) const;
+         void getAllocatableRegion( global_reg_t const &reg, global_reg_t &allocRegion ) const;
          void prepareRegionsToCopyToHost( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks  ) ;
    };
 }

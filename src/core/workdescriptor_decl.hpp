@@ -86,6 +86,7 @@ namespace nanos
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem ) const { return (void *) 0xdeadbeef; }
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {  std::cerr << "wrong memFree" <<std::endl; }
          virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const { std::cerr << "wrong canAllocate" <<std::endl; }
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace &mem ) const { std::cerr << "wrong getMemCapacity" <<std::endl; return 0; }
 
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) const { std::cerr << "wrong copyIn" <<std::endl; }
          virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd ) const { std::cerr << "wrong copyOut" <<std::endl; }

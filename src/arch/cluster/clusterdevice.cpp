@@ -146,3 +146,8 @@ void ClusterDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
    allocator->getFreeChunksList( list );
 }
+
+std::size_t ClusterDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) const {
+   SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
+   return allocator->getCapacity();
+}

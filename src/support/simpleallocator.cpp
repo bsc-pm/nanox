@@ -26,7 +26,7 @@
 
 using namespace nanos;
 
-SimpleAllocator::SimpleAllocator( uint64_t baseAddress, std::size_t len ) : _baseAddress( baseAddress ), _remaining ( len )
+SimpleAllocator::SimpleAllocator( uint64_t baseAddress, std::size_t len ) : _baseAddress( baseAddress ), _remaining ( len ), _capacity( len )
 {
    _freeChunks[ baseAddress ] = len;
 }
@@ -264,6 +264,10 @@ void SimpleAllocator::getFreeChunksList( SimpleAllocator::ChunkList &list ) cons
    for ( SegmentMap::const_iterator mapIter = _freeChunks.begin(); mapIter != _freeChunks.end(); mapIter++ ) {
       list.push_back( *mapIter );
    }
+}
+
+std::size_t SimpleAllocator::getCapacity() const {
+   return _capacity;
 }
 
 BufferManager::BufferManager( void * address, std::size_t size )

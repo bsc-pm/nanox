@@ -1015,11 +1015,11 @@ namespace nanos {
             req.tv_sec = 0;
             req.tv_nsec = 100;
             nanosleep( &req, &rem );
-         } else {
+         } /*else {
             if ( !wd->resourceCheck( *thread, false ) ) {
                std::cerr << "Running wd " << wd->getId() << " will trigger an invalidation."<< std::endl;
             }
-         }
+         }*/
 
          return wd;
       }
@@ -1132,11 +1132,11 @@ namespace nanos {
             req.tv_sec = 0;
             req.tv_nsec = 100;
             nanosleep( &req, &rem );
-         } else {
+         } /*else {
             if ( !wd->resourceCheck( *thread, false ) ) {
                std::cerr << "Running wd " << wd->getId() << " will trigger an invalidation."<< std::endl;
             }
-         }
+         }*/
          return wd;
       }
 

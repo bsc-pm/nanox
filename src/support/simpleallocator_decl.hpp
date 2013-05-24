@@ -40,8 +40,7 @@ namespace nanos {
          uint64_t _baseAddress;
          Lock     _lock;
          std::size_t _remaining;
-
-         
+         std::size_t _capacity;
 
       public:
          typedef std::list< std::pair< uint64_t, std::size_t > > ChunkList;
@@ -65,6 +64,7 @@ namespace nanos {
          void getFreeChunksList( ChunkList &list ) const;
 
          void printMap();
+         std::size_t getCapacity() const;
    };
 
    class BufferManager

@@ -36,6 +36,7 @@
 #include "memoryops_decl.hpp"
 
 //#define VERBOSE_DEV_OPS
+#define VERBOSE_INVAL 0
 
 AllocatedChunk::AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddress, std::size_t size, global_reg_t const &allocatedRegion ) :
    _owner( owner ),
@@ -99,7 +100,6 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
    DeviceOps *thisEntryOps = thisRegEntry->getDeviceOps();
    if ( thisEntryOps->addCacheOp() ) {
       opEmitted = true;
-      ops.insertOwnOp( thisEntryOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
 
       //std::cerr << "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[ " << __FUNCTION__ << " reg " << reg << " set rversion "<< version << " ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"<< std::endl;
       // lock / free needed for multithreading on the same cache.
@@ -175,6 +175,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
          }
       }
       thisRegEntry->setVersion( version + ( output ? 1 : 0) );
+      ops.insertOwnOp( thisEntryOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
    } else {
       ops.getOtherOps().insert( thisEntryOps );
    }
@@ -441,12 +442,14 @@ AllocatedChunk **RegionCache::selectChunkToInvalidate( std::size_t allocSize ) {
       if ( VERBOSE_CACHE ) { fprintf(stderr, "[%s] Thd %d Im cache with id %d, I've found a chunk to free, %p (locked? %d) region %d addr=%p size=%zu\n",  __FUNCTION__, myThread->getId(), _memorySpaceId, *allocChunkPtrPtr, ((*allocChunkPtrPtr)->locked()?1:0), (*allocChunkPtrPtr)->getAllocatedRegion().id, (void*)it->first.getAddress(), it->first.getLength()); }
       (*allocChunkPtrPtr)->lock();
    } else {
-      //count = 0;
-      //for ( it = _chunks.begin(); it != _chunks.end() && !done; it++ ) {
-      //   if ( it->second == NULL ) std::cerr << "["<< count << "] this chunk: null chunk" << std::endl;
-      //   else std::cerr << "["<< count << "] this chunk: " << ((void *) it->second) << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getSize() << " vs " << allocSize << " " << " dirty? " << it->second->isDirty() << std::endl;
-      //   count++;
-      //}
+      if ( VERBOSE_INVAL ) {
+         count = 0;
+         for ( it = _chunks.begin(); it != _chunks.end() && !done; it++ ) {
+            if ( it->second == NULL ) std::cerr << "["<< count << "] this chunk: null chunk" << std::endl;
+            else std::cerr << "["<< count << "] this chunk: " << ((void *) it->second) << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getSize() << " vs " << allocSize << " " << " dirty? " << it->second->isDirty() << std::endl;
+            count++;
+         }
+      }
       //fatal("IVE _not_ FOUND A CHUNK TO FREE");
       allocChunkPtrPtr = NULL;
    }
@@ -459,6 +462,9 @@ void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< All
    //   count++;
    //}
    //count = 0;
+   if ( VERBOSE_INVAL ) {
+      std::cerr << __FUNCTION__ << " with size " << allocSize << std::endl;
+   }
    if ( /*_device.supportsFreeSpaceInfo() */ true ) {
       MemoryMap<AllocatedChunk>::iterator it;
       bool done = false;
@@ -484,23 +490,23 @@ void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< All
       }
 
       MemoryMap< uint64_t >::iterator devIt, devItAhead;
-      //std::cerr << "I can invalidate a set of these:" << std::endl;
-      //for ( devIt = device_mem.begin(); devIt != device_mem.end(); devIt++ ) {
-      //   std::cerr << "Addr: " << (void *) devIt->first.getAddress() << " size: " << devIt->first.getLength() ;
-      //   if ( devIt->second == 0 ) {
-      //      std::cerr << " [free chunk] "<< std::endl;
-      //   } else {
-      //      std::cerr << " " << (void *) *((AllocatedChunk **) devIt->second) << std::endl;
-      //   }
-      //}
-      std::map< unsigned int, std::list< MemoryMap< uint64_t >::iterator > > candidates;
-      //bool found = false;
+      if ( VERBOSE_INVAL ) {
+         std::cerr << "I can invalidate a set of these:" << std::endl;
+         for ( devIt = device_mem.begin(); devIt != device_mem.end(); devIt++ ) {
+            std::cerr << "Addr: " << (void *) devIt->first.getAddress() << " size: " << devIt->first.getLength() ;
+            if ( devIt->second == 0 ) {
+               std::cerr << " [free chunk] "<< std::endl;
+            } else {
+               std::cerr << " " << (void *) *((AllocatedChunk **) devIt->second) << std::endl;
+            }
+         }
+      }
+      std::map< std::size_t, std::list< MemoryMap< uint64_t >::iterator > > candidates;
 
       for ( devIt = device_mem.begin(); devIt != device_mem.end(); devIt++ ) {
-      //while ( !found && devIt != device_mem.end() ) {
          std::size_t len = devIt->first.getLength();
          uint64_t addr = devIt->first.getAddress();
-         unsigned int num_chunks = 0;
+         std::size_t num_chunks = 0;
          if ( devIt->second != 0 ) {
             num_chunks += (*((AllocatedChunk **)(devIt->second)))->isDirty() ? devIt->first.getLength() : 0;
          }
@@ -519,18 +525,15 @@ void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< All
             }
          }
          if ( len >= allocSize && !fail ) {
-            //found = true;
-         //std::cerr << "found a candidate! " << (void *) devIt->first.getAddress() << " chunk " << (void*) devIt->second << " chunk score: "<< num_chunks <<std::endl;
             candidates[ num_chunks ].push_back( devIt );
          } 
-         //else {
-         //   //devIt = devItAhead;
-         //}
       } 
       if ( !candidates.empty() ) {
          MemoryMap< uint64_t >::iterator selectedIt = candidates.begin()->second.front();
          AllocatedChunk **selected_chunk = (AllocatedChunk **) selectedIt->second;
-         std::cerr << "Im going to invalidaet from " << (void *) *selected_chunk << std::endl;
+         if ( VERBOSE_INVAL ) {
+            std::cerr << "Im going to invalidaet from " << (void *) *selected_chunk << std::endl;
+         }
          
          for ( std::size_t len = selectedIt->first.getLength(); len < allocSize; selectedIt++ ) {
             if ( selectedIt->second != 0 ) {
@@ -539,11 +542,6 @@ void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< All
             len += selectedIt->first.getLength();
          }
       }
-      //if ( found ) {
-      //   std::cerr << "found a candidate! " << (void *) devIt->first.getAddress() << " chunk " << (void*) devIt->second << std::endl;
-      //} else {
-      //   std::cerr << "did not find a candidate! " <<  std::endl;
-      //}
    }
 }
 
@@ -580,18 +578,11 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
    ChunkList results;
    AllocatedChunk *allocChunkPtr = NULL;
    global_reg_t allocatedRegion;
-   allocatedRegion.key = reg.key;
 
    std::size_t allocSize = 0;
    uint64_t targetHostAddr = 0;
 
-   if ( _flags == ALLOC_WIDE ) {
-      allocatedRegion.id = 1;
-   } else if ( _flags == ALLOC_FIT ) {
-      allocatedRegion.id = reg.getFitRegionId();
-   } else {
-      std::cerr <<"RegionCache ERROR: Undefined _flags value."<<std::endl;
-   }
+   getAllocatableRegion( reg, allocatedRegion );
 
    targetHostAddr = allocatedRegion.getFirstAddress();
    allocSize      = allocatedRegion.getDataSize();
@@ -649,7 +640,8 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
       //try to invalidate a set of chunks
       selectChunksToInvalidate( allocatedRegion.getDataSize(), chunks_to_invalidate );
       if ( chunks_to_invalidate.empty() ) {
-         fatal("Unable to free enough space to allocate task data.");
+         fatal("Unable to free enough space to allocate task data, probably a fragmentation issue. Try increasing the available device memory.");
+         return NULL;
       }
       for ( std::set< AllocatedChunk ** >::iterator it = chunks_to_invalidate.begin(); it != chunks_to_invalidate.end(); it++ ) {
          AllocatedChunk **chunkPtr = *it;
@@ -686,19 +678,12 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
    ChunkList results;
    AllocatedChunk *allocChunkPtr = NULL;
    global_reg_t allocatedRegion;
-   allocatedRegion.key = reg.key;
 
    std::size_t allocSize = 0;
    uint64_t targetHostAddr = 0;
    //std::cerr << __FUNCTION__ << " num dimensions " << cd.getNumDimensions() << std::endl;
 
-   if ( _flags == ALLOC_WIDE ) {
-      allocatedRegion.id = 1;
-   } else if ( _flags == ALLOC_FIT ) {
-      allocatedRegion.id = reg.getFitRegionId();
-   } else {
-      std::cerr <<"RegionCache ERROR: Undefined _flags value."<<std::endl;
-   }
+   getAllocatableRegion( reg, allocatedRegion );
 
    targetHostAddr = allocatedRegion.getFirstAddress();
    allocSize      = allocatedRegion.getDataSize();
@@ -737,7 +722,8 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
                /* allocate mem */
                deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ) );
                if ( deviceMem == NULL ) {
-                  fatal("Unable to allocate memory on the device.");
+                  //fatal("Unable to allocate memory on the device.");
+                  // let it return NULL 
                } else {
                   *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion );
                   allocChunkPtr = *(results.front().second);
@@ -1114,10 +1100,21 @@ uint64_t RegionCache::getDeviceAddress( global_reg_t const &reg, uint64_t baseAd
 
 bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
    bool result = true;
+   std::size_t total_allocatable_size = 0;
+   std::set< global_reg_t > regions_to_allocate;
+   for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
+      global_reg_t allocatable_region;
+      getAllocatableRegion( memCopies[ idx ]._reg, allocatable_region );
+      regions_to_allocate.insert( allocatable_region );
+   }
+   for ( std::set< global_reg_t >::iterator it = regions_to_allocate.begin(); it != regions_to_allocate.end(); it++ ) {
+      total_allocatable_size += it->getDataSize();
+   }
+   if ( total_allocatable_size <= _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) ) {
    _lock.acquire();
    //attempt to allocate regions without triggering invalidations, this will reserve any chunk used by this WD
    for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
-      if ( memCopies[ idx ]._chunk != NULL ) {
+      if ( memCopies[ idx ]._chunk == NULL ) {
          memCopies[ idx ]._chunk = tryGetAddress( memCopies[ idx ]._reg, wd );
          if ( memCopies[ idx ]._chunk != NULL ) {
             memCopies[ idx ]._chunk->unlock();
@@ -1135,6 +1132,10 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
       }
    }
    _lock.release();
+   } else {
+      result = false;
+      fatal( "This device can not hold this task, not enough memory." );
+   }
    return result;
 }
 
@@ -1185,15 +1186,19 @@ void RegionCache::allocateOutputMemory( global_reg_t const &reg, unsigned int ve
 
 std::size_t RegionCache::getAllocatableSize( global_reg_t const &reg ) const {
    global_reg_t allocated_region;
-   allocated_region.key = reg.key;
+   getAllocatableRegion( reg, allocated_region );
+   return allocated_region.getDataSize();
+}
+
+void RegionCache::getAllocatableRegion( global_reg_t const &reg, global_reg_t &allocRegion ) const {
+   allocRegion.key = reg.key;
    if ( _flags == ALLOC_WIDE ) {
-      allocated_region.id = 1;
+      allocRegion.id = 1;
    } else if ( _flags == ALLOC_FIT ) {
-      allocated_region.id = reg.getFitRegionId();
+      allocRegion.id = reg.getFitRegionId();
    } else {
       std::cerr <<"RegionCache ERROR: Undefined _flags value."<<std::endl;
    }
-   return allocated_region.getDataSize();
 }
 
 bool RegionCache::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations ) {
