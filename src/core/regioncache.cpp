@@ -456,12 +456,13 @@ AllocatedChunk **RegionCache::selectChunkToInvalidate( std::size_t allocSize ) {
    return allocChunkPtrPtr;
 }
 
-void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< AllocatedChunk ** > &chunksToInvalidate ) {
+void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< AllocatedChunk ** > &chunksToInvalidate, WD const &wd, unsigned int &otherReferencedChunks ) {
    //for ( it = _chunks.begin(); it != _chunks.end() && !done; it++ ) {
    //   std::cerr << "["<< count << "] this chunk: " << ((void *) it->second) << " refs: " << (int)( (it->second != NULL) ? it->second->getReferenceCount() : -1 ) << " dirty? " << (int)( (it->second != NULL) ? it->second->isDirty() : -1 )<< std::endl;
    //   count++;
    //}
    //count = 0;
+   otherReferencedChunks = 0;
    if ( VERBOSE_INVAL ) {
       std::cerr << __FUNCTION__ << " with size " << allocSize << std::endl;
    }
@@ -479,6 +480,12 @@ void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< All
          // }
          if ( it->second != NULL && it->second->getReferenceCount() == 0 ) {
             device_mem.addChunk( it->second->getAddress(), it->second->getSize(), (uint64_t) &(it->second) );
+         } else if ( it->second != NULL && it->second->getReferenceCount() > 0 ) {
+            bool mine = false;
+            for (unsigned int idx = 0; idx < wd.getNumCopies() && !mine ; idx += 1) {
+               mine = ( wd._mcontrol._memCacheCopies[ idx ]._chunk == it->second );
+            }
+            otherReferencedChunks += mine ? 0 : 1;
          }
       }
       
@@ -638,10 +645,14 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
       _invalidationCount++;
    } else {
       //try to invalidate a set of chunks
-      selectChunksToInvalidate( allocatedRegion.getDataSize(), chunks_to_invalidate );
+      unsigned int other_referenced_chunks = 0;
+      selectChunksToInvalidate( allocatedRegion.getDataSize(), chunks_to_invalidate, wd, other_referenced_chunks );
       if ( chunks_to_invalidate.empty() ) {
+         if ( other_referenced_chunks == 0 ) {
          fatal("Unable to free enough space to allocate task data, probably a fragmentation issue. Try increasing the available device memory.");
-         return NULL;
+         } else {
+            return NULL;
+         }
       }
       for ( std::set< AllocatedChunk ** >::iterator it = chunks_to_invalidate.begin(); it != chunks_to_invalidate.end(); it++ ) {
          AllocatedChunk **chunkPtr = *it;
