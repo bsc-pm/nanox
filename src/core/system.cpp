@@ -467,6 +467,7 @@ void System::start ()
          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
          _pes.push_back( processor );
          _workers.push_back( &processor->startWorker() );
+         CPU_SET( processor->getId(), &_cpu_active_set );
          ++p;
       }
    }
