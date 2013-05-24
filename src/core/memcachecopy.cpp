@@ -5,7 +5,7 @@
 #include "memoryops_decl.hpp"
 #include "deviceops.hpp"
 #include "workdescriptor.hpp"
-MemCacheCopy::MemCacheCopy() : _reg( 0, (reg_key_t) NULL ), _version( 0 ), _locations(), _locationDataReady( false ) {
+MemCacheCopy::MemCacheCopy() : _reg( 0, (reg_key_t) NULL ), _version( 0 ), _locations(), _locationDataReady( false ), _chunk( NULL ) {
 }
 
 MemCacheCopy::MemCacheCopy( WD const &wd, unsigned int index/*, MemController &ccontrol*/ ) {
