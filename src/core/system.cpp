@@ -112,7 +112,14 @@ System::System () :
    // Set _bindings structure once we have the system mask and the binding info
    _bindings.reserve( cpu_count );
    for ( int i=0, collisions = 0; i < cpu_count; ) {
-      int pos = (_bindingStart + _bindingStride*i + collisions) % cpu_affinity.size();
+
+      // The cast over cpu_affinity is needed because std::vector::size() returns a size_t type
+      int pos = (_bindingStart + _bindingStride*i + collisions) % (int)cpu_affinity.size();
+
+      // 'pos' may be negative if either bindingStart or bindingStride were negative
+      // this loop fixes that % operator is the remainder, not the modulo operation
+      while ( pos < 0 ) pos+=cpu_affinity.size();
+
       if ( std::find( _bindings.begin(), _bindings.end(), cpu_affinity[pos] ) != _bindings.end() ) {
          collisions++;
          ensure( collisions != cpu_count, "Reached limit of collisions. We should never get here." );
@@ -276,11 +283,11 @@ void System::config ()
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   cfg.registerConfigOption ( "binding-start", NEW Config::PositiveVar ( _bindingStart ), "Set initial cpu id for binding (binding requiered)" );
+   cfg.registerConfigOption ( "binding-start", NEW Config::IntegerVar ( _bindingStart ), "Set initial cpu id for binding (binding required)" );
    cfg.registerArgOption ( "binding-start", "binding-start" );
    cfg.registerEnvOption ( "binding-start", "NX_BINDING_START" );
 
-   cfg.registerConfigOption ( "binding-stride", NEW Config::PositiveVar ( _bindingStride ), "Set binding stride (binding requiered)" );
+   cfg.registerConfigOption ( "binding-stride", NEW Config::IntegerVar ( _bindingStride ), "Set binding stride (binding required)" );
    cfg.registerArgOption ( "binding-stride", "binding-stride" );
    cfg.registerEnvOption ( "binding-stride", "NX_BINDING_STRIDE" );
 
