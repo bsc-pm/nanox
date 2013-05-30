@@ -148,20 +148,28 @@ void WorkDescriptor::submit( void )
 
 void WorkDescriptor::finish ()
 {
-   ProcessingElement *pe = myThread->runningOn();
-   waitCompletion();
-   if ( getNumCopies() > 0 )
-     pe->copyDataOut( *this );
+   // At that point we are ready to copy data out
+   if ( getNumCopies() > 0 ) {
+      ProcessingElement *pe = myThread->runningOn();
+      pe->copyDataOut( *this );
+   }
 
+   // Getting execution time
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
 }
 
 void WorkDescriptor::done ()
 {
+   // Releasing commutative accesses
    releaseCommutativeAccesses(); 
 
+   // Executing programming model specific finalization
    sys.getPMInterface().wdFinished( *this );
+
+   // Notifying parent we have finished ( dependence's relationships )
    this->getParent()->workFinished( *this );
+
+   // Workgroup specific done ( parent's relationships)
    WorkGroup::done();
 }
 

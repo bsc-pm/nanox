@@ -195,6 +195,8 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
+
+   // Defining call back (cb)
    SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
    
    initCommutativeAccesses( wd, numDeps, deps );

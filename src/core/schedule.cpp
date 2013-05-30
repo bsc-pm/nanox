@@ -598,8 +598,7 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
       }
    }
 
-   if (done)
-      finishWork(oldwd, wd);
+   if (done) finishWork(oldwd, wd);
 
    thread->setCurrentWD( *oldwd );
 
