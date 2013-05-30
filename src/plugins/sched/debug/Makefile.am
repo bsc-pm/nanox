@@ -24,12 +24,9 @@ if DEBUG_VERSION
 debug_LTLIBRARIES = \
 	libnanox-sched-bf.la \
 	libnanox-sched-dbf.la \
- 	libnanox-sched-cilk.la \
  	libnanox-sched-wf.la \
  	libnanox-sched-affinity.la \
  	libnanox-sched-versioning.la \
- 	libnanox-sched-priority.la \
- 	libnanox-sched-smartpriority.la \
  	libnanox-sched-affinity-smartpriority.la \
  	libnanox-sched-socket.la \
 	$(END)
@@ -48,10 +45,6 @@ libnanox_sched_wf_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_sched_wf_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_wf_la_SOURCES = $(wf_sources)
  
-libnanox_sched_cilk_la_CXXFLAGS = $(nanos_debug_cxxflags)
-libnanox_sched_cilk_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_sched_cilk_la_SOURCES = $(cilk_sources)
- 
 libnanox_sched_affinity_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_sched_affinity_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_affinity_la_SOURCES = $(affinity_sources)
@@ -59,14 +52,6 @@ libnanox_sched_affinity_la_SOURCES = $(affinity_sources)
 libnanox_sched_versioning_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_sched_versioning_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_versioning_la_SOURCES = $(versioning_sources)
- 
-libnanox_sched_priority_la_CXXFLAGS = $(nanos_debug_cxxflags)
-libnanox_sched_priority_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_sched_priority_la_SOURCES = $(priority_sources)
- 
-libnanox_sched_smartpriority_la_CXXFLAGS = $(nanos_debug_cxxflags)
-libnanox_sched_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
-libnanox_sched_smartpriority_la_SOURCES = $(smartpriority_sources)
  
 libnanox_sched_affinity_smartpriority_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_sched_affinity_smartpriority_la_LDFLAGS = $(ld_plugin_flags)

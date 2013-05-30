@@ -189,6 +189,17 @@ inline int __sched_cpucount (size_t setsize, const cpu_set_t *setp)
   __sched_cpucount (setsize, cpusetp)
 
 # define CPU_COUNT(cpusetp)      __CPU_COUNT_S (sizeof (cpu_set_t), cpusetp)
+
+inline int sched_getcpu (void)
+{
+#ifdef __NR_getcpu
+   unsigned int cpu;
+   int r = getcpu( &cpu, NULL, NULL );
+   return r == -1 ? r : cpu;
+#else
+   return -1;
+#endif
+}
 #endif /* GLIBC < 2.6 */
 
 #endif

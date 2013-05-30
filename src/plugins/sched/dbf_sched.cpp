@@ -27,6 +27,9 @@ namespace nanos {
 
       class DistributedBFPolicy : public SchedulePolicy
       {
+         public:
+            static bool       _usePriority;
+            static bool       _useSmartPriority;
          private:
             /** \brief DistributedBF Scheduler data associated to each thread
               *
@@ -34,12 +37,14 @@ namespace nanos {
             struct ThreadData : public ScheduleThreadData
             {
                /*! queue of ready tasks to be executed */
-               WDDeque _readyQueue;
+               WDPool *_readyQueue;
 
-               ThreadData () : _readyQueue() {}
-               virtual ~ThreadData () {
-                  ensure(_readyQueue.empty(),"Destroying non-empty queue");
+               ThreadData () : ScheduleThreadData(), _readyQueue( NULL )
+               {
+                 if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* optimise option */ );
+                 else _readyQueue = NEW WDDeque();
                }
+               virtual ~ThreadData () { delete _readyQueue; }
             };
 
             /* disable copy and assigment */
@@ -67,6 +72,51 @@ namespace nanos {
             }
 
             /*!
+             * \brief This method performs the main task of the smart priority
+             * scheduler, which is to propagate the priority of a WD to its
+             * immediate predecessors. It is meant to be invoked from
+             * DependenciesDomain::submitWithDependenciesInternal.
+             * \param [in/out] predecessor The preceding DependableObject.
+             * \param [in] successor DependableObject whose WD priority has to be
+             * propagated.
+             */
+            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            {
+               debug( "Scheduler::successorFound" );
+
+               if ( ! _useSmartPriority ) return;
+
+
+               if ( predecessor == NULL || successor == NULL ) return;
+               
+               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               if ( pred == NULL ) return;
+
+               WD *succ = ( WD* ) successor->getRelatedObject();
+               if ( succ == NULL ) {
+                  fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
+               }
+               
+               debug ( "Propagating priority from "
+                  << (void*)succ << ":" << succ->getId() << " to "
+                  << (void*)pred << ":"<< pred->getId()
+                  << ", old priority: " << pred->getPriority()
+                  << ", new priority: " << std::max( pred->getPriority(),
+                  succ->getPriority() )
+               );
+               
+               // Propagate priority
+               if ( pred->getPriority() < succ->getPriority() ) {
+                  pred->setPriority( succ->getPriority() );
+                  
+                  // Reorder
+                  ThreadData &tdata = (ThreadData &) *myThread->getTeam()->getScheduleData();
+                  WDPriorityQueue<> *q = (WDPriorityQueue<> *) tdata._readyQueue;
+                  q->reorderWD( pred );
+               }
+            }
+
+            /*!
             *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
             *  \param thread pointer to the thread to which readyQueue the task must be appended
             *  \param wd a reference to the work descriptor to be enqueued
@@ -75,7 +125,7 @@ namespace nanos {
             virtual void queue ( BaseThread *thread, WD &wd )
             {
                 ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-                data._readyQueue.push_front ( &wd );
+                data._readyQueue->push_front ( &wd );
             }
 
             /*!
@@ -113,7 +163,7 @@ namespace nanos {
          /*
           *  First try to schedule the thread with a task from its queue
           */
-         if ( ( wd = data._readyQueue.pop_front ( thread ) ) != NULL ) {
+         if ( ( wd = data._readyQueue->pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
             /*
@@ -146,7 +196,7 @@ namespace nanos {
 
                if ( victim.getTeam() != NULL ) {
                  ThreadData &tdata = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
-                 wd = tdata._readyQueue.pop_back ( thread );
+                 wd = tdata._readyQueue->pop_back ( thread );
                }
 
             } while ( wd == NULL && thid != thread->getTeamId() );
@@ -155,12 +205,27 @@ namespace nanos {
          }
       }
 
+      bool DistributedBFPolicy::_usePriority = false;
+      bool DistributedBFPolicy::_useSmartPriority = false;
+
       class DistributedBFSchedPlugin : public Plugin
       {
          public:
             DistributedBFSchedPlugin() : Plugin( "Distributed Breadth-First scheduling Plugin",1 ) {}
 
-            virtual void config( Config& cfg ) {}
+            virtual void config( Config& cfg )
+            {
+               
+               cfg.setOptionsSection( "DBF module", "Distributed Breadth-first scheduling module" );
+
+               cfg.registerConfigOption ( "schedule-priority", NEW Config::FlagOption( DistributedBFPolicy::_usePriority ), "Priority queue used as ready task queue");
+               cfg.registerArgOption( "schedule-priority", "schedule-priority" );
+
+               cfg.registerConfigOption ( "schedule-smart-priority", NEW Config::FlagOption( DistributedBFPolicy::_useSmartPriority ), "Smart priority queue propagates high priorities to predecessors");
+               cfg.registerArgOption( "schedule-smart-priority", "schedule-smart-priority" );
+
+               
+            }
 
             virtual void init() {
                sys.setDefaultSchedulePolicy(NEW DistributedBFPolicy());

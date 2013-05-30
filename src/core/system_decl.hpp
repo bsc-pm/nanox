@@ -93,11 +93,12 @@ namespace nanos
          int                  _coresPerSocket;
          //! The socket that will be assigned to the next WD
          int                  _currentSocket;
+         //! Enable Dynamic Load Balancing library
+         bool                 _enable_dlb;
 
 	 // Nanos++ scheduling domain
-         cpu_set_t            _cpu_set;
-         std::set<int>        _cpu_mask;  /* current mask information */
-         std::vector<int>     _pe_map;    /* binding map of every PE. Only adding is allowed. */
+         cpu_set_t            _cpu_set;         /* system's default cpu_set */
+         cpu_set_t            _cpu_active_set;  /* current cpu_set */
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -178,6 +179,10 @@ namespace nanos
          std::list<std::string>    _enableEvents;  //FIXME: only in instrumentation
          std::list<std::string>    _disableEvents; //FIXME: only in instrumentation
          std::string               _instrumentDefault; //FIXME: only in instrumentation
+         bool                      _enable_cpuid_event; //FIXME: only in instrumentation
+
+         const int                 _lockPoolSize;
+         Lock *                    _lockPool;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -256,14 +261,12 @@ namespace nanos
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
-         int getMaskMaxSize() const;
-
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
 
          void setBindingStart ( int value );
-
+        
          int getBindingStart () const;
 
          void setBindingStride ( int value );
@@ -288,6 +291,8 @@ namespace nanos
          bool getDelayedStart () const;
 
          bool useYield() const;
+
+         int getCreatedTasks() const ;
 
          int getTaskNum() const;
 
@@ -327,11 +332,15 @@ namespace nanos
           * architecture.
           * If you try to reserve all PEs, leaving no PEs for SMPs, reserved
           * will be false and a warning will be displayed.
-          * \param node [in] NUMA node to reserve the PE from.
+          * \param reserveNode [in] If enabled, will try to reserve the PE in
+          * the node specified by the node parameter, otherwise, that parameter
+          * will be ignored.
+          * \param node [in] NUMA node to reserve the PE from. It is only used
+          * when reserveNode is true.
           * \param reserved [out] If the PE was successfully reserved or not.
           * \return Id of the PE to reserve.
           */
-         unsigned reservePE ( unsigned node, bool & reserved );
+         unsigned reservePE ( bool reserveNode, unsigned node, bool & reserved );
          
          /**
           * \brief Checks if hwloc is available.
@@ -374,6 +383,8 @@ namespace nanos
 
          int nextThreadId ();
 
+         bool dlbEnabled() const;
+
          // team related methods
          BaseThread * getUnassignedWorker ( void );
          BaseThread * getAssignedWorker ( void );
@@ -414,6 +425,8 @@ namespace nanos
          Instrumentation * getInstrumentation ( void ) const;
 
          void setInstrumentation ( Instrumentation *instr );
+
+         bool isCpuidEventEnabled ( void ) const;
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 
@@ -488,6 +501,7 @@ namespace nanos
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
+         char* getOmpssUsesCuda();
 #endif
 
          void threadReady ();
@@ -509,6 +523,11 @@ namespace nanos
           *  \param cfg Config object.
           */
          void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
+
+         /*! \brief Returns one of the system lock (belonging to the pool of locks)
+          */
+         Lock * getLockAddress(void *addr ) const;
+
          /*! \brief Returns if there are pendant writes for a given memory address
           *
           *  \param [in] addr memory address

@@ -23,6 +23,8 @@
 #include "nanos.h"
 #include "nanos_reduction.h"
 
+typedef void * nanos_cpu_set_t;
+
 typedef enum nanos_omp_sched_t {
    omp_sched_static = 1,
    omp_sched_dynamic = 2,
@@ -50,6 +52,12 @@ NANOS_API_DECL(int, nanos_omp_set_num_threads, ( int nthreads ));
 
 NANOS_API_DECL(nanos_ws_t, nanos_omp_find_worksharing, ( nanos_omp_sched_t kind ));
 NANOS_API_DECL(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, int *modifier ));
+
+NANOS_API_DECL(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ));
+
+NANOS_API_DECL(void, nanos_omp_get_mask,( nanos_cpu_set_t cpu_set ));
+NANOS_API_DECL(void, nanos_omp_set_mask,( const nanos_cpu_set_t cpu_set ));
+NANOS_API_DECL(void, nanos_omp_add_mask,( const nanos_cpu_set_t cpu_set ));
 
 #ifdef __cplusplus
 }

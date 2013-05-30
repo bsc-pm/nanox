@@ -64,6 +64,12 @@ namespace nanos {
                access_type_region_tree_t accessTypeRegionTree;
                for ( const_iterator it = begin; it != end; it++ ) {
                   DataAccess const &dataAccess = *it;
+
+                  // if address == NULL, just ignore it
+		  if ( dataAccess.getDepAddress() == NULL ) {
+                          continue;
+		  }
+                  
                   
                   // Find out the displacement due to the lower bounds and correct it in the address
                   size_t base = 1UL;

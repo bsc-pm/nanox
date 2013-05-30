@@ -220,7 +220,7 @@ extern "C"
       return (int)data->isFinal();
    }
 
-   int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+   NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
    {
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
 
@@ -249,24 +249,18 @@ extern "C"
       return num_threads;
    }
 
-   int nanos_omp_get_num_threads_next_parallel_ ( int *threads_requested );
-   int nanos_omp_get_num_threads_next_parallel_ ( int *threads_requested )
+   NANOS_API_DEF(void, nanos_omp_get_mask, ( nanos_cpu_set_t cpu_set ))
    {
-      return nanos_omp_get_num_threads_next_parallel( *threads_requested );
+      sys.getPMInterface().getCpuMask( (cpu_set_t *) cpu_set );
    }
 
-   NANOS_API_DEF(void, nanos_omp_get_mask, ( cpu_set_t *cpu_set ))
+   NANOS_API_DEF(void, nanos_omp_set_mask, ( const nanos_cpu_set_t cpu_set ))
    {
-      sys.getPMInterface().getCpuMask( cpu_set );
+      sys.getPMInterface().setCpuMask( (cpu_set_t *) cpu_set );
    }
 
-   NANOS_API_DEF(void, nanos_omp_set_mask, ( const cpu_set_t *cpu_set ))
+   NANOS_API_DEF(void, nanos_omp_add_mask, ( const nanos_cpu_set_t cpu_set ))
    {
-      sys.getPMInterface().setCpuMask( cpu_set );
-   }
-
-   NANOS_API_DEF(void, nanos_omp_add_mask, ( const cpu_set_t *cpu_set ))
-   {
-      sys.getPMInterface().addCpuMask( cpu_set );
+      sys.getPMInterface().addCpuMask( (cpu_set_t *) cpu_set );
    }
 }

@@ -452,19 +452,22 @@ inline void WDPriorityQueue<T>::push_front ( WorkDescriptor *wd )
 template<typename T>
 inline WorkDescriptor * WDPriorityQueue<T>::pop_back ( BaseThread *thread )
 {
+   return popBackWithConstraints<NoConstraints>(thread);
    fatal( "Method not implemented" );
 }
 
 /*!
- * \brief Retrieves a WD. If it's a lifo or fifo retrieval will depend on
- * how it was inserted.
+ * \brief Retrieves a WD.
  */
 template<typename T>
 inline WorkDescriptor * WDPriorityQueue<T>::pop_front ( BaseThread *thread )
 {
-   return popWithConstraints<NoConstraints>(thread);
+   return popFrontWithConstraints<NoConstraints>(thread);
 }
 
+/*!
+ * \brief Retrieves a WD.
+ */
 template<typename T>
 inline bool WDPriorityQueue<T>::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )
 {
@@ -474,7 +477,7 @@ inline bool WDPriorityQueue<T>::removeWD( BaseThread *thread, WorkDescriptor *to
 // Only ensures tie semantics
 template <typename T>
 template <typename Constraints>
-inline WorkDescriptor * WDPriorityQueue<T>::popWithConstraints ( BaseThread *thread )
+inline WorkDescriptor * WDPriorityQueue<T>::popFrontWithConstraints ( BaseThread *thread )
 {
    WorkDescriptor *found = NULL;
 
@@ -487,6 +490,45 @@ inline WorkDescriptor * WDPriorityQueue<T>::popWithConstraints ( BaseThread *thr
 
       if ( !_dq.empty() ) {
          WDPQ::BaseContainer::iterator it;
+         for ( it = _dq.begin(); it != _dq.end() ; ++it ) {
+            WD &wd = *(WD *)*it;
+            if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
+               if ( wd.dequeue( &found ) ) {
+                  _dq.erase( it );
+                  int tasks = --(sys.getSchedulerStats()._readyTasks);
+                  decreaseTasksInQueues(tasks);
+               }
+               break;
+            }
+         }
+      }
+
+      if ( found != NULL ) found->setMyQueue( NULL );
+
+   }
+
+   ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
+
+   return found;
+}
+
+template <typename T>
+template <typename Constraints>
+inline WorkDescriptor * WDPriorityQueue<T>::popBackWithConstraints ( BaseThread *thread )
+{
+   // FIXME: at the moment this method is implemented as pop_front, change behaviour!!!
+   WorkDescriptor *found = NULL;
+
+   if ( _dq.empty() )
+      return NULL;
+   {
+      LockBlock lock( _lock );
+
+      memoryFence();
+
+      if ( !_dq.empty() ) {
+         WDPQ::BaseContainer::iterator it;
+
          for ( it = _dq.begin(); it != _dq.end() ; ++it ) {
             WD &wd = *(WD *)*it;
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {

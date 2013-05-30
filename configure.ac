@@ -508,8 +508,8 @@ fi
 if test x"$opencl_valid" = x"yes"; then
     OPENCL_LD=$OPENCL_LIB
     OPENCL_INC=$OPENCL_INC
-    CFLAGS="$CFLAGS -I$OPENCL_INC -DOpenCL_DEV"
-    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -DOpenCL_DEV"
+    CFLAGS="$CFLAGS -isystem $OPENCL_INC -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -isystem $OPENCL_INC -DOpenCL_DEV"
     ARCHITECTURES="$ARCHITECTURES opencl"
     AC_SUBST([OPENCL_LD])
     AC_SUBST([OPENCL_INC])
@@ -837,7 +837,7 @@ AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
 
 # Check MKL Support
-AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS],[-lm -lmkl_core])
+AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
 
