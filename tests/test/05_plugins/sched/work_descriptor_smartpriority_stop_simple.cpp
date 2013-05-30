@@ -20,8 +20,7 @@
 /*
 <testinfo>
 test_generator=gens/mixed-generator
-test_schedule=smartpriority
-test_ignore_fail=yes
+test_schedule="bf --schedule-smart-priority"
 </testinfo>
 */
 
