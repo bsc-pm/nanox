@@ -562,7 +562,7 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
    wd->clear();
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-          " to " << oldwd << ":" << oldwd->getId() );
+          " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
 }
 
 bool Scheduler::inlineWork ( WD *wd, bool schedule )
