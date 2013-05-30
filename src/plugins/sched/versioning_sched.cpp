@@ -1088,7 +1088,7 @@ namespace ext
             return atIdle( thread );
          }
 
-         WD * atBeforeExit ( BaseThread *thread, WD &currentWD )
+         WD * atBeforeExit ( BaseThread *thread, WD &currentWD, bool schedule )
          {
             if ( currentWD.getNumDevices() > 1 ) {
                unsigned long wdId = currentWD.getVersionGroupId();
@@ -1169,7 +1169,10 @@ namespace ext
                tdata._bestLock.release();
             }
 
-            TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+            if ( schedule ) {
+               // Get next WD to run
+               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+               WD * found = tdata._executionMap[thread->getId()]->getFirstTask( thread );
 
 #if 0
             std::list<WD *> myList;
@@ -1323,18 +1326,18 @@ namespace ext
 
 #endif
 
-            WD * found = tdata._executionMap[thread->getId()]->getFirstTask( thread );
 
-            if ( found ) {
+               if ( found ) {
 
-               NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_ATBEFEX_GETFIRST );
+                  NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_ATBEFEX_GETFIRST );
 
 #ifdef CHOOSE_ALWAYS_BEST
-               unsigned int version = findBestVersion( thread, found );
-               if ( found->getActiveDeviceIdx() != version ) found->activateDevice( version );
+                  unsigned int version = findBestVersion( thread, found );
+                  if ( found->getActiveDeviceIdx() != version ) found->activateDevice( version );
 #endif
 
-               return found;
+                  return found;
+               }
             }
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATBEFEX_NOFIRST );

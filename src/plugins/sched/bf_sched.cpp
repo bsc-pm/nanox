@@ -141,11 +141,15 @@ namespace nanos {
 #endif
            }
         
-           WD * atBeforeExit ( BaseThread *thread, WD &current )
+           WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
            {
 // FIXME: Honoring immediate or priorities ?
 #if 0
-              return current.getImmediateSuccessor(*thread);
+              if ( schedule ) {
+                 return current.getImmediateSuccessor(*thread);
+              } else {
+                 return NULL;
+              }
 #else
               return 0;
 #endif
