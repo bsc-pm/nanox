@@ -190,8 +190,6 @@ namespace nanos
          DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
          LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
 
-         InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
-
          bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
          bool                          _configured;  /**< Has this WD been configured to the Scheduler? */
 
@@ -199,8 +197,8 @@ namespace nanos
 
          unsigned int                  _priority;      /**< Task priority */
 
-         CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
-         WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
+         CommutativeOwnerMap           *_commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
+         WorkDescriptorPtrList         *_commutativeOwners;   /**< Array of commutative target owners */
 
          int                           _socket;       /**< The socket this WD was assigned to */
          unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
@@ -208,6 +206,8 @@ namespace nanos
 
          bool                          _copiesNotInChunk; /**< States whether the buffer of the copies is allocated in the chunk of the WD */
          char                         *_description; /**< WorkDescriptor description, usually user function name */
+
+         InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
