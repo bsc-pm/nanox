@@ -1228,6 +1228,7 @@ void System::inlineWork ( WD &work )
 
 void System::createWorker( unsigned p )
 {
+   NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
    PE *pe = createPE ( "smp", getBindingId( p ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->startWorker() );
@@ -1429,7 +1430,6 @@ void System::updateActiveWorkers ( int nthreads )
 
       thread = getUnassignedWorker();
       if ( !thread ) {
-         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
          createWorker( _pes.size() );
          _numPEs++;
          continue;
@@ -1465,7 +1465,6 @@ inline void System::applyCpuMask()
 
       // Create PE & Worker if it does not exist
       if ( pe_id == _pes.size() ) {
-         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
          createWorker( pe_id );
       }
 
