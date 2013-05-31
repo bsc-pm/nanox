@@ -54,7 +54,7 @@ namespace nanos
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
-         static void finishWork( WD *oldwd, WD * wd );
+         static void finishWork( WD *oldwd, WD * wd, bool schedule = false );
 
          static void workerLoop ( void );
          static void yield ( void );
@@ -224,7 +224,7 @@ namespace nanos
          
          virtual WD * atSubmit      ( BaseThread *thread, WD &wd ) = 0;
          virtual WD * atIdle        ( BaseThread *thread ) = 0;
-         virtual WD * atBeforeExit  ( BaseThread *thread, WD &current );
+         virtual WD * atBeforeExit  ( BaseThread *thread, WD &current, bool schedule );
          virtual WD * atAfterExit   ( BaseThread *thread, WD *current );
          virtual WD * atBlock       ( BaseThread *thread, WD *current );
          virtual WD * atYield       ( BaseThread *thread, WD *current);

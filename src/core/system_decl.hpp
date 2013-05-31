@@ -97,9 +97,8 @@ namespace nanos
          bool                 _enable_dlb;
 
 	 // Nanos++ scheduling domain
-         cpu_set_t            _cpu_set;
-         std::set<int>        _cpu_mask;  /* current mask information */
-         std::vector<int>     _pe_map;    /* binding map of every PE. Only adding is allowed. */
+         cpu_set_t            _cpu_set;         /* system's default cpu_set */
+         cpu_set_t            _cpu_active_set;  /* current cpu_set */
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -262,14 +261,12 @@ namespace nanos
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
-         int getMaskMaxSize() const;
-
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
 
          void setBindingStart ( int value );
-
+        
          int getBindingStart () const;
 
          void setBindingStride ( int value );
@@ -504,6 +501,7 @@ namespace nanos
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
+         char* getOmpssUsesCuda();
 #endif
 
          void threadReady ();

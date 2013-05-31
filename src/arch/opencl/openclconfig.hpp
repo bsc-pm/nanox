@@ -38,6 +38,9 @@ private:
   // Whether to disable OpenCL.
   static bool _enableOpenCL;
   
+  // Whether to disable OpenCL.
+  static bool _forceDisableOpenCL;
+  
   // The platform to use.
   static std::string _platName;
 

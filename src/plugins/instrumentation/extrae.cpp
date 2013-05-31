@@ -88,6 +88,7 @@ class InstrumentationExtrae: public Instrumentation
       void addSuspendTask( WorkDescriptor &w ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
+      void incrementMaxThreads( void ) {}
 #else
    private:
       std::string                                    _listOfTraceFileNames;
@@ -98,6 +99,7 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_PCF;     /*<< Paraver: file.pcf */
       std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
       std::string                                    _binFileName;           /*<< Binnary file name */
+      int                                            _maxThreads;
    public: /* must be updated by Configure */
       static std::string                             _traceBaseName;
       static std::string                             _postProcessScriptPath;
@@ -471,6 +473,9 @@ class InstrumentationExtrae: public Instrumentation
               Extrae_register_stacked_type( (extrae_type_t) _eventBase+kD->getId() );
            }
         }
+
+        /* Keep current number of threads */
+        _maxThreads = sys.getNumThreads();
       }
 
       void finalize ( void )
@@ -613,7 +618,6 @@ class InstrumentationExtrae: public Instrumentation
          nanos_event_key_t ckey = 0;
          extrae_value_t cvalue = 0;
          nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
-         nanos_event_key_t changeThreads = iD->getEventKey("set-num-threads");
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -657,10 +661,6 @@ class InstrumentationExtrae: public Instrumentation
                   k++;
                   break;
                case NANOS_POINT:
-                  ckey = e.getKey();
-                  if ( ckey == changeThreads ) {
-                        Extrae_change_num_threads( std::max((int)e.getValue(), sys.getMaskMaxSize()) );
-                  }
                case NANOS_BURST_START:
                   ckey = e.getKey();
                   cvalue = e.getValue();
@@ -717,6 +717,11 @@ class InstrumentationExtrae: public Instrumentation
 
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
+
+      void incrementMaxThreads( void )
+      {
+         Extrae_change_num_threads( ++_maxThreads );
+      }
 
 #endif
 };
