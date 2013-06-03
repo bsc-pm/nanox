@@ -272,6 +272,70 @@ namespace ext
                   delete _readyQueue;
                }
 
+
+               void initExecInfoData ( WDExecInfoData & data, WD * wd )
+               {
+                  unsigned int numVersions = wd->getNumDevices();
+
+                  debug( "[versioning] First record for wd key ("
+                        + toString<unsigned long>( wd->getVersionGroupId() )
+                        + ", " + toString<size_t>( wd->getParamsSize() ) + ") with "
+                        + toString<int>( numVersions ) + " versions" );
+
+                  _statsLock.acquire();
+                  // Reserve as much memory as we need for all the implementations
+                  data.reserve( numVersions );
+                  data = *NEW WDExecInfoData( numVersions );
+
+                  bool compatible = false;
+                  unsigned int i;
+                  for ( i = 0; i < numVersions; i++ ) {
+                     // Check there is at least one thread for each compatible device type
+                     if ( sys.getNumWorkers( wd->getDevices()[i] ) == 0 ) {
+                        // If not, 'disable' the implementation by making the scheduler never choose it
+                        data[i]._pe = NULL;
+                        data[i]._elapsedTime = std::numeric_limits<double>::max();
+                        data[i]._lastElapsedTime = std::numeric_limits<double>::max();
+                        data[i]._numRecords = _minRecordTrial;
+                        data[i]._numAssigned = _minRecordTrial;
+                     } else {
+                        data[i]._pe = NULL;
+                        data[i]._elapsedTime = 0.0;
+                        data[i]._lastElapsedTime = 0.0;
+                        data[i]._numRecords = -1;
+                        data[i]._numAssigned = 0;
+                        compatible = true;
+                     }
+                  }
+
+                  _statsLock.release();
+
+                  WDExecInfoKey key = std::make_pair( wd->getVersionGroupId(), wd->getParamsSize() );
+                  _wdExecStatsKeys.insert( key );
+
+                  fatal_cond( !compatible, "Error: there is no suitable device in the system to run the submitted task.");
+
+               }
+
+
+               inline WDExecInfoData& getWDExecInfo ( WD * wd )
+               {
+                  WDExecInfoKey key = std::make_pair( wd->getVersionGroupId(), wd->getParamsSize() );
+                  WDExecInfoData &data = _wdExecStats[key];
+
+                  return data;
+               }
+
+
+               inline WDBestRecordData& getWDBestRecord ( WD * wd )
+               {
+                  WDBestRecordKey key = std::make_pair( wd->getVersionGroupId(), wd->getParamsSize() );
+                  WDBestRecordData &data = _wdExecBest[key];
+
+                  return data;
+               }
+
+
                void printStats()
                {
                   // Do not print stats if no data were recorded
@@ -297,7 +361,7 @@ namespace ext
                         for ( unsigned int i = 0; i < data.size(); i++ ) {
                            WDExecRecord &record = data[i];
                            if ( record._pe == NULL ) {
-                              if ( record._numAssigned.value() != MIN_RECORDS ) {
+                              if ( record._numAssigned.value() != _minRecordTrial ) {
                                  message( "    PE: " << "Device is NULL" << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
                               } else {
                                  message( "    PE: " << "Device not present" << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
@@ -314,6 +378,7 @@ namespace ext
 
       public:
          static bool       _useStack;
+         static int        _minRecordTrial;
 
          Versioning() : SchedulePolicy( "Versioning" ) {}
          virtual ~Versioning () {}
@@ -364,7 +429,7 @@ namespace ext
 
                NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETDEVICE_CANRUN );
 
-              debug( "[versioning] Setting device #" + toString<unsigned int>( deviceIdx )
+               debug( "[versioning] Setting device #" + toString<unsigned int>( deviceIdx )
                      + " for WD " + toString<int>( wd->getId() ) + " (compatible with my PE)" );
 
                WD * next = NULL;
@@ -380,8 +445,7 @@ namespace ext
                   if ( next->getActiveDeviceIdx() != version ) next->activateDevice( version );
 #endif
 
-                  debug( "Getting front task of my queue: " + toString<int>( next ? next->getId() : -1 ) + " from setDevice()" );
-
+                  debug( "[versioning] Getting front task of my queue: " + toString<int>( next ? next->getId() : -1 ) + " from setDevice()" );
                }
 
                NANOS_SCHED_VER_CLOSE_EVENT;
@@ -390,11 +454,10 @@ namespace ext
 
             } else {
 
-               wd->activateDevice( deviceIdx );
-
                double bestTime;
+               // WD device activation needed before calling findEarliestExecutionWorkerForDevice()
+               wd->activateDevice( deviceIdx );
                int worker = findEarliestExecutionWorkerForDevice( tdata, wd, bestTime, time, deviceIdx );
-
                setWorker( tdata, wd, deviceIdx, worker, bestTime );
 
                NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETDEVICE_CANNOTRUN );
@@ -413,8 +476,7 @@ namespace ext
                   }
 #endif
 
-                  debug( "Getting front task of my queue: " + toString<int>( next ? next->getId() : -1 ) + " from setDevice()" );
-
+                  debug( "[versioning] Getting front task of my queue: " + toString<int>( next ? next->getId() : -1 ) + " from setDevice()" );
                }
 
                NANOS_SCHED_VER_CLOSE_EVENT;
@@ -433,15 +495,14 @@ namespace ext
           */
          void setWorker ( TeamData &tdata, WD *wd, unsigned int deviceIdx, unsigned int workerIdx, double time = 1 )
          {
-            unsigned long wdId =  wd->getVersionGroupId();
-            size_t paramsSize = wd->getParamsSize();
-            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
-
-            WDExecInfoData &data = tdata._wdExecStats[key];
+            WDExecInfoData &data = tdata.getWDExecInfo( wd );
             data[deviceIdx]._numAssigned++;
 
             wd->activateDevice( deviceIdx );
             tdata._executionMap[workerIdx]->addTask( time, wd );
+
+            debug( "[versioning] Setting worker #" + toString<unsigned int>( workerIdx ) + " for WD "
+                  + toString<int>( wd->getId() ) + " and vId " + toString<unsigned int>( deviceIdx ) );
          }
 
 
@@ -467,9 +528,8 @@ namespace ext
             double earliestTime = std::numeric_limits<double>::max();
             BaseThread * thread;
 
-            unsigned long wdId =  next->getVersionGroupId();
-            size_t paramsSize = next->getParamsSize();
-            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
+            // It should be fine to get WDExecInfoData reference once and just acquire the lock at each iteration
+            WDExecInfoData &data = tdata.getWDExecInfo( next );
 
             for ( w = 0; w < tdata._executionMap.size(); w++ ) {
                thread = sys.getWorker( w );
@@ -479,7 +539,6 @@ namespace ext
                   unsigned int i;
 
                   tdata._statsLock.acquire();
-                  WDExecInfoData &data = tdata._wdExecStats[key];
 
                   tdata._executionMap[w]->_lock.acquire();
                   time = tdata._executionMap[w]->_estimatedBusyTime;
@@ -543,10 +602,6 @@ namespace ext
             double busyTime;
             BaseThread * thread;
 
-            unsigned long wdId =  next->getVersionGroupId();
-            size_t paramsSize = next->getParamsSize();
-            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
-
             for ( w = 0; w < tdata._executionMap.size(); w++ ) {
                thread = sys.getWorker( w );
                // Check the thread can run the task
@@ -574,7 +629,7 @@ namespace ext
             // Lock not needed
             //tdata._statsLock.acquire();
 
-            WDExecInfoData &data = tdata._wdExecStats[key];
+            WDExecInfoData &data = tdata.getWDExecInfo( next );
 
             if ( data[devIdx]._numRecords > 0 ) {
                bestTime = data[devIdx]._elapsedTime;
@@ -633,10 +688,7 @@ namespace ext
          unsigned int findBestVersion ( BaseThread * thread, WD * wd, double &bestTime )
          {
             TeamData & tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
-            unsigned long wdId =  wd->getVersionGroupId();
-            size_t paramsSize = wd->getParamsSize();
-            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
-            WDExecInfoData &data = tdata._wdExecStats[key];
+            WDExecInfoData &data = tdata.getWDExecInfo( wd );
             ProcessingElement *pe = thread->runningOn();
             unsigned int numVersions = wd->getNumDevices();
             DeviceData **devices = wd->getDevices();
@@ -646,34 +698,13 @@ namespace ext
 
             unsigned int i;
 
-            tdata._statsLock.acquire();
-
             // It is not likely for 'data' to be empty, but it can happen, so we have to
             // make sure that it is initialized correctly
             if ( data.empty() ) {
-               data.reserve( numVersions );
-               data = *NEW WDExecInfoData( numVersions );
-
-               for ( i = 0; i < numVersions; i++ ) {
-                  // Check there is at least one thread for each compatible device type
-                  if ( sys.getNumWorkers( wd->getDevices()[i] ) == 0 ) {
-                     // If not, 'disable' the implementation by making the scheduler never choose it
-                     data[i]._pe = NULL;
-                     data[i]._elapsedTime = std::numeric_limits<double>::max();
-                     data[i]._lastElapsedTime = std::numeric_limits<double>::max();
-                     data[i]._numRecords = MIN_RECORDS;
-                     data[i]._numAssigned = MIN_RECORDS;
-                  } else {
-                     data[i]._pe = NULL;
-                     data[i]._elapsedTime = 0.0;
-                     data[i]._lastElapsedTime = 0.0;
-                     data[i]._numRecords = -1;
-                     data[i]._numAssigned = 0;
-                  }
-               }
-
-               tdata._wdExecStatsKeys.insert( key );
+               tdata.initExecInfoData( data, wd );
             }
+
+            tdata._statsLock.acquire();
 
             for ( i = 0; i < numVersions; i++ ) {
                if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords > 0 && bestTime > data[i]._elapsedTime ) {
@@ -684,7 +715,7 @@ namespace ext
 
             if ( bestIdx == numVersions ) {
                for ( i = 0; i < numVersions; i++ ) {
-                  if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords < MIN_RECORDS ) {
+                  if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords < _minRecordTrial ) {
                      bestIdx = i;
                      bestTime = 1;
                      break;
@@ -715,10 +746,7 @@ namespace ext
           */
          WD * selectWD ( TeamData & tdata, BaseThread *thread, WD *next )
          {
-            unsigned long wdId =  next->getVersionGroupId();
-            size_t paramsSize = next->getParamsSize();
-            WDExecInfoKey key = std::make_pair( wdId, paramsSize );
-            WDExecInfoData &data = tdata._wdExecStats[key];
+            WDExecInfoData &data = tdata.getWDExecInfo( next );
             ProcessingElement *pe = thread->runningOn();
             unsigned int numVersions = next->getNumDevices();
             DeviceData **devices = next->getDevices();
@@ -726,42 +754,13 @@ namespace ext
             // First record for the given { wdId, paramsSize }
             if ( data.empty() ) {
 
-               debug( "[versioning] First record for wd key (" + toString<unsigned long>( key.first )
-                     + ", " + toString<size_t>( key.second ) + ") with "
-                     + toString<int>( numVersions ) + " versions" );
+               tdata.initExecInfoData( data, next );
 
                tdata._statsLock.acquire();
-               // Reserve as much memory as we need for all the implementations
-               data.reserve( numVersions );
-               data = *NEW WDExecInfoData( numVersions );
-
-               bool compatible = false;
-               unsigned int i;
-               for ( i = 0; i < numVersions; i++ ) {
-                  // Check there is at least one thread for each compatible device type
-                  if ( sys.getNumWorkers( next->getDevices()[i] ) == 0 ) {
-                     // If not, 'disable' the implementation by making the scheduler never choose it
-                     data[i]._pe = NULL;
-                     data[i]._elapsedTime = std::numeric_limits<double>::max();
-                     data[i]._lastElapsedTime = std::numeric_limits<double>::max();
-                     data[i]._numRecords = MIN_RECORDS;
-                     data[i]._numAssigned = MIN_RECORDS;
-                  } else {
-                     data[i]._pe = NULL;
-                     data[i]._elapsedTime = 0.0;
-                     data[i]._lastElapsedTime = 0.0;
-                     data[i]._numRecords = -1;
-                     data[i]._numAssigned = 0;
-                     compatible = true;
-                  }
-               }
-
-               tdata._wdExecStatsKeys.insert( key );
-
-               fatal_cond( !compatible, "Error: there is no suitable device in the system to run the submitted task.");
 
                if ( next->canRunIn( *pe ) ) {
                   // If the thread can run the task, activate its device and return the WD
+                  unsigned int i;
                   for ( i = 0; i < numVersions; i++ ) {
                      if ( devices[i]->isCompatible( pe->getDeviceType() ) ) {
                         tdata._statsLock.release();
@@ -802,13 +801,13 @@ namespace ext
 //                  if ( record._versionId->isCompatible( pe->getDeviceType() ) ) {
                      if ( record._lastElapsedTime < timeLimit ) {
                         // It is worth trying this device, so go on
-                        if ( record._numAssigned < MIN_RECORDS ) {
+                        if ( record._numAssigned < _minRecordTrial ) {
                            // Not enough records to have reliable values, so go on with this versionId
 
                            debug("[versioning] Less than 3 records for my device ("
                                  + toString<int>( record._numAssigned.value() ) + ") for key ("
-                                 + toString<unsigned long>( key.first ) + ", "
-                                 + toString<size_t>( key.second ) + ") vId "
+                                 + toString<unsigned long>( next->getVersionGroupId() ) + ", "
+                                 + toString<size_t>( next->getParamsSize() ) + ") vId "
                                  + toString<unsigned int>( i ) + " device "
                                  + next->getDevices()[i]->getDevice()->getName() );
 
@@ -870,8 +869,8 @@ namespace ext
                   debug("[versioning] Discarding my PE, but assigning to another device ("
                         + toString<double>( sqrt( sqDev ) ) + " > "
                         + toString<double>( MAX_DEVIATION ) + ") for key ("
-                        + toString<unsigned long>( key.first ) + ", "
-                        + toString<size_t>( key.second ) + ") vId "
+                        + toString<unsigned long>( next->getVersionGroupId() ) + ", "
+                        + toString<size_t>( next->getParamsSize() ) + ") vId "
                         + toString<unsigned int>( bestCandidateIdx ) + " device "
                         + next->getDevices()[bestCandidateIdx]->getDevice()->getName() );
 
@@ -1034,23 +1033,20 @@ namespace ext
 
          WD * atBeforeExit ( BaseThread *thread, WD &currentWD, bool schedule )
          {
+            TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
+
             if ( currentWD.getNumDevices() > 1 ) {
-               unsigned long wdId = currentWD.getVersionGroupId();
-               size_t paramsSize = currentWD.getParamsSize();
                ProcessingElement * pe = thread->runningOn();
                double executionTime = currentWD.getExecutionTime();
                unsigned int devIdx = currentWD.getActiveDeviceIdx();
 
                currentWD.setEstimatedExecutionTime( 77.77 );
 
-               WDExecInfoKey key = std::make_pair( wdId, paramsSize );
-
-               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
 
                tdata._executionMap[thread->getId()]->finishTask( &currentWD );
 
                tdata._statsLock.acquire();
-               WDExecInfoData & data = tdata._wdExecStats[key];
+               WDExecInfoData & data = tdata.getWDExecInfo( &currentWD );
 
                // Record statistic values
                // Update stats
@@ -1065,8 +1061,9 @@ namespace ext
                   records._numRecords++; // Should be '1' but in fact it is -1+1 = 0
                   records._lastElapsedTime = executionTime;
 
-                  debug("[versioning] First recording for key (" + toString<unsigned long>( key.first )
-                        + ", " + toString<size_t>( key.second )
+                  debug("[versioning] First recording for key ("
+                        + toString<unsigned long>( currentWD.getVersionGroupId() )
+                        + ", " + toString<size_t>( currentWD.getParamsSize() )
                         + ") {pe=" + toString<void *>( records._pe )
                         + ", dev=" + currentWD.getDevices()[devIdx]->getDevice()->getName()
                         + ", #=" + toString<int>( records._numRecords )
@@ -1081,8 +1078,9 @@ namespace ext
                   records._elapsedTime = ( time + executionTime ) / records._numRecords;
                   records._lastElapsedTime = executionTime;
 
-                  debug("[versioning] Recording for key (" + toString<unsigned long>( key.first )
-                        + ", " + toString<size_t>( key.second )
+                  debug("[versioning] Recording for key ("
+                        + toString<unsigned long>( currentWD.getVersionGroupId() )
+                        + ", " + toString<size_t>( currentWD.getParamsSize() )
                         + ") {pe=" + toString<void *>( records._pe )
                         + ", dev=" + currentWD.getDevices()[devIdx]->getDevice()->getName()
                         + ", #=" + toString<int>( records._numRecords )
@@ -1098,7 +1096,7 @@ namespace ext
                tdata._bestLock.acquire();
 
                // Check if it is the best time
-               WDBestRecordData &bestData = tdata._wdExecBest[key];
+               WDBestRecordData &bestData = tdata.getWDBestRecord( &currentWD );
                bool isBestTime = ( bestData._elapsedTime > executionTime ) || ( bestData._pe == NULL );
                if ( isBestTime ) {
                   // New best value recorded
@@ -1108,7 +1106,6 @@ namespace ext
 
                   debug("[versioning] New best time: {pe=" + toString<void *>( bestData._pe )
                         + ", T=" + toString<double>( bestData._elapsedTime ) + "}" );
-
                }
 
                tdata._bestLock.release();
@@ -1116,7 +1113,6 @@ namespace ext
 
             if ( schedule ) {
                // Get next WD to run
-               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
                WD * found = tdata._executionMap[thread->getId()]->getFirstTask( thread );
 
                if ( found ) {
@@ -1215,6 +1211,7 @@ namespace ext
    };
 
    bool Versioning::_useStack = false;
+   int Versioning::_minRecordTrial = MIN_RECORDS;
    Lock Versioning::TeamData::_bestLock;
    Lock Versioning::TeamData::_statsLock;
 
@@ -1228,6 +1225,7 @@ namespace ext
 
          virtual void config ( Config &cfg )
          {
+            // Set whether to use stack to pop tasks from ready queue or not
             cfg.setOptionsSection( "Versioning module", "Versioning scheduling module" );
             cfg.registerConfigOption ( "versioning-use-stack",
                   NEW Config::FlagOption( Versioning::_useStack ),
@@ -1237,6 +1235,13 @@ namespace ext
             cfg.registerAlias ( "versioning-use-stack", "versioning-stack",
                   "Stack usage for the versioning policy" );
             cfg.registerArgOption ( "versioning-stack", "versioning-stack" );
+
+            // Set the number of minimum trials for each task version before considering
+            // statistics reliable
+            cfg.registerConfigOption ( "versioning-min-trials",
+                  NEW Config::IntegerVar( Versioning::_minRecordTrial ),
+                  "Minimum number of task version trials for the versioning policy" );
+            cfg.registerArgOption( "versioning-min-trials", "versioning-min-trials" );
          }
 
          virtual void init()
