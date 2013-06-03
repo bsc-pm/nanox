@@ -58,7 +58,7 @@ void Config::NanosHelp::buildSectionHelp( std::stringstream &helpString, const s
 
       SectionDescriptionsMap::iterator desc = _sectionDescriptions.find ( sectionName );
       if ( desc != _sectionDescriptions.end() ) {
-         helpString << desc->second;
+         helpString << "\n   " <<  desc->second;
       }
 
       helpString << std::endl;
@@ -436,7 +436,7 @@ std::string Config::HelpTriplet::getEnvHelp( size_t size )
    std::string formattedEnv = "";
    formattedEnv.assign( size+2, ' ' );
    formattedEnv.replace( 0, _envHelp.size(), _envHelp );
-   help += formattedEnv + _message;
+   help += formattedEnv + "\n        " + _message;
    return help;
 }
 
@@ -447,7 +447,7 @@ std::string Config::HelpTriplet::getArgHelp( size_t size )
    std::string formattedArg = "";
    formattedArg.assign( size+2, ' ' );
    formattedArg.replace( 0, _argHelp.size(), _argHelp );
-   help += formattedArg + _message;
+   help += formattedArg + "\n        " + _message;
    return help;
 }
 

@@ -757,24 +757,16 @@ void Scheduler::exit ( void )
    /* update next WorkDescriptor (if any) */
    next = ( next == NULL ) ? thread->getNextWD() : next;
 
-   if ( !next ) {
-
-      /* If no WD has been returned from getNextWD() call scheduler policy */
-      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
-         // The thread is not paused, mark it as so
-         thread->unpause();
-      } else {
-         // Pause this thread
-         thread->pause();
-      }
-
-     idleLoop<ExitBehaviour>();
-
+   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+      // The thread is not paused, mark it as so
+      thread->unpause();
    } else {
-      // Pause this thread
-      thread->pause();
-     Scheduler::exitTo(next);
-   } 
+      // Pause this thread (only if we have no next wd to execute )
+      if ( !next ) thread->pause();
+   }
+
+   if ( !next ) idleLoop<ExitBehaviour>();
+   else Scheduler::exitTo(next);
 
    fatal("A thread should never return from Scheduler::exit");
 }

@@ -49,8 +49,9 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
-                                 _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),
-                                 _priority( 0 ), _wakeUpQueue( UINT_MAX ), _implicit(false), _copiesNotInChunk(false), _description(description) { }
+                                 _directory(NULL), _submitted( false ), _implicit(false), _translateArgs( translate_args ),
+                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData() { }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
@@ -61,8 +62,9 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
-                                 _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( translate_args ),
-                                 _priority( 0 ), _wakeUpQueue( UINT_MAX ), _implicit(false), _copiesNotInChunk(false), _description(description) { }
+                                 _directory(NULL), _submitted( false ), _implicit(false), _translateArgs( translate_args ),
+                                 _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
+                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData() { }
 
 inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
                                : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
@@ -73,9 +75,10 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
                                  _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(), _doWait(),
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
-                                 _directory(), _instrumentationContextData(), _submitted( false ), _translateArgs( wd._translateArgs ),
-                                 _priority( wd._priority ), _wakeUpQueue( wd._wakeUpQueue ), _implicit( wd._implicit ), 
-                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description) { }
+                                 _directory(NULL), _submitted( false ), _implicit( wd._implicit ),_translateArgs( wd._translateArgs ),
+                                 _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
+                                 _wakeUpQueue( wd._wakeUpQueue ), 
+                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData() { }
 
 /* DeviceData inlined functions */
 inline const Device * DeviceData::getDevice () const { return _architecture; }
@@ -195,6 +198,8 @@ inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t n
 {
    wd._doSubmit.reset( NEW DOSubmit() );
    wd._doSubmit->setWD(&wd);
+
+   // Defining call back (cb)
    SchedulePolicySuccessorFunctor cb( *sys.getDefaultSchedulePolicy() );
    
    initCommutativeAccesses( wd, numDeps, deps );
@@ -252,17 +257,16 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
-   if ( _directory.isInitialized() && !avoidFlush )
-      _directory->synchronizeHost();
+   if ( _directory != NULL && !avoidFlush ) _directory->synchronizeHost();
 }
 
 inline Directory* WorkDescriptor::getDirectory(bool create)
 {
-   if ( !_directory.isInitialized() && create == false ) {
-      return NULL;
-   }
+   if ( _directory == NULL && create == false ) return NULL;
+   if ( _directory == NULL ) _directory = NEW Directory();
+
    _directory->setParent( (getParent() != NULL) ? getParent()->getDirectory(false) : NULL );
-   return &(*_directory);
+   return _directory;
 }
 
 inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
@@ -276,9 +280,10 @@ inline unsigned int WorkDescriptor::getPriority() const { return _priority; }
 
 inline void WorkDescriptor::releaseCommutativeAccesses()
 {
-   const size_t n = _commutativeOwners.size();
+   if ( _commutativeOwners == NULL ) return;
+   const size_t n = _commutativeOwners->size();
    for ( size_t i = 0; i < n; i++ )
-      *_commutativeOwners[i] = NULL;
+      *(*_commutativeOwners)[i] = NULL;
 } 
 
 inline void WorkDescriptor::setImplicit( bool b ) { _implicit = b; }
