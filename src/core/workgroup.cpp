@@ -84,8 +84,5 @@ void WorkGroup::done ()
    waitCompletion();
 }
 
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
+WorkGroup::~WorkGroup () { }
 
