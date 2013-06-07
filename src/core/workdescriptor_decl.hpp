@@ -149,7 +149,16 @@ namespace nanos
 
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
-
+         typedef struct {
+            bool is_final:1;
+            bool reserved1:1;
+            bool reserved2:1;
+            bool reserved3:1;
+            bool reserved4:1;
+            bool reserved5:1;
+            bool reserved6:1;
+            bool reserved7:1;
+         } WDFlags;
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -158,6 +167,7 @@ namespace nanos
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
+         WDFlags                       _flags;        /**< WD Flags */
 
          bool                          _tie;          /**< FIXME: (#170) documentation needed */
          BaseThread                   *_tiedTo;       /**< FIXME: (#170) documentation needed */
@@ -348,6 +358,10 @@ namespace nanos
          bool isReady () const;
 
          void setReady ();
+
+         bool isFinal () const;
+
+         void setFinal ( bool value = true );
 
          GenericSyncCond * getSyncCond();
 

@@ -792,6 +792,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       if ( props->tied ) wd->tied();
       unsigned priority = dyn_props->priority;
       wd->setPriority( priority );
+      wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
@@ -962,6 +963,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       wd->setPriority( dyn_props->priority );
+      wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }

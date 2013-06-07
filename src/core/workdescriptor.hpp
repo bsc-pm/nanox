@@ -127,6 +127,9 @@ inline void WorkDescriptor::setBlocked () { _state = WorkDescriptor::BLOCKED; }
 inline bool WorkDescriptor::isReady () const { return _state == WorkDescriptor::READY; }
 inline void WorkDescriptor::setReady () { _state = WorkDescriptor::READY; }
 
+inline bool WorkDescriptor::isFinal () const { return _flags.is_final; }
+inline void WorkDescriptor::setFinal ( bool value ) { _flags.is_final = value; }
+
 inline GenericSyncCond * WorkDescriptor::getSyncCond() { return _syncCond; }
 
 inline void WorkDescriptor::setSyncCond( GenericSyncCond * syncCond ) { _syncCond = syncCond; }
