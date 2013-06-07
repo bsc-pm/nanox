@@ -526,9 +526,9 @@ NANOS_API_DEF(nanos_err_t, nanos_set_copies, (nanos_wd_t wd, int num_copies, nan
 /*! \brief Has current WD final attribute 
  *
  */
-NANOS_API_DEF(nanos_err_t, nanos_is_final, ( bool *result ))
+NANOS_API_DEF(nanos_err_t, nanos_in_final, ( bool *result ))
 {
-    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","is_final",NANOS_RUNTIME) );
+    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","in_final",NANOS_RUNTIME) );
     try {
        *result = myThread->getCurrentWD()->isFinal();
     } catch ( nanos_err_t e) {

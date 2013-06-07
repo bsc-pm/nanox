@@ -124,7 +124,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonrea
 NANOS_API_DECL(nanos_err_t, nanos_get_num_running_tasks, ( unsigned int *running_tasks ));
 NANOS_API_DECL(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_tasks ));
 
-NANOS_API_DECL(nanos_err_t, nanos_is_final, ( bool *result ));
+NANOS_API_DECL(nanos_err_t, nanos_in_final, ( bool *result ));
 NANOS_API_DECL(nanos_err_t, nanos_set_final, ( bool value ));
 
 // Team related functions
