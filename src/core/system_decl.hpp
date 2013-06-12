@@ -89,8 +89,11 @@ namespace nanos
          bool                 _delayedStart;
          bool                 _useYield;
          bool                 _synchronizedStart;
+         //! Physical NUMA nodes
          int                  _numSockets;
          int                  _coresPerSocket;
+         //! Available NUMA nodes given by the CPU set
+         int                  _numAvailSockets;
          //! The socket that will be assigned to the next WD
          int                  _currentSocket;
          //! Enable Dynamic Load Balancing library
@@ -99,6 +102,9 @@ namespace nanos
 	 // Nanos++ scheduling domain
          cpu_set_t            _cpu_set;         /* system's default cpu_set */
          cpu_set_t            _cpu_active_set;  /* current cpu_set */
+
+         //! Maps from a physical NUMA node to a user-selectable node
+         std::vector<int>     _numaNodeMap;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -306,12 +312,29 @@ namespace nanos
 
          int getNumWorkers( DeviceData *arch );
 
+         /** \brief Returns the number of physical NUMA nodes. */
          int getNumSockets() const;
 
          void setNumSockets ( int numSockets );
 
+         /** \brief Returns the number of NUMA nodes available for the user. */
+         int getNumAvailSockets() const;
+
+         /**
+          * \brief Translates from a physical NUMA node to a virtual (user-selectable) node.
+          * \return A number in the range [0..N) where N is the number of virtual NUMA nodes,
+          * or INT_MIN if that physical node cannot be used.
+          */
+         int getVirtualNUMANode( int physicalNode ) const;
+
          int getCurrentSocket() const;
 
+         /**
+          * \brief Sets the (virtual) node where tasks should be executed.
+          * \param currentSocket A value in the range [0,N) where N is the number
+          * of available nodes (what is returned by getNumAvailSockets()).
+          * \see getNumAvailSockets.
+          */
          void setCurrentSocket( int currentSocket );
 
          int getCoresPerSocket() const;
