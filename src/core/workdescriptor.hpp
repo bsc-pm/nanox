@@ -43,7 +43,7 @@ using namespace nanos;
 inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
                                : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
-                                 _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
+                                 _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
@@ -51,12 +51,15 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
                                  _directory(NULL), _submitted( false ), _implicit(false), _translateArgs( translate_args ),
                                  _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
-                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData() { }
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData()
+                                 {
+                                    _flags.is_final = 0;
+                                 }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
                                : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
-                                 _wdData ( NULL ), _tie ( false ), _tiedTo ( NULL ),
+                                 _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( 1 ), _devices ( NEW DeviceData *( device ) ), _activeDeviceIdx( 0 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
@@ -64,11 +67,14 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _directory(NULL), _submitted( false ), _implicit(false), _translateArgs( translate_args ),
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData() { }
+                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData()
+                                 {
+                                    _flags.is_final = 0;
+                                 }
 
 inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
                                : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
-                                 _wdData ( NULL ), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
+                                 _wdData ( NULL ), _flags(), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
                                  _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                                  _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
                                  _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
@@ -78,7 +84,10 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _directory(NULL), _submitted( false ), _implicit( wd._implicit ),_translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _wakeUpQueue( wd._wakeUpQueue ), 
-                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData() { }
+                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData()
+                                 {
+                                    _flags.is_final = 0;
+                                 }
 
 /* DeviceData inlined functions */
 inline const Device * DeviceData::getDevice () const { return _architecture; }
