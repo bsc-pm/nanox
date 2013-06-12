@@ -76,7 +76,6 @@ inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj
 
             depObj.increasePredecessors();
             if ( callback != NULL ) {
-               debug( "Calling callback" );
                ( *callback )( lastWriter, &depObj );
             }
          }
@@ -109,7 +108,6 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
          NANOS_INSTRUMENT ( } )
          depObj.increasePredecessors();
          if ( callback != NULL ) {
-            debug( "Calling callback" );
             ( *callback )( predecessorReader, &depObj );
          }
       }

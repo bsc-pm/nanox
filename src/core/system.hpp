@@ -112,6 +112,16 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 inline int System::getNumSockets() const { return _numSockets; }
 inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 
+inline int System::getNumAvailSockets() const
+{
+   return _numAvailSockets;
+}
+
+inline int System::getVirtualNUMANode( int physicalNode ) const
+{
+   return _numaNodeMap[ physicalNode ];
+}
+
 inline int System::getCurrentSocket() const { return _currentSocket; }
 inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
 
@@ -195,15 +205,9 @@ inline void System::loadNUMAInfo ()
 #endif
 }
 
+// TODO (#846): Remove if no one needs this function
 inline void System::checkArguments()
 {
-   // Check NUMA config
-   if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
-   {
-      unsigned validCoresPS = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
-      warning0( "Adjusting cores-per-socket from " << _coresPerSocket << " to " << validCoresPS );
-      _coresPerSocket = validCoresPS;
-   }
 }
 
 inline void System::unloadHwloc ()

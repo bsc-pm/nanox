@@ -32,6 +32,7 @@
 #include "debug.hpp"
 #include <string.h>
 #include <set>
+#include <climits>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -55,7 +56,7 @@ System::System () :
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 0 ), _coresPerSocket( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
+      _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -489,6 +490,28 @@ void System::start ()
       // Wait for the rest of the gang to be ready, but do not yet notify master thread is ready
       while (_initializedThreads.value() < ( _targetThreads - 1 ) ) {}
    }
+
+   // Create the NUMA node translation table. Do this before creating the team,
+   // as the schedulers might need the information.
+   _numaNodeMap.resize( _numSockets, INT_MIN );
+
+   /* As all PEs are already created by this time, count how many physical
+    * NUMA nodes are available, and map from a physical id to a virtual ID
+    * that can be selected by the user via nanos_current_socket() */
+   for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); ++it )
+   {
+      int node = (*it)->getNUMANode();
+      // If that node has not been translated, yet
+      if ( _numaNodeMap[ node ] == INT_MIN )
+      {
+         verbose0( "Mapping from physical node " << node << " to user node " << _numAvailSockets );
+         _numaNodeMap[ node ] = _numAvailSockets;
+         // Increase the number of available sockets
+         ++_numAvailSockets;
+      }
+      // Otherwise, do nothing
+   }
+   verbose0( _numAvailSockets << " NUMA node(s) available for the user." );
 
    switch ( getInitialMode() )
    {

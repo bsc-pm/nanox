@@ -92,7 +92,7 @@ NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
 NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
 {
    try {
-      *num_sockets = sys.getNumSockets();
+      *num_sockets = sys.getNumAvailSockets();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
