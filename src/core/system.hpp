@@ -50,7 +50,7 @@ inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 
 inline int System::getNumThreads () const { return _numThreads; }
 
-inline int System::getCpuCount () const { return _cpu_mask.size(); };
+inline int System::getCpuCount () const { return CPU_COUNT( &_cpu_set ) ; };
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
    //ensure( checkCpuMask(mask), "invalid CPU mask set" );
@@ -89,6 +89,8 @@ inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline bool System::useYield() const { return _useYield; }
 
+inline int System::getCreatedTasks() const { return _schedStats._createdTasks.value(); }
+
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
@@ -112,6 +114,16 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 inline int System::getNumSockets() const { return _numSockets; }
 inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 
+inline int System::getNumAvailSockets() const
+{
+   return _numAvailSockets;
+}
+
+inline int System::getVirtualNUMANode( int physicalNode ) const
+{
+   return _numaNodeMap[ physicalNode ];
+}
+
 inline int System::getCurrentSocket() const { return _currentSocket; }
 inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
 
@@ -122,8 +134,7 @@ inline Directory* System::getMainDirectory() const { return _mainDirectory; }
 
 inline int System::getBindingId ( int pe ) const
 {
-   int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _pe_map.size();
-   return _pe_map[tmpId];
+   return _bindings[ pe % _bindings.size() ];
 }
 
 inline bool System::isHwlocAvailable () const
@@ -198,15 +209,9 @@ inline void System::loadNUMAInfo ()
 #endif
 }
 
+// TODO (#846): Remove if no one needs this function
 inline void System::checkArguments()
 {
-   // Check NUMA config
-   if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
-   {
-      unsigned validCoresPS = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
-      warning0( "Adjusting cores-per-socket from " << _coresPerSocket << " to " << validCoresPS );
-      _coresPerSocket = validCoresPS;
-   }
 }
 
 inline void System::unloadHwloc ()
@@ -370,6 +375,10 @@ inline size_t System::registerArchitecture( ArchPlugin * plugin )
 }
 
 #ifdef GPU_DEV
+//TODO: remove this from system, should be inside gpuconfig.cpp, but weak attributes don't seem to be working inside gpu device
+//This var name has to be consistant with the one which the compiler "fills" (basically, do not rename it)
+extern __attribute__((weak)) char ompss_uses_cuda;
+inline char*  System::getOmpssUsesCuda(){ return &ompss_uses_cuda; }
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 
@@ -442,6 +451,8 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 }
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
+
+inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
 inline bool System::dlbEnabled() const { return _enable_dlb; }
 

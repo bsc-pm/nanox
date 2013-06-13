@@ -542,7 +542,7 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::finishWork( WD *oldwd, WD * wd )
+void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
 {
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
@@ -550,11 +550,19 @@ void Scheduler::finishWork( WD *oldwd, WD * wd )
    /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
 
+   if ( schedule ) {
+      BaseThread *thread = getMyThreadSafe();
+      ThreadTeam *thread_team = thread->getTeam();
+      if ( thread_team ) {
+         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule ) );
+      }
+   }
+
    wd->done();
    wd->clear();
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-          " to " << oldwd << ":" << oldwd->getId() );
+          " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
 }
 
 bool Scheduler::inlineWork ( WD *wd, bool schedule )
@@ -591,15 +599,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->finish();
 
-   if (schedule) {
-      ThreadTeam *thread_team = thread->getTeam();
-      if ( thread_team ) {
-         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd ) );
-      }
-   }
-
-   if (done)
-      finishWork(oldwd, wd);
+   if ( done )
+      finishWork( oldwd, wd, schedule );
 
    thread->setCurrentWD( *oldwd );
 
@@ -751,30 +752,21 @@ void Scheduler::exit ( void )
 
    oldwd->finish();
 
-  /* If no WD has been returned from getNextWD() call scheduler policy */
-   if ( !next && sys.getSchedulerConf().getSchedulerEnabled() ) {
+   finishWork( next, oldwd, ( next == NULL ) );
+
+   /* update next WorkDescriptor (if any) */
+   next = ( next == NULL ) ? thread->getNextWD() : next;
+
+   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
       // The thread is not paused, mark it as so
       thread->unpause();
-   
-      ThreadTeam *thread_team = thread->getTeam();
-
-      if ( thread_team )
-         next = thread_team->getSchedulePolicy().atBeforeExit(thread,*oldwd);
-   }
-   else {
-      // Pause this thread
-      thread->pause();
-   }
-
-   updateExitStats (*oldwd);
-   oldwd->done();
-   oldwd->clear();
-
-   if (!next) {
-     idleLoop<ExitBehaviour>();
    } else {
-     Scheduler::exitTo(next);
-   } 
+      // Pause this thread (only if we have no next wd to execute )
+      if ( !next ) thread->pause();
+   }
+
+   if ( !next ) idleLoop<ExitBehaviour>();
+   else Scheduler::exitTo(next);
 
    fatal("A thread should never return from Scheduler::exit");
 }

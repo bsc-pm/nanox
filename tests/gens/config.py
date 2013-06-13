@@ -31,7 +31,7 @@ import sys
 
 header ='Nanox config generator 0.1\n\n'+\
 	'Envorionment variables that affect this script:\n'+\
-	'   NX_TEST_MODE=\'test\'|\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
+	'   NX_TEST_MODE=\'performance\'|\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
 	'   NX_TEST_MAX_CPUS=#CPUS                  -  2 by default\n'+\
 	'   NX_TEST_SCHEDULE=[scheduler]\n'
 if '-h' in sys.argv or '--help' in sys.argv:
@@ -72,7 +72,8 @@ if options.deps_plugins:
 
 max_cpus=int(max_cpus)
 
-scheduling_small=['--schedule=bf','--schedule=affinity']
+scheduling_performance=[]
+scheduling_small=['--schedule=dbf','--schedule=dbf --schedule-priority']
 scheduling_large=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--schedule=dbf', '--schedule=affinity']
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 barriers=['--barrier=centralized','--barrier=tree']
@@ -80,11 +81,12 @@ binding=['--disable-binding','--no-disable-binding']
 architecture=['--architecture=smp','--architecture=smp-numa']
 
 if test_schedule is not None:
+   scheduling_performance=['--schedule='+test_schedule]
    scheduling_small=['--schedule='+test_schedule]
    scheduling_large=['--schedule='+test_schedule]
 
 if test_mode == 'performance':
-	configs=cross(*[cpus(max_cpus)]+addlist)
+	configs=cross(*[cpus(max_cpus)]+[scheduling_performance]+addlist)
 elif test_mode == 'small':
 	configs=cross(*[cpus(max_cpus)]+[binding]+[architecture]+[scheduling_small]+[depslist]+addlist)
 elif test_mode == 'medium':

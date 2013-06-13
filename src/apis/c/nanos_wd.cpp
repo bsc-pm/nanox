@@ -523,6 +523,33 @@ NANOS_API_DEF(nanos_err_t, nanos_set_copies, (nanos_wd_t wd, int num_copies, nan
     return NANOS_OK;
 }
 
+/*! \brief Has current WD final attribute 
+ *
+ */
+NANOS_API_DEF(nanos_err_t, nanos_in_final, ( bool *result ))
+{
+    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","in_final",NANOS_RUNTIME) );
+    try {
+       *result = myThread->getCurrentWD()->isFinal();
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+/*! \brief Setting current WD final attribute
+ *
+ */
+NANOS_API_DEF(nanos_err_t, nanos_set_final, ( bool value ))
+{
+    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_final",NANOS_RUNTIME) );
+    try {
+       myThread->getCurrentWD()->setFinal( value );
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+
 /*!
  * \}
  */ 

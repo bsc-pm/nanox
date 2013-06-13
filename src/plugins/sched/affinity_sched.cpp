@@ -169,9 +169,13 @@ namespace nanos {
                return found != NULL ? found : atIdle(thread);
             }
          
-            WD * atBeforeExit ( BaseThread *thread, WD &current )
+            WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
             {
-               return current.getImmediateSuccessor(*thread);
+               if ( schedule ) {
+                  return current.getImmediateSuccessor(*thread);
+               } else {
+                  return NULL;
+               }
             }
 
       };

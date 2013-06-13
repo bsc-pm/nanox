@@ -70,6 +70,8 @@ class GPUPlugin : public ArchPlugin
          for ( int i = 0; i < GPUConfig::getGPUCount(); ++i )
          {
             int node = -1;
+            // Is NUMA info is available
+            bool numa = true;
             if ( sys.isHwlocAvailable() )
             {
 #ifdef HWLOC
@@ -87,24 +89,46 @@ class GPUPlugin : public ArchPlugin
             else
             {
                // Warning: Linux specific:
+#if CUDA_VERSION < 4010
+               // This depends on the cuda driver, we are currently NOT linking against it.
+               //int domainId, busId, deviceId;
+               //cuDeviceGetAttribute( &domainId, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, device);
+               //cuDeviceGetAttribute( &busId, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID, device);
+               //cuDeviceGetAttribute( &deviceId, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, device);
+               //std::stringstream ssDevice;
+               //ssDevice << std::hex << std::setfill( '0' ) << std::setw( 4 ) << domainId << ":" << std::setw( 2 ) << busId << ":" << std::setw( 2 ) << deviceId << ".0";
+               //strcpy( pciDevice, ssDevice.str().c_str() );
+#else
                char pciDevice[20]; // 13 min
+
                cudaDeviceGetPCIBusId( pciDevice, 20, i );
+
+               // This is common code for cuda 4.0 and 4.1
                std::stringstream ss;
                ss << "/sys/bus/pci/devices/" << pciDevice << "/numa_node";
                std::ifstream fNode( ss.str().c_str() );
                if ( fNode.good() )
                   fNode >> node;
                fNode.close();
+#endif
 
             }
             // Fallback / safety measure
-            if ( node < 0 || sys.getNumSockets() == 1 )
-               node = sys.getNumSockets() - 1;
+            if ( node < 0 || sys.getNumSockets() == 1 ) {
+               node = 0;
+               // As we don't have NUMA info, don't request an specific node
+               numa = false;
+            }
             
             bool reserved;
-            unsigned pe = sys.reservePE( node, reserved );
+            unsigned pe = sys.reservePE( numa, node, reserved );
             
-            verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            if ( numa ) {
+               verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            }
+            else {
+               verbose( "Reserving for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            }
             // Now add this node to the binding list
             addBinding( pe );
          }

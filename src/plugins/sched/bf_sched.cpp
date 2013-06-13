@@ -132,23 +132,21 @@ namespace nanos {
 
            WD * atPrefetch ( BaseThread *thread, WD &current )
            {
-// FIXME: Honoring immediate or priorities ?
-#if 0
-              WD * found = current.getImmediateSuccessor(*thread);
-              return found != NULL ? found : atIdle(thread);
-#else
-              return atIdle(thread);
-#endif
+              if ( !_usePriority && !_useSmartPriority ) {
+                 WD * found = current.getImmediateSuccessor(*thread);
+                 return found != NULL ? found : atIdle(thread);
+              } else {
+                 return atIdle(thread);
+              }
            }
         
-           WD * atBeforeExit ( BaseThread *thread, WD &current )
+           WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
            {
-// FIXME: Honoring immediate or priorities ?
-#if 0
-              return current.getImmediateSuccessor(*thread);
-#else
-              return 0;
-#endif
+              if ( !_usePriority && !_useSmartPriority ) {
+                 return current.getImmediateSuccessor(*thread);
+              } else {
+                 return 0;
+              }
            }
       };
 

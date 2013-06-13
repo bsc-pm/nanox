@@ -89,17 +89,22 @@ namespace nanos
          bool                 _delayedStart;
          bool                 _useYield;
          bool                 _synchronizedStart;
+         //! Physical NUMA nodes
          int                  _numSockets;
          int                  _coresPerSocket;
+         //! Available NUMA nodes given by the CPU set
+         int                  _numAvailSockets;
          //! The socket that will be assigned to the next WD
          int                  _currentSocket;
          //! Enable Dynamic Load Balancing library
          bool                 _enable_dlb;
 
 	 // Nanos++ scheduling domain
-         cpu_set_t            _cpu_set;
-         std::set<int>        _cpu_mask;  /* current mask information */
-         std::vector<int>     _pe_map;    /* binding map of every PE. Only adding is allowed. */
+         cpu_set_t            _cpu_set;         /* system's default cpu_set */
+         cpu_set_t            _cpu_active_set;  /* current cpu_set */
+
+         //! Maps from a physical NUMA node to a user-selectable node
+         std::vector<int>     _numaNodeMap;
 
          //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
@@ -185,6 +190,9 @@ namespace nanos
          std::string               _instrumentDefault; //FIXME: only in instrumentation
          bool                      _enable_cpuid_event; //FIXME: only in instrumentation
 
+         const int                 _lockPoolSize;
+         Lock *                    _lockPool;
+
          // disable copy constructor & assignment operation
          System( const System &sys );
          const System & operator= ( const System &sys );
@@ -262,14 +270,12 @@ namespace nanos
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
-         int getMaskMaxSize() const;
-
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
 
          void setBindingStart ( int value );
-
+        
          int getBindingStart () const;
 
          void setBindingStride ( int value );
@@ -295,6 +301,8 @@ namespace nanos
 
          bool useYield() const;
 
+         int getCreatedTasks() const ;
+
          int getTaskNum() const;
 
          int getIdleNum() const;
@@ -309,12 +317,29 @@ namespace nanos
 
          int getNumWorkers( DeviceData *arch );
 
+         /** \brief Returns the number of physical NUMA nodes. */
          int getNumSockets() const;
 
          void setNumSockets ( int numSockets );
 
+         /** \brief Returns the number of NUMA nodes available for the user. */
+         int getNumAvailSockets() const;
+
+         /**
+          * \brief Translates from a physical NUMA node to a virtual (user-selectable) node.
+          * \return A number in the range [0..N) where N is the number of virtual NUMA nodes,
+          * or INT_MIN if that physical node cannot be used.
+          */
+         int getVirtualNUMANode( int physicalNode ) const;
+
          int getCurrentSocket() const;
 
+         /**
+          * \brief Sets the (virtual) node where tasks should be executed.
+          * \param currentSocket A value in the range [0,N) where N is the number
+          * of available nodes (what is returned by getNumAvailSockets()).
+          * \see getNumAvailSockets.
+          */
          void setCurrentSocket( int currentSocket );
 
          int getCoresPerSocket() const;
@@ -337,11 +362,15 @@ namespace nanos
           * architecture.
           * If you try to reserve all PEs, leaving no PEs for SMPs, reserved
           * will be false and a warning will be displayed.
-          * \param node [in] NUMA node to reserve the PE from.
+          * \param reserveNode [in] If enabled, will try to reserve the PE in
+          * the node specified by the node parameter, otherwise, that parameter
+          * will be ignored.
+          * \param node [in] NUMA node to reserve the PE from. It is only used
+          * when reserveNode is true.
           * \param reserved [out] If the PE was successfully reserved or not.
           * \return Id of the PE to reserve.
           */
-         unsigned reservePE ( unsigned node, bool & reserved );
+         unsigned reservePE ( bool reserveNode, unsigned node, bool & reserved );
          
          /**
           * \brief Checks if hwloc is available.
@@ -502,6 +531,7 @@ namespace nanos
 
 #ifdef GPU_DEV
          PinnedAllocator& getPinnedAllocatorCUDA();
+         char* getOmpssUsesCuda();
 #endif
 
          void threadReady ();
@@ -523,6 +553,11 @@ namespace nanos
           *  \param cfg Config object.
           */
          void registerPluginOption ( const std::string &option, const std::string &module, std::string &var, const std::string &helpMessage, Config &cfg );
+
+         /*! \brief Returns one of the system lock (belonging to the pool of locks)
+          */
+         Lock * getLockAddress(void *addr ) const;
+
          /*! \brief Returns if there are pendant writes for a given memory address
           *
           *  \param [in] addr memory address

@@ -148,20 +148,28 @@ void WorkDescriptor::submit( void )
 
 void WorkDescriptor::finish ()
 {
-   ProcessingElement *pe = myThread->runningOn();
-   waitCompletion();
-   if ( getNumCopies() > 0 )
-     pe->copyDataOut( *this );
+   // At that point we are ready to copy data out
+   if ( getNumCopies() > 0 ) {
+      ProcessingElement *pe = myThread->runningOn();
+      pe->copyDataOut( *this );
+   }
 
+   // Getting execution time
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
 }
 
 void WorkDescriptor::done ()
 {
+   // Releasing commutative accesses
    releaseCommutativeAccesses(); 
 
+   // Executing programming model specific finalization
    sys.getPMInterface().wdFinished( *this );
+
+   // Notifying parent we have finished ( dependence's relationships )
    this->getParent()->workFinished( *this );
+
+   // Workgroup specific done ( parent's relationships)
    WorkGroup::done();
 }
 
@@ -186,50 +194,54 @@ void WorkDescriptor::initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps
 
    if ( numCommutative == 0 )
       return;
-
-   wd._commutativeOwners.reserve(numCommutative);
+   if (wd._commutativeOwners == NULL) wd._commutativeOwners = NEW WorkDescriptorPtrList();
+   wd._commutativeOwners->reserve(numCommutative);
 
    for ( size_t i = 0; i < numDeps; i++ ) {
       if ( !deps[i].isCommutative() )
          continue;
 
-      // Lookup owner in map in parent WD
-      CommutativeOwnerMap::iterator iter = _commutativeOwnerMap.find( deps[i].getDepAddress() );
+      if ( _commutativeOwnerMap == NULL ) _commutativeOwnerMap = NEW CommutativeOwnerMap();
 
-      if ( iter != _commutativeOwnerMap.end() ) {
+      // Lookup owner in map in parent WD
+      CommutativeOwnerMap::iterator iter = _commutativeOwnerMap->find( deps[i].getDepAddress() );
+
+      if ( iter != _commutativeOwnerMap->end() ) {
          // Already in map => insert into owner list in child WD
-         wd._commutativeOwners.push_back( iter->second.get() );
+         wd._commutativeOwners->push_back( iter->second.get() );
       }
       else {
          // Not in map => allocate new owner pointer container and insert
          std::pair<CommutativeOwnerMap::iterator, bool> ret =
-               _commutativeOwnerMap.insert( std::make_pair( deps[i].getDepAddress(),
+               _commutativeOwnerMap->insert( std::make_pair( deps[i].getDepAddress(),
                                                             TR1::shared_ptr<WorkDescriptor *>( NEW WorkDescriptor *(NULL) ) ) );
 
          // Insert into owner list in child WD
-         wd._commutativeOwners.push_back( ret.first->second.get() );
+         wd._commutativeOwners->push_back( ret.first->second.get() );
       }
    }
 }
 
 bool WorkDescriptor::tryAcquireCommutativeAccesses()
 {
-   const size_t n = _commutativeOwners.size();
+   if ( _commutativeOwners == NULL ) return true;
+
+   const size_t n = _commutativeOwners->size();
    for ( size_t i = 0; i < n; i++ ) {
 
-      WorkDescriptor *owner = *_commutativeOwners[i];
+      WorkDescriptor *owner = *(*_commutativeOwners)[i];
 
       if ( owner == this )
          continue;
 
       if ( owner == NULL &&
-           nanos::compareAndSwap( (void **) _commutativeOwners[i], (void *) NULL, (void *) this ) )
+           nanos::compareAndSwap( (void **) (*_commutativeOwners)[i], (void *) NULL, (void *) this ) )
          continue;
 
       // Failed to obtain exclusive access to all accesses, release the obtained ones
 
       for ( ; i > 0; i-- )
-         *_commutativeOwners[i-1] = NULL;
+         *(*_commutativeOwners)[i-1] = NULL;
 
       return false;
    }
