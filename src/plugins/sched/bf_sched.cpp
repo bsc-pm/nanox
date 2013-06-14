@@ -142,7 +142,7 @@ namespace nanos {
         
            WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
            {
-              if ( !_usePriority && !_useSmartPriority ) {
+              if ( !_usePriority && !_useSmartPriority && schedule ) {
                  return current.getImmediateSuccessor(*thread);
               } else {
                  return 0;
