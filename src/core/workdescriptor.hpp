@@ -121,6 +121,8 @@ inline BaseThread* WorkDescriptor::isTiedTo() const { return _tiedTo; }
 
 inline bool WorkDescriptor::shouldBeTied() const { return _tie; }
 
+inline void WorkDescriptor::untie() { _tiedTo = NULL; _tie = false; }
+
 inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
 inline void * WorkDescriptor::getData () const { return _data; }

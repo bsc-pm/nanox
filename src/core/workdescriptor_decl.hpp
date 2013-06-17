@@ -341,6 +341,8 @@ namespace nanos
          
          bool shouldBeTied() const;
 
+         void untie();
+
          void setData ( void *wdata );
 
          void * getData () const;

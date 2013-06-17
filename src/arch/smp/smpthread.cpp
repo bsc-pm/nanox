@@ -129,6 +129,14 @@ void SMPThread::wait()
 
    if (!isEligible()) {
       ThreadTeam *team = getTeam();
+
+      if ( hasNextWD() ) {
+         WD *next = getNextWD();
+         next->untie();
+         team->getSchedulePolicy().queue( this, *next );
+      }
+      fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+
       if ( team != NULL ) {
          team->removeThread( getTeamId() );
          leaveTeam();
