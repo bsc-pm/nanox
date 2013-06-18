@@ -116,7 +116,7 @@ bool MPIDevice::copyIn(void *localDst, CopyDescriptor &remoteSrc, size_t size, P
     order.size = size;
     short ans;
     MPI_Status status;
-    printf("Dir copyin host%p a device %p, size %d\n",(void*) order.hostAddr,(void*) order.devAddr,order.size);
+    printf("Dir copyin host%p a device %p, size %lu\n",(void*) order.hostAddr,(void*) order.devAddr,order.size);
     nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
     nanos::ext::MPIProcessor::nanos_MPI_Ssend((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator());
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->getRank(), TAG_CACHE_ANSWER_CIN, myPE->_communicator, &status);
@@ -134,7 +134,7 @@ bool MPIDevice::copyOut(CopyDescriptor &remoteDst, void *localSrc, size_t size, 
     order.devAddr = (uint64_t) localSrc;
     order.hostAddr = (uint64_t) remoteDst.getTag();    
     order.size = size;
-    printf("Inicio copyout host %p %d\n",(void*) order.hostAddr, order.size);
+    printf("Inicio copyout host %p %lu\n",(void*) order.hostAddr, order.size);
     MPI_Status status;
     nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
     nanos::ext::MPIProcessor::nanos_MPI_Recv((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_OUT, myPE->getCommunicator(), &status);
@@ -163,16 +163,42 @@ void MPIDevice::syncTransfer(uint64_t hostAddress, ProcessingElement *pe) {
 }
 
 bool MPIDevice::copyDevToDev(void * addrDst, CopyDescriptor& cdDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc) {
-    //TODO: Improve this behaviour
-    copyOut(cdDst,addrSrc,size,peSrc);
-    copyIn(addrDst,cdDst,size,peDst);
+    //This will never be another PE type which is not MPI (or something is broken in core :) )
+    nanos::ext::MPIProcessor * src = (nanos::ext::MPIProcessor *) peSrc;
+    nanos::ext::MPIProcessor * dst = (nanos::ext::MPIProcessor *) peDst;
+    int res;
+    MPI_Comm_compare(src->getCommunicator(),dst->getCommunicator(),&res);
+    //If both devices are in the same comunicator, they can do a dev2dev communication, otherwise go through host
+    if (res == MPI_IDENT){
+        MPI_Status status;
+        short ans;
+        cacheOrder order;
+        //Send the destination rank together with DEV2DEV OPID (we'll substract it on remote node)
+        order.opId = OPID_DEVTODEV+dst->getRank();
+        order.devAddr = (uint64_t) dst;
+        order.hostAddr = (uint64_t) src;
+        order.size = size;        
+        //Send OPID_DEV2DEV (max OPID)+rank for one and -rank for the other
+        //This way we can encode ranks inside OPID while keeping those OPID uniques
+        //Send one to the source telling him what the send (+1) and to who
+        nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, src->getRank(), TAG_CACHE_ORDER, src->getCommunicator());
+        order.opId = -src->getRank();
+        //Send one to the dst telling him who's the source  (-1) and where to store
+        nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, dst->getRank(), TAG_CACHE_ORDER, dst->getCommunicator());
+        //Wait for ACK from receiver
+        printf("espero ACK\n");
+        //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, dst->getRank(), TAG_CACHE_ANSWER_DEV2DEV, dst->getCommunicator(), &status);
+    } else {
+        copyOut(cdDst,addrSrc,size,peSrc);
+        copyIn(addrDst,cdDst,size,peDst);
+    }
     return true;
 }
 
 void MPIDevice::initMPICacheStruct() {
     //Initialize cacheStruct in case it's not initialized
     if (cacheStruct == NULL) {
-        MPI_Datatype typelist[4] = {MPI_SHORT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG};
+        MPI_Datatype typelist[4] = {MPI_INT, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG, MPI_UNSIGNED_LONG_LONG};
         int blocklen[4] = {1, 1, 1, 1};
         MPI_Aint disp[4] = {offsetof(cacheOrder, opId), offsetof(cacheOrder, hostAddr), offsetof(cacheOrder, devAddr), offsetof(cacheOrder, size)};
         MPI_Type_create_struct(4, blocklen, disp, typelist, &cacheStruct);
@@ -204,7 +230,7 @@ void MPIDevice::mpiCacheWorker() {
                 case OPID_COPYIN:
                 {
                     std::cerr << "Hago un CopyIn en device\n";
-                    printf("Dir copyin%p, size %d\n",(void*) order.devAddr,order.size);
+                    printf("Dir copyin%p, size %lu\n",(void*) order.devAddr,order.size);
                     //int incoming_msg_size;
                     //MPI_Probe(MPI_ANY_SOURCE, 98, parentcomm, &status);
                     //MPI_Get_count(&status, MPI_BYTE, &incoming_msg_size);
@@ -269,12 +295,12 @@ void MPIDevice::mpiCacheWorker() {
                     std::cerr << "Hago un allocate en device\n";
                     char* ptr = new char[order.size];
                     order.devAddr = (uint64_t) ptr;
-                    printf("Dir alloc%p size %d\n",(void*) order.devAddr,order.size);
+                    printf("Dir alloc%p size %lu\n",(void*) order.devAddr,order.size);
                     //MPI_Comm_get_parent(&parentcomm);
                     nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, 0, TAG_CACHE_ANSWER_ALLOC, parentcomm);
                     std::cerr << "Fin allocate en device\n";
                     break;
-                }
+                }    
                 case OPID_REALLOC:           
                 {
                     std::cerr << "Hago un reallocate en device\n";
@@ -282,7 +308,7 @@ void MPIDevice::mpiCacheWorker() {
                     char* ptr = new char[order.size];
                     //printf("Realloc %d, %d\n", order.size,order.old_size);
                     //printf("Copio de %p a %p, tam %d\n",(void*)  order.devAddr, ptr, order.old_size);
-                    printf("Copio valor %f\n",((void*)  order.devAddr));                    
+                    printf("Copio valor %p\n",((void*)  order.devAddr));                    
                     //TODO: CHECK THIS, it's probably wrong
                     DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
                     if (ent != NULL) 
@@ -307,8 +333,32 @@ void MPIDevice::mpiCacheWorker() {
                     std::cerr << "Fin un copylocal en device\n";
                     break;
                 }
+                //If not a fixed code, its a dev2dev copy where i act as the source
                 default:
-                    fatal("Received unknown operation id on MPI cache daemon thread");
+                {
+                    printf("entro en default %d\n", order.opId);
+                    //Opid >= DEV2DEV (largest OPID) is dev2dev+rank
+                    if (order.opId>=OPID_DEVTODEV){
+                        std::cerr << "Hago un dev 2  sender device " << order.opId-OPID_DEVTODEV << "\n";
+                        //Get the rank
+                        int dstRank=order.opId-OPID_DEVTODEV;
+                        //MPI_Comm_get_parent(&parentcomm);
+                        nanos::ext::MPIProcessor::nanos_MPI_Send((void *) order.hostAddr, order.size, MPI_BYTE, dstRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD);
+                        std::cerr << "Fin dev2dev spource en device\n";
+                    //Opid <= 0 (largest OPID) is -rank (in a dev2dev communication)
+                    } else if (order.opId<=0) {
+                        std::cerr << "Hago un dev 2 recv device " << -order.opId << "\n";
+                        //Do the inverse operation of the host
+                        int srcRank=-order.opId;
+                        short ans;
+                        
+                        nanos::ext::MPIProcessor::nanos_MPI_Recv((void *) order.devAddr, order.size, MPI_BYTE, srcRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD, &status);                        
+                        //Send ACK to host
+                        //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_DEV2DEV, parentcomm);
+                        std::cerr << "Fin dev2dev receiver en device\n";
+                    }
+                    break;
+                }
             }
             //if ( sys.getNetwork()->getNodeNum() == 0 ) std::cerr <<"ppp poll complete " << myThread->getId() << std::endl;
             //if ( sys.getNetwork()->getNodeNum() == 0 ) std::cerr << "thread change! " << std::endl;

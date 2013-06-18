@@ -113,7 +113,7 @@ std::string MPIProcessor::getMpiExename() {
 
 void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     cacheOrder order;
-    order.opId = -1;
+    order.opId = OPID_FINISH;
     int id = -1; 
     if (rank == -1) {
         int size;
