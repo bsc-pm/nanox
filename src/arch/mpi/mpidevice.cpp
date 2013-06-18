@@ -36,6 +36,7 @@ using namespace nanos;
 
 MPI_Datatype MPIDevice::cacheStruct;
 Directory* MPIDevice::_masterDir;
+bool MPIDevice::doingCopyIn=false;
 
 MPIDevice::MPIDevice(const char *n) : Device(n) {
 }
@@ -118,7 +119,7 @@ bool MPIDevice::copyIn(void *localDst, CopyDescriptor &remoteSrc, size_t size, P
     MPI_Status status;
     printf("Dir copyin host%p a device %p, size %lu\n",(void*) order.hostAddr,(void*) order.devAddr,order.size);
     nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
-    nanos::ext::MPIProcessor::nanos_MPI_Ssend((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator());
+    nanos::ext::MPIProcessor::nanos_MPI_Send((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator());
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->getRank(), TAG_CACHE_ANSWER_CIN, myPE->_communicator, &status);
     std::cerr << "Fin copyin\n";
     return true;
@@ -155,7 +156,7 @@ void MPIDevice::copyLocal(void *dst, void *src, size_t size, ProcessingElement *
     order.devAddr = (uint64_t) dst;
     order.hostAddr = (uint64_t) src;
     order.size = size;
-    nanos::ext::MPIProcessor::nanos_MPI_Ssend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+    nanos::ext::MPIProcessor::nanos_MPI_Send(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
     std::cerr << "Fin copyin\n";
 }
 
@@ -206,6 +207,13 @@ void MPIDevice::initMPICacheStruct() {
     }
 }
 
+void MPIDevice::waitForCopies(){
+    //Wait until copies have finished
+    while (nanos::MPIDevice::doingCopyIn){
+          usleep(10000);
+    }
+}
+
 void MPIDevice::mpiCacheWorker() {
     //myThread = myThread->getNextThread();
     MPI_Comm parentcomm; /* intercommunicator */
@@ -229,6 +237,7 @@ void MPIDevice::mpiCacheWorker() {
                     return;
                 case OPID_COPYIN:
                 {
+                    doingCopyIn=true;
                     std::cerr << "Hago un CopyIn en device\n";
                     printf("Dir copyin%p, size %lu\n",(void*) order.devAddr,order.size);
                     //int incoming_msg_size;
@@ -253,6 +262,7 @@ void MPIDevice::mpiCacheWorker() {
                     //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_CIN, parentcomm);
 
                     std::cerr << "Fin un CopyIn en device\n";
+                    doingCopyIn=false;
                     break;
                 }
                 case OPID_COPYOUT:
@@ -327,10 +337,12 @@ void MPIDevice::mpiCacheWorker() {
                 }
                 case OPID_COPYLOCAL:
                 {
+                    doingCopyIn=true;
                     std::cerr << "Hago un copylocal en device\n";
                     memcpy((void*) order.devAddr, (void*) order.hostAddr, order.size);
                     //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER, parentcomm);
                     std::cerr << "Fin un copylocal en device\n";
+                    doingCopyIn=false;
                     break;
                 }
                 //If not a fixed code, its a dev2dev copy where i act as the source
@@ -347,15 +359,26 @@ void MPIDevice::mpiCacheWorker() {
                         std::cerr << "Fin dev2dev spource en device\n";
                     //Opid <= 0 (largest OPID) is -rank (in a dev2dev communication)
                     } else if (order.opId<=0) {
+                        DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+                        if (ent != NULL) 
+                        { 
+                           if (ent->getOwner() != NULL) {
+                              ent->getOwner()->invalidate( *_masterDir, (uint64_t) order.devAddr, ent);
+                           } else {
+                              ent->increaseVersion();
+                           }
+                        }
+                        doingCopyIn=true;
                         std::cerr << "Hago un dev 2 recv device " << -order.opId << "\n";
                         //Do the inverse operation of the host
                         int srcRank=-order.opId;
-                        short ans;
                         
                         nanos::ext::MPIProcessor::nanos_MPI_Recv((void *) order.devAddr, order.size, MPI_BYTE, srcRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD, &status);                        
                         //Send ACK to host
+                        //short ans;
                         //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_DEV2DEV, parentcomm);
                         std::cerr << "Fin dev2dev receiver en device\n";
+                        doingCopyIn=false;
                     }
                     break;
                 }

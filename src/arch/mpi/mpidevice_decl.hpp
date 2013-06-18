@@ -25,7 +25,6 @@
 #include "copydescriptor_decl.hpp"
 
 
-
 typedef struct {
        int opId;
        //In case of dev2dev, hostaddr= srcAddr, devAddr=remoteAddr
@@ -69,6 +68,10 @@ namespace nanos
       private:
          static unsigned int _rlimit;
          static Directory *_masterDir;
+         //This boolean will be checked by the task so it will wait until copyIns finish
+         //This way we do not need to send ACKs back to the host
+         //Writes here are only done by one thread
+         static bool doingCopyIn;
 
          static void getMemoryLockLimit();
 
@@ -170,8 +173,9 @@ namespace nanos
          
          static void mpiCacheWorker();
          
+         static void waitForCopies();
+         
          static void setMasterDirectory(Directory *dir) {_masterDir=dir;};
-
 
          /* \brief copy from src in the host to dst in the device synchronously
           */

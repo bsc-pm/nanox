@@ -265,7 +265,7 @@ NANOS_API_DEF(int, nanos_mpi_worker, (void (*ompss_mpi_func_pointers_dev[])())){
           nanos_mpi_finalize(); 
           return 0;
        } else {       
-          void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[ompss_id_func];
+          void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[ompss_id_func];          
           function_pointer();       
        }
     }
