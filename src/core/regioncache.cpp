@@ -757,7 +757,7 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
       }
    }
    if ( allocChunkPtr == NULL ) { 
-      std::cerr << "WARNING: null RegionCache::getAddress()" << std::endl;
+      //std::cerr << "WARNING: null RegionCache::getAddress()" << std::endl;
    } else {
      //std::cerr << __FUNCTION__ << " returns dev address " << (void *) allocChunkPtr->getAddress() << std::endl;
      if ( !allocChunkPtr->locked() ) 

@@ -747,6 +747,14 @@ namespace nanos {
                      if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopySiMasterInit > > ( actualThread ) ) != NULL ) {
                         NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTERINIT ;)
                         NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+
+
+                        wd->_mcontrol.initialize( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+                        bool result;
+                        do {
+                           result = wd->_mcontrol.allocateInputMemory();
+                        } while( result == false );
+
                         wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
                         tdata._readyQueuesAlreadyInit[selectedNode].push_back( wd );
 
@@ -772,6 +780,13 @@ namespace nanos {
                   if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( actualThread ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+
+
+                     wd->_mcontrol.initialize( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+                     bool result;
+                     do {
+                        result = wd->_mcontrol.allocateInputMemory();
+                     } while( result == false );
                      wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
 
                      //std::cerr << "add running wd "<<std::endl;
