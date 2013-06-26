@@ -12,6 +12,7 @@ namespace nanos {
          Atomic<unsigned int> _pendingDeviceOps;
          Lock _pendingCacheOp;
          Lock _lock;
+         unsigned int _owner;
       public:
          DeviceOps();
          ~DeviceOps();
@@ -19,8 +20,8 @@ namespace nanos {
          void addOp();
          bool allCompleted() ;
 
-         bool addCacheOp();
-         void completeCacheOp();
+         bool addCacheOp( unsigned int owner );
+         void completeCacheOp( unsigned int owner );
          bool allCacheOpsCompleted();
 
          bool setInvalidating();

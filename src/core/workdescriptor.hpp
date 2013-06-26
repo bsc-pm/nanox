@@ -267,7 +267,7 @@ inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextDat
 inline void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    this->WorkGroup::waitCompletion();
-   sys.getHostMemory().synchronize( !avoidFlush );
+   sys.getHostMemory().synchronize( !avoidFlush, *this );
 }
 
 

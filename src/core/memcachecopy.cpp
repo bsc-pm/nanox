@@ -19,10 +19,10 @@ void MemCacheCopy::getVersionInfo() {
    }
 }
 
-void MemCacheCopy::generateInOps2( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd ) {
+void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd ) {
    NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
    if ( input ) {
-      ops.copyInputData( _reg, _version, output, _locations );
+      ops.copyInputData( *this, output, wd );
    } else if ( output ) {
       ops.allocateOutputMemory( _reg, _version + 1 );
    } else {

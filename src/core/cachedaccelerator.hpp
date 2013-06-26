@@ -38,7 +38,7 @@ inline CachedAccelerator::~CachedAccelerator() {
 
 inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
 {
-   while ( !wd._mcontrol.isDataReady() ) { myThread->idle(); } 
+   while ( !wd._mcontrol.isDataReady( wd ) ) { myThread->idle(); } 
    //while ( !wd._ccontrol.dataIsReady() ) { myThread->idle(); } 
 }
 

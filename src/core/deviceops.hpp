@@ -8,7 +8,7 @@
 
 using namespace nanos;
 
-inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ), _lock()/*, _refs()*/ {
+inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ), _lock(), _owner( 0 )/*, _refs()*/ {
 }
 
 inline DeviceOps::~DeviceOps() {
@@ -23,8 +23,11 @@ inline bool DeviceOps::allCompleted() {
    return b;
 }
 
-inline bool DeviceOps::addCacheOp() {
+inline bool DeviceOps::addCacheOp( unsigned int owner ) {
    bool b = _pendingCacheOp.tryAcquire();
+   if ( b ) {
+      _owner = owner;
+   }
    return b;
 }
 
@@ -44,7 +47,9 @@ inline void DeviceOps::completeOp() {
    _pendingDeviceOps--;
 }
 
-inline void DeviceOps::completeCacheOp() {
+inline void DeviceOps::completeCacheOp( unsigned int owner ) {
+   ensure( owner == _owner, "Invalid owner clearing a cache op." );
+   _owner = 0;
    _pendingCacheOp.release();
 }
 

@@ -159,14 +159,6 @@ reg_t NewNewRegionDirectory::_getLocation( RegionDirectoryKey dict, CopyData con
       }
    }
 
-   //if ( wd.getId() == 27 ) {
-   //std::cerr << "Git region " << reg << std::endl;
-   //for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
-   //   std::cerr << "\tPart " << it->first << " comes from " << it->second << " dict " << (void *) dict << std::endl;
-   //}
-   //std::cerr <<" end of getLocation "<< std::endl;
-   //}
-
    return reg;
 }
 
@@ -355,7 +347,7 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
    return *getRegionDictionary( cd );
 }
 
-void NewNewRegionDirectory::synchronize2( bool flushData ) {
+void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
    if ( flushData ) {
       //std::cerr << "SYNC DIR" << std::endl;
       //int c = 0;
@@ -381,7 +373,7 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
             global_reg_t reg( mit->first, it->second );
             if ( !reg.isLocatedIn( 0 ) ) {
               DeviceOps *thisOps = reg.getDeviceOps();
-              if ( thisOps->addCacheOp() ) {
+              if ( thisOps->addCacheOp( wd.getId() ) ) {
                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
                   if ( VERBOSE_CACHE ) {
                      std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
@@ -389,7 +381,7 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
                      else std::cerr << " nil " << std::endl; 
                   }
                  //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                 outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps );
+                 outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
                  outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
               } else {
                  outOps.getOtherOps().insert( thisOps );
@@ -400,7 +392,7 @@ void NewNewRegionDirectory::synchronize2( bool flushData ) {
          //std::cerr << "=============================================================="<<std::endl;
       }
       outOps.issue( *( (WD *) NULL ) );
-      while ( !outOps.isDataReady() ) { myThread->idle(); }
+      while ( !outOps.isDataReady( wd ) ) { myThread->idle(); }
    }
 }
 

@@ -3,7 +3,7 @@
 #include "regiondict.hpp"
 #include "newregiondirectory.hpp"
 namespace nanos {
-MemController::MemController( WD const &wd ) : _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions() {
+MemController::MemController( WD const &wd ) : _initialized( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions() {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -32,21 +32,20 @@ bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &ver
       unsigned int versionSUBR = 0;
       if ( wantedDir->first->doTheseRegionsForm( reg.id, wantedDir->second.begin(), wantedDir->second.end(), versionSUBR ) ) {
          if ( versionHIT < versionSUBR && versionSUPER < versionSUBR ) {
-            for ( std::map< reg_t, unsigned int >::const_iterator it = wantedDir->second.begin(); it != wantedDir->second.end(); it++ ) {
-               global_reg_t r( it->first, wantedDir->first );
-               reg_t intersect = r.key->computeIntersect( reg.id, r.id );
-               if ( it->first == intersect ) {
-                  locations.push_back( std::make_pair( it->first, it->first ) );
+            NewNewDirectoryEntryData *dirEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
+            if ( dirEntry != NULL ) { /* if entry is null, do check directory, because we need to insert the region info in the intersect maps */
+               for ( std::map< reg_t, unsigned int >::const_iterator it = wantedDir->second.begin(); it != wantedDir->second.end(); it++ ) {
+                  global_reg_t r( it->first, wantedDir->first );
+                  reg_t intersect = r.key->computeIntersect( reg.id, r.id );
+                  if ( it->first == intersect ) {
+                     locations.push_back( std::make_pair( it->first, it->first ) );
+                  }
                }
-            }
-            NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
-            if ( firstEntry == NULL ) {
-               firstEntry = NEW NewNewDirectoryEntryData(  );
-               firstEntry->addAccess( 0, 1 );
-               wantedDir->first->setRegionData( reg.id, firstEntry );
+               version = versionSUBR;
+            } else {
+               sys.getHostMemory().getVersionInfo( reg, version, locations );
             }
             resultSUBR = true;
-            version = versionSUBR;
             //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS FORM THIS REG!!! and version computed is " << version << std::endl;
          }
       }
@@ -58,15 +57,14 @@ bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &ver
          } else {
             version = versionSUPER;
             //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
-            locations.push_back( std::make_pair( reg.id, superPart ) );
             NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
-            NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
-            if ( firstEntry == NULL ) {
-               firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
-               wantedDir->first->setRegionData( reg.id, firstEntry );
-            } else {
+            if ( firstEntry != NULL ) {
+               locations.push_back( std::make_pair( reg.id, superPart ) );
+               NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
                if (secondEntry == NULL) std::cerr << "LOLWTF!"<< std::endl;
                *firstEntry = *secondEntry;
+            } else {
+               sys.getHostMemory().getVersionInfo( reg, version, locations );
             }
          }
       }
@@ -90,12 +88,16 @@ void MemController::preInit( ) {
 }
 
 void MemController::initialize( ProcessingElement &pe ) {
-   _memorySpaceId = pe.getMemorySpaceId();
-   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
-   if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
-      _inOps = NEW HostAddressSpaceInOps( false );
-   } else {
-      _inOps = NEW SeparateAddressSpaceInOps( false, sys.getSeparateMemory( _memorySpaceId ) );
+   if ( !_initialized ) {
+      _memorySpaceId = pe.getMemorySpaceId();
+      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
+
+      if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
+         _inOps = NEW HostAddressSpaceInOps( false );
+      } else {
+         _inOps = NEW SeparateAddressSpaceInOps( false, sys.getSeparateMemory( _memorySpaceId ) );
+      }
+      _initialized = true;
    }
 }
 
@@ -108,7 +110,7 @@ void MemController::copyDataIn() {
    
    if ( VERBOSE_CACHE ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
-         std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << std::endl; 
+         std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << " ops: "<< (void *) _inOps << std::endl; 
          for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
             std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
          }
@@ -117,7 +119,7 @@ void MemController::copyDataIn() {
    
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-      _memCacheCopies[ index ].generateInOps2( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
+      _memCacheCopies[ index ].generateInOps( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
    }
 
    NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
@@ -164,7 +166,7 @@ uint64_t MemController::getAddress( unsigned int index ) const {
    if ( _memorySpaceId == 0 ) {
       addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress()) + _wd.getCopies()[ index ].getOffset() ;
    } else {
-      addr = sys.getSeparateMemory( _memorySpaceId ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress() );
+      addr = sys.getSeparateMemory( _memorySpaceId ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
    }
    return addr;
 }
@@ -179,10 +181,10 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
    _provideLock.release();
 }
  
-bool MemController::isDataReady() {
-   bool result = _inOps->isDataReady();
+bool MemController::isDataReady( WD const &wd ) {
+   bool result = _inOps->isDataReady( wd );
    if ( result ) {
-      if ( VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << std::endl; }
+      if ( VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
       _inOps->releaseLockedSourceChunks();
    }
    return result;

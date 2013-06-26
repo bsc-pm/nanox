@@ -11,9 +11,10 @@
 namespace nanos {
 
 class MemController {
-   WD const          &_wd;
-   memory_space_id_t  _memorySpaceId;
-   Lock               _provideLock;
+   bool                        _initialized;
+   WD const                   &_wd;
+   memory_space_id_t           _memorySpaceId;
+   Lock                        _provideLock;
    std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
    BaseAddressSpaceInOps      *_inOps;
    SeparateAddressSpaceOutOps *_outOps;
@@ -28,7 +29,7 @@ public:
    bool allocateInputMemory();
    void copyDataIn();
    void copyDataOut();
-   bool isDataReady();
+   bool isDataReady( WD const &wd );
    uint64_t getAddress( unsigned int index ) const;
    bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
 };

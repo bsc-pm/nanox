@@ -23,7 +23,7 @@ bool HostAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int ve
 void HostAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version ) {
 }
 
-void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {
+void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk ) {
    if ( reg.setCopying( from ) ) {
      from.copyOut( reg, version, ops, wd );
    } else {
@@ -47,8 +47,8 @@ void HostAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_
    std::cerr << "unimplemented" << std::endl;
 }
 
-void HostAddressSpace::synchronize( bool flushData ) {
-   _directory.synchronize2( flushData );
+void HostAddressSpace::synchronize( bool flushData, WD const &wd ) {
+   _directory.synchronize( flushData, wd );
 }
 
 memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
@@ -60,7 +60,8 @@ SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Dev
 
 
 bool SeparateAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version ) {
-   return _cache.pin( reg );
+   return true;
+   //return _cache.pin( reg );
 }
 
 void SeparateAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version ) {
@@ -71,12 +72,12 @@ void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int versio
    _cache.NEWcopyOut( reg, version, wd, ops );
 }
 
-void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {
-   _cache.NEWcopyIn( from._cache.getMemorySpaceId(), reg, version, wd, ops );
+void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk ) {
+   _cache.NEWcopyIn( from._cache.getMemorySpaceId(), reg, version, wd, ops, chunk );
 }
 
-void SeparateAddressSpace::doOp( HostMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops ) {
-   _cache.NEWcopyIn( 0, reg, version, wd, ops );
+void SeparateAddressSpace::doOp( HostMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk ) {
+   _cache.NEWcopyIn( 0, reg, version, wd, ops, chunk );
 }
 
 void SeparateAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {
@@ -106,7 +107,7 @@ void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd 
 void SeparateAddressSpace::copyFromHost( TransferList list, WD const &wd ) {
    for ( TransferList::const_iterator it = list.begin(); it != list.end(); it++ ) {
       if ( sys.getHostMemory().lockForTransfer( it->getRegion(), it->getVersion() ) ) {
-         this->doOp( sys.getHostMemory(), it->getRegion(), it->getVersion(), wd, it->getDeviceOps() );
+         this->doOp( sys.getHostMemory(), it->getRegion(), it->getVersion(), wd, it->getDeviceOps(), it->getChunk() );
          sys.getHostMemory().releaseForTransfer( it->getRegion(), it->getVersion() );
       } else {
          this->failToLock( sys.getHostMemory(), it->getRegion(), it->getVersion() );
@@ -114,8 +115,8 @@ void SeparateAddressSpace::copyFromHost( TransferList list, WD const &wd ) {
    }
 }
 
-uint64_t SeparateAddressSpace::getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress ) const {
-   return _cache.getDeviceAddress( reg, baseAddress );
+uint64_t SeparateAddressSpace::getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const {
+   return _cache.getDeviceAddress( reg, baseAddress, chunk );
 }
 
 unsigned int SeparateAddressSpace::getNodeNumber() const {
@@ -134,8 +135,8 @@ void SeparateAddressSpace::setSpecificData( void *data ) {
    _sdata = data;
 }
 
-void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
-   _cache.copyInputData( ops, reg, version, output, locations );
+void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd ) {
+   _cache.copyInputData( ops, reg, version, output, locations, chunk, wd );
 }
 
 void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {

@@ -42,7 +42,7 @@ void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
    BaseThread * thread = getMyThreadSafe();
    //while ( !work._ccontrol.dataIsReady() ) { 
-   while ( !work._mcontrol.isDataReady() ) { 
+   while ( !work._mcontrol.isDataReady( work ) ) { 
       thread->idle();
       thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
    }

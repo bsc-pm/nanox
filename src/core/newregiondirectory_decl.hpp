@@ -90,7 +90,7 @@ namespace nanos
          RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd ) const;
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd );
-         void synchronize2( bool flushData );
+         void synchronize( bool flushData, WD const &wd );
 
          /*! \brief NewDirectory default constructor
           */

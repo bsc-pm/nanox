@@ -15,7 +15,7 @@ class BaseOps {
       OwnOp( OwnOp const &op );
       OwnOp &operator=( OwnOp const &op );
       bool operator<( OwnOp const &op ) const {
-         return _ops < op._ops;
+         return ( ( uintptr_t ) _ops ) < ( ( uintptr_t ) op._ops );
       }
       void commitMetadata() const;
    };
@@ -28,8 +28,9 @@ class BaseOps {
    BaseOps( bool delayedCommit );
    ~BaseOps();
    std::set< DeviceOps * > &getOtherOps();
+   std::set< OwnOp > &getOwnOps();
    void insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location );
-   bool isDataReady();
+   bool isDataReady( WD const &wd );
 };
 
 class BaseAddressSpaceInOps : public BaseOps {
@@ -42,17 +43,17 @@ class BaseAddressSpaceInOps : public BaseOps {
    BaseAddressSpaceInOps( bool delayedCommit );
    virtual ~BaseAddressSpaceInOps();
 
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version );
+   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk );
    void lockSourceChunks( global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, memory_space_id_t thisLocation );
    void releaseLockedSourceChunks();
 
-   virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
+   virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk );
    virtual void issue( WD const &wd );
 
    virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg );
 
-   virtual void copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
+   virtual void copyInputData( MemCacheCopy const &memCopy, bool output, WD const &wd );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
 };
 
@@ -67,13 +68,13 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    SeparateAddressSpaceInOps( bool delayedCommit, SeparateMemoryAddressSpace &destination );
    ~SeparateAddressSpaceInOps();
 
-   virtual void addOpFromHost( global_reg_t const &reg, unsigned int version );
+   virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk );
    virtual void issue( WD const &wd );
 
    virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg );
 
-   virtual void copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
+   virtual void copyInputData( MemCacheCopy const &memCopy, bool output, WD const &wd );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
 };
 
@@ -85,7 +86,7 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    SeparateAddressSpaceOutOps( bool delayedCommit );
    ~SeparateAddressSpaceOutOps();
 
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops );
+   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk );
    void issue( WD const &wd );
 };
 

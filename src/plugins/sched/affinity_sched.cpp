@@ -135,7 +135,7 @@ namespace nanos {
 
             struct AlreadyDataInit {
                static inline bool check( WD &wd, BaseThread const &thread ) {
-                  if ( wd.initialized() && wd._mcontrol.isDataReady() ) return true;
+                  if ( wd.initialized() && wd._mcontrol.isDataReady( wd ) ) return true;
                   else return false;
                }
             };

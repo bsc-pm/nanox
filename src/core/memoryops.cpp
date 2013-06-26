@@ -35,7 +35,7 @@ BaseOps::BaseOps( bool delayedCommit ) : _delayedCommit( delayedCommit ), _ownDe
 BaseOps::~BaseOps() {
 }
 
-bool BaseOps::isDataReady() {
+bool BaseOps::isDataReady( WD const &wd ) {
    bool allReady = true;
 
    std::set< OwnOp >::iterator it = _ownDeviceOps.begin();
@@ -50,7 +50,7 @@ bool BaseOps::isDataReady() {
    // by clearing all when all are completed any dependence will be satisfied.
    if ( allReady ) {
       for ( it = _ownDeviceOps.begin(); it != _ownDeviceOps.end(); it++ ) {
-         it->_ops->completeCacheOp();
+         it->_ops->completeCacheOp( wd.getId() );
          if ( _delayedCommit ) { 
             it->commitMetadata();
          }
@@ -76,6 +76,10 @@ std::set< DeviceOps * > &BaseOps::getOtherOps() {
    return _otherDeviceOps;
 }
 
+std::set< BaseOps::OwnOp > &BaseOps::getOwnOps() {
+   return _ownDeviceOps;
+}
+
 void BaseOps::insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location ) {
    OwnOp op( ops, reg, version, location );
    _ownDeviceOps.insert( op );
@@ -90,12 +94,12 @@ BaseAddressSpaceInOps::BaseAddressSpaceInOps( bool delayedCommit ) : BaseOps( de
 BaseAddressSpaceInOps::~BaseAddressSpaceInOps() {
 }
 
-void BaseAddressSpaceInOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version ) {
+void BaseAddressSpaceInOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk ) {
    TransferList &list = _separateTransfers[ from ];
-   list.push_back( TransferListEntry( reg, version, NULL ) );
+   list.push_back( TransferListEntry( reg, version, NULL, chunk ) );
 }
 
-void BaseAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int version ) {
+void BaseAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk ) {
    std::cerr << "Error, can not send data from myself." << std::endl; 
 }
 
@@ -141,12 +145,12 @@ void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned 
 
 void BaseAddressSpaceInOps::releaseLockedSourceChunks() {
    for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
-      (*it)->unlock();
+      (*it)->unlock( true );
    }
    _lockedChunks.clear();
 }
 
-void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
+void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool output, WD const &wd ) {
 
    //std::set< DeviceOps * > ops;
    //ops.insert( reg.getDeviceOps() );
@@ -160,22 +164,23 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
    //   (*opIt)->syncAndDisableInvalidations();
    //}
 
-   lockSourceChunks( reg, version, locations, 0 );
+   lockSourceChunks( memCopy._reg, memCopy._version, memCopy._locations, 0 );
 
-   DeviceOps *thisRegOps = reg.getDeviceOps();
-   if ( reg.getHostVersion( false ) != version ) {
-      if ( VERBOSE_CACHE ) { std::cerr << "I have to copy region " << reg.id << " dont have it "<<std::endl; }
-      if ( thisRegOps->addCacheOp() ) {
-         insertOwnOp( thisRegOps, reg, version, 0 ); //i've got the responsability of copying this region
+   DeviceOps *thisRegOps = memCopy._reg.getDeviceOps();
+   if ( memCopy._reg.getHostVersion( false ) != memCopy._version ) {
+      if ( VERBOSE_CACHE ) { std::cerr << "I have to copy region " << memCopy._reg.id << " dont have it "<<std::endl; }
+      if ( thisRegOps->addCacheOp( wd.getId() ) ) {
+         if ( VERBOSE_CACHE ) { std::cerr << "I will do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
+         insertOwnOp( thisRegOps, memCopy._reg, memCopy._version, 0 ); //i've got the responsability of copying this region
 
-         if ( locations.size() == 1 ) {
-            global_reg_t region_shape( locations.begin()->first, reg.key );
-            global_reg_t data_source( locations.begin()->second, reg.key );
-            ensure( region_shape.id == reg.id, "Wrong region" );
+         if ( memCopy._locations.size() == 1 ) {
+            global_reg_t region_shape( memCopy._locations.begin()->first, memCopy._reg.key );
+            global_reg_t data_source( memCopy._locations.begin()->second, memCopy._reg.key );
+            ensure( region_shape.id == memCopy._reg.id, "Wrong region" );
             if ( !data_source.isLocatedIn( 0 ) ) {
                memory_space_id_t location = data_source.getFirstLocation();
                ensure( location > 0, "Wrong location.");
-               addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
+               this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy._version, NULL );
             } else {
                //memory_space_id_t location = data_source.getFirstLocation();
                //std::cerr << "This should not happen, reg " << data_source.id << " reported to be in 0 (first loc " << location << " ) shape is " << region_shape.id << std::endl;
@@ -183,21 +188,23 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
                getOtherOps().insert( data_source.getDeviceOps() );
             }
          } else {
-            for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
-               global_reg_t region_shape( it->first, reg.key );
-               global_reg_t data_source( it->second, reg.key );
-               ensure( region_shape.id != reg.id, "Wrong region" );
+            for ( NewLocationInfoList::const_iterator it = memCopy._locations.begin(); it != memCopy._locations.end(); it++ ) {
+               global_reg_t region_shape( it->first, memCopy._reg.key );
+               global_reg_t data_source( it->second, memCopy._reg.key );
+               ensure( region_shape.id != memCopy._reg.id, "Wrong region" );
                //if ( region_shape.id == data_source.id ) {
                   if ( !data_source.isLocatedIn( 0 ) ) {
                      memory_space_id_t location = data_source.getFirstLocation();
                      DeviceOps *thisOps = region_shape.getDeviceOps(); //FIXME: we assume that region_shape has a directory entry, it may be a wrong assumption
-                     if ( thisOps->addCacheOp() ) {
-                        insertOwnOp( thisOps, region_shape, version, 0 );
+                     int added = 0;
+                     if ( thisOps->addCacheOp( wd.getId() ) ) {
+                        insertOwnOp( thisOps, region_shape, memCopy._version, 0 );
+                        added = 1;
                      } else {
                         std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
                      }
-                     if ( VERBOSE_CACHE ) { std::cerr << " added a op! ds= " << it->second << " rs= " << it->first <<std::endl; }
-                     addOp( &( sys.getSeparateMemory( location ) ), region_shape, version );
+                     if ( VERBOSE_CACHE ) { std::cerr << " added a op! ds= " << it->second << " rs= " << it->first << " added= " << added << " so far we have ops: " << getOwnOps().size() << " this Obj "<< (void *) this << std::endl; }
+                     this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy._version, NULL );
                   } else {
                      if ( VERBOSE_CACHE ) { std::cerr << " sync with other op! ds= " << it->second << " rs= " << it->first <<std::endl; }
                      getOtherOps().insert( data_source.getDeviceOps() );
@@ -207,6 +214,7 @@ void BaseAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int
             }
          }
       } else {
+         if ( VERBOSE_CACHE ) { std::cerr << "I will not do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
          getOtherOps().insert( thisRegOps );
       }
    } else {
@@ -229,8 +237,8 @@ SeparateAddressSpaceInOps::SeparateAddressSpaceInOps( bool delayedCommit, MemSpa
 SeparateAddressSpaceInOps::~SeparateAddressSpaceInOps() {
 }
 
-void SeparateAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int version ) {
-   _hostTransfers.push_back( TransferListEntry( reg, version, NULL ) );
+void SeparateAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk ) {
+   _hostTransfers.push_back( TransferListEntry( reg, version, NULL, chunk ) );
 }
 
 void SeparateAddressSpaceInOps::issue( WD const &wd ) {
@@ -248,8 +256,8 @@ unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &re
    return _destination.getCurrentVersion( reg );
 }
 
-void SeparateAddressSpaceInOps::copyInputData( global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations ) {
-   _destination.copyInputData( *this, reg, version, output, locations );
+void SeparateAddressSpaceInOps::copyInputData( MemCacheCopy const& memCopy, bool output, WD const &wd ) {
+   _destination.copyInputData( *this, memCopy._reg, memCopy._version, output, memCopy._locations, memCopy._chunk, wd );
 }
 
 void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {
@@ -263,9 +271,9 @@ SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( bool delayedCommit ) : B
 SeparateAddressSpaceOutOps::~SeparateAddressSpaceOutOps() {
 }
 
-void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops ) {
+void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk ) {
    TransferList &list = _transfers[ from ];
-   list.push_back( TransferListEntry( reg, version, ops ) );
+   list.push_back( TransferListEntry( reg, version, ops, chunk ) );
 }
 
 void SeparateAddressSpaceOutOps::issue( WD const &wd ) {

@@ -75,10 +75,11 @@ namespace nanos {
          bool isInvalidated() const;
          void invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess );
 
-         void lock();
-         void unlock();
+         bool trylock();
+         void lock( bool setVerbose=false );
+         void unlock( bool unsetVerbose=false );
          bool locked() const;
-         bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations );
+         bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations, WD const &wd );
          void NEWaddWriteRegion( reg_t reg, unsigned int version );
          void addReference();
          void removeReference();
@@ -177,9 +178,9 @@ namespace nanos {
          /* *********** */
          void copyIn( global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd ); 
          void copyOut( global_reg_t const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd ); 
-         void NEWcopyIn( unsigned int location, global_reg_t const &hostMem, unsigned int version, WD const &wd, DeviceOps *ops ); 
+         void NEWcopyIn( unsigned int location, global_reg_t const &hostMem, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk ); 
          void NEWcopyOut( global_reg_t const &hostMem, unsigned int version, WD const &wd, DeviceOps *ops ); 
-         uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress ) const;
+         uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
          void lock();
          void unlock();
          bool tryLock();
@@ -197,7 +198,7 @@ namespace nanos {
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version );
 
-         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations );
+         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd );
          void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
 
          unsigned int getInvalidationCount() const;
