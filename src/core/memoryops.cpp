@@ -145,7 +145,8 @@ void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned 
 
 void BaseAddressSpaceInOps::releaseLockedSourceChunks() {
    for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
-      (*it)->unlock( true );
+      //(*it)->unlock();
+      (*it)->removeReference();
    }
    _lockedChunks.clear();
 }

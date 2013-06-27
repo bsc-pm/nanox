@@ -1177,7 +1177,9 @@ void RegionCache::prepareRegionsToCopyToHost( std::set< global_reg_t > const &re
       if ( chunk != NULL ) {
          if ( chunks.count( chunk ) == 0 ) {
             chunk->lock();
+            chunk->addReference();
             chunks.insert( chunk );
+            chunk->unlock();
          }
       }
    }
