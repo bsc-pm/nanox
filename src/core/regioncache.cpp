@@ -1164,6 +1164,7 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
       _lock.release();
    } else {
       result = false;
+      std::cerr << "This device can not hold this task, not enough memory. Needed: "<< total_allocatable_size << " max avalilable " << _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) << std::endl;
       fatal( "This device can not hold this task, not enough memory." );
    }
    return result;

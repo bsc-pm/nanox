@@ -263,7 +263,6 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    unsigned int i;
    WorkGroup *rwg;
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error obtaining node information.\n");
@@ -336,6 +335,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 
    sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate, NULL );
 
+   VERBOSE_AM( std::cerr << __FUNCTION__ << " from " << src_node << " wid "<< wdId << " wdAddr "<< (void *) localWD << std::endl; );
    std::memcpy(data, work_data, dataSize);
 
    //unsigned int numDeps = *( ( int * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) ] );
@@ -388,7 +388,7 @@ void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, ga
 {
    gasnet_node_t src_node;
    void * addr = (void *) MERGE_ARG( addrHi, addrLo );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( std::cerr << __FUNCTION__ << " host wd addr "<< (void *) addr << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -399,7 +399,7 @@ void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, ga
    NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_AM_WORK_DONE, id, 0, 0, src_node ); )
 
    sys.getNetwork()->notifyWorkDone( src_node, addr, peId );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( std::cerr << __FUNCTION__ << " from "<< src_node <<" host wd addr "<< (void *) addr <<" done." << std::endl; );
 }
 
 void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasnet_handlerarg_t sizeHi,
@@ -519,7 +519,6 @@ void GASNetAPI::amPut( gasnet_token_t token,
       gasnet_handlerarg_t functorHi ) 
 {
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -529,6 +528,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
    Functor *f = ( Functor * ) MERGE_ARG( functorHi, functorLo );
    WD *wd = ( WD * ) MERGE_ARG( wdHi, wdLo );
    std::size_t totalLen = ( std::size_t ) MERGE_ARG( totalLenHi, totalLenLo );
+   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " size " << len << " addrTag " << (void*) realTag << " addrAddr "<< (void*)realAddr<< std::endl; );
 
    getInstance()->_rxBytes += len;
 
@@ -801,6 +801,7 @@ void GASNetAPI::amRequestPut( gasnet_token_t token,
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
+   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " to " << dst <<" size " << len << " origAddr " << (void*) origAddr << " destAddr "<< (void*)destAddr<< std::endl; );
 
    SendDataPutRequest *req = NEW SendDataPutRequest( getInstance(), dst, origAddr, destAddr, len, 1, 0, tmpBuffer, wdId, wd, f );
    getInstance()->_net->notifyRequestPut( req );
@@ -862,11 +863,11 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_amWaitRequestPut); );
 
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
+   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " addr " << (void*)addr << std::endl; );
 
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )

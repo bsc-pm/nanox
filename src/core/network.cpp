@@ -84,6 +84,10 @@ void Network::poll( unsigned int id)
 {
    //   ensure ( _api != NULL, "No network api loaded." );
    checkDeferredWorkReqs();
+   SendDataRequest * req = _dataSendRequests.tryFetch();
+   if ( req ) {
+      _api->processSendDataRequest( req );
+   }
    if (_api != NULL /*&& (id >= _pollingMinThd && id <= _pollingMaxThd) */)
       _api->poll();
 }
@@ -473,9 +477,12 @@ void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, 
          _waitingPutRequests.erase( it );
          _delayedPutReqsLock.acquire();
          if ( !_delayedPutReqs.empty() ) {
-            for ( std::list<SendDataRequest *>::iterator putReqsIt = _delayedPutReqs.begin(); putReqsIt != _delayedPutReqs.end(); putReqsIt++ ) {
+            for ( std::list<SendDataRequest *>::iterator putReqsIt = _delayedPutReqs.begin(); putReqsIt != _delayedPutReqs.end(); ) {
                if ( (*putReqsIt)->getOrigAddr() == destAddr ) {
                   _dataSendRequests.add( *putReqsIt );
+                  putReqsIt = _delayedPutReqs.erase( putReqsIt );
+               } else {
+                  putReqsIt++;
                }
             }
          }
