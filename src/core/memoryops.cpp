@@ -172,23 +172,29 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
       if ( VERBOSE_CACHE ) { std::cerr << "I have to copy region " << memCopy._reg.id << " dont have it "<<std::endl; }
       if ( thisRegOps->addCacheOp( wd.getId() ) ) {
          if ( VERBOSE_CACHE ) { std::cerr << "I will do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
-         insertOwnOp( thisRegOps, memCopy._reg, memCopy._version, 0 ); //i've got the responsability of copying this region
 
          if ( memCopy._locations.size() == 1 ) {
             global_reg_t region_shape( memCopy._locations.begin()->first, memCopy._reg.key );
             global_reg_t data_source( memCopy._locations.begin()->second, memCopy._reg.key );
+
+            /* FIXME can this be moved after generating the ops?*/
+            memory_space_id_t location = data_source.getFirstLocation();
+            bool is_located_in_host = data_source.isLocatedIn( 0 );
+            insertOwnOp( thisRegOps, memCopy._reg, memCopy._version, 0 ); //i've got the responsability of copying this region
+
             ensure( region_shape.id == memCopy._reg.id, "Wrong region" );
-            if ( !data_source.isLocatedIn( 0 ) ) {
-               memory_space_id_t location = data_source.getFirstLocation();
+            if ( !is_located_in_host ) {
                ensure( location > 0, "Wrong location.");
                this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy._version, NULL );
             } else {
-               //memory_space_id_t location = data_source.getFirstLocation();
-               //std::cerr << "This should not happen, reg " << data_source.id << " reported to be in 0 (first loc " << location << " ) shape is " << region_shape.id << std::endl;
+               std::cerr << "This should not happen, reg " << data_source.id << " reported to be in 0 (first loc " << location << " ) shape is " << region_shape.id << std::endl;
                //fatal("Impossible path!");
                getOtherOps().insert( data_source.getDeviceOps() );
             }
          } else {
+            /* FIXME can this be moved after generating the ops?*/
+            insertOwnOp( thisRegOps, memCopy._reg, memCopy._version, 0 ); //i've got the responsability of copying this region
+
             for ( NewLocationInfoList::const_iterator it = memCopy._locations.begin(); it != memCopy._locations.end(); it++ ) {
                global_reg_t region_shape( it->first, memCopy._reg.key );
                global_reg_t data_source( it->second, memCopy._reg.key );
@@ -219,6 +225,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
          getOtherOps().insert( thisRegOps );
       }
    } else {
+         if ( VERBOSE_CACHE ) { std::cerr << "I will not do the transfer for reg " << memCopy._reg.id << " I have it at proper version " << memCopy._version <<std::endl; }
       getOtherOps().insert( thisRegOps );
    }
 
