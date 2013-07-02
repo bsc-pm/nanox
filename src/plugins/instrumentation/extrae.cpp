@@ -34,7 +34,19 @@
 
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 3 /*********** version 2.3.x */
 #      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.3.0 */
+#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
 #      endif /*----------------------------------------------- version 2.3.0 */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 1 /****** version 2.3.1 */
+#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
+#      endif /*----------------------------------------------- version 2.3.1 */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 2 /****** version 2.3.2 */
+#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
+#      endif /*----------------------------------------------- version 2.3.2 */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 3 /****** version 2.3.3 */
+#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
+#      endif /*----------------------------------------------- version 2.3.3 */
+#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 4 /****** version 2.3.4 */
+#      endif /*----------------------------------------------- version 2.3.4 */
 #    endif /*------------------------------------------------- version 2.3.x */
 
 #  endif /*--------------------------------------------------- version 2.x.x */
@@ -53,11 +65,11 @@ extern "C" {
 
 namespace nanos {
 
-   const unsigned int _eventState      = 9000000;   /*<< event coding state changes */
-   const unsigned int _eventPtPStart   = 9000001;   /*<< event coding comm start */
-   const unsigned int _eventPtPEnd     = 9000002;   /*<< event coding comm end */
-   const unsigned int _eventSubState   = 9000004;   /*<< event coding sub-state changes */
-   const unsigned int _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
+   const extrae_type_t _eventState      = 9000000;   /*<< event coding state changes */
+   const extrae_type_t _eventPtPStart   = 9000001;   /*<< event coding comm start */
+   const extrae_type_t _eventPtPEnd     = 9000002;   /*<< event coding comm end */
+   const extrae_type_t _eventSubState   = 9000004;   /*<< event coding sub-state changes */
+   const extrae_type_t _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
 
 class InstrumentationExtrae: public Instrumentation 
 {
@@ -79,6 +91,7 @@ class InstrumentationExtrae: public Instrumentation
       void addSuspendTask( WorkDescriptor &w ) {}
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
+      void incrementMaxThreads( void ) {}
 #else
    private:
       std::string                                    _listOfTraceFileNames;
@@ -89,6 +102,7 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_PCF;     /*<< Paraver: file.pcf */
       std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
       std::string                                    _binFileName;           /*<< Binnary file name */
+      int                                            _maxThreads;
    public: /* must be updated by Configure */
       static std::string                             _traceBaseName;
       static std::string                             _postProcessScriptPath;
@@ -715,6 +729,9 @@ class InstrumentationExtrae: public Instrumentation
               Extrae_register_stacked_type( (extrae_type_t) _eventBase+kD->getId() );
            }
         }
+
+        /* Keep current number of threads */
+        _maxThreads = sys.getNumThreads();
       }
       void doLs(std::string dest)
       {
@@ -796,7 +813,11 @@ class InstrumentationExtrae: public Instrumentation
                   strncpy(val_desc[val_id], vD->getDescription().c_str(), vD->getDescription().size()+1 );
                   val_id++;
                }
-               Extrae_define_event_type( type, type_desc, val_id, values, val_desc);
+#ifdef NANOX_EXTRAE_OLD_DEFINE_TYPE
+               Extrae_define_event_type( (extrae_type_t) type, type_desc, val_id, values, val_desc);
+#else
+               Extrae_define_event_type( (extrae_type_t *) &type, type_desc, &val_id, values, val_desc);
+#endif
 
             }
          }
@@ -820,13 +841,18 @@ class InstrumentationExtrae: public Instrumentation
             values[i] = 27;
             val_desc[i++] = (char *) "EXTRAE I/O";
 
-            Extrae_define_event_type( _eventState, (char *) "Thread state: ", nval, values, val_desc );
-
-            Extrae_define_event_type( _eventPtPStart, (char *) "Point-to-point origin", 0, NULL, NULL );
-
-            Extrae_define_event_type( _eventPtPEnd, (char *) "Point-to-point destination", 0, NULL, NULL );
-
-            Extrae_define_event_type( _eventSubState, (char *) "Thread sub-state", nval, values, val_desc );
+#ifdef NANOX_EXTRAE_OLD_DEFINE_TYPE
+            Extrae_define_event_type( (extrae_type_t ) _eventState, (char *) "Thread state: ", nval, values, val_desc );
+            Extrae_define_event_type( (extrae_type_t ) _eventPtPStart, (char *) "Point-to-point origin", 0, NULL, NULL );
+            Extrae_define_event_type( (extrae_type_t ) _eventPtPEnd, (char *) "Point-to-point destination", 0, NULL, NULL );
+            Extrae_define_event_type( (extrae_type_t ) _eventSubState, (char *) "Thread sub-state", nval, values, val_desc );
+#else
+            unsigned extrae_zero = 0;
+            Extrae_define_event_type( (extrae_type_t *) &_eventState, (char *) "Thread state: ", &nval, values, val_desc );
+            Extrae_define_event_type( (extrae_type_t *) &_eventPtPStart, (char *) "Point-to-point origin", &extrae_zero, NULL, NULL );
+            Extrae_define_event_type( (extrae_type_t *) &_eventPtPEnd, (char *) "Point-to-point destination", &extrae_zero, NULL, NULL );
+            Extrae_define_event_type( (extrae_type_t *) &_eventSubState, (char *) "Thread sub-state", &nval, values, val_desc );
+#endif
          }
 
          OMPItrace_fini();
@@ -889,7 +915,6 @@ class InstrumentationExtrae: public Instrumentation
          nanos_event_key_t ckey = 0;
          extrae_value_t cvalue = 0;
          nanos_event_key_t sizeKey = iD->getEventKey("xfer-size");
-         nanos_event_key_t changeThreads = iD->getEventKey("set-num-threads");
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -933,10 +958,6 @@ class InstrumentationExtrae: public Instrumentation
                   k++;
                   break;
                case NANOS_POINT:
-                  ckey = e.getKey();
-                  if ( ckey == changeThreads ) {
-                        Extrae_change_num_threads( std::max((int)e.getValue(), sys.getMaskMaxSize()) );
-                  }
                case NANOS_BURST_START:
                   ckey = e.getKey();
                   cvalue = e.getValue();
@@ -993,6 +1014,11 @@ class InstrumentationExtrae: public Instrumentation
 
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
+
+      void incrementMaxThreads( void )
+      {
+         Extrae_change_num_threads( ++_maxThreads );
+      }
 
 #endif
 };

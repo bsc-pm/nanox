@@ -27,6 +27,7 @@ void DependableObject::finished ( )
 {
    if ( --_references == 0) {
       DependableObject& depObj = *this;
+
       // This step guarantees that any Object that wants to add depObj as a successor has done it
       // before we continue or, alternatively, won't do it.
       TargetVector const &outs = depObj.getWrittenTargets();

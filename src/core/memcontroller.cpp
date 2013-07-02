@@ -164,7 +164,7 @@ uint64_t MemController::getAddress( unsigned int index ) const {
    uint64_t addr = 0;
    //std::cerr << " _getAddress, reg: " << index << " key: " << (void *)_memCacheCopies[ index ]._reg.key << " id: " << _memCacheCopies[ index ]._reg.id << std::endl;
    if ( _memorySpaceId == 0 ) {
-      addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress()) + _wd.getCopies()[ index ].getOffset() ;
+      addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress());
    } else {
       addr = sys.getSeparateMemory( _memorySpaceId ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
    }

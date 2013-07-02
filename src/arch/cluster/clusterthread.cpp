@@ -136,7 +136,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       newCopies[i].setDimensions( ( nanos_region_dimension_internal_t const *  ) dimensionIndex ); // This is the index because it makes no sense to send an address over the network
       newCopies[i].setHostBaseAddress( (uint64_t) wd.getCopies()[i].getBaseAddress() );
       //newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
-      newCopies[i].setBaseAddress( (void *) ( wd._mcontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
+      newCopies[i].setBaseAddress( (void *) wd._mcontrol.getAddress( i ) );
       dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
 

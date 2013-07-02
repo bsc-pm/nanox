@@ -248,6 +248,8 @@ namespace nanos {
             registerEventValue("api","get_num_blocked_tasks","nanos_get_num_blocked_tasks()");
             registerEventValue("api","get_num_running_tasks","nanos_get_num_running_tasks()");
             registerEventValue("api","dependence_pendant_writes","nanos_dependence_pendant_writes()");
+            registerEventValue("api","in_final","nanos_in_final()");
+            registerEventValue("api","set_final","nanos_set_final()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 
@@ -704,6 +706,8 @@ namespace nanos {
          virtual void addResumeTask( WorkDescriptor &w ) = 0 ;
 
          virtual void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
+
+         virtual void incrementMaxThreads( void ) {}
 
          /*! \brief Pure virtual functions executed each time runtime wants to add an event
           *

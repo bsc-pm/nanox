@@ -49,7 +49,8 @@ namespace ext
    {
       friend class GPUPlugin;
       private:
-         static bool                      _disableCUDA; //! Enable/disable all CUDA support
+         static bool                      _enableCUDA; //! Enable all CUDA support
+         static bool                      _forceDisableCUDA; //! Force disable all CUDA support
          static int                       _numGPUs; //! Number of CUDA-capable GPUs
          static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by GPU devices
          static bool                      _prefetch; //! Enable / disable data prefetching (set by the user)

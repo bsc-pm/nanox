@@ -122,8 +122,9 @@ namespace nanos {
                depObj.submitted();
             
                // now everything is ready
-               if ( depObj.decreasePredecessors() > 0 )
-                  depObj.wait( flushDeps );
+               depObj.decreasePredecessors();
+               //Flush the object
+               depObj.wait( flushDeps );
             }
             /*! \brief Adds a region access of a DependableObject to the domains dependency system.
              *  \param depObj target DependableObject

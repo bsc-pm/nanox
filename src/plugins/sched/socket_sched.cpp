@@ -216,8 +216,10 @@ namespace nanos {
                   if ( &nanos::ext::GPU == worker->runningOn()->getDeviceType() )
                   {
                      int node = worker->runningOn()->getNUMANode();
-                     _gpuNodes.insert( node );
-                     verbose0( "Found GPU Worker in node " << node );
+                     // Convert to virtual
+                     int vNode = sys.getVirtualNUMANode( node );
+                     _gpuNodes.insert( vNode );
+                     verbose0( "Found GPU Worker in node " << node << " (virtual " << vNode << ")" );
                   }
 #endif
                   // Avoid unused variable warning.
@@ -341,7 +343,7 @@ namespace nanos {
                computeDistanceInfo();
                
                // Create 2 queues per socket plus one for the global queue.
-               return NEW TeamData( sys.getNumSockets() );
+               return NEW TeamData( sys.getNumAvailSockets() );
             }
 
             virtual ScheduleThreadData * createThreadData ()
@@ -434,7 +436,7 @@ namespace nanos {
                      
                      //index = (tdata._next++ ) % sys.getNumSockets() + 1;
                      // 2 queues per socket, the first one is for level 1 tasks
-                     fatal_cond( node >= sys.getNumSockets(), "Invalid node selected" );
+                     fatal_cond( node >= sys.getNumAvailSockets(), "Invalid node selected" );
                      //index = (node % sys.getNumSockets())*2 + 1;
                      index = nodeToQueue( node, true );
                      wd.setWakeUpQueue( index );
@@ -456,7 +458,7 @@ namespace nanos {
                      // If this wd cannot run in this node
                      if ( !canRunInNode( wd, node ) ) {
                         node = findBetterNode( wd, node );
-                        fatal_cond( node >= sys.getNumSockets(), "Invalid node selected" );
+                        fatal_cond( node >= sys.getNumAvailSockets(), "Invalid node selected" );
                         // If index is not even
                         // Means its parent is level 1, small tasks go in even queues
                         index = nodeToQueue( node, index % 2 != 0);
@@ -494,8 +496,10 @@ namespace nanos {
             {
                WD* wd = NULL;
                
-               // Get the socket of this thread
-               unsigned socket = thread->runningOn()->getNUMANode();
+               // Get the physical node of this thread
+               unsigned node = thread->runningOn()->getNUMANode();
+               // Convert to virtual
+               unsigned vNode = sys.getVirtualNUMANode( node );
                
                //fprintf( stderr, "atIdle socket %d\n", socket );
                
@@ -509,10 +513,10 @@ namespace nanos {
                 * TODO: compute N.
                 * TODO: just one thread at a time can run depth 1 tasks.
                 */
-               int deepTasksN = tdata._readyQueues[ nodeToQueue( socket, false ) ].size();
-               bool emptyBigTasks = tdata._readyQueues[ nodeToQueue( socket, true )].empty();
+               int deepTasksN = tdata._readyQueues[ nodeToQueue( vNode, false ) ].size();
+               bool emptyBigTasks = tdata._readyQueues[ nodeToQueue( vNode, true )].empty();
                //fprintf( stderr, "[sockets] %d tasks at the small's queue\n", deepTasksN );
-               //fprintf( stderr, "[sockets] %u tasks at the big's queue\n", (unsigned)tdata._readyQueues[ nodeToQueue( socket, true )].size() );
+               //fprintf( stderr, "[sockets] %u tasks at the big's queue\n", (unsigned)tdata._readyQueues[ nodeToQueue( vNode, true )].size() );
                
                //unsigned thId = thread->getId();
                
@@ -520,7 +524,7 @@ namespace nanos {
                // TODO Improve atomic condition
                bool stealFromBig = deepTasksN < 1*sys.getCoresPerSocket() && !emptyBigTasks;
                    /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/
-               unsigned queueNumber = nodeToQueue( socket, stealFromBig );
+               unsigned queueNumber = nodeToQueue( vNode, stealFromBig );
                
                unsigned spins = _spins;
                // Make sure the queue is really empty... lotsa times!
@@ -546,7 +550,7 @@ namespace nanos {
                      //int largestSocket = 0;
                      for ( int i = 1; i < sys.getNumSockets(); ++i )
                      {
-                        WDPriorityQueue<> *current = &tdata._readyQueues[ (i+1)*2];
+                        WDPriorityQueue<> *current = &tdata._readyQueues[ (i+1)*2 ];
                         if ( largest->size() < current->size() ){
                            largest = current;
                            //largestSocket = i;
@@ -561,16 +565,18 @@ namespace nanos {
                   }
                   else if ( _randomSteal )
                   {
-                     unsigned random = std::rand() % sys.getNumSockets();
+                     unsigned random = std::rand() % sys.getNumAvailSockets();
                      //index = random * 2 + offset;
                      index = nodeToQueue( random, _stealParents );
                   }
                   // Round robbin steal
                   else {
-                     unsigned close = _nearSockets[socket].getStealNext();
+                     // getStealNext returns a physical node, we must convert it
+                     int close = _nearSockets[node].getStealNext();
+                     int vClose = sys.getVirtualNUMANode( close );
                      
                      // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
-                     index = nodeToQueue( close, _stealParents );
+                     index = nodeToQueue( vClose, _stealParents );
                   }
                   
                   if( _stealLowPriority )

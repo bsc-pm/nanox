@@ -217,7 +217,7 @@ typedef struct nanos_ws_desc {
    int                   nths;       // Slicer plugin information: number of supporting threads, API ->  Slicer plugin
 } nanos_ws_desc_t;
 
-// WD properties
+// WD const properties
 typedef struct {
    bool mandatory_creation:1;
    bool tied:1;
@@ -230,6 +230,18 @@ typedef struct {
 } nanos_wd_props_t;
 
 typedef struct {
+   bool is_final:1;
+   bool reserved1:1;
+   bool reserved2:1;
+   bool reserved3:1;
+   bool reserved4:1;
+   bool reserved5:1;
+   bool reserved6:1;
+   bool reserved7:1;
+} nanos_wd_dyn_flags_t;
+
+typedef struct {
+   nanos_wd_dyn_flags_t flags;
    nanos_thread_t tie_to;
    unsigned int priority;
 } nanos_wd_dyn_props_t;

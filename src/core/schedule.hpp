@@ -78,7 +78,7 @@ inline const std::string & SchedulePolicy::getName () const
    return _name;
 }
 
-inline WD * SchedulePolicy::atBeforeExit  ( BaseThread *thread, WD &current )
+inline WD * SchedulePolicy::atBeforeExit  ( BaseThread *thread, WD &current, bool schedule )
 {
    return 0;
 }

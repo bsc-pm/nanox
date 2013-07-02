@@ -1115,14 +1115,7 @@ void RegionCache::releaseRegion( global_reg_t const &reg, WD const &wd ) {
 }
 
 uint64_t RegionCache::getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const {
-   //AllocatedChunk *chunk = getAllocatedChunk( reg );
-   //uint64_t addr = chunk->getAddress() + ( reg.getFirstAddress() - chunk->getHostAddress() );
-   uint64_t addr = ( chunk->getAddress() - ( chunk->getHostAddress() - baseAddress ) ) + 
-      ( reg.getFirstAddress() - reg.getBaseAddress() ); /* this is the copy original offset, getBaseAddress does not return the correct value in slave nodes, 
-                                                         * in this case getFirstAddress is also based om it so it corrects the error */
-   //std::cerr << "getDevice Address= "<< (void*)addr <<" for reg "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
-   //chunk->unlock();
-   return addr;
+   return ( chunk->getAddress() - ( chunk->getHostAddress() - baseAddress ) );
 }
 
 bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {

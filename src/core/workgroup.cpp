@@ -87,10 +87,10 @@ void WorkGroup::done ()
         *it = 0;
      }
    }
+
+   // Waiting for children (just to keep structures)
+   waitCompletion( true );
 }
 
-WorkGroup::~WorkGroup ()
-{
-   done();
-}
+WorkGroup::~WorkGroup () { }
 

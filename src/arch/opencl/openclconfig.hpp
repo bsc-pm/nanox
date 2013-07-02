@@ -36,7 +36,10 @@ private:
   // These properties contains raw info set by the user.
 
   // Whether to disable OpenCL.
-  static bool _disableOpenCL;
+  static bool _enableOpenCL;
+  
+  // Whether to disable OpenCL.
+  static bool _forceDisableOpenCL;
   
   // The platform to use.
   static std::string _platName;
