@@ -248,7 +248,7 @@ namespace nanos
 
          bool isRunning () const;
 
-         bool isEligible () const;
+         bool isTaggedToSleep () const;
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;

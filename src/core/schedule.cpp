@@ -188,7 +188,7 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
-      if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
+      if ( thread->isTaggedToSleep() && !behaviour::exiting() ) thread->wait();
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -557,7 +557,7 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
    /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
 
-   if ( schedule && getMyThreadSafe()->isEligible() ) {
+   if ( schedule && !getMyThreadSafe()->isTaggedToSleep() ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {

@@ -1266,7 +1266,7 @@ BaseThread * System:: getUnassignedWorker ( void )
 
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
       thread = _workers[i];
-      if ( !thread->hasTeam() || !thread->isEligible() ) {
+      if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
 
          // skip if the thread is not in the mask
          if ( sys.getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpu_active_set) )
@@ -1275,7 +1275,7 @@ BaseThread * System:: getUnassignedWorker ( void )
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( thread->hasTeam() && thread->isEligible() ) {
+         if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
             // we lost it
             thread->unlock();
             continue;
@@ -1299,12 +1299,12 @@ BaseThread * System:: getAssignedWorker ( void )
    ThreadList::reverse_iterator rit;
    for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
       thread = *rit;
-      if ( thread->hasTeam() && thread->isEligible() ) {
+      if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
 
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( !thread->hasTeam() || !thread->isEligible() ) {
+         if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
             // we lost it
             thread->unlock();
             continue;
