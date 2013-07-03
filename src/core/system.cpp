@@ -479,6 +479,18 @@ void System::start ()
          ++p;
       }
    }
+
+   // Set up internal data for each worker
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+
+      WD & threadWD = (*it)->getThreadWD();
+      if ( _pmInterface->getInternalDataSize() > 0 ) {
+         char *data = NEW char[_pmInterface->getInternalDataSize()];
+         _pmInterface->initInternalData( data );
+         threadWD.setInternalData( data );
+      }
+      _pmInterface->setupWD( threadWD );
+   }
       
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
@@ -1256,8 +1268,18 @@ void System::createWorker( unsigned p )
    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
    PE *pe = createPE ( "smp", getBindingId( p ) );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->startWorker() );
+   BaseThread *thread = &pe->startWorker();
+   _workers.push_back( thread );
    ++_targetThreads;
+
+   //Set up internal data
+   WD & threadWD = thread->getThreadWD();
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      threadWD.setInternalData( data );
+   }
+   _pmInterface->setupWD( threadWD );
 }
 
 BaseThread * System:: getUnassignedWorker ( void )
