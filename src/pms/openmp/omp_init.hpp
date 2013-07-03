@@ -68,6 +68,8 @@ namespace nanos
       class OmpSsInterface : public OpenMPInterface
       {
          private:
+            Lock _lock;
+
             virtual void start () ;
             virtual int getInternalDataSize() const ;
             virtual int getInternalDataAlignment() const ;
