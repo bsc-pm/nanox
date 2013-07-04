@@ -80,17 +80,13 @@ namespace nanos {
                   DataAccess& newDep = (*it);
 
                   // if address == NULL, just ignore it
-                  if ( newDep.getDepAddress() == NULL ) {
-                     continue;
-                  }
-
+                  if ( newDep.getDepAddress() == NULL ) continue;
                   
                   bool found = false;
                   // For every dependency processed earlier
                   for ( std::list<DataAccess *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {
                      DataAccess* currentDep = *current;
-                     if ( newDep.getDepAddress()  == currentDep->getDepAddress() )
-                     {
+                     if ( newDep.getDepAddress()  == currentDep->getDepAddress() ) {
                         // Both dependencies use the same address, put them in common
                         currentDep->setInput( newDep.isInput() || currentDep->isInput() );
                         currentDep->setOutput( newDep.isOutput() || currentDep->isOutput() );
@@ -98,9 +94,8 @@ namespace nanos {
                         break;
                      }
                   }
-                  if ( !found ) {
-                     filteredDeps.push_back(&newDep);
-                  }
+
+                  if ( !found ) filteredDeps.push_back(&newDep);
                }
                
                // This list is needed for waiting
@@ -163,7 +158,7 @@ namespace nanos {
                if ( !depObj.waits() && !accessType.concurrent && !accessType.commutative ) {
                   if ( accessType.output ) {
                      depObj.addWriteTarget( target );
-                  } else if (accessType.input /* && !accessType.output && !accessType.concurrent */ ) {
+                  } else if (accessType.input ) {
                      depObj.addReadTarget( target );
                   }
                }

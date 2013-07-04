@@ -47,7 +47,8 @@ namespace nanos
           *  \param callback Function to call if an immediate predecessor is found.
           */
          template<typename CONTAINER_T>
-         inline void dependOnLastWriter( DependableObject &depObj, CONTAINER_T &statusContainer, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnLastWriter( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target,
+                                         SchedulePolicySuccessorFunctor* callback );
          
          /*! \brief Makes a DependableObject depend on the the readers of a set of regions.
           *  \tparam CONTAINER_T type of the TrackableObject* container
@@ -57,7 +58,8 @@ namespace nanos
           *  \param callback Function to call if an immediate predecessor is found.
           */
          template<typename CONTAINER_T>
-         inline void dependOnReaders( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnReaders( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target,
+                                      SchedulePolicySuccessorFunctor* callback );
          
          /*! \brief Adds a commutative access of a DependableObject to the domains dependency system.
           *  \param target accessed base address/region

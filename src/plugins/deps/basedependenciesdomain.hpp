@@ -50,7 +50,8 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
    }
 }
 
-inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj, TrackableObject const &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnLastWriter ( DependableObject &depObj, TrackableObject const &status,
+                                                         BaseDependency const &target, SchedulePolicySuccessorFunctor* callback )
 {
    DependableObject *lastWriter = status.getLastWriter();
    if ( lastWriter != NULL ) {
@@ -77,7 +78,8 @@ inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj
    }
 }
 
-inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, TrackableObject &status, BaseDependency const &target,
+                                                     SchedulePolicySuccessorFunctor* callback )
 {
    TrackableObject::DependableObjectList &readersList = status.getReaders();
    SyncLockBlock lock4( status.getReadersLock() );
@@ -117,9 +119,10 @@ inline void BaseDependenciesDomain::setAsWriter( DependableObject &depObj, Track
    }
 }
 
-inline void BaseDependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target,
+                                                                   SchedulePolicySuccessorFunctor* callback )
 {
-   dependOnReaders(depObj, status, target, callback);
+   dependOnReaders( depObj, status, target, callback );
    setAsWriter( depObj, status, target );
 }
 
@@ -198,7 +201,7 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    depObj.addSuccessor( *commDO );
 
    // assumes no new readers added concurrently
-   dependOnLastWriter( depObj, status, callback );
+   dependOnLastWriter( depObj, status, target, callback );
 
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
@@ -212,7 +215,7 @@ inline void BaseDependenciesDomain::submitDependableObjectInoutDataAccess ( Depe
    SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
-   dependOnLastWriter( depObj, status, callback );
+   dependOnLastWriter( depObj, status, target, callback );
    dependOnReadersAndSetAsWriter( depObj, status, target, callback );
 }
 
@@ -221,7 +224,7 @@ inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( Depe
    SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
-   dependOnLastWriter( depObj, status, callback );
+   dependOnLastWriter( depObj, status, target, callback );
 
    if ( !depObj.waits() ) {
       addAsReader( depObj, status );
@@ -236,7 +239,7 @@ inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( Dep
 
    // assumes no new readers added concurrently
    if ( !status.hasReaders() ) {
-      dependOnLastWriter( depObj, status, callback );
+      dependOnLastWriter( depObj, status, target, callback );
    }
 
    dependOnReadersAndSetAsWriter( depObj, status, target, callback );
