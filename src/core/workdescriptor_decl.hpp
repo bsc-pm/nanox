@@ -195,7 +195,7 @@ namespace nanos
          double                        _executionTime;    /**< WD starting wall-clock time */
          double                        _estimatedExecTime;  /**< WD estimated execution time */
 
-         TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
+         DOSubmit                     *_doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
          DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
@@ -501,7 +501,7 @@ namespace nanos
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */
-         TR1::shared_ptr<DOSubmit> & getDOSubmit();
+         DOSubmit * getDOSubmit();
 
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the

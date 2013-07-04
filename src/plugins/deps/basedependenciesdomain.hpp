@@ -186,7 +186,9 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
 }
 
 
-inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    // NOTE: Do not change the order
    CommutationDO *initialCommDO = setUpInitialCommutationDependableObject( target, accessType, status );
@@ -205,14 +207,18 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    }
 }
 
-inline void BaseDependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
    dependOnLastWriter( depObj, status, callback );
    dependOnReadersAndSetAsWriter( depObj, status, target, callback );
 }
 
-inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
    dependOnLastWriter( depObj, status, callback );
@@ -222,7 +228,9 @@ inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( Depe
    }
 }
 
-inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
 
