@@ -127,7 +127,7 @@ void SMPThread::wait()
 
    pthread_mutex_lock( &_mutexWait );
 
-   if (!isEligible()) {
+   if ( isTaggedToSleep() ) {
       ThreadTeam *team = getTeam();
 
       if ( hasNextWD() ) {
