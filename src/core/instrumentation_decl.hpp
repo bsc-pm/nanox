@@ -373,6 +373,8 @@ namespace nanos {
             /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");
             /* 42 */ registerEventKey("cpuid","Thread cpuid");
 
+            /* 43 */ registerEventKey("dep-address", "Dependence address", true);
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 

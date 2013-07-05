@@ -42,7 +42,7 @@ namespace nanos
           *  \param[in,out] status status of the base address
           */
          CommutationDO *createCommutationDO(BaseDependency const &target, AccessType const &accessType, TrackableObject &status);
-         NANOS_INSTRUMENT ( nanos_event_key_t   _insKeyDeps[2]; ) /**< Instrumentation key dependences */
+         NANOS_INSTRUMENT ( nanos_event_key_t   _insKeyDeps[3]; ) /**< Instrumentation key dependences */
 
       protected:         
          /*! \brief Finalizes a reduction if active.
@@ -145,12 +145,14 @@ namespace nanos
             NANOS_INSTRUMENT ( InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
             NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
             NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
          }
          
          BaseDependenciesDomain ( const BaseDependenciesDomain &depDomain ) : DependenciesDomain( depDomain ), _lastDepObjId ( depDomain._lastDepObjId ) {
             NANOS_INSTRUMENT ( InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
             NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
             NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
          }
    };
 
