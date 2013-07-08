@@ -255,30 +255,8 @@ class InstrumentationExtrae: public Instrumentation
             p_file << NANOS_YIELD            << "     YIELD" << std::endl;
             p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
             p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << NANOS_DEBUG   << "     DEBUG" << std::endl;
-            p_file << NANOS_PRE_OUTLINE_WORK   << "     NANOS_PRE_OUTLINE_WORK" << std::endl;
-            p_file << NANOS_POST_OUTLINE_WORK   << "     NANOS_POST_OUTLINE_WORK" << std::endl;
-            p_file << NANOS_POST_OUTLINE_WORK2   << "     NANOS_POST_OUTLINE_WORK2" << std::endl;
-            p_file << NANOS_POST_OUTLINE_WORK3   << "     WD finished and merge output dir" << std::endl;
-            p_file << NANOS_POST_OUTLINE_WORK4   << "     NANOS_POST_OUTLINE_WORK4" << std::endl;
-            p_file << NANOS_POST_OUTLINE_WORK5   << "     NANOS_POST_OUTLINE_WORK5" << std::endl;
-            p_file << NANOS_CC_CDIN   << "     NANOS_CC_CDIN" << std::endl;
-            p_file << NANOS_CC_CDOUT   << "     NANOS_CC_CDOUT" << std::endl;
-            p_file << NANOS_STRIDED_COPY_PACK   << "     Packing strided data" << std::endl;
-            p_file << NANOS_STRIDED_COPY_UNPACK   << "     Unpacking strided data" << std::endl;
-            p_file << NANOS_CC_CDIN_GET_ADDR   << "     Get device address" << std::endl;
-            p_file << NANOS_CC_CDIN_OP_GEN   << "     Generate operations" << std::endl;
-            p_file << NANOS_CC_CDIN_DO_OP   << "     Do actual operations" << std::endl;
-            p_file << NANOS_CC_COPY_IN   << "     Copy In op" << std::endl;
-            p_file << NANOS_CC_COPY_OUT   << "     Copy Out op" << std::endl;
-            p_file << NANOS_CC_COPY_DEV_TO_DEV   << "     Copy Dev to Dev op" << std::endl;
-            p_file << NANOS_SEND_WAIT_FOR_REQ_PUT   << "     send wait for request put" << std::endl;
-            p_file << NANOS_GET_PINNED_ADDR   << "     get pinned address" << std::endl;
-            p_file << NANOS_SEND_PUT_REQ   << "     send put request" << std::endl;
-            p_file << NANOS_amWaitRequestPut   << "    NANOS_amWaitRequestPut" << std::endl;
-            p_file << NANOS_amRequestPutStrided1D   << "     NANOS_amRequestPutStrided1D" << std::endl;
-            p_file << NANOS_OUTLINE_WORK   << "     NANOS_OUTLINE_WORK" << std::endl;
-            p_file << 100                     << "     EXTRAE I/O" << std::endl;
+            p_file << NANOS_DEBUG            << "     DEBUG" << std::endl;
+            p_file << 27                     << "     EXTRAE I/O" << std::endl;
             p_file << std::endl;
 
             /* Event: PtPStart main event */
@@ -535,7 +513,7 @@ class InstrumentationExtrae: public Instrumentation
             if ( j == sys.getNetwork()->getNodeNum() )
             {
                p_file.open(_listOfTraceFileNames.c_str());
-               size_t found = _traceFinalDirectory.find_last_of("/");
+               //size_t found = _traceFinalDirectory.find_last_of("/");
                std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
 
                if (p_file.is_open())
@@ -545,11 +523,28 @@ class InstrumentationExtrae: public Instrumentation
                      p_file.getline (str, 255);
                      if ( strlen(str) > 0 )
                      {
+                        std::string src_path( str );
+                        std::size_t pos = src_path.size() ;
+                        for (unsigned int i = 0; i < 3; i++ ) {
+                           pos = src_path.find_last_of('/', pos - 1);
+                        }
+                        //int pos0 =  src_path.find_last_of('/');
+                        //int pos1 =  src_path.find_first_of(' ');
+                        //std::cerr << "len is " << pos1-pos0 << " pos0: " << pos0 << " total size is " << src_path.size()<< "src_path is " << src_path<< std::endl;
+                        //std::string name( src_path.substr( pos0, pos1-pos0 ) );
+
                         for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
                         // jbueno: cluster workaround until we get the new extrae
-                        //str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
-                        //str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
-                        secureCopy(str, dst + ":" + _traceFinalDirectory.substr(0,found+1));
+                        //if ( sys.getNetwork()->getNodeNum() > 0 ) {
+                        //   str[ strlen(str) - 12 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                        //   str[ strlen(str) - 13 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
+                        //   str[ strlen(str) - 14 ] = '0';
+                        //   str[ strlen(str) - 15 ] = '0';
+                        //   str[ strlen(str) - 16 ] = '0';
+                        //   str[ strlen(str) - 17 ] = '0';
+                        //}
+                        //std::cerr << "NAME: " << name << std::endl;
+                        secureCopy(str, dst + ":" + src_path.substr( 0, pos + 1 ) /* + name */ );
                      }
                   }
                   p_file.close();

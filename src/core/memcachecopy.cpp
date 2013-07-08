@@ -20,7 +20,7 @@ void MemCacheCopy::getVersionInfo() {
 }
 
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd ) {
-   NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
+   //NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
    if ( input ) {
       ops.copyInputData( *this, output, wd );
    } else if ( output ) {
@@ -28,7 +28,7 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
    } else {
       fprintf(stderr, "Error at %s.\n", __FUNCTION__);
    }
-   NANOS_INSTRUMENT( inst4.close(); );
+   //NANOS_INSTRUMENT( inst4.close(); );
 }
 
 void MemCacheCopy::generateOutOps( SeparateAddressSpaceOutOps &ops, bool input, bool output ) {

@@ -595,12 +595,12 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
    {
       char* realAddrPtr = (char *) realTag;
       char* localAddrPtr = ( (char *) ( ( ( uintptr_t ) buf ) + ( ( uintptr_t ) len ) - ( uintptr_t ) totalLen ) );
-      NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
+      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
       for ( int i = 0; i < count; i += 1 ) {
          ::memcpy( &realAddrPtr[ i * ld ], &localAddrPtr[ i * size ], size );
          //if (i == 0)fprintf(stderr, "amPutStrided1D: dst[%p]=%f buff[%p]=%f\n", &realAddrPtr[ i * ld], *((double*)&realAddrPtr[i*ld]), &localAddrPtr[i*size], *((double*)&localAddrPtr[i*size]) );
       }
-      NANOS_INSTRUMENT( inst2.close(); );
+      //NANOS_INSTRUMENT( inst2.close(); );
       uintptr_t localAddr = ( ( uintptr_t ) buf ) + ( ( uintptr_t ) len ) - ( uintptr_t ) totalLen;
       getInstance()->enqueueFreeBufferNotify( ( void * ) localAddr, wd, f );
       getInstance()->_net->notifyPut( src_node, wdId, size, count, ld, (uint64_t)realTag );
@@ -834,7 +834,7 @@ void GASNetAPI::amRequestPutStrided1D( gasnet_token_t token,
    WD *wd = ( WD * ) MERGE_ARG( wdHi, wdLo );
    Functor *f = ( Functor * ) MERGE_ARG( functorHi, functorLo );
 
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_amRequestPutStrided1D); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_amRequestPutStrided1D); );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -851,7 +851,7 @@ void GASNetAPI::amRequestPutStrided1D( gasnet_token_t token,
 
    SendDataPutRequest *req = NEW SendDataPutRequest( getInstance(), dst, origAddr, destAddr, len, count, ld, tmpBuffer, wdId, wd, f );
    getInstance()->_net->notifyRequestPut( req );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
 
@@ -860,7 +860,7 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
       gasnet_handlerarg_t addrHi )
 {
    void *addr = ( void * ) MERGE_ARG( addrHi, addrLo );
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_amWaitRequestPut); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_amWaitRequestPut); );
 
    gasnet_node_t src_node;
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -877,7 +877,7 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
    NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_WAIT_REQ_PUT, id, sizeKey, xferSize, src_node ); )
 
    getInstance()->_net->notifyWaitRequestPut( addr );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
 
@@ -1571,10 +1571,10 @@ void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned i
 void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f )
 {
    _totalBytes += ( len * count );
-   NANOS_INSTRUMENT( InstrumentState inst0(NANOS_SEND_WAIT_FOR_REQ_PUT); );
+   //NANOS_INSTRUMENT( InstrumentState inst0(NANOS_SEND_WAIT_FOR_REQ_PUT); );
    sendWaitForRequestPut( dataDest, dstAddr );
-   NANOS_INSTRUMENT( inst0.close(); );
-   NANOS_INSTRUMENT( InstrumentState inst1(NANOS_GET_PINNED_ADDR); );
+   //NANOS_INSTRUMENT( inst0.close(); );
+   //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_GET_PINNED_ADDR); );
 
    void *tmpBuffer = NULL;
    while ( tmpBuffer == NULL ) {
@@ -1583,9 +1583,9 @@ void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, u
       _pinnedAllocatorsLocks[ dataDest ]->release();
       if ( tmpBuffer == NULL ) _net->poll(0);
    }
-   NANOS_INSTRUMENT( inst1.close(); );
+   //NANOS_INSTRUMENT( inst1.close(); );
 
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_SEND_PUT_REQ); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_SEND_PUT_REQ); );
 
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
@@ -1611,7 +1611,7 @@ void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, u
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
-   NANOS_INSTRUMENT( inst2.close(); );
+   //NANOS_INSTRUMENT( inst2.close(); );
 }
 
 //void GASNetAPI::setNewMasterDirectory(NewRegionDirectory *dir)

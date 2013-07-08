@@ -122,9 +122,9 @@ void MemController::copyDataIn() {
       _memCacheCopies[ index ].generateInOps( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
    }
 
-   NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
+   //NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
-   NANOS_INSTRUMENT( inst5.close(); );
+   //NANOS_INSTRUMENT( inst5.close(); );
    if ( VERBOSE_CACHE ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;

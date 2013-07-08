@@ -572,9 +572,9 @@ void Scheduler::workerClusterLoop ()
                if ( Scheduler::tryPreOutlineWork(wd) ) {
                         //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                   myClusterThread->addRunningWDSMP( wd );
-                  NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                  //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
                   myThread->outlineWorkDependent(*wd);
-                  NANOS_INSTRUMENT( inst2.close(); );
+                  //NANOS_INSTRUMENT( inst2.close(); );
                } else {
                         //std::cerr << "REPEND WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                   myClusterThread->setPendingInitWD( wd );
@@ -589,9 +589,9 @@ void Scheduler::workerClusterLoop ()
                      if ( Scheduler::tryPreOutlineWork(wd) ) {
                         //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                         myClusterThread->addRunningWDSMP( wd );
-                        NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                        //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
                         myThread->outlineWorkDependent(*wd);
-                        NANOS_INSTRUMENT( inst2.close(); );
+                        //NANOS_INSTRUMENT( inst2.close(); );
                      } else {
                         //std::cerr << "ADDED A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                         myClusterThread->setPendingInitWD( wd );
@@ -664,7 +664,7 @@ void Scheduler::workerLoop ()
 
 void Scheduler::preOutlineWorkWithThread ( BaseThread * thread, WD *wd )
 {
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
@@ -693,14 +693,14 @@ void Scheduler::preOutlineWorkWithThread ( BaseThread * thread, WD *wd )
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
-   NANOS_INSTRUMENT( inst2.close(); );
+   //NANOS_INSTRUMENT( inst2.close(); );
 }
 
 void Scheduler::preOutlineWork ( WD *wd )
 {
    BaseThread *thread = getMyThreadSafe();
 
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
@@ -729,7 +729,7 @@ void Scheduler::preOutlineWork ( WD *wd )
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
-   NANOS_INSTRUMENT( inst2.close(); );
+   //NANOS_INSTRUMENT( inst2.close(); );
 }
 
 void Scheduler::prePreOutlineWork ( WD *wd )
@@ -744,7 +744,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
    BaseThread *thread = getMyThreadSafe();
 
    if ( wd->_mcontrol.allocateInputMemory() ) {
-      NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
@@ -758,7 +758,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
       }
 
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
-      NANOS_INSTRUMENT( inst2.close(); );
+      //NANOS_INSTRUMENT( inst2.close(); );
    }
    return result;
 }
@@ -766,7 +766,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
 void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
 {
    BaseThread *thread = owner;
-               NANOS_INSTRUMENT( InstrumentState inst2(NANOS_POST_OUTLINE_WORK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_POST_OUTLINE_WORK); );
 
    //std::cerr << "completing WD " << wd->getId() << " at thd " << owner->getId() << " thd addr " << owner << std::endl; 
    //if (schedule && thread->getNextWD() == NULL ) {
@@ -803,7 +803,7 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
    //ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
    //        "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
-               NANOS_INSTRUMENT( inst2.close(); );
+   //NANOS_INSTRUMENT( inst2.close(); );
 }
 
 void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )

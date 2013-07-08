@@ -556,7 +556,7 @@ void SendDataRequest::doSend() {
    } else {
       char *localPack, *origAddrPtr = (char*) _origAddr;
 
-      NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
+      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
       _api->getPackSegment()->lock();
       localPack = ( char * ) _api->getPackSegment()->allocate( _len * _count );
       if ( localPack == NULL ) { fprintf(stderr, "ERROR!!! could not get an addr to pack strided data\n" ); }
@@ -565,7 +565,7 @@ void SendDataRequest::doSend() {
       for ( unsigned int i = 0; i < _count; i += 1 ) {
          memcpy( &localPack[ i * _len ], &origAddrPtr[ i * _ld ], _len );
       }
-      NANOS_INSTRUMENT( inst2.close(); );
+      //NANOS_INSTRUMENT( inst2.close(); );
 
       doStrided( localPack );
 
@@ -642,11 +642,11 @@ GetRequestStrided::~GetRequestStrided() {
 }
 
 void GetRequestStrided::clear() {
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
    for ( unsigned int j = 0; j < _count; j += 1 ) {
       ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
    }
-   NANOS_INSTRUMENT( inst2.close(); );
+   //NANOS_INSTRUMENT( inst2.close(); );
    _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );
    _ops->completeOp();
 }

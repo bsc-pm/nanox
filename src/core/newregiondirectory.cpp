@@ -92,9 +92,9 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
 reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
    reg_t reg = 0;
    if ( dict->tryLock() ) {
-   NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
+   //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
     reg = _getLocation( dict, cd, missingParts, version, wd );
-   NANOS_INSTRUMENT( inst1.close(); );
+   //NANOS_INSTRUMENT( inst1.close(); );
       dict->unlock();
    }
    return reg;
@@ -102,9 +102,9 @@ reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData c
 
 void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
    if ( dict->tryLock() ) {
-   NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
+   //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
     __getLocation( dict, reg, missingParts, version, wd );
-   NANOS_INSTRUMENT( inst1.close(); );
+   //NANOS_INSTRUMENT( inst1.close(); );
       dict->unlock();
    }
 }

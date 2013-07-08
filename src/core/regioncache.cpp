@@ -871,42 +871,42 @@ unsigned int RegionCache::getMemorySpaceId() const {
 
 void RegionCache::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
    ensure( f == NULL, " Error, functor received is not null.");
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
 #ifdef VERBOSE_DEV_OPS
    std::cerr << "_device._copyIn( copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len, _pe, ops, wd="<< wd.getId() <<" );" <<std::endl;
 #endif
    if (!fake) _device._copyIn( devAddr, hostAddr, len, sys.getSeparateMemory( _memorySpaceId ), ops, (CompleteOpFunctor *) NULL, wd );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
 }
 
 void RegionCache::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
    ensure( f == NULL, " Error, functor received is not null.");
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
 #ifdef VERBOSE_DEV_OPS
    std::cerr << "_device._copyInStrided1D( copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len, numChunks, ld, _pe, ops, wd="<< wd.getId() <<" );" <<std::endl;
 #endif
    if (!fake) _device._copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, sys.getSeparateMemory( _memorySpaceId ), ops, (CompleteOpFunctor *) NULL, wd );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
 }
 
 void RegionCache::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
    ensure( f != NULL, " Error, functor received is null.");
 #ifdef VERBOSE_DEV_OPS
    std::cerr << "_device._copyOut( copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len, _pe, ops, wd="<< (&wd != NULL ? wd.getId() : -1 ) <<" );" <<std::endl;
 #endif
    if (!fake) _device._copyOut( hostAddr, devAddr, len, sys.getSeparateMemory( _memorySpaceId ), ops, f, wd );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
 }
 
 void RegionCache::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld,  DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
    ensure( f != NULL, " Error, functor received is null.");
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
 #ifdef VERBOSE_DEV_OPS
    std::cerr << "_device._copyOutStrided1D( copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len, numChunks, ld, _pe, ops, wd="<< (&wd != NULL ? wd.getId() : -1 ) <<" );" <<std::endl;
 #endif
    if (!fake) _device._copyOutStrided1D( hostAddr, devAddr, len, numChunks, ld, sys.getSeparateMemory( _memorySpaceId ), ops, f, wd );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
 }
 
 void RegionCache::_syncAndCopyIn( unsigned int syncFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
@@ -942,12 +942,12 @@ void RegionCache::_copyDevToDev( memory_space_id_t copyFrom, uint64_t devAddr, u
    uint64_t origDevAddr = origChunk->getAddress() + ( hostAddr - origChunk->getHostAddress() );
    origChunk->unlock();
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
 #ifdef VERBOSE_DEV_OPS
    std::cerr << "_device._copyDevToDev( copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len, _pe, sys.getSeparateMemory( copyFrom="<< copyFrom<<" ), ops, wd="<< wd.getId() << ", f="<< f <<" );" <<std::endl;
 #endif
    if (!fake) _device._copyDevToDev( devAddr, origDevAddr, len, sys.getSeparateMemory( _memorySpaceId ), sys.getSeparateMemory( copyFrom ), ops, fsource, wd );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
 }
 
 void RegionCache::_copyDevToDevStrided1D( memory_space_id_t copyFrom, uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {
@@ -960,9 +960,9 @@ void RegionCache::_copyDevToDevStrided1D( memory_space_id_t copyFrom, uint64_t d
 #ifdef VERBOSE_DEV_OPS
    std::cerr << "_device._copyDevToDevStrided1D( copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len, _pe, sys.getCaches()[ copyFrom="<< copyFrom<<" ]->_pe, ops, wd="<< wd.getId() <<", f="<< f <<" );"<<std::endl;
 #endif
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
+   //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
    if (!fake) _device._copyDevToDevStrided1D( devAddr, origDevAddr, len, numChunks, ld, sys.getSeparateMemory( _memorySpaceId ), sys.getSeparateMemory( copyFrom ), ops, fsource, wd );
-   NANOS_INSTRUMENT( inst.close(); );
+   //NANOS_INSTRUMENT( inst.close(); );
 }
 
 void RegionCache::CopyIn::doNoStrided( int dataLocation, uint64_t devAddr, uint64_t hostAddr, std::size_t size, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd, bool fake ) {

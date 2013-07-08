@@ -91,14 +91,14 @@ void ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, s
 void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd ) {
    char * hostAddrPtr = (char *) hostAddr;
    ops->addOp();
-   NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
    char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
    if ( packedAddr != NULL) { 
       for ( unsigned int i = 0; i < count; i += 1 ) {
          ::memcpy( &packedAddr[ i * len ], &hostAddrPtr[ i * ld ], len );
       }
    } else { std::cerr << "copyInStrided ERROR!!! could not get a packet to gather data." << std::endl; }
-   NANOS_INSTRUMENT( inst2.close(); );
+   //NANOS_INSTRUMENT( inst2.close(); );
    sys.getNetwork()->putStrided1D( mem.getNodeNumber(),  devAddr, ( void * ) hostAddr, packedAddr, len, count, ld, wd.getId(), wd );
    _packer.free_pack( hostAddr, len, count, packedAddr );
    ops->completeOp();
