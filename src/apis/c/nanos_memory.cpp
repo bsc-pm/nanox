@@ -22,6 +22,7 @@
 #include "nanos.h"
 #include "allocator.hpp"
 #include "memtracker.hpp"
+#include "osallocator_decl.hpp"
 #include "instrumentation_decl.hpp"
 #include "instrumentationmodule_decl.hpp"
 
@@ -45,6 +46,21 @@ NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *fi
       *p = nanos::getAllocator().allocate ( size );
 #endif
    } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *file, int line ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","memalign",NANOS_RUNTIME ) );
+
+   try 
+   {
+      nanos::OSAllocator allocator;
+      *p = allocator.allocate ( size );
+   } catch ( nanos_err_t e ) {
       return e;
    }
 

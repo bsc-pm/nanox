@@ -73,7 +73,7 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    _lock.release();
 #endif
    if ( result == NULL ) {
-      std::cerr << "Error: could not get a memory area to pack data." << std::endl;
+      std::cerr << "Error: could not get a memory area to pack data. Requested " << ( len*count) << " bytes, capacity " << _allocator->getCapacity() << " bytes."<< std::endl;
    }
    //std::cerr <<"pack returrns "<<  result << std::endl;
    return result;
