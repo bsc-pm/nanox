@@ -57,18 +57,19 @@ inline void BaseDependenciesDomain::dependOnLastWriter ( DependableObject &depOb
    if ( lastWriter != NULL ) {
       SyncLockBlock lck( lastWriter->getLock() );
       if ( status.getLastWriter() == lastWriter ) {
-         if ( lastWriter->addSuccessor( depObj ) ) {
-            // new instrument event: dependence lastWriter -> depObj
-            NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) lastWriter->getRelatedObject(); )
-            NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
-            NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
-               NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
-               NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 0); )
-               NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
-               NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
-            NANOS_INSTRUMENT ( } )
 
+         // new instrument event: dependence lastWriter -> depObj
+         NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) lastWriter->getRelatedObject(); )
+         NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
+         NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
+            NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+            NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 0); )
+            NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
+            NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
+         NANOS_INSTRUMENT ( } )
+
+         if ( lastWriter->addSuccessor( depObj ) ) {
             // new dependence lastWriter -> depObj
             depObj.increasePredecessors();
             if ( callback != NULL ) {
@@ -87,18 +88,19 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
    for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
       DependableObject * predecessorReader = *i;
       SyncLockBlock lock5(predecessorReader->getLock());
-      if ( predecessorReader->addSuccessor( depObj ) ) {
-         // new instrument event: dependence predecessorReader -> depObj
-         NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) predecessorReader->getRelatedObject(); )
-         NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
-         NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
-            NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
-            NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 1); )
-            NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
-            NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
-         NANOS_INSTRUMENT ( } )
 
+      // new instrument event: dependence predecessorReader -> depObj
+      NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) predecessorReader->getRelatedObject(); )
+      NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
+      NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+         NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
+         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 1); )
+         NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
+      NANOS_INSTRUMENT ( } )
+
+      if ( predecessorReader->addSuccessor( depObj ) ) {
          // new dependence predecessorReader -> depObj
          depObj.increasePredecessors();
          if ( callback != NULL ) {
