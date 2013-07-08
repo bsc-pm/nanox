@@ -54,7 +54,7 @@ namespace nanos {
       bool IdleThreadsThrottle::throttle()
       {
          //checking if the number of idle threads is lower than the allowed minimum
-         if ( sys.getIdleNum() < _limit )  {
+         if ( sys.getIdleNum() <= _limit )  {
             return false;
          }
 
