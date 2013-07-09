@@ -44,7 +44,7 @@ void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
 }
 
 void HostAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {
-   std::cerr << "unimplemented" << std::endl;
+   std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
 void HostAddressSpace::synchronize( bool flushData, WD const &wd ) {
@@ -60,8 +60,7 @@ SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Dev
 
 
 bool SeparateAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version ) {
-   return true;
-   //return _cache.pin( reg );
+   return _cache.pin( reg );
 }
 
 void SeparateAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version ) {
@@ -81,11 +80,11 @@ void SeparateAddressSpace::doOp( HostMemoryAddressSpace &from, global_reg_t cons
 }
 
 void SeparateAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {
-   std::cerr << "unimplemented" << std::endl;
+   std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
 void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {
-   std::cerr << "unimplemented" << std::endl;
+   std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
 bool SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {

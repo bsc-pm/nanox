@@ -23,17 +23,19 @@ inline std::size_t AllocatedChunk::getSize() const {
 
 inline void AllocatedChunk::addReference() {
    _refs++;
+   //std::cerr << "add ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
 }
 
 inline void AllocatedChunk::removeReference() {
    _refs--;
-   /*
-   if ( _refs == (unsigned int) -1 ) {
-      std::cerr << "overflow at references chunk "<< (void*)this << std::endl; sys.printBt();
-   } else if ( _refs == 0 ) {
-      std::cerr << "zeroed at references chunk "<< (void*)this << std::endl; sys.printBt();
-   }
-   */
+   
+   //std::cerr << "del ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
+   //if ( _refs == (unsigned int) -1 ) {
+   //   std::cerr << "overflow at references chunk "<< (void*)this << std::endl; sys.printBt();
+   //} else if ( _refs == 0 ) {
+   //   std::cerr << "zeroed at references chunk "<< (void*)this << std::endl;
+   //}
+   
 }
 
 inline unsigned int AllocatedChunk::getReferenceCount() const { return _refs.value(); }
