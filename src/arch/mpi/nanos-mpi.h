@@ -65,7 +65,7 @@ extern "C" {
     NANOS_API_DECL(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));   
     NANOS_API_DECL(int, nanos_mpi_type_create_struct, ( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[],  
             MPI_Datatype array_of_types[], MPI_Datatype *newtype));
-    NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (char* type));    
+    NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (const char* type));    
     NANOS_API_DECL(int, nanos_mpi_worker, (void (*ompss_mpi_func_pointers_dev[])()));
     NANOS_API_DECL(int, nanos_mpi_get_parent, (MPI_Comm* parent_out));
 

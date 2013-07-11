@@ -176,6 +176,8 @@ if test x$mpi_enabled = xyes; then
 	if test x$use_icc = xyes; then  
 		MPI_CNAME=mpiicc
 		MPI_CXXNAME=mpiicpc
+		CFLAGS="$CFLAGS -mt_mpi"
+		CXXFLAGS="$CXXFLAGS -mt_mpi" 
 	else
 		MPI_CNAME=mpicc
 		MPI_CXXNAME=mpicxx
@@ -210,8 +212,8 @@ if test x$mpi_enabled = xyes; then
 		fi		
 	fi
 	ARCHITECTURES="$ARCHITECTURES mpi"
-	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"
-	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK -mt_mpi"		
+	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"
+	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"		
 	NANOX_MPI_PREFIX=$prefix
 	AC_SUBST([NANOX_MPI_PREFIX])
 	mpi_valid=yes

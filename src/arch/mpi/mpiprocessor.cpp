@@ -163,7 +163,7 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);
     //If this process was not spawned, we don't need this daemon-thread
-    if (parentcomm != NULL && parentcomm != MPI_COMM_NULL) {
+    if (parentcomm != 0 && parentcomm != MPI_COMM_NULL) {
          //In this case we are child, when nanox spawns us, it fills both args
         if (argc!=0)
            setMpiExename((*argv)[(*argc)-2]); //This should not be needed
@@ -297,7 +297,7 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
     char **array_of_argv[number_of_spawns];
     MPI_Info  array_of_info[number_of_spawns];
     int n_process[number_of_spawns];
-    int host_counter=0;
+    unsigned int host_counter=0;
     
     //This the real length of previously declared arrays, it will be equal to number_of_spawns when 
     //hostfile/line only has one instance per host (aka no host:nInstances)
@@ -329,20 +329,22 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         char **argvv=new char*[params_size];
         //Fill the params
         argvv[0]= const_cast<char*> (result_str.c_str());
-        argvv[1]= TAG_MAIN_OMPSS;    
+        argvv[1]= const_cast<char*> (TAG_MAIN_OMPSS);    
         int param_counter=2;
         while (getline(all_param, tmp_param, ',')) {            
             //Trim current param
             trim(params);
-            char* arg_copy=new char[tmp_param.size()+1];
-            strcpy(arg_copy,tmp_param.c_str());
-            argvv[param_counter]=arg_copy;
+//            char* arg_copy=new char[tmp_param.size()+1];
+//            strcpy(arg_copy,tmp_param.c_str());
+//            argvv[param_counter]=arg_copy;
+            argvv[param_counter]= const_cast<char*> (TAG_MAIN_OMPSS);    
             param_counter++;
         }
         argvv[params_size-1]=NULL;              
         array_of_argv[spawn_arrays_length]=argvv;     
         
-        array_of_commands[spawn_arrays_length]=const_cast<char*> (_mpiLauncherFile.c_str());      
+        //array_of_commands[spawn_arrays_length]=const_cast<char*> (_mpiLauncherFile.c_str());      
+        array_of_commands[spawn_arrays_length]=const_cast<char*> (result_str.c_str());
         
         //Set number of instances this host can handle
         int curr_host_instances=host_instances.at(host_counter-1);
@@ -359,7 +361,7 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
     for (i=0;i<spawn_arrays_length;i++){  
         //Free all args which were dynamically copied before
         for (int e=2;array_of_argv[i][e]!=NULL;e++){
-            delete[] array_of_argv[i][e];
+            //delete[] array_of_argv[i][e];
         }
         delete[] array_of_argv[i];
     }

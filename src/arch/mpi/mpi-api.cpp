@@ -171,7 +171,7 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
         MPI_Comm parentcomm; /* intercommunicator */
         MPI_Comm_get_parent(&parentcomm);
         //If this process was not spawned, we don't need this reorder (and shouldnt have been called)
-        if ( parentcomm != NULL && parentcomm != MPI_COMM_NULL ) {
+        if ( parentcomm != 0 && parentcomm != MPI_COMM_NULL ) {
             MPI_Status status;
             int arr_size;
             for ( arr_size=0;file_mask[arr_size]==mask;arr_size++ );
@@ -186,7 +186,6 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
             nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_size, arr_size, MPI_UNSIGNED, 0, TAG_FP_SIZE_SYNC, parentcomm, &status);
             int i,e,func_pointers_arr;
             bool found;
-            int local_counter;
             //i loops at host files
             for ( i=0;i<arr_size;i++ ){   
                 func_pointers_arr=0;
@@ -215,7 +214,7 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
 }
 
 
-NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (char* type)) {
+NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (const char* type)) {
     MPI_Datatype result = MPI_DATATYPE_NULL;
     if (strcmp(type, "__mpitype_ompss_char") == 0) {
         result = MPI_CHAR;
