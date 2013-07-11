@@ -48,7 +48,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
-                                 _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
+                                 _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
                                  _directory(NULL), _submitted( false ), _implicit(false), _translateArgs( translate_args ),
                                  _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
                                  _copiesNotInChunk(false), _description(description), _instrumentationContextData()
@@ -64,7 +64,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _numDevices ( 1 ), _devices ( NEW DeviceData *( device ) ), _activeDeviceIdx( 0 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
-                                 _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
+                                 _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _directory(NULL), _submitted( false ), _implicit(false), _translateArgs( translate_args ),
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData()
@@ -79,7 +79,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
                                  _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
                                  _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
-                                 _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(), _doWait(),
+                                 _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(NULL), _doWait(),
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _directory(NULL), _submitted( false ), _implicit( wd._implicit ),_translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
@@ -120,6 +120,8 @@ inline bool WorkDescriptor::isTied() const { return _tiedTo != NULL; }
 inline BaseThread* WorkDescriptor::isTiedTo() const { return _tiedTo; }
 
 inline bool WorkDescriptor::shouldBeTied() const { return _tie; }
+
+inline void WorkDescriptor::untie() { _tiedTo = NULL; _tie = false; }
 
 inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
@@ -204,11 +206,11 @@ inline double WorkDescriptor::getEstimatedExecutionTime() const { return _estima
 
 inline void WorkDescriptor::setEstimatedExecutionTime( double time ) { _estimatedExecTime = time; }
 
-inline TR1::shared_ptr<DOSubmit> & WorkDescriptor::getDOSubmit() { return _doSubmit; }
+inline DOSubmit * WorkDescriptor::getDOSubmit() { return _doSubmit; }
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
 {
-   wd._doSubmit.reset( NEW DOSubmit() );
+   wd._doSubmit = NEW DOSubmit();
    wd._doSubmit->setWD(&wd);
 
    // Defining call back (cb)

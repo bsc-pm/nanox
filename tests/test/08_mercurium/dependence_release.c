@@ -16,52 +16,39 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_dependences.cpp
- *  \brief 
- */
-#include "nanos.h"
-#include "system.hpp"
-#include "instrumentationmodule_decl.hpp"
-#include "basethread.hpp"
-#include "workdescriptor.hpp"
+#include<stdio.h>
+#include"nanos.h"
 
-/*! \defgroup capi_wd C/C++ API: Dependences services. */
-/*! \addtogroup capi_wd
- *  \{
- */
+/*
+<testinfo>
+test_generator=gens/mcc-openmp-generator
+</testinfo>
+*/
 
-using namespace nanos;
-
-//! \brief Release all current WorkDescriptor dependences
-NANOS_API_DEF(nanos_err_t, nanos_dependence_release_all, ( void ) )
+int main ( int argc, char *argv[] )
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","dependence_release_all",NANOS_RUNTIME) );
-   try {
-      WD *parent = NULL, *wd = myThread->getCurrentWD();
-      if ( wd ) parent = wd->getParent();
-      if ( parent ) parent->workFinished( *wd );
-   } catch ( nanos_err_t e) {
-      return e;                                                                                                                          
-   }
-   return NANOS_OK;
-}
+   int error = 0, a = 0;
 
-/*! \brief Returns if there are any pendant write for a given addr
- *
- *  \param [out] res is the result
- *  \param [in] addr is the related address
- */
-NANOS_API_DEF(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *addr ))
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","dependence_pendant_writes",NANOS_RUNTIME) );
-   try {
-      *res = ( bool ) sys.haveDependencePendantWrites( addr );
-   } catch ( nanos_err_t e) {
-      return e;                                                                                                                          
+   #pragma omp task shared(a) inout(a)
+   {
+      a++;
+      fprintf(stderr,"1");
+      nanos_dependence_release_all();
+      nanos_yield();
+      usleep(10000);
+      fprintf(stderr,"3");
+      a--;
    }
-   return NANOS_OK;
-}
 
-/*!
- * \}
- */ 
+   #pragma omp task shared(a,error) in(a)
+   {
+      fprintf(stderr,"2");
+      if (!a) error++;
+   }
+
+   #pragma omp taskwait
+
+   fprintf(stderr,"4:verification=%s\n",error?"UNSUCCESSFUL":"successful");
+
+   return error;
+}

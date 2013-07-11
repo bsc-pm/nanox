@@ -16,7 +16,6 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #ifndef _NANOS_ADDRESS_H
 #define _NANOS_ADDRESS_H
 
@@ -48,6 +47,11 @@ inline bool Address::operator< ( const Address &obj ) const
 inline BaseDependency* Address::clone() const
 {
    return NEW Address( _address );
+}
+
+inline void * Address::getAddress () const
+{
+   return _address;
 }
 
 #endif

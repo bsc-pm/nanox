@@ -16,35 +16,31 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #ifndef _NANOS_BASE_DEPENDENCY_DECL_H
 #define _NANOS_BASE_DEPENDENCY_DECL_H
 
 namespace nanos
 {
-
-  /*! \class Base dependency class.
-   *  \brief Abstract class to represent a memory address dependency or a region.
-   */
+   //! \class Base dependency class.
+   //! \brief Abstract class to represent a memory address dependency or a region.
    class BaseDependency
    {
       public:
-        /*! \brief Base dependency default constructor.
-         */
+         //! \brief Base dependency default constructor.
          BaseDependency () {}
 
-        /*! \brief Base dependency copy constructor
-         *  \param obj another base dependency
-         */
+         //! \brief Base dependency copy constructor
+         //! \param obj another base dependency
          BaseDependency ( const BaseDependency &obj ) {}
 
-        /*! \brief Base dependency destructor
-         */
+         //! \brief Base dependency destructor
          virtual ~BaseDependency () {}
          
-        /*! \brief Clones the dependency object.
-         */
+         //! \brief Clones the dependency object.
          virtual BaseDependency* clone() const = 0;
+
+         //! \brief Returns dependency base address
+         virtual void * getAddress () const = 0;
    };
 
 };

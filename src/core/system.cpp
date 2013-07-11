@@ -480,6 +480,18 @@ void System::start ()
          ++p;
       }
    }
+
+   // Set up internal data for each worker
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+
+      WD & threadWD = (*it)->getThreadWD();
+      if ( _pmInterface->getInternalDataSize() > 0 ) {
+         char *data = NEW char[_pmInterface->getInternalDataSize()];
+         _pmInterface->initInternalData( data );
+         threadWD.setInternalData( data );
+      }
+      _pmInterface->setupWD( threadWD );
+   }
       
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
@@ -1257,8 +1269,18 @@ void System::createWorker( unsigned p )
    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
    PE *pe = createPE ( "smp", getBindingId( p ) );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->startWorker() );
+   BaseThread *thread = &pe->startWorker();
+   _workers.push_back( thread );
    ++_targetThreads;
+
+   //Set up internal data
+   WD & threadWD = thread->getThreadWD();
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      threadWD.setInternalData( data );
+   }
+   _pmInterface->setupWD( threadWD );
 }
 
 BaseThread * System:: getUnassignedWorker ( void )
@@ -1267,7 +1289,7 @@ BaseThread * System:: getUnassignedWorker ( void )
 
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
       thread = _workers[i];
-      if ( !thread->hasTeam() || !thread->isEligible() ) {
+      if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
 
          // skip if the thread is not in the mask
          if ( sys.getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpu_active_set) )
@@ -1276,7 +1298,7 @@ BaseThread * System:: getUnassignedWorker ( void )
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( thread->hasTeam() && thread->isEligible() ) {
+         if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
             // we lost it
             thread->unlock();
             continue;
@@ -1300,12 +1322,12 @@ BaseThread * System:: getAssignedWorker ( void )
    ThreadList::reverse_iterator rit;
    for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
       thread = *rit;
-      if ( thread->hasTeam() && thread->isEligible() ) {
+      if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
 
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( !thread->hasTeam() || !thread->isEligible() ) {
+         if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
             // we lost it
             thread->unlock();
             continue;

@@ -70,6 +70,9 @@ namespace nanos
          bool operator== ( const Address &obj ) const;
          
          bool operator< ( const Address &obj ) const;
+
+         //! \brief Returns dependence base address
+         virtual void * getAddress () const;
    };
 
 };
