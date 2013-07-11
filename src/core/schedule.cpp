@@ -256,7 +256,7 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
          /* If DLB, return resources if needed */
-         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus ) DLB_ReturnClaimedCpus();
+         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 ) DLB_ReturnClaimedCpus();
 
          NANOS_INSTRUMENT ( total_spins+= nspins; )
          sleeps--;
@@ -407,7 +407,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                /* If DLB, return resources if needed */
-               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus ) DLB_ReturnClaimedCpus();
+               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 ) DLB_ReturnClaimedCpus();
 
                condition->unlock();
                if ( sleeps < 0 ) {
