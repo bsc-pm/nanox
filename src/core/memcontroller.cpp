@@ -80,9 +80,19 @@ void MemController::preInit( ) {
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
       hasVersionInfoForRegion( _memCacheCopies[ index ]._reg  , _memCacheCopies[ index ]._version, _memCacheCopies[ index ]._locations );
       if ( _memCacheCopies[ index ]._version != 0 ) {
+         if ( VERBOSE_CACHE ) { std::cerr << "WD " << _wd.getId() << " copy "<< index <<" got location info from predecessor "<<  _memCacheCopies[ index ]._reg.id << " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
       } else {
+         if ( VERBOSE_CACHE ) { std::cerr << "WD " << _wd.getId() << " copy "<< index <<" got requesting location info to global directory for region "<<  _memCacheCopies[ index ]._reg.id << " "; }
          _memCacheCopies[ index ].getVersionInfo();
+      }
+      if ( VERBOSE_CACHE ) { 
+         for ( NewLocationInfoList::const_iterator it = _memCacheCopies[ index ]._locations.begin(); it != _memCacheCopies[ index ]._locations.end(); it++ ) {
+               NewNewDirectoryEntryData *rsentry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->first );
+               NewNewDirectoryEntryData *dsentry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->second );
+            std::cerr << "<" << it->first << ": [" << *rsentry << "] ," << it->second << " : [" << *dsentry << "] > ";
+         }
+         std::cerr << std::endl;
       }
    }
 }
@@ -110,9 +120,12 @@ void MemController::copyDataIn() {
    
    if ( VERBOSE_CACHE ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
-         std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << " ops: "<< (void *) _inOps << std::endl; 
+         std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << " ops: "<< (void *) _inOps << std::endl;
          for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-            std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ); std::cerr << std::endl;
+         NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
+         std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ) ;
+         if ( d ) std::cerr << " " << *d << std::endl; 
+         else std::cerr << " dir entry n/a" << std::endl;
          }
       }
    }
@@ -145,7 +158,7 @@ void MemController::copyDataOut( ) {
 
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
    } else {
-      _outOps = NEW SeparateAddressSpaceOutOps( false );
+      _outOps = NEW SeparateAddressSpaceOutOps( false, false );
 
       for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
          _memCacheCopies[ index ].generateOutOps( *_outOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput() );

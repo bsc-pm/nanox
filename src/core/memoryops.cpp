@@ -273,7 +273,7 @@ void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, u
 }
 
 
-SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( bool delayedCommit ) : BaseOps( delayedCommit ), _transfers() {
+SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( bool delayedCommit, bool isInval ) : BaseOps( delayedCommit ), _invalidation( isInval ), _transfers() {
 }
 
 SeparateAddressSpaceOutOps::~SeparateAddressSpaceOutOps() {
@@ -286,7 +286,7 @@ void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global
 
 void SeparateAddressSpaceOutOps::issue( WD const &wd ) {
    for ( MapType::iterator it = _transfers.begin(); it != _transfers.end(); it++ ) {
-     sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* region */, wd );
+     sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* region */, wd, _invalidation );
    }
 }
 

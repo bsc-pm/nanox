@@ -26,6 +26,8 @@
 #include "system.hpp"
 #include "deviceops.hpp"
 
+#define VERBOSE_COMPLETION 0
+
 using namespace nanos;
 
 Lock Network::_nodeLock;
@@ -630,6 +632,9 @@ bool GetRequest::isCompleted() const {
 
 void GetRequest::clear() {
    ::memcpy( _hostAddr, _recvAddr, _size );
+   if ( VERBOSE_COMPLETION ) {
+      std::cerr << "Completed copyOut request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
+   }
    sys.getNetwork()->freeReceiveMemory( _recvAddr );
    _ops->completeOp();
 }
@@ -645,6 +650,9 @@ void GetRequestStrided::clear() {
    //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_UNPACK); );
    for ( unsigned int j = 0; j < _count; j += 1 ) {
       ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
+   }
+   if ( VERBOSE_COMPLETION ) {
+      std::cerr << "Completed copyOutStrided request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
    }
    //NANOS_INSTRUMENT( inst2.close(); );
    _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );

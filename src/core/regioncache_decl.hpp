@@ -179,7 +179,7 @@ namespace nanos {
          void copyIn( global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd ); 
          void copyOut( global_reg_t const &hostMem, uint64_t devBaseAddr, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd ); 
          void NEWcopyIn( unsigned int location, global_reg_t const &hostMem, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk ); 
-         void NEWcopyOut( global_reg_t const &hostMem, unsigned int version, WD const &wd, DeviceOps *ops ); 
+         void NEWcopyOut( global_reg_t const &hostMem, unsigned int version, WD const &wd, DeviceOps *ops, bool inval ); 
          uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
          void lock();
          void unlock();

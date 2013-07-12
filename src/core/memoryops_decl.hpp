@@ -80,10 +80,11 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
 
 class SeparateAddressSpaceOutOps : public BaseOps {
    typedef std::map< SeparateMemoryAddressSpace *, TransferList > MapType;
+   bool _invalidation;
    MapType _transfers;
 
    public:
-   SeparateAddressSpaceOutOps( bool delayedCommit );
+   SeparateAddressSpaceOutOps( bool delayedCommit, bool isInval );
    ~SeparateAddressSpaceOutOps();
 
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk );

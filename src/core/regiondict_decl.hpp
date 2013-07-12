@@ -159,6 +159,7 @@ typedef unsigned int reg_t;
       void _combine ( nanos_region_dimension_internal_t tmpFragment[], int dim, int currentPerm, nanos_region_dimension_internal_t fragments[][3], bool allFragmentsIntersect, std::list< reg_t > &resultingPieces );
       reg_t isThisPartOf( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version );
       bool doTheseRegionsForm( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version ) ;
+      bool doTheseRegionsForm( reg_t target, std::list< std::pair< reg_t, reg_t > >::const_iterator ibegin, std::list< std::pair< reg_t, reg_t > >::const_iterator iend ) ;
 
    };
    

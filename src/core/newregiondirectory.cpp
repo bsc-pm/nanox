@@ -176,10 +176,12 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
          NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
          if ( firstEntry == NULL ) {
             if ( secondEntry != NULL ) {
+       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " USING REG " << it->second<< std::endl; }
       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
                firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
       //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, !null"<<std::endl;
           } else {
+       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " USING NEW VAL, second also " << it->second<< std::endl; }
       //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, null"<<std::endl;
       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"(null)"<<std::endl;
                firstEntry = NEW NewNewDirectoryEntryData();
@@ -193,6 +195,7 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
             if ( secondEntry != NULL ) {
       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"("<<*firstEntry<<"),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
       //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, !null, !null"<<std::endl;
+       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " COPY FROM " << it->second << std::endl; }
 
                *firstEntry = *secondEntry;
             } else {
@@ -204,9 +207,12 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
          NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"( " << (void*) entry << " ),"<< it->second <<"( )"<<std::endl;
          if ( entry == NULL ) {
+       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " USING NEW VAL, same second " << std::endl; }
             entry = NEW NewNewDirectoryEntryData();
             entry->addAccess( 0, 1 );
             dict->setRegionData( it->first, entry );
+         } else {
+       //if (1 ) { std::cerr << (void *)dict << " ENTRY EXISTS FOR REG " << it->first << std::endl; }
          }
       }
    }
@@ -352,7 +358,7 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
       //std::cerr << "SYNC DIR" << std::endl;
       //int c = 0;
       //print();
-      SeparateAddressSpaceOutOps outOps( false );
+      SeparateAddressSpaceOutOps outOps( false, false );
       std::set< DeviceOps * > ops;
       std::set< DeviceOps * > myOps;
       for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {

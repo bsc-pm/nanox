@@ -66,7 +66,7 @@ class HostAddressSpace {
 
    bool lockForTransfer( global_reg_t const &reg, unsigned int version );
    void releaseForTransfer( global_reg_t const &reg, unsigned int version );
-   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk );
+   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
    void getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations );
    void getRegionId( CopyData const &cd, global_reg_t &reg );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
@@ -86,9 +86,9 @@ class SeparateAddressSpace {
 
    bool lockForTransfer( global_reg_t const &reg, unsigned int version );
    void releaseForTransfer( global_reg_t const &reg, unsigned int version );
-   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd );
-   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk );
-   void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk );
+   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, bool inval );
+   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
+   void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void copyFromHost( TransferList list, WD const &wd );
@@ -127,7 +127,7 @@ class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
    MemSpace<T>( memory_space_id_t memSpaceId, Device &d );
-   void copy( MemSpace< SeparateAddressSpace > &from, TransferList list, WD const &wd );
+   void copy( MemSpace< SeparateAddressSpace > &from, TransferList list, WD const &wd, bool inval = false );
    void releaseRegions( MemSpace< SeparateAddressSpace > &from, TransferList list, WD const &wd );
 };
 
