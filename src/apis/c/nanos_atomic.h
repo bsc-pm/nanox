@@ -36,6 +36,12 @@ extern "C"
     NANOS_ATOMIC_ALL_OP(mul) \
     NANOS_ATOMIC_ALL_OP(div) \
     NANOS_ATOMIC_ALL_OP(pow) \
+    NANOS_ATOMIC_INT_OP(max) \
+    NANOS_ATOMIC_INT_OP(min) \
+    NANOS_ATOMIC_FLOAT_OP(max) \
+    NANOS_ATOMIC_FLOAT_OP(min) \
+    NANOS_ATOMIC_ALL_OP(eq) \
+    NANOS_ATOMIC_ALL_OP(neq) \
     NANOS_ATOMIC_INT_OP(mod) \
     NANOS_ATOMIC_INT_OP(shl) \
     NANOS_ATOMIC_INT_OP(shr) \
@@ -45,19 +51,45 @@ extern "C"
     NANOS_ATOMIC_INT_OP(bor) \
     NANOS_ATOMIC_INT_OP(bxor)
 
+#ifdef _MF03
+
+// This is for Mercurium Fortran
+#define CHAR @byte@
+#define NANOS_ATOMIC_DECL_OP(op, type_name, type) \
+    NANOS_API_DECL(void, nanos_atomic_##op##_##type_name, (type @ref@, type));
+#define NANOS_ATOMIC_EXTRA_INT_OP(op) \
+    NANOS_ATOMIC_DECL_OP(op, bytebool, @mcc_bool@ @byte@) \
+    NANOS_ATOMIC_DECL_OP(op, shortbool, @mcc_bool@ short) \
+    NANOS_ATOMIC_DECL_OP(op, intbool, @mcc_bool@ int) \
+    NANOS_ATOMIC_DECL_OP(op, longbool, @mcc_bool@ long int) \
+    NANOS_ATOMIC_DECL_OP(op, longlongbool, @mcc_bool@ long long int)
+
+#else
+
+#define CHAR char
 #define NANOS_ATOMIC_DECL_OP(op, type_name, type) \
     NANOS_API_DECL(void, nanos_atomic_##op##_##type_name, (volatile type *, type));
+#define NANOS_ATOMIC_EXTRA_INT_OP(op) \
+    NANOS_ATOMIC_DECL_OP(op, bytebool, signed char) \
+    NANOS_ATOMIC_DECL_OP(op, shortbool, short) \
+    NANOS_ATOMIC_DECL_OP(op, intbool, int) \
+    NANOS_ATOMIC_DECL_OP(op, longbool, long int) \
+    NANOS_ATOMIC_DECL_OP(op, longlongbool, long long int)
+
+#endif
 
 #define NANOS_ATOMIC_INT_OP(op) \
-    NANOS_ATOMIC_DECL_OP(op, schar, signed char) \
+    NANOS_ATOMIC_DECL_OP(op, schar, signed CHAR) \
     NANOS_ATOMIC_DECL_OP(op, short, short) \
     NANOS_ATOMIC_DECL_OP(op, int, int) \
     NANOS_ATOMIC_DECL_OP(op, long, long) \
     NANOS_ATOMIC_DECL_OP(op, longlong, long long) \
-    NANOS_ATOMIC_DECL_OP(op, uchar, unsigned char) \
+    NANOS_ATOMIC_DECL_OP(op, uchar, unsigned CHAR) \
     NANOS_ATOMIC_DECL_OP(op, ushort, unsigned short int) \
     NANOS_ATOMIC_DECL_OP(op, uint, unsigned int) \
     NANOS_ATOMIC_DECL_OP(op, ulong, unsigned long) \
+    NANOS_ATOMIC_DECL_OP(op, ulonglong, unsigned long long) \
+    NANOS_ATOMIC_EXTRA_INT_OP(op)
 
 
 #define NANOS_ATOMIC_FLOAT_OP(op) \
@@ -73,7 +105,7 @@ extern "C"
 #define NANOS_ATOMIC_ALL_OP(op) \
     NANOS_ATOMIC_INT_OP(op) \
     NANOS_ATOMIC_FLOAT_OP(op) \
-    NANOS_ATOMIC_COMPLEX_OP(op)
+    NANOS_ATOMIC_COMPLEX_OP(op) \
 
 ATOMIC_OPS
 
@@ -81,6 +113,7 @@ ATOMIC_OPS
 #undef NANOS_ATOMIC_COMPLEX_OP
 #undef NANOS_ATOMIC_FLOAT_OP
 #undef NANOS_ATOMIC_INT_OP
+#undef NANOS_ATOMIC_EXTRA_INT_OP
 
 #ifdef __cplusplus
 }
