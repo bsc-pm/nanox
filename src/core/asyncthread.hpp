@@ -21,6 +21,7 @@
 #define _ASYNC_THREAD_ELEMENT
 
 #include "asyncthread_decl.hpp"
+#include "system.hpp"
 
 
 namespace nanos
@@ -34,6 +35,14 @@ inline void AsyncThread::checkEvents()
    for ( unsigned int i = 0; i < max; i++ ) {
       GenericEvent * evt = _pendingEvents[i];
       if ( evt->isRaised() ) {
+         _previousWD = this->getCurrentWD();
+
+         WD * wd = evt->getWD();
+         this->setCurrentWD( *wd );
+
+         // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
+         NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( _previousWD, wd, /* last */ false ) );
+
          evt->setCompleted();
          // Move to next step if WD's event is raised
          while ( evt->hasNextAction() ) {
@@ -41,6 +50,17 @@ inline void AsyncThread::checkEvents()
             action->run();
             delete action;
          }
+
+         // Instrumenting context switch: wd leaves CPU, but will come back later (last = false) or not (last = true)
+         // finishWork() function will modify thread's current WD because the active WD will be deleted at that point.
+         // In this case, we don't need to call switchWD because it's already been called at finishWork()
+         NANOS_INSTRUMENT( \
+               if ( this->getCurrentWD() == wd  )
+                  sys.getInstrumentation()->wdSwitch( wd, _previousWD, /* last */ false ) \
+         );
+
+         this->setCurrentWD( *_previousWD );
+
       }
    }
 

@@ -588,8 +588,12 @@ void Scheduler::finishWork( WD *oldwd, WD * wd )
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
+   BaseThread *thread = getMyThreadSafe();
+   // Switch back to oldwd
+   thread->setCurrentWD( *oldwd );
+
    /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, true ) );
 
    wd->done();
    wd->clear();

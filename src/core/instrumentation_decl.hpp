@@ -377,6 +377,18 @@ namespace nanos {
             /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");
             /* 42 */ registerEventKey("cpuid","Thread cpuid");
 
+            /* 43 */ registerEventKey("async-thread","Asynchronous thread state events", true);
+            registerEventValue("async-thread", "ASYNC_THREAD_INLINE_WORK_DEP_EVENT", "inlineWorkDependent()" );  /* 1 */
+            registerEventValue("async-thread", "ASYNC_THREAD_PRE_RUN_EVENT", "WD pre-run" );                     /* 2 */
+            registerEventValue("async-thread", "ASYNC_THREAD_RUN_EVENT", "Running WD" );                         /* 3 */
+            registerEventValue("async-thread", "ASYNC_THREAD_POST_RUN_EVENT", "WD post-run" );                   /* 4 */
+            registerEventValue("async-thread", "ASYNC_THREAD_WAIT_INPUTS_EVENT", "Waiting for inputs" );         /* 5 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CP_DATA_IN_EVENT", "Copy data in" );                /* 6 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CP_DATA_OUT_EVENT", "Copy data out" );              /* 7 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CHECK_EVTS_EVENT", "Check events" );                /* 8 */
+            registerEventValue("async-thread", "ASYNC_THREAD_PROCESS_EVT_EVENT", "Processing finished event" );  /* 9 */
+            registerEventValue("async-thread", "ASYNC_THREAD_SYNCHRONIZE_EVENT", "Synchronize copy" );          /* 10 */
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 

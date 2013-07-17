@@ -23,25 +23,43 @@
 #include "processingelement.hpp"
 //#include "system.hpp"
 //#include "synchronizedcondition.hpp"
+#include <unistd.h>
+
 
 using namespace nanos;
 
 
 #define PRINT_LIST 0
 
+// Macro's to instrument the code and make it cleaner
+#define ASYNC_THREAD_CREATE_EVENT(x)   NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ), (x) ); )
+
+#define ASYNC_THREAD_CLOSE_EVENT       NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ) ); )
+
+
+typedef enum {
+   ASYNC_THREAD_NULL_EVENT,                  /* 0 */
+   ASYNC_THREAD_INLINE_WORK_DEP_EVENT,       /* 1 */
+   ASYNC_THREAD_PRE_RUN_EVENT,               /* 2 */
+   ASYNC_THREAD_RUN_EVENT,                   /* 3 */
+   ASYNC_THREAD_POST_RUN_EVENT,              /* 4 */
+   ASYNC_THREAD_WAIT_INPUTS_EVENT,           /* 5 */
+   ASYNC_THREAD_CP_DATA_IN_EVENT,            /* 6 */
+   ASYNC_THREAD_CP_DATA_OUT_EVENT,           /* 7 */
+   ASYNC_THREAD_CHECK_EVTS_EVENT,            /* 8 */
+   ASYNC_THREAD_PROCESS_EVT_EVENT,           /* 9 */
+   ASYNC_THREAD_SYNCHRONIZE_EVENT           /* 10 */
+} AsyncThreadState_t;
 
 bool AsyncThread::inlineWorkDependent( WD &work )
 {
-   //AsyncThread::runWD( &work );
-
-   //_runningWDs.push_back( &work );
-   //_runningWDsCounter++;
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_INLINE_WORK_DEP_EVENT );
 
    debug( "[Async] At inlineWorkDependent, adding WD " << &work << " : " << work.getId() << " to running WDs list" );
 
    // Add WD to the queue
-   //addNextWD( &work );
-
    _runningWDs.push_back( &work );
    _runningWDsCounter++;
 
@@ -58,6 +76,8 @@ bool AsyncThread::inlineWorkDependent( WD &work )
 
    // Start steps to run this WD
    this->preRunWD( &work );
+
+   ASYNC_THREAD_CLOSE_EVENT;
 
    return false;
 }
@@ -77,7 +97,6 @@ void AsyncThread::idle()
          debug( "[Async] At idle, adding WD " << next << " : " << next->getId() << " to running WDs list" );
 
          // Add WD to the queue
-         //addNextWD( next );
          _runningWDs.push_back( next );
          _runningWDsCounter++;
 
@@ -111,17 +130,23 @@ void AsyncThread::preRunWD ( WD * wd )
 {
    debug( "[Async] Prerunning WD " << wd << " : " << wd->getId() );
 
-   WD *oldwd = this->getCurrentWD();
+   _previousWD = this->getCurrentWD();
+
    this->setCurrentWD( *wd );
    // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( _previousWD, wd, /* last */ false ) );
+
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_PRE_RUN_EVENT );
 
    // This will start WD's copies
    wd->init();
 
-   this->setCurrentWD( *oldwd );
+   ASYNC_THREAD_CLOSE_EVENT;
+
    // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, _previousWD, /* last */ false ) );
+
+   this->setCurrentWD( *_previousWD );
 }
 
 
@@ -154,10 +179,7 @@ void AsyncThread::runWD ( WD * wd )
 
    debug( "[Async] Running WD " << wd << " : " << wd->getId() );
 
-   WD *oldwd = this->getCurrentWD();
-   this->setCurrentWD( *wd );
-   // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false ) );
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_RUN_EVENT );
 
    // This will wait for WD's inputs
    wd->start( WD::IsNotAUserLevelThread );
@@ -188,9 +210,7 @@ void AsyncThread::runWD ( WD * wd )
 
    addEvent( evt );
 
-   this->setCurrentWD( *oldwd );
-   // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false ) );
+   ASYNC_THREAD_CLOSE_EVENT;
 }
 
 
@@ -198,10 +218,7 @@ void AsyncThread::postRunWD ( WD * wd )
 {
    debug( "[Async] Postrunning WD " << wd << " : " << wd->getId() );
 
-   WD *oldwd = this->getCurrentWD();
-   this->setCurrentWD( *wd );
-   // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false ) );
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_POST_RUN_EVENT );
 
    wd->finish();
 
@@ -221,16 +238,15 @@ void AsyncThread::postRunWD ( WD * wd )
    std::cout << s.str();
 #endif
 
-   this->setCurrentWD( *oldwd );
-   // Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ true ) );
-
+   ASYNC_THREAD_CLOSE_EVENT;
 }
 
 
 
 void AsyncThread::copyDataIn( WorkDescriptor& work )
 {
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CP_DATA_IN_EVENT );
+
    // WD has no copies
    if ( work.getNumCopies() == 0 ) {
       GenericEvent * evt = this->createPreRunEvent( &work );
@@ -305,10 +321,14 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
 #endif
       }
    }
+
+   ASYNC_THREAD_CLOSE_EVENT;
 }
 
 void AsyncThread::waitInputs( WorkDescriptor &work )
 {
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_WAIT_INPUTS_EVENT );
+
    // Should never find a non-raised event
    for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
       GenericEvent * evt = *it;
@@ -318,10 +338,14 @@ void AsyncThread::waitInputs( WorkDescriptor &work )
          evt->waitForEvent();
       }
    }
+
+   ASYNC_THREAD_CLOSE_EVENT;
 }
 
 void AsyncThread::copyDataOut( WorkDescriptor& work )
 {
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CP_DATA_OUT_EVENT );
+
    // WD has no copies
    if ( work.getNumCopies() == 0 ) {
       GenericEvent * evt = this->createPostRunEvent( &work );
@@ -332,7 +356,7 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 
       addEvent( evt );
 
-      Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, ( WD * ) NULL, &work );
+      Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, _previousWD, &work );
       evt->addNextAction( action );
 #ifdef NANOS_GENERICEVENT_DEBUG
       evt->setDescription( evt->getDescription() + " action:Scheduler::finishWork" );
@@ -392,19 +416,23 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
       }
 
       if ( lastEvt ) {
-         Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, ( WD * ) NULL, &work );
+         Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, _previousWD, &work );
          lastEvt->addNextAction( action );
 #ifdef NANOS_GENERICEVENT_DEBUG
          lastEvt->setDescription( lastEvt->getDescription() + " action:Scheduler::finishWork" );
 #endif
       }
    }
+
+   ASYNC_THREAD_CLOSE_EVENT;
 }
 
 
 void AsyncThread::synchronize( CopyDescriptor cd )
 {
+   //ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_SYNCHRONIZE_EVENT );
    runningOn()->synchronize( cd );
+   //ASYNC_THREAD_CLOSE_EVENT;
 }
 
 void AsyncThread::addEvent( GenericEvent * evt )

@@ -134,7 +134,7 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt
    // allocateOutputPinnedMemory() can return NULL, so we have to check the pointer to pinned memory
    pinned = pinned ? pinned : ( void * ) mt._hostAddress.getTag();
 
-   GenericEvent * evt = thread->createPostRunEvent( NULL );
+   GenericEvent * evt = thread->createPostRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG
    evt->setDescription( evt->getDescription() + " remMemTxAsync DtH"
          + toString<uint64_t>( ( uint64_t ) mt._deviceAddress )
@@ -310,7 +310,7 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer &mt 
       GPUDevice::copyInAsyncToBuffer( pinned, ( void * ) mt._hostAddress.getTag(), mt._size );
    }
 
-   GenericEvent * evt = thread->createPreRunEvent( NULL );
+   GenericEvent * evt = thread->createPreRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG
    evt->setDescription( evt->getDescription() + " remMemTxAsync HtD"
          + toString<uint64_t>( mt._hostAddress.getTag() ) + "(" + toString<uint64_t>( ( uint64_t ) pinned ) + ")"
