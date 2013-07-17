@@ -394,6 +394,7 @@ void System::start ()
    pe->setNUMANode( getNodeOfPE( pe->getId() ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
+   _devices.insert( &pe->getDeviceType() );
 
    WD &mainWD = *myThread->getCurrentWD();
    (void) mainWD.getDirectory(true);
@@ -437,6 +438,7 @@ void System::start ()
       pe = createPE ( "smp", _bindings[ p % _bindings.size() ]  );
       pe->setNUMANode( getNodeOfPE( pe->getId() ) );
       _pes.push_back ( pe );
+      _devices.insert( &pe->getDeviceType() );
    }
    
    // Create threads
@@ -454,6 +456,7 @@ void System::start ()
          PE * processor = (*it)->createPE( archPE );
          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
          _pes.push_back( processor );
+         _devices.insert( &processor->getDeviceType() );
          _workers.push_back( &processor->startWorker() );
          ++p;
       }
@@ -463,7 +466,6 @@ void System::start ()
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);
    spu->startWorker();
 #endif
-
 
    if ( getSynchronizedStart() ) {
       // Wait for the rest of the gang to be ready, but do not yet notify master thread is ready

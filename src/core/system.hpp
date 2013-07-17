@@ -50,6 +50,9 @@ inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 
 inline int System::getNumThreads () const { return _numThreads; }
 
+inline System::DeviceList & System::getSupportedDevices() { return _devices; }
+
+
 inline int System::getCpuCount () const { return _cpu_mask.size(); };
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){

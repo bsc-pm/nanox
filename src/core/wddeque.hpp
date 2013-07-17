@@ -28,6 +28,20 @@
 
 using namespace nanos;
 
+
+inline WDDeque::WDDeque( bool enableDeviceCounter = true ) : _dq(), _lock(), _nelems(0), _ndevs(), _deviceCounter( enableDeviceCounter )
+{
+   if ( _deviceCounter ) {
+      System::DeviceList devs = sys.getSupportedDevices();
+
+      for ( System::DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
+         const Device * dev = *it;
+         Atomic<unsigned int> num = 0;
+         _ndevs.insert( std::make_pair( dev, num ) );
+      }
+   }
+}
+
 inline bool WDDeque::empty ( void ) const
 {
    return _dq.empty();
@@ -47,6 +61,12 @@ inline void WDDeque::push_front ( WorkDescriptor *wd )
       increaseTasksInQueues(tasks);
       memoryFence();
    }
+
+   if ( _deviceCounter ) {
+      for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) {
+         _ndevs[( wd->getDevices()[i]->getDevice() )]++;
+      }
+   }
 }
 
 inline void WDDeque::push_back ( WorkDescriptor *wd )
@@ -58,6 +78,12 @@ inline void WDDeque::push_back ( WorkDescriptor *wd )
       int tasks = ++( sys.getSchedulerStats()._readyTasks );
       increaseTasksInQueues(tasks);
       memoryFence();
+   }
+
+   if ( _deviceCounter ) {
+      for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) {
+         _ndevs[( wd->getDevices()[i]->getDevice() )]++;
+      }
    }
 }
 
@@ -89,6 +115,9 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
    if ( _dq.empty() )
       return NULL;
 
+   if ( _deviceCounter && _ndevs[ &( thread->runningOn()->getDeviceType() )].value() == 0 )
+      return NULL;
+
    {
       LockBlock lock( _lock );
 
@@ -114,6 +143,12 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
 
    }
 
+   if ( _deviceCounter && found ) {
+      for ( unsigned int i = 0; i < found->getNumDevices(); i++ ) {
+         _ndevs[( found->getDevices()[i]->getDevice() )]--;
+      }
+   }
+
    ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
 
    return found;
@@ -127,6 +162,9 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
    WorkDescriptor *found = NULL;
 
    if ( _dq.empty() )
+      return NULL;
+
+   if ( _deviceCounter && _ndevs[ &( thread->runningOn()->getDeviceType() )].value() == 0 )
       return NULL;
 
    {
@@ -152,6 +190,12 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
 
       if ( found != NULL ) found->setMyQueue( NULL );
 
+   }
+
+   if ( _deviceCounter && found ) {
+      for ( unsigned int i = 0; i < found->getNumDevices(); i++ ) {
+         _ndevs[( found->getDevices()[i]->getDevice() )]--;
+      }
    }
 
    ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );

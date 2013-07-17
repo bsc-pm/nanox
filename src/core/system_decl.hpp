@@ -56,6 +56,8 @@ namespace nanos
          typedef enum { POOL, ONE_THREAD } InitialMode;
          typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
+         typedef std::set<const Device *>  DeviceList;
+
 
       private:
          // types
@@ -129,6 +131,9 @@ namespace nanos
 
          PEList               _pes;
          ThreadList           _workers;
+
+         //! List of all supported architectures by _pes
+         DeviceList           _devices;
         
          /*! It counts how many threads have finalized their initialization */
          Atomic<unsigned int> _initializedThreads;
@@ -248,6 +253,8 @@ namespace nanos
          void setNumThreads ( int nthreads );
 
          int getNumThreads () const;
+
+         DeviceList & getSupportedDevices();
 
          int getCpuCount ( ) const;
 

@@ -22,6 +22,7 @@
 
 #include <list>
 #include <functional>
+#include <map>
 #include "atomic_decl.hpp"
 #include "debug.hpp"
 #include "workdescriptor_fwd.hpp"
@@ -92,10 +93,14 @@ namespace nanos
    {
       private:
          typedef std::list<WorkDescriptor *> BaseContainer;
+         typedef std::map< const Device *, Atomic<unsigned int> > WDDeviceCounter;
 
          BaseContainer     _dq;
          Lock              _lock;
          size_t            _nelems;
+         WDDeviceCounter   _ndevs;
+         bool              _deviceCounter;
+
 
       private:
          /*! \brief WDDeque copy constructor (private)
@@ -107,7 +112,7 @@ namespace nanos
       public:
          /*! \brief WDDeque default constructor
           */
-         WDDeque() : _dq(), _lock(), _nelems(0) {}
+         WDDeque( bool enableDeviceCounterr );
          /*! \brief WDDeque destructor
           */
          ~WDDeque() {}
