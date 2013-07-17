@@ -27,6 +27,7 @@ debug_LTLIBRARIES = \
  	libnanox-sched-cilk.la \
  	libnanox-sched-wf.la \
  	libnanox-sched-affinity.la \
+ 	libnanox-sched-affinity-ready.la \
  	libnanox-sched-versioning.la \
  	libnanox-sched-priority.la \
  	libnanox-sched-smartpriority.la \
@@ -55,6 +56,10 @@ libnanox_sched_cilk_la_SOURCES = $(cilk_sources)
 libnanox_sched_affinity_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_sched_affinity_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_sched_affinity_la_SOURCES = $(affinity_sources)
+
+libnanox_sched_affinity_ready_la_CXXFLAGS = $(nanos_debug_cxxflags)
+libnanox_sched_affinity_ready_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_sched_affinity_ready_la_SOURCES = $(affinity_ready_sources)
 
 libnanox_sched_versioning_la_CXXFLAGS = $(nanos_debug_cxxflags)
 libnanox_sched_versioning_la_LDFLAGS = $(ld_plugin_flags)
