@@ -29,6 +29,7 @@
 #include "basethread_decl.hpp"
 #include "atomic.hpp"
 #include "system.hpp"
+#include "wddeque.hpp"
 
 namespace nanos
 {
