@@ -51,9 +51,9 @@ namespace nanos
             _timesToQuery = 1;
 
             // Check for the state of the event, to see if it has changed
-            NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_QUERY_EVENT );
+            //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_QUERY_EVENT );
             cudaError_t recorded = cudaEventQuery( _cudaEvent );
-            NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+            //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
 
             if ( recorded == cudaErrorNotReady ) {
@@ -102,10 +102,10 @@ namespace nanos
                   << " with wd = " << wd << " : " << ( ( wd != NULL ) ? wd->getId() : 0 )
                   << " and stream " << (void *) stream );
 
-            NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_CREATE_EVENT );
+            //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_CREATE_EVENT );
             //cudaError_t err =
             cudaEventCreateWithFlags( &_cudaEvent, cudaEventDisableTiming );
-            NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+            //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
             //fatal_cond( err != cudaSuccess, "Error creating a CUDA event: " +  cudaGetErrorString( err ) );
 
@@ -125,10 +125,10 @@ namespace nanos
                   << " and stream " << (void *) stream
                   << " and " << next.size() << " elems in the queue " );
 
-            NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_CREATE_EVENT );
+            //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_CREATE_EVENT );
             //cudaError_t err =
             cudaEventCreateWithFlags( &_cudaEvent, cudaEventDisableTiming );
-            NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+            //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
             //fatal_cond( err != cudaSuccess, "Error creating a CUDA event: " +  cudaGetErrorString( err ) );
 
@@ -145,10 +145,10 @@ namespace nanos
 
             ensure ( _state == RAISED, "Error trying to destroy a non-raised event" );
 
-            NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_DESTROY_EVENT );
+            //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_DESTROY_EVENT );
             //cudaError_t err =
             cudaEventDestroy( _cudaEvent );
-            NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+            //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
             //fatal_cond( err != cudaSuccess, "Error destroying a CUDA event: " +  cudaGetErrorString( err ) );
          }
