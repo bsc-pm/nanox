@@ -52,6 +52,7 @@ public:
 
    cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
+   cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
 
    // Low-level program builder. Lifetime of prog is under caller
    // responsability.
@@ -154,6 +155,10 @@ public:
    ProgramCache& getProgCache() {
         return _progCache;
     }
+   
+   cl_context& getContext() {
+        return _ctx;
+    }
 
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
@@ -193,6 +198,8 @@ public:
    WD &getWorkerWD() const;
 
    WD &getMasterWD() const;
+   
+   cl_context& getContext();
 
    BaseThread &createThread( WorkDescriptor &wd );
 
@@ -247,6 +254,16 @@ public:
    bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size )
    {
       return _cache.copyOut( remoteDst, localSrc, size );
+   }
+   
+   cl_mem getBuffer( void *localSrc, size_t size )
+   {
+      return _cache.getBuffer( localSrc, size );
+   } 
+   
+   bool copyInBuffer( void *localSrc, cl_mem remoteBuffer, size_t size )
+   {
+      return _cache.copyInBuffer( localSrc, remoteBuffer, size );
    }
 
    bool asyncCopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size )
