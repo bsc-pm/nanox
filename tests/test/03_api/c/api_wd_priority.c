@@ -21,8 +21,7 @@
 /*
 <testinfo>
 test_generator=gens/api-omp-generator
-test_schedule=bf
-test_ignore_fail=yes
+test_schedule="bf --schedule-priority"
 </testinfo>
 */
 

@@ -248,6 +248,9 @@ namespace nanos {
             registerEventValue("api","get_num_blocked_tasks","nanos_get_num_blocked_tasks()");
             registerEventValue("api","get_num_running_tasks","nanos_get_num_running_tasks()");
             registerEventValue("api","dependence_pendant_writes","nanos_dependence_pendant_writes()");
+            registerEventValue("api","in_final","nanos_in_final()");
+            registerEventValue("api","set_final","nanos_set_final()");
+            registerEventValue("api","dependence_release_all","nanos_dependence_release_all()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 
@@ -371,6 +374,8 @@ namespace nanos {
             /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
             /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");
             /* 42 */ registerEventKey("cpuid","Thread cpuid");
+
+            /* 43 */ registerEventKey("dep-address", "Dependence address", true);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }

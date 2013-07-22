@@ -32,6 +32,7 @@
 #include "debug.hpp"
 #include <string.h>
 #include <set>
+#include <climits>
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -55,7 +56,7 @@ System::System () :
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
-      _numSockets( 0 ), _coresPerSocket( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
+      _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -112,7 +113,14 @@ System::System () :
    // Set _bindings structure once we have the system mask and the binding info
    _bindings.reserve( cpu_count );
    for ( int i=0, collisions = 0; i < cpu_count; ) {
-      int pos = (_bindingStart + _bindingStride*i + collisions) % cpu_affinity.size();
+
+      // The cast over cpu_affinity is needed because std::vector::size() returns a size_t type
+      int pos = (_bindingStart + _bindingStride*i + collisions) % (int)cpu_affinity.size();
+
+      // 'pos' may be negative if either bindingStart or bindingStride were negative
+      // this loop fixes that % operator is the remainder, not the modulo operation
+      while ( pos < 0 ) pos+=cpu_affinity.size();
+
       if ( std::find( _bindings.begin(), _bindings.end(), cpu_affinity[pos] ) != _bindings.end() ) {
          collisions++;
          ensure( collisions != cpu_count, "Reached limit of collisions. We should never get here." );
@@ -276,11 +284,11 @@ void System::config ()
    cfg.registerArgOption ( "stack-size", "stack-size" );
    cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
 
-   cfg.registerConfigOption ( "binding-start", NEW Config::PositiveVar ( _bindingStart ), "Set initial cpu id for binding (binding requiered)" );
+   cfg.registerConfigOption ( "binding-start", NEW Config::IntegerVar ( _bindingStart ), "Set initial cpu id for binding (binding required)" );
    cfg.registerArgOption ( "binding-start", "binding-start" );
    cfg.registerEnvOption ( "binding-start", "NX_BINDING_START" );
 
-   cfg.registerConfigOption ( "binding-stride", NEW Config::PositiveVar ( _bindingStride ), "Set binding stride (binding requiered)" );
+   cfg.registerConfigOption ( "binding-stride", NEW Config::IntegerVar ( _bindingStride ), "Set binding stride (binding required)" );
    cfg.registerArgOption ( "binding-stride", "binding-stride" );
    cfg.registerEnvOption ( "binding-stride", "NX_BINDING_STRIDE" );
 
@@ -467,8 +475,21 @@ void System::start ()
          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
          _pes.push_back( processor );
          _workers.push_back( &processor->startWorker() );
+         CPU_SET( processor->getId(), &_cpu_active_set );
          ++p;
       }
+   }
+
+   // Set up internal data for each worker
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+
+      WD & threadWD = (*it)->getThreadWD();
+      if ( _pmInterface->getInternalDataSize() > 0 ) {
+         char *data = NEW char[_pmInterface->getInternalDataSize()];
+         _pmInterface->initInternalData( data );
+         threadWD.setInternalData( data );
+      }
+      _pmInterface->setupWD( threadWD );
    }
       
 #ifdef SPU_DEV
@@ -481,6 +502,28 @@ void System::start ()
       // Wait for the rest of the gang to be ready, but do not yet notify master thread is ready
       while (_initializedThreads.value() < ( _targetThreads - 1 ) ) {}
    }
+
+   // Create the NUMA node translation table. Do this before creating the team,
+   // as the schedulers might need the information.
+   _numaNodeMap.resize( _numSockets, INT_MIN );
+
+   /* As all PEs are already created by this time, count how many physical
+    * NUMA nodes are available, and map from a physical id to a virtual ID
+    * that can be selected by the user via nanos_current_socket() */
+   for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); ++it )
+   {
+      int node = (*it)->getNUMANode();
+      // If that node has not been translated, yet
+      if ( _numaNodeMap[ node ] == INT_MIN )
+      {
+         verbose0( "Mapping from physical node " << node << " to user node " << _numAvailSockets );
+         _numaNodeMap[ node ] = _numAvailSockets;
+         // Increase the number of available sockets
+         ++_numAvailSockets;
+      }
+      // Otherwise, do nothing
+   }
+   verbose0( _numAvailSockets << " NUMA node(s) available for the user." );
 
    switch ( getInitialMode() )
    {
@@ -784,6 +827,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       if ( props->tied ) wd->tied();
       unsigned priority = dyn_props->priority;
       wd->setPriority( priority );
+      wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
@@ -954,6 +998,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
       wd->setPriority( dyn_props->priority );
+      wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
 }
@@ -1220,10 +1265,21 @@ void System::inlineWork ( WD &work )
 
 void System::createWorker( unsigned p )
 {
+   NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
    PE *pe = createPE ( "smp", getBindingId( p ) );
    _pes.push_back ( pe );
-   _workers.push_back( &pe->startWorker() );
+   BaseThread *thread = &pe->startWorker();
+   _workers.push_back( thread );
    ++_targetThreads;
+
+   //Set up internal data
+   WD & threadWD = thread->getThreadWD();
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      threadWD.setInternalData( data );
+   }
+   _pmInterface->setupWD( threadWD );
 }
 
 BaseThread * System:: getUnassignedWorker ( void )
@@ -1232,7 +1288,7 @@ BaseThread * System:: getUnassignedWorker ( void )
 
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
       thread = _workers[i];
-      if ( !thread->hasTeam() || !thread->isEligible() ) {
+      if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
 
          // skip if the thread is not in the mask
          if ( sys.getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpu_active_set) )
@@ -1241,7 +1297,7 @@ BaseThread * System:: getUnassignedWorker ( void )
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( thread->hasTeam() && thread->isEligible() ) {
+         if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
             // we lost it
             thread->unlock();
             continue;
@@ -1265,12 +1321,12 @@ BaseThread * System:: getAssignedWorker ( void )
    ThreadList::reverse_iterator rit;
    for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
       thread = *rit;
-      if ( thread->hasTeam() && thread->isEligible() ) {
+      if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
 
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( !thread->hasTeam() || !thread->isEligible() ) {
+         if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
             // we lost it
             thread->unlock();
             continue;
@@ -1421,7 +1477,6 @@ void System::updateActiveWorkers ( int nthreads )
 
       thread = getUnassignedWorker();
       if ( !thread ) {
-         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
          createWorker( _pes.size() );
          _numPEs++;
          continue;
@@ -1457,7 +1512,6 @@ inline void System::applyCpuMask()
 
       // Create PE & Worker if it does not exist
       if ( pe_id == _pes.size() ) {
-         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
          createWorker( pe_id );
       }
 

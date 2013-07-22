@@ -194,6 +194,7 @@ namespace nanos
       // update the system threads after the API omp_set_num_threads
       void OmpSsInterface::setNumThreads ( int nthreads )
       {
+         LockBlock Lock( _lock );
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( nthreads );
 
@@ -209,6 +210,7 @@ namespace nanos
 
       void OmpSsInterface::setCpuMask( const cpu_set_t *cpu_set )
       {
+         LockBlock Lock( _lock );
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
@@ -217,6 +219,7 @@ namespace nanos
 
       void OmpSsInterface::addCpuMask( const cpu_set_t *cpu_set )
       {
+         LockBlock Lock( _lock );
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );

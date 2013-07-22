@@ -52,6 +52,8 @@ class InstrumentationPrintTrace: public Instrumentation
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
          nanos_event_key_t create_task = iD->getEventKey("create-wd-ptr"); 
          nanos_event_key_t funct_location = iD->getEventKey("user-funct-location"); 
+         nanos_event_key_t dependence  = iD->getEventKey("dependence");
+         nanos_event_key_t dep_address  = iD->getEventKey("dep-address");
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -76,8 +78,20 @@ class InstrumentationPrintTrace: public Instrumentation
                      int64_t wd_id = wd->getId();
                      int64_t funct_id = (int64_t) ((ext::SMPDD &) (wd->getActiveDevice ())).getWorkFct ();
                      fprintf(stderr,"NANOS++: Executing %"PRId64" function within task %"PRId64" in thread %d\n",funct_id,wd_id, myThread->getId());
-
                   }
+                  if ( (nanos_event_key_t)(events[i]).getKey() == dependence ) {
+                     nanos_event_value_t dependence_value = (events[i]).getValue();
+                     int sender_id = (int) ( dependence_value >> 32 );
+                     int receiver_id = (int) ( dependence_value & 0xFFFFFFFFFF );
+
+                     while ( (i < count) && ((nanos_event_key_t)(events[i]).getKey() != dep_address) ) i++;
+
+                     void * address_id = 0;
+                     if ( i < count ) address_id = (void *) ((events[i]).getValue());
+
+                     fprintf(stderr,"NANOS++: Adding dependence %d->%d (related data address %p)\n",sender_id,receiver_id, address_id );
+                  }
+
                   break;
                case NANOS_BURST_START:
                   if ( e.getKey() == funct_location ) {
@@ -92,6 +106,35 @@ class InstrumentationPrintTrace: public Instrumentation
       }
       void threadStart( BaseThread &thread ) {}
       void threadFinish ( BaseThread &thread ) {}
+#endif
+#if 0
+
+void addEventList ( unsigned int count, Event *events )
+      {
+         InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+
+         int64_t AYU_data[3];
+
+         for (unsigned int i = 0; i < count; i++)
+         {
+            switch ( (events[i]).getType() ) {
+               case NANOS_STATE_START:
+               case NANOS_STATE_END:
+               case NANOS_SUBSTATE_START:
+               case NANOS_SUBSTATE_END:
+               case NANOS_PTP_START:
+               case NANOS_PTP_END:
+                  break;
+               case NANOS_POINT:
+                  break;
+               case NANOS_BURST_START:
+               case NANOS_BURST_END:
+               default: break;
+            }
+         }
+      }
+
+
 #endif
 
 };

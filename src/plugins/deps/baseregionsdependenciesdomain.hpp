@@ -35,10 +35,11 @@ inline void BaseRegionsDependenciesDomain::finalizeReduction( CONTAINER_T &statu
 }
 
 template<typename CONTAINER_T>
-inline void BaseRegionsDependenciesDomain::dependOnLastWriter( DependableObject &depObj, CONTAINER_T &statusContainer, SchedulePolicySuccessorFunctor* callback )
+inline void BaseRegionsDependenciesDomain::dependOnLastWriter( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target,
+                                                               SchedulePolicySuccessorFunctor* callback )
 {
    for ( typename CONTAINER_T::iterator it = statusContainer.begin(); it != statusContainer.end(); it++ ) {
-      BaseDependenciesDomain::dependOnLastWriter( depObj, **it, callback );
+      BaseDependenciesDomain::dependOnLastWriter( depObj, **it, target, callback );
    }
 }
 
@@ -66,7 +67,7 @@ inline CommutationDO * BaseRegionsDependenciesDomain::setUpInitialCommutationDep
          BaseDependenciesDomain::dependOnReaders( *initialCommDO, sourceStatusFragment, target, NULL );
          
          // NOTE: The regions version does not allow a write to take the place of the initialCommDo since there might be more than one due to several source regions
-         BaseDependenciesDomain::dependOnLastWriter( *initialCommDO, sourceStatusFragment, NULL );
+         BaseDependenciesDomain::dependOnLastWriter( *initialCommDO, sourceStatusFragment, target, NULL );
          
          // NOTE: We should probably check if the source subregion is completely within the target region and in that case eliminate it
       }
@@ -98,7 +99,7 @@ inline void BaseRegionsDependenciesDomain::submitDependableObjectCommutativeData
    depObj.addSuccessor( *commDO );
    
    // assumes no new readers added concurrently
-   BaseDependenciesDomain::dependOnLastWriter( depObj, targetStatus, callback );
+   BaseDependenciesDomain::dependOnLastWriter( depObj, targetStatus, target, callback );
 
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
@@ -111,7 +112,7 @@ template <typename SOURCE_STATUS_T>
 inline void BaseRegionsDependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus, SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( sourceStatus, target );
-   dependOnLastWriter( depObj, sourceStatus, callback );
+   dependOnLastWriter( depObj, sourceStatus, target, callback );
    dependOnReaders( depObj, sourceStatus, target, callback );
    setAsWriter( depObj, targetStatus, target );
 }
@@ -120,7 +121,7 @@ template <typename SOURCE_STATUS_T>
 inline void BaseRegionsDependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus, SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( sourceStatus, target );
-   dependOnLastWriter( depObj, sourceStatus, callback );
+   dependOnLastWriter( depObj, sourceStatus, target, callback );
 
    if ( !depObj.waits() ) {
       addAsReader( depObj, targetStatus );
@@ -131,7 +132,7 @@ template <typename SOURCE_STATUS_T>
 inline void BaseRegionsDependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, SOURCE_STATUS_T &sourceStatus, TrackableObject &targetStatus, SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( sourceStatus, target );
-   dependOnLastWriter( depObj, sourceStatus, callback );
+   dependOnLastWriter( depObj, sourceStatus, target, callback );
    dependOnReaders( depObj, sourceStatus, target, callback );
    setAsWriter( depObj, targetStatus, target );
 }

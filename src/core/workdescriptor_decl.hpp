@@ -149,7 +149,16 @@ namespace nanos
 
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
-
+         typedef struct {
+            bool is_final:1;
+            bool reserved1:1;
+            bool reserved2:1;
+            bool reserved3:1;
+            bool reserved4:1;
+            bool reserved5:1;
+            bool reserved6:1;
+            bool reserved7:1;
+         } WDFlags;
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -158,6 +167,8 @@ namespace nanos
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
+         WDFlags                       _flags;        /**< WD Flags */
+
          bool                          _tie;          /**< FIXME: (#170) documentation needed */
          BaseThread                   *_tiedTo;       /**< FIXME: (#170) documentation needed */
 
@@ -184,30 +195,30 @@ namespace nanos
          double                        _executionTime;    /**< WD starting wall-clock time */
          double                        _estimatedExecTime;  /**< WD estimated execution time */
 
-         TR1::shared_ptr<DOSubmit>     _doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
+         DOSubmit                     *_doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
          LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
 
          DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
-         LazyInit<Directory>           _directory;    /**< Directory to mantain cache coherence */
-
-         InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
+         Directory                    *_directory;    /**< Directory to mantain cache coherence */
 
          bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
          bool                          _configured;  /**< Has this WD been configured to the Scheduler? */
+         bool                          _implicit;     /**< is a implicit task (in a team) */
 
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
 
          unsigned int                  _priority;      /**< Task priority */
 
-         CommutativeOwnerMap           _commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
-         WorkDescriptorPtrList         _commutativeOwners;   /**< Array of commutative target owners */
+         CommutativeOwnerMap           *_commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
+         WorkDescriptorPtrList         *_commutativeOwners;   /**< Array of commutative target owners */
 
          int                           _socket;       /**< The socket this WD was assigned to */
          unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
-         bool                          _implicit;     /**< is a implicit task (in a team) */
 
          bool                          _copiesNotInChunk; /**< States whether the buffer of the copies is allocated in the chunk of the WD */
          char                         *_description; /**< WorkDescriptor description, usually user function name */
+
+         InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -330,6 +341,8 @@ namespace nanos
          
          bool shouldBeTied() const;
 
+         void untie();
+
          void setData ( void *wdata );
 
          void * getData () const;
@@ -347,6 +360,10 @@ namespace nanos
          bool isReady () const;
 
          void setReady ();
+
+         bool isFinal () const;
+
+         void setFinal ( bool value = true );
 
          GenericSyncCond * getSyncCond();
 
@@ -484,7 +501,7 @@ namespace nanos
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */
-         TR1::shared_ptr<DOSubmit> & getDOSubmit();
+         DOSubmit * getDOSubmit();
 
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
