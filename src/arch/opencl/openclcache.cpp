@@ -160,7 +160,6 @@ bool OpenCLCache::deviceCopyInBuffer(void *localSrc,
                 size);
     
     if (errCode != CL_SUCCESS) {
-        printf("%d\n",errCode);
         fatal("Buffer reading failed.");
     }    
     

@@ -87,6 +87,8 @@ public:
    // TODO: replace with new APIs.
    size_t getGlobalSize();
    
+   void waitForEvents();
+   
    
 
 public:
@@ -181,6 +183,7 @@ private:
    cl_command_queue _queue;
 
    ProgramCache _progCache;
+   std::vector<cl_event> _pendingEvents;
 };
 
 class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
@@ -228,6 +231,10 @@ public:
    void setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer);
    
    void printStats();
+   
+   void waitForEvents() {       
+       _openclAdapter.waitForEvents();
+   }
    
    void cleanUp();
      

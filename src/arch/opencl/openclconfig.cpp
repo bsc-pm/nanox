@@ -109,7 +109,7 @@ void OpenCLConfig::apply(std::string &_devTy)
        //ompss_uses_cuda pointer will be null (is extern) if the compiler didnt fill it
       _enableOpenCL=((&ompss_uses_opencl)!=0);
    }
-   if( _forceDisableOpenCL || !_enableOpenCL )
+   if( _forceDisableOpenCL || !_enableOpenCL ) 
      return;
 
    cl_int errCode;
@@ -136,7 +136,6 @@ void OpenCLConfig::apply(std::string &_devTy)
    _plats.assign(plats, plats + numPlats);
    delete [] plats;
 
-   //TODO FIX THIS OR RETURN TO TRUNK MODE
    cl_device_type devTy;
 
    // Parse the requested device type.
@@ -204,7 +203,10 @@ void OpenCLConfig::apply(std::string &_devTy)
          0
       };
 
+      //Cant instrument here
+      //NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_CONTEXT_EVENT );
       cl_context ctx = clCreateContext( props, devicesToUse, avaiableDevs, NULL, NULL, &errCode );
+      //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
       // Put all available devices inside the vector.
       for( cl_device_id *j = avaiableDevs, *f = avaiableDevs + devicesToUse; j != f; ++j )
       {
