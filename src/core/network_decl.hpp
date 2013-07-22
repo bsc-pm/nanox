@@ -33,16 +33,22 @@ namespace nanos {
    class SendDataRequest {
       protected:
          NetworkAPI *_api;
+         unsigned int _seqNumber;
          void *_origAddr;
          void *_destAddr;
          std::size_t _len;
          std::size_t _count;
          std::size_t _ld;
+         unsigned int _destination;
+         unsigned int _wdId;
       public:
-         SendDataRequest( NetworkAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld );
+         SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId );
          virtual ~SendDataRequest();
          void doSend();
          void *getOrigAddr() const;
+         unsigned int getDestination() const;
+         unsigned int getWdId() const;
+         unsigned int getSeqNumber() const;
          virtual void doSingleChunk() = 0;
          virtual void doStrided( void *localAddr ) = 0;
    };
@@ -83,6 +89,7 @@ namespace nanos {
          //std::string _masterHostname;
          char * _masterHostname;
          bool _checkForDataInOtherAddressSpaces;
+         Atomic<unsigned int> *_putRequestSequence;
 
          class ReceivedWDData {
             private:
@@ -194,11 +201,14 @@ namespace nanos {
 
          void notifyWork( std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
          void notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag );
-         void notifyWaitRequestPut( void *addr );
+         void notifyWaitRequestPut( void *addr, unsigned int wdId, unsigned int seqNumber );
          void notifyRequestPut( SendDataRequest *req );
          void notifyGet( SendDataRequest *req );
          void invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld );
          void getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld );
+         unsigned int getPutRequestSequenceNumber( unsigned int dest );
+         unsigned int checkPutRequestSequenceNumber( unsigned int dest ) const;
+         bool updatePutRequestSequenceNumber( unsigned int dest, unsigned int value );
    };
 }
 

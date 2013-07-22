@@ -72,6 +72,11 @@ void Network::initialize()
    //   ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
       _api->initialize( this );
+
+   _putRequestSequence = NEW Atomic<unsigned int>[ getNumNodes() ];
+   for ( unsigned int i = 0; i < getNumNodes(); i += 1 ) {
+      new ( &_putRequestSequence[ i ] ) Atomic<unsigned int>( 0 );
+   }
 }
 
 void Network::finalize()
@@ -499,6 +504,9 @@ void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, 
 }
 
 void Network::notifyRequestPut( SendDataRequest *req ) {
+
+   while( checkPutRequestSequenceNumber( 0 ) < req->getSeqNumber() ); //FIXME: blocking on a handler may be dangerous
+
    _waitingPutRequestsLock.acquire();
    if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
    {
@@ -510,23 +518,31 @@ void Network::notifyRequestPut( SendDataRequest *req ) {
       _waitingPutRequestsLock.release();
       _api->processSendDataRequest( req );
    }
+
+   updatePutRequestSequenceNumber( 0, req->getSeqNumber() );
 }
 
-void Network::notifyWaitRequestPut( void *addr ) {
+void Network::notifyWaitRequestPut( void *addr, unsigned int wdId, unsigned int seqNumber ) {
+   while( checkPutRequestSequenceNumber( 0 ) < seqNumber ); //FIXME: blocking on a handler may be dangerous
+
    _waitingPutRequestsLock.acquire();
    std::set< void * >::iterator it;
-   if ( _receivedUnmatchedPutRequests.empty() || ( it = _receivedUnmatchedPutRequests.find( addr ) ) == _receivedUnmatchedPutRequests.end() )
-   {
+   if ( _receivedUnmatchedPutRequests.empty() || ( it = _receivedUnmatchedPutRequests.find( addr ) ) == _receivedUnmatchedPutRequests.end() ) {
       _waitingPutRequests.insert( addr );
-   } 
-   else
-   {
+   } else {
       _receivedUnmatchedPutRequests.erase( it );
    }
    _waitingPutRequestsLock.release();
+
+   updatePutRequestSequenceNumber( 0, seqNumber );
 }
 
 void Network::notifyGet( SendDataRequest *req ) {
+   //if ( checkPutRequestSequenceNumber( 0 ) < req->getSeqNumber() ) { /* 0 is used localy on each node */
+   //   // delay
+   //}
+   while( checkPutRequestSequenceNumber( 0 ) <  req->getSeqNumber() ); //FIXME: blocking on a handler may be dangerous
+
    _waitingPutRequestsLock.acquire();
    if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
    {
@@ -537,10 +553,12 @@ void Network::notifyGet( SendDataRequest *req ) {
    _waitingPutRequestsLock.release();
 
    _api->processSendDataRequest( req );
+
+   updatePutRequestSequenceNumber( 0, req->getSeqNumber() );
 }
 
-SendDataRequest::SendDataRequest( NetworkAPI *api, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld ) :
-   _api( api ), _origAddr( origAddr ), _destAddr( destAddr ), _len( len ), _count( count ), _ld( ld ) {
+SendDataRequest::SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId ) :
+   _api( api ), _seqNumber( seqNumber ), _origAddr( origAddr ), _destAddr( destAddr ), _len( len ), _count( count ), _ld( ld ), _destination( dst ), _wdId( wdId ) {
 }
 
 SendDataRequest::~SendDataRequest() {
@@ -580,6 +598,18 @@ void *SendDataRequest::getOrigAddr() const {
    return _origAddr;
 }
 
+unsigned int SendDataRequest::getDestination() const {
+   return _destination;
+}
+
+unsigned int SendDataRequest::getWdId() const {
+   return _wdId;
+}
+
+unsigned int SendDataRequest::getSeqNumber() const {
+   return _seqNumber;
+}
+
 void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld ) {
    //NewDirectory::LocationInfoList locations;
    //unsigned int currentVersion;
@@ -612,6 +642,18 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
    //   }
    //  //else { /*if ( sys.getNetwork()->getNodeNum() == 0)*/ std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"]  All ok, checked directory " << _newMasterDir  <<" location is " << it->second << std::endl; }
    //}
+}
+
+unsigned int Network::getPutRequestSequenceNumber( unsigned int dest ) {
+   return _putRequestSequence[ dest ]++;
+}
+
+unsigned int Network::checkPutRequestSequenceNumber( unsigned int dest ) const {
+   return _putRequestSequence[ dest ].value();
+}
+
+bool Network::updatePutRequestSequenceNumber( unsigned int dest, unsigned int value ) {
+   return _putRequestSequence[ dest ].cswap( value, value + 1 );
 }
 
 GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops, Functor *f ) : _complete(0),

@@ -2,6 +2,13 @@
 #include "workdescriptor.hpp"
 #include "regiondict.hpp"
 #include "newregiondirectory.hpp"
+
+#if VERBOSE_CACHE
+ #define _VERBOSE_CACHE 1
+#else
+ #define _VERBOSE_CACHE 0
+#endif
+
 namespace nanos {
 MemController::MemController( WD const &wd ) : _initialized( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions() {
    if ( _wd.getNumCopies() > 0 ) {
@@ -80,13 +87,13 @@ void MemController::preInit( ) {
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
       hasVersionInfoForRegion( _memCacheCopies[ index ]._reg  , _memCacheCopies[ index ]._version, _memCacheCopies[ index ]._locations );
       if ( _memCacheCopies[ index ]._version != 0 ) {
-         if ( VERBOSE_CACHE ) { std::cerr << "WD " << _wd.getId() << " copy "<< index <<" got location info from predecessor "<<  _memCacheCopies[ index ]._reg.id << " "; }
+         if ( _VERBOSE_CACHE ) { std::cerr << "WD " << _wd.getId() << " copy "<< index <<" got location info from predecessor "<<  _memCacheCopies[ index ]._reg.id << " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
       } else {
-         if ( VERBOSE_CACHE ) { std::cerr << "WD " << _wd.getId() << " copy "<< index <<" got requesting location info to global directory for region "<<  _memCacheCopies[ index ]._reg.id << " "; }
+         if ( _VERBOSE_CACHE ) { std::cerr << "WD " << _wd.getId() << " copy "<< index <<" got requesting location info to global directory for region "<<  _memCacheCopies[ index ]._reg.id << " "; }
          _memCacheCopies[ index ].getVersionInfo();
       }
-      if ( VERBOSE_CACHE ) { 
+      if ( _VERBOSE_CACHE ) { 
          for ( NewLocationInfoList::const_iterator it = _memCacheCopies[ index ]._locations.begin(); it != _memCacheCopies[ index ]._locations.end(); it++ ) {
                NewNewDirectoryEntryData *rsentry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->first );
                NewNewDirectoryEntryData *dsentry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->second );
@@ -118,7 +125,7 @@ bool MemController::allocateInputMemory() {
 
 void MemController::copyDataIn() {
    
-   if ( VERBOSE_CACHE ) {
+   if ( _VERBOSE_CACHE ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << " ops: "<< (void *) _inOps << std::endl;
          for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
@@ -138,7 +145,7 @@ void MemController::copyDataIn() {
    //NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
    //NANOS_INSTRUMENT( inst5.close(); );
-   if ( VERBOSE_CACHE ) {
+   if ( _VERBOSE_CACHE ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::cerr << "### copyDataIn wd " << _wd.getId() << " done" << std::endl;
       }
@@ -153,7 +160,7 @@ void MemController::copyDataOut( ) {
          _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version + 1 );
       }
    }
-   if ( VERBOSE_CACHE ) { std::cerr << "### copyDataOut wd " << _wd.getId() << " metadata set, not released yet" << std::endl; }
+   if ( _VERBOSE_CACHE ) { std::cerr << "### copyDataOut wd " << _wd.getId() << " metadata set, not released yet" << std::endl; }
 
 
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
@@ -197,7 +204,7 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
 bool MemController::isDataReady( WD const &wd ) {
    bool result = _inOps->isDataReady( wd );
    if ( result ) {
-      if ( VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
+      if ( _VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
       _inOps->releaseLockedSourceChunks();
    }
    return result;

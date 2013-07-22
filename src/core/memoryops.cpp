@@ -7,6 +7,12 @@
 #include "regiondict.hpp"
 #include "regioncache.hpp"
 
+#if VERBOSE_CACHE
+ #define _VERBOSE_CACHE 1
+#else
+ #define _VERBOSE_CACHE 0
+#endif
+
 namespace nanos {
 
 BaseOps::OwnOp::OwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location ) :
@@ -129,12 +135,12 @@ void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned 
          }
       //}
    }
-   if ( VERBOSE_CACHE ) { std::cerr << "avoiding... process region " << reg.id << " got locked chunks: " << std::endl; }
+   if ( _VERBOSE_CACHE ) { std::cerr << "avoiding... process region " << reg.id << " got locked chunks: " << std::endl; }
    for ( std::map< memory_space_id_t, std::set< global_reg_t > >::iterator mIt = parts.begin(); mIt != parts.end(); mIt++ ) {
-      if ( VERBOSE_CACHE ) { std::cerr << " from location " << mIt->first << std::endl; }
+      if ( _VERBOSE_CACHE ) { std::cerr << " from location " << mIt->first << std::endl; }
       sys.getSeparateMemory( mIt->first ).getCache().prepareRegionsToCopyToHost( mIt->second, version, _lockedChunks );
    }
-   if ( VERBOSE_CACHE ) {
+   if ( _VERBOSE_CACHE ) {
       std::cerr << "safe from invalidations... process region " << reg.id << " got locked chunks: ";
       for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
          std::cerr << " " << *it;
@@ -169,9 +175,9 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
 
    DeviceOps *thisRegOps = memCopy._reg.getDeviceOps();
    if ( memCopy._reg.getHostVersion( false ) != memCopy._version ) {
-      if ( VERBOSE_CACHE ) { std::cerr << "I have to copy region " << memCopy._reg.id << " dont have it "<<std::endl; }
+      if ( _VERBOSE_CACHE ) { std::cerr << "I have to copy region " << memCopy._reg.id << " dont have it "<<std::endl; }
       if ( thisRegOps->addCacheOp( wd.getId() ) ) {
-         if ( VERBOSE_CACHE ) { std::cerr << "I will do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
+         if ( _VERBOSE_CACHE ) { std::cerr << "I will do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
 
          if ( memCopy._locations.size() == 1 ) {
             global_reg_t region_shape( memCopy._locations.begin()->first, memCopy._reg.key );
@@ -210,10 +216,10 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
                      } else {
                         std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
                      }
-                     if ( VERBOSE_CACHE ) { std::cerr << " added a op! ds= " << it->second << " rs= " << it->first << " added= " << added << " so far we have ops: " << getOwnOps().size() << " this Obj "<< (void *) this << std::endl; }
+                     if ( _VERBOSE_CACHE ) { std::cerr << " added a op! ds= " << it->second << " rs= " << it->first << " added= " << added << " so far we have ops: " << getOwnOps().size() << " this Obj "<< (void *) this << std::endl; }
                      this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy._version, NULL );
                   } else {
-                     if ( VERBOSE_CACHE ) { std::cerr << " sync with other op! ds= " << it->second << " rs= " << it->first <<std::endl; }
+                     if ( _VERBOSE_CACHE ) { std::cerr << " sync with other op! ds= " << it->second << " rs= " << it->first <<std::endl; }
                      getOtherOps().insert( data_source.getDeviceOps() );
                   }
                //} else {
@@ -221,11 +227,11 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
             }
          }
       } else {
-         if ( VERBOSE_CACHE ) { std::cerr << "I will not do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
+         if ( _VERBOSE_CACHE ) { std::cerr << "I will not do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
          getOtherOps().insert( thisRegOps );
       }
    } else {
-         if ( VERBOSE_CACHE ) { std::cerr << "I will not do the transfer for reg " << memCopy._reg.id << " I have it at proper version " << memCopy._version <<std::endl; }
+         if ( _VERBOSE_CACHE ) { std::cerr << "I will not do the transfer for reg " << memCopy._reg.id << " I have it at proper version " << memCopy._version <<std::endl; }
       getOtherOps().insert( thisRegOps );
    }
 

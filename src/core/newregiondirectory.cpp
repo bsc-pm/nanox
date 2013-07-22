@@ -44,6 +44,12 @@
 #include "regiondict.hpp"
 #include "os.hpp"
 
+#if VERBOSE_CACHE
+ #define _VERBOSE_CACHE 1
+#else
+ #define _VERBOSE_CACHE 0
+#endif
+
 using namespace nanos;
 
 std::ostream & nanos::operator<< (std::ostream &o, nanos::NewNewDirectoryEntryData const &ent)
@@ -381,7 +387,7 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
               DeviceOps *thisOps = reg.getDeviceOps();
               if ( thisOps->addCacheOp( wd.getId() ) ) {
                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
-                  if ( VERBOSE_CACHE ) {
+                  if ( _VERBOSE_CACHE ) {
                      std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
                      if ( entry ) std::cerr << " " << *entry << std::endl;
                      else std::cerr << " nil " << std::endl; 
