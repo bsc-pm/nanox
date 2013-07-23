@@ -167,30 +167,47 @@ inline void System::loadNUMAInfo ()
 {
 #ifdef HWLOC
    hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
+
+   // Nodes that can be seen by hwloc
+   unsigned allowedNodes = 0;
+   // Hardware threads
+   unsigned hwThreads = 0;
    
    // Read the number of numa nodes if the user didn't set that value
    if ( _numSockets == 0 )
    {
       int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
+
       
       // If there are NUMA nodes in this machine
       if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-         _numSockets = hwloc_get_nbobjs_by_depth( topology, depth );
+         //hwloc_const_cpuset_t cpuset = hwloc_topology_get_online_cpuset( topology );
+         //allowedNodes = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_NODE );
+         //hwThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_PU );
+         unsigned nodes = hwloc_get_nbobjs_by_depth( topology, depth );
+         //hwloc_cpuset_t set = i
+
+         // For each node, count how many hardware threads there are below.
+         for ( unsigned nodeIdx = 0; nodeIdx < nodes; ++nodeIdx )
+         {
+            hwloc_obj_t node = hwloc_get_obj_by_depth( topology, depth, nodeIdx );
+            int localThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, node->cpuset, HWLOC_OBJ_PU );
+            // Increase hw thread count
+            hwThreads += localThreads;
+            // If this node has hw threads beneath, increase the number of viewable nodes
+            if ( localThreads > 0 ) ++allowedNodes;
+         }
+         _numSockets = nodes;
       }
       // Otherwise, set it to 1
-      else
+      else {
+         allowedNodes = 1; 
          _numSockets = 1;
-   }
-   
-   // Same thing, just change the value if the user didn't provide one
-   if( _coresPerSocket == 0 )
-   {
-      int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_PU );
-      if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-         _coresPerSocket = hwloc_get_nbobjs_by_depth( topology, depth ) / _numSockets;
       }
    }
-   
+
+   if( _coresPerSocket == 0 )
+      _coresPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
 #else
    // Number of sockets can be read with
    // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
@@ -200,14 +217,39 @@ inline void System::loadNUMAInfo ()
    // Assume just 1 socket
    if ( _numSockets == 0 )
       _numSockets = 1;
+   
+   // Same thing, just change the value if the user didn't provide one
    if ( _coresPerSocket == 0 )
       _coresPerSocket = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
 #endif
+   verbose0( toString( "[NUMA] " ) + toString( _numSockets ) + toString( " NUMA nodes, " ) + toString( _coresPerSocket ) + toString( " HW threads each." ) );
 }
 
-// TODO (#846): Remove if no one needs this function
-inline void System::checkArguments()
+inline void System::completeNUMAInfo()
 {
+   // Create the NUMA node translation table. Do this before creating the team,
+   // as the schedulers might need the information.
+   _numaNodeMap.resize( _numSockets, INT_MIN );
+
+   /* As all PEs are already created by this time, count how many physical
+    * NUMA nodes are available, and map from a physical id to a virtual ID
+    * that can be selected by the user via nanos_current_socket() */
+   for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); ++it )
+   {
+      int node = (*it)->getNUMANode();
+      // If that node has not been translated, yet
+      if ( _numaNodeMap[ node ] == INT_MIN )
+      {
+         verbose0( "Mapping from physical node " << node << " to user node " << _numAvailSockets );
+         _numaNodeMap[ node ] = _numAvailSockets;
+         // Increase the number of available sockets
+         ++_numAvailSockets;
+      }
+      // Otherwise, do nothing
+   }
+
+   verbose0( _numAvailSockets << " NUMA node(s) available for the user." );
+
 }
 
 inline void System::unloadHwloc ()

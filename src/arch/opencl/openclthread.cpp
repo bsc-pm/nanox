@@ -50,6 +50,10 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
    wd.start(WD::IsNotAUserLevelThread);
 
    OpenCLDD &dd = ( OpenCLDD & )wd.getActiveDevice();
+   
+   
+    OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
+    myProc->waitForEvents();
 
    ( dd.getWorkFct() )( wd.getData() );
    

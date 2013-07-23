@@ -22,6 +22,7 @@ public:
   ~OpenCLConfig() {}
   static unsigned getOpenCLDevicesCount() { return _currNumDevices; }
   static cl_device_id getFreeDevice();
+  static cl_context getContextDevice(cl_device_id dev);
 
   static size_t getDevCacheSize() { return _devCacheSize; }
   
@@ -60,7 +61,7 @@ private:
   //static std::vector<cl_platform_id> _plats;
 
   // All found devices.
-  static std::vector<cl_device_id> _devices;
+  static std::map<cl_device_id, cl_context> _devices;
   static unsigned int _currNumDevices;
 
   // These properties manages mutable state.
@@ -90,7 +91,8 @@ typedef enum {
    NANOS_OPENCL_MEMREAD_SYNC_EVENT,                 /* 6 */
    NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT,                   /* 7 */
    NANOS_OPENCL_GET_PROGRAM_EVENT,                   /* 8 */
-   NANOS_OPENCL_GENERIC_EVENT                         /* 9 */
+   NANOS_OPENCL_COPY_BUFFER_EVENT,                   /* 9 */
+   NANOS_OPENCL_GENERIC_EVENT                         /* 10 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.

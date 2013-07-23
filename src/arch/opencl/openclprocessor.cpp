@@ -20,9 +20,11 @@ OpenCLAdapter::~OpenCLAdapter()
      fatal0( "Unable to release the command queue" );
 
   errCode = clReleaseContext( _ctx );
-  if( errCode != CL_SUCCESS )
+  
+  //Invalid context means it was already released by another thread
+  if( errCode != CL_SUCCESS && errCode != CL_INVALID_CONTEXT){
      fatal0( "Unable to release the context" );
-
+  }
   for( ProgramCache::iterator i = _progCache.begin(),
                               e = _progCache.end();
                               i != e;
@@ -36,36 +38,12 @@ void OpenCLAdapter::initialize(cl_device_id dev)
 
    _dev = dev;
 
-   // Get device platform.   
-   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_GET_DEV_INFO_EVENT );
-   cl_platform_id plat;
-   errCode = clGetDeviceInfo( dev,
-                                CL_DEVICE_PLATFORM,
-                                sizeof(cl_platform_id),
-                                &plat,
-                                NULL );
-   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-   if( errCode != CL_SUCCESS )
-      fatal0( "Cannot get device platform" );
-
-   // Setup context creation properties.
-   cl_context_properties props[] =
-      {  CL_CONTEXT_PLATFORM,
-         reinterpret_cast<cl_context_properties>(plat),
-         0
-      };
-
    // Create the context.
-   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_CONTEXT_EVENT );
-   _ctx = clCreateContext( props, 1, &_dev, NULL, NULL, &errCode );   
-   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-   
-   if( errCode != CL_SUCCESS )
-      fatal0( "Cannot create the context" );
+   _ctx = nanos::ext::OpenCLConfig::getContextDevice(_dev);   
 
    // Get a command queue.
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT );
-   _queue = clCreateCommandQueue( _ctx, _dev, 0, &errCode );
+   _queue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE , &errCode );
    if( errCode != CL_SUCCESS )
      fatal0( "Cannot create a command queue" );
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
@@ -131,13 +109,13 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                 size_t offset,
                                 size_t size )
 {
-   cl_int errCode, exitStatus;
+   cl_int errCode;
    cl_event ev;
 
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
    errCode = clEnqueueWriteBuffer( _queue,
                                      buf,
-                                     CL_TRUE,
+                                     CL_FALSE,
                                      offset,
                                      size,
                                      src,
@@ -145,21 +123,62 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                      NULL,
                                      &ev
                                    );
-   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+   _pendingEvents.push_back(ev);
+   //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+//   if( errCode != CL_SUCCESS ){
+//      return errCode;
+//   }
+
+//   errCode = clGetEventInfo( ev,
+//                               CL_EVENT_COMMAND_EXECUTION_STATUS,
+//                               sizeof(cl_int),
+//                               &exitStatus,
+//                               NULL
+//                             );
+//   
+//   clReleaseEvent( ev ); 
+
+   return errCode;
+}
+
+cl_int OpenCLAdapter::copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buf, size_t offset_remotebuff, size_t size ){    
+   cl_int errCode;
+   cl_event ev;
+   
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_COPY_BUFFER_EVENT );
+   errCode = clEnqueueCopyBuffer( _queue,
+                                     remoteBuffer,
+                                     buf,
+                                     offset_buf,
+                                     offset_remotebuff,
+                                     size,
+                                     0,
+                                     NULL,
+                                     &ev
+                                   );
+   
    if( errCode != CL_SUCCESS ){
       return errCode;
    }
-
-   errCode = clGetEventInfo( ev,
-                               CL_EVENT_COMMAND_EXECUTION_STATUS,
-                               sizeof(cl_int),
-                               &exitStatus,
-                               NULL
-                             );
    
-   clReleaseEvent( ev );
+   _pendingEvents.push_back(ev);
+   
+//   errCode = clWaitForEvents(1, &ev); 
+//   if( errCode != CL_SUCCESS ){
+//      return errCode;
+//   }
+
+//   errCode = clGetEventInfo( ev,
+//                               CL_EVENT_COMMAND_EXECUTION_STATUS,
+//                               sizeof(cl_int),
+//                               &exitStatus,
+//                               NULL
+//                             );
+//   
+//   clReleaseEvent( ev );
 
    return errCode;
+   
 }
 
 cl_int OpenCLAdapter::buildProgram( const char *src,
@@ -592,6 +611,30 @@ cl_int OpenCLAdapter::getPlatformName( std::string &name )
    return errCode;
 }
 
+void  OpenCLAdapter::waitForEvents(){
+    cl_int errCode,exitStatus;
+    std::vector<cl_event>::iterator iter;
+    for (iter=_pendingEvents.begin() ; iter!=_pendingEvents.end() ; ++iter){
+        cl_event ev;
+        ev=*iter;
+        errCode = clWaitForEvents(1, &ev); 
+        if( errCode != CL_SUCCESS ){
+            fatal0("Error writing kernel into device");
+        }
+
+        errCode = clGetEventInfo( ev,
+                                    CL_EVENT_COMMAND_EXECUTION_STATUS,
+                                    sizeof(cl_int),
+                                    &exitStatus,
+                                    NULL
+                                  );
+
+        clReleaseEvent( ev );
+        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+    }
+    _pendingEvents.clear();
+}
+
 //
 // OpenCLProcessor implementation.
 //
@@ -628,6 +671,10 @@ WD &OpenCLProcessor::getWorkerWD() const
 
 WD & OpenCLProcessor::getMasterWD() const {    
    fatal("Attempting to create a OpenCL master thread");
+}
+
+cl_context& OpenCLProcessor::getContext() {    
+    return _openclAdapter.getContext();
 }
 
 BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd )
@@ -716,10 +763,11 @@ static inline std::string bytesToHumanReadable ( size_t bytes )
 
 void OpenCLProcessor::printStats ()
 {
+   waitForEvents();
    message("OpenCL dev" << _devId << " TRANSFER STATISTICS");
    message("    Total input transfers: " << bytesToHumanReadable( _cache._bytesIn.value() ) );
    message("    Total output transfers: " << bytesToHumanReadable( _cache._bytesOut.value() ) );
-   message("    Total device transfers: " << bytesToHumanReadable( _cache._bytesDevice.value() ) );
+   message("    Total dev2dev(in) transfers: " << bytesToHumanReadable( _cache._bytesDevice.value() ) );
 }
  
 

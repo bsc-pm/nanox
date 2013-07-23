@@ -97,6 +97,26 @@ bool OpenCLDevice::copyOut( CopyDescriptor &remoteDst,
    fatal( "Can copyOut only on OpenCLProcessor" );
 }
 
+bool OpenCLDevice::copyDevToDev( void *addrDst,
+                             CopyDescriptor& dstCd,
+                             void* addrSrc,
+                             size_t size,
+                             ProcessingElement *peDst,
+                             ProcessingElement *peSrc )
+   {
+       nanos::ext::OpenCLProcessor *procDst = (nanos::ext::OpenCLProcessor *)( peDst );
+       nanos::ext::OpenCLProcessor *procSrc = (nanos::ext::OpenCLProcessor *)( peSrc );
+       //If both devices are in the same vendor/context do a real copy in
+       if (procDst->getContext()==procSrc->getContext()){            
+            procDst->copyInBuffer( addrDst, procSrc->getBuffer(addrSrc,size),size);
+       } else {
+            copyOut(dstCd,addrSrc,size,peSrc);
+            copyIn(addrDst,dstCd,size,peDst);
+       }
+       return true;
+   }
+
+
 void OpenCLDevice::syncTransfer( uint64_t hostAddress, ProcessingElement *pe )
 {
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )

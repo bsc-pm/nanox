@@ -33,15 +33,26 @@ System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
 extern __attribute__((weak)) char ompss_uses_opencl;
 
-std::vector<cl_device_id> OpenCLConfig::_devices;
+std::map<cl_device_id,cl_context> OpenCLConfig::_devices;
 
 Atomic<unsigned> OpenCLConfig::_freeDevice = 0;
 
 cl_device_id OpenCLConfig::getFreeDevice() {
    if(_freeDevice == _devices.size())
       fatal( "No more free devices" );
+   
+   int freeDev=_freeDevice++;
+   
+   std::map<cl_device_id,cl_context>::iterator iter=_devices.begin();
+   for (int i=0; i < freeDev; ++i){
+       ++iter;
+   }
 
-   return _devices[_freeDevice++];
+   return iter->first;
+}
+
+cl_context OpenCLConfig::getContextDevice(cl_device_id dev) {
+   return _devices[dev];
 }
 
 void OpenCLConfig::prepare( Config &cfg )
@@ -98,7 +109,7 @@ void OpenCLConfig::apply(std::string &_devTy)
        //ompss_uses_cuda pointer will be null (is extern) if the compiler didnt fill it
       _enableOpenCL=((&ompss_uses_opencl)!=0);
    }
-   if( _forceDisableOpenCL || !_enableOpenCL )
+   if( _forceDisableOpenCL || !_enableOpenCL ) 
      return;
 
    cl_int errCode;
@@ -125,7 +136,6 @@ void OpenCLConfig::apply(std::string &_devTy)
    _plats.assign(plats, plats + numPlats);
    delete [] plats;
 
-   //TODO FIX THIS OR RETURN TO TRUNK MODE
    cl_device_type devTy;
 
    // Parse the requested device type.
@@ -167,7 +177,9 @@ void OpenCLConfig::apply(std::string &_devTy)
       if( errCode != CL_SUCCESS )
          continue;
 
-      // Put all available devices inside the vector.
+      int devicesToUse=0;   
+      cl_device_id *avaiableDevs = new cl_device_id[numDevices];
+      // Get all avaiable devices
       for( cl_device_id *j = devs, *f = devs + numDevices; j != f; ++j )
       {
          cl_bool available;
@@ -180,8 +192,25 @@ void OpenCLConfig::apply(std::string &_devTy)
          if( errCode != CL_SUCCESS )
            continue;
 
-         if( available && _devices.size()<_devNum)
-           _devices.push_back( *j );
+         if( available && _devices.size()+devicesToUse<_devNum){
+             avaiableDevs[devicesToUse++]=*j;
+         }
+      }
+      
+      cl_context_properties props[] =
+      {  CL_CONTEXT_PLATFORM,
+         reinterpret_cast<cl_context_properties>(*i),
+         0
+      };
+
+      //Cant instrument here
+      //NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_CONTEXT_EVENT );
+      cl_context ctx = clCreateContext( props, devicesToUse, avaiableDevs, NULL, NULL, &errCode );
+      //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+      // Put all available devices inside the vector.
+      for( cl_device_id *j = avaiableDevs, *f = avaiableDevs + devicesToUse; j != f; ++j )
+      {
+          _devices.insert(std::make_pair( *j , ctx) );
       }
 	  _currNumDevices=_devices.size();
 

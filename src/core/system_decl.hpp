@@ -379,19 +379,20 @@ namespace nanos
           */
          void * getHwlocTopology ();
          
-         /**
-          * \brief Sets the number of NUMA nodes and cores per node.
-          * Uses hwloc if available, and also checks if both settings make sense.
+         /*!
+          * \brief Sets the number of NUMA nodes and the number of cores per
+          * NUMA node .
+          * Uses hwloc if available.
           */
          void loadNUMAInfo ();
-
-         /**
-          * \brief Verifies that NUMA-related arguments (and others, possibly)
-          * make sense, such as the number of cores per node, number of nodes,
-          * and number of threads.
-          */
-         void checkArguments ();
          
+         /*!
+          * \brief Sets the the number of active/available NUMA nodes.
+          * Creates the NUMA node translation table as well.
+          * \note It is really important to call this after PEs are created.
+          */
+         void completeNUMAInfo ();
+
          /** \brief Retrieves the NUMA node of a given PE.
           *  \note Will use hwloc if available.
           */
