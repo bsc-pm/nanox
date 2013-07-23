@@ -116,6 +116,9 @@ int main (int argc, char* argv[])
          exit(0);
       }
    } 
+   
+   //Load modules so help can print extra-arch variables
+   sys.loadModules();
 
    if ( !listPlugins && !listHelp && !listVersion) {
       std::cout << "usage: " << argv[0] << " [--version] [--help] [--list-modules]" << std::endl;
@@ -157,6 +160,8 @@ int main (int argc, char* argv[])
 
       std::cout << Config::getNanosHelp();
    }
+   
+   sys.unloadModules();
    
    delete pluginNames;
 

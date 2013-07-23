@@ -195,8 +195,6 @@ namespace nanos
          const System & operator= ( const System &sys );
 
          void config ();
-         void loadModules();
-         void unloadModules();
          void createWorker( unsigned p );
          void acquireWorker( ThreadTeam * team, BaseThread * thread, bool enter=true, bool star=false, bool creator=false );
          void increaseActiveWorkers( unsigned nthreads );
@@ -217,9 +215,10 @@ namespace nanos
           */
          ~System ();
 
+         void loadModules();
+         void unloadModules();
          void start ();
          void finish ();
-
          int getWorkDescriptorId( void );
 
          void submit ( WD &work );
