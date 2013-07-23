@@ -404,9 +404,6 @@ void System::start ()
       _targetThreads += (*it)->getNumThreads();
    }
 
-   // Check if the NUMA and other arguments make sense (depends on _targetThreads)
-   checkArguments();
-
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -466,6 +463,7 @@ void System::start ()
    }
    
    // For each plugin create PEs and workers
+   // FIXME (855)
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
    {
@@ -503,27 +501,8 @@ void System::start ()
       while (_initializedThreads.value() < ( _targetThreads - 1 ) ) {}
    }
 
-   // Create the NUMA node translation table. Do this before creating the team,
-   // as the schedulers might need the information.
-   _numaNodeMap.resize( _numSockets, INT_MIN );
-
-   /* As all PEs are already created by this time, count how many physical
-    * NUMA nodes are available, and map from a physical id to a virtual ID
-    * that can be selected by the user via nanos_current_socket() */
-   for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); ++it )
-   {
-      int node = (*it)->getNUMANode();
-      // If that node has not been translated, yet
-      if ( _numaNodeMap[ node ] == INT_MIN )
-      {
-         verbose0( "Mapping from physical node " << node << " to user node " << _numAvailSockets );
-         _numaNodeMap[ node ] = _numAvailSockets;
-         // Increase the number of available sockets
-         ++_numAvailSockets;
-      }
-      // Otherwise, do nothing
-   }
-   verbose0( _numAvailSockets << " NUMA node(s) available for the user." );
+   // FIXME (855): do this before thread creation, after PE creation
+   completeNUMAInfo();
 
    switch ( getInitialMode() )
    {
