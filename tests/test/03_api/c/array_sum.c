@@ -96,7 +96,7 @@ int main(int argc, char * argv[])
         return 0;
     }
     l_partial_sums = (int *) malloc(l_num_procs * sizeof(int));
-    l_array_of_arrays = (Rank2<int> ) malloc(l_num_procs * sizeof(int *));
+    l_array_of_arrays = (int **) malloc(l_num_procs * sizeof(int *));
     for (l_i = 0;
         l_i < l_num_procs;
         l_i++)

@@ -125,7 +125,7 @@ BLAS_dfpinfo(enum blas_cmach_type cmach) {
 	return 0.0;
 }
 
-void add_to_diag_hierarchical (Rank2<double>  matrix, const int ts, const int nt, const float alpha)
+void add_to_diag_hierarchical (double ** matrix, const int ts, const int nt, const float alpha)
 {
 	for (int i = 0; i < nt * ts; i++)
 		matrix[(i/ts) * nt + (i/ts)][(i%ts) * ts + (i%ts)] += alpha;
