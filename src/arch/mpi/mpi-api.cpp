@@ -172,7 +172,7 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
         MPI_Comm_get_parent(&parentcomm);
         //If this process was not spawned, we don't need this reorder (and shouldnt have been called)
         if ( parentcomm != 0 && parentcomm != MPI_COMM_NULL ) {
-            MPI_Status status;
+            //MPI_Status status;
             int arr_size;
             for ( arr_size=0;file_mask[arr_size]==mask;arr_size++ );
             unsigned int total_size=0;
@@ -182,8 +182,8 @@ NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, u
             unsigned int* host_file_namehash=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
             void (**ompss_mpi_func_pointers_dev_out)()=(void (**)()) malloc(sizeof(void (*)())*total_size);
             //Receive host information
-            nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_namehash, arr_size, MPI_UNSIGNED, 0, TAG_FP_NAME_SYNC, parentcomm, &status);
-            nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_size, arr_size, MPI_UNSIGNED, 0, TAG_FP_SIZE_SYNC, parentcomm, &status);
+            nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_namehash, arr_size, MPI_UNSIGNED, 0, TAG_FP_NAME_SYNC, parentcomm, MPI_STATUS_IGNORE);
+            nanos::ext::MPIProcessor::nanos_MPI_Recv(host_file_size, arr_size, MPI_UNSIGNED, 0, TAG_FP_SIZE_SYNC, parentcomm, MPI_STATUS_IGNORE );
             int i,e,func_pointers_arr;
             bool found;
             //i loops at host files
@@ -255,16 +255,18 @@ NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (const char* type)) {
 NANOS_API_DEF(int, nanos_mpi_worker, (void (*ompss_mpi_func_pointers_dev[])())){
     int ompss_id_func;
     int err;
-    MPI_Status status;
+    //MPI_Status status;
     MPI_Comm ompss_parent_comp;
     err= MPI_Comm_get_parent(&ompss_parent_comp);
     while(1){
-       err= nanos_mpi_recv_taskinit(&ompss_id_func, 1, ompss_get_mpi_type("__mpitype_ompss_signed_int"), 0, ompss_parent_comp, &status);
+       err= nanos_mpi_recv_taskinit(&ompss_id_func, 1, ompss_get_mpi_type("__mpitype_ompss_signed_int"), 0, ompss_parent_comp, MPI_STATUS_IGNORE);
        if (ompss_id_func==-1){
           nanos_mpi_finalize(); 
           return 0;
-       } else {       
-          void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[ompss_id_func];          
+       } else {           
+          void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[ompss_id_func];      
+          //Wait until copies have finished before executing the task
+          //nanos::MPIDevice::waitForCopies(ompss_parent_comp);
           function_pointer();       
        }
     }

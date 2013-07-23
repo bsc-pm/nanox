@@ -48,6 +48,9 @@
 #    endif /*------------------------------------------------- version 2.3.x */
 
 #  endif /*--------------------------------------------------- version 2.x.x */
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 3 /************* version 3.x.x */
+#      define extrae_size_t unsigned int
+#  endif /*--------------------------------------------------- version 3.x.x */
 #endif
 
 #ifdef NANOX_EXTRAE_SUPPORTED_VERSION

@@ -112,27 +112,44 @@ std::string MPIProcessor::getMpiExename() {
 }
 
 void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_FREE_EVENT);
     cacheOrder order;
     order.opId = OPID_FINISH;
+    int nThreads=sys.getNumWorkers();
     int id = -1; 
     if (rank == -1) {
         int size;
         MPI_Comm_remote_size(*intercomm, &size);
         for (int i = 0; i < size; i++) {
             //Closing cache daemon and user-level daemon
-            nanos_MPI_Send(&order, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, *intercomm);
-            nanos_MPI_Send(&id, 1, MPI_INT, i, TAG_INI_TASK, *intercomm);
+            nanos_MPI_Ssend(&order, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, *intercomm);
+            nanos_MPI_Ssend(&id, 1, MPI_INT, i, TAG_INI_TASK, *intercomm);
         }
     } else {
-        nanos_MPI_Send(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_CACHE_ORDER, *intercomm);
-        nanos_MPI_Send(&id, 1, MPI_INT, rank, TAG_INI_TASK, *intercomm);
+        nanos_MPI_Ssend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_CACHE_ORDER, *intercomm);
+        nanos_MPI_Ssend(&id, 1, MPI_INT, rank, TAG_INI_TASK, *intercomm);
     }
+    //Now sleep the threads which represent the remote processes
+    int res=MPI_UNEQUAL;
+    for (int i=0; i< nThreads; ++i){
+        BaseThread* bt=sys.getWorker(i);
+        nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) bt->runningOn();
+        if ((myPE->getRank()==rank || rank == -1)){
+            MPI_Comm threadcomm=myPE->getCommunicator();
+            if (threadcomm!=NULL) MPI_Comm_compare(threadcomm,*intercomm,&res);
+            if (res==MPI_IDENT){
+                bt->sleep();
+            }
+        }
+    }
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
 /**
  * All this tasks redefine nanox messages
  */
 void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {    
+   NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_INIT_EVENT);
    verbose0( "loading MPI support" );
 
    if ( !sys.loadPlugin( "pe-mpi" ) )
@@ -175,9 +192,11 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         WD *wd = NEW WD(dd);
         mpi->startThread(*wd);
     }
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
 void MPIProcessor::nanos_MPI_Finalize() {    
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FINALIZE_EVENT);
     if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
         int size;
         void *ptr;
@@ -196,6 +215,7 @@ void MPIProcessor::nanos_MPI_Finalize() {
     if (!resul){
       MPI_Finalize();
     }
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
 static inline void trim(std::string& params){
@@ -207,6 +227,7 @@ static inline void trim(std::string& params){
 }
 
 void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset) {  
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
     //IF MPI not initialized, do it
     int initialized;
     MPI_Initialized(&initialized);
@@ -334,17 +355,15 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         while (getline(all_param, tmp_param, ',')) {            
             //Trim current param
             trim(params);
-//            char* arg_copy=new char[tmp_param.size()+1];
-//            strcpy(arg_copy,tmp_param.c_str());
-//            argvv[param_counter]=arg_copy;
-            argvv[param_counter]= const_cast<char*> (TAG_MAIN_OMPSS);    
+            char* arg_copy=new char[tmp_param.size()+1];
+            strcpy(arg_copy,tmp_param.c_str());
+            argvv[param_counter]=arg_copy;
             param_counter++;
         }
         argvv[params_size-1]=NULL;              
         array_of_argv[spawn_arrays_length]=argvv;     
         
-        //array_of_commands[spawn_arrays_length]=const_cast<char*> (_mpiLauncherFile.c_str());      
-        array_of_commands[spawn_arrays_length]=const_cast<char*> (result_str.c_str());
+        array_of_commands[spawn_arrays_length]=const_cast<char*> (_mpiLauncherFile.c_str());      
         
         //Set number of instances this host can handle
         int curr_host_instances=host_instances.at(host_counter-1);
@@ -356,12 +375,12 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
 
     MPI_Comm_spawn_multiple(spawn_arrays_length,array_of_commands, array_of_argv, n_process,
             array_of_info, 0, comm, intercomm,
-            MPI_ERRCODES_IGNORE);
+            MPI_ERRCODES_IGNORE); 
     //Free all args sent
     for (i=0;i<spawn_arrays_length;i++){  
         //Free all args which were dynamically copied before
         for (int e=2;array_of_argv[i][e]!=NULL;e++){
-            //delete[] array_of_argv[i][e];
+            delete[] array_of_argv[i][e];
         }
         delete[] array_of_argv[i];
     }
@@ -375,6 +394,7 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         nanos_MPI_Send(_mpiFileSize, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
     }
     sys.addPEsToTeam(pes,number_of_spawns);
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
 int MPIProcessor::nanos_MPI_Send_taskinit(void *buf, int count, MPI_Datatype datatype, int dest,
@@ -416,6 +436,7 @@ int MPIProcessor::nanos_MPI_Type_create_struct( int count, int array_of_blocklen
 
 int MPIProcessor::nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         dest=myPE->_rank;
@@ -424,11 +445,28 @@ int MPIProcessor::nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, in
     //printf("Envio con tag %d, a %d\n",tag,dest);
     int err = MPI_Send(buf, count, datatype, dest, tag, comm);
     //printf("Fin Envio con tag %d, a %d\n",tag,dest);
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+    return err;
+}
+
+int MPIProcessor::nanos_MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+        MPI_Comm comm,MPI_Request *req) {
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
+    if (dest==UNKOWN_RANKSRCDST){
+        nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
+        dest=myPE->_rank;
+        comm=myPE->_communicator;
+    }
+    //printf("Envio con tag %d, a %d\n",tag,dest);
+    int err = MPI_Isend(buf, count, datatype, dest, tag, comm,req);
+    //printf("Fin Envio con tag %d, a %d\n",tag,dest);
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     return err;
 }
 
 int MPIProcessor::nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SSEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         dest=myPE->_rank;
@@ -437,18 +475,21 @@ int MPIProcessor::nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, i
     //printf("Enviobloq con tag %d, a %d\n",tag,dest);
     int err = MPI_Ssend(buf, count, datatype, dest, tag, comm);
     //printf("Fin Enviobloq con tag %d, a %d\n",tag,dest);
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     return err;
 }
 
 int MPIProcessor::nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
         MPI_Comm comm, MPI_Status *status) {
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RECV_EVENT);
     if (source==UNKOWN_RANKSRCDST){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         source=myPE->_rank;
         comm=myPE->_communicator;
     }
     //printf("recv con tag %d, desde %d\n",tag,source);
-    int err = MPI_Recv(buf, count, datatype, source, tag, comm, status);
+    int err = MPI_Recv(buf, count, datatype, source, tag, comm, MPI_STATUS_IGNORE );
     //printf("Fin recv con tag %d, desde %d\n",tag,source);
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     return err;
 }

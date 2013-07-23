@@ -177,6 +177,9 @@ namespace nanos {
             
             static int nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                     MPI_Comm comm);
+            
+            static int nanos_MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+             MPI_Comm comm,MPI_Request *req);
 
             static int nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                     MPI_Comm comm, MPI_Status *status);
@@ -185,11 +188,46 @@ namespace nanos {
                     MPI_Datatype array_of_types[], MPI_Datatype *newtype);
             
             
-        };
+        };   
+
+        // Macro's to instrument the code and make it cleaner
+        #define NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( \
+              sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ), (x) ); )
+
+        #define NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT       NANOS_INSTRUMENT( \
+              sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ) ); )
+
+
+        typedef enum {
+           NANOS_MPI_NULL_EVENT,                            /* 0 */
+           NANOS_MPI_ALLOC_EVENT,                          /* 1 */
+           NANOS_MPI_FREE_EVENT,                            /* 2 */
+           NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT,                     /* 3 */
+           NANOS_MPI_COPYIN_SYNC_EVENT,                         /* 4 */
+           NANOS_MPI_COPYOUT_SYNC_EVENT,                 /* 5 */
+           NANOS_MPI_COPYDEV2DEV_SYNC_EVENT,                 /* 6 */
+           NANOS_MPI_DEEP_BOOSTER_FREE_EVENT,                     /* 7 */
+           NANOS_MPI_INIT_EVENT,                     /* 8 */
+           NANOS_MPI_FINALIZE_EVENT,                     /* 9 */
+           NANOS_MPI_SEND_EVENT,                     /* 10 */
+           NANOS_MPI_RECV_EVENT,                     /* 11 */
+           NANOS_MPI_SSEND_EVENT,                     /* 12 */
+           NANOS_MPI_COPYLOCAL_SYNC_EVENT,                     /* 13 */
+           NANOS_MPI_REALLOC_EVENT,                     /* 14 */
+           NANOS_MPI_WAIT_FOR_COPIES_EVENT,                     /* 15 */
+           NANOS_MPI_RNODE_COPYIN_EVENT,                     /* 16 */
+           NANOS_MPI_RNODE_COPYOUT_EVENT,                     /* 17 */
+           NANOS_MPI_RNODE_DEV2DEV_IN_EVENT,                     /* 18 */
+           NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT,                     /* 19 */
+           NANOS_MPI_RNODE_ALLOC_EVENT,                     /* 20 */
+           NANOS_MPI_RNODE_REALLOC_EVENT,                     /* 21 */
+           NANOS_MPI_RNODE_FREE_EVENT,                     /* 22 */
+           NANOS_MPI_RNODE_COPYLOCAL_EVENT,                     /* 23 */
+           NANOS_MPI_GENERIC_EVENT                         /* 24 */
+        } in_mpi_runtime_event_value;
 
     }
 
 
 }
-
 #endif

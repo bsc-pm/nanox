@@ -173,7 +173,7 @@ namespace nanos
          
          static void mpiCacheWorker();
          
-         static void waitForCopies();
+         static void waitForCopies(MPI_Comm& comm);
          
          static void setMasterDirectory(Directory *dir) {_masterDir=dir;};
 
