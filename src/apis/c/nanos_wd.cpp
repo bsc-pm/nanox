@@ -266,7 +266,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
    try {
       if ( const_data->num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
-      // TODO: choose device
+      //! \todo if multiple devices we need to choose one of them
       
       WD wd( (DD*) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment,
              data, const_data->num_copies, copies, NULL, (char *) const_data->description);

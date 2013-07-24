@@ -78,7 +78,7 @@ void Scheduler::submit ( WD &wd )
       return;
    }
 
-   // TODO (#581): move this to the upper if
+   //! \todo (#581): move this to the upper if
    if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
       // Pause this thread
       mythread->pause();

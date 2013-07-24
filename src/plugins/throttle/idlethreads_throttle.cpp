@@ -25,7 +25,7 @@
 namespace nanos {
    namespace ext {
 
-      //TODO: only works with 1 scheduling group
+      //! \todo IdleThreadsThrottle only works with 1 scheduling group, generalize it
 
       class IdleThreadsThrottle: public ThrottlePolicy
       {

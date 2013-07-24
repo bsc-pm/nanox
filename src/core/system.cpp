@@ -226,7 +226,7 @@ void System::unloadModules ()
    
    delete _defSchedulePolicy;
    
-   // TODO (#613): delete GPU plugin?
+   //! \todo (#613): delete GPU plugin?
 }
 
 // Config Functor
@@ -373,9 +373,7 @@ void System::config ()
 
 PE * System::createPE ( std::string pe_type, int pid )
 {
-   // TODO: lookup table for PE factories
-   // in the mean time assume only one factory
-
+   //! \todo lookup table for PE factories, in the mean time assume only one factory
    return _hostFactory( pid );
 }
 
@@ -1234,7 +1232,7 @@ void System::inlineWork ( WD &work )
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
-   // TODO: choose actual (active) device...
+   //! \todo choose actual (active) device...
    if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
       Scheduler::inlineWork( &work );
    } else {
@@ -1358,7 +1356,7 @@ void System::releaseWorker ( BaseThread * thread )
    ThreadTeam *team = thread->getTeam();
    unsigned thread_id = thread->getTeamId();
 
-   //TODO: destroy if too many?
+   //! \todo destroy if too many?
    debug("Releasing thread " << thread << " from team " << team );
 
    if ( _enable_dlb && thread->getTeamId() != 0 ) {
