@@ -73,6 +73,7 @@ namespace nanos
          icvs.setNumThreads(sys.getNumThreads());
 
          _description = std::string("OpenMP");
+         _malleable = false;
          sys.setInitialMode( System::ONE_THREAD );
          sys.setUntieMaster(false);
 
@@ -160,6 +161,7 @@ namespace nanos
 
          // Overwrite custom values
          _description = std::string("OmpSs");
+         _malleable = true;
          sys.setInitialMode( System::POOL );
          sys.setUntieMaster(true);
 

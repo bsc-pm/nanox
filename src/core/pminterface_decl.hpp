@@ -29,6 +29,7 @@ class PMInterface
 {
    protected:
       std::string    _description; /*< String describing Programming Model Interface */
+      bool           _malleable;
    private:
       /*! \brief PMInterface copy constructor (private)
        */
@@ -58,6 +59,8 @@ class PMInterface
 
       virtual nanos::ThreadTeamData* getThreadTeamData() { return NEW nanos::ThreadTeamData(); }
       std::string getDescription( void ) { return _description; }
+
+      bool isMalleable( void ) const { return _malleable; }
 
       virtual void setNumThreads( int nthreads ) {}
 
