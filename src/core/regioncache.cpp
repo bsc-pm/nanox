@@ -244,10 +244,16 @@ void AllocatedChunk::NEWaddWriteRegion( reg_t reg, unsigned int version ) {
 }
 
 Atomic<int> AllocatedChunk::numCall(0);
-void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess ) {
+void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess, std::set< NewNewRegionDirectory::RegionDirectoryKey > &alreadyLockedObjects ) {
 
    NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
-   key->lock();
+
+   std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator dict_it = alreadyLockedObjects.find( key );
+   if ( dict_it == alreadyLockedObjects.end() ) {
+      //not present, lock and insert
+      key->lock();
+      alreadyLockedObjects.insert( key );
+   } //else no need to lock
 
    std::list< std::pair< reg_t, reg_t > > missing;
    unsigned int ver = 0;
@@ -274,6 +280,8 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
    } else {
       alloc_entry_not_present = true;
    }
+
+   //std::cerr << "Missing pieces are: " << missing.size() << std::endl;
 
    if ( missing.size() == 1 ) {
       ensure( _allocatedRegion.id == missing.begin()->first, "Wrong region." );
@@ -446,7 +454,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
 
    //std::cerr << numCall++ << "=============> " << "Cache " << _owner.getMemorySpaceId() << " Invalidate region "<< (void*) key << ":" << _allocatedRegion.id << " reg: "; _allocatedRegion.key->printRegion( _allocatedRegion.id ); std::cerr << std::endl;
 
-   key->unlock();
+   //key->unlock();
 
 }
 
@@ -725,6 +733,7 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
    AllocatedChunk **allocChunkPtrPtr = NULL;
    SeparateAddressSpaceOutOps inval_ops( true, true );
    std::set< global_reg_t > regions_to_remove_access;
+   std::set< NewNewRegionDirectory::RegionDirectoryKey > locked_objects;
 
    //reg.key->invalLock();
    std::set< AllocatedChunk ** > chunks_to_invalidate;
@@ -733,7 +742,7 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
    if ( allocChunkPtrPtr != NULL ) {
       chunks_to_invalidate.insert( allocChunkPtrPtr );
       allocChunkPtr = *allocChunkPtrPtr;
-      allocChunkPtr->invalidate( this, wd, inval_ops, regions_to_remove_access );
+      allocChunkPtr->invalidate( this, wd, inval_ops, regions_to_remove_access, locked_objects );
       _invalidationCount++;
    } else {
       //try to invalidate a set of chunks
@@ -749,7 +758,7 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
       for ( std::set< AllocatedChunk ** >::iterator it = chunks_to_invalidate.begin(); it != chunks_to_invalidate.end(); it++ ) {
          AllocatedChunk **chunkPtr = *it;
          AllocatedChunk *chunk = *chunkPtr;
-         chunk->invalidate( this, wd, inval_ops, regions_to_remove_access );
+         chunk->invalidate( this, wd, inval_ops, regions_to_remove_access, locked_objects );
          _device.memFree( chunk->getAddress(), sys.getSeparateMemory( _memorySpaceId ) );
          _invalidationCount++;
       }
@@ -763,6 +772,10 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
       NewNewRegionDirectory::delAccess( it->key, it->id, getMemorySpaceId() );
    }
    if ( _VERBOSE_CACHE ) { std::cerr << std::endl ; }
+
+   for ( std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator locked_object_it = locked_objects.begin(); locked_object_it != locked_objects.end(); locked_object_it++ ) {
+      (*locked_object_it)->unlock();
+   }
 
    for ( std::set< AllocatedChunk ** >::iterator it = chunks_to_invalidate.begin(); it != chunks_to_invalidate.end(); it++ ) {
       *(*it) = NULL;
