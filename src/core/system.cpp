@@ -1530,19 +1530,19 @@ void System::getCpuMask ( cpu_set_t *mask ) const
    memcpy( mask, &_cpu_active_set, sizeof(cpu_set_t) );
 }
 
-void System::setCpuMask ( const cpu_set_t *mask, bool apply )
+void System::setCpuMask ( const cpu_set_t *mask )
 {
    memcpy( &_cpu_active_set, mask, sizeof(cpu_set_t) );
-   sys.processCpuMask( apply );
+   sys.processCpuMask();
 }
 
-void System::addCpuMask ( const cpu_set_t *mask, bool apply )
+void System::addCpuMask ( const cpu_set_t *mask )
 {
    CPU_OR( &_cpu_active_set, &_cpu_active_set, mask );
-   sys.processCpuMask( apply );
+   sys.processCpuMask();
 }
 
-inline void System::processCpuMask( bool apply )
+inline void System::processCpuMask( void )
 {
    // if _bindThreads is enabled, update _bindings adding new elements of _cpu_active_set
    if ( sys.getBinding() ) {
@@ -1560,13 +1560,13 @@ inline void System::processCpuMask( bool apply )
       }
       oss_cpu_idx << "]";
       verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-      if ( apply ) {
+      if ( _pmInterface->isMalleable() ) {
          sys.applyCpuMask();
       }
    }
    else {
       verbose0( "PID[" << getpid() << "]. Num threads: " << CPU_COUNT( &_cpu_active_set ) );
-      if (apply) {
+      if ( _pmInterface->isMalleable() ) {
          sys.updateActiveWorkers( CPU_COUNT( &_cpu_active_set ) );
       }
    }

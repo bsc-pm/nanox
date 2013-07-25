@@ -109,7 +109,6 @@ namespace nanos
 
       /*!
        * \brief Initialize WD internal data allocating a new OpenMPData
-       *
        * \param[out] data The pointer where to allocate
        */
       void OpenMPInterface::initInternalData( void * data )
@@ -119,7 +118,6 @@ namespace nanos
 
       /*!
        * \brief Fill WD internal data information from either the WD parent or the Global State
-       *
        * \param[out] wd The WD to set up
        */
       void OpenMPInterface::setupWD( WD &wd )
@@ -149,7 +147,6 @@ namespace nanos
 
       /*!
        * \brief specific setNumThreads implementation for OpenMP model
-       *
        * \param[in] nthreads Number of threads
        */
       void OpenMPInterface::setNumThreads ( int nthreads )
@@ -160,7 +157,6 @@ namespace nanos
 
       /*!
        * \brief Get the current mask of used cpus
-       *
        * \param[out] cpu_set cpu_set_t that will containt the current mask
        */
       void OpenMPInterface::getCpuMask( cpu_set_t *cpu_set )
@@ -170,27 +166,21 @@ namespace nanos
 
       /*!
        * \brief Set a new mask of active cpus
-       *
        * \param[in] cpu_set cpu_set_t that containts the mask to set
-       *
-       * \note
-       * New threads are not inmediately created nor added to the team in the OpenMP model
+       * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
       void OpenMPInterface::setCpuMask( const cpu_set_t *cpu_set )
       {
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set, /* apply */ false );
+         sys.setCpuMask( cpu_set );
       }
 
       /*!
        * \brief Add a new mask to be merged with active cpus
-       *
        * \param[in] cpu_set cpu_set_t that containts the mask to add
-       *
-       * \note
-       * New threads are not inmediately created nor added to the team in the OpenMP model
+       * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
       void OpenMPInterface::addCpuMask( const cpu_set_t *cpu_set )
       {
@@ -198,7 +188,7 @@ namespace nanos
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set, /* apply */ false );
+         sys.addCpuMask( cpu_set );
       }
 
 
@@ -229,7 +219,6 @@ namespace nanos
 
       /*!
        * \brief Initialize WD internal data allocating a new OmpSsData
-       *
        * \param[out] data The pointer where to allocate
        */
       void OmpSsInterface::initInternalData( void * data )
@@ -239,7 +228,6 @@ namespace nanos
 
       /*!
        * \brief Fill WD internal data information from either the WD parent or the Global State
-       *
        * \param[out] wd The WD to set up
        */
       void OmpSsInterface::setupWD( WD &wd )
@@ -261,7 +249,6 @@ namespace nanos
 
       /*!
        * \brief specific setNumThreads implementation for OmpSs model
-       *
        * \param[in] nthreads Number of threads
        */
       void OmpSsInterface::setNumThreads ( int nthreads )
@@ -276,22 +263,9 @@ namespace nanos
       }
 
       /*!
-       * \brief Get the current mask of used cpus
-       *
-       * \param[out] cpu_set cpu_set_t that will containt the current mask
-       */
-      void OmpSsInterface::getCpuMask( cpu_set_t *cpu_set )
-      {
-         sys.getCpuMask( cpu_set );
-      }
-
-      /*!
        * \brief Set a new mask of active cpus
-       *
        * \param[in] cpu_set cpu_set_t that containts the mask to set
-       *
-       * \note
-       * New threads are created and/or added to the team ASAP in the OmpSs model
+       * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
       void OmpSsInterface::setCpuMask( const cpu_set_t *cpu_set )
       {
@@ -299,16 +273,13 @@ namespace nanos
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set, /* apply */ true );
+         sys.setCpuMask( cpu_set );
       }
 
       /*!
        * \brief Add a new mask to be merged with active cpus
-       *
        * \param[in] cpu_set cpu_set_t that containts the mask to add
-       *
-       * \note
-       * New threads are created and/or added to the team ASAP in the OmpSs model
+       * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
       void OmpSsInterface::addCpuMask( const cpu_set_t *cpu_set )
       {
@@ -317,7 +288,7 @@ namespace nanos
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set, /* apply */ true );
+         sys.addCpuMask( cpu_set );
       }
    };
 }

@@ -226,9 +226,8 @@ namespace nanos
           *
           * Depending on the system binding configuration, this function will update _bindings to be able
           * later to create new PE's or just update the raw number of threads if binding is disabled
-          * \param[in] apply Whether to apply the mask immediately or wait until the next team is created
           */
-         void processCpuMask( bool apply );
+         void processCpuMask( void );
          
          void loadHwloc();
          void unloadHwloc();
@@ -294,16 +293,14 @@ namespace nanos
          /*!
           * \brief Set current system's _cpu_active_set
           * \param[in] mask
-          * \param[in] apply
           */
-         void setCpuMask ( const cpu_set_t *mask, bool apply );
+         void setCpuMask ( const cpu_set_t *mask );
 
          /*!
           * \brief Add mas to the current system's _cpu_active_set
           * \param[in] mask
-          * \param[in] apply
           */
-         void addCpuMask ( const cpu_set_t *mask, bool apply );
+         void addCpuMask ( const cpu_set_t *mask );
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
