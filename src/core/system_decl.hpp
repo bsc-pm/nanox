@@ -182,10 +182,12 @@ namespace nanos
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
 #endif
-         std::list<std::string>    _enableEvents;  //FIXME: only in instrumentation
-         std::list<std::string>    _disableEvents; //FIXME: only in instrumentation
-         std::string               _instrumentDefault; //FIXME: only in instrumentation
-         bool                      _enable_cpuid_event; //FIXME: only in instrumentation
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         std::list<std::string>    _enableEvents;
+         std::list<std::string>    _disableEvents;
+         std::string               _instrumentDefault;
+         bool                      _enable_cpuid_event;
+#endif
 
          const int                 _lockPoolSize;
          Lock *                    _lockPool;
@@ -450,7 +452,9 @@ namespace nanos
 
          void setInstrumentation ( Instrumentation *instr );
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
          bool isCpuidEventEnabled ( void ) const;
+#endif
 
          void registerSlicer ( const std::string &label, Slicer *slicer);
 

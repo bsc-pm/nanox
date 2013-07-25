@@ -67,7 +67,9 @@ System::System () :
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
+#ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
+#endif
       , _lockPoolSize(37), _lockPool( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -349,6 +351,7 @@ void System::config ()
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
    
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    cfg.registerConfigOption ( "instrument-default", NEW Config::StringVar ( _instrumentDefault ), "Set instrumentation event list default (none, all)" );
    cfg.registerArgOption ( "instrument-default", "instrument-default" );
 
@@ -360,6 +363,7 @@ void System::config ()
 
    cfg.registerConfigOption ( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ), "Add cpuid event when binding is disabled (expensive)" );
    cfg.registerArgOption ( "instrument-cpuid", "instrument-cpuid" );
+#endif
 
    cfg.registerConfigOption ( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ), "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
    cfg.registerArgOption ( "enable-dlb", "enable-dlb" );
