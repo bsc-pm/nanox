@@ -655,7 +655,7 @@ void System::finish ()
  *  \param [in] dimensions is vector of dimension objects
  *
  *  When it does a full allocation the layout is the following:
- *
+ *  <pre>
  *  +---------------+
  *  |     WD        |
  *  +---------------+
@@ -687,7 +687,7 @@ void System::finish ()
  *  +---------------+
  *  |   PM Data     |
  *  +---------------+
- *
+ *  </pre>
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
                         void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
@@ -1533,16 +1533,16 @@ void System::getCpuMask ( cpu_set_t *mask ) const
 void System::setCpuMask ( const cpu_set_t *mask, bool apply )
 {
    memcpy( &_cpu_active_set, mask, sizeof(cpu_set_t) );
-   sys.updateCpuMask( apply );
+   sys.processCpuMask( apply );
 }
 
 void System::addCpuMask ( const cpu_set_t *mask, bool apply )
 {
    CPU_OR( &_cpu_active_set, &_cpu_active_set, mask );
-   sys.updateCpuMask( apply );
+   sys.processCpuMask( apply );
 }
 
-inline void System::updateCpuMask( bool apply )
+inline void System::processCpuMask( bool apply )
 {
    // if _bindThreads is enabled, update _bindings adding new elements of _cpu_active_set
    if ( sys.getBinding() ) {

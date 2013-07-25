@@ -70,8 +70,8 @@ namespace nanos
          typedef std::vector<int> Bindings;
          
          // global seeds
-         Atomic<int> _atomicWDSeed;
-         Atomic<int> _threadIdSeed;
+         Atomic<int> _atomicWDSeed; /*!< \brief ID seed for new WD's */
+         Atomic<int> _threadIdSeed; /*!< \brief ID seed for new threads */
 
          // configuration variables
          unsigned int         _numPEs;
@@ -100,8 +100,8 @@ namespace nanos
          bool                 _enable_dlb;
 
 	 // Nanos++ scheduling domain
-         cpu_set_t            _cpu_set;         /* system's default cpu_set */
-         cpu_set_t            _cpu_active_set;  /* current cpu_set */
+         cpu_set_t            _cpu_set;         /*!< \brief system's default cpu_set */
+         cpu_set_t            _cpu_active_set;  /*!< \brief mask of current active cpus */
 
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>     _numaNodeMap;
@@ -199,12 +199,36 @@ namespace nanos
          void config ();
          void loadModules();
          void unloadModules();
+
+         /*!
+          * \brief Creates a new PE and a new thread associated to it
+          * \param[in] p ID of the new PE
+          */
          void createWorker( unsigned p );
+
+         /*!
+          * \brief Set up the teamData of the thread to be included in the team, and optionally add it
+          * \param[in,out] team The team where the thread will be added
+          * \param[in,out] thread The thread to be included
+          * \param[in] enter Should the thread enter the team?
+          * \param[in] star Is the thread a star within the team?
+          * \param[in] creator Is the thread the creator of the team?
+          */
          void acquireWorker( ThreadTeam * team, BaseThread * thread, bool enter=true, bool star=false, bool creator=false );
-         void increaseActiveWorkers( unsigned nthreads );
-         void decreaseActiveWorkers( unsigned nthreads );
+
+         /*!
+          * \brief Updates team members so that it matches with system's _cpu_active_set
+          */
          void applyCpuMask();
-         void updateCpuMask( bool apply );
+
+         /*!
+          * \brief Processes the system's _cpu_active_set for later update the threads
+          *
+          * Depending on the system binding configuration, this function will update _bindings to be able
+          * later to create new PE's or just update the raw number of threads if binding is disabled
+          * \param[in] apply Whether to apply the mask immediately or wait until the next team is created
+          */
+         void processCpuMask( bool apply );
          
          void loadHwloc();
          void unloadHwloc();
@@ -261,10 +285,24 @@ namespace nanos
 
          int getCpuCount ( ) const;
 
+         /*!
+          * \brief Get current system's _cpu_active_set
+          * \param[out] mask
+          */
          void getCpuMask ( cpu_set_t *mask ) const;
 
+         /*!
+          * \brief Set current system's _cpu_active_set
+          * \param[in] mask
+          * \param[in] apply
+          */
          void setCpuMask ( const cpu_set_t *mask, bool apply );
 
+         /*!
+          * \brief Add mas to the current system's _cpu_active_set
+          * \param[in] mask
+          * \param[in] apply
+          */
          void addCpuMask ( const cpu_set_t *mask, bool apply );
 
          void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
@@ -409,19 +447,49 @@ namespace nanos
 
          int nextThreadId ();
 
+         /*!
+          * \brief Returns whether DLB is enabled or not
+          */
          bool dlbEnabled() const;
 
          // team related methods
+         /*!
+          * \brief Returns, if any, the worker thread with lower ID that has no team or that has been tagged to sleep
+          */
          BaseThread * getUnassignedWorker ( void );
+
+         /*!
+          * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
+          */
          BaseThread * getAssignedWorker ( void );
+
+         /*!
+          * \brief Returns a new created Team with the specified parameters
+          * \param[in] nthreads The team size
+          * \param[in] constraints Not used
+          * \param[in] reuseCurrent Will this thread be a member of the team?
+          * \param[in] enterCurrent Will this thread immediately enter the team?
+          * \param[in] enterOthers Will the other threads immediately enter the team?
+          * \param[in] starringCurrent Is this a star thread?
+          * \param[in] starringOthers Are the others star threads?
+          */
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
                                    bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
 
          BaseThread * getWorker( unsigned int n );
 
          void endTeam ( ThreadTeam *team );
+
+         /*!
+          * \brief Releases a worker thread from its team
+          * \param[in,out] thread
+          */
          void releaseWorker ( BaseThread * thread );
 
+         /*!
+          * \brief Updates the number of active worker threads and adds them to the main team
+          * \param[in] nthreads
+          */
          void updateActiveWorkers ( int nthreads );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
