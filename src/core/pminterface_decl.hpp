@@ -28,8 +28,8 @@
 class PMInterface
 {
    protected:
-      std::string    _description; /*< String describing Programming Model Interface */
-      bool           _malleable;
+      std::string    _description; /*!< \brief String describing Programming Model Interface */
+      bool           _malleable;   /*!< \brief Can the PM dynamically change the team size? */
    private:
       /*! \brief PMInterface copy constructor (private)
        */
