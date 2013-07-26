@@ -971,7 +971,7 @@ void RegionCache::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len,
    ensure( f == NULL, " Error, functor received is not null.");
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
    if ( VERBOSE_DEV_OPS ) {
-      std::cerr << "[" << myThread->getId() << "] _device._copyIn( copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len, _pe, ops, wd="<< wd.getId() <<" );" <<std::endl;
+      std::cerr << "[" << myThread->getId() << "] _device._copyIn( copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len, _pe, ops, wd="<< wd.getId() <<" );" <<std::endl;
    }
    if (!fake) _device._copyIn( devAddr, hostAddr, len, sys.getSeparateMemory( _memorySpaceId ), ops, (CompleteOpFunctor *) NULL, wd );
    //NANOS_INSTRUMENT( inst.close(); );

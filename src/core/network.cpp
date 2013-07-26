@@ -546,13 +546,15 @@ void Network::notifyGet( SendDataRequest *req ) {
    _waitingPutRequestsLock.acquire();
    if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
    {
+      _waitingPutRequestsLock.release();
+      _delayedPutReqsLock.acquire();
+      _delayedPutReqs.push_back( req );
+      _delayedPutReqsLock.release();
       //delayAmGet( src_node, tagAddr, destAddr, tagAddr, waitObj, realLen );
-      message("addr " << req->getOrigAddr() << " found! erasing from waiting list");
-      message("WARNING: this amGet SHOULD BE DELAYED!!!");
-   } //else { message("addr " << tagAddr << " not found at waiting list");}
-   _waitingPutRequestsLock.release();
-
-   _api->processSendDataRequest( req );
+   } else {
+      _waitingPutRequestsLock.release();
+      _api->processSendDataRequest( req );
+   }
 
    updatePutRequestSequenceNumber( 0, req->getSeqNumber() );
 }

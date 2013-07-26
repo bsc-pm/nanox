@@ -110,9 +110,9 @@ void MemController::initialize( ProcessingElement &pe ) {
       //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
 
       if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
-         _inOps = NEW HostAddressSpaceInOps( false );
+         _inOps = NEW HostAddressSpaceInOps( true );
       } else {
-         _inOps = NEW SeparateAddressSpaceInOps( false, sys.getSeparateMemory( _memorySpaceId ) );
+         _inOps = NEW SeparateAddressSpaceInOps( true, sys.getSeparateMemory( _memorySpaceId ) );
       }
       _initialized = true;
    }
