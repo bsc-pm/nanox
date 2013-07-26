@@ -425,7 +425,7 @@ namespace ext
          {
             TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
 
-            if ( wd->getDevices()[deviceIdx]->isCompatible( thread->runningOn()->getDeviceType() ) ) {
+            if ( wd->getDevices()[deviceIdx]->isCompatible( thread->runningOn()->getDeviceType(), thread->runningOn() ) ) {
 
                NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETDEVICE_CANRUN );
 
@@ -707,7 +707,7 @@ namespace ext
             tdata._statsLock.acquire();
 
             for ( i = 0; i < numVersions; i++ ) {
-               if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords > 0 && bestTime > data[i]._elapsedTime ) {
+               if ( devices[i]->isCompatible( pe->getDeviceType(), pe ) && data[i]._numRecords > 0 && bestTime > data[i]._elapsedTime ) {
                   bestIdx = i;
                   bestTime = data[i]._elapsedTime;
                }
@@ -715,7 +715,7 @@ namespace ext
 
             if ( bestIdx == numVersions ) {
                for ( i = 0; i < numVersions; i++ ) {
-                  if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords < _minRecordTrial ) {
+                  if ( devices[i]->isCompatible( pe->getDeviceType(), pe ) && data[i]._numRecords < _minRecordTrial ) {
                      bestIdx = i;
                      bestTime = 1;
                      break;
@@ -762,7 +762,7 @@ namespace ext
                   // If the thread can run the task, activate its device and return the WD
                   unsigned int i;
                   for ( i = 0; i < numVersions; i++ ) {
-                     if ( devices[i]->isCompatible( pe->getDeviceType() ) ) {
+                     if ( devices[i]->isCompatible( pe->getDeviceType(), pe ) ) {
                         tdata._statsLock.release();
 
                         NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_SELECTWD_FIRSTCANRUN );
@@ -812,7 +812,7 @@ namespace ext
                                  + next->getDevices()[i]->getDevice()->getName() );
 
                            // If this PE can run the task, run it
-                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
+                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType(), pe ) ) {
 
                               NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SELECTWD_BELOWMINRECCANRUN );
 
@@ -842,7 +842,7 @@ namespace ext
                                  + next->getDevices()[i]->getDevice()->getName() );
 
                            // If this PE can run the task, run it
-                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
+                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType(), pe ) ) {
                               //record._numAssigned++;
                               memoryFence();
                               tdata._statsLock.release();

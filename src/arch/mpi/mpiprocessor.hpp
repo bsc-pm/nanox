@@ -54,7 +54,10 @@ namespace nanos {
             static std::string _mpiHostsFile;
             static int _mpiFileArrSize;
             static unsigned int* _mpiFileHashname;
-            static unsigned int* _mpiFileSize;
+            static unsigned int* _mpiFileSize;            
+            static int _numPrevPEs;
+            static int _numFreeCores;
+            static int _currPE;
             MPI_Comm _communicator;
             int _rank;
 
@@ -126,6 +129,7 @@ namespace nanos {
                 return _rank;
             }
 
+
             virtual WD & getWorkerWD() const;
             virtual WD & getMasterWD() const;
             virtual BaseThread & createThread(WorkDescriptor &wd);
@@ -146,7 +150,9 @@ namespace nanos {
 
             /**
              * Nanos MPI override
-             **/            
+             **/                        
+            
+            static int getNextPEId();
             
             static void nanos_MPI_Init(int* argc, char ***argv);
             

@@ -39,6 +39,9 @@ std::string MPIProcessor::_mpiHostsFile;
 unsigned int* MPIProcessor::_mpiFileHashname;
 unsigned int* MPIProcessor::_mpiFileSize;
 int MPIProcessor::_mpiFileArrSize;
+int MPIProcessor::_numPrevPEs=-1;
+int MPIProcessor::_numFreeCores;
+int MPIProcessor::_currPE;
 
 MPIProcessor::MPIProcessor(int id, void* communicator, int rank) : CachedAccelerator<MPIDevice>(id, &MPI) {
     _communicator = *((MPI_Comm *)communicator);
@@ -135,9 +138,11 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
         BaseThread* bt=sys.getWorker(i);
         nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) bt->runningOn();
         if ((myPE->getRank()==rank || rank == -1)){
+            //Releasing workers from the team
             MPI_Comm threadcomm=myPE->getCommunicator();
             if (threadcomm!=NULL) MPI_Comm_compare(threadcomm,*intercomm,&res);
             if (res==MPI_IDENT){
+                sys.releaseWorker(bt);
                 bt->sleep();
             }
         }
@@ -187,7 +192,8 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         
         //Initialice MPI PE with a communicator and special rank for the cache thread
         MPI_Comm mworld= MPI_COMM_WORLD;
-        PE *mpi = NEW nanos::ext::MPIProcessor(999, &mworld, CACHETHREADRANK);
+        //It will share a core with last SMP PE
+        PE *mpi = NEW nanos::ext::MPIProcessor(getNextPEId(), &mworld, CACHETHREADRANK);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         mpi->startThread(*wd);
@@ -386,10 +392,9 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
     }
     //Register spawned processes so nanox can use them
     PE* pes[number_of_spawns];
-    int base_seed=sys.getNumCreatedPEs();
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
-    for ( int rank=0; rank<number_of_spawns; rank++ ){
-        pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(++base_seed) ,intercomm, rank);
+    for ( int rank=0; rank<number_of_spawns; rank++ ){  
+        pes[rank]=NEW nanos::ext::MPIProcessor(getNextPEId() ,intercomm, rank);
         nanos_MPI_Send(_mpiFileHashname, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
         nanos_MPI_Send(_mpiFileSize, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
     }
@@ -492,4 +497,19 @@ int MPIProcessor::nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, in
     //printf("Fin recv con tag %d, desde %d\n",tag,source);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     return err;
+}
+
+
+int MPIProcessor::getNextPEId() {
+    if (_numPrevPEs==-1){
+        _numPrevPEs=sys.getNumCreatedPEs();
+        _numFreeCores=sys.getCpuCount()-_numPrevPEs;
+        _currPE=0;
+        if (_numFreeCores<=0){
+            _numPrevPEs=0;
+            _numFreeCores=sys.getCpuCount();
+            _currPE=sys.getNumCreatedPEs();
+        }
+    }
+    return (_currPE++%_numFreeCores)+_numPrevPEs;
 }

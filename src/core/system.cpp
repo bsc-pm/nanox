@@ -530,11 +530,11 @@ void System::start ()
    {
       case POOL:
          verbose0("Pool model enabled (OmpSs)");
-         createTeam( _workers.size() );
+         _currentTeam = createTeam( _workers.size() );
          break;
       case ONE_THREAD:
          verbose0("One-thread model enabled (OpenMP)");
-         createTeam(1);
+         _currentTeam = createTeam(1);
          break;
       default:
          fatal("Unknown initial mode!");
@@ -1397,7 +1397,7 @@ int System::getNumWorkers( DeviceData *arch )
    int n = 0;
 
    for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
-      if ( arch->isCompatible( ( *it )->runningOn()->getDeviceType() ) ) n++;
+      if ( arch->isCompatible( ( *it )->runningOn()->getDeviceType() ,  ( *it )->runningOn() ) ) n++;
    }
    return n;
 }
@@ -1644,8 +1644,10 @@ void * System::getHwlocTopology ()
 void System::addPEsToTeam(PE **pes, int num_pes) {  
     for (int rank=0; rank<num_pes; rank++){
         _pes.push_back ( pes[rank] );
-        _workers.push_back( &pes[rank]->startWorker() );
+        BaseThread* bt= &pes[rank]->startWorker();
+        _workers.push_back( bt );
+        acquireWorker( _currentTeam , bt);
+        //CPU_SET( pes[rank]->getId(), &_cpu_active_set );
     }
-    createTeam( _workers.size() );
 }
 

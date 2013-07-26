@@ -35,6 +35,8 @@ MPIDD * MPIDD::copyTo(void *toAddr) {
 }
 
 bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {    
+    //PE is null when device gets activated
+    if (pe==NULL) return true;
     int res=MPI_UNEQUAL;
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
     if (_assignedComm!=NULL) MPI_Comm_compare(myPE->getCommunicator(),_assignedComm,&res);

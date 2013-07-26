@@ -38,7 +38,7 @@ void MPIThread::initializeDependent() {
 void MPIThread::runDependent() {
     WD &work = getThreadWD();
     setCurrentWD(work);
-
+    
     MPIDD &dd = (MPIDD &) work.activateDevice(MPI);
 
     dd.getWorkFct()(work.getData());
