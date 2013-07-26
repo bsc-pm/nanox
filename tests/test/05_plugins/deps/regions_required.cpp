@@ -88,7 +88,9 @@ int main ( int argc, char **argv )
 {
    unsigned i;
    
-   posix_memalign( (void**) &array, sizeof( int [arraySize] ), sizeof(int [arraySize] ) );
+   if ( posix_memalign( (void**) &array, sizeof( int [arraySize] ), sizeof(int [arraySize] ) ) != 0)
+      return -1;
+
    memset( array, 0, sizeof( int ) * arraySize );
    
    // Stop scheduler
