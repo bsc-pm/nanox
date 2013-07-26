@@ -33,6 +33,8 @@ namespace nanos
       private:
          typedef std::vector<BaseThread *>    ThreadList;
          int                                  _id;
+         //! Unique ID
+         int                                  _uid;
          const Device *                       _device;
          ThreadList                           _threads;
          int                                  _numaNode;
@@ -53,7 +55,7 @@ namespace nanos
       public:
          /*! \brief ProcessinElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch ) : _id ( newId ), _device ( arch ), _numaNode( 0 ) {}
+         ProcessingElement ( int newId, const Device *arch, int uniqueId ) : _id ( newId ), _uid( uniqueId ), _device ( arch ), _numaNode( 0 ) {}
 
          /*! \brief ProcessinElement destructor
           */
@@ -61,6 +63,9 @@ namespace nanos
 
          /* get/put methods */
          int getId() const;
+         
+         //! \brief Returns a unique ID that no other PE will have.
+         int getUId() const;
          
          //! \brief Returns the socket this thread is running on.
          int getNUMANode() const;
@@ -93,12 +98,19 @@ namespace nanos
          virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
          virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
 
+         /*!
+          * \brief Returns the first thread of the PE that has team and is not tagged to sleep
+          */
          virtual BaseThread* getFirstRunningThread();
+
+         /*!
+          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
+          */
          virtual BaseThread* getFirstStoppedThread();
    };
 
    typedef class ProcessingElement PE;
-   typedef PE * ( *peFactory ) ( int pid );
+   typedef PE * ( *peFactory ) ( int pid, int uid );
 };
 
 #endif
