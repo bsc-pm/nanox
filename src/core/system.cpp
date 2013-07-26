@@ -375,10 +375,10 @@ void System::config ()
    cfg.init();
 }
 
-PE * System::createPE ( std::string pe_type, int pid )
+PE * System::createPE ( std::string pe_type, int pid, int uid )
 {
    //! \todo lookup table for PE factories, in the mean time assume only one factory
-   return _hostFactory( pid );
+   return _hostFactory( pid, uid );
 }
 
 void System::start ()
@@ -418,7 +418,7 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   PE *pe = createPE ( _defArch, getBindingId( 0 ) );
+   PE *pe = createPE ( _defArch, getBindingId( 0 ), 0 );
    pe->setNUMANode( getNodeOfPE( pe->getId() ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
@@ -451,7 +451,7 @@ void System::start ()
    // Create PEs
    int p;
    for ( p = 1; p < numPes ; p++ ) {
-      pe = createPE ( "smp", getBindingId( p ) );
+      pe = createPE ( "smp", getBindingId( p ), p );
       pe->setNUMANode( getNodeOfPE( pe->getId() ) );
       _pes.push_back ( pe );
 
@@ -471,7 +471,7 @@ void System::start ()
    {
       for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
       {
-         PE * processor = (*it)->createPE( archPE );
+         PE * processor = (*it)->createPE( archPE, p );
          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
          _pes.push_back( processor );
          _workers.push_back( &processor->startWorker() );
@@ -1247,7 +1247,7 @@ void System::inlineWork ( WD &work )
 void System::createWorker( unsigned p )
 {
    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-   PE *pe = createPE ( "smp", getBindingId( p ) );
+   PE *pe = createPE ( "smp", getBindingId( p ), _pes.size() );
    _pes.push_back ( pe );
    BaseThread *thread = &pe->startWorker();
    _workers.push_back( thread );

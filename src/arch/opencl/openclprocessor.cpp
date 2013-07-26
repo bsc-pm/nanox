@@ -640,8 +640,8 @@ void  OpenCLAdapter::waitForEvents(){
 //
 
 
-OpenCLProcessor::OpenCLProcessor( int id, int devId ) :
-   CachedAccelerator<OpenCLDevice>( id, &OpenCLDev ),
+OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid ) :
+   CachedAccelerator<OpenCLDevice>( id, &OpenCLDev, uid ),
    _openclAdapter(),
    _cache( _openclAdapter ),
    _dma ( *this ),

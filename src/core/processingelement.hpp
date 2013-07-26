@@ -37,6 +37,11 @@ inline int ProcessingElement::getId() const
    return _id;
 }
 
+inline int ProcessingElement::getUId() const
+{
+   return _uid;
+}
+
 inline const Device & ProcessingElement::getDeviceType () const
 {
    return *_device;

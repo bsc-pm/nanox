@@ -232,7 +232,7 @@ namespace nanos
          void loadHwloc();
          void unloadHwloc();
          
-         PE * createPE ( std::string pe_type, int pid );
+         PE * createPE ( std::string pe_type, int pid, int uid );
 
       public:
          /*! \brief System default constructor
