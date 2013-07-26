@@ -91,6 +91,7 @@ void Network::poll( unsigned int id)
 {
    //   ensure ( _api != NULL, "No network api loaded." );
    checkDeferredWorkReqs();
+   processRequestsDelayedBySeqNumber();
    SendDataRequest * req = _dataSendRequests.tryFetch();
    if ( req ) {
       _api->processSendDataRequest( req );
@@ -504,27 +505,36 @@ void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, 
 }
 
 void Network::notifyRequestPut( SendDataRequest *req ) {
-
-   while( checkPutRequestSequenceNumber( 0 ) < req->getSeqNumber() ); //FIXME: blocking on a handler may be dangerous
-
-   _waitingPutRequestsLock.acquire();
-   if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
-   {
-      _waitingPutRequestsLock.release();
-      _delayedPutReqsLock.acquire();
-      _delayedPutReqs.push_back( req );
-      _delayedPutReqsLock.release();
+   if ( checkPutRequestSequenceNumber( 0 ) == req->getSeqNumber() ) {
+      processSendDataRequest( req );
    } else {
-      _waitingPutRequestsLock.release();
-      _api->processSendDataRequest( req );
+      _delayedBySeqNumberPutReqsLock.acquire();
+      _delayedBySeqNumberPutReqs.push_back( UnorderedRequest( req ) );
+      _delayedBySeqNumberPutReqsLock.release();
    }
+}
 
-   updatePutRequestSequenceNumber( 0, req->getSeqNumber() );
+void Network::notifyGet( SendDataRequest *req ) {
+   if ( checkPutRequestSequenceNumber( 0 ) ==  req->getSeqNumber() ) {
+      processSendDataRequest( req );
+   } else {
+      _delayedBySeqNumberPutReqsLock.acquire();
+      _delayedBySeqNumberPutReqs.push_back( UnorderedRequest( req ) );
+      _delayedBySeqNumberPutReqsLock.release();
+   }
 }
 
 void Network::notifyWaitRequestPut( void *addr, unsigned int wdId, unsigned int seqNumber ) {
-   while( checkPutRequestSequenceNumber( 0 ) < seqNumber ); //FIXME: blocking on a handler may be dangerous
+   if ( checkPutRequestSequenceNumber( 0 ) == seqNumber ) {
+      processWaitRequestPut( addr, seqNumber );
+   } else {
+      _delayedBySeqNumberPutReqsLock.acquire();
+      _delayedBySeqNumberPutReqs.push_back( UnorderedRequest( addr, seqNumber ) );
+      _delayedBySeqNumberPutReqsLock.release();
+   }
+}
 
+void Network::processWaitRequestPut( void *addr, unsigned int seqNumber ) {
    _waitingPutRequestsLock.acquire();
    std::set< void * >::iterator it;
    if ( _receivedUnmatchedPutRequests.empty() || ( it = _receivedUnmatchedPutRequests.find( addr ) ) == _receivedUnmatchedPutRequests.end() ) {
@@ -533,16 +543,10 @@ void Network::notifyWaitRequestPut( void *addr, unsigned int wdId, unsigned int 
       _receivedUnmatchedPutRequests.erase( it );
    }
    _waitingPutRequestsLock.release();
-
    updatePutRequestSequenceNumber( 0, seqNumber );
 }
 
-void Network::notifyGet( SendDataRequest *req ) {
-   //if ( checkPutRequestSequenceNumber( 0 ) < req->getSeqNumber() ) { /* 0 is used localy on each node */
-   //   // delay
-   //}
-   while( checkPutRequestSequenceNumber( 0 ) <  req->getSeqNumber() ); //FIXME: blocking on a handler may be dangerous
-
+void Network::processSendDataRequest( SendDataRequest *req ) {
    _waitingPutRequestsLock.acquire();
    if ( _waitingPutRequests.find( req->getOrigAddr() ) != _waitingPutRequests.end() ) //we have to wait 
    {
@@ -550,13 +554,39 @@ void Network::notifyGet( SendDataRequest *req ) {
       _delayedPutReqsLock.acquire();
       _delayedPutReqs.push_back( req );
       _delayedPutReqsLock.release();
-      //delayAmGet( src_node, tagAddr, destAddr, tagAddr, waitObj, realLen );
    } else {
       _waitingPutRequestsLock.release();
       _api->processSendDataRequest( req );
    }
-
    updatePutRequestSequenceNumber( 0, req->getSeqNumber() );
+}
+
+
+void Network::processRequestsDelayedBySeqNumber() {
+   if ( _delayedBySeqNumberPutReqsLock.tryAcquire() ) {
+      for ( std::list< UnorderedRequest >::iterator it = _delayedBySeqNumberPutReqs.begin(); it != _delayedBySeqNumberPutReqs.end(); ) {
+         if ( it->_addr != ( void * ) 0 ) {
+            //its a waitRequest
+            if ( checkPutRequestSequenceNumber( 0 ) == it->_seqNumber ) {
+               processWaitRequestPut( it->_addr, it->_seqNumber );
+               _delayedBySeqNumberPutReqs.erase( it );
+               it = _delayedBySeqNumberPutReqs.begin();
+            } else {
+               it++;
+            }
+         } else {
+            //its a RequestPut/Get
+            if ( checkPutRequestSequenceNumber( 0 ) == it->_req->getSeqNumber() ) {
+               processSendDataRequest( it->_req );
+               _delayedBySeqNumberPutReqs.erase( it );
+               it = _delayedBySeqNumberPutReqs.begin();
+            } else {
+               it++;
+            }
+         }
+      }
+      _delayedBySeqNumberPutReqsLock.release();
+   }
 }
 
 SendDataRequest::SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId ) :

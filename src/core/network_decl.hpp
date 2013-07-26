@@ -134,6 +134,17 @@ namespace nanos {
          std::set< void * > _waitingPutRequests;
          std::set< void * > _receivedUnmatchedPutRequests;
 
+         struct UnorderedRequest {
+            SendDataRequest *_req;
+            void            *_addr;
+            unsigned int     _seqNumber;
+            UnorderedRequest( SendDataRequest *req ) : _req( req ), _addr( (void *) 0 ), _seqNumber( 0 ) {}
+            UnorderedRequest( void *addr, unsigned int seqNum ) : _req( (SendDataRequest *) 0 ), _addr( addr ), _seqNumber( seqNum ) {}
+            UnorderedRequest( UnorderedRequest const &r ) : _req( r._req ), _addr( r._addr ), _seqNumber( r._seqNumber ) {}
+            UnorderedRequest &operator=( UnorderedRequest const &r ) { _req = r._req; _addr = r._addr; _seqNumber = r._seqNumber; return *this; }
+         };
+         std::list< UnorderedRequest > _delayedBySeqNumberPutReqs;
+         Lock _delayedBySeqNumberPutReqsLock;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -145,6 +156,7 @@ namespace nanos {
 
          std::list< SendDataRequest * > _delayedPutReqs;
          Lock _delayedPutReqsLock;
+
 
          RequestQueue< SendDataRequest > _dataSendRequests;
 
@@ -209,6 +221,9 @@ namespace nanos {
          unsigned int getPutRequestSequenceNumber( unsigned int dest );
          unsigned int checkPutRequestSequenceNumber( unsigned int dest ) const;
          bool updatePutRequestSequenceNumber( unsigned int dest, unsigned int value );
+         void processWaitRequestPut( void *addr, unsigned int seqNumber );
+         void processRequestsDelayedBySeqNumber();
+         void processSendDataRequest( SendDataRequest *req ) ;
    };
 }
 
