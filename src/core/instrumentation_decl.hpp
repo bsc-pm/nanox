@@ -264,7 +264,7 @@ namespace nanos {
             /* 09 */ registerEventKey("copy-in","Copying WD inputs", true);
             /* 10 */ registerEventKey("copy-out","Copying WD outputs", true);
 
-            /* 11 */ registerEventKey("user-funct-name","User Function Name", true);
+            /* 11 */ registerEventKey("user-funct-name","User Function Name", true, true, true);
 
             /* 12 */ registerEventKey("user-code","User Code (wd)", true);
 
@@ -279,7 +279,7 @@ namespace nanos {
             /* 19 */ registerEventKey("num-yields","Number of Yields", true);
             /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)", true);
 
-            /* 21 */ registerEventKey("user-funct-location","User Function Location", true);
+            /* 21 */ registerEventKey("user-funct-location","User Function Location", true, true, true);
 
             /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues", true);
             /* 23 */ registerEventKey("graph-size","Number tasks in the graph", true);
