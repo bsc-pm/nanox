@@ -40,8 +40,8 @@ namespace ext
          size_t      _stackSize;
          bool        _useUserThreads;
 
-         pthread_cond_t          _condWait;
-         static pthread_mutex_t  _mutexWait;
+         pthread_cond_t          _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
+         static pthread_mutex_t  _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
 
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
@@ -79,9 +79,24 @@ namespace ext
          */
          virtual void yield();
 
+         /*!
+          * \brief Blocks the thread if it still has enabled the sleep flag
+          */
          virtual void wait();
+
+         /*!
+          * \brief Signals to unblock threads blocked on a condition variable
+          */
          virtual void signal();
+
+         /*!
+          * \brief Set the flag
+          */
          virtual void sleep();
+
+         /*!
+          * \brief Unset the flag
+          */
          virtual void wakeup();
    };
 

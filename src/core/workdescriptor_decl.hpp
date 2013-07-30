@@ -270,6 +270,8 @@ namespace nanos
 
              delete _depsDomain;
 
+             delete _directory;
+
              if (_copiesNotInChunk)
                  delete[] _copies;
          }

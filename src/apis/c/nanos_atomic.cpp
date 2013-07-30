@@ -198,6 +198,7 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
     NANOS_PERFORM_ATOMIC_OP_COMPLEX(type_name, type, op, x, y); \
 }
 
+// Implementation of each atomic op for integer types
 #define NANOS_PERFORM_ATOMIC_OP_INT_add(_, x, y)        __sync_add_and_fetch(x, y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_sub(_, x, y)        __sync_sub_and_fetch(x, y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_mul(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, mul)
@@ -211,13 +212,14 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_band(type, x, y)    __sync_and_and_fetch(x, y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_bor(type, x, y)     __sync_or_and_fetch(x, y)
 #define NANOS_PERFORM_ATOMIC_OP_INT_bxor(type, x, y)    __sync_xor_and_fetch(x, y)
+#define NANOS_PERFORM_ATOMIC_OP_INT_max(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, max)
+#define NANOS_PERFORM_ATOMIC_OP_INT_min(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, min)
+#define NANOS_PERFORM_ATOMIC_OP_INT_eq(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, eq)
+#define NANOS_PERFORM_ATOMIC_OP_INT_neq(type, x, y)     NANOS_CAS_ATOMIC(type, x, y, neq)
 
 #define NANOS_PERFORM_ATOMIC_OP_INT_assig(type, x, y)   NANOS_CAS_ATOMIC(type, x, y, assig)
 
-#define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
-#define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
-#define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
-#define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
+// Implementation of each atomic op for floating types
 #define NANOS_PERFORM_ATOMIC_OP_FLOAT(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_FLOAT_##type_name(type, op, x, y)
 
 #define NANOS_PERFORM_ATOMIC_OP_FLOAT_float(type, op, x, y)      NANOS_CAS_ATOMIC(type, x, y, op)
@@ -228,16 +230,14 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
  #define NANOS_PERFORM_ATOMIC_OP_FLOAT_ldouble(type, op, x, y)   NANOS_LOCK_UPDATE(type, x, y, op)
 #endif
 
-#define NANOS_PERFORM_ATOMIC_OP_COMPLEX(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_COMPLEX_##type_name(type, op, x, y)
-#define NANOS_PERFORM_ATOMIC_OP_COMPLEX(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_COMPLEX_##type_name(type, op, x, y)
-#define NANOS_PERFORM_ATOMIC_OP_COMPLEX(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_COMPLEX_##type_name(type, op, x, y)
-#define NANOS_PERFORM_ATOMIC_OP_COMPLEX(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_COMPLEX_##type_name(type, op, x, y)
+// Implementation of each atomic op for complex floating types
 #define NANOS_PERFORM_ATOMIC_OP_COMPLEX(type_name, type, op, x, y)   NANOS_PERFORM_ATOMIC_OP_COMPLEX_##type_name(type, op, x, y)
 
 #define NANOS_PERFORM_ATOMIC_OP_COMPLEX_cfloat(type, op, x, y)   NANOS_LOCK_UPDATE(type, x, y, op)
 #define NANOS_PERFORM_ATOMIC_OP_COMPLEX_cdouble(type, op, x, y)  NANOS_LOCK_UPDATE(type, x, y, op)
 #define NANOS_PERFORM_ATOMIC_OP_COMPLEX_cldouble(type, op, x, y) NANOS_LOCK_UPDATE(type, x, y, op)
 
+// Expression used by each operation in the CAS (compare-and-swap) template below
 #define NANOS_CAS_BIN_OP_add(x, y) (x + y)
 #define NANOS_CAS_BIN_OP_sub(x, y) (x - y)
 #define NANOS_CAS_BIN_OP_mul(x, y) (x * y)
@@ -248,9 +248,14 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
 #define NANOS_CAS_BIN_OP_land(x, y) (x && y)
 #define NANOS_CAS_BIN_OP_lor(x, y) (x || y)
 #define NANOS_CAS_BIN_OP_pow(x, y) generic_pow(x, y)
+#define NANOS_CAS_BIN_OP_max(x, y) (x > y ? x : y)
+#define NANOS_CAS_BIN_OP_min(x, y) (x < y ? x : y)
+#define NANOS_CAS_BIN_OP_eq(x, y) (x == y)
+#define NANOS_CAS_BIN_OP_neq(x, y) (x != y)
 
 #define NANOS_CAS_BIN_OP_assig(x, y) y
 
+// Template for CAS (compare-and-swap)
 #define NANOS_CAS_ATOMIC(type, x, y, op) \
 { \
     typedef atomic_type_trait<type>::T atomic_int_t; \
@@ -262,12 +267,14 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
     } while (!__sync_bool_compare_and_swap((atomic_int_t*)x, old.v, new_.v)); \
 }
 
+// Template for lock implementation
 #define NANOS_LOCK_UPDATE(type, x, y, op) \
 { \
     nanos::LockBlock b(update_lock); \
     (*x) = NANOS_CAS_BIN_OP_##op((*x), y); \
 }
 
+// Integral types
 #define NANOS_ATOMIC_INT_OP(op) \
     NANOS_ATOMIC_DEF_INT_OP(op, schar, signed char) \
     NANOS_ATOMIC_DEF_INT_OP(op, short, short) \
@@ -278,22 +285,33 @@ NANOS_API_DEF(void, nanos_atomic_##op##_##type_name, (volatile type * x, type y)
     NANOS_ATOMIC_DEF_INT_OP(op, ushort, unsigned short int) \
     NANOS_ATOMIC_DEF_INT_OP(op, uint, unsigned int) \
     NANOS_ATOMIC_DEF_INT_OP(op, ulong, unsigned long) \
+    NANOS_ATOMIC_DEF_INT_OP(op, ulonglong, unsigned long long) \
+    \
+    NANOS_ATOMIC_DEF_INT_OP(op, bytebool, signed char) \
+    NANOS_ATOMIC_DEF_INT_OP(op, shortbool, short) \
+    NANOS_ATOMIC_DEF_INT_OP(op, intbool, int) \
+    NANOS_ATOMIC_DEF_INT_OP(op, longbool, long int) \
+    NANOS_ATOMIC_DEF_INT_OP(op, longlongbool, long long int)
 
+// Float types
 #define NANOS_ATOMIC_FLOAT_OP(op) \
     NANOS_ATOMIC_DEF_FLOAT_OP(op, float, float) \
     NANOS_ATOMIC_DEF_FLOAT_OP(op, double, double) \
     NANOS_ATOMIC_DEF_FLOAT_OP(op, ldouble, long double)
 
+// Complex float types
 #define NANOS_ATOMIC_COMPLEX_OP(op) \
     NANOS_ATOMIC_DEF_COMPLEX_OP(op, cfloat, _Complex float) \
     NANOS_ATOMIC_DEF_COMPLEX_OP(op, cdouble, _Complex double) \
     NANOS_ATOMIC_DEF_COMPLEX_OP(op, cldouble, _Complex long double)
 
+// All types
 #define NANOS_ATOMIC_ALL_OP(op) \
     NANOS_ATOMIC_INT_OP(op) \
     NANOS_ATOMIC_FLOAT_OP(op) \
     NANOS_ATOMIC_COMPLEX_OP(op)
 
 #ifndef __MIC__
+// Emit implementation of atomic (op X types), for each op and type
 ATOMIC_OPS
 #endif

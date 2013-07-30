@@ -266,7 +266,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
    try {
       if ( const_data->num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
-      // TODO: choose device
+      //! \todo if multiple devices we need to choose one of them
       
       WD wd( (DD*) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment,
              data, const_data->num_copies, copies, NULL, (char *) const_data->description);
@@ -403,6 +403,7 @@ NANOS_API_DEF(nanos_err_t, nanos_yield, ( void ))
  */
 NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slicer, void ** data ))
 {                                                                                                                                                        
+   //! Why we are not instrumenting the next line
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_specific_data",NANOS_RUNTIME) );
 
    try {
@@ -419,6 +420,7 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
  */
 NANOS_API_DEF(unsigned int, nanos_get_wd_priority, ( nanos_wd_t wd ))
 {
+   //! \note Why this is not instrumented?
    WD *lwd = ( WD * )wd;
    return lwd->getPriority();
 }

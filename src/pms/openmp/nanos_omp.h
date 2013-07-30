@@ -22,6 +22,7 @@
 
 #include "nanos.h"
 #include "nanos_reduction.h"
+#include "nanos_atomic.h"
 
 typedef void * nanos_cpu_set_t;
 

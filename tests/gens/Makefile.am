@@ -294,7 +294,7 @@ mcc-openmp-generator: mcc-openmp-generator.in
 		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		-e's,@MCC_SUPPORT\@,'"$$tmp_mcc_valid"',g' \
 		-e's,@MCC\@,'"$$tmp_mcc"',g' \
-		-e's,@LDFLAGS\@,'"$$tmp_ldflags"',g' \
+		-e's,@LDFLAGS\@,"$$tmp_ldflags",g' \
 		$(srcdir)/mcc-openmp-generator.in > mcc-openmp-generator.tmp
 	mv mcc-openmp-generator.tmp mcc-openmp-generator
 	chmod 755 mcc-openmp-generator

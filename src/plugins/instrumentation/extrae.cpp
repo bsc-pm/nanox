@@ -65,11 +65,11 @@ extern "C" {
 
 namespace nanos {
 
-   const extrae_type_t _eventState      = 9000000;   /*<< event coding state changes */
-   const extrae_type_t _eventPtPStart   = 9000001;   /*<< event coding comm start */
-   const extrae_type_t _eventPtPEnd     = 9000002;   /*<< event coding comm end */
-   const extrae_type_t _eventSubState   = 9000004;   /*<< event coding sub-state changes */
-   const extrae_type_t _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
+   const extrae_type_t _eventState      = 9000000;   /*!< event coding state changes */
+   const extrae_type_t _eventPtPStart   = 9000001;   /*!< event coding comm start */
+   const extrae_type_t _eventPtPEnd     = 9000002;   /*!< event coding comm end */
+   const extrae_type_t _eventSubState   = 9000004;   /*!< event coding sub-state changes */
+   const extrae_type_t _eventBase       = 9200000;   /*!< event base (used in key/value pairs) */
 
 class InstrumentationExtrae: public Instrumentation 
 {
@@ -95,19 +95,19 @@ class InstrumentationExtrae: public Instrumentation
 #else
    private:
       std::string                                    _listOfTraceFileNames;
-      std::string                                    _traceDirectory;        /*<< Extrae directory: EXTRAE_DIR */
-      std::string                                    _traceFinalDirectory;   /*<< Extrae final directory: EXTRAE_FINAL_DIR */
-      std::string                                    _traceParaverDirectory; /*<< Paraver output files directory */
-      std::string                                    _traceFileName_PRV;     /*<< Paraver: file.prv */
-      std::string                                    _traceFileName_PCF;     /*<< Paraver: file.pcf */
-      std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
-      std::string                                    _binFileName;           /*<< Binnary file name */
-      int                                            _maxThreads;
+      std::string                                    _traceDirectory;        /*!< Extrae directory: EXTRAE_DIR */
+      std::string                                    _traceFinalDirectory;   /*!< Extrae final directory: EXTRAE_FINAL_DIR */
+      std::string                                    _traceParaverDirectory; /*!< Paraver output files directory */
+      std::string                                    _traceFileName_PRV;     /*!< Paraver: file.prv */
+      std::string                                    _traceFileName_PCF;     /*!< Paraver: file.pcf */
+      std::string                                    _traceFileName_ROW;     /*!< Paraver: file.row */
+      std::string                                    _binFileName;           /*!< Binnary file name */
+      int                                            _maxThreads;            /*!< Total number of created threads */
    public: /* must be updated by Configure */
       static std::string                             _traceBaseName;
       static std::string                             _postProcessScriptPath;
-      static bool                                    _keepMpits; /*<< Keeps mpits temporary files (default = no)*/
-      static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
+      static bool                                    _keepMpits; /*!< Keeps mpits temporary files (default = no)*/
+      static bool                                    _skipMerge; /*!< Skip merge phase and keeps mpits temporary files (default = no)*/
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}

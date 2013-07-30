@@ -78,7 +78,7 @@ void Scheduler::submit ( WD &wd )
       return;
    }
 
-   // TODO (#581): move this to the upper if
+   //! \todo (#581): move this to the upper if
    if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
       // Pause this thread
       mythread->pause();
@@ -256,7 +256,8 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
          /* If DLB, return resources if needed */
-         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 ) DLB_ReturnClaimedCpus();
+         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+            DLB_ReturnClaimedCpus();
 
          NANOS_INSTRUMENT ( total_spins+= nspins; )
          sleeps--;
@@ -407,7 +408,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                /* If DLB, return resources if needed */
-               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 ) DLB_ReturnClaimedCpus();
+               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+                  DLB_ReturnClaimedCpus();
 
                condition->unlock();
                if ( sleeps < 0 ) {
@@ -570,7 +572,9 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
 
    /* If DLB, perform the adjustment of resources */
    if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
-      DLB_ReturnClaimedCpus();
+      if ( sys.getPMInterface().isMalleable() )
+         DLB_ReturnClaimedCpus();
+
       int needed_resources = sys.getSchedulerStats()._readyTasks.value() - sys.getNumThreads();
       if ( needed_resources > 0 )
          DLB_UpdateResources_max( needed_resources );

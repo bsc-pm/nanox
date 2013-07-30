@@ -26,11 +26,11 @@
 namespace nanos {
 namespace ext {
 
-nanos::PE * smpProcessorFactory ( int id );
+nanos::PE * smpProcessorFactory ( int id, int uid );
 
-nanos::PE * smpProcessorFactory ( int id )
+nanos::PE * smpProcessorFactory ( int id, int uid )
 {
-   return new SMPProcessor( id );
+   return new SMPProcessor( id, uid );
 }
 
 class SMPPlugin : public ArchPlugin
@@ -68,7 +68,7 @@ class SMPPlugin : public ArchPlugin
          return 0;
       }
 
-      virtual ProcessingElement* createPE( unsigned id )
+      virtual ProcessingElement* createPE( unsigned id, unsigned uid )
       {
          return NULL;
       }

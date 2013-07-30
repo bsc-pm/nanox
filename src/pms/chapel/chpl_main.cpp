@@ -26,7 +26,7 @@
 #include "smpdd.hpp"
 #include "chpl_nanos.h"
 
-// // TODO: include chpl headers?
+//! \todo include chpl headers?
 // typedef char * chpl_string;
 // typedef bool chpl_bool;
 // typedef void (*chpl_fn_p) (void *);
@@ -75,8 +75,7 @@ void nanos_chpl_task_init(int32_t maxThreadsPerLocale, uint64_t callStackSize) {
    sys.setNumPEs(maxThreadsPerLocale);
    sys.start();
 
-   //
-   // TODO: Should verify that callStackSize is a reasonable value and
+   //! \todo Should verify that callStackSize is a reasonable value and
    // use it to set Nanos++'s task callstack size.
    //
    taskCallStackSize = callStackSize;
@@ -105,31 +104,33 @@ void chpl_task_addToTaskList(chpl_fn_int_t fid, void* arg,
     chpl_task_begin(fp, arg, false, false, NULL);
 }
 
+//! \todo Implements chpl_task_processTaskList
 void chpl_task_processTaskList(chpl_task_list_p task_list)
 {
 }
 
+//! \todo Implements chpl_task_executeTasksInList
 void chpl_task_executeTasksInList(chpl_task_list_p task_list)
 {
 }
 
+//! \todo Implements chpl_task_freeTaskList
 void chpl_task_freeTaskList(chpl_task_list_p task_list)
 {
 }
 
-//TODO
 void chpl_task_sleep(int secs)
 {
   sleep(secs);
 }
 
-//TODO
+//! \todo Implement chpl_task_getSerial
 chpl_bool chpl_task_getSerial(void)
 {
   return 0;
 }
 
-//TODO
+//! \todo Implements chpl_task_setSerial
 void chpl_task_setSerial(chpl_bool state)
 {
 }
@@ -156,7 +157,6 @@ int32_t  chpl_task_getNumBlockedTasks(void)
   return sys.getTaskNum() - sys.getReadyNum() -  sys.getRunningTasks();
 }
 
-//TODO
 chpl_taskID_t chpl_task_getId(void)
 {
   return myThread->getCurrentWD()->getId();
@@ -164,15 +164,15 @@ chpl_taskID_t chpl_task_getId(void)
 
 // Threads stat routines
 
+//! \todo Implements chpl_task_getMaxThreads
 int32_t  chpl_task_getMaxThreads(void)
 {
-   // TODO: Alex
    return 0;
 }
 
+//! \todo Implements chpl_task_getMaxThreadsLimit
 int32_t  chpl_task_getMaxThreadsLimit(void)
 {
-   // TODO: Alex
    return 0;
 }
 
@@ -186,8 +186,9 @@ uint32_t chpl_task_getNumIdleThreads(void)
     return sys.getIdleNum();
 }
 
+//! \todo Implements chpl_task_perPthreadInit
 void chpl_task_perPthreadInit(void) {
-  // TODO: This function is called for any pthreads that are created
+  // This function is called for any pthreads that are created
   // outside the tasking layer -- for example, a progress thread used
   // to ensure progress in a one-sided communication layer that needs
   // software support.  If anything needs to be done with these

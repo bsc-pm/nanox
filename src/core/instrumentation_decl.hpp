@@ -264,7 +264,7 @@ namespace nanos {
             /* 09 */ registerEventKey("copy-in","Copying WD inputs", true);
             /* 10 */ registerEventKey("copy-out","Copying WD outputs", true);
 
-            /* 11 */ registerEventKey("user-funct-name","User Function Name", true);
+            /* 11 */ registerEventKey("user-funct-name","User Function Name", true, true, true);
 
             /* 12 */ registerEventKey("user-code","User Code (wd)", true);
 
@@ -279,7 +279,7 @@ namespace nanos {
             /* 19 */ registerEventKey("num-yields","Number of Yields", true);
             /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)", true);
 
-            /* 21 */ registerEventKey("user-funct-location","User Function Location", true);
+            /* 21 */ registerEventKey("user-funct-location","User Function Location", true, true, true);
 
             /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues", true);
             /* 23 */ registerEventKey("graph-size","Number tasks in the graph", true);
@@ -368,7 +368,8 @@ namespace nanos {
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_MEMREAD_SYNC_EVENT", "clEnqueueReadBuffer(blocking=true)" );                /* 6 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT", "clCreateCommandQueue()" );                /* 7 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GET_PROGRAM_EVENT", "Compile, build and clCreateKernel() nanox routine" );                /* 8 */
-            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 9 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_COPY_BUFFER_EVENT", "clEnqueueCopyBuffer() Device to device transfer" );                /* 9 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 10 */
 
             /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
             /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");

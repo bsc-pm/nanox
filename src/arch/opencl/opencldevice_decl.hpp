@@ -46,13 +46,8 @@ public:
                              void* addrSrc,
                              size_t size,
                              ProcessingElement *peDst,
-                             ProcessingElement *peSrc )
-   {
-       copyOut(dstCd,addrSrc,size,peSrc);
-       copyIn(addrDst,dstCd,size,peDst);
-       return true;
-   }
-
+                             ProcessingElement *peSrc );
+   
    static bool copyIn( void *localDst,
                        CopyDescriptor &remoteSrc,
                        size_t size,

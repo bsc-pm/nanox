@@ -76,7 +76,6 @@ namespace nanos
             virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
             virtual void setNumThreads( int nthreads );
-            virtual void getCpuMask( cpu_set_t *cpu_set );
             virtual void setCpuMask( const cpu_set_t *cpu_set );
             virtual void addCpuMask( const cpu_set_t *cpu_set );
       };

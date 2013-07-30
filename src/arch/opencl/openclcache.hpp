@@ -125,8 +125,23 @@ public:
    {
          return deviceCopyOut( remoteDst, localSrc, size );
    }
-
+   
    bool deviceCopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size );
+   
+   cl_mem getBuffer( void *localSrc, size_t size )
+   {
+      return _bufAddrMappings[localSrc];
+   }
+   
+   
+   bool deviceCopyInBuffer( void *localDst, cl_mem buffer, size_t size );
+   
+   bool copyInBuffer( void *localDst, cl_mem buffer, size_t size )
+   {
+         return deviceCopyInBuffer( localDst, buffer, size );
+   }
+   
+
 
 public:
 
@@ -147,7 +162,6 @@ private:
 
    OpenCLAdapter &_openclAdapter;
    
-   std::map<void *, cl_mem> _devBufAddrMappings;
    std::map<void *, cl_mem> _bufAddrMappings;
    
    Atomic<unsigned int>    _bytesIn;

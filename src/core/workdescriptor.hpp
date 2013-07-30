@@ -256,8 +256,11 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
 
 inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
 {
-   if ( wd._doSubmit != NULL )
+   if ( wd._doSubmit != NULL ){
       wd._doSubmit->finished();
+      delete wd._doSubmit;
+      wd._doSubmit = NULL;
+   }
 }
 
 inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
