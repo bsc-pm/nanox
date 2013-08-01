@@ -33,17 +33,17 @@ System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
 extern __attribute__((weak)) char ompss_uses_opencl;
 
-std::map<cl_device_id,cl_context> OpenCLConfig::_devices;
+std::map<cl_device_id,cl_context>* OpenCLConfig::_devicesPtr=0;
 
 Atomic<unsigned> OpenCLConfig::_freeDevice = 0;
 
 cl_device_id OpenCLConfig::getFreeDevice() {
-   if(_freeDevice == _devices.size())
+   if(_freeDevice == _devicesPtr->size())
       fatal( "No more free devices" );
    
    int freeDev=_freeDevice++;
    
-   std::map<cl_device_id,cl_context>::iterator iter=_devices.begin();
+   std::map<cl_device_id,cl_context>::iterator iter=_devicesPtr->begin();
    for (int i=0; i < freeDev; ++i){
        ++iter;
    }
@@ -52,7 +52,7 @@ cl_device_id OpenCLConfig::getFreeDevice() {
 }
 
 cl_context OpenCLConfig::getContextDevice(cl_device_id dev) {
-   return _devices[dev];
+   return (*_devicesPtr)[dev];
 }
 
 void OpenCLConfig::prepare( Config &cfg )
@@ -102,8 +102,9 @@ void OpenCLConfig::prepare( Config &cfg )
 
 }
 
-void OpenCLConfig::apply(std::string &_devTy)
+void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices)
 {
+    _devicesPtr=&_devices;
     //Auto-enable CUDA if it was not done before
    if (!_enableOpenCL) {
        //ompss_uses_cuda pointer will be null (is extern) if the compiler didnt fill it

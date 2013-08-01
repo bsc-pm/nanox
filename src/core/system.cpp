@@ -67,7 +67,9 @@ System::System () :
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
+#ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
+#endif
       , _lockPoolSize(37), _lockPool( NULL )
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -349,6 +351,7 @@ void System::config ()
    cfg.registerEnvOption ( "deps", "NX_DEPS" );
    
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    cfg.registerConfigOption ( "instrument-default", NEW Config::StringVar ( _instrumentDefault ), "Set instrumentation event list default (none, all)" );
    cfg.registerArgOption ( "instrument-default", "instrument-default" );
 
@@ -360,6 +363,7 @@ void System::config ()
 
    cfg.registerConfigOption ( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ), "Add cpuid event when binding is disabled (expensive)" );
    cfg.registerArgOption ( "instrument-cpuid", "instrument-cpuid" );
+#endif
 
    cfg.registerConfigOption ( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ), "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
    cfg.registerArgOption ( "enable-dlb", "enable-dlb" );
@@ -371,10 +375,10 @@ void System::config ()
    cfg.init();
 }
 
-PE * System::createPE ( std::string pe_type, int pid )
+PE * System::createPE ( std::string pe_type, int pid, int uid )
 {
    //! \todo lookup table for PE factories, in the mean time assume only one factory
-   return _hostFactory( pid );
+   return _hostFactory( pid, uid );
 }
 
 void System::start ()
@@ -414,7 +418,7 @@ void System::start ()
 
    _pes.reserve ( numPes );
 
-   PE *pe = createPE ( _defArch, getBindingId( 0 ) );
+   PE *pe = createPE ( _defArch, getBindingId( 0 ), 0 );
    pe->setNUMANode( getNodeOfPE( pe->getId() ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
@@ -447,7 +451,7 @@ void System::start ()
    // Create PEs
    int p;
    for ( p = 1; p < numPes ; p++ ) {
-      pe = createPE ( "smp", getBindingId( p ) );
+      pe = createPE ( "smp", getBindingId( p ), p );
       pe->setNUMANode( getNodeOfPE( pe->getId() ) );
       _pes.push_back ( pe );
 
@@ -467,7 +471,7 @@ void System::start ()
    {
       for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
       {
-         PE * processor = (*it)->createPE( archPE );
+         PE * processor = (*it)->createPE( archPE, p );
          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
          _pes.push_back( processor );
          _workers.push_back( &processor->startWorker() );
@@ -651,7 +655,7 @@ void System::finish ()
  *  \param [in] dimensions is vector of dimension objects
  *
  *  When it does a full allocation the layout is the following:
- *
+ *  <pre>
  *  +---------------+
  *  |     WD        |
  *  +---------------+
@@ -683,7 +687,7 @@ void System::finish ()
  *  +---------------+
  *  |   PM Data     |
  *  +---------------+
- *
+ *  </pre>
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
                         void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
@@ -1243,7 +1247,7 @@ void System::inlineWork ( WD &work )
 void System::createWorker( unsigned p )
 {
    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-   PE *pe = createPE ( "smp", getBindingId( p ) );
+   PE *pe = createPE ( "smp", getBindingId( p ), _pes.size() );
    _pes.push_back ( pe );
    BaseThread *thread = &pe->startWorker();
    _workers.push_back( thread );
@@ -1526,19 +1530,19 @@ void System::getCpuMask ( cpu_set_t *mask ) const
    memcpy( mask, &_cpu_active_set, sizeof(cpu_set_t) );
 }
 
-void System::setCpuMask ( const cpu_set_t *mask, bool apply )
+void System::setCpuMask ( const cpu_set_t *mask )
 {
    memcpy( &_cpu_active_set, mask, sizeof(cpu_set_t) );
-   sys.updateCpuMask( apply );
+   sys.processCpuMask();
 }
 
-void System::addCpuMask ( const cpu_set_t *mask, bool apply )
+void System::addCpuMask ( const cpu_set_t *mask )
 {
    CPU_OR( &_cpu_active_set, &_cpu_active_set, mask );
-   sys.updateCpuMask( apply );
+   sys.processCpuMask();
 }
 
-inline void System::updateCpuMask( bool apply )
+inline void System::processCpuMask( void )
 {
    // if _bindThreads is enabled, update _bindings adding new elements of _cpu_active_set
    if ( sys.getBinding() ) {
@@ -1556,13 +1560,13 @@ inline void System::updateCpuMask( bool apply )
       }
       oss_cpu_idx << "]";
       verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-      if ( apply ) {
+      if ( _pmInterface->isMalleable() ) {
          sys.applyCpuMask();
       }
    }
    else {
       verbose0( "PID[" << getpid() << "]. Num threads: " << CPU_COUNT( &_cpu_active_set ) );
-      if (apply) {
+      if ( _pmInterface->isMalleable() ) {
          sys.updateActiveWorkers( CPU_COUNT( &_cpu_active_set ) );
       }
    }

@@ -189,7 +189,7 @@ private:
 class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
 {
 public:
-   OpenCLProcessor( int id , int devId);
+   OpenCLProcessor( int id , int devId, int uid );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.

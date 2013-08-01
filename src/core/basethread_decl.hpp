@@ -124,7 +124,7 @@ namespace nanos
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
-         volatile bool           _mustSleep;
+         volatile bool           _mustSleep;    /**< Flag that triggers the wait mechanism of the thread */
          volatile bool           _paused;
          WD *                    _currentWD;
 

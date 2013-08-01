@@ -14,14 +14,16 @@ namespace nanos {
          LoopSchedule ( omp_sched_t kind, unsigned int modifier=0 ) : _kind(kind), _modifier(modifier) {}
       };
 
-      /**! per tasks-icvs */
+      /*!
+       * \brief Internal Control Variables per task
+       */
       class TaskICVs
       {
          private:
-            bool             _dynVar;
-            bool             _nestVar;
-            unsigned int     _nthreadsVar;
-            LoopSchedule     _runSchedVar;
+            bool             _dynVar;        /*!< \brief Dynamic adjustment of the number of threads for encountered parallel regions */
+            bool             _nestVar;       /*!< \brief Nested parallelism is enabled for encountered parallel regions */
+            unsigned int     _nthreadsVar;   /*!< \brief Number of threads requested for encountered parallel regions */
+            LoopSchedule     _runSchedVar;   /*!< \brief Schedule that the runtime schedule clause uses for loop regions */
 
             TaskICVs ( const TaskICVs &);
 
@@ -51,7 +53,9 @@ namespace nanos {
             }
       };
 
-      /* OpenMP and OmpSs common data */
+      /*!
+       * \brief OpenMP and OmpSs common data for each WD
+       */
       class OmpData
       {
          protected:
@@ -83,6 +87,9 @@ namespace nanos {
             }
       };
 
+      /*!
+       * \brief OpenMP data for each WD
+       */
       class OpenMPData : public OmpData
       {
          private:
@@ -107,6 +114,9 @@ namespace nanos {
             }
       };
 
+      /*!
+       * \brief OmpSs data for each WD
+       */
       class OmpSsData : public OmpData
       {
          private:
@@ -131,16 +141,15 @@ namespace nanos {
             }
       };
 
+      /*!
+       * \brief Global State for either OpenMP or OmpSs programming model
+       */
       class OmpState
       {
          private:
-            /* global ICVs */
-            TaskICVs    _globalICVs;
-            int         _threadLimitVar;
-            int         _maxActiveLevelsVar;
-
-            /* bindVar becomes local per task in OpenMP 4.0 */
-            // bool         _bindVar;
+            TaskICVs    _globalICVs;            /*!< \brief Model's global Internal Control Variables */
+            int         _threadLimitVar;        /*!< \brief Maximum number of threads participating in the program */
+            int         _maxActiveLevelsVar;    /*!< \brief Maximum number of nested active parallel regions */
 
             /* Not implemented global ICV's */
             // unsigned int _stacksizeVar;
