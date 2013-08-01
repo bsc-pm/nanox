@@ -28,38 +28,42 @@ static void staticLoop ( void *arg )
 
    nanos_loop_info_t * loop_info = (nanos_loop_info_t *) arg;
 
-   // forcing last to be false
+   //! Checking empty iteration spaces 
+   if ( (loop_info->upper > loop_info->lower)  && ( loop_info->step <= 0 ) ) return;
+   if ( (loop_info->upper < loop_info->lower)  && ( loop_info->step >= 0 ) ) return;
+
+   //! Forcing 'last' to be false
    loop_info->last = false;
 
-   // getting initial parameters
+   //! Getting initial parameters: 'upper' and 'stride'
    _upper = loop_info->upper;
    _stride = loop_info->stride;
 
-   // loop replication (according to step) related with performance issues
+   //! Loop replication (according to step) related with performance issues
    if ( loop_info->step < 0 ) {
       _chunk = loop_info->chunk + 1;
       for ( ; loop_info->lower >= _upper; loop_info->lower += _stride )
       {
-         // computing current parameters
+         //! Computing current parameters
          loop_info->upper = loop_info->lower + _chunk;
          if ( loop_info->upper  <= _upper ) {
             loop_info->upper = _upper;
             loop_info->last = true;
          }
-         // calling realwork
+         //! Calling realwork
          ((SMPDD::work_fct)(loop_info->args))(arg);
       }
    } else {
       _chunk = loop_info->chunk - 1;
       for ( ; loop_info->lower <= _upper; loop_info->lower += _stride )
       {
-         // computing current parameters
+         // Computing current parameters
          loop_info->upper = loop_info->lower + _chunk;
          if ( loop_info->upper  >= _upper ) {
             loop_info->upper = _upper;
             loop_info->last = true;
          }
-         // calling realwork
+         // Calling realwork
          ((SMPDD::work_fct)(loop_info->args))(arg);
       }
    }
