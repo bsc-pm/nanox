@@ -40,6 +40,8 @@ class OpenCLPlugin : public ArchPlugin
 private:
     
    static std::string _devTy;
+  // All found devices.
+  static std::map<cl_device_id, cl_context> _devices;
 
    friend class OpenCLConfig;
    
@@ -63,7 +65,7 @@ public:
 
    void init()
    {
-      OpenCLConfig::apply(_devTy);
+      OpenCLConfig::apply(_devTy,_devices);
    }
    
    /*virtual unsigned getPEsInNode( unsigned node ) const
@@ -94,25 +96,29 @@ public:
        * need, reserve a PE for them */
       for ( unsigned i = 0; i < OpenCLConfig::getOpenCLDevicesCount(); ++i )
       {
+         // As we don't have NUMA info, don't request an specific node
+         bool numa = false;
          // TODO: if HWLOC is available, use it.
          int node = sys.getNumSockets() - 1;
          bool reserved;
-         unsigned pe = sys.reservePE( node, reserved );
+         unsigned pe = sys.reservePE( numa, node, reserved );
          
          // Now add this node to the binding list
          addBinding( pe );
       }
    }
 
-   virtual PE* createPE( unsigned id )
+   virtual PE* createPE( unsigned id, unsigned uid )
    {
-      PE * pe = NEW OpenCLProcessor( getBinding( id ) , id );
+      PE * pe = NEW OpenCLProcessor( getBinding( id ) , id, uid );
       pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
       return pe;
    }
 };
 
 std::string OpenCLPlugin::_devTy = "ALL";
+// All found devices.
+std::map<cl_device_id, cl_context> OpenCLPlugin::_devices;
 } // End namespace ext.
 } // End namespace nanos.
 

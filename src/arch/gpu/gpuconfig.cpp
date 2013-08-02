@@ -28,7 +28,8 @@
 namespace nanos {
 namespace ext {
 
-bool GPUConfig::_disableCUDA = false;
+bool GPUConfig::_enableCUDA = false;
+bool GPUConfig::_forceDisableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
 System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
 int GPUConfig::_numPrefetch = 1;
@@ -46,8 +47,13 @@ void GPUConfig::prepare( Config& config )
    config.setOptionsSection( "GPU Arch", "GPU specific options" );
 
    // Enable / disable CUDA
-   config.registerConfigOption( "disable-cuda", NEW Config::FlagOption( _disableCUDA ),
-                                "Enable or disable the use of GPUs with CUDA (enabled by default)" );
+   config.registerConfigOption( "enable-cuda", NEW Config::FlagOption( _enableCUDA ),
+                                "Enable the use of GPUs with CUDA" );
+   config.registerEnvOption( "enable-cuda", "NX_ENABLECUDA" );
+   config.registerArgOption( "enable-cuda", "enable-cuda" );
+   
+   config.registerConfigOption( "disable-cuda", NEW Config::FlagOption( _forceDisableCUDA ),
+                                "Disable the use of GPUs with CUDA" );
    config.registerEnvOption( "disable-cuda", "NX_DISABLECUDA" );
    config.registerArgOption( "disable-cuda", "disable-cuda" );
 
@@ -114,7 +120,12 @@ void GPUConfig::prepare( Config& config )
 
 void GPUConfig::apply()
 {
-   if ( _disableCUDA || _numGPUs == 0 ) {
+   //Auto-enable CUDA if it was not done before
+   if (!_enableCUDA) {
+       //ompss_uses_cuda pointer will be null (it's extern) if the compiler didnt fill it
+      _enableCUDA=( sys.getOmpssUsesCuda()!=0);
+   }
+   if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
       _numPrefetch = 0;

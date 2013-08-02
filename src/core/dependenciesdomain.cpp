@@ -36,7 +36,7 @@ using namespace dependencies_domain_internal;
 void DependenciesDomain::increaseTasksInGraph()
 {
    NANOS_INSTRUMENT(lock();)
-   NANOS_INSTRUMENT(int tasks = ++_tasksInGraph;)
+   NANOS_INSTRUMENT(nanos_event_value_t tasks = (nanos_event_value_t)(++_tasksInGraph);)
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("graph-size");)
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    NANOS_INSTRUMENT(unlock();)
@@ -45,7 +45,8 @@ void DependenciesDomain::increaseTasksInGraph()
 void DependenciesDomain::decreaseTasksInGraph()
 {
    NANOS_INSTRUMENT(lock();)
-   NANOS_INSTRUMENT(int tasks = --_tasksInGraph;)
+   NANOS_INSTRUMENT(nanos_event_value_t tasks = (nanos_event_value_t)(--_tasksInGraph);)
+   //NANOS_INSTRUMENT(int tasks = --_tasksInGraph;)
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("graph-size");)
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    NANOS_INSTRUMENT(unlock();)

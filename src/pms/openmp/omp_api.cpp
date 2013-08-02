@@ -64,7 +64,7 @@ extern "C"
 
    NANOS_API_DEF(int, omp_get_thread_num, ( void ))
    {
-      //TODO: check master always gets a 0
+      //! \todo check if master always gets a 0 -> ensure condition ?
       return myThread->getTeamData()->getId();
    }
 
@@ -249,18 +249,18 @@ extern "C"
       return num_threads;
    }
 
-   NANOS_API_DEF(void, nanos_omp_get_mask, ( cpu_set_t *cpu_set ))
+   NANOS_API_DEF(void, nanos_omp_get_mask, ( nanos_cpu_set_t cpu_set ))
    {
-      sys.getPMInterface().getCpuMask( cpu_set );
+      sys.getPMInterface().getCpuMask( (cpu_set_t *) cpu_set );
    }
 
-   NANOS_API_DEF(void, nanos_omp_set_mask, ( const cpu_set_t *cpu_set ))
+   NANOS_API_DEF(void, nanos_omp_set_mask, ( const nanos_cpu_set_t cpu_set ))
    {
-      sys.getPMInterface().setCpuMask( cpu_set );
+      sys.getPMInterface().setCpuMask( (cpu_set_t *) cpu_set );
    }
 
-   NANOS_API_DEF(void, nanos_omp_add_mask, ( const cpu_set_t *cpu_set ))
+   NANOS_API_DEF(void, nanos_omp_add_mask, ( const nanos_cpu_set_t cpu_set ))
    {
-      sys.getPMInterface().addCpuMask( cpu_set );
+      sys.getPMInterface().addCpuMask( (cpu_set_t *) cpu_set );
    }
 }

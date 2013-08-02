@@ -52,8 +52,7 @@ inline int System::getNumThreads () const { return _numThreads; }
 
 inline System::DeviceList & System::getSupportedDevices() { return _devices; }
 
-
-inline int System::getCpuCount () const { return _cpu_mask.size(); };
+inline int System::getCpuCount () const { return CPU_COUNT( &_cpu_set ) ; };
 
 inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
    //ensure( checkCpuMask(mask), "invalid CPU mask set" );
@@ -92,6 +91,8 @@ inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline bool System::useYield() const { return _useYield; }
 
+inline int System::getCreatedTasks() const { return _schedStats._createdTasks.value(); }
+
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }
 
 inline int System::getReadyNum() const { return _schedStats._readyTasks.value(); }
@@ -113,6 +114,16 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 inline int System::getNumSockets() const { return _numSockets; }
 inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 
+inline int System::getNumAvailSockets() const
+{
+   return _numAvailSockets;
+}
+
+inline int System::getVirtualNUMANode( int physicalNode ) const
+{
+   return _numaNodeMap[ physicalNode ];
+}
+
 inline int System::getCurrentSocket() const { return _currentSocket; }
 inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
 
@@ -121,8 +132,7 @@ inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket =
 
 inline int System::getBindingId ( int pe ) const
 {
-   int tmpId = ( pe * getBindingStride() + getBindingStart() ) % _pe_map.size();
-   return _pe_map[tmpId];
+   return _bindings[ pe % _bindings.size() ];
 }
 
 inline bool System::isHwlocAvailable () const
@@ -159,30 +169,47 @@ inline void System::loadNUMAInfo ()
 {
 #ifdef HWLOC
    hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
+
+   // Nodes that can be seen by hwloc
+   unsigned allowedNodes = 0;
+   // Hardware threads
+   unsigned hwThreads = 0;
    
    // Read the number of numa nodes if the user didn't set that value
    if ( _numSockets == 0 )
    {
       int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
+
       
       // If there are NUMA nodes in this machine
       if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-         _numSockets = hwloc_get_nbobjs_by_depth( topology, depth );
+         //hwloc_const_cpuset_t cpuset = hwloc_topology_get_online_cpuset( topology );
+         //allowedNodes = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_NODE );
+         //hwThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_PU );
+         unsigned nodes = hwloc_get_nbobjs_by_depth( topology, depth );
+         //hwloc_cpuset_t set = i
+
+         // For each node, count how many hardware threads there are below.
+         for ( unsigned nodeIdx = 0; nodeIdx < nodes; ++nodeIdx )
+         {
+            hwloc_obj_t node = hwloc_get_obj_by_depth( topology, depth, nodeIdx );
+            int localThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, node->cpuset, HWLOC_OBJ_PU );
+            // Increase hw thread count
+            hwThreads += localThreads;
+            // If this node has hw threads beneath, increase the number of viewable nodes
+            if ( localThreads > 0 ) ++allowedNodes;
+         }
+         _numSockets = nodes;
       }
       // Otherwise, set it to 1
-      else
+      else {
+         allowedNodes = 1; 
          _numSockets = 1;
-   }
-   
-   // Same thing, just change the value if the user didn't provide one
-   if( _coresPerSocket == 0 )
-   {
-      int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_PU );
-      if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-         _coresPerSocket = hwloc_get_nbobjs_by_depth( topology, depth ) / _numSockets;
       }
    }
-   
+
+   if( _coresPerSocket == 0 )
+      _coresPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
 #else
    // Number of sockets can be read with
    // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
@@ -192,20 +219,39 @@ inline void System::loadNUMAInfo ()
    // Assume just 1 socket
    if ( _numSockets == 0 )
       _numSockets = 1;
+   
+   // Same thing, just change the value if the user didn't provide one
    if ( _coresPerSocket == 0 )
       _coresPerSocket = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
 #endif
+   verbose0( toString( "[NUMA] " ) + toString( _numSockets ) + toString( " NUMA nodes, " ) + toString( _coresPerSocket ) + toString( " HW threads each." ) );
 }
 
-inline void System::checkArguments()
+inline void System::completeNUMAInfo()
 {
-   // Check NUMA config
-   if ( _numSockets != std::ceil( _targetThreads / static_cast<float>( _coresPerSocket ) ) )
+   // Create the NUMA node translation table. Do this before creating the team,
+   // as the schedulers might need the information.
+   _numaNodeMap.resize( _numSockets, INT_MIN );
+
+   /* As all PEs are already created by this time, count how many physical
+    * NUMA nodes are available, and map from a physical id to a virtual ID
+    * that can be selected by the user via nanos_current_socket() */
+   for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); ++it )
    {
-      unsigned validCoresPS = std::ceil( _targetThreads / static_cast<float>( _numSockets ) );
-      warning0( "Adjusting cores-per-socket from " << _coresPerSocket << " to " << validCoresPS );
-      _coresPerSocket = validCoresPS;
+      int node = (*it)->getNUMANode();
+      // If that node has not been translated, yet
+      if ( _numaNodeMap[ node ] == INT_MIN )
+      {
+         verbose0( "Mapping from physical node " << node << " to user node " << _numAvailSockets );
+         _numaNodeMap[ node ] = _numAvailSockets;
+         // Increase the number of available sockets
+         ++_numAvailSockets;
+      }
+      // Otherwise, do nothing
    }
+
+   verbose0( _numAvailSockets << " NUMA node(s) available for the user." );
+
 }
 
 inline void System::unloadHwloc ()
@@ -275,7 +321,9 @@ inline Instrumentation * System::getInstrumentation ( void ) const { return _ins
 
 inline void System::setInstrumentation ( Instrumentation *instr ) { _instrumentation = instr; }
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
 inline bool System::isCpuidEventEnabled ( void ) const { return _enable_cpuid_event; }
+#endif
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
 
@@ -369,6 +417,10 @@ inline size_t System::registerArchitecture( ArchPlugin * plugin )
 }
 
 #ifdef GPU_DEV
+//TODO: remove this from system, should be inside gpuconfig.cpp, but weak attributes don't seem to be working inside gpu device
+//This var name has to be consistant with the one which the compiler "fills" (basically, do not rename it)
+extern __attribute__((weak)) char ompss_uses_cuda;
+inline char*  System::getOmpssUsesCuda(){ return &ompss_uses_cuda; }
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 
@@ -441,6 +493,8 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 }
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
+
+inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
 inline bool System::dlbEnabled() const { return _enable_dlb; }
 

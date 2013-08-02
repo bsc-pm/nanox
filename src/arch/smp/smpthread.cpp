@@ -125,15 +125,24 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
-   ThreadTeam *team = getTeam();
-   if ( team != NULL ) {
-      team->removeThread( getTeamId() );
-      leaveTeam();
-   }
    pthread_mutex_lock( &_mutexWait );
 
-   if (!isEligible())
+   if ( isTaggedToSleep() ) {
+      ThreadTeam *team = getTeam();
+
+      if ( hasNextWD() ) {
+         WD *next = getNextWD();
+         next->untie();
+         team->getSchedulePolicy().queue( this, *next );
+      }
+      fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+
+      if ( team != NULL ) {
+         team->removeThread( getTeamId() );
+         leaveTeam();
+      }
       pthread_cond_wait( &_condWait, &_mutexWait );
+   }
 
    pthread_mutex_unlock( &_mutexWait );
 

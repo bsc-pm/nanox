@@ -146,6 +146,28 @@ bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
     return true;
 }
 
+bool OpenCLCache::deviceCopyInBuffer(void *localSrc,
+        cl_mem remoteBuffer,
+        size_t size) {
+    
+    cl_int errCode;
+    cl_mem buffer=_bufAddrMappings[localSrc];
+    
+    errCode = _openclAdapter.copyInBuffer(buffer,
+                remoteBuffer,
+                0,
+                0,
+                size);
+    
+    if (errCode != CL_SUCCESS) {
+        fatal("Buffer reading failed.");
+    }    
+    
+    _bytesDevice += ( unsigned int ) size;
+
+    return true;
+}
+
 //
 // DMATransfer implementation.
 //

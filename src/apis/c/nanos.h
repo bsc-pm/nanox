@@ -124,6 +124,9 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_nonready_tasks, ( unsigned int *nonrea
 NANOS_API_DECL(nanos_err_t, nanos_get_num_running_tasks, ( unsigned int *running_tasks ));
 NANOS_API_DECL(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked_tasks ));
 
+NANOS_API_DECL(nanos_err_t, nanos_in_final, ( bool *result ));
+NANOS_API_DECL(nanos_err_t, nanos_set_final, ( bool value ));
+
 // Team related functions
 
 NANOS_API_DECL(nanos_err_t, nanos_create_team,(nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
@@ -155,6 +158,7 @@ NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, voi
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
 // dependence
+NANOS_API_DECL(nanos_err_t, nanos_dependence_release_all, ( void ) );
 NANOS_API_DECL(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *addr ));
 
 // worksharing
@@ -181,6 +185,7 @@ NANOS_API_DECL(nanos_err_t, nanos_set_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_unset_lock, (nanos_lock_t *lock));
 NANOS_API_DECL(nanos_err_t, nanos_try_lock, ( nanos_lock_t *lock, bool *result ));
 NANOS_API_DECL(nanos_err_t, nanos_destroy_lock, ( nanos_lock_t *lock ));
+NANOS_API_DECL(nanos_err_t, nanos_get_lock_address, ( void *addr, nanos_lock_t **lock ));
 
 // Device copies
 NANOS_API_DECL(nanos_err_t, nanos_set_copies, (nanos_wd_t wd, int num_copies, nanos_copy_data_t *copies));

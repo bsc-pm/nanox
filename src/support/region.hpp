@@ -69,5 +69,9 @@ inline BaseDependency* Region::clone() const
    return NEW Region( *this );
 }
 
+inline void * Region::getAddress () const
+{
+   return NULL;
+}
 
 #endif // _NANOS_REGION

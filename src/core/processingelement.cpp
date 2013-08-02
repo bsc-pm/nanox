@@ -184,7 +184,7 @@ BaseThread* ProcessingElement::getFirstRunningThread()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->hasTeam() && (*it)->isEligible() )
+      if ( (*it)->hasTeam() && !(*it)->isTaggedToSleep() )
          return (*it);
    }
    return NULL;
@@ -194,7 +194,7 @@ BaseThread* ProcessingElement::getFirstStoppedThread()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() || !(*it)->isEligible() )
+      if ( !(*it)->hasTeam() || (*it)->isTaggedToSleep() )
          return (*it);
    }
    return NULL;

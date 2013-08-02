@@ -23,7 +23,7 @@
 
 using namespace nanos;
 
-// // TODO: include chpl headers?
+//! \todo include chpl headers?
 // typedef char * chpl_string;
 // typedef bool chpl_bool;
 // typedef void (*chpl_fn_p) (void *);

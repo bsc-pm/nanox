@@ -20,8 +20,9 @@ class OpenCLConfig {
 public:
   OpenCLConfig() {}
   ~OpenCLConfig() {}
-  static unsigned getOpenCLDevicesCount() { return _devices.size(); }
+  static unsigned getOpenCLDevicesCount() { return _currNumDevices; }
   static cl_device_id getFreeDevice();
+  static cl_context getContextDevice(cl_device_id dev);
 
   static size_t getDevCacheSize() { return _devCacheSize; }
   
@@ -30,13 +31,16 @@ public:
 
 private:
   static void prepare( Config &cfg );
-  static void apply(std::string& _devTy);
+  static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
 
 private:
   // These properties contains raw info set by the user.
 
   // Whether to disable OpenCL.
-  static bool _disableOpenCL;
+  static bool _enableOpenCL;
+  
+  // Whether to disable OpenCL.
+  static bool _forceDisableOpenCL;
   
   // The platform to use.
   static std::string _platName;
@@ -55,9 +59,8 @@ private:
 
   // All found OpenCL platforms.
   //static std::vector<cl_platform_id> _plats;
-
-  // All found devices.
-  static std::vector<cl_device_id> _devices;
+  static std::map<cl_device_id, cl_context>* _devicesPtr;
+  static unsigned int _currNumDevices;
 
   // These properties manages mutable state.
 
@@ -86,7 +89,8 @@ typedef enum {
    NANOS_OPENCL_MEMREAD_SYNC_EVENT,                 /* 6 */
    NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT,                   /* 7 */
    NANOS_OPENCL_GET_PROGRAM_EVENT,                   /* 8 */
-   NANOS_OPENCL_GENERIC_EVENT                         /* 9 */
+   NANOS_OPENCL_COPY_BUFFER_EVENT,                   /* 9 */
+   NANOS_OPENCL_GENERIC_EVENT                         /* 10 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.

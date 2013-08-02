@@ -68,13 +68,14 @@ namespace nanos
       class OmpSsInterface : public OpenMPInterface
       {
          private:
+            Lock _lock;
+
             virtual void start () ;
             virtual int getInternalDataSize() const ;
             virtual int getInternalDataAlignment() const ;
             virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
             virtual void setNumThreads( int nthreads );
-            virtual void getCpuMask( cpu_set_t *cpu_set );
             virtual void setCpuMask( const cpu_set_t *cpu_set );
             virtual void addCpuMask( const cpu_set_t *cpu_set );
       };

@@ -21,6 +21,7 @@
 <testinfo>
 test_generator=gens/mixed-generator
 test_deps_plugins=regions,plain,perfect-regions
+test_schedule=bf
 </testinfo>
 */
 
@@ -87,7 +88,9 @@ int main ( int argc, char **argv )
 {
    unsigned i;
    
-   posix_memalign( (void**) &array, sizeof( int [arraySize] ), sizeof(int [arraySize] ) );
+   if ( posix_memalign( (void**) &array, sizeof( int [arraySize] ), sizeof(int [arraySize] ) ) != 0)
+      return -1;
+
    memset( array, 0, sizeof( int ) * arraySize );
    
    // Stop scheduler

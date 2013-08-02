@@ -46,8 +46,8 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, System::CachePolicyType policy, int cacheSize = 0 ) :
-            Accelerator( newId, arch ), _cache( NEW DeviceCache<Device>( cacheSize, NULL, this ) )
+         CachedAccelerator ( int newId, const Device *arch, int uniqueId, System::CachePolicyType policy, int cacheSize = 0 ) :
+            Accelerator( newId, arch, uniqueId ), _cache( NEW DeviceCache<Device>( cacheSize, NULL, this ) )
          {
             configureCache( cacheSize, policy );
          }
@@ -56,8 +56,8 @@ namespace nanos
           *
           *  Function 'configureCache()' needs to be called at some point in order to initialize it.
           */
-          CachedAccelerator ( int newId, const Device *arch ) :
-             Accelerator( newId, arch ), _cache( NULL ) {}
+          CachedAccelerator ( int newId, const Device *arch, int uniqueId ) :
+             Accelerator( newId, arch, uniqueId ), _cache( NULL ) {}
 
         /*! \brief CachedAccelerator destructor
          */

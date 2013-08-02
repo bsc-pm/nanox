@@ -125,7 +125,7 @@ namespace nanos
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
-         volatile bool           _mustSleep;
+         volatile bool           _mustSleep;    /**< Flag that triggers the wait mechanism of the thread */
          volatile bool           _paused;
          volatile bool           _canGetWork;   /**< Set whether the thread can get more WDs to run or not */
          WD *                    _currentWD;
@@ -255,7 +255,7 @@ namespace nanos
 
          bool isRunning () const;
 
-         bool isEligible () const;
+         bool isTaggedToSleep () const;
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;

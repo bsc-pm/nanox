@@ -27,6 +27,7 @@
 
 extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
+   void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
 }
 
 using namespace nanos;
@@ -77,7 +78,7 @@ void Scheduler::submit ( WD &wd )
       return;
    }
 
-   // TODO (#581): move this to the upper if
+   //! \todo (#581): move this to the upper if
    if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
       // Pause this thread
       mythread->pause();
@@ -187,7 +188,7 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
-      if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
+      if ( thread->isTaggedToSleep() && !behaviour::exiting() ) thread->wait();
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -254,6 +255,10 @@ inline void Scheduler::idleLoop ()
       }
 
       if ( spins == 0 ) {
+         /* If DLB, return resources if needed */
+         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+            DLB_ReturnClaimedCpus();
+
          NANOS_INSTRUMENT ( total_spins+= nspins; )
          sleeps--;
          if ( sleeps < 0 ) {
@@ -402,6 +407,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
                sys.getSchedulerStats()._idleThreads++;
             } else {
+               /* If DLB, return resources if needed */
+               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+                  DLB_ReturnClaimedCpus();
+
                condition->unlock();
                if ( sleeps < 0 ) {
                   if ( sys.useYield() ) {
@@ -583,7 +592,7 @@ void Scheduler::asyncWorkerLoop ()
    idleLoop<AsyncWorkerBehaviour>();
 }
 
-void Scheduler::finishWork( WD *oldwd, WD * wd )
+void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
 {
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
@@ -595,8 +604,26 @@ void Scheduler::finishWork( WD *oldwd, WD * wd )
    /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, true ) );
 
+   if ( schedule && !getMyThreadSafe()->isTaggedToSleep() ) {
+      BaseThread *thread = getMyThreadSafe();
+      ThreadTeam *thread_team = thread->getTeam();
+      if ( thread_team ) {
+         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule ) );
+      }
+   }
+
    wd->done();
    wd->clear();
+
+   /* If DLB, perform the adjustment of resources */
+   if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
+      if ( sys.getPMInterface().isMalleable() )
+         DLB_ReturnClaimedCpus();
+
+      int needed_resources = sys.getSchedulerStats()._readyTasks.value() - sys.getNumThreads();
+      if ( needed_resources > 0 )
+         DLB_UpdateResources_max( needed_resources );
+   }
 
    debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
@@ -636,15 +663,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->finish();
 
-   if (schedule) {
-      ThreadTeam *thread_team = thread->getTeam();
-      if ( thread_team ) {
-         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd ) );
-      }
-   }
-
-   if (done)
-      finishWork(oldwd, wd);
+   if ( done )
+      finishWork( oldwd, wd, schedule );
 
    thread->setCurrentWD( *oldwd );
 
@@ -824,12 +844,6 @@ void Scheduler::exitTo ( WD *to )
 
 void Scheduler::exit ( void )
 {
-   if ( sys.dlbEnabled() && DLB_UpdateResources_max ) {
-      int needed_resources = sys.getSchedulerStats()._readyTasks.value() - myThread->getTeam()->size();
-      if ( needed_resources > 0 )
-         DLB_UpdateResources_max( needed_resources );
-   }
-
    // At this point the WD work is done, so we mark it as such and look for other work to do
    // Deallocation doesn't happen here because:
    // a) We are still running in the WD stack
@@ -843,30 +857,21 @@ void Scheduler::exit ( void )
 
    oldwd->finish();
 
-  /* If no WD has been returned from getNextWD() call scheduler policy */
-   if ( !next && sys.getSchedulerConf().getSchedulerEnabled() ) {
+   finishWork( next, oldwd, ( next == NULL ) );
+
+   /* update next WorkDescriptor (if any) */
+   next = ( next == NULL ) ? thread->getNextWD() : next;
+
+   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
       // The thread is not paused, mark it as so
       thread->unpause();
-   
-      ThreadTeam *thread_team = thread->getTeam();
-
-      if ( thread_team )
-         next = thread_team->getSchedulePolicy().atBeforeExit(thread,*oldwd);
-   }
-   else {
-      // Pause this thread
-      thread->pause();
-   }
-
-   updateExitStats (*oldwd);
-   oldwd->done();
-   oldwd->clear();
-
-   if (!next) {
-     idleLoop<ExitBehaviour>();
    } else {
-     Scheduler::exitTo(next);
-   } 
+      // Pause this thread (only if we have no next wd to execute )
+      if ( !next ) thread->pause();
+   }
+
+   if ( !next ) idleLoop<ExitBehaviour>();
+   else Scheduler::exitTo(next);
 
    fatal("A thread should never return from Scheduler::exit");
 }

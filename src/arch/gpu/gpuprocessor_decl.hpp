@@ -100,7 +100,7 @@ namespace ext
 
       public:
          //! Constructors
-         GPUProcessor( int id, int gpuId );
+         GPUProcessor( int id, int gpuId, int uid );
 
          virtual ~GPUProcessor();
 
