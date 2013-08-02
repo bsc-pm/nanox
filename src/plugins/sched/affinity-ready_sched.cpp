@@ -22,11 +22,14 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "memtracker.hpp"
+#include "cache.hpp"
 
 namespace nanos {
    namespace ext {
 
    bool _stealing = true;
+   unsigned int _numQueues = 1;
+   bool _order = true;
 
 
       class CacheSchedPolicy : public SchedulePolicy
@@ -77,9 +80,9 @@ namespace nanos {
             virtual ScheduleTeamData * createTeamData ()
             {
                /* Queue 0 will be the global one */
-               unsigned int numQueues = sys.getCacheMap().getSize() + 1;
+               _numQueues = sys.getCacheMap().getSize() + 1;
 
-               return NEW TeamData( numQueues );
+               return NEW TeamData( _numQueues );
             }
 
             virtual ScheduleThreadData * createThreadData ()
@@ -133,34 +136,64 @@ namespace nanos {
                 }
 
                 if ( wd.getNumCopies() > 0 ) {
-                   unsigned int numCaches = sys.getCacheMap().getSize();
+                   unsigned int numCaches = _numQueues - 1; //sys.getCacheMap().getSize();
                    unsigned int ranks[numCaches];
                    for (unsigned int i = 0; i < numCaches; i++ ) {
                       ranks[i] = 0;
                    }
                    CopyData * copies = wd.getCopies();
                    for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-                      if ( !copies[i].isPrivate() ) {
+                      // Since getting the directory entry is slow, consider only outputs
+                      if ( !copies[i].isPrivate() && copies[i].isOutput() ) {
                          WorkDescriptor* parent = wd.getParent();
                          if ( parent != NULL ) {
                             Directory *dir = parent->getDirectory();
                             if ( dir != NULL ) {
                                DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
                                if ( de != NULL ) {
+
+                                  unsigned int version = de->getVersion();
+                                  Cache * cache = de->getOwner();
+
+                                  // Give extra points if the memory space is the data's owner
+                                  if ( cache != NULL && copies[i].isOutput() ) {
+                                     ranks[de->getOwner()->getId()] += copies[i].getSize();
+                                  }
+
+
                                   for ( unsigned int j = 0; j < numCaches; j++ ) {
-                                     ranks[j]+=((unsigned int)(de->getAccess( j+1 ) > 0))*copies[i].getSize();
+                                     if ( de->getAccess( j+1 ) > 0 ) {
+                                        ranks[j] += copies[i].getSize() * copies[i].isInput()
+                                              + copies[i].getSize() * copies[i].isOutput();
+                                     }
                                   }
                                }
                             }
                          }
                       }
                    }
-                   unsigned int winner = 0;
+
+                   unsigned int winner;
                    unsigned int maxRank = 0;
-                   for ( unsigned int i = 0; i < numCaches; i++ ) {
-                      if ( ranks[i] > maxRank ) {
-                         winner = i+1;
-                         maxRank = ranks[i];
+
+                   // Alternate the visiting order (from first to last and from last to first)
+                   if ( _order ) {
+                      _order = false;
+                      winner = 0;
+                      for ( unsigned int i = 0; i < numCaches; i++ ) {
+                         if ( ranks[i] > maxRank ) {
+                            winner = i+1;
+                            maxRank = ranks[i];
+                         }
+                      }
+                   } else {
+                      _order = true;
+                      winner = numCaches - 1;
+                      for ( unsigned int i = numCaches; i > 0; i-- ) {
+                         if ( ranks[i-1] > maxRank ) {
+                            winner = i;
+                            maxRank = ranks[i-1];
+                         }
                       }
                    }
                    tdata._readyQueues[winner].push_back( &wd );
@@ -194,8 +227,10 @@ namespace nanos {
 
             WD * atPrefetch ( BaseThread *thread, WD &current )
             {
-               //WD * found = NULL;//current.getImmediateSuccessor(*thread);
-               //return found != NULL ? found : atIdle(thread);
+               // Getting the immediate successor notably increases performance
+               WD * next = current.getImmediateSuccessor(*thread);
+
+               if ( next != NULL ) return next;
 
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                if ( !data._init ) {
@@ -205,7 +240,11 @@ namespace nanos {
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
                // Try to schedule the thread with a task from its queue
-               return tdata._readyQueues[data._cacheId].pop_front ( thread );
+               next = tdata._readyQueues[data._cacheId].pop_front ( thread );
+
+               if ( next != NULL ) return next;
+
+               return atIdle( thread );
             }
 
             WD * atBeforeExit ( BaseThread *thread, WD &current )
@@ -217,58 +256,7 @@ namespace nanos {
 
       WD *CacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
       {
-         WorkDescriptor * wd = NULL;
-
-         ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-         if ( !data._init ) {
-            data._cacheId = thread->runningOn()->getMemorySpaceId();
-            data._init = true;
-         }
-         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-
-         /*
-          *  First try to schedule the thread with a task from its queue
-          */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
-            return wd;
-         } else {
-            /*
-             * Then try to get it from the global queue and assign it properly
-             */
-             wd = tdata._globalQueue.pop_front ( thread );
-
-             if ( wd != NULL ) affinity_queue( thread, *wd );
-         }
-
-
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
-            return wd;
-         } else if ( _stealing ) {
-
-            wd = tdata._readyQueues[0].pop_front ( thread );
-
-            if ( wd != NULL ) {
-               /*
-                * Try to get it from the general queue
-                */
-               return wd;
-            }
-
-            for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
-               if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop_back( thread );
-                  return wd;
-               }
-            }
-            for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-               if ( !tdata._readyQueues[i+1].empty() ) {
-                  wd = tdata._readyQueues[i+1].pop_back( thread );
-                  return wd;
-               }
-            }
-         }
-
-         return wd;
+         return atIdle( thread );
       }
 
       /*!
