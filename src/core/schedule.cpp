@@ -605,7 +605,7 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, oldwd, true ) );
 
    if ( schedule && !getMyThreadSafe()->isTaggedToSleep() ) {
-      BaseThread *thread = getMyThreadSafe();
+      thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
          thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule ) );
@@ -713,7 +713,7 @@ bool Scheduler::inlineWorkAsync ( WD *wd, bool schedule )
    if ( schedule ) {
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
-         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd ) );
+         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule ) );
       }
    }
 

@@ -151,15 +151,11 @@ namespace nanos {
                             if ( dir != NULL ) {
                                DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
                                if ( de != NULL ) {
-
-                                  unsigned int version = de->getVersion();
                                   Cache * cache = de->getOwner();
-
                                   // Give extra points if the memory space is the data's owner
                                   if ( cache != NULL && copies[i].isOutput() ) {
                                      ranks[de->getOwner()->getId()] += copies[i].getSize();
                                   }
-
 
                                   for ( unsigned int j = 0; j < numCaches; j++ ) {
                                      if ( de->getAccess( j+1 ) > 0 ) {
