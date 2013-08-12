@@ -37,7 +37,7 @@
 #include "nanos-int.h"
 #include "nanos_error.h"
 
-/*! \defgroup capi C/C++ API */
+/*! \defgroup capi C/C++ API Documentation: Types & Structures */
 /*! \addtogroup capi
  *  \{
  */

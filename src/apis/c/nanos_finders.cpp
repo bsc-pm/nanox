@@ -25,7 +25,7 @@
 #include "plugin.hpp"
 #include "instrumentationmodule_decl.hpp"
 
-/*! \defgroup capi_finders C/C++ API: Finders services. */
+/*! \defgroup capi_finders C/C++ API Documentation: Finder services. */
 /*! \addtogroup capi_finders
  *  \{
  */

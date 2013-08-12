@@ -27,7 +27,7 @@
 
 #include <cstring>
 
-/*! \defgroup capi_mem C/C++ API: Memory services. */
+/*! \defgroup capi_mem C/C++ API Documentation: Memory services. */
 /*! \addtogroup capi_mem
  *  \{
  */

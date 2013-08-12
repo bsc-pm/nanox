@@ -25,8 +25,8 @@
 #include "basethread.hpp"
 #include "workdescriptor.hpp"
 
-/*! \defgroup capi_wd C/C++ API: Dependences services. */
-/*! \addtogroup capi_wd
+/*! \defgroup capi_dependence C/C++ API Documentation: Dependence services. */
+/*! \addtogroup capi_dependence
  *  \{
  */
 

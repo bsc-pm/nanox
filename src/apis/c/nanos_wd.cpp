@@ -30,7 +30,7 @@
 #include "instrumentation.hpp"
 #include "instrumentationmodule_decl.hpp"
 
-/*! \defgroup capi_wd C/C++ API: WorkDescriptor services. */
+/*! \defgroup capi_wd C/C++ API Documentation: WorkDescriptor services. */
 /*! \addtogroup capi_wd
  *  \{
  */

@@ -27,7 +27,7 @@
 
 using namespace nanos;
 
-/*! \defgroup capi_team C/C++ API: Thread team services. */
+/*! \defgroup capi_team C/C++ API Documentation: Thread team services. */
 /*! \addtogroup capi_team
  *  \{
  */

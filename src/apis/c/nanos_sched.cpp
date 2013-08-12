@@ -22,7 +22,7 @@
 #include "nanos.h"
 #include "system.hpp"
 
-/*! \defgroup capi_sched C/C++ API: Scheduler services. */
+/*! \defgroup capi_sched C/C++ API Documentation: Scheduler services. */
 /*! \addtogroup capi_sched
  *  \{
  */
