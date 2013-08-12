@@ -23,7 +23,7 @@
 #include "nanos.h"
 #include "worksharing_decl.hpp"
 
-/*! \defgroup capi_ws C/C++ API Documentation: Worksharing services.
+/*! \defgroup capi_ws Worksharing services.
  *  \ingroup capi
  */
 /*! \addtogroup capi_ws

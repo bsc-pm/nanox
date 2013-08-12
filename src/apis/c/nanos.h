@@ -37,8 +37,63 @@
 #include "nanos-int.h"
 #include "nanos_error.h"
 
-/*! \defgroup capi C/C++ API Documentation: Types & Structures */
+/*! \defgroup capi C/C++ API Documentation: Types & Services
+ */
+
 /*! \addtogroup capi
+ *  \{
+ */
+/*! \page capi_families API Families & Versions
+ * 
+ * nanos interface family: master
+ *   - 5004: adding data alignment parameter to slicer wd
+ *   - 5005: translate function support
+ *   - 5006: adding new parameter to nanos_wg_wait_completation service
+ *   - 5007: enable/disable instrumentation through the API
+ *   - 5008: removing slicer data parameters in create sliced wd
+ *   - 5009: Adding priority management to runtime (compiler advice)
+ *   - 5010: stopping and resuming scheduler services
+ *   - 5011: distinguish thread's roles within the team (starring/supporting threads)
+ *   - 5012: changing work descriptor creation functions and removing field dd_size @ nanos_device_t which is not needed anymore
+ *   - 5013: creating memory allocation/deallocation services
+ *   - 5014: Wd's props conmute from const to dyn properties
+ *   - 5015: Nanos Delayed start, start and finish.
+ *   - 5016: Providing runtime general information (architecture, programming model and scheduler)
+ *   - 5017: Some common instrumentation changes:
+ *     - Removing unnecessary instrument services
+ *     - Using a common event generator service nanos_instrument_events(int num_events, nanos_event_t events[]).
+ *     - Also using a new event structure.
+ *   - 5018: Added nanos_get_wd_priority service.
+ *   - 5019: Instrumenting user functions on different address spaces.
+ *   - 5020: Service to enable/disable stealing in the scheduling policy.
+ *   - 5021: Including void nanos_free0( void *p ) service.
+ *   - 5022: Adding const char* description in task creation.
+ *   - 5024: Adding is final attribute in wd's dynamic properties.
+ * nanos interface family: worksharing
+ *   - 1000: First implementation of work-sharing services (create and next-item)
+ * nanos interface family: deps_api
+ *   - 1000: First implementation of dependencies plugins.
+ *   - 1001: Commutative clause support.
+ * nanos interface family: openmp
+ *   - 1: First Nanos OpenMP interface: nanos_omp_single ( b ) service
+ *   - 2: Including nanos_omp_barrier() service
+ *   - 3: Including nanos_omp_set_implicit( uwd ) service
+ *   - 4: Including nanos_omp_get_max_threads() service
+ *   - 5: Including nanos_omp_find_worksharing( omp_sched_t kind );
+ *   - 6:
+ *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+ */
+
+/*!
+ * \}
+ */ 
+
+
+/*! \defgroup capi_types Types and Structures
+ *  \ingroup capi
+ */
+
+/*! \addtogroup capi_types
  *  \{
  */
 

@@ -33,7 +33,7 @@
 #endif
 
 
-/*! \defgroup capi_instrument C/C++ API Documentation: Instrumentation services.
+/*! \defgroup capi_instrument Instrumentation services.
  *  \ingroup capi
  */
 /*! \addtogroup capi_instrument

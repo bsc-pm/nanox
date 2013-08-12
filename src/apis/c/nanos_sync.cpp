@@ -27,7 +27,7 @@
 #include "instrumentationmodule_decl.hpp"
 #include "instrumentation.hpp"
 
-/*! \defgroup capi_sync C/C++ API Documentation: Synchronization services.
+/*! \defgroup capi_sync Synchronization services.
  *  \ingroup capi
  */
 /*! \addtogroup capi_sync
