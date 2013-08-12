@@ -33,19 +33,16 @@
  * <p/><br/>
  */
 
-#include <unistd.h>
-#include "nanos-int.h"
-#include "nanos_error.h"
-
 /*! \defgroup capi C/C++ API Documentation: Types & Services
  */
 
 /*! \addtogroup capi
  *  \{
  */
+
 /*! \page capi_families API Families & Versions
  * 
- * nanos interface family: master
+ * - nanos interface family: master
  *   - 5004: adding data alignment parameter to slicer wd
  *   - 5005: translate function support
  *   - 5006: adding new parameter to nanos_wg_wait_completation service
@@ -69,12 +66,12 @@
  *   - 5021: Including void nanos_free0( void *p ) service.
  *   - 5022: Adding const char* description in task creation.
  *   - 5024: Adding is final attribute in wd's dynamic properties.
- * nanos interface family: worksharing
+ * - nanos interface family: worksharing
  *   - 1000: First implementation of work-sharing services (create and next-item)
- * nanos interface family: deps_api
+ * - nanos interface family: deps_api
  *   - 1000: First implementation of dependencies plugins.
  *   - 1001: Commutative clause support.
- * nanos interface family: openmp
+ * - nanos interface family: openmp
  *   - 1: First Nanos OpenMP interface: nanos_omp_single ( b ) service
  *   - 2: Including nanos_omp_barrier() service
  *   - 3: Including nanos_omp_set_implicit( uwd ) service
@@ -96,6 +93,10 @@
 /*! \addtogroup capi_types
  *  \{
  */
+
+#include <unistd.h>
+#include "nanos-int.h"
+#include "nanos_error.h"
 
 #include "nanos_version.h"
 
