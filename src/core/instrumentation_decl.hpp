@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 //! \file instrumentation_decl.hpp
-//! \brief
+//! \brief Instrumentation main classes declaration.
 //
 //! \defgroup core_instrumentation Instrumentation module
 //! \ingroup core
@@ -40,7 +40,9 @@
  * - Point: a point event is defined by a timestamp. This entity represents a punctual event during the execution.
  * - Point-to-point: a point-to-point event is defined for two punctual events. One is called the origin and the other one destination. With these kind of events we can represent communication (send/receive procedures), or work spawning (producer/consumer schemes), etc
  *
- * Instrumentation is also driven through Key/Value? pairs in which the item Key identifies the semantic of the associated Value (e.g., WorkDescriptor ID as a Key and a numerical identifier as the associated Value). Keys and Values can be registered in a global dictionary (InstrumentationDictionary) which can be used as a repository.
+ * Instrumentation is also driven through Key/Value pairs in which the item Key identifies the semantic of the associated Value (e.g., WorkDescriptor ID as a Key and a numerical identifier as the associated Value). Keys and Values can be registered in a global dictionary (InstrumentationDictionary) which can be used as a repository.
+ *
+ * In order to create and raise events from user's code See \ref capi_instrument
  *
  * \section implementation Implementation
  *
@@ -72,7 +74,7 @@
  * - \copydoc nanos::InstrumentState
  * - \copydoc nanos::InstrumentBurst
  *
- * \subsection Instrumentation examples
+ * \subsection examples Instrumentation examples
  *
  * In this section we will explain how different parts of the runtime have been instrumented. As one of the design principles was to encapsulate the code and to avoid that performance runtime version has any impact by the instrumentation code (or at least keep the impact as low as possible), the runtime offers a macro which allow to remove the code when it is not needed. The NANOS_INSTRUMENT(code) macro:
  * 
