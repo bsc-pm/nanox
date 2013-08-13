@@ -23,21 +23,13 @@
  * \brief Main Nanos++ header file.
  */
 
-/*!
- * \mainpage  Nanos++ Runtime Library
+/*! \mainpage  Nanos++ Runtime Library
  *
  * This is the main development page for documenting Nanos++ Runtime Library (Nanos++ RTL).
  * <p/><br/>
  * Nanos++ is an extensible Runtime Library designed to serve as a runtime support in parallel environments.
  * It is mainly used to support OmpSs (an extension to the OpenMP programming model) developed at BSC but it also has modules to support OpenMP and Chapel.
  * <p/><br/>
- */
-
-/*! \defgroup capi C/C++ API Documentation: Types & Services
- */
-
-/*! \addtogroup capi
- *  \{
  */
 
 /*! \page capi_families API Families & Versions
@@ -81,24 +73,17 @@
  *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
  */
 
-/*!
- * \}
- */ 
-
-
-/*! \defgroup capi_types Types and Structures
- *  \ingroup capi
- */
-
-/*! \addtogroup capi_types
- *  \{
- */
-
 #include <unistd.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 
 #include "nanos_version.h"
+
+//! \defgroup capi C/C++ API Documentation: Types & Services
+
+//! \defgroup capi_types Types and Structures
+//! \ingroup capi
+//! \{
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
@@ -112,7 +97,6 @@ typedef unsigned int nanos_copy_id_t;
 typedef struct nanos_const_wd_definition_tag {
    nanos_wd_props_t props;
    size_t data_alignment;
-   size_t num_copies;
    size_t num_devices;
    size_t num_dimensions;
 #ifdef _MF03
@@ -127,9 +111,7 @@ typedef struct {
    void *arch;
 } nanos_constraint_t;
 
-/*!
- * \}
- */ 
+//! \}
 
 #ifdef __cplusplus
 
