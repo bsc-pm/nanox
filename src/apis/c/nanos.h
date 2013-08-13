@@ -81,7 +81,7 @@
 
 #include "nanos_version.h"
 
-//! \defgroup capi_types Types and Structures
+//! \addtogroup capi_types Types and Structures
 //! \ingroup capi
 //! \{
 

@@ -40,7 +40,7 @@
 
 #endif
 
-//! \addgroup capi_types Types and Structures
+//! \addtogroup capi_types Types and Structures
 //! \ingroup capi
 //! \{
 
