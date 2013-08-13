@@ -22,8 +22,10 @@
 //! \defgroup core_instrumentation Instrumentation module
 //! \ingroup core
 
-/*! \page core_instrumentation_page Instrumentation
- *  \addtogroup core_instrumentation
+/*!\page core_instrumentation_page Instrumentation
+ * \ingroup core_instrumentation
+ *
+ * \section introduction Introduction
  *
  * The main goal of instrumentation is to get some information about the program execution. In other words, we want to know "What happens in this WorkDescriptor? running on this Thread". There are the three main components involved in the instrumentation process: What (we also call it Event), WorkDescriptor and Thread.
  *
@@ -50,6 +52,8 @@
  * - Instrumentation modules, help programmers in the duty of open/close events.
  *
  * In this section we will describe the instrumentation mechanism by describing the implementation of each one of these classes.
+ *
+ * \copydoc nanos::Instrumentation
  */
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
@@ -491,6 +495,10 @@ namespace nanos {
    };
 #endif
 
+//! \class Instrumentation
+//! \brief Instrumentation main class
+/*! \description The core of the instrumentation behavior is specified through the Instrumentation class. This class implements several type of methods: methods to create events, methods to raise event, WorkDescriptor? context swhich methods and finally, specific Instrumentation methods which are actually defined into each derived class (plugins). Specific Instrumentation methods are (ideally) the ones that have to be implemented in each derived Instrumentation class.
+*/
    class Instrumentation
    {
       public:
