@@ -97,6 +97,7 @@ typedef unsigned int nanos_copy_id_t;
 typedef struct nanos_const_wd_definition_tag {
    nanos_wd_props_t props;
    size_t data_alignment;
+   size_t num_copies;
    size_t num_devices;
    size_t num_dimensions;
 #ifdef _MF03
