@@ -73,15 +73,15 @@
  *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
  */
 
+//! \defgroup capi Nanos++ C/C++ API Documentation
+
 #include <unistd.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 
 #include "nanos_version.h"
 
-//! \defgroup capi Nanos++ C/C++ API Documentation
-
-//! \addgroup capi_types Types and Structures
+//! \defgroup capi_types Types and Structures
 //! \ingroup capi
 //! \{
 
