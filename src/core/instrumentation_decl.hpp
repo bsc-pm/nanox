@@ -59,13 +59,133 @@
  * \subsection instrumentation_context InstrumentationContext class
  * \copydoc nanos::InstrumentationContext
  *
- * \subsection instrumentation_dictionary InstrumentationDictionarly class
+ * \subsection instrumentation_dictionary InstrumentationDictionary class
  * \copydoc nanos::InstrumentationDictionary
  *
  * \subsection instrumentation_modules InstrumentationModules classes
- * \copydoc nanos::InstrumentStateAndBurst
- * \copydoc nanos::InstrumentState
- * \copydoc nanos::InstrumentBurst
+ *
+ * Instrumentation modules help programmers in the instrumentation process by doing automatically some of the duties that users need to follow for correct instrumentation. So far its main utility is to take care about multiple exits in a given piece of code. As a module is a C++ object, we can use the constructor to open an instrumentation burst leaving the responsibility of closing it to the corresponding destructor.
+ *
+ * Creating a new InstrumentState object will produce the opening of a State event (the value is specified in the object constructor). Once the object goes out of the scope where is declared the destructor will close it (if programmer has not closed it before). As most of instrumentation phases affect a whole function the programmer has just to create an object of a Instrumentation module at the beginning of the function.
+ *
+ * - \copydoc nanos::InstrumentStateAndBurst
+ * - \copydoc nanos::InstrumentState
+ * - \copydoc nanos::InstrumentBurst
+ *
+ * \subsection Instrumentation examples
+ *
+ * In this section we will explain how different parts of the runtime have been instrumented. As one of the design principles was to encapsulate the code and to avoid that performance runtime version has any impact by the instrumentation code (or at least keep the impact as low as possible), the runtime offers a macro which allow to remove the code when it is not needed. The NANOS_INSTRUMENT(code) macro:
+ * 
+ * \code
+ * #ifdef NANOS_INSTRUMENTATION_ENABLED
+ *    #define NANOS_INSTRUMENT(f) f;
+ * #else
+ *    #define NANOS_INSTRUMENT(f) ;
+ * #endif
+ * \endcode
+ *
+ * All instrumentation calls have to be protected using this macro.
+ * 
+ * \subsubsection example1 Example 1: Memory allocation
+ * 
+ * Some runtime chunks of code are bounded by instrumentation events in order to measure the duration of this piece of code. An example is a cache allocation. This function is bounded by a state event and a burst event. State event will change the current thread's state to CACHE and the Burst event will keep information of the memory allocation size for the specific call. Here is the example:
+ * 
+ * \code
+ * void * allocate( size_t size )
+ * {
+ *       void *result;
+ *       NANOS_INSTRUMENT(nanos_event_key_t k);
+ *       NANOS_INSTRUMENT(k = Instrumentor->getInstrumentorDictionary()->getEventKey("cache-malloc"));
+ *       NANOS_INSTRUMENT(Instrumentor()->raiseOpenStateAndBurst(CACHE, k, (nanos_event_value_t) size));
+ *       result = _T::allocate(size);
+ *       NANOS_INSTRUMENT(Instrumentor()->raiseCloseStateAndBurst(k));
+ *       return result;
+ * }
+ * \endcode
+ *
+ * \subsubsection example2 Example 2: WorkDescriptor?'s context switch
+ * 
+ * WorkDescriptor?'s context switch uses two instrumentation services wdLeaveCPU() and wdEnterCPU(). The wdLeaveCPU() is called from the leaving task context execution and wdEnterCPU() is called once we are executing the new task.
+ * 
+ * \code
+ *    .
+ *    .
+ *    .
+ *    NANOS_INSTRUMENT( sys.getInstrumentor()->wdLeaveCPU(oldWD) );
+ *    myThread->switchHelperDependent(oldWD, newWD, arg);
+ * 
+ *    myThread->setCurrentWD( *newWD );
+ *    NANOS_INSTRUMENT( sys.getInstrumentor()->wdEnterCPU(newWD) );
+ *    .
+ *    .
+ *    .
+ * \endcode
+ *
+ * \subsubsection example3 Example 3: Instrumenting the API
+ * 
+ * API functions have – generally – a common behaviour. They open a Burst event with a pair <key,value>. The key is the internal code “api” and the value is an specific identifier of the function we are instrumenting on. API functions also open a State event with a value according with the function duty. Both events will be closed once the function execution finishes. Here it is an example using nanos_yield() implementation:
+ * 
+ * \code
+ * nanos_err_t nanos_yield ( void )
+ * {
+ *    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","yield",SCHEDULING) );
+ *    try {
+ *       Scheduler::yield();
+ *    } catch ( ... ) {
+ *       return NANOS_UNKNOWN_ERR;
+ *    }
+ *    return NANOS_OK;
+ * }
+ * \endcode
+ *
+ * Yield function will wrap its execution between <”api”,“yield”> Burst and SCHEDULING State events. Although the function can have other exit points (apart from the return) InstrumentStateAndBurst destructor will throw closing events automatically.
+ * 
+ * \subsubsection example4 Example 4: Instrumenting Runtime Internal Functions
+ * 
+ * Different Nanos++ functions have different instrumentation approaches. In this sections we have chosen a scheduling related function: Scheduler::waitOnCondition(). Due space limitations we have abridged the code focusing our interest in the instrumentation parts.
+ * 
+ * \code
+ * void Scheduler::waitOnCondition (GenericSyncCond *condition)
+ * {
+ *    NANOS_INSTRUMENT( InstrumentState inst(SYNCHRONIZATION) );
+ * 
+ *    const int nspins = sys.getSchedulerConf().getNumSpins();
+ *    int spins = nspins;
+ * 
+ *    WD * current = myThread->getCurrentWD();
+ * 
+ *    while ( !condition->check() ) {
+ *       BaseThread *thread = getMyThreadSafe();
+ *       spins--;
+ *       if ( spins == 0 ) {
+ *          condition->lock();
+ *          if ( !( condition->check() ) ) {
+ *             condition->addWaiter( current );
+ * 
+ *             NANOS_INSTRUMENT( InstrumentState inst1(SCHEDULING) );
+ *             WD *next = _schedulePolicy.atBlock( thread, current );
+ *             NANOS_INSTRUMENT( inst1.close() );
+ * 
+ *             if ( next ) {
+ *                NANOS_INSTRUMENT( InstrumentState inst2(RUNTIME) );
+ *                switchTo ( next );
+ *             }
+ *             else {
+ *                condition->unlock();
+ *                NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
+ *                thread->yield();
+ *             }
+ *          } else {
+ *             condition->unlock();
+ *          }
+ *          spins = nspins;
+ *       }
+ *    }
+ * }
+ * \endcode
+ *
+ * In this function the instrumentation changes the thread state in several parts of the code. First, all the function code is surrounded by a SYNCHRONIZATION state (inst). A Opening state event is raised at the very beginning of the function and the corresponding close event will be thrown once the execution flow gets out from the function scope. During the function execution the thread state may change to SCHEDULING when calling _schedulePolicy.atBlock(), RUNTIME when we are context switching WorkDescriptors? and YIELD when we are forcing a thread yield. In this case the SCHEDULING state change is the only one we have to force to close before getting out from its scope. Note, that if an C++ exception is raised by any of the lower layers the states that are open at point will close automatically. So, the use of the Instrumentation modules improves the general exception safety of the code.
+ * 
  */
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
