@@ -54,18 +54,18 @@
  * In this section we will describe the instrumentation mechanism by describing the implementation of each one of these classes.
  *
  * \subsection instrumentation Instrumentation class
- * \copydoc Instrumentation
+ * \copydoc nanos::Instrumentation
  *
  * \subsection instrumentation_context InstrumentationContext class
- * \copydoc InstrumentationContext
+ * \copydoc nanos::InstrumentationContext
  *
  * \subsection instrumentation_dictionary InstrumentationDictionarly class
- * \copydoc InstrumentationDictionary
+ * \copydoc nanos::InstrumentationDictionary
  *
  * \subsection instrumentation_modules InstrumentationModules classes
- * \copydoc InstrumentStateAndBurst
- * \copydoc InstrumentState
- * \copydoc InstrumentBurst
+ * \copydoc nanos::InstrumentStateAndBurst
+ * \copydoc nanos::InstrumentState
+ * \copydoc nanos::InstrumentBurst
  */
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
