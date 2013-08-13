@@ -79,9 +79,9 @@
 
 #include "nanos_version.h"
 
-//! \defgroup capi C/C++ API Documentation: Types & Services
+//! \defgroup capi Nanos++ C/C++ API Documentation
 
-//! \defgroup capi_types Types and Structures
+//! \addgroup capi_types Types and Structures
 //! \ingroup capi
 //! \{
 
