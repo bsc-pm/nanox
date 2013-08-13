@@ -19,11 +19,11 @@
 //! \file instrumentation_decl.hpp
 //! \brief
 //
-//! \defgroup core_instrumentation
+//! \defgroup core_instrumentation Instrumentation module
 //! \ingroup core
 
-/*! \addtogroup core_instrumentation
- *  \page core_instrumentation Instrumentation module
+/*! \page core_instrumentation Instrumentation module
+ *  \addtogroup core_instrumentation
  *
  * The main goal of instrumentation is to get some information about the program execution. In other words, we want to know "What happens in this WorkDescriptor? running on this Thread". There are the three main components involved in the instrumentation process: What (we also call it Event), WorkDescriptor and Thread.
  *
