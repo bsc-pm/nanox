@@ -33,6 +33,7 @@
  */
 
 /*! \page capi_families API Families & Versions
+ *  \ingroup capi
  * 
  * - nanos interface family: master
  *   - 5004: adding data alignment parameter to slicer wd
