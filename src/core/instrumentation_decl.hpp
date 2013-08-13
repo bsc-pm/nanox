@@ -53,7 +53,12 @@
  *
  * In this section we will describe the instrumentation mechanism by describing the implementation of each one of these classes.
  *
+ * \subsection Instrumentation class
  * \copydoc nanos::Instrumentation
+ *
+ * \subsection InstrumentationContext class
+ * \copydoc nanos::InstrumentationContext
+ *
  */
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
@@ -496,8 +501,31 @@ namespace nanos {
 #endif
 
 //! \class Instrumentation
-//! \brief Instrumentation main class
-/*! \description The core of the instrumentation behavior is specified through the Instrumentation class. This class implements several type of methods: methods to create events, methods to raise event, WorkDescriptor? context swhich methods and finally, specific Instrumentation methods which are actually defined into each derived class (plugins). Specific Instrumentation methods are (ideally) the ones that have to be implemented in each derived Instrumentation class.
+//! \brief Instrumentation main class is the core of the insrumentation behaviour.
+/*! \description This class implements several type of methods: methods to create events, methods to raise event, WorkDescriptor context swhich methods and finally, specific Instrumentation methods which are actually defined into each derived class (plugins). Specific Instrumentation methods are (ideally) the ones that have to be implemented in each derived Instrumentation class.
+ *
+ *  They are:
+ *
+ *  - initialize(): this method is executed at runtime startup and can be used to create buffers, auxiliary structures, initialize values (e.g. time stamp), etc.
+ *  - finalize(): this method is executed at runtime shutdown and can be used to dump remaining data into a file or standard output, post-process trace information, delete buffers and auxiliary structures, etc.
+ *  - addEventList(): this method is executed each time the runtime raises an event. It receives a list of events (EventList) and the specific instrumentation class has to deal with each event in this list in order to generate (or not) a valid output.
+ *
+ *  The Instrumentation object implementation is based in the concept of plugins which allow that several implementations based on its interface can be used without having to modify the runtime library. As we can see in the class diagram we have a generic class which defines all the instrumentation interface and several specific classes which defines the specific output format. But specific Instrumentation programmers can also overload other base methods in order to get an specific behavior when the plugin is invoked. Derived classes have to define (at least) the three previously mentioned virtual methods:
+ *
+ *  \code
+ *  void initialize( void );
+ *  void finalize( void );
+ *  void addEventList(  unsigned int count, Event *events );
+ *  \endcode
+ *
+ *  Instrumentation also specify as virtual functions some generic services which can be used at runtime code. These services are grouped in:
+ *
+ *  - Create event's services: these services are focused in create specific event objects. Usually they are not called by external agents but they are used by raise event's services (explained below).
+ *  - Raise event's services: these services are focused in effectively producing an event (or list of events) which will be visible by the user. Usually these functions will call one or several create event's service(s) and finally produce an effective output by calling plugin's addEventList() service.
+ *  - Context switch's services: they are used to backup/restore the instrumentation information history for the current WorkDescriptor? (see InstrumentationContext class).
+ *
+ *  Finally, Instrumentation class also offers two more services to enable/disable state instrumentation. Once the user calls disableStateInstrumentation() the runtime will not produce more state events until the user enable it by calling enableStateInstrumentation(). Although no state events will be produced during this interval of time Instrumentation class will keep all potential state changes by creating a special event object: the substate event.
+ *
 */
    class Instrumentation
    {
