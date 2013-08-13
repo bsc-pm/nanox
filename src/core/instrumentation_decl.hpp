@@ -16,6 +16,31 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+//! \file instrumentation_decl.hpp
+//! \brief
+//
+//! \defgroup core_instrumentation
+//! \ingroup core
+
+/*! \addtogroup core_instrumentation
+ *  \page core_instrumentation Instrumentation module
+ *
+ * The main goal of instrumentation is to get some information about the program execution. In other words, we want to know "What happens in this WorkDescriptor? running on this Thread". There are the three main components involved in the instrumentation process: What (we also call it Event), WorkDescriptor and Thread.
+ *
+ * - Events are something that happens at a given time or at a given interval of time.
+ * - WorkDescriptors are the runtime basic unit of work. They offer a context to execute a piece of code.
+ * - Threads are logical (or virtual) processors that execute WorkDescriptors.
+ *
+ * Instrumentation defines an interface which allow to know specific details about the execution of any program using Nanos++ Runtime Library. In order to do that we have defined several concepts which represents different activities happening during the execution. Nanos++ defines four different type of events
+ *
+ * - Burst: a burst is defined by a time interval. During this interval something is happening (e.g. executing a runtime service).
+ * - State: a state is also defined by an interval of time and defines which is the execution status in a specific time stamp. It can be considered as a specific case of burst object but with a predetermined behaviour. All state's changes are push and pop operation. So when we are changing state we are whether pushing a new state in the state stack or returning to the previous state (the one previous current state). Usually a state defines the nature of the code we are executing. We can be executing a synchronization operation (SYNCH), or waiting for more job to execute (IDLE), or useful code for the user (RUNNING), etc
+ * - Point: a point event is defined by a timestamp. This entity represents a punctual event during the execution.
+ * - Point-to-point: a point-to-point event is defined for two punctual events. One is called the origin and the other one destination. With these kind of events we can represent communication (send/receive procedures), or work spawning (producer/consumer schemes), etc
+ *
+ * Instrumentation is also driven through Key/Value? pairs in which the item Key identifies the semantic of the associated Value (e.g., WorkDescriptor ID as a Key and a numerical identifier as the associated Value). Keys and Values can be registered in a global dictionary (InstrumentationDictionary) which can be used as a repository.
+ */
+
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENT(f) f;
 #else

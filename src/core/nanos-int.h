@@ -16,18 +16,19 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
 #ifndef __NANOS_INT_H
 #define __NANOS_INT_H
+
+//! \file nanos_c_api_macros.h
+//! \brief 
+//
+//! \defgroup core Nanos++ Core Documentation
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
-/*! \file nanos_c_api_macros.h
- *  \brief 
- */
 #define NANOS_API_DECL(Type, Name, Params) \
     extern Type Name##_ Params; \
     extern Type Name Params
