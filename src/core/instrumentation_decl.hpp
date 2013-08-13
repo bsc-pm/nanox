@@ -22,7 +22,7 @@
 //! \defgroup core_instrumentation Instrumentation module
 //! \ingroup core
 
-/*! \page core_instrumentation Instrumentation module
+/*! \page core_instrumentation_page Instrumentation
  *  \addtogroup core_instrumentation
  *
  * The main goal of instrumentation is to get some information about the program execution. In other words, we want to know "What happens in this WorkDescriptor? running on this Thread". There are the three main components involved in the instrumentation process: What (we also call it Event), WorkDescriptor and Thread.
@@ -39,6 +39,17 @@
  * - Point-to-point: a point-to-point event is defined for two punctual events. One is called the origin and the other one destination. With these kind of events we can represent communication (send/receive procedures), or work spawning (producer/consumer schemes), etc
  *
  * Instrumentation is also driven through Key/Value? pairs in which the item Key identifies the semantic of the associated Value (e.g., WorkDescriptor ID as a Key and a numerical identifier as the associated Value). Keys and Values can be registered in a global dictionary (InstrumentationDictionary) which can be used as a repository.
+ *
+ * \section implementation Implementation
+ *
+ * Instrumentation mechanism implementation is divided in several classes:
+ *
+ * - Instrumentation class is a singleton object which can be accessed through the - also singleton - System object (sys).
+ * - InstrumentationDictionary class which is part of the Instrumentation class.
+ * - InstrumentationContext class, each WorkDescriptor? object has an associated InstrumentationContext object.
+ * - Instrumentation modules, help programmers in the duty of open/close events.
+ *
+ * In this section we will describe the instrumentation mechanism by describing the implementation of each one of these classes.
  */
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
