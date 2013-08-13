@@ -40,10 +40,9 @@
 
 #endif
 
-/*! \defgroup capi C/C++ API */
-/*! \addtogroup capi
- *  \{
- */
+//! \addgroup capi_types Types and Structures
+//! \ingroup capi
+//! \{
 
 #ifdef __cplusplus
 extern "C"
@@ -315,8 +314,6 @@ typedef struct {
    void               *data;
 } nanos_init_desc_t;
 
-/*!
- * \}
- */ 
+//! \}
 
 #endif
