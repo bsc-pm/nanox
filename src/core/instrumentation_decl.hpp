@@ -42,7 +42,7 @@
  *
  * Instrumentation is also driven through Key/Value pairs in which the item Key identifies the semantic of the associated Value (e.g., WorkDescriptor ID as a Key and a numerical identifier as the associated Value). Keys and Values can be registered in a global dictionary (InstrumentationDictionary) which can be used as a repository.
  *
- * In order to create and raise events from user's code See \ref capi_instrument
+ * In order to create and raise events from user's code see \ref capi_instrument
  *
  * \section implementation Implementation
  *
