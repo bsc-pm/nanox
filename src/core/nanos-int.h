@@ -22,7 +22,7 @@
 //! \file nanos_c_api_macros.h
 //! \brief 
 //
-//! \defgroup core Nanos++ Core Documentation
+//! \defgroup core Nanos++ Core
 
 #include <stdio.h>
 #include <stdint.h>

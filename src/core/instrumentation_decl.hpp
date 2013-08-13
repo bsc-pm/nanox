@@ -53,12 +53,19 @@
  *
  * In this section we will describe the instrumentation mechanism by describing the implementation of each one of these classes.
  *
- * \subsection Instrumentation class
- * \copydoc nanos::Instrumentation
+ * \subsection instrumentation Instrumentation class
+ * \copydoc Instrumentation
  *
- * \subsection InstrumentationContext class
- * \copydoc nanos::InstrumentationContext
+ * \subsection instrumentation_context InstrumentationContext class
+ * \copydoc InstrumentationContext
  *
+ * \subsection instrumentation_dictionary InstrumentationDictionarly class
+ * \copydoc InstrumentationDictionary
+ *
+ * \subsection instrumentation_modules InstrumentationModules classes
+ * \copydoc InstrumentStateAndBurst
+ * \copydoc InstrumentState
+ * \copydoc InstrumentBurst
  */
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
@@ -225,6 +232,11 @@ namespace nanos {
          size_t getSize( void ) const;
    };
 
+/*!\class InstrumentationDictionary
+ * \brief InstrumentationDictionary is event's dictionary.
+ * \description It allows to register and recover keys and pairs of <key,value> objects given them an internal code which can be used as identifier. The dictionary also allow to associate a description to each key and <key,value> objects.
+ *
+ */ 
    class InstrumentationDictionary {
       public:
          typedef TR1::unordered_map<std::string, InstrumentationKeyDescriptor*> KeyMap;

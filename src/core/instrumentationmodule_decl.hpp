@@ -27,6 +27,9 @@ namespace nanos {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
+/*!\class InstrumentStateAndBurst
+ * \brief InstrumentStateAndBurst raises state and burst event when constructed and finalize them when destructed.
+ */
    class InstrumentStateAndBurst {
       private:
          Instrumentation     &_inst;   /**< Instrumentation object*/
@@ -68,6 +71,9 @@ namespace nanos {
 	 void close() { _closed=true; _inst.raiseCloseStateAndBurst(_key);  }
    };
 
+/*!\class InstrumentState
+ * \brief InstrumentState raises a state event when constructed and finalize it when destructed.
+ */
    class InstrumentState {
       private:
          Instrumentation     &_inst;    /**< Instrumentation object*/
@@ -97,6 +103,10 @@ namespace nanos {
           */
 	 void close() { _closed=true; _inst.raiseCloseStateEvent();  }
    };
+
+/*!\class InstrumentBurst
+ * \brief InstrumentBurst raises a burst event when constructed and finalize it when destructed.
+ */
    class InstrumentBurst {
       private:
          Instrumentation     &_inst;   /**< Instrumentation object*/
