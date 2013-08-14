@@ -500,19 +500,18 @@ void Scheduler::wakeUp ( WD *wd )
 
 WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 {
-   // If the scheduler is running
    if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
-      // The thread is not paused, mark it as so
+      //! If the scheduler is running
+      //! The thread is not paused, mark it as so...
       thread->unpause();
       
+      //! ... and do the prefetch
       return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
-   }
-   else {
-      // Pause this thread
+   } else {
+      //! Otherwise, pause this thread
       thread->pause();
    }
-   // Otherwise, do nothing
-   // FIXME (#581): Consequences?
+   //! \bug FIXME (#581): Otherwise, do nothing: consequences?
    return NULL;
 }
 
@@ -733,7 +732,7 @@ struct ExitBehaviour
 
 void Scheduler::exitTo ( WD *to )
  {
-//   FIXME: stack reusing was wrongly implementd and it's disabled (see #374)
+//! \bug FIXME: stack reusing was wrongly implementd and it's disabled (see #374)
 //    WD *current = myThread->getCurrentWD();
 
     if (!to->started()) {
