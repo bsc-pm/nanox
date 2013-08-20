@@ -26,10 +26,60 @@
 /*! \mainpage  Nanos++ Runtime Library
  *
  * This is the main development page for documenting Nanos++ Runtime Library (Nanos++ RTL).
+ * Nanos++ is a runtime library designed to serve as runtime support in parallel environments.
+ * It is mainly used to support OmpSs (an extension to the OpenMP programming model) developed
+ * at BSC, but it also has modules to support OpenMP and Chapel.
  * <p/><br/>
- * Nanos++ is an extensible Runtime Library designed to serve as a runtime support in parallel environments.
- * It is mainly used to support OmpSs (an extension to the OpenMP programming model) developed at BSC but it also has modules to support OpenMP and Chapel.
+ * The runtime provides several services to support task parallelism using synchronizations
+ * based on data-dependencies. Data parallelism is also supported by means of services mapped
+ * on top of its task support. Task are implemented as user-level threads when possible
+ * (currently x86, x86-64, ia64, arm, ppc32 and ppc64 are supported). It also provides support
+ * for maintaining coherence across different address spaces (such as with GPUs or cluster nodes).
  * <p/><br/>
+ * The main purpose of Nanos++ is to be used in research of parallel programming environments.
+ * Our aim has been to enable easy development of different parts of the runtime so researchers
+ * have a platform that allows them to try different mechanisms. As such it is designed to be
+ * extensible by means of plugins: the scheduling policy, the throttling policy, the dependence
+ * approach, the barrier implementations, the slicers implementation, the instrumentation layer
+ * and the architectural level. This extensibility does not come for free. The runtime overheads
+ * are slightly increased, but there should be low enough for results to be meaningful except
+ * for cases of extreme-fine grain applications.
+ * <p/><br/>
+ * \section repository Working with the repository
+ *
+ * Once you have cloned the code you will need to run autoreconf to generate all the initial files.
+ * Enter the mcxx directory which has been created from git clone and run there
+ *
+ * \code
+ * $ autoreconf -f -i -v
+ * \endcode
+ *
+ * This process is somewhat fragile: some warnings will appear in several Makefile.am (due to GNU
+ * Make extensions used in Mercurium makefiles) and some m4 warnings might or might not appear
+ * depending on your precise environments (although this is now rare in Linux it might happen in
+ * some versions of Solaris). However, no errors should happen.
+ *
+ * It may happen that autoreconf does complain about some Libtool macros not recognized. It usually
+ * happens if the Libtool used is not 2.2.6 or it is not installed system-wide. In the latter case,
+ * adjust your PATH variable to use a 2.2.6 (or better) Libtool. In either case, run the following
+ * command (make sure it comes from a 2.2.6 Libtool installation directory!)
+ *
+ * \code
+ * $ libtoolize --version
+ * libtoolize (GNU libtool) 2.2.6
+ * Written by Gary V. Vaughan <gary@gnu.org>, 2003
+ * $ libtoolize -f -i
+ * \endcode
+ *
+ * and then run again:
+ *
+ * \code
+ * $ autoreconf -f -v -i
+ * \endcode
+ *
+ * This should do. There is an obscure bug with autoreconf not discovering that libtool is being used
+ * which seems only triggered in environments where the Libtool being used is not system-wide installed,
+ * so it might not be a problem in your environment.
  */
 
 //! \defgroup capi Nanos++ C/C++ API
