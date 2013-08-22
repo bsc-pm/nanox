@@ -550,13 +550,10 @@ void Scheduler::workerLoop ()
    idleLoop<WorkerBehaviour>();
 }
 
-void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
+void Scheduler::finishWork( WD * wd, bool schedule )
 {
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
-
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
 
    if ( schedule && !getMyThreadSafe()->isTaggedToSleep() ) {
       BaseThread *thread = getMyThreadSafe();
@@ -579,8 +576,6 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
          DLB_UpdateResources_max( needed_resources );
    }
 
-   debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-          " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
 }
 
 bool Scheduler::inlineWork ( WD *wd, bool schedule )
@@ -617,8 +612,12 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->finish();
 
-   if ( done )
-      finishWork( oldwd, wd, schedule );
+   if ( done ) {
+      finishWork( wd, schedule );
+      /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
+      NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
+   }
+
 
    thread->setCurrentWD( *oldwd );
 
@@ -764,7 +763,7 @@ void Scheduler::exit ( void )
 
    oldwd->finish();
 
-   finishWork( next, oldwd, ( next == NULL ) );
+   finishWork( oldwd, ( next == NULL ) );
 
    /* update next WorkDescriptor (if any) */
    next = ( next == NULL ) ? thread->getNextWD() : next;
