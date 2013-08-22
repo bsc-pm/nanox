@@ -116,6 +116,7 @@ namespace nanos
          //virtual bool dataCanBlockUs( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
+         bool testInputs( WorkDescriptor& wd );
 
          virtual bool isGPU() const = 0;
          BaseThread *getFirstThread() const { return _threads[0]; }

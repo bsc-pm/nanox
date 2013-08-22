@@ -308,6 +308,8 @@ namespace nanos
           *  before the execution of the WD.
           */
          void start ( ULTFlag isUserLevelThread, WorkDescriptor *previous = NULL );
+         void preStart ( ULTFlag isUserLevelThread, WorkDescriptor *previous = NULL );
+         bool isInputDataReady();
 
          /*! \brief Get data size
           *

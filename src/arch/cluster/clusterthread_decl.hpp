@@ -23,6 +23,7 @@
 //#include "smpthread.hpp"
 #include "basethread_decl.hpp"
 //#include "wddeque.hpp"
+#include <list>
 
 #define MAX_PRESEND 1024
 
@@ -54,6 +55,7 @@ namespace ext
       RunningWDQueue _runningWDs[2]; //0: SMP, 1: GPU
       Lock _lock;
       WD *_pendingInitWD;
+      std::list< WD * > _waitingDataWDs;
 
       // disable copy constructor and assignment operator
       ClusterThread( const ClusterThread &th );
@@ -71,6 +73,7 @@ namespace ext
 
       virtual void runDependent ( void );
       virtual bool inlineWorkDependent ( WD &wd );
+      virtual void preOutlineWorkDependent ( WD &wd );
       virtual void outlineWorkDependent ( WD &wd );
 
       void addRunningWDSMP( WorkDescriptor *wd );
@@ -104,6 +107,10 @@ namespace ext
       bool hasAPendingWDToInit() const;
       WD *getPendingInitWD();
       void setPendingInitWD( WD *wd );
+
+      bool hasWaitingDataWDs() const;
+      WD *getWaitingDataWD();
+      void addWaitingDataWD( WD *wd );
    };
 
 

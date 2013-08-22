@@ -48,6 +48,11 @@ void ProcessingElement::waitInputs( WorkDescriptor &work )
    }
 }
 
+bool ProcessingElement::testInputs( WorkDescriptor &work ) {
+   bool result = work._mcontrol.isDataReady( work );
+   return result;
+}
+
 BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )
 {
    WD & worker = getWorkerWD();

@@ -147,6 +147,44 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    setReady();
 }
 
+
+void WorkDescriptor::preStart (ULTFlag isUserLevelThread, WorkDescriptor *previous)
+{
+   ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
+
+   ProcessingElement *pe = myThread->runningOn();
+
+   // If there are no active device, choose a compatible one
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
+
+   // Initializing devices
+   _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
+
+}
+
+bool WorkDescriptor::isInputDataReady() {
+   ProcessingElement *pe = myThread->runningOn();
+   bool result = false;
+
+   // Test if copies have completed
+   if ( getNumCopies() > 0 ) {
+      result = pe->testInputs( *this );
+   }
+
+   if ( result ) {
+      // Tie WD to current thread
+      if ( _tie ) tieTo( *myThread );
+
+      // Call Programming Model interface .started() method.
+      sys.getPMInterface().wdStarted( *this );
+
+      // Setting state to ready
+      setReady();
+   }
+   return result;
+}
+
+
 void WorkDescriptor::prepareDevice ()
 {
    // Do nothing if there is already an active device

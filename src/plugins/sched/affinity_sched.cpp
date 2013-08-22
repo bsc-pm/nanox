@@ -770,6 +770,9 @@ namespace nanos {
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                      actualClusterThread->addRunningWDSMP( wd );
                      Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
+
+                     actualClusterThread->preOutlineWorkDependent( *wd );
+                     actualClusterThread->runningOn()->waitInputs( *wd );
                      actualClusterThread->outlineWorkDependent(*wd);
 
                      data._helped++;
@@ -794,6 +797,8 @@ namespace nanos {
                      //std::cerr << "ore outline with thd "<<std::endl;
                      Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
                      //std::cerr << "start wd at "<< selectedNode <<std::endl;
+                     actualClusterThread->preOutlineWorkDependent( *wd );
+                     actualClusterThread->runningOn()->waitInputs( *wd );
                      actualClusterThread->outlineWorkDependent(*wd);
                      //std::cerr << "done start wd at "<< selectedNode <<std::endl;
 

@@ -113,7 +113,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
    }
 
    DeviceOps *thisEntryOps = thisRegEntry->getDeviceOps();
-   if ( thisEntryOps->addCacheOp( wd.getId() ) ) {
+   if ( thisEntryOps->addCacheOp( /* debug: &wd, 1 */ ) ) {
       opEmitted = true;
 
       //std::cerr << "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[ " << __FUNCTION__ << " " << (void*) this << " reg " << reg << " set rversion "<< version << " ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"<< std::endl;
@@ -162,7 +162,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                         CachedRegionStatus *entryToCopy = ( CachedRegionStatus * ) _newRegions->getRegionData( locIt->first );
                         DeviceOps *entryToCopyOps = entryToCopy->getDeviceOps();
                         if ( entryToCopy != thisRegEntry ) {
-                           if ( !entryToCopyOps->addCacheOp( wd.getId() ) ) {
+                           if ( !entryToCopyOps->addCacheOp( /* debug: &wd, 2 */ ) ) {
                               std::cerr << "ERROR " << __FUNCTION__ << std::endl;
                            }
                            ops.insertOwnOp( entryToCopyOps, global_reg_t( locIt->first, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
@@ -273,13 +273,13 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
 
    DeviceOps *thisChunkOps = _allocatedRegion.getDeviceOps();
    CachedRegionStatus *alloc_entry = ( CachedRegionStatus * ) _newRegions->getRegionData( _allocatedRegion.id );
-   bool alloc_entry_not_present = false;
+   //bool alloc_entry_not_present = false;
 
    if (alloc_entry != NULL) {
       regionsToRemoveAccess.insert( _allocatedRegion );
-   } else {
+   } /*else {
       alloc_entry_not_present = true;
-   }
+   }*/
 
    //std::cerr << "Missing pieces are: " << missing.size() << std::endl;
 
@@ -289,7 +289,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
      //    regionsToRemoveAccess.insert( _allocatedRegion );
          if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
             //std::cerr << "AC: has to be copied!, shape = dsrc and Im the only owner!" << std::endl;
-            if ( thisChunkOps->addCacheOp( wd.getId() ) ) {
+            if ( thisChunkOps->addCacheOp( /* debug: &wd */ ) ) {
                invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
                invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), _allocatedRegion, alloc_entry->getVersion(), NULL, this );
                alloc_entry->resetVersion();
@@ -306,7 +306,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
    //   if ( _allocatedRegion.isLocatedIn( _owner.getMemorySpaceId() ) ) {
    //      regionsToRemoveAccess.insert( _allocatedRegion );
    //      if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
-   //         if ( thisChunkOps->addCacheOp( wd.getId() ) ) {
+   //         if ( thisChunkOps->addCacheOp( /* debug: &wd */ ) ) {
    //            invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
    //            invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), _allocatedRegion, alloc_entry->getVersion(), NULL, this );
    //            alloc_entry->resetVersion();
@@ -353,7 +353,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
                   } else {
                      version = NewNewRegionDirectory::getVersion( data_source.key, data_source.id, false );
                   }
-                  if ( fragment_ops->addCacheOp( wd.getId() ) ) {
+                  if ( fragment_ops->addCacheOp( /* debug: &wd */ ) ) {
                      invalOps.insertOwnOp( fragment_ops, data_source, version, 0 );
                      invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), data_source, version, NULL, this );
                   } else {
@@ -413,7 +413,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
                   }
                } else {
                   DeviceOps *subRegOps = subReg.getDeviceOps();
-                  if ( subRegOps->addCacheOp( wd.getId() ) ) {
+                  if ( subRegOps->addCacheOp( /* debug: &wd */ ) ) {
                      regionsToRemoveAccess.insert( subReg );
                      invalOps.insertOwnOp( subRegOps, data_source, entry->getVersion(), 0 );
                      invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), subReg, entry->getVersion(), subRegOps, this );
@@ -426,7 +426,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
 
             if ( subChunkInval ) {
                //FIXME I think this is wrong, can potentially affect regions that are not there, 
-               if ( thisChunkOps->addCacheOp( wd.getId() ) ) { // FIXME: others may believe there's an ongoing op for the full region!
+               if ( thisChunkOps->addCacheOp( /* debug: &wd */ ) ) { // FIXME: others may believe there's an ongoing op for the full region!
                  invalOps.insertOwnOp( thisChunkOps, data_source, entry->getVersion(), 0 );
                } else {
                  std::cerr << "ERROR, could not add an inval cache op " << std::endl;
@@ -440,7 +440,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
          if ( _allocatedRegion.isLocatedIn( _owner.getMemorySpaceId() ) ) {
             //if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
             if ( ! _allocatedRegion.isLocatedIn( 0 ) ) { // FIXME: not optimal, but we write metadata to "allocatedRegion" entry so we must copy all to node 0 if its not there to keep it consistent!
-               if ( thisChunkOps->addCacheOp( wd.getId() ) ) {
+               if ( thisChunkOps->addCacheOp( /* debug: &wd */ ) ) {
                   invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
                   alloc_entry->resetVersion();
                }

@@ -385,7 +385,7 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
             global_reg_t reg( mit->first, it->second );
             if ( !reg.isLocatedIn( 0 ) ) {
               DeviceOps *thisOps = reg.getDeviceOps();
-              if ( thisOps->addCacheOp( wd.getId() ) ) {
+              if ( thisOps->addCacheOp( /* debug: &wd */ ) ) {
                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
                   if ( _VERBOSE_CACHE ) {
                      std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );

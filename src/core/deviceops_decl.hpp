@@ -4,6 +4,7 @@
 #include <set>
 #include "atomic_decl.hpp"
 #include "deviceops_fwd.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos {
 
@@ -12,7 +13,9 @@ namespace nanos {
          Atomic<unsigned int> _pendingDeviceOps;
          Lock _pendingCacheOp;
          Lock _lock;
-         unsigned int _owner;
+         //debug: int _owner;
+         //debug: WorkDescriptor const *_wd;
+         //debug: int _loc;
       public:
          DeviceOps();
          ~DeviceOps();
@@ -20,8 +23,8 @@ namespace nanos {
          void addOp();
          bool allCompleted() ;
 
-         bool addCacheOp( unsigned int owner );
-         void completeCacheOp( unsigned int owner );
+         bool addCacheOp( /* debug: WorkDescriptor const *wd, int loc = -1 */ );
+         void completeCacheOp( /* debug: WorkDescriptor const *wd */ );
          bool allCacheOpsCompleted();
 
          bool setInvalidating();

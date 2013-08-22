@@ -94,6 +94,10 @@ bool ClusterThread::inlineWorkDependent ( WD &wd ) {
    return true;
 }
 
+void ClusterThread::preOutlineWorkDependent ( WD &wd ) {
+   wd.preStart(WorkDescriptor::IsNotAUserLevelThread);
+}
+
 void ClusterThread::outlineWorkDependent ( WD &wd )
 {
    unsigned int i;
@@ -101,7 +105,6 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    ProcessingElement *pe = this->runningOn();
    if (dd.getWorkFct() == NULL ) return;
 
-   wd.start(WorkDescriptor::IsNotAUserLevelThread);
    wd.getGE()->setNode( ( ( ClusterNode * ) pe )->getClusterNodeNum() );
 
    unsigned int totalDimensions = 0;
@@ -282,4 +285,20 @@ WD *ClusterThread::getPendingInitWD() {
 
 void ClusterThread::setPendingInitWD( WD *wd ) {
    _pendingInitWD = wd;
+}
+
+bool ClusterThread::hasWaitingDataWDs() const {
+   return !_waitingDataWDs.empty();
+}
+
+WD *ClusterThread::getWaitingDataWD() {
+   WD *wd = _waitingDataWDs.front();
+   _waitingDataWDs.pop_front();
+std::cerr << "popped a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
+   return wd;
+}
+
+void ClusterThread::addWaitingDataWD( WD *wd ) {
+   _waitingDataWDs.push_back( wd );
+std::cerr << "Added a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
 }
