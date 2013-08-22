@@ -22,7 +22,7 @@
 //! \defgroup core_dependencies Dependencies module
 //! \ingroup core
 
-/*!\page    core_dependencies_main
+/*!\page    core_dependencies
  * \ingroup core_dependencies
  *
  * \section dependencies_domain Dependencies Domain
