@@ -30,7 +30,7 @@ nanos::PE * smpProcessorFactory ( int id, int uid );
 
 nanos::PE * smpProcessorFactory ( int id, int uid )
 {
-   return new SMPProcessor( id, uid );
+   return NEW SMPProcessor( id, uid );
 }
 
 class SMPPlugin : public ArchPlugin

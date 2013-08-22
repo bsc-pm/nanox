@@ -177,7 +177,7 @@ namespace nanos
          virtual ~BaseThread()
          {
             ensure0(!_hasTeam,"Destroying thread inside a team!");
-            ensure0(!_started,"Trying to destroy running thread");
+            ensure0((!_started || _id == 0),"Trying to destroy running thread");
          }
 
 

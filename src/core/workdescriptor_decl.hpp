@@ -166,6 +166,7 @@ namespace nanos
          size_t                        _data_size;    /**< WD data size */
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
+         size_t                        _totalSize;    /**< Chunk total size, when allocating WD + extra data */
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
          WDFlags                       _flags;        /**< WD Flags */
 
@@ -258,11 +259,25 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
+             void *chunkLower = ( void * ) this;
+             void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
+
              for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
 
+             //! Delete device vector 
+             if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
+                delete[] _devices;
+             } 
+
+             //! Delete Dependence Domain
              delete _depsDomain;
 
+             //! Delete Directory
              delete _directory;
+
+             //! Delete internal data (if any)
+             if ( ( (void*)_wdData < chunkLower) || ( (void *) _wdData > chunkUpper ) )
+                delete[] (char *) _wdData;
 
              if (_copiesNotInChunk)
                  delete[] _copies;
@@ -348,6 +363,8 @@ namespace nanos
          void setData ( void *wdata );
 
          void * getData () const;
+
+         void setTotalSize ( size_t size );
 
          void setStart ();
 

@@ -65,7 +65,7 @@ System::System () :
       _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
 
 #ifdef GPU_DEV
-      , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
+      , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
@@ -571,6 +571,7 @@ void System::start ()
    std::string unrecog = Config::getOrphanOptions();
    if ( !unrecog.empty() )
       warning( "Unrecognised arguments: " << unrecog );
+   Config::deleteOrphanOptions();
       
    // hwloc can be now unloaded
    if ( isHwlocAvailable() )
@@ -622,12 +623,11 @@ void System::finish ()
 
    /* System mem free */
 
+   delete[] _lockPool;
+
    /* deleting master WD */
-   if ( getMyThreadSafe()->getCurrentWD()->getInternalData() )
-      delete[] (char *) getMyThreadSafe()->getCurrentWD()->getInternalData();
-   /* delete all of it */
-   getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
-   delete (char *) getMyThreadSafe()->getCurrentWD();
+   //getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
+   delete (WorkDescriptor *) (getMyThreadSafe()->getCurrentWD());
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
@@ -656,6 +656,11 @@ void System::finish ()
    
    /* unload modules */
    unloadModules();
+
+   delete _dependenciesManager;
+
+   // Deleting last processing element
+   delete _pes[0];
 
    if ( allocator != NULL ) free (allocator);
 
@@ -810,6 +815,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
                              num_copies, (copies != NULL)? *copies : NULL, translate_args, desc );
    // Set WD's socket
    wd->setSocket( getCurrentSocket() );
+   
+   // Set total size
+   wd->setTotalSize(total_size );
    
    if ( getCurrentSocket() >= sys.getNumSockets() )
       throw NANOS_INVALID_PARAM;
@@ -985,6 +993,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                                          outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies, desc );
    // Set WD's socket
    wd->setSocket(  getCurrentSocket() );
+
+   // Set total size
+   wd->setTotalSize(total_size );
    
    if ( getCurrentSocket() >= sys.getNumSockets() )
       throw NANOS_INVALID_PARAM;
@@ -1114,6 +1125,9 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    //FIXME jbueno (#758) should we have to take into account dimensions?
    new (*uwd) WD( *wd, dev_ptrs, wdCopies, data );
 
+   // Set total size
+   (*uwd)->setTotalSize(total_size );
+   
    // initializing internal data
    if ( size_PMD != 0) {
       _pmInterface->initInternalData( chunk + offset_PMD );
@@ -1203,6 +1217,9 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    // creating new SlicedWD 
    new (*uwd) SlicedWD( *(wd->getSlicer()), *((WD *)wd), dev_ptrs, wdCopies, data );
 
+   // Set total size
+   (*uwd)->setTotalSize(total_size );
+   
    // initializing internal data
    if ( size_PMD != 0) {
       _pmInterface->initInternalData( chunk + offset_PMD );

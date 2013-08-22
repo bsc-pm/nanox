@@ -62,7 +62,7 @@ NANOS_API_DEF(nanos_wd_t, nanos_current_wd, (void))
 NANOS_API_DEF(void *, nanos_smp_factory, ( void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * )new ext::SMPDD( smp->outline );
+   return ( void * ) NEW ext::SMPDD( smp->outline );
 }
 
 /*! \brief Returns the id of the specified WD.

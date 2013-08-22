@@ -121,7 +121,7 @@ inline void InstrumentationKeyDescriptor::registerValue ( const char *value, nan
          it = _valueMap.find( value );
          if ( it == _valueMap.end() ) {
             _totalValues++; // keeping total values counter, although it is not used as 'val'
-            valueDescriptor = new InstrumentationValueDescriptor ( val, description );
+            valueDescriptor = NEW InstrumentationValueDescriptor ( val, description );
             _valueMap.insert( std::make_pair( value, valueDescriptor ) );
          }
          else {
@@ -300,7 +300,7 @@ inline void InstrumentationDictionary::registerEventValue ( const char *key, con
          LockBlock lock( _lock );
          it = _keyMap.find( key );
          if ( it == _keyMap.end() ) {
-            keyDescriptor = new InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true, false );
+            keyDescriptor = NEW InstrumentationKeyDescriptor ( (nanos_event_key_t) _totalKeys++, "", true, false );
             _keyMap.insert( std::make_pair( key, keyDescriptor ) );
          }
          else {
