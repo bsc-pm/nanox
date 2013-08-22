@@ -22,7 +22,7 @@
 //! \defgroup core_instrumentation Instrumentation module
 //! \ingroup core
 
-/*!\page core_instrumentation_page Instrumentation
+/*!\page    core_instrumentation
  * \ingroup core_instrumentation
  *
  * \section introduction Introduction
