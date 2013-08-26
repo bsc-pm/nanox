@@ -158,9 +158,22 @@ inline bool WorkDescriptor::hasActiveDevice() const { return _activeDeviceIdx !=
 inline void WorkDescriptor::setActiveDeviceIdx( unsigned int idx ) { _activeDeviceIdx = idx; }
 inline unsigned int WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
 
-inline void WorkDescriptor::setInternalData ( void *data ) { _wdData = data; }
+inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) { 
+    union { void* p; intptr_t i; } u = { data };
+    // Set the own status
+    u.i |= int( ownedByWD );
 
-inline void * WorkDescriptor::getInternalData () const { return _wdData; }
+    _wdData = u.p;
+}
+
+inline void * WorkDescriptor::getInternalData () const { 
+    union { void* p; intptr_t i; } u = { _wdData };
+
+    // Clear the own status if set
+    u.i &= ((~(intptr_t)0) << 1);
+
+    return u.p;
+}
 
 inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
 

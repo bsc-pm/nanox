@@ -276,8 +276,14 @@ namespace nanos
              delete _directory;
 
              //! Delete internal data (if any)
-             if ( ( (void*)_wdData < chunkLower) || ( (void *) _wdData > chunkUpper ) )
-                delete[] (char *) _wdData;
+             union { char* p; intptr_t i; } u = { (char*)_wdData };
+             bool internalDataOwned = (u.i & 1);
+             // Clear the own status if set
+             u.i &= ((~(intptr_t)0) << 1);
+
+             if (internalDataOwned
+                     && (( (void*)u.p < chunkLower) || ( (void *) u.p > chunkUpper ) ))
+                delete[] u.p;
 
              if (_copiesNotInChunk)
                  delete[] _copies;
@@ -404,7 +410,12 @@ namespace nanos
          void setActiveDeviceIdx( unsigned int idx );
          unsigned int getActiveDeviceIdx();
 
-         void setInternalData ( void *data );
+         /*! \brief Sets specific internal data of the programming model
+          * \param [in] data Pointer to internal data
+          * \param [in] ownedByWD States if the pointer to internal data will be owned by this WD. 
+          *             If so, it means that it will be deallocated when the WD is destroyed
+          */
+         void setInternalData ( void *data, bool ownedByWD = true );
 
          void * getInternalData () const;
 
