@@ -29,7 +29,9 @@
 
 using namespace nanos;
 
-/*! \defgroup capi_pe C/C++ API: Processing Elements services. */
+/*! \defgroup capi_pe Processing Element services.
+ *  \ingroup capi
+ */
 /*! \addtogroup capi_pe
  *  \{
  */

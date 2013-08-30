@@ -60,9 +60,9 @@ static void findArgs (long *argc, char ***argv)
 void OS::init ()
 {
    findArgs(&_argc,&_argv);
-   _moduleList = new ModuleList(&__start_nanos_modules,&__stop_nanos_modules);
-   _initList = new InitList(&__start_nanos_init, &__stop_nanos_init);
-   _postInitList = new InitList(&__start_nanos_post_init, &__stop_nanos_post_init);
+   _moduleList = NEW ModuleList(&__start_nanos_modules,&__stop_nanos_modules);
+   _initList = NEW InitList(&__start_nanos_init, &__stop_nanos_init);
+   _postInitList = NEW InitList(&__start_nanos_post_init, &__stop_nanos_post_init);
 }
 
 void * OS::loadDL( const std::string &dir, const std::string &name )

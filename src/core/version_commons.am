@@ -39,6 +39,7 @@ common_sources=\
 	$(top_srcdir)/src/core/wddeque_fwd.hpp \
 	$(top_srcdir)/src/core/wddeque_decl.hpp \
 	$(top_srcdir)/src/core/wddeque.hpp \
+	$(top_srcdir)/src/core/wddeque.cpp \
 	$(top_srcdir)/src/core/workgroup_fwd.hpp \
 	$(top_srcdir)/src/core/workgroup_decl.hpp \
 	$(top_srcdir)/src/core/workgroup.hpp \

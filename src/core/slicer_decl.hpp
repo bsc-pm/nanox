@@ -16,6 +16,30 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+//!\file slicers_decl.hpp
+//!\brief Slicer main classes declaration
+//
+//!\defgroup core_slicers Slicers module
+//!\ingroup  core
+//
+/*!\page    core_slicers
+ * \ingroup core_slicers
+ *
+ * \section slicer_wd Sliced Work Descriptor
+ * \copydoc nanos::SlicedWD
+ *
+ * \section slicer_objects Slicer objects
+ * Nanos++ defines several Slicer Objects. Each of them defines an specific behaviour for
+ * submit() and dequeue() methods. We have currently implemented the following Slicer Objects:
+ *
+ * - \copybrief nanos::ext::SlicerStaticFor
+ * - \copybrief nanos::ext::SlicerDynamicFor
+ * - \copybrief nanos::ext::SlicerGuidedFor
+ * - \copybrief nanos::ext::SlicerCompoundWD
+ * - \copybrief nanos::ext::SlicerRepeatN
+ * - \copybrief nanos::ext::SlicerReplicate
+ *
+ */
 
 #ifndef _NANOS_SLICER_DECL_H
 #define _NANOS_SLICER_DECL_H
@@ -25,7 +49,6 @@
 #include "nanos-int.h"
 #include "slicer_fwd.hpp"
 #include <list>                                                                                                                                          
-
 namespace nanos
 {
    class Slicer
@@ -55,7 +78,35 @@ namespace nanos
          virtual void *getSpecificData ( ) const;
    };
 
-   class SlicedWD : public WD
+/*!\class SlicedWD
+ * \brief A Sliced Work Descriptor is an specific class of WorkDescriptor which potentially can be
+ * divided in smaller WorkDescriptor's
+ *
+ * A SlicedWD (Sliced Work Descriptor) is a specific class which derives from WorkDescriptor. Main
+ * idea behind this class is to offer a mechanism which allow to decompose a WorkDescriptor in a
+ * set of several WorkDescriptors. Initial implementation of this mechanism is related with the
+ * ticket:96.
+ *
+ * A SlicedWD will be always related with:
+ *
+ * - a Slicer, which defines the work descriptor behaviour.
+ * - a SlicerData, which keeps all the data needed for splitting the work.
+ * - Slicer objects are common for all the SlicedWD of an specific type. In fact, the Slicer object
+ *   determines the type of the SlicedWD. In the other hand, SlicerData objects are individual for
+ *   each SlicedWD object.
+ *
+ * This mechanism is implemented as a derived class from WorkDescriptor: the SlicedWD. A SlicedWD
+ * overrides the implementation of submit() and dequeue() methods which have been already defined
+ * in the base class.
+ *
+ * In the base class, submit() method just call Scheduller::submit() method and dequeue() returns
+ * the WD itself (meaning this is the work unit ready to be executed) and a boolean value (true,
+ * meaning that it will be the last execution for this unit of work). Otherwise, derived class
+ * SlicedWD will execute Slicer::submit() and Slicer::dequeue() respectively, giving the slicer
+ * the responsibility of doing specific actions at submission or dequeuing time.
+ *
+ */
+   class SlicedWD : public WorkDescriptor
    {
       private:
          Slicer      &_slicer;               /**< Related Slicer     */

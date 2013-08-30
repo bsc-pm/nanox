@@ -42,7 +42,7 @@ using namespace nanos;
 
 inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
-                               : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ),
+                               : WorkGroup(), _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
@@ -58,7 +58,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
-                               : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ),
+                               : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( 1 ), _devices ( NEW DeviceData *( device ) ), _activeDeviceIdx( 0 ),
@@ -73,7 +73,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  }
 
 inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
-                               : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ),
+                               : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
                                  _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
                                  _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
@@ -102,6 +102,8 @@ inline void WorkDescriptor::setDataSize ( size_t data_size ) { _data_size = data
 
 inline size_t WorkDescriptor::getDataAlignment () const { return _data_align; }
 inline void WorkDescriptor::setDataAlignment ( size_t data_align ) { _data_align = data_align; }
+
+inline void WorkDescriptor::setTotalSize ( size_t size ) { _totalSize = size; }
 
 inline WorkDescriptor * WorkDescriptor::getParent() { return _parent; }
 inline void WorkDescriptor::setParent ( WorkDescriptor * p ) { _parent = p; }
@@ -156,9 +158,22 @@ inline bool WorkDescriptor::hasActiveDevice() const { return _activeDeviceIdx !=
 inline void WorkDescriptor::setActiveDeviceIdx( unsigned int idx ) { _activeDeviceIdx = idx; }
 inline unsigned int WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
 
-inline void WorkDescriptor::setInternalData ( void *data ) { _wdData = data; }
+inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) { 
+    union { void* p; intptr_t i; } u = { data };
+    // Set the own status
+    u.i |= int( ownedByWD );
 
-inline void * WorkDescriptor::getInternalData () const { return _wdData; }
+    _wdData = u.p;
+}
+
+inline void * WorkDescriptor::getInternalData () const { 
+    union { void* p; intptr_t i; } u = { _wdData };
+
+    // Clear the own status if set
+    u.i &= ((~(intptr_t)0) << 1);
+
+    return u.p;
+}
 
 inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
 

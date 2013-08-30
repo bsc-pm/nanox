@@ -161,7 +161,7 @@ typename RegionTree<T>::Node * RegionTree<T>::Node::split(Region otherRegionSegm
    Region newParentRegion;
    m_regionSegment.getCommonPrefix(otherRegionSegment, newParentRegion);
    
-   Node *newParent = new Node();
+   Node *newParent = NEW Node();
    newParent->init(newParentRegion, m_parent, T());
 #if REGION_TREE_BOUNDING
    newParent->m_fullRegion = m_fullRegion;

@@ -356,7 +356,7 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 
       addEvent( evt );
 
-      Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, _previousWD, &work );
+      Action * action = new_action( ( ActionFunPtr2<WD *, bool>::FunPtr2 ) &Scheduler::finishWork, &work, false );
       evt->addNextAction( action );
 #ifdef NANOS_GENERICEVENT_DEBUG
       evt->setDescription( evt->getDescription() + " action:Scheduler::finishWork" );
@@ -416,7 +416,8 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
       }
 
       if ( lastEvt ) {
-         Action * action = new_action( ( ActionFunPtr2<WD *, WD *>::FunPtr2 ) &Scheduler::finishWork, _previousWD, &work );
+         WorkDescriptor * actionWD = &work;
+         Action * action = new_action( ( ActionFunPtr2<WD *, bool>::FunPtr2 ) &Scheduler::finishWork, actionWD, false );
          lastEvt->addNextAction( action );
 #ifdef NANOS_GENERICEVENT_DEBUG
          lastEvt->setDescription( lastEvt->getDescription() + " action:Scheduler::finishWork" );

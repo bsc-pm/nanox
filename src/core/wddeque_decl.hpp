@@ -25,7 +25,7 @@
 #include <map>
 #include "atomic_decl.hpp"
 #include "debug.hpp"
-#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include "basethread_fwd.hpp"
 
 #define NANOS_ABA_MASK (15)
@@ -109,10 +109,15 @@ namespace nanos
          /*! \brief WDDeque copy assignment operator (private)
           */
          const WDDeque & operator= ( const WDDeque & );
+
+         /*! \brief Initialization function for WD device counter
+          */
+         void initDeviceList();
+
       public:
          /*! \brief WDDeque default constructor
           */
-         WDDeque( bool enableDeviceCounterr );
+         WDDeque( bool enableDeviceCounter = true );
          /*! \brief WDDeque destructor
           */
          ~WDDeque() {}
@@ -187,7 +192,7 @@ namespace nanos
           */
          WDLFQueue()
          {
-            _head = _tail = new WDNode(NULL,NULL);
+            _head = _tail = NEW WDNode(NULL,NULL);
          }
          /*! \brief WDFifo destructor
           */

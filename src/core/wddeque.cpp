@@ -1,4 +1,3 @@
-
 /*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -17,46 +16,20 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_worksharing.cpp
- *  \brief 
- */
-#include "nanos.h"
-#include "worksharing_decl.hpp"
 
-/*! \defgroup capi_ws Worksharing services.
- *  \ingroup capi
- */
-/*! \addtogroup capi_ws
- *  \{
- */
+#include "wddeque.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_create, ( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info,  bool *b ) )
+
+void WDDeque::initDeviceList()
 {
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
+   System::DeviceList devs = sys.getSupportedDevices();
 
-   try {
-      if ( b ) *b = ((WorkSharing *) ws)->create( wsd, info );
-      else ((WorkSharing *) ws)->create( wsd, info );
-   } catch ( nanos_err_t e) {
-      return e;
+   for ( System::DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
+      const Device * dev = *it;
+      Atomic<unsigned int> num = 0;
+      _ndevs.insert( std::make_pair( dev, num ) );
    }
-   return NANOS_OK;
 }
-
-NANOS_API_DEF(nanos_err_t, nanos_worksharing_next_item, ( nanos_ws_desc_t *wsd, nanos_ws_item_t *wsi ))
-{
-   //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","",NANOS_RUNTIME) ); //FIXME: To register new event
-
-   try {
-      ((WorkSharing *) wsd->ws)->nextItem( wsd, wsi );
-   } catch ( nanos_err_t e) {
-      return e;
-   }
-   return NANOS_OK;
-
-}
-/*!
- * \}
- */ 

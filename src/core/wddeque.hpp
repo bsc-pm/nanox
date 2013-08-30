@@ -22,23 +22,16 @@
 
 #include "wddeque_decl.hpp"
 #include "schedule.hpp"
-#include "system.hpp"
 #include "instrumentation.hpp"
 #include "atomic.hpp"
 
 using namespace nanos;
 
 
-inline WDDeque::WDDeque( bool enableDeviceCounter = true ) : _dq(), _lock(), _nelems(0), _ndevs(), _deviceCounter( enableDeviceCounter )
+inline WDDeque::WDDeque( bool enableDeviceCounter ) : _dq(), _lock(), _nelems(0), _ndevs(), _deviceCounter( enableDeviceCounter )
 {
    if ( _deviceCounter ) {
-      System::DeviceList devs = sys.getSupportedDevices();
-
-      for ( System::DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
-         const Device * dev = *it;
-         Atomic<unsigned int> num = 0;
-         _ndevs.insert( std::make_pair( dev, num ) );
-      }
+      initDeviceList();
    }
 }
 
@@ -290,7 +283,7 @@ inline void WDLFQueue::push_back( WorkDescriptor *wd )
 {
    volatile WDNode *tail;
    volatile WDNode *next;
-   WDNode *node = new WDNode( wd, NULL);
+   WDNode *node = NEW WDNode( wd, NULL);
 
    while (1) {
       tail = _tail;

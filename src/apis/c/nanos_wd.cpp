@@ -16,9 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_wd.cpp
- *  \brief 
- */
+//! \file nanos_wd.cpp
+//! \brief Nanos++ services related with WorkDescriptor 
+
 #include "nanos.h"
 #include "basethread.hpp"
 #include "debug.hpp"
@@ -30,10 +30,9 @@
 #include "instrumentation.hpp"
 #include "instrumentationmodule_decl.hpp"
 
-/*! \defgroup capi_wd C/C++ API: WorkDescriptor services. */
-/*! \addtogroup capi_wd
- *  \{
- */
+//! \defgroup capi_wd WorkDescriptor services.
+//! \ingroup capi
+//! \{
 
 using namespace nanos;
 
@@ -63,7 +62,7 @@ NANOS_API_DEF(nanos_wd_t, nanos_current_wd, (void))
 NANOS_API_DEF(void *, nanos_smp_factory, ( void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * )new ext::SMPDD( smp->outline );
+   return ( void * ) NEW ext::SMPDD( smp->outline );
 }
 
 /*! \brief Returns the id of the specified WD.
@@ -296,7 +295,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       char pmData[pmDataSize];
       if ( pmDataSize > 0 ) {
         sys.getPMInterface().initInternalData( pmData );
-        wd.setInternalData(pmData);
+        wd.setInternalData(pmData, /* ownedByWD */ false);
       }
 
       sys.setupWD( wd, myThread->getCurrentWD() );
@@ -552,6 +551,4 @@ NANOS_API_DEF(nanos_err_t, nanos_set_final, ( bool value ))
     return NANOS_OK;
 }
 
-/*!
- * \}
- */ 
+//! \}

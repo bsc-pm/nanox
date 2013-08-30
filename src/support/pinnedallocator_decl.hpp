@@ -69,7 +69,8 @@ namespace nanos {
          Lock                       _lock;
 
       public:
-         PinnedAllocator( PinnedMemoryManager * manager );
+         PinnedAllocator ( PinnedMemoryManager * manager );
+        ~PinnedAllocator () { delete _manager; }
 
          void * allocate( size_t size );
 

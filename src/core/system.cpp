@@ -65,7 +65,7 @@ System::System () :
       _pmInterface( NULL ), _useCaches( true ), _cachePolicy( System::DEFAULT ), _cacheMap()
 
 #ifdef GPU_DEV
-      , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
+      , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
@@ -259,51 +259,63 @@ void System::config ()
       _pmInterface = NEW PMInterface();
    }
 
-   verbose0 ( "Preparing library configuration" );
+   //! Declare all configuration core's flags
+   verbose0( "Preparing library configuration" );
 
-   cfg.setOptionsSection ( "Core", "Core options of the core of Nanos++ runtime" );
+   cfg.setOptionsSection( "Core", "Core options of the core of Nanos++ runtime" );
 
-   cfg.registerConfigOption ( "num_pes", NEW Config::UintVar( _numPEs ), "Defines the number of processing elements" );
-   cfg.registerArgOption ( "num_pes", "pes" );
-   cfg.registerEnvOption ( "num_pes", "NX_PES" );
+   cfg.registerConfigOption( "num_pes", NEW Config::UintVar( _numPEs ),
+                             "Defines the number of processing elements" );
+   cfg.registerArgOption( "num_pes", "pes" );
+   cfg.registerEnvOption( "num_pes", "NX_PES" );
 
-   cfg.registerConfigOption ( "num_threads", NEW Config::PositiveVar( _numThreads ), "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
-   cfg.registerArgOption ( "num_threads", "threads" );
-   cfg.registerEnvOption ( "num_threads", "NX_THREADS" );
+   cfg.registerConfigOption( "num_threads", NEW Config::PositiveVar( _numThreads ),
+                             "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
+   cfg.registerArgOption( "num_threads", "threads" );
+   cfg.registerEnvOption( "num_threads", "NX_THREADS" );
    
-   cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ), "Number of cores per socket." );
+   cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ),
+                             "Number of cores per socket." );
    cfg.registerArgOption( "cores-per-socket", "cores-per-socket" );
    
-   cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ), "Number of sockets available." );
+   cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ),
+                             "Number of sockets available." );
    cfg.registerArgOption( "num-sockets", "num-sockets" );
    
-   cfg.registerConfigOption ( "hwloc-topology", NEW Config::StringVar( _topologyPath ), "Overrides hwloc's topology discovery and uses the one provided by an XML file." );
-   cfg.registerArgOption ( "hwloc-topology", "hwloc-topology" );
-   cfg.registerEnvOption ( "hwloc-topology", "NX_HWLOC_TOPOLOGY_PATH" );
+   cfg.registerConfigOption( "hwloc-topology", NEW Config::StringVar( _topologyPath ),
+                             "Overrides hwloc's topology discovery and uses the one provided by an XML file." );
+   cfg.registerArgOption( "hwloc-topology", "hwloc-topology" );
+   cfg.registerEnvOption( "hwloc-topology", "NX_HWLOC_TOPOLOGY_PATH" );
    
 
-   cfg.registerConfigOption ( "stack-size", NEW Config::PositiveVar( _deviceStackSize ), "Defines the default stack size for all devices" );
-   cfg.registerArgOption ( "stack-size", "stack-size" );
-   cfg.registerEnvOption ( "stack-size", "NX_STACK_SIZE" );
+   cfg.registerConfigOption( "stack-size", NEW Config::PositiveVar( _deviceStackSize ),
+                             "Defines the default stack size for all devices" );
+   cfg.registerArgOption( "stack-size", "stack-size" );
+   cfg.registerEnvOption( "stack-size", "NX_STACK_SIZE" );
 
-   cfg.registerConfigOption ( "binding-start", NEW Config::IntegerVar ( _bindingStart ), "Set initial cpu id for binding (binding required)" );
-   cfg.registerArgOption ( "binding-start", "binding-start" );
-   cfg.registerEnvOption ( "binding-start", "NX_BINDING_START" );
+   cfg.registerConfigOption( "binding-start", NEW Config::IntegerVar ( _bindingStart ),
+                             "Set initial cpu id for binding (binding required)" );
+   cfg.registerArgOption( "binding-start", "binding-start" );
+   cfg.registerEnvOption( "binding-start", "NX_BINDING_START" );
 
-   cfg.registerConfigOption ( "binding-stride", NEW Config::IntegerVar ( _bindingStride ), "Set binding stride (binding required)" );
-   cfg.registerArgOption ( "binding-stride", "binding-stride" );
-   cfg.registerEnvOption ( "binding-stride", "NX_BINDING_STRIDE" );
+   cfg.registerConfigOption( "binding-stride", NEW Config::IntegerVar ( _bindingStride ),
+                             "Set binding stride (binding required)" );
+   cfg.registerArgOption( "binding-stride", "binding-stride" );
+   cfg.registerEnvOption( "binding-stride", "NX_BINDING_STRIDE" );
 
-   cfg.registerConfigOption ( "no-binding", NEW Config::FlagOption( _bindThreads, false ), "Disables thread binding" );
-   cfg.registerArgOption ( "no-binding", "disable-binding" );
+   cfg.registerConfigOption( "no-binding", NEW Config::FlagOption( _bindThreads, false ),
+                             "Disables thread binding" );
+   cfg.registerArgOption( "no-binding", "disable-binding" );
 
-   cfg.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false ), "Do not yield on idle and condition waits" );
-   cfg.registerArgOption ( "no-yield", "disable-yield" );
+   cfg.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false ),
+                             "Do not yield on idle and condition waits" );
+   cfg.registerArgOption( "no-yield", "disable-yield" );
 
-   cfg.registerConfigOption ( "verbose", NEW Config::FlagOption( _verboseMode ), "Activates verbose mode" );
-   cfg.registerArgOption ( "verbose", "verbose" );
+   cfg.registerConfigOption( "verbose", NEW Config::FlagOption( _verboseMode ),
+                             "Activates verbose mode" );
+   cfg.registerArgOption( "verbose", "verbose" );
 
-   /*! \bug implement execution modes (#146) */
+//! \bug implement execution modes (#146) */
 #if 0
    cfg::MapVar<ExecutionMode> map( _executionMode );
    map.addOption( "dedicated", DEDICATED).addOption( "shared", SHARED );
@@ -311,67 +323,81 @@ void System::config ()
    cfg.registerArgOption ( "exec_mode", "mode" );
 #endif
 
-   registerPluginOption( "schedule", "sched", _defSchedule, "Defines the scheduling policy", cfg );
-   cfg.registerArgOption ( "schedule", "schedule" );
-   cfg.registerEnvOption ( "schedule", "NX_SCHEDULE" );
+   registerPluginOption( "schedule", "sched", _defSchedule,
+                         "Defines the scheduling policy", cfg );
+   cfg.registerArgOption( "schedule", "schedule" );
+   cfg.registerEnvOption( "schedule", "NX_SCHEDULE" );
 
-   registerPluginOption( "throttle", "throttle", _defThrottlePolicy, "Defines the throttle policy", cfg );
-   cfg.registerArgOption ( "throttle", "throttle" );
-   cfg.registerEnvOption ( "throttle", "NX_THROTTLE" );
+   registerPluginOption( "throttle", "throttle", _defThrottlePolicy,
+                         "Defines the throttle policy", cfg );
+   cfg.registerArgOption( "throttle", "throttle" );
+   cfg.registerEnvOption( "throttle", "NX_THROTTLE" );
 
-   cfg.registerConfigOption ( "barrier", NEW Config::StringVar ( _defBarr ), "Defines barrier algorithm" );
-   cfg.registerArgOption ( "barrier", "barrier" );
-   cfg.registerEnvOption ( "barrier", "NX_BARRIER" );
+   cfg.registerConfigOption( "barrier", NEW Config::StringVar ( _defBarr ),
+                             "Defines barrier algorithm" );
+   cfg.registerArgOption( "barrier", "barrier" );
+   cfg.registerEnvOption( "barrier", "NX_BARRIER" );
 
-   registerPluginOption( "instrumentation", "instrumentation", _defInstr, "Defines instrumentation format", cfg );
-   cfg.registerArgOption ( "instrumentation", "instrumentation" );
-   cfg.registerEnvOption ( "instrumentation", "NX_INSTRUMENTATION" );
+   registerPluginOption( "instrumentation", "instrumentation", _defInstr,
+                         "Defines instrumentation format", cfg );
+   cfg.registerArgOption( "instrumentation", "instrumentation" );
+   cfg.registerEnvOption( "instrumentation", "NX_INSTRUMENTATION" );
 
-   cfg.registerConfigOption ( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false), "Disables synchronized start" );
-   cfg.registerArgOption ( "no-sync-start", "disable-synchronized-start" );
+   cfg.registerConfigOption( "no-sync-start", NEW Config::FlagOption( _synchronizedStart, false),
+                             "Disables synchronized start" );
+   cfg.registerArgOption( "no-sync-start", "disable-synchronized-start" );
 
-   cfg.registerConfigOption ( "architecture", NEW Config::StringVar ( _defArch ), "Defines the architecture to use (smp by default)" );
-   cfg.registerArgOption ( "architecture", "architecture" );
-   cfg.registerEnvOption ( "architecture", "NX_ARCHITECTURE" );
+   cfg.registerConfigOption( "architecture", NEW Config::StringVar ( _defArch ),
+                             "Defines the architecture to use (smp by default)" );
+   cfg.registerArgOption( "architecture", "architecture" );
+   cfg.registerEnvOption( "architecture", "NX_ARCHITECTURE" );
 
-   cfg.registerConfigOption ( "no-caches", NEW Config::FlagOption( _useCaches, false ), "Disables the use of caches" );
-   cfg.registerArgOption ( "no-caches", "disable-caches" );
+   cfg.registerConfigOption( "no-caches", NEW Config::FlagOption( _useCaches, false ), "Disables the use of caches" );
+   cfg.registerArgOption( "no-caches", "disable-caches" );
 
    CachePolicyConfig *cachePolicyCfg = NEW CachePolicyConfig ( _cachePolicy );
    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
    cachePolicyCfg->addOption("wb", System::WRITE_BACK );
    cachePolicyCfg->addOption( "nocache", System::NONE );
 
-   cfg.registerConfigOption ( "cache-policy", cachePolicyCfg, "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
-   cfg.registerArgOption ( "cache-policy", "cache-policy" );
-   cfg.registerEnvOption ( "cache-policy", "NX_CACHE_POLICY" );
+   cfg.registerConfigOption( "cache-policy", cachePolicyCfg,
+                             "Defines the general cache policy to use: write-through / write-back. Can be overwritten for specific architectures" );
+   cfg.registerArgOption( "cache-policy", "cache-policy" );
+   cfg.registerEnvOption( "cache-policy", "NX_CACHE_POLICY" );
    
-   registerPluginOption( "deps", "deps", _defDepsManager, "Defines the dependencies plugin", cfg );
-   cfg.registerArgOption ( "deps", "deps" );
-   cfg.registerEnvOption ( "deps", "NX_DEPS" );
+   registerPluginOption( "deps", "deps", _defDepsManager,
+                         "Defines the dependencies plugin", cfg );
+   cfg.registerArgOption( "deps", "deps" );
+   cfg.registerEnvOption( "deps", "NX_DEPS" );
    
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-   cfg.registerConfigOption ( "instrument-default", NEW Config::StringVar ( _instrumentDefault ), "Set instrumentation event list default (none, all)" );
-   cfg.registerArgOption ( "instrument-default", "instrument-default" );
+   cfg.registerConfigOption( "instrument-default", NEW Config::StringVar ( _instrumentDefault ),
+                             "Set instrumentation event list default (none, all)" );
+   cfg.registerArgOption( "instrument-default", "instrument-default" );
 
-   cfg.registerConfigOption ( "instrument-enable", NEW Config::StringVarList ( _enableEvents ), "Add events to instrumentation event list" );
-   cfg.registerArgOption ( "instrument-enable", "instrument-enable" );
+   cfg.registerConfigOption( "instrument-enable", NEW Config::StringVarList ( _enableEvents ),
+                             "Add events to instrumentation event list" );
+   cfg.registerArgOption( "instrument-enable", "instrument-enable" );
 
-   cfg.registerConfigOption ( "instrument-disable", NEW Config::StringVarList ( _disableEvents ), "Remove events to instrumentation event list" );
-   cfg.registerArgOption ( "instrument-disable", "instrument-disable" );
+   cfg.registerConfigOption( "instrument-disable", NEW Config::StringVarList ( _disableEvents ),
+                             "Remove events to instrumentation event list" );
+   cfg.registerArgOption( "instrument-disable", "instrument-disable" );
 
-   cfg.registerConfigOption ( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ), "Add cpuid event when binding is disabled (expensive)" );
-   cfg.registerArgOption ( "instrument-cpuid", "instrument-cpuid" );
+   cfg.registerConfigOption( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ),
+                             "Add cpuid event when binding is disabled (expensive)" );
+   cfg.registerArgOption( "instrument-cpuid", "instrument-cpuid" );
 #endif
 
-   cfg.registerConfigOption ( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ), "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
-   cfg.registerArgOption ( "enable-dlb", "enable-dlb" );
+   cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ),
+                              "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
+   cfg.registerArgOption( "enable-dlb", "enable-dlb" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
    verbose0 ( "Reading Configuration" );
+
    cfg.init();
 }
 
@@ -385,7 +411,7 @@ void System::start ()
 {
    if ( !_useCaches ) _cachePolicy = System::NONE;
    
-   // Load hwloc now, in order to make it available for modules
+   //! Load hwloc first, in order to make it available for modules
    if ( isHwlocAvailable() )
       loadHwloc();
 
@@ -468,7 +494,7 @@ void System::start ()
    }
    
    // For each plugin create PEs and workers
-   // FIXME (855)
+   //! \bug  FIXME (#855)
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
    {
@@ -548,6 +574,7 @@ void System::start ()
    std::string unrecog = Config::getOrphanOptions();
    if ( !unrecog.empty() )
       warning( "Unrecognised arguments: " << unrecog );
+   Config::deleteOrphanOptions();
       
    // hwloc can be now unloaded
    if ( isHwlocAvailable() )
@@ -599,12 +626,11 @@ void System::finish ()
 
    /* System mem free */
 
+   delete[] _lockPool;
+
    /* deleting master WD */
-   if ( getMyThreadSafe()->getCurrentWD()->getInternalData() )
-      delete[] (char *) getMyThreadSafe()->getCurrentWD()->getInternalData();
-   /* delete all of it */
-   getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
-   delete (char *) getMyThreadSafe()->getCurrentWD();
+   //getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
+   delete (WorkDescriptor *) (getMyThreadSafe()->getCurrentWD());
 
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
@@ -633,6 +659,11 @@ void System::finish ()
    
    /* unload modules */
    unloadModules();
+
+   delete _dependenciesManager;
+
+   // Deleting last processing element
+   delete _pes[0];
 
    if ( allocator != NULL ) free (allocator);
 
@@ -787,6 +818,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
                              num_copies, (copies != NULL)? *copies : NULL, translate_args, desc );
    // Set WD's socket
    wd->setSocket( getCurrentSocket() );
+   
+   // Set total size
+   wd->setTotalSize(total_size );
    
    if ( getCurrentSocket() >= sys.getNumSockets() )
       throw NANOS_INVALID_PARAM;
@@ -962,6 +996,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
                                          outline_data != NULL ? *outline_data : NULL, num_copies, (copies == NULL) ? NULL : *copies, desc );
    // Set WD's socket
    wd->setSocket(  getCurrentSocket() );
+
+   // Set total size
+   wd->setTotalSize(total_size );
    
    if ( getCurrentSocket() >= sys.getNumSockets() )
       throw NANOS_INVALID_PARAM;
@@ -1091,6 +1128,9 @@ void System::duplicateWD ( WD **uwd, WD *wd)
    //FIXME jbueno (#758) should we have to take into account dimensions?
    new (*uwd) WD( *wd, dev_ptrs, wdCopies, data );
 
+   // Set total size
+   (*uwd)->setTotalSize(total_size );
+   
    // initializing internal data
    if ( size_PMD != 0) {
       _pmInterface->initInternalData( chunk + offset_PMD );
@@ -1180,6 +1220,9 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
    // creating new SlicedWD 
    new (*uwd) SlicedWD( *(wd->getSlicer()), *((WD *)wd), dev_ptrs, wdCopies, data );
 
+   // Set total size
+   (*uwd)->setTotalSize(total_size );
+   
    // initializing internal data
    if ( size_PMD != 0) {
       _pmInterface->initInternalData( chunk + offset_PMD );
@@ -1266,7 +1309,7 @@ void System::createWorker( unsigned p )
    _pmInterface->setupWD( threadWD );
 }
 
-BaseThread * System:: getUnassignedWorker ( void )
+BaseThread * System::getUnassignedWorker ( void )
 {
    BaseThread *thread;
 

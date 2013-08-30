@@ -98,6 +98,35 @@ namespace nanos {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 
+//! \class InstrumentationContext
+//! \brief InstrumentationContext keeps all the instrumentation data related with each WorkDescriptor.
+/*! \description The InstrumentationContext is the responsible of keeping a history of state transitions, still opened bursts or delayed event list. InstrumentationContext is implemented through two different classes: InstrumentationContext (which defines the behavior of this component) and InstrumentationContextData (which actually keeps the information and it is embedded in the WorkDescriptor class).
+ *
+ * InstrumentationContext behaviour is defined by the plugin itself and has several implementation according with State and Burst generation scheme. These two elements can have different behavior in a context switch. In one case we want only to generate the last event of this type (this is the usual implementation) but in other cases we wanted to generate a complete sequence of events of the same type in the same order they occur (this is the showing stacked event behavior). Currently they are four InstrumentationContext implementations:
+ *
+ * - InstrumentationContext
+ * - InstrumentationContextStackedStates
+ * - InstrumentationContextStackedBursts
+ * - InstrumentationContextStackedStatesAndBursts
+ *
+ * The plugin itself is responsible for defining the InstrumentationContext behaviour by defining an object of this class and initializing the field _instrumentationContext with a reference to it. Example:
+ *
+ * \code
+ * class InstrumentationExample: public Instrumentation
+ * {
+ *    private:
+ *       InstrumentationContextStackedBursts _icLocal;
+ *     public:
+ *       InstrumentationExtrae() : Instrumentation(), _icLocal()
+ *       {
+ *          _instrumentationContext = &_icLocal;
+ *       }
+ *       .
+ *       .
+ *       .
+ * } 
+ * \endcode
+ */
    class InstrumentationContext {
       protected:
          friend class Instrumentation;
