@@ -56,14 +56,17 @@ namespace nanos {
             {
                /*! queue of ready tasks to be executed */
                unsigned int _cacheId;
+               ProcessingElement * _pe;
                bool _init;
 
-               ThreadData () : _cacheId(0), _init(false) {}
+               ThreadData () : _cacheId(0), _pe( NULL ), _init(false) {}
                virtual ~ThreadData () {
                }
             };
 
-            /* disable copy and assigment */
+            ThreadData ** _memSpaces;
+
+            /* disable copy and assignment */
             explicit CacheSchedPolicy ( const CacheSchedPolicy & );
             const CacheSchedPolicy & operator= ( const CacheSchedPolicy & );
 
@@ -81,6 +84,12 @@ namespace nanos {
             {
                /* Queue 0 will be the global one */
                _numQueues = sys.getCacheMap().getSize() + 1;
+
+               _memSpaces = NEW ThreadData *[_numQueues];
+
+               for ( unsigned int i = 0; i < _numQueues; i++ ) {
+                  _memSpaces[i] = NULL;
+               }
 
                return NEW TeamData( _numQueues );
             }
@@ -101,6 +110,7 @@ namespace nanos {
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                if ( !data._init ) {
                   data._cacheId = thread->runningOn()->getMemorySpaceId();
+                  data._pe = thread->runningOn();
                   data._init = true;
                }
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -110,6 +120,39 @@ namespace nanos {
                    tdata._readyQueues[index].push_back ( &wd );
                    return;
                }
+
+               // Check if there is only one memory space where this WD can be run
+               unsigned int executors = 0;
+               int candidate = -1;
+
+               if ( _memSpaces[0] == NULL ) {
+                  for ( int w = 0; w < sys.getNumWorkers(); w++ ) {
+                     BaseThread * worker = sys.getWorker( w );
+                     ThreadData * wdata = ( ThreadData * ) worker->getTeamData()->getScheduleData();
+
+                     if ( !wdata->_init ) {
+                        wdata->_cacheId = worker->runningOn()->getMemorySpaceId();
+                        wdata->_pe = worker->runningOn();
+                        wdata->_init = true;
+                     }
+
+                     _memSpaces[wdata->_cacheId] = wdata;
+                  }
+               }
+
+               for ( unsigned int i = 0; i < _numQueues; i++ ) {
+                  if ( wd.canRunIn( *_memSpaces[i]->_pe ) ) {
+                     executors++;
+                     candidate = _memSpaces[i]->_cacheId;
+                  }
+               }
+
+               // If we found only one memory space, push this WD to its queue
+               if ( executors == 1 ) {
+                  tdata._readyQueues[candidate].push_back( &wd );
+                  return;
+               }
+
 
                tdata._globalQueue.push_back ( &wd );
             }
@@ -125,6 +168,7 @@ namespace nanos {
                 ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                 if ( !data._init ) {
                    data._cacheId = thread->runningOn()->getMemorySpaceId();
+                   data._pe = thread->runningOn();
                    data._init = true;
                 }
                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -137,7 +181,7 @@ namespace nanos {
 
                 if ( wd.getNumCopies() > 0 ) {
                    unsigned int numCaches = _numQueues - 1; //sys.getCacheMap().getSize();
-                   unsigned int ranks[numCaches];
+                   int ranks[numCaches];
                    for (unsigned int i = 0; i < numCaches; i++ ) {
                       ranks[i] = 0;
                    }
@@ -159,8 +203,8 @@ namespace nanos {
 
                                   for ( unsigned int j = 0; j < numCaches; j++ ) {
                                      if ( de->getAccess( j+1 ) > 0 ) {
-                                        ranks[j] += copies[i].getSize() * copies[i].isInput()
-                                              + copies[i].getSize() * copies[i].isOutput();
+                                        ranks[j] += copies[i].isInput() ? copies[i].getSize() : 0;
+                                        ranks[j] += copies[i].isOutput() ? copies[i].getSize() : 0;
                                      }
                                   }
                                }
@@ -169,8 +213,16 @@ namespace nanos {
                       }
                    }
 
+                   // Do not consider those memory spaces where the WD cannot be run
+                   // due to its device type
+                   for (unsigned int i = 0; i < numCaches; i++ ) {
+                      if ( !wd.canRunIn( *_memSpaces[i]->_pe ) ) {
+                         ranks[i] = -1;
+                      }
+                   }
+
                    unsigned int winner;
-                   unsigned int maxRank = 0;
+                   int maxRank = 0;
 
                    // Alternate the visiting order (from first to last and from last to first)
                    if ( _order ) {
@@ -231,6 +283,7 @@ namespace nanos {
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                if ( !data._init ) {
                   data._cacheId = thread->runningOn()->getMemorySpaceId();
+                  data._pe = thread->runningOn();
                   data._init = true;
                }
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -264,6 +317,7 @@ namespace nanos {
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
          if ( !data._init ) {
             data._cacheId = thread->runningOn()->getMemorySpaceId();
+            data._pe = thread->runningOn();
             data._init = true;
          }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
