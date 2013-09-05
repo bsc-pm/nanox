@@ -93,8 +93,12 @@ inline void RegionCache::unpin( global_reg_t const &hostMem ) {
    }
 }
 
-inline unsigned int RegionCache::getInvalidationCount() const {
-   return _invalidationCount.value();
+inline unsigned int RegionCache::getSoftInvalidationCount() const {
+   return _softInvalidationCount.value();
+}
+
+inline unsigned int RegionCache::getHardInvalidationCount() const {
+   return _hardInvalidationCount.value();
 }
 
 

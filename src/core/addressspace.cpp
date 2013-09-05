@@ -155,8 +155,12 @@ memory_space_id_t SeparateAddressSpace::getMemorySpaceId() const {
    return _cache.getMemorySpaceId();
 }
 
-unsigned int SeparateAddressSpace::getInvalidationCount() const {
-   return _cache.getInvalidationCount();
+unsigned int SeparateAddressSpace::getSoftInvalidationCount() const {
+   return _cache.getSoftInvalidationCount();
+}
+
+unsigned int SeparateAddressSpace::getHardInvalidationCount() const {
+   return _cache.getHardInvalidationCount();
 }
 
 bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations ) {

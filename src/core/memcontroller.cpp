@@ -10,7 +10,7 @@
 #endif
 
 namespace nanos {
-MemController::MemController( WD const &wd ) : _initialized( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions() {
+MemController::MemController( WD const &wd ) : _initialized( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions(), _affinityScore( 0 ), _maxAffinityScore( 0 )  {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -216,6 +216,35 @@ bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInv
    } else {
       return true;
    }
+}
+
+
+void MemController::setAffinityScore( std::size_t score ) {
+   _affinityScore = score;
+}
+
+std::size_t MemController::getAffinityScore() const {
+   return _affinityScore;
+}
+
+void MemController::setMaxAffinityScore( std::size_t score ) {
+   _maxAffinityScore = score;
+}
+
+std::size_t MemController::getMaxAffinityScore() const {
+   return _maxAffinityScore;
+}
+
+std::size_t MemController::getAmountOfTransferredData() const {
+   return ( _inOps != NULL ) ? _inOps->getAmountOfTransferredData() : 0 ;
+}
+
+std::size_t MemController::getTotalAmountOfData() const {
+   std::size_t total = 0;
+   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+      total += _memCacheCopies[ index ]._reg.getDataSize();
+   }
+   return total;
 }
 
 }

@@ -23,6 +23,7 @@ class BaseOps {
    bool _delayedCommit;
    std::set< OwnOp > _ownDeviceOps;
    std::set< DeviceOps * > _otherDeviceOps;
+   std::size_t _amountOfTransferredData;
 
    public:
    BaseOps( bool delayedCommit );
@@ -31,6 +32,8 @@ class BaseOps {
    std::set< OwnOp > &getOwnOps();
    void insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location );
    bool isDataReady( WD const &wd );
+   std::size_t getAmountOfTransferredData() const;
+   void addAmountTransferredData(std::size_t amount);
 };
 
 class BaseAddressSpaceInOps : public BaseOps {

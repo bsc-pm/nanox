@@ -95,7 +95,7 @@ System::System () :
       , _pinnedMemoryCUDA( new CUDAPinnedMemoryManager() )
 #endif
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
-      , _lockPoolSize(37), _lockPool( NULL ), _atomicSeedMemorySpace( 1 )
+      , _lockPoolSize(37), _lockPool( NULL ), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -570,6 +570,7 @@ void System::start ()
       if ( _net.getNodeNum() == 0 )
       {
          unsigned int nodeC;
+         _nodes = NEW std::vector<nanos::ext::ClusterNode *>(_net.getNumNodes(), (nanos::ext::ClusterNode *) NULL); 
 
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
@@ -581,6 +582,7 @@ void System::start ()
             nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id );
             CPU_SET( node->getId(), &_cpu_active_set );
             _pes.push_back( node );
+            (*_nodes)[ node->getNodeNum() ] = node;
 
             _peArray[ nodeC - 1 ] = node;
          }
@@ -739,18 +741,9 @@ void System::finish ()
 
    //if ( _net.getNodeNum() == 0 )  getMasterRegionDirectory().print();
 
-   message0("Network traffic: " << sys.getNetwork()->getTotalBytes() << " bytes");
-
    // signal stop PEs
    for ( unsigned p = 0; p < _pes.size() ; p++ ) {
       _pes[p]->stopAll();
-   }
-
-   if ( _net.getNodeNum() == 0 ) {
-      message("Created " << createdWds << " WDs.");
-      for ( unsigned int idx = 1; idx < _separateMemorySpacesCount; idx += 1 ) {
-         message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getInvalidationCount() << " invalidations." );
-      }
    }
 
    verbose ( "Joining threads... phase 2" );
@@ -856,6 +849,32 @@ void System::finish ()
    //   } 
    //}
    sys.getNetwork()->nodeBarrier();
+   //for (unsigned int n = 0; n < sys.getNetwork()->getNumNodes(); n += 1) {
+   //   if ( n == sys.getNetwork()->getNodeNum() ) {
+   //      message0("Network traffic: " << sys.getNetwork()->getTotalBytes() << " bytes");
+   //   }
+   //   sys.getNetwork()->nodeBarrier();
+   //}
+
+   if ( _net.getNodeNum() == 0 ) {
+      int soft_inv = 0;
+      int hard_inv = 0;
+      unsigned int max_execd_wds = 0;
+      for ( unsigned int idx = 1; idx < _separateMemorySpacesCount; idx += 1 ) {
+         soft_inv += _separateAddressSpaces[idx]->getSoftInvalidationCount();
+         hard_inv += _separateAddressSpaces[idx]->getHardInvalidationCount();
+         max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+         //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+         //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+      }
+      message("Soft invalidations: " << soft_inv);
+      message("Hard invalidations: " << hard_inv);
+      message("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
+      message("Created " << createdWds << " WDs.");
+      float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
+      message("Balance: " << balance );
+   }
+
 
    _net.finalize();
 }

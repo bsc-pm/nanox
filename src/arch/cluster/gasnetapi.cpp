@@ -1117,8 +1117,8 @@ void GASNetAPI::finalize ()
    {
       if ( i == _net->getNodeNum() )
       {
-         message0( "Node " << _net->getNodeNum() << " stats: Rx: " << _rxBytes << " Tx: " << _txBytes );
-         verbose0( "Node "<< _net->getNodeNum() << " closing the network." );
+        // message0( "Node " << _net->getNodeNum() << " stats: Rx: " << _rxBytes << " Tx: " << _txBytes );
+        // verbose0( "Node "<< _net->getNodeNum() << " closing the network." );
       }
       nodeBarrier();
    }

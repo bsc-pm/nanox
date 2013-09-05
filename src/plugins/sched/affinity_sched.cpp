@@ -500,6 +500,7 @@ namespace nanos {
             static bool _noMaster;
             static bool _noSupport;
             static bool _noInvalAware;
+            static bool _affinityInout;
             // constructor
             CacheSchedPolicy() : SchedulePolicy ( "Cache" ) {}
 
@@ -522,6 +523,7 @@ namespace nanos {
                return NEW ThreadData();
             }
 
+            unsigned int computeAffinityScore( WD &wd, unsigned int numNodes, std::size_t *scores, std::size_t &maxPossibleScore );
             void rankWD( BaseThread *thread, WD &wd );
             void tryGetLocationData( BaseThread *thread ); 
             /*!
@@ -1128,6 +1130,15 @@ namespace nanos {
          wd = fetchWD( thread, NULL );
 
 
+         if ( wd && sys.getNetwork()->getNodeNum() == 0 ) {
+            std::size_t scores[ tdata._numNodes ];
+            std::size_t maxScore = 0;
+            unsigned int winner = computeAffinityScore( *wd, tdata._numNodes, scores, maxScore );
+            if ( scores[winner] != scores[data._cacheId] ) {
+               sys.increaseAffinityFailureCount();
+            }
+            //std::cerr << "This wd should run in " << winner << " (score of " << scores[winner] << ", will do it on " << data._cacheId << ( ( winner == data._cacheId || scores[winner] == scores[data._cacheId] ) ? " gr8" : " f4il" ) << std::endl;
+         }
 
 
          if ( !_noSteal )
@@ -1192,82 +1203,95 @@ namespace nanos {
          }
       }
 
-      void CacheSchedPolicy::rankWD( BaseThread *thread, WD &wd ) {
-         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+      unsigned int CacheSchedPolicy::computeAffinityScore( WD &wd, unsigned int numNodes, std::size_t *scores, std::size_t &maxPossibleScore ) {
          CopyData * copies = wd.getCopies();
-         unsigned int ranks[ tdata._numNodes ];
-         for (unsigned int i = 0; i < tdata._numNodes; i++ ) {
-            ranks[i] = 0;
+         for (unsigned int i = 0; i < numNodes; i++ ) {
+            scores[i] = 0;
          }
-         //std::cerr << "RANKING WD " << wd.getId() << " numCopies " << wd.getNumCopies() << std::endl;
+         maxPossibleScore = 0;
          for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-            if ( !copies[i].isPrivate() && copies[i].isInput() && copies[i].isOutput() ) {
-                  //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
-                  NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
-                  if ( locs.empty() ) {
-                     //std::cerr << "empty list, version "<<  wd._mcontrol._memCacheCopies[ i ]._version << std::endl;
-                     int loc = wd._mcontrol._memCacheCopies[ i ]._reg.getFirstLocation();
-                     ranks[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
-                  } else {
-                     for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                        int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
-                        if ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) {
-                           //std::cerr << " wd " << wd.getId() << " has write loc " << NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
-                        } else {
-                           //std::cerr << " wd " << wd.getId() << " DOES NOT have write loc " << NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
-                        }
-                        ranks[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+            if ( !copies[i].isPrivate() && (
+                     ( copies[i].isInput() && copies[i].isOutput() && _affinityInout ) || ( !_affinityInout )
+                     ) ) {
+               //NewLocationInfoList const &locs = wd._mcontrol.getCacheCopies()[ i ].getNewLocations();
+               NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
+               maxPossibleScore += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+               if ( locs.empty() ) {
+                  //std::cerr << "empty list, version "<<  wd._mcontrol._memCacheCopies[ i ]._version << std::endl;
+                  int loc = wd._mcontrol._memCacheCopies[ i ]._reg.getFirstLocation();
+                  scores[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+               } else {
+                  for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                     int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
+                     if ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) {
+                        //std::cerr << " wd " << wd.getId() << " has write loc " << NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
+                     } else {
+                        //std::cerr << " wd " << wd.getId() << " DOES NOT have write loc " << NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
                      }
+                     scores[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                   }
+               }
             } //else { std::cerr << "ignored copy "<< std::endl; }
          }
-         //if (wd.getId() > 55 ) { tdata._readyQueues[ 0 ].push_back( &wd ); return; }
-         int winner = -1;
+         unsigned int winner = (unsigned int) -1;
          unsigned int start = ( _noMaster ) ? 1 : 0 ;
-         unsigned int maxRank = 0;
-         for ( int i = start; i < ( (int) tdata._numNodes ); i++ ) {
-            if ( ranks[i] > maxRank ) {
+         std::size_t maxRank = 0;
+         for ( unsigned int i = start; i < numNodes; i++ ) {
+            if ( scores[i] > maxRank ) {
                winner = i;
-               maxRank = ranks[i];
+               maxRank = scores[i];
             }
          }
-         if ( winner == -1 )
+         if ( winner == (unsigned int) -1 )
             winner = start;
+         return winner;
+      }
+
+      void CacheSchedPolicy::rankWD( BaseThread *thread, WD &wd ) {
+         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+         std::size_t scores[ tdata._numNodes ];
+         //std::cerr << "RANKING WD " << wd.getId() << " numCopies " << wd.getNumCopies() << std::endl;
+         std::size_t max_possible_score = 0;
+         unsigned int winner = computeAffinityScore( wd, tdata._numNodes, scores, max_possible_score );
          unsigned int usage[ tdata._numNodes ];
          unsigned int ties=0;
+         std::size_t maxRank = scores[ winner ];
+         unsigned int start = ( _noMaster ) ? 1 : 0 ;
          for ( int i = start; i < ( (int) tdata._numNodes ); i++ ) {
-         //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< " this rank "<< ranks[i] << std::endl;
-            if ( ranks[i] == maxRank ) {
+         //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< " this score "<< scores[i] << std::endl;
+            if ( scores[i] == maxRank ) {
                usage[ ties ] = i;
                ties += 1;
             }
          }
          //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< std::endl;
-            if ( ties > 1 ) {
-           //    std::cerr << "I have to chose between :";
-               //for ( unsigned int ii = 0; ii < ties; ii += 1 ) fprintf(stderr, " %d", usage[ ii ] );
-               //std::cerr << std::endl;
-               unsigned int minLoad = usage[0];
-               for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
-             //     std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
+         if ( ties > 1 ) {
+            //    std::cerr << "I have to chose between :";
+            //for ( unsigned int ii = 0; ii < ties; ii += 1 ) fprintf(stderr, " %d", usage[ ii ] );
+            //std::cerr << std::endl;
+            unsigned int minLoad = usage[0];
+            for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
+               //     std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
                //   std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
-                  if ( tdata._load[ usage[ ii ] ] < tdata._load[ minLoad ] ) {
-                     minLoad = usage[ ii ];
-                  }
+               if ( tdata._load[ usage[ ii ] ] < tdata._load[ minLoad ] ) {
+                  minLoad = usage[ ii ];
                }
-               //std::cerr << "Well winner is gonna be "<< minLoad << std::endl;
-               tdata._load[ minLoad ]++;
-               winner = minLoad;
             }
-            //if (sys.getNetwork()->getNodeNum() == 0 ) { 
-            //   std::cerr << "WD: " << wd.getId() << " ROcopies: "<<ro_copies << " WOcopies: " << wo_copies << " RWcopies: " << rw_copies << " Locality results: [ ";
-            //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) std::cerr << i << ": " << (ranks[i] / (16*512*512)) << " "; 
-            //   std::cerr <<"] ties " << ties << " winner " << winner << std::endl;
-            //}
+            //std::cerr << "Well winner is gonna be "<< minLoad << std::endl;
+            tdata._load[ minLoad ]++;
+            winner = minLoad;
+         }
+         //if (sys.getNetwork()->getNodeNum() == 0 ) { 
+         //   std::cerr << "WD: " << wd.getId() << " ROcopies: "<<ro_copies << " WOcopies: " << wo_copies << " RWcopies: " << rw_copies << " Locality results: [ ";
+         //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) std::cerr << i << ": " << (scores[i] / (16*512*512)) << " "; 
+         //   std::cerr <<"] ties " << ties << " winner " << winner << std::endl;
+         //}
          //if (winner == -1) winner = start;
-         //message("queued wd " << wd.getId() << " to queue " << winner << " ranks " << ranks[0] << "," << ranks[1] << "," << ranks[2] << "," << ranks[3] );
-         //fprintf(stderr, "queued wd %d to queue %d ranks %x %x %x %x \n", wd.getId(), winner, ranks[0], ranks[1], ranks[2], ranks[3] );
+         //message("queued wd " << wd.getId() << " to queue " << winner << " scores " << scores[0] << "," << scores[1] << "," << scores[2] << "," << scores[3] );
+         //fprintf(stderr, "queued wd %d to queue %d scores %x %x %x %x \n", wd.getId(), winner, scores[0], scores[1], scores[2], scores[3] );
          //std::cerr << "the winner is " << winner << std::endl;
+         wd._mcontrol.setAffinityScore( scores[ winner ] );
+         wd._mcontrol.setMaxAffinityScore( max_possible_score );
          tdata._readyQueues[winner].push_back( &wd );
       }
 
@@ -1282,6 +1306,7 @@ namespace nanos {
       bool CacheSchedPolicy::_noMaster = false;
       bool CacheSchedPolicy::_noSupport = false;
       bool CacheSchedPolicy::_noInvalAware = false;
+      bool CacheSchedPolicy::_affinityInout = false;
 
       class CacheSchedPlugin : public Plugin
       {
@@ -1302,6 +1327,9 @@ namespace nanos {
 
                cfg.registerConfigOption ( "affinity-no-inval-aware", NEW Config::FlagOption( CacheSchedPolicy::_noInvalAware ), "Do not execute tasks on master node");
                cfg.registerArgOption( "affinity-no-inval-aware", "affinity-no-inval-aware" );
+
+               cfg.registerConfigOption ( "affinity-inout", NEW Config::FlagOption( CacheSchedPolicy::_affinityInout ), "Check affinity for inout data only");
+               cfg.registerArgOption( "affinity-inout", "affinity-inout" );
             }
 
             virtual void init() {

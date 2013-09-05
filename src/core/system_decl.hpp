@@ -47,6 +47,10 @@
 #include "pinnedallocator_decl.hpp"
 #endif
 
+#ifdef CLUSTER_DEV
+#include "clusternode_fwd.hpp"
+#endif
+
 namespace nanos
 {
 
@@ -233,6 +237,10 @@ namespace nanos
          PE * createPE ( std::string pe_type, int pid );
          Atomic<int> _atomicSeedWg;
          Atomic<int> _atomicSeedMemorySpace;
+         Atomic<unsigned int> _affinityFailureCount;
+#ifdef CLUSTER_DEV
+         std::vector<ext::ClusterNode *> *_nodes;
+#endif
 
       public:
          /*! \brief System default constructor
@@ -616,6 +624,8 @@ namespace nanos
           *  \return {True/False} depending if there are pendant writes
           */
          bool haveDependencePendantWrites ( void *addr ) const;
+         void increaseAffinityFailureCount() { _affinityFailureCount++; }
+         unsigned int getAffinityFailureCount() { return _affinityFailureCount.value(); }
    };
 
    extern System sys;

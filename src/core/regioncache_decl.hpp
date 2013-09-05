@@ -73,7 +73,7 @@ namespace nanos {
          void clearNewRegions( global_reg_t const &newAllocatedRegion );
          CacheRegionDictionary *getNewRegions();
          bool isInvalidated() const;
-         void invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess, std::set< NewNewRegionDirectory::RegionDirectoryKey > &alreadyLockedObjects );
+         bool invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess, std::set< NewNewRegionDirectory::RegionDirectoryKey > &alreadyLockedObjects );
 
          bool trylock();
          void lock( bool setVerbose=false );
@@ -120,7 +120,8 @@ namespace nanos {
          memory_space_id_t          _memorySpaceId;
          CacheOptions               _flags;
          unsigned int               _lruTime;
-         Atomic<unsigned int>       _invalidationCount;
+         Atomic<unsigned int>       _softInvalidationCount;
+         Atomic<unsigned int>       _hardInvalidationCount;
 
          typedef MemoryMap<AllocatedChunk>::MemChunkList ChunkList;
          typedef MemoryMap<AllocatedChunk>::ConstMemChunkList ConstChunkList;
@@ -201,7 +202,8 @@ namespace nanos {
          void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd );
          void allocateOutputMemory( global_reg_t const &reg, unsigned int version );
 
-         unsigned int getInvalidationCount() const;
+         unsigned int getSoftInvalidationCount() const;
+         unsigned int getHardInvalidationCount() const;
          bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations );
          bool canInvalidateToFit( std::size_t *sizes, unsigned int numChunks ) const;
          std::size_t getAllocatableSize( global_reg_t const &reg ) const;

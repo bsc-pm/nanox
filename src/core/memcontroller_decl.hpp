@@ -18,6 +18,8 @@ class MemController {
    std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
    BaseAddressSpaceInOps      *_inOps;
    SeparateAddressSpaceOutOps *_outOps;
+   std::size_t _affinityScore;
+   std::size_t _maxAffinityScore;
 
 public:
    MemCacheCopy * _memCacheCopies;
@@ -32,6 +34,12 @@ public:
    bool isDataReady( WD const &wd );
    uint64_t getAddress( unsigned int index ) const;
    bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
+   void setAffinityScore( std::size_t score );
+   std::size_t getAffinityScore() const;
+   void setMaxAffinityScore( std::size_t score );
+   std::size_t getMaxAffinityScore() const;
+   std::size_t getAmountOfTransferredData() const;
+   std::size_t getTotalAmountOfData() const;
 };
 
 }

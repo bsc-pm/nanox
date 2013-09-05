@@ -46,10 +46,30 @@ void ProcessingElement::waitInputs( WorkDescriptor &work )
       thread->idle();
       thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
    }
+   //if( sys.getNetwork()->getNodeNum() == 0 && work._mcontrol.getMaxAffinityScore() > 0) {
+   //   std::cerr << "WD " << work.getId() << " affinity score " << work._mcontrol.getAffinityScore() << " (max "<< work._mcontrol.getMaxAffinityScore() <<") and has transferred " << work._mcontrol.getAmountOfTransferredData() << " total wd data " << work._mcontrol.getTotalAmountOfData() << " dev: ";
+   //   if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) == work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " as expected " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) > work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " less than expected data transferred " <<  ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) - work._mcontrol.getAffinityScore() << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) < work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " more than expected data transferred " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   }
+   //}
 }
 
 bool ProcessingElement::testInputs( WorkDescriptor &work ) {
    bool result = work._mcontrol.isDataReady( work );
+   //if( sys.getNetwork()->getNodeNum() == 0 && work._mcontrol.getMaxAffinityScore() > 0) {
+   //   std::cerr << "WD " << work.getId() << " affinity score " << work._mcontrol.getAffinityScore() << " (max "<< work._mcontrol.getMaxAffinityScore() <<") and has transferred " << work._mcontrol.getAmountOfTransferredData() << " total wd data " << work._mcontrol.getTotalAmountOfData() << " dev: ";
+   //   if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) == work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " as expected " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) > work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " less than expected data transferred " <<  ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) - work._mcontrol.getAffinityScore() << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) < work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " more than expected data transferred " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   }
+   //}
    return result;
 }
 

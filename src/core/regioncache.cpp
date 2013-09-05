@@ -244,8 +244,8 @@ void AllocatedChunk::NEWaddWriteRegion( reg_t reg, unsigned int version ) {
 }
 
 Atomic<int> AllocatedChunk::numCall(0);
-void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess, std::set< NewNewRegionDirectory::RegionDirectoryKey > &alreadyLockedObjects ) {
-
+bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess, std::set< NewNewRegionDirectory::RegionDirectoryKey > &alreadyLockedObjects ) {
+   bool hard=false;
    NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
 
    std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator dict_it = alreadyLockedObjects.find( key );
@@ -289,6 +289,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
      //    regionsToRemoveAccess.insert( _allocatedRegion );
          if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
             //std::cerr << "AC: has to be copied!, shape = dsrc and Im the only owner!" << std::endl;
+            hard = true;
             if ( thisChunkOps->addCacheOp( /* debug: &wd */ ) ) {
                invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
                invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), _allocatedRegion, alloc_entry->getVersion(), NULL, this );
@@ -353,6 +354,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
                   } else {
                      version = NewNewRegionDirectory::getVersion( data_source.key, data_source.id, false );
                   }
+                  hard = true;
                   if ( fragment_ops->addCacheOp( /* debug: &wd */ ) ) {
                      invalOps.insertOwnOp( fragment_ops, data_source, version, 0 );
                      invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), data_source, version, NULL, this );
@@ -413,6 +415,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
                   }
                } else {
                   DeviceOps *subRegOps = subReg.getDeviceOps();
+                  hard = true;
                   if ( subRegOps->addCacheOp( /* debug: &wd */ ) ) {
                      regionsToRemoveAccess.insert( subReg );
                      invalOps.insertOwnOp( subRegOps, data_source, entry->getVersion(), 0 );
@@ -426,6 +429,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
 
             if ( subChunkInval ) {
                //FIXME I think this is wrong, can potentially affect regions that are not there, 
+               hard = true;
                if ( thisChunkOps->addCacheOp( /* debug: &wd */ ) ) { // FIXME: others may believe there's an ongoing op for the full region!
                  invalOps.insertOwnOp( thisChunkOps, data_source, entry->getVersion(), 0 );
                } else {
@@ -440,6 +444,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
          if ( _allocatedRegion.isLocatedIn( _owner.getMemorySpaceId() ) ) {
             //if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
             if ( ! _allocatedRegion.isLocatedIn( 0 ) ) { // FIXME: not optimal, but we write metadata to "allocatedRegion" entry so we must copy all to node 0 if its not there to keep it consistent!
+               hard = true;
                if ( thisChunkOps->addCacheOp( /* debug: &wd */ ) ) {
                   invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
                   alloc_entry->resetVersion();
@@ -453,8 +458,7 @@ void AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, Separat
    }
 
    //std::cerr << numCall++ << "=============> " << "Cache " << _owner.getMemorySpaceId() << " Invalidate region "<< (void*) key << ":" << _allocatedRegion.id << " reg: "; _allocatedRegion.key->printRegion( _allocatedRegion.id ); std::cerr << std::endl;
-
-   //key->unlock();
+   return hard;
 
 }
 
@@ -742,8 +746,11 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
    if ( allocChunkPtrPtr != NULL ) {
       chunks_to_invalidate.insert( allocChunkPtrPtr );
       allocChunkPtr = *allocChunkPtrPtr;
-      allocChunkPtr->invalidate( this, wd, inval_ops, regions_to_remove_access, locked_objects );
-      _invalidationCount++;
+      if ( allocChunkPtr->invalidate( this, wd, inval_ops, regions_to_remove_access, locked_objects ) ) {
+         _hardInvalidationCount++;
+      } else {
+         _softInvalidationCount++;
+      }
    } else {
       //try to invalidate a set of chunks
       unsigned int other_referenced_chunks = 0;
@@ -758,9 +765,12 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
       for ( std::set< AllocatedChunk ** >::iterator it = chunks_to_invalidate.begin(); it != chunks_to_invalidate.end(); it++ ) {
          AllocatedChunk **chunkPtr = *it;
          AllocatedChunk *chunk = *chunkPtr;
-         chunk->invalidate( this, wd, inval_ops, regions_to_remove_access, locked_objects );
+         if ( chunk->invalidate( this, wd, inval_ops, regions_to_remove_access, locked_objects ) ) {
+            _hardInvalidationCount++;
+         } else {
+            _softInvalidationCount++;
+         }
          _device.memFree( chunk->getAddress(), sys.getSeparateMemory( _memorySpaceId ) );
-         _invalidationCount++;
       }
    }
 
@@ -960,7 +970,7 @@ void RegionCache::NEWcopyOut( global_reg_t const &reg, unsigned int version, WD 
 }
 
 RegionCache::RegionCache( memory_space_id_t memSpaceId, Device &cacheArch, enum CacheOptions flags ) : _chunks(), _lock(), _device( cacheArch ), _memorySpaceId( memSpaceId ),
-    _flags( flags ), _lruTime( 0 ), _invalidationCount( 0 ), _copyInObj( *this ), _copyOutObj( *this ) {
+    _flags( flags ), _lruTime( 0 ), _softInvalidationCount( 0 ), _hardInvalidationCount( 0 ), _copyInObj( *this ), _copyOutObj( *this ) {
 }
 
 unsigned int RegionCache::getMemorySpaceId() const {

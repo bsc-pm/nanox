@@ -35,7 +35,7 @@ void BaseOps::OwnOp::commitMetadata() const {
    _reg.setLocationAndVersion( _location, _version );
 }
 
-BaseOps::BaseOps( bool delayedCommit ) : _delayedCommit( delayedCommit ), _ownDeviceOps(), _otherDeviceOps() {
+BaseOps::BaseOps( bool delayedCommit ) : _delayedCommit( delayedCommit ), _ownDeviceOps(), _otherDeviceOps(), _amountOfTransferredData( 0 ) {
 }
 
 BaseOps::~BaseOps() {
@@ -94,6 +94,14 @@ void BaseOps::insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int versio
    }
 }
 
+std::size_t BaseOps::getAmountOfTransferredData() const {
+   return _amountOfTransferredData;
+}
+
+void BaseOps::addAmountTransferredData( std::size_t amount ) {
+   _amountOfTransferredData += amount;
+}
+
 BaseAddressSpaceInOps::BaseAddressSpaceInOps( bool delayedCommit ) : BaseOps( delayedCommit ) , _separateTransfers() {
 }
 
@@ -102,6 +110,7 @@ BaseAddressSpaceInOps::~BaseAddressSpaceInOps() {
 
 void BaseAddressSpaceInOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk ) {
    TransferList &list = _separateTransfers[ from ];
+   addAmountTransferredData( reg.getDataSize() );
    list.push_back( TransferListEntry( reg, version, NULL, chunk ) );
 }
 
@@ -252,6 +261,7 @@ SeparateAddressSpaceInOps::~SeparateAddressSpaceInOps() {
 }
 
 void SeparateAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk ) {
+   addAmountTransferredData( reg.getDataSize() );
    _hostTransfers.push_back( TransferListEntry( reg, version, NULL, chunk ) );
 }
 

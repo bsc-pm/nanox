@@ -34,10 +34,10 @@ extern "C" {
 #else
 #ifdef CLUSTER_DEV
       /* no GPU_DEV & CLUSTER_DEV */
-      return sys.MaxThreads() + nanos::ext::ClusterInfo::getExtraPEsCount();
+      return sys.getMaxThreads() + nanos::ext::ClusterInfo::getExtraPEsCount();
 #else
       /* no GPU_DEV & no CLUSTER_DEV */
-      return sys.MaxThreads();
+      return sys.getMaxThreads();
 #endif
 #endif
    }
