@@ -98,7 +98,6 @@ namespace ext
          GPUProcessor( const GPUProcessor &pe );
          const GPUProcessor & operator= ( const GPUProcessor &pe );
 
-         size_t getMaxMemoryAvailable ( int id );
 
       public:
          //! Constructors
@@ -185,6 +184,7 @@ namespace ext
             while ( !_initialized ) { }
          }
          //virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
+         std::size_t getMaxMemoryAvailable () const;
    };
 
 }

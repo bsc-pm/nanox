@@ -20,6 +20,7 @@
 
 #include "gpudevice.hpp"
 #include "gpuutils.hpp"
+#include "gpuconfig.hpp"
 #include "gpumemoryspace_decl.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
@@ -357,4 +358,9 @@ void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::siz
 
 void GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const {
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
+}
+std::size_t GPUDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) const {
+   ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
+   ext::GPUProcessor *gpu = gpuMemData->getGPU();
+   return gpu->getMaxMemoryAvailable();
 }

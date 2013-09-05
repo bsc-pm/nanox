@@ -138,7 +138,7 @@ void GPUProcessor::freeWholeMemory()
    _gpuMemory.getAllocator()->free( baseAddress );
 }
 
-size_t GPUProcessor::getMaxMemoryAvailable ( int id )
+std::size_t GPUProcessor::getMaxMemoryAvailable () const
 {
    return _gpuProcessorInfo->getMaxMemoryAvailable();
 }
