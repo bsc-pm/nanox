@@ -126,6 +126,11 @@ void GPUConfig::apply()
       _enableCUDA=( sys.getOmpssUsesCuda()!=0);
    }
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
+      bool mercuriumHasTasks=( sys.getOmpssUsesCuda()!=0);
+      if (mercuriumHasTasks){
+         message0(" CUDA tasks were compiled and CUDA was disabled, execution"
+               " could have unexpected behavior and can even hang, check configuration parameters");
+      }
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
       _prefetch = false;
@@ -229,6 +234,16 @@ void GPUConfig::apply()
          verbose0( "Initializing CUBLAS Library" );
          if ( !sys.loadPlugin( "gpu-cublas" ) ) {
             warning0( "Couldn't initialize CUBLAS library at runtime startup" );
+         }
+      }
+      
+      if (_numGPUs==0){
+         bool mercuriumHasTasks=( sys.getOmpssUsesCuda()!=0);
+         if (mercuriumHasTasks){
+            message0(" CUDA tasks were compiled and no CUDA devices were found, execution"
+                    " could have unexpected behavior and can even hang");
+         } else {
+             message0(" CUDA plugin was enabled and no CUDA devices were found ");
          }
       }
    }
