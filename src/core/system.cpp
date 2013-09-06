@@ -860,19 +860,23 @@ void System::finish ()
       int soft_inv = 0;
       int hard_inv = 0;
       unsigned int max_execd_wds = 0;
-      for ( unsigned int idx = 1; idx < _separateMemorySpacesCount; idx += 1 ) {
-         soft_inv += _separateAddressSpaces[idx]->getSoftInvalidationCount();
-         hard_inv += _separateAddressSpaces[idx]->getHardInvalidationCount();
-         max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-         //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-         //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+      if ( _nodes ) {
+         for ( unsigned int idx = 1; idx < _nodes->size(); idx += 1 ) {
+            soft_inv += _separateAddressSpaces[(*_nodes)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
+            hard_inv += _separateAddressSpaces[(*_nodes)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
+            max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+         }
       }
       message("Soft invalidations: " << soft_inv);
       message("Hard invalidations: " << hard_inv);
       message("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
       message("Created " << createdWds << " WDs.");
-      float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
-      message("Balance: " << balance );
+      if ( max_execd_wds > 0 ) {
+         float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
+         message("Balance: " << balance );
+      }
    }
 
 
