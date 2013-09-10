@@ -694,6 +694,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
       message0( "Got results.size()="<< results.size() << " I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
       for ( ChunkList::iterator it = results.begin(); it != results.end(); it++ )
          std::cerr << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
+      fatal("Realloc needed.");
    } else {
       if ( *(results.front().second) == NULL ) {
 
@@ -932,6 +933,7 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
       message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
       for ( ConstChunkList::const_iterator it = results.begin(); it != results.end(); it++ )
          std::cerr << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
+      fatal("Realloc needed.");
    }
    if ( !allocChunkPtr && complain ) {
       sys.printBt(); std::cerr << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( reg.id ); std::cerr << std::endl;

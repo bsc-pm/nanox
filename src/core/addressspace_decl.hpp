@@ -82,7 +82,7 @@ class SeparateAddressSpace {
    void        *_sdata;
    
    public:
-   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch );
+   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide );
 
    bool lockForTransfer( global_reg_t const &reg, unsigned int version );
    void releaseForTransfer( global_reg_t const &reg, unsigned int version );
@@ -127,7 +127,7 @@ template <class T>
 class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
-   MemSpace<T>( memory_space_id_t memSpaceId, Device &d );
+   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide );
    void copy( MemSpace< SeparateAddressSpace > &from, TransferList list, WD const &wd, bool inval = false );
    void releaseRegions( MemSpace< SeparateAddressSpace > &from, TransferList list, WD const &wd );
 };

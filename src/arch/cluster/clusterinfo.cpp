@@ -19,6 +19,7 @@ std::size_t * ClusterInfo::_pinnedSegmentLenList = NULL;
 unsigned int ClusterInfo::_extraPEsCount = 0;
 std::string ClusterInfo::_conduit;
 std::size_t ClusterInfo::_nodeMem = DEFAULT_NODE_MEM;
+bool ClusterInfo::_allocWide = false;
 int ClusterInfo::_gpuPresend = 1;
 int ClusterInfo::_smpPresend = 1;
 System::CachePolicyType ClusterInfo::_cachePolicy = System::DEFAULT;
@@ -89,6 +90,9 @@ void ClusterInfo::prepare( Config& cfg ) {
    cfg.registerArgOption ( "node-memory", "cluster-node-memory" );
    cfg.registerEnvOption ( "node-memory", "NX_CLUSTER_NODE_MEMORY" );
 
+   cfg.registerConfigOption ( "cluster-alloc-wide", NEW Config::FlagOption( _allocWide ), "Allocate full objects.");
+   cfg.registerArgOption( "cluster-alloc-wide", "cluster-alloc-wide" );
+
    cfg.registerConfigOption ( "cluster-gpu-presend", NEW Config::IntegerVar ( _gpuPresend ), "Number of Tasks to be sent to a remote node without waiting waiting any completion (GPU)." );
    cfg.registerArgOption ( "cluster-gpu-presend", "cluster-gpu-presend" );
    cfg.registerEnvOption ( "cluster-gpu-presend", "NX_CLUSTER_GPU_PRESEND" );
@@ -127,4 +131,8 @@ System::CachePolicyType ClusterInfo::getCachePolicy ( void ) {
 
 RemoteWorkGroup * ClusterInfo::getRemoteWorkGroup( int archId ) {
    return NEW RemoteWorkGroup( archId );
+}
+
+bool ClusterInfo::getAllocWide() {
+   return _allocWide;
 }

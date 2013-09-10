@@ -21,6 +21,7 @@ namespace nanos {
             static unsigned int _extraPEsCount;
             static std::string _conduit;
             static std::size_t _nodeMem;
+            static bool _allocWide;
             static int _gpuPresend;
             static int _smpPresend;
             static System::CachePolicyType _cachePolicy;
@@ -45,6 +46,7 @@ namespace nanos {
             static void setUpCache();
             static System::CachePolicyType getCachePolicy ( void );
             static RemoteWorkGroup * getRemoteWorkGroup( int archId );
+            static bool getAllocWide();
       };
    }
 }

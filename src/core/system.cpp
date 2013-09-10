@@ -529,7 +529,7 @@ void System::start ()
    //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
       memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-      SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU );
+      SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU, false );
       gpuMemory->setNodeNumber( 0 );
       ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
       gpuMemory->setSpecificData( gpuMemSpace );
@@ -575,7 +575,7 @@ void System::start ()
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
       memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-      SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster );
+      SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster, nanos::ext::ClusterInfo::getAllocWide() );
       nodeMemory->setSpecificData( NEW SimpleAllocator( ( uintptr_t ) nanos::ext::ClusterInfo::getSegmentAddr( nodeC ), nanos::ext::ClusterInfo::getSegmentLen( nodeC ) ) );
       nodeMemory->setNodeNumber( nodeC );
       _separateAddressSpaces[ id ] = nodeMemory;

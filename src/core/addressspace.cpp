@@ -10,7 +10,7 @@ MemSpace< HostAddressSpace >::MemSpace( Device &d ) : HostAddressSpace( d ) {
 }
 
 template <>
-MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d ) : SeparateAddressSpace( memSpaceId, d ) {
+MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide ) : SeparateAddressSpace( memSpaceId, d, allocWide ) {
 }
 
 HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
@@ -55,7 +55,7 @@ memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
    return 0;
 }
 
-SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch ) : _cache( memorySpaceId, arch, RegionCache::ALLOC_FIT ), _nodeNumber( 0 )  {
+SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT ), _nodeNumber( 0 )  {
 }
 
 
