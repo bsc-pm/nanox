@@ -121,9 +121,9 @@ void GPUConfig::prepare( Config& config )
 void GPUConfig::apply()
 {
    //Auto-enable CUDA if it was not done before
-   if (!_enableCUDA) {
-       //ompss_uses_cuda pointer will be null (it's extern) if the compiler didnt fill it
-      _enableCUDA=( sys.getOmpssUsesCuda()!=0);
+   if ( !_enableCUDA ) {
+       //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
+      _enableCUDA = ( sys.getOmpssUsesCuda() != 0 );
    }
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
       _numGPUs = 0;

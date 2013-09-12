@@ -125,7 +125,7 @@ void GPUProcessor::cleanUp()
 {
    cudaError_t err = cudaGetLastError();
    if ( err != cudaSuccess ) {
-      warning("WARNING: CUDA reported errors during application's execution: " << cudaGetErrorString(err));
+      warning( "WARNING: CUDA reported errors during application's execution: " << cudaGetErrorString( err ) );
    }
    _gpuProcessorInfo->destroyTransferStreams();
    // When cache is disabled, calling this function hangs the execution
@@ -148,14 +148,14 @@ size_t GPUProcessor::getMaxMemoryAvailable ( int id )
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
-   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::asyncWorkerLoop );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct ) Scheduler::asyncWorkerLoop );
    WD *wd = NEW WD( dd );
    return *wd;
 }
 
 WorkDescriptor & GPUProcessor::getMasterWD () const
 {
-   fatal("Attempting to create a GPU master thread");
+   fatal( "Attempting to create a GPU master thread" );
 }
 
 BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )

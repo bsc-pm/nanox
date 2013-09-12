@@ -164,88 +164,9 @@ bool GPUThread::runWDDependent( WD &wd )
    GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
    //GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
-#if 0
-   if ( GPUConfig::isOverlappingInputsDefined() ) {
-      // Wait for the input transfer stream to finish
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT );
-      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getInTransferStream() );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      // Erase the wait input list and synchronize it with cache
-      myGPU.getInTransferList()->clearMemoryTransfers();
-      myGPU.freeInputPinnedMemory();
-   }
-
-   // Check if someone is waiting for our data
-   myGPU.getOutTransferList()->clearRequestedMemoryTransfers();
-
-   // We wait for wd inputs, but as we have just waited for them, we could skip this step
-   wd.start( WD::IsNotAUserLevelThread );
-#endif
-
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
-#if 0
-   if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
-      // Wait for the GPU kernel to finish
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_DEVICE_SYNC_EVENT );
-#ifdef NANOS_GPU_USE_CUDA32
-      cudaThreadSynchronize();
-#else
-      cudaDeviceSynchronize();
-#endif
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-
-      // Normally this instrumentation code is inserted by the compiler in the task outline.
-      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
-      // when we know the kernel has really finished
-      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
-
-      // Copy out results from tasks executed previously
-      // Do it always, as another GPU may be waiting for results
-      myGPU.getOutTransferList()->executeMemoryTransfers();
-   }
-   else {
-      myGPU.getOutTransferList()->executeMemoryTransfers();
-   }
-
-   if ( GPUConfig::isPrefetchingDefined() ) {
-      WD * last = &wd;
-      while ( canPrefetch() ) {
-         // Get next task in order to prefetch data to device memory
-         WD *next = Scheduler::prefetch( ( nanos::BaseThread * )  this, *last );
-         if ( next != NULL ) {
-            next->init();
-            addNextWD( next );
-            last = next;
-         } else {
-            break;
-         }
-      }
-   }
-
-   if ( GPUConfig::isOverlappingOutputsDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
-      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      myGPU.freeOutputPinnedMemory();
-   }
-
-   if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
-      // Wait for the GPU kernel to finish, if we have not waited before
-      //cudaThreadSynchronize();
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT );
-      cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getKernelExecStream() );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-
-      // Normally this instrumentation code is inserted by the compiler in the task outline.
-      // But because the kernel call is asynchronous for GPUs we need to raise them manually here
-      // when we know the kernel has really finished
-      NANOS_INSTRUMENT ( raiseWDClosingEvents() );
-   }
-#endif
-
-   //return true;
    return false;
 }
 
@@ -278,22 +199,19 @@ void GPUThread::processTransfers()
 
 void GPUThread::raiseWDClosingEvents ( WD * wd )
 {
-   //if ( _wdClosingEvents ) {
-      NANOS_INSTRUMENT(
-            WD * oldwd = getCurrentWD();
-            // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-            sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false );
-            Instrumentation::Event e[2];
-            sys.getInstrumentation()->closeBurstEvent( &e[0],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
-            sys.getInstrumentation()->closeBurstEvent( &e[1],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+   NANOS_INSTRUMENT(
+         WD * oldwd = getCurrentWD();
+         // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
+         sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false );
+         Instrumentation::Event e[2];
+         sys.getInstrumentation()->closeBurstEvent( &e[0],
+               sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
+         sys.getInstrumentation()->closeBurstEvent( &e[1],
+               sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
 
-            sys.getInstrumentation()->addEventList( 2, e );
+         sys.getInstrumentation()->addEventList( 2, e );
 
-            // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
-            sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false );
-      );
-      //_wdClosingEvents = false;
-   //}
+         // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
+         sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false );
+   );
 }

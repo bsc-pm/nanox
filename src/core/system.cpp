@@ -639,7 +639,7 @@ void System::finish ()
    for ( WorkSharings::const_iterator it = _worksharings.begin(); it !=   _worksharings.end(); it++ ) {
       delete (WorkSharing *)  it->second;
    }
-   
+
    /* deleting thread team */
    ThreadTeam* team = getMyThreadSafe()->getTeam();
 
@@ -656,7 +656,7 @@ void System::finish ()
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];
    }
-   
+
    /* unload modules */
    unloadModules();
 
