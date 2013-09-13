@@ -56,7 +56,7 @@ bool BaseOps::isDataReady( WD const &wd ) {
    // by clearing all when all are completed any dependence will be satisfied.
    if ( allReady ) {
       for ( it = _ownDeviceOps.begin(); it != _ownDeviceOps.end(); it++ ) {
-         it->_ops->completeCacheOp( /* debug: &wd */ );
+         it->_ops->completeCacheOp( /* debug: */ &wd );
          if ( _delayedCommit ) { 
             it->commitMetadata();
          }
@@ -185,7 +185,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
    DeviceOps *thisRegOps = memCopy._reg.getDeviceOps();
    if ( memCopy._reg.getHostVersion( false ) != memCopy._version ) {
       if ( _VERBOSE_CACHE ) { std::cerr << "I have to copy region " << memCopy._reg.id << " dont have it "<<std::endl; }
-      if ( thisRegOps->addCacheOp( /* debug: &wd */ ) ) {
+      if ( thisRegOps->addCacheOp( /* debug: */ &wd ) ) {
          if ( _VERBOSE_CACHE ) { std::cerr << "I will do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
 
          if ( memCopy._locations.size() == 1 ) {
@@ -219,7 +219,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
                      memory_space_id_t location = data_source.getFirstLocation();
                      DeviceOps *thisOps = region_shape.getDeviceOps(); //FIXME: we assume that region_shape has a directory entry, it may be a wrong assumption
                      int added = 0;
-                     if ( thisOps->addCacheOp( /* debug: &wd */ ) ) {
+                     if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
                         insertOwnOp( thisOps, region_shape, memCopy._version, 0 );
                         added = 1;
                      } else {

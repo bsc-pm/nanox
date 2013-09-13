@@ -133,6 +133,8 @@ namespace nanos
          void increaseTasksInQueues( int tasks );
          void decreaseTasksInQueues( int tasks );
          void transferElemsFrom( WDDeque &dq );
+         template <typename Test>
+         void iterate ();
    };
 
    class WDLFQueue : public WDPool

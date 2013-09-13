@@ -305,6 +305,7 @@ namespace nanos
          virtual void switchToNextThread() = 0;
          virtual void notifyOutlinedCompletionDependent( WD *completedWD );
          virtual bool isCluster() = 0;
+         WDDeque &getNextWDQueue();
    };
 
    extern __thread BaseThread *myThread;

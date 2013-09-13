@@ -65,6 +65,7 @@ NewNewRegionDirectory::NewNewRegionDirectory() : _objects() {}
 
 GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeeded( CopyData const &cd ) {
    uint64_t objectAddr = ( cd.getHostBaseAddress() == 0 ? ( uint64_t ) cd.getBaseAddress() : cd.getHostBaseAddress() );
+   _lock.acquire();
    std::map< uint64_t, GlobalRegionDictionary * >::iterator it = _objects.lower_bound( objectAddr );
    if ( it == _objects.end() || _objects.key_comp()( objectAddr, it->first) ) {
      it = _objects.insert( it, std::map< uint64_t, GlobalRegionDictionary * >::value_type( objectAddr, NEW GlobalRegionDictionary( cd ) ) );
@@ -77,6 +78,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
      
      //(void) entry;
    }
+   _lock.release();
    return it->second;
 }
 
@@ -385,7 +387,7 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
             global_reg_t reg( mit->first, it->second );
             if ( !reg.isLocatedIn( 0 ) ) {
               DeviceOps *thisOps = reg.getDeviceOps();
-              if ( thisOps->addCacheOp( /* debug: &wd */ ) ) {
+              if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
                   if ( _VERBOSE_CACHE ) {
                      std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );

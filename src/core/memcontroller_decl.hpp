@@ -14,6 +14,7 @@ class MemController {
    bool                        _initialized;
    WD const                   &_wd;
    memory_space_id_t           _memorySpaceId;
+   bool                        _inputDataReady;
    Lock                        _provideLock;
    std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
    BaseAddressSpaceInOps      *_inOps;

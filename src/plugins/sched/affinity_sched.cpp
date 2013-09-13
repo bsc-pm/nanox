@@ -666,9 +666,9 @@ namespace nanos {
             {
 //               return NULL;
                WD * found = current.getImmediateSuccessor(*thread);
-               if ( found ) {
-                  found->_mcontrol.preInit();
-               }
+               //if ( found ) {
+               //   found->_mcontrol.preInit();
+               //}
          
                return found != NULL ? found : atIdle(thread);
             }
@@ -677,9 +677,9 @@ namespace nanos {
             {
 //               return NULL;
                WD * found = current.getImmediateSuccessor(*thread);
-               if ( found ) {
-                  found->_mcontrol.preInit();
-               }
+               //if ( found ) {
+               //   found->_mcontrol.preInit();
+               //}
                return found;
             }
 

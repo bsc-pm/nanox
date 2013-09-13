@@ -30,6 +30,7 @@
 #include "clusternode_decl.hpp"
 #include "gpudd.hpp"
 #include "smpdd.hpp"
+#include "wddeque.hpp"
 #endif
 extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
@@ -141,6 +142,12 @@ void Scheduler::updateExitStats ( WD &wd )
    if ( wd.isConfigured() ) sys.getSchedulerStats()._totalTasks--;
 }
 
+struct TestInputs {
+   static void call( ProcessingElement *pe, WorkDescriptor *wd ) {
+      pe->testInputs( *wd );
+   }
+};
+
 template<class behaviour>
 inline void Scheduler::idleLoop ()
 {
@@ -197,6 +204,7 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
 
+      myThread->getNextWDQueue().iterate<TestInputs>();
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
       if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
@@ -512,7 +520,11 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
       // The thread is not paused, mark it as so
       thread->unpause();
       
-      return thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
+      WD *prefetchedWD = thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
+      if ( prefetchedWD ) {
+         prefetchedWD->_mcontrol.preInit();
+      }
+      return prefetchedWD;
    }
    else {
       // Pause this thread

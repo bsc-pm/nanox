@@ -125,6 +125,27 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thr
    return found;
 }
 
+template <typename Test>
+inline void WDDeque::iterate ()
+{
+   if ( _dq.empty() )
+      return;
+
+   {
+      LockBlock lock( _lock );
+
+      memoryFence();
+
+      if ( !_dq.empty() ) {
+         WDDeque::BaseContainer::iterator it;
+
+         for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+            Test::call( myThread->runningOn(), *it );
+         }
+      }
+   }
+}
+
 
 // Only ensures tie semantics
 template <typename Constraints>

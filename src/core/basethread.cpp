@@ -43,7 +43,7 @@ void BaseThread::run ()
 void BaseThread::addNextWD ( WD *next )
 {
    if ( next != NULL ) {
-      debug("Add next WD as: " << next << ":??" << " @ thread " << _id );
+      debug("Add next WD as: " << next << ":"<< next->getId() << " @ thread " << _id );
       _nextWDs.push_back( next );
    }
 }
@@ -54,8 +54,15 @@ WD * BaseThread::getNextWD ()
       return NULL;
 
    WD * next = _nextWDs.pop_front( this );
+   if ( next ) {
+   debug("Get next WD as: " << next << ":"<< next->getId() << " @ thread " << _id );
+   }
 
    return next;
+}
+
+WDDeque &BaseThread::getNextWDQueue() {
+   return _nextWDs;
 }
 
 void BaseThread::associate ()

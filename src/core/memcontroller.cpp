@@ -10,7 +10,8 @@
 #endif
 
 namespace nanos {
-MemController::MemController( WD const &wd ) : _initialized( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions(), _affinityScore( 0 ), _maxAffinityScore( 0 )  {
+MemController::MemController( WD const &wd ) : _initialized( false ), _wd( wd ), _memorySpaceId( 0 ), _inputDataReady(false), 
+      _provideLock(), _providedRegions(), _affinityScore( 0 ), _maxAffinityScore( 0 )  {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -202,12 +203,14 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
 }
  
 bool MemController::isDataReady( WD const &wd ) {
-   bool result = _inOps->isDataReady( wd );
-   if ( result ) {
-      if ( _VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
-      _inOps->releaseLockedSourceChunks();
+   if ( !_inputDataReady ) {
+      _inputDataReady = _inOps->isDataReady( wd );
+      if ( _inputDataReady ) {
+         if ( _VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
+         _inOps->releaseLockedSourceChunks();
+      }
    }
-   return result;
+   return _inputDataReady;
 }
 
 bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const {

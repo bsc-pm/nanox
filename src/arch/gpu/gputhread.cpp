@@ -170,6 +170,11 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
          // Get next task in order to prefetch data to device memory
          WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
          if ( next != NULL ) {
+            next->_mcontrol.initialize( *(this->runningOn()) );
+            bool result;
+            do {
+               result = next->_mcontrol.allocateInputMemory();
+            } while( result == false );
             next->init();
             addNextWD( next );
             last = next;
