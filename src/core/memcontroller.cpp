@@ -10,7 +10,7 @@
 #endif
 
 namespace nanos {
-MemController::MemController( WD const &wd ) : _initialized( false ), _wd( wd ), _memorySpaceId( 0 ), _inputDataReady(false), 
+MemController::MemController( WD const &wd ) : _initialized( false ), _preinitialized(false), _wd( wd ), _memorySpaceId( 0 ), _inputDataReady(false), 
       _provideLock(), _providedRegions(), _affinityScore( 0 ), _maxAffinityScore( 0 )  {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
@@ -82,12 +82,15 @@ bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &ver
 
 void MemController::preInit( ) {
    unsigned int index;
+   if ( _preinitialized ) return;
    for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
       //std::cerr << "WD "<< _wd.getId() << " Depth: "<< _wd.getDepth() <<" Creating copy "<< index << std::endl;
       //std::cerr << _wd.getCopies()[ index ];
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
-      hasVersionInfoForRegion( _memCacheCopies[ index ]._reg  , _memCacheCopies[ index ]._version, _memCacheCopies[ index ]._locations );
-      if ( _memCacheCopies[ index ]._version != 0 ) {
+      unsigned int predecessorsVersion;
+      if ( hasVersionInfoForRegion( _memCacheCopies[ index ]._reg, predecessorsVersion, _memCacheCopies[ index ]._locations ) )
+         _memCacheCopies[ index ].setVersion( predecessorsVersion );
+      if ( _memCacheCopies[ index ].getVersion() != 0 ) {
          if ( _VERBOSE_CACHE ) { std::cerr << "WD " << _wd.getId() << " copy "<< index <<" got location info from predecessor "<<  _memCacheCopies[ index ]._reg.id << " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
       } else {
@@ -103,6 +106,7 @@ void MemController::preInit( ) {
          std::cerr << std::endl;
       }
    }
+   _preinitialized = true;
 }
 
 void MemController::initialize( ProcessingElement &pe ) {
@@ -158,7 +162,7 @@ void MemController::copyDataOut( ) {
 
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       if ( _wd.getCopies()[index].isOutput() ) {
-         _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ]._version + 1 );
+         _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ].getVersion() + 1 );
       }
    }
    if ( _VERBOSE_CACHE ) { std::cerr << "### copyDataOut wd " << _wd.getId() << " metadata set, not released yet" << std::endl; }
@@ -196,7 +200,7 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
    _provideLock.acquire();
    for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
       std::map< reg_t, unsigned int > &regs = _providedRegions[ predecessorController._memCacheCopies[ index ]._reg.key ];
-      regs[ predecessorController._memCacheCopies[ index ]._reg.id ] = ( ( predecessorController._wd.getCopies()[index].isOutput() ) ? predecessorController._memCacheCopies[ index ]._version + 1 : predecessorController._memCacheCopies[ index ]._version );
+      regs[ predecessorController._memCacheCopies[ index ]._reg.id ] = ( ( predecessorController._wd.getCopies()[index].isOutput() ) ? predecessorController._memCacheCopies[ index ].getVersion() + 1 : predecessorController._memCacheCopies[ index ].getVersion() );
       //std::cerr << "provided data for copy " << index << " reg ("<<predecessorController._cacheCopies[ index ]._reg.key<<"," << predecessorController._cacheCopies[ index ]._reg.id << ") with version " << ( ( predecessorController._cacheCopies[index].getCopyData().isOutput() ) ? predecessorController._cacheCopies[ index ].getNewVersion() + 1 : predecessorController._cacheCopies[ index ].getNewVersion() ) << " isOut "<< predecessorController._cacheCopies[index].getCopyData().isOutput()<< " isIn "<< predecessorController._cacheCopies[index].getCopyData().isInput() << std::endl;
    }
    _provideLock.release();

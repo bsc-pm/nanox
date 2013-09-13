@@ -12,6 +12,7 @@ namespace nanos {
 
 class MemController {
    bool                        _initialized;
+   bool                        _preinitialized;
    WD const                   &_wd;
    memory_space_id_t           _memorySpaceId;
    bool                        _inputDataReady;
