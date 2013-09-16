@@ -281,7 +281,7 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
             fseek(fp, 0, SEEK_END); // seek to end of file;
             size_t size = ftell(fp); // get current file pointer
             fseek(fp, 0, SEEK_SET); // seek back to beginning of file
-            ompss_code = new char[size];
+            ompss_code = new char[size+1];
             source_size = fread( ompss_code, 1, size, fp);
             (void) source_size; // FIXME: jbueno: This line avoids a Warning since source_size is set but not used.
             fclose(fp); 

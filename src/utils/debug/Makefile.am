@@ -24,14 +24,14 @@ if DEBUG_VERSION
 
 bin_PROGRAMS = nanox-dbg
 
-nanox_dbg_CPPFLAGS = $(common_includes) $(common_debug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(@USED_VERSION@dir)\"
+nanox_dbg_CPPFLAGS = $(common_includes) $(common_debug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(debugdir)\"
 
 nanox_dbg_SOURCES=  $(nanox_sources)
 
 nanox_dbg_LDADD=\
 	-ldl \
-	../../core/@USED_VERSION@/libnanox.la \
-	@CUDA_RPATH@
+	../../core/debug/libnanox.la \
+	@CUDA_RPATH@ \
 	$(END)
 
 endif

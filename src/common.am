@@ -30,7 +30,7 @@ no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs
 endif
 
-bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL -O2 -g2 -DNANOS_DEBUG_ENABLED
+bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL 
 
 global_perfo_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3
 common_perfo_cxxflags= $(global_perfo_cxxflags) -D_NANOS_INTERNAL

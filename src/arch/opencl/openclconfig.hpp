@@ -31,7 +31,7 @@ public:
 
 private:
   static void prepare( Config &cfg );
-  static void apply(std::string& _devTy);
+  static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
 
 private:
   // These properties contains raw info set by the user.
@@ -59,9 +59,7 @@ private:
 
   // All found OpenCL platforms.
   //static std::vector<cl_platform_id> _plats;
-
-  // All found devices.
-  static std::map<cl_device_id, cl_context> _devices;
+  static std::map<cl_device_id, cl_context>* _devicesPtr;
   static unsigned int _currNumDevices;
 
   // These properties manages mutable state.

@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 /*! \file nanos_instrument.cpp
- *  \brief 
+ *  \brief Nanos++ services related with the instrumentation
  */
 #include "nanos.h"
 #include "system.hpp"
@@ -33,7 +33,22 @@
 #endif
 
 
-/*! \defgroup capi_instrument C/C++ API: Instrumentation services. */
+/*!\defgroup capi_instrument Instrumentation services.
+ * \ingroup capi
+ * \page capi_instrumentation_page Instrumentation Services
+ * \ingroup capi_instrument
+ *
+ * \section introduction Introduction
+ *
+ * In order to manage supported type of events Nanos++ offers several data structures. Most of these structures have an internal C++ object equivalent which allow to use them in a C environment.
+ *
+ * Nanos++ C API offers several services in order to call specific instrumentation methods. These services can be used to inject some instrumentation code from the final user side.
+ *
+ * - Register/get InstrumentationDictionary services
+ * - Raising event services
+ * - Enable/disable state event services
+ */
+
 /*! \addtogroup capi_instrument
  *  \{
  */

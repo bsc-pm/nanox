@@ -27,7 +27,9 @@
 #include "instrumentationmodule_decl.hpp"
 #include "instrumentation.hpp"
 
-/*! \defgroup capi_sync C/C++ API: Synchronization services. */
+/*! \defgroup capi_sync Synchronization services.
+ *  \ingroup capi
+ */
 /*! \addtogroup capi_sync
  *  \{
  */
@@ -58,7 +60,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME ) );
 
    try {
-      *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t ) NEW MultipleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -71,7 +73,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_bool_sync_cond, ( nanos_sync_cond_t *syn
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME) );
 
    try {
-      *sync_cond = ( nanos_sync_cond_t ) new MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t ) NEW MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -165,7 +167,7 @@ NANOS_API_DEF(nanos_err_t, nanos_init_lock, ( nanos_lock_t **lock ))
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
 
    try {
-      *lock = new Lock();
+      *lock = NEW Lock();
    } catch ( nanos_err_t e) {
       return e;
    }

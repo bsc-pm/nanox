@@ -182,7 +182,7 @@ namespace nanos
           */
          WDLFQueue()
          {
-            _head = _tail = new WDNode(NULL,NULL);
+            _head = _tail = NEW WDNode(NULL,NULL);
          }
          /*! \brief WDFifo destructor
           */

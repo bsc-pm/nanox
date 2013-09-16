@@ -82,7 +82,7 @@ class InstrumentationPrintTrace: public Instrumentation
                   if ( (nanos_event_key_t)(events[i]).getKey() == dependence ) {
                      nanos_event_value_t dependence_value = (events[i]).getValue();
                      int sender_id = (int) ( dependence_value >> 32 );
-                     int receiver_id = (int) ( dependence_value & 0xFFFFFFFFFF );
+                     int receiver_id = (int) ( dependence_value & 0xFFFFFFFF );
 
                      while ( (i < count) && ((nanos_event_key_t)(events[i]).getKey() != dep_address) ) i++;
 

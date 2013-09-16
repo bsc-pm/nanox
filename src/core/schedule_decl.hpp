@@ -54,7 +54,7 @@ namespace nanos
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
-         static void finishWork( WD *oldwd, WD * wd, bool schedule = false );
+         static void finishWork( WD * wd, bool schedule = false );
 
          static void workerLoop ( void );
          static void yield ( void );

@@ -52,7 +52,7 @@ namespace nanos
          */
          static void * allocate( size_t size, ProcessingElement *pe )
          {
-            return new char[size]; 
+            return NEW char[size]; 
          }
 
         /* \brief free address
