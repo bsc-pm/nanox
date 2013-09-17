@@ -96,6 +96,12 @@ System::System () :
 #endif
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
       , _lockPoolSize(37), _lockPool( NULL ), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
+#ifdef CLUSTER_DEV
+      , _nodes( NULL )
+#endif
+#ifdef GPU_DEV
+      , _gpus( NULL )
+#endif
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -528,6 +534,7 @@ void System::start ()
    int gpuC;
    //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
+      _gpus = (_gpus == NULL) ? NEW std::vector<nanos::ext::GPUProcessor *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUProcessor *) NULL) : _gpus; 
       memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
       SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU, false );
       gpuMemory->setNodeNumber( 0 );
@@ -536,6 +543,7 @@ void System::start ()
       _separateAddressSpaces[ id ] = gpuMemory;
       
       nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( p++, gpuC, id, *gpuMemSpace );
+      (*_gpus)[gpuC] = gpuPE;
       _pes.push_back( gpuPE );
       BaseThread *gpuThd = &gpuPE->startWorker();
       _workers.push_back( gpuThd );
@@ -856,6 +864,8 @@ void System::finish ()
    //   sys.getNetwork()->nodeBarrier();
    //}
 
+   message("Created " << createdWds << " WDs.");
+   message("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
    if ( _net.getNodeNum() == 0 ) {
       int soft_inv = 0;
       int hard_inv = 0;
@@ -869,14 +879,27 @@ void System::finish ()
             //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
          }
       }
-      message("Soft invalidations: " << soft_inv);
-      message("Hard invalidations: " << hard_inv);
-      message("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
-      message("Created " << createdWds << " WDs.");
+      message("Cluster Soft invalidations: " << soft_inv);
+      message("Cluster Hard invalidations: " << hard_inv);
       if ( max_execd_wds > 0 ) {
          float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
-         message("Balance: " << balance );
+         message("Cluster Balance: " << balance );
       }
+#ifdef GPU_DEV
+      if ( _gpus ) {
+         soft_inv = 0;
+         hard_inv = 0;
+         for ( unsigned int idx = 1; idx < _gpus->size(); idx += 1 ) {
+            soft_inv += _separateAddressSpaces[(*_gpus)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
+            hard_inv += _separateAddressSpaces[(*_gpus)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
+            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+         }
+      }
+      message("GPUs Soft invalidations: " << soft_inv);
+      message("GPUs Hard invalidations: " << hard_inv);
+#endif
    }
 
 

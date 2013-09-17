@@ -45,6 +45,7 @@
 
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
+#include "gpuprocessor_fwd.hpp"
 #endif
 
 #ifdef CLUSTER_DEV
@@ -240,6 +241,9 @@ namespace nanos
          Atomic<unsigned int> _affinityFailureCount;
 #ifdef CLUSTER_DEV
          std::vector<ext::ClusterNode *> *_nodes;
+#endif
+#ifdef GPU_DEV
+         std::vector<ext::GPUProcessor *> *_gpus;
 #endif
 
       public:
