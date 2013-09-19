@@ -43,7 +43,7 @@ int MPIProcessor::_numPrevPEs=-1;
 int MPIProcessor::_numFreeCores;
 int MPIProcessor::_currPE;
 
-MPIProcessor::MPIProcessor(int id, void* communicator, int rank) : CachedAccelerator<MPIDevice>(id, &MPI) {
+MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid) : CachedAccelerator<MPIDevice>(id, &MPI, uid) {
     _communicator = *((MPI_Comm *)communicator);
     _rank = rank;
 }
@@ -193,7 +193,8 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         //Initialice MPI PE with a communicator and special rank for the cache thread
         MPI_Comm mworld= MPI_COMM_WORLD;
         //It will share a core with last SMP PE
-        PE *mpi = NEW nanos::ext::MPIProcessor(getNextPEId(), &mworld, CACHETHREADRANK);
+        //THIS PE will not be in the team (uid -1)
+        PE *mpi = NEW nanos::ext::MPIProcessor(getNextPEId(), &mworld, CACHETHREADRANK,-1);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         mpi->startThread(*wd);
@@ -392,9 +393,10 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
     }
     //Register spawned processes so nanox can use them
     PE* pes[number_of_spawns];
+    int uid=sys.getNumCreatedPEs();
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
     for ( int rank=0; rank<number_of_spawns; rank++ ){  
-        pes[rank]=NEW nanos::ext::MPIProcessor(getNextPEId() ,intercomm, rank);
+        pes[rank]=NEW nanos::ext::MPIProcessor(getNextPEId() ,intercomm, rank,uid++);
         nanos_MPI_Send(_mpiFileHashname, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
         nanos_MPI_Send(_mpiFileSize, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
     }

@@ -71,9 +71,9 @@ class MPIPlugin : public ArchPlugin
 //        }
       }
 
-   virtual PE* createPE( unsigned id )
+   virtual PE* createPE( unsigned id, unsigned uid )
    {
-      return NEW MPIProcessor( id , NULL, NULL);
+      return NEW MPIProcessor( id , NULL, NULL, uid);
    }
 };
 }
