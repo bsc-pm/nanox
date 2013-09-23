@@ -37,6 +37,11 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    cl_int errCode;
 
    _dev = dev;
+   
+   //Save OpenCL device type
+   //cl_device_type devType;
+   //clGetDeviceInfo( _dev, CL_DEVICE_TYPE, sizeof( cl_device_type ),&devType, NULL );
+   //_preallocateWholeMemory=devType==CL_DEVICE_TYPE_CPU;
 
    // Create the context.
    _ctx = nanos::ext::OpenCLConfig::getContextDevice(_dev);   
@@ -66,6 +71,50 @@ cl_int OpenCLAdapter::freeBuffer( cl_mem &buf )
    cl_int ret= clReleaseMemObject( buf );   
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    return ret;
+}
+
+
+void OpenCLAdapter::freeAddr( void* addr )
+{
+    freeBuffer(_bufCache.find(addr)->second);
+    _bufCache.erase(_bufCache.find(addr)); 
+}
+
+
+cl_mem OpenCLAdapter::getBuffer( cl_mem parentBuf,
+                               size_t offset,
+                               size_t size)
+{
+   //Cache buffers so we dont create a subBuffer everytime
+   if (_bufCache.count((void*) offset)!=0){
+       return _bufCache[(void*)offset];
+   } 
+   
+   if (_preallocateWholeMemory){
+       cl_int errCode;
+       NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_SUBBUFFER_EVENT );
+       cl_buffer_region regInfo;
+       regInfo.origin=offset;
+       regInfo.size=size;
+       cl_mem buf = clCreateSubBuffer(parentBuf,
+                CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
+                &regInfo, &errCode);
+       _bufCache[(void*)offset]=buf;
+       NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+       if (errCode != CL_SUCCESS) {        
+         fatal("Subbuffer creation failed.");
+       }    
+
+       //Buf is a pointer, so this should be safe
+       return buf;
+   //If im a CPU (probably any kind of shared memory device), allocate buffers on demand
+   //so we don't allocate the whole CPU memory
+   } else {
+       cl_mem buf;
+       allocBuffer(size,buf);
+       _bufCache[(void*)offset]=buf;
+       return buf;
+   }
 }
 
 cl_int OpenCLAdapter::readBuffer( cl_mem buf,
@@ -644,7 +693,6 @@ OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid ) :
    CachedAccelerator<OpenCLDevice>( id, &OpenCLDev, uid ),
    _openclAdapter(),
    _cache( _openclAdapter ),
-   _dma ( *this ),
    _devId ( devId ) { }
 
 

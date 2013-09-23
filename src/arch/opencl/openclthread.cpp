@@ -62,16 +62,16 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
 }
 
 void OpenCLThread::yield() {
-    OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
+    //OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
 
-    proc.execTransfers();
+   // proc.execTransfers();
 
 }
 
 void OpenCLThread::idle() {
-    OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
+    //OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
 
-    proc.execTransfers();
+   // proc.execTransfers();
 
 }
 

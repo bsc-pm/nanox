@@ -43,6 +43,7 @@ public:
 
 public:
    ~OpenCLAdapter();
+   OpenCLAdapter() : _preallocateWholeMemory(false){}
 
 public:
    void initialize(cl_device_id dev);
@@ -52,6 +53,8 @@ public:
 
    cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
+   cl_mem getBuffer( cl_mem parentBuf, size_t offset, size_t size );
+   void freeAddr( void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
 
    // Low-level program builder. Lifetime of prog is under caller
@@ -153,6 +156,14 @@ public:
    cl_int getSizeTypeMax( unsigned long long &sizeTypeMax );
 
    cl_int getPreferredWorkGroupSizeMultiple( size_t &preferredWorkGroupSizeMultiple );
+   
+   bool getPreallocatesWholeMemory(){
+       return _preallocateWholeMemory;
+   }
+   
+   void setPreallocatedWholeMemory(bool val){
+      // _preallocateWholeMemory=val;
+   }
 
    ProgramCache& getProgCache() {
         return _progCache;
@@ -181,6 +192,8 @@ private:
    cl_device_id _dev;
    cl_context _ctx;
    cl_command_queue _queue;
+   std::map<void *, cl_mem> _bufCache;
+   const bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
    std::vector<cl_event> _pendingEvents;
@@ -209,8 +222,7 @@ public:
    bool supportsUserLevelThreads() const { return false; }
     
    OpenCLAdapter::ProgramCache& getProgCache() {
-       OpenCLAdapter::ProgramCache& pc=_openclAdapter.getProgCache();
-        return pc;
+       return _openclAdapter.getProgCache();
    }
    
    // Get program from cache, increasing reference-counting.
@@ -242,7 +254,7 @@ public:
    {
       return _cache.allocate( size );
    }
-
+   
    void *realloc( void *address, size_t size, size_t ceSize )
    {
       return _cache.reallocate( address, size, ceSize );
@@ -273,38 +285,15 @@ public:
       return _cache.copyInBuffer( localSrc, remoteBuffer, size );
    }
 
-   bool asyncCopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size )
-   {
-      return _dma.copyIn( localDst, remoteSrc, size );
-   }
-
-   bool asyncCopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size )
-   {
-      return _dma.copyOut( remoteDst, localSrc, size );
-   }
-
-   void syncTransfer( uint64_t hostAddress )
-   {
-      _dma.syncTransfer( hostAddress );
-   }
-
-   void execTransfers()
-   {
-      _dma.execTransfers();
-   }
-
-
 
 private:
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
-   OpenCLDMA _dma;
    int _devId;
 
 };
 
-}
- // End namespace ext.
+} // End namespace ext.
 } // End namespace nanos.
 
 #endif // _NANOS_OpenCL_PROCESSOR_DECL
