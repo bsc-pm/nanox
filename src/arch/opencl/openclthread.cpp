@@ -52,8 +52,8 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
    OpenCLDD &dd = ( OpenCLDD & )wd.getActiveDevice();
    
    
-    OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
-    myProc->waitForEvents();
+   OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
+   myProc->waitForEvents();
 
    ( dd.getWorkFct() )( wd.getData() );
    
@@ -84,13 +84,11 @@ void OpenCLThread::raiseWDClosingEvents ()
 {
    if ( _wdClosingEvents ) {
       NANOS_INSTRUMENT(
-            Instrumentation::Event e[2];
+            Instrumentation::Event e[1];
             sys.getInstrumentation()->closeBurstEvent( &e[0],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
-            sys.getInstrumentation()->closeBurstEvent( &e[1],
                   sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
 
-            sys.getInstrumentation()->addEventList( 2, e );
+            sys.getInstrumentation()->addEventList( 1, e );
       );
       _wdClosingEvents = false;
    }
