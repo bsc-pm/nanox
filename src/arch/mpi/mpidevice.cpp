@@ -257,6 +257,7 @@ void MPIDevice::mpiCacheWorker() {
             //MPI_Comm_get_parent(&parentcomm);
             //printf("Espero orden\n");
             //TODO: Check if this is faster than sending ack's to the host  
+        printf("soy el cache hijo y hago recv\n\n");
             nanos::ext::MPIProcessor::nanos_MPI_Recv(&order, 1, cacheStruct, 0, TAG_CACHE_ORDER, parentcomm, MPI_STATUS_IGNORE );
 //            if (!(order.opId==OPID_COPYIN || order.opId>=OPID_DEVTODEV || order.opId<=0 )){
 //                doingCopyIn=false;

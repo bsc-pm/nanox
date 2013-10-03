@@ -196,7 +196,7 @@ namespace nanos {
             
         };   
 
-        // Macro's to instrument the code and make it cleaner
+        // Macros to instrument the code and make it cleaner
         #define NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( \
               sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ), (x) ); )
 

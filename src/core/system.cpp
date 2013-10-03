@@ -1667,6 +1667,7 @@ void * System::getHwlocTopology ()
 void System::addPEsToTeam(PE **pes, int num_pes) {  
     for (int rank=0; rank<num_pes; rank++){
         _pes.push_back ( pes[rank] );
+        NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
         BaseThread* bt= &pes[rank]->startWorker();
         _workers.push_back( bt );
         acquireWorker( _currentTeam , bt);

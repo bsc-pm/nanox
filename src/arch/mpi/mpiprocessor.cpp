@@ -197,6 +197,7 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         PE *mpi = NEW nanos::ext::MPIProcessor(getNextPEId(), &mworld, CACHETHREADRANK,-1);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
+        NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
         mpi->startThread(*wd);
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
