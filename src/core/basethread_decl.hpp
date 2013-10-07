@@ -124,7 +124,7 @@ namespace nanos
          // Thread status
          bool                    _started;
          volatile bool           _mustStop;
-         volatile bool           _mustSleep;
+         volatile bool           _mustSleep;    /**< Flag that triggers the wait mechanism of the thread */
          volatile bool           _paused;
          WD *                    _currentWD;
 
@@ -177,7 +177,7 @@ namespace nanos
          virtual ~BaseThread()
          {
             ensure0(!_hasTeam,"Destroying thread inside a team!");
-            ensure0(!_started,"Trying to destroy running thread");
+            ensure0((!_started || _id == 0),"Trying to destroy running thread");
          }
 
 

@@ -31,7 +31,7 @@ public:
 
 private:
   static void prepare( Config &cfg );
-  static void apply(std::string& _devTy);
+  static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
 
 private:
   // These properties contains raw info set by the user.
@@ -51,7 +51,7 @@ private:
 
 
   // The portion of the cache to be allocated on the device.
-  static int _devCacheSize;
+  static size_t _devCacheSize;
   
   //Maximum number of devices to be used by nanox
   static unsigned int _devNum;
@@ -59,9 +59,7 @@ private:
 
   // All found OpenCL platforms.
   //static std::vector<cl_platform_id> _plats;
-
-  // All found devices.
-  static std::map<cl_device_id, cl_context> _devices;
+  static std::map<cl_device_id, cl_context>* _devicesPtr;
   static unsigned int _currNumDevices;
 
   // These properties manages mutable state.
@@ -92,7 +90,8 @@ typedef enum {
    NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT,                   /* 7 */
    NANOS_OPENCL_GET_PROGRAM_EVENT,                   /* 8 */
    NANOS_OPENCL_COPY_BUFFER_EVENT,                   /* 9 */
-   NANOS_OPENCL_GENERIC_EVENT                         /* 10 */
+   NANOS_OPENCL_CREATE_SUBBUFFER_EVENT,                   /* 10 */
+   NANOS_OPENCL_GENERIC_EVENT                         /* 11 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.

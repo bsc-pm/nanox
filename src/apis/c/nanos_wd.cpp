@@ -16,9 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-/*! \file nanos_wd.cpp
- *  \brief 
- */
+//! \file nanos_wd.cpp
+//! \brief Nanos++ services related with WorkDescriptor 
+
 #include "nanos.h"
 #include "basethread.hpp"
 #include "debug.hpp"
@@ -30,10 +30,9 @@
 #include "instrumentation.hpp"
 #include "instrumentationmodule_decl.hpp"
 
-/*! \defgroup capi_wd C/C++ API: WorkDescriptor services. */
-/*! \addtogroup capi_wd
- *  \{
- */
+//! \defgroup capi_wd WorkDescriptor services.
+//! \ingroup capi
+//! \{
 
 using namespace nanos;
 
@@ -63,7 +62,7 @@ NANOS_API_DEF(nanos_wd_t, nanos_current_wd, (void))
 NANOS_API_DEF(void *, nanos_smp_factory, ( void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * )new ext::SMPDD( smp->outline );
+   return ( void * ) NEW ext::SMPDD( smp->outline );
 }
 
 /*! \brief Returns the id of the specified WD.
@@ -266,7 +265,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
    try {
       if ( const_data->num_devices > 1 ) warning( "Multiple devices not yet supported. Using first one" );
 
-      // TODO: choose device
+      //! \todo if multiple devices we need to choose one of them
       
       WD wd( (DD*) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment,
              data, const_data->num_copies, copies, NULL, (char *) const_data->description);
@@ -296,7 +295,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       char pmData[pmDataSize];
       if ( pmDataSize > 0 ) {
         sys.getPMInterface().initInternalData( pmData );
-        wd.setInternalData(pmData);
+        wd.setInternalData(pmData, /* ownedByWD */ false);
       }
 
       sys.setupWD( wd, myThread->getCurrentWD() );
@@ -403,6 +402,7 @@ NANOS_API_DEF(nanos_err_t, nanos_yield, ( void ))
  */
 NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slicer, void ** data ))
 {                                                                                                                                                        
+   //! Why we are not instrumenting the next line
    //NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_specific_data",NANOS_RUNTIME) );
 
    try {
@@ -419,6 +419,7 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
  */
 NANOS_API_DEF(unsigned int, nanos_get_wd_priority, ( nanos_wd_t wd ))
 {
+   //! \note Why this is not instrumented?
    WD *lwd = ( WD * )wd;
    return lwd->getPriority();
 }
@@ -550,6 +551,4 @@ NANOS_API_DEF(nanos_err_t, nanos_set_final, ( bool value ))
     return NANOS_OK;
 }
 
-/*!
- * \}
- */ 
+//! \}

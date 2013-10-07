@@ -27,7 +27,7 @@ namespace nanos
    class BitCounter
    {
       public:
-         static bool __attribute__((always_inline)) hasMoreThanOneOne(T value);
+         static inline bool __attribute__((always_inline)) hasMoreThanOneOne(T value);
    };
 
 
@@ -35,7 +35,7 @@ namespace nanos
    class BitCounter<T, 2>
    {
       public:
-         static bool __attribute__((always_inline)) hasMoreThanOneOne(T value);
+         static inline bool __attribute__((always_inline)) hasMoreThanOneOne(T value);
    
    };
 

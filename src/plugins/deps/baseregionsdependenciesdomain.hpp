@@ -56,7 +56,7 @@ inline CommutationDO * BaseRegionsDependenciesDomain::setUpInitialCommutationDep
 {
    if ( targetStatus.getCommDO() == NULL ) {
       // The commutation update has not been set up yet
-      CommutationDO *initialCommDO = new CommutationDO( target, accessType.commutative );
+      CommutationDO *initialCommDO = NEW CommutationDO( target, accessType.commutative );
       initialCommDO->setDependenciesDomain( this );
       initialCommDO->increasePredecessors();
       

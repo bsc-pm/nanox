@@ -166,6 +166,7 @@ namespace nanos
          size_t                        _data_size;    /**< WD data size */
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
+         size_t                        _totalSize;    /**< Chunk total size, when allocating WD + extra data */
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
          WDFlags                       _flags;        /**< WD Flags */
 
@@ -258,9 +259,31 @@ namespace nanos
           */
          virtual ~WorkDescriptor()
          {
+             void *chunkLower = ( void * ) this;
+             void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
+
              for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
 
+             //! Delete device vector 
+             if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
+                delete[] _devices;
+             } 
+
+             //! Delete Dependence Domain
              delete _depsDomain;
+
+             //! Delete Directory
+             delete _directory;
+
+             //! Delete internal data (if any)
+             union { char* p; intptr_t i; } u = { (char*)_wdData };
+             bool internalDataOwned = (u.i & 1);
+             // Clear the own status if set
+             u.i &= ((~(intptr_t)0) << 1);
+
+             if (internalDataOwned
+                     && (( (void*)u.p < chunkLower) || ( (void *) u.p > chunkUpper ) ))
+                delete[] u.p;
 
              if (_copiesNotInChunk)
                  delete[] _copies;
@@ -347,6 +370,8 @@ namespace nanos
 
          void * getData () const;
 
+         void setTotalSize ( size_t size );
+
          void setStart ();
 
          bool isIdle () const;
@@ -385,7 +410,12 @@ namespace nanos
          void setActiveDeviceIdx( unsigned int idx );
          unsigned int getActiveDeviceIdx();
 
-         void setInternalData ( void *data );
+         /*! \brief Sets specific internal data of the programming model
+          * \param [in] data Pointer to internal data
+          * \param [in] ownedByWD States if the pointer to internal data will be owned by this WD. 
+          *             If so, it means that it will be deallocated when the WD is destroyed
+          */
+         void setInternalData ( void *data, bool ownedByWD = true );
 
          void * getInternalData () const;
 

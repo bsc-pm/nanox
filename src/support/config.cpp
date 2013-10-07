@@ -451,3 +451,5 @@ std::string Config::HelpTriplet::getArgHelp( size_t size )
    return help;
 }
 
+void Config::deleteOrphanOptions() { delete _orphanOptionsMap; _orphanOptionsMap = NULL; }
+

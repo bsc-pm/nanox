@@ -774,6 +774,9 @@ namespace nanos
            to be called just *once*.
          */
          static std::string getOrphanOptions();
+
+         //! \brief Delete Orphan Options.
+         static void deleteOrphanOptions();
    };
 
    /** exceptions */

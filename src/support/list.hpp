@@ -48,7 +48,7 @@ inline _T& List<_T>::push_front( const _T& elem )
 {
    ListNode *node;
    if (_freeList.empty() ) {
-      node = new ListNode( elem );
+      node = NEW ListNode( elem );
       node->setNext( _begin );
       _begin = node;
       node->setValid( true );

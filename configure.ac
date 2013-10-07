@@ -508,8 +508,8 @@ fi
 if test x"$opencl_valid" = x"yes"; then
     OPENCL_LD=$OPENCL_LIB
     OPENCL_INC=$OPENCL_INC
-    CFLAGS="$CFLAGS -isystem $OPENCL_INC -DOpenCL_DEV"
-    CXXFLAGS="$CXXFLAGS -isystem $OPENCL_INC -DOpenCL_DEV"
+    CFLAGS="$CFLAGS -L$OPENCL_LIB -lOpenCL -isystem $OPENCL_INC -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -L$OPENCL_LIB -lOpenCL -isystem $OPENCL_INC -DOpenCL_DEV"
     ARCHITECTURES="$ARCHITECTURES opencl"
     AC_SUBST([OPENCL_LD])
     AC_SUBST([OPENCL_INC])

@@ -25,20 +25,22 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
 {
    debug0 ( "Using sliced work descriptor: Guided For" );
 
-   // Normalize Chunk size
    nanos_loop_info_t *nli = (nanos_loop_info_t *) work.getData();
+
+   //! Normalize Chunk size,
    nli->chunk = std::max(1, nli->chunk);
 
-   // Get Team size
+   //! get team size,
    ThreadTeam *team = myThread->getTeam();
    int i, num_threads = team->size();
 
-   // Determine the number of valid threads
+   //! and determine the number of valid threads
    nli->threads = 0;
    for ( i = 0; i < num_threads; i++) {
      if (  work.canRunIn( *((*team)[i].runningOn()) ) )  nli->threads++;
    }
 
+   //! in order to submit the work. 
    Scheduler::submit ( work );
 }
 
@@ -52,7 +54,11 @@ bool SlicerGuidedFor::dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slice
    int _chunk = std::max( _niters / ( 2 * nli->threads ), nli->chunk );
    int _upper = nli->lower + _chunk * nli->step ;
 
-   if ( _upper >= nli->upper ) {
+   //! Computing empty iteration spaces to avoid infinite task generation
+   bool empty = (( nli->step > 0 ) && (nli->lower > nli->upper )) ? true : false;
+   empty = empty || (( nli->step < 0 ) && (nli->lower < nli->upper )) ? true : false;
+
+   if ( (_upper >= nli->upper) || empty ) {
       *slice = wd; retval = true;
    } else {
       WorkDescriptor *nwd = NULL;

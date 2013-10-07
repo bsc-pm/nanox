@@ -16,7 +16,36 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+//! \file dependenciesdomain_decl.hpp
+//! \brief Dependencies main classes declaration.
+//
+//! \defgroup core_dependencies Dependencies module
+//! \ingroup core
 
+/*!\page    core_dependencies
+ * \ingroup core_dependencies
+ *
+ * \section dependencies_domain Dependencies Domain
+ * \copydoc nanos::DependenciesDomain
+ *
+ * \section data_access Data Access Item
+ * \copydoc nanos::DataAccess
+ *
+ * \section dependable_object Dependable Object
+ * \copydoc nanos::DependableObject
+ *
+ * \section wd_and_deps WorkDescriptors and DependenciesDomain
+ *
+ * Each WorkDescriptor has a DependenciesDomain in which DependableObjects can be submitted.
+ * WorkDescriptors are submitted to the dependency system of the parent's DependenciesDomain
+ * using their associated DOSubmit object. The DOSubmit object encapsulates the actions to
+ * take when the dependencies of the submitted WorkDescriptor are satisfied.
+ *
+ * When a WD needs to be synchronized with some of its children, its DOWait object is
+ * submitted to its own domain with the given dependencies and will wait until that
+ * dependencies are satisfied.
+ *
+ */
 #ifndef _NANOS_DEPENDENCIES_DOMAIN_DECL
 #define _NANOS_DEPENDENCIES_DOMAIN_DECL
 #include <stdlib.h>
@@ -40,6 +69,22 @@ namespace nanos
   /*! \class DependenciesDomain
    *  Interface class of plugins used for dependencies domain.
    *  \brief Each domain is an independent context in which dependencies between DependableObject are managed
+   *
+   *  Represents an independent domain to which objects with dependencies (DependableObjects) can be
+   *  submitted. WorkDescriptors have associated a DependenciesDomain to which they submit objetcs
+   *  representing new tasks with dependencies or a set of dependencies that need to be synchronized
+   *  (wait until the dependencies are satisfied).
+   *
+   *  When a DependableObject is added to the domain, its dependencies are checked using their address as an
+   *  identifier. TrackableObjects represent the dynamic status of those dependencies keeping track of which
+   *  objects are about to read or write the address they represent. At the end of this process the virtual
+   *  method wait() of the DependableObject is invoked. This mechanism allows having different behaviors for
+   *  DependableObjects which are transparent to the domain.
+   *
+   *  When a DependableObject ends, finalizeObject() is invoked in the Domain so that the status of the
+   *  dependencies and the TrackableObjects are updated. If, in this process, a DependableObject gets all
+   *  its dependencies satisfied, has no more predecessors, the dependenciesSatisfied() method is invoked.
+   *
    */
    class DependenciesDomain
    {

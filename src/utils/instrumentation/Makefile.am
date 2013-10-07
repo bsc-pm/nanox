@@ -24,14 +24,14 @@ if INSTRUMENTATION_VERSION
 
 bin_PROGRAMS = nanox-ins
 
-nanox_ins_CPPFLAGS = $(common_includes) $(common_instrumentation_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(@USED_VERSION@dir)\"
+nanox_ins_CPPFLAGS = $(common_includes) $(common_instrumentation_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(instrumentationdir)\"
 
 nanox_ins_SOURCES=  $(nanox_sources)
 
 nanox_ins_LDADD=\
 	-ldl \
-	../../core/@USED_VERSION@/libnanox.la \
-	@CUDA_RPATH@
+	../../core/instrumentation/libnanox.la \
+	@CUDA_RPATH@ \
 	$(END)
 
 endif

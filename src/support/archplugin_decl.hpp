@@ -84,15 +84,17 @@ namespace nanos
          virtual void createBindingList();
 
          /** \brief Creates a PE.
-          *  \param pe Number of the PE of this architecture.
+          *  \param id Number of the PE of this architecture.
           *  For instance, in CUDA GPU, this value cannot be higher than
           *  the number of GPUs used.
+          *  \param uid Unique ID of this PE. The uniqueness of this number
+          *  must be guaranteed by the caller.
           *  \note Be sure to call this as many times as what
           *  getNumPEs() returns.
           *  \return A pointer to a PE to be added by System to
           *  the PEs vector.
           */
-         virtual ProcessingElement * createPE( unsigned id ) = 0;
+         virtual ProcessingElement * createPE( unsigned id, unsigned uid ) = 0;
    };
 }
 

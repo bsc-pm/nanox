@@ -214,7 +214,7 @@ public:
 
 template<typename T>
 RegionTree<T>::RegionTree(): m_root(0) {
-   m_root = new Node();
+   m_root = NEW Node();
    m_root->init(T());
    //Tracing::regionTreeAddedNodes(1);
 }

@@ -138,7 +138,7 @@ inline void BaseDependenciesDomain::addAsReader( DependableObject &depObj, Track
 
 inline CommutationDO * BaseDependenciesDomain::createCommutationDO( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
 {
-   CommutationDO *commDO = new CommutationDO( target, accessType.commutative );
+   CommutationDO *commDO = NEW CommutationDO( target, accessType.commutative );
    commDO->setDependenciesDomain( this );
    commDO->increasePredecessors();
    status.setCommDO( commDO );
@@ -173,7 +173,7 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
    CommutationDO *initialCommDO = NULL;
 
    if ( status.hasReaders() ) {
-      initialCommDO = new CommutationDO( target, accessType.commutative );
+      initialCommDO = NEW CommutationDO( target, accessType.commutative );
       initialCommDO->setDependenciesDomain( this );
       initialCommDO->increasePredecessors();
 

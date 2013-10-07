@@ -74,14 +74,21 @@ void SMPProcessor::prepareConfig ( Config &config )
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
 {
-   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
-   WD *wd = NEW WD( dd );
+   SMPDD  *dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   DeviceData **dd_ptr = (DeviceData **) NEW ( SMPDD * )(dd);
+
+   WD *wd = NEW WD( 1, dd_ptr );
+
    return *wd;
 }
 
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
-   WD * wd = NEW WD( NEW SMPDD() );
+   SMPDD  *dd = NEW SMPDD();
+   DeviceData **dd_ptr = (DeviceData **) NEW ( SMPDD * )(dd);
+
+   WD * wd = NEW WD( 1, dd_ptr );
+
    return *wd;
 }
 

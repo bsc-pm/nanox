@@ -147,7 +147,7 @@ inline void Config::VarOption<T,helpFormat,checkT>::setValue ( const T &value )
 template<typename T, class helpFormat, typename checkT>
 inline Config::VarOption<T,helpFormat,checkT> * Config::VarOption<T,helpFormat,checkT>::clone ()
 {
-   return new VarOption( *this );
+   return NEW VarOption( *this );
 }
 
 
@@ -161,7 +161,7 @@ inline void Config::ListOption<T,helpFormat,checkT>::setValue ( const T &value )
 template<typename T, class helpFormat, typename checkT>
 inline Config::ListOption<T,helpFormat,checkT> * Config::ListOption<T,helpFormat,checkT>::clone ()
 {
-   return new ListOption( *this );
+   return NEW ListOption( *this );
 }
 
 // FIXME: end new list
@@ -200,7 +200,7 @@ inline void Config::FuncOption<T,helpFormat,checkT>::setValue ( const T& value )
 template<typename T, class helpFormat, typename checkT>
 inline Config::FuncOption<T,helpFormat,checkT> * Config::FuncOption<T,helpFormat,checkT>::clone ()
 {
-   return new FuncOption( *this );
+   return NEW FuncOption( *this );
 }
 
 template<typename T>
@@ -266,7 +266,7 @@ template <typename T>
 inline void Config::MapVar<T>::setValue ( const T &value ) { _var = value; }
 
 template <typename T>
-inline Config::MapVar<T> * Config::MapVar<T>::clone () { return new MapVar( *this ); }
+inline Config::MapVar<T> * Config::MapVar<T>::clone () { return NEW MapVar( *this ); }
 
 inline Config::PluginVar & Config::PluginVar::addOption ( const std::string & value )
 {
@@ -301,6 +301,7 @@ inline void Config::FlagOption::setValue ( const bool &value )
 
 inline Config::FlagOption * Config::FlagOption::clone ()
 {
+   // We cannot use Memtracker NEW's macro
    return new FlagOption( *this );
 }
 
@@ -360,11 +361,13 @@ inline const Config::BaseConfigOption& Config::BaseConfigOption::operator= ( con
 
 inline Config::BaseConfigOption* Config::ConfigOption::clone()
 {
+   // We cannot use Memtracker NEW's macro
    return new ConfigOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section); 
 }
 
 inline Config::BaseConfigOption* Config::ConfigAliasOption::clone()
 {
+   // We cannot use Memtracker NEW's macro
    return new ConfigAliasOption( _optionName, _envOption, _argOption, *(_option.clone()), _message, _section); 
 }
 

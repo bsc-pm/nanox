@@ -26,7 +26,7 @@ using namespace nanos;
 NANOS_API_DEF(void *, nanos_gpu_factory, ( void *args ))
 {
    nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * ) new ext::GPUDD( smp->outline );
+   return ( void * ) NEW ext::GPUDD( smp->outline );
 }
 
 

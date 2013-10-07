@@ -16,6 +16,180 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+//! \file instrumentation_decl.hpp
+//! \brief Instrumentation main classes declaration.
+//
+//! \defgroup core_instrumentation Instrumentation module
+//! \ingroup core
+
+/*!\page    core_instrumentation
+ * \ingroup core_instrumentation
+ *
+ * \section introduction Introduction
+ *
+ * The main goal of instrumentation is to get some information about the program execution. In other words, we want to know "What happens in this WorkDescriptor? running on this Thread". There are the three main components involved in the instrumentation process: What (we also call it Event), WorkDescriptor and Thread.
+ *
+ * - Events are something that happens at a given time or at a given interval of time.
+ * - WorkDescriptors are the runtime basic unit of work. They offer a context to execute a piece of code.
+ * - Threads are logical (or virtual) processors that execute WorkDescriptors.
+ *
+ * Instrumentation defines an interface which allow to know specific details about the execution of any program using Nanos++ Runtime Library. In order to do that we have defined several concepts which represents different activities happening during the execution. Nanos++ defines four different type of events
+ *
+ * - Burst: a burst is defined by a time interval. During this interval something is happening (e.g. executing a runtime service).
+ * - State: a state is also defined by an interval of time and defines which is the execution status in a specific time stamp. It can be considered as a specific case of burst object but with a predetermined behaviour. All state's changes are push and pop operation. So when we are changing state we are whether pushing a new state in the state stack or returning to the previous state (the one previous current state). Usually a state defines the nature of the code we are executing. We can be executing a synchronization operation (SYNCH), or waiting for more job to execute (IDLE), or useful code for the user (RUNNING), etc
+ * - Point: a point event is defined by a timestamp. This entity represents a punctual event during the execution.
+ * - Point-to-point: a point-to-point event is defined for two punctual events. One is called the origin and the other one destination. With these kind of events we can represent communication (send/receive procedures), or work spawning (producer/consumer schemes), etc
+ *
+ * Instrumentation is also driven through Key/Value pairs in which the item Key identifies the semantic of the associated Value (e.g., WorkDescriptor ID as a Key and a numerical identifier as the associated Value). Keys and Values can be registered in a global dictionary (InstrumentationDictionary) which can be used as a repository.
+ *
+ * In order to create and raise events from user's code see \ref capi_instrument
+ *
+ * \section implementation Implementation
+ *
+ * Instrumentation mechanism implementation is divided in several classes:
+ *
+ * - Instrumentation class is a singleton object which can be accessed through the - also singleton - System object (sys).
+ * - InstrumentationDictionary class which is part of the Instrumentation class.
+ * - InstrumentationContext class, each WorkDescriptor? object has an associated InstrumentationContext object.
+ * - Instrumentation modules, help programmers in the duty of open/close events.
+ *
+ * In this section we will describe the instrumentation mechanism by describing the implementation of each one of these classes.
+ *
+ * \subsection instrumentation Instrumentation class
+ * \copydoc nanos::Instrumentation
+ *
+ * \subsection instrumentation_context InstrumentationContext class
+ * \copydoc nanos::InstrumentationContext
+ *
+ * \subsection instrumentation_dictionary InstrumentationDictionary class
+ * \copydoc nanos::InstrumentationDictionary
+ *
+ * \subsection instrumentation_modules InstrumentationModules classes
+ *
+ * Instrumentation modules help programmers in the instrumentation process by doing automatically some of the duties that users need to follow for correct instrumentation. So far its main utility is to take care about multiple exits in a given piece of code. As a module is a C++ object, we can use the constructor to open an instrumentation burst leaving the responsibility of closing it to the corresponding destructor.
+ *
+ * Creating a new InstrumentState object will produce the opening of a State event (the value is specified in the object constructor). Once the object goes out of the scope where is declared the destructor will close it (if programmer has not closed it before). As most of instrumentation phases affect a whole function the programmer has just to create an object of a Instrumentation module at the beginning of the function.
+ *
+ * - \copydoc nanos::InstrumentStateAndBurst
+ * - \copydoc nanos::InstrumentState
+ * - \copydoc nanos::InstrumentBurst
+ *
+ * \subsection examples Instrumentation examples
+ *
+ * In this section we will explain how different parts of the runtime have been instrumented. As one of the design principles was to encapsulate the code and to avoid that performance runtime version has any impact by the instrumentation code (or at least keep the impact as low as possible), the runtime offers a macro which allow to remove the code when it is not needed. The NANOS_INSTRUMENT(code) macro:
+ * 
+ * \code
+ * #ifdef NANOS_INSTRUMENTATION_ENABLED
+ *    #define NANOS_INSTRUMENT(f) f;
+ * #else
+ *    #define NANOS_INSTRUMENT(f) ;
+ * #endif
+ * \endcode
+ *
+ * All instrumentation calls have to be protected using this macro.
+ * 
+ * \subsubsection example1 Example 1: Memory allocation
+ * 
+ * Some runtime chunks of code are bounded by instrumentation events in order to measure the duration of this piece of code. An example is a cache allocation. This function is bounded by a state event and a burst event. State event will change the current thread's state to CACHE and the Burst event will keep information of the memory allocation size for the specific call. Here is the example:
+ * 
+ * \code
+ * void * allocate( size_t size )
+ * {
+ *       void *result;
+ *       NANOS_INSTRUMENT(nanos_event_key_t k);
+ *       NANOS_INSTRUMENT(k = Instrumentor->getInstrumentorDictionary()->getEventKey("cache-malloc"));
+ *       NANOS_INSTRUMENT(Instrumentor()->raiseOpenStateAndBurst(CACHE, k, (nanos_event_value_t) size));
+ *       result = _T::allocate(size);
+ *       NANOS_INSTRUMENT(Instrumentor()->raiseCloseStateAndBurst(k));
+ *       return result;
+ * }
+ * \endcode
+ *
+ * \subsubsection example2 Example 2: WorkDescriptor?'s context switch
+ * 
+ * WorkDescriptor?'s context switch uses two instrumentation services wdLeaveCPU() and wdEnterCPU(). The wdLeaveCPU() is called from the leaving task context execution and wdEnterCPU() is called once we are executing the new task.
+ * 
+ * \code
+ *    .
+ *    .
+ *    .
+ *    NANOS_INSTRUMENT( sys.getInstrumentor()->wdLeaveCPU(oldWD) );
+ *    myThread->switchHelperDependent(oldWD, newWD, arg);
+ * 
+ *    myThread->setCurrentWD( *newWD );
+ *    NANOS_INSTRUMENT( sys.getInstrumentor()->wdEnterCPU(newWD) );
+ *    .
+ *    .
+ *    .
+ * \endcode
+ *
+ * \subsubsection example3 Example 3: Instrumenting the API
+ * 
+ * API functions have – generally – a common behaviour. They open a Burst event with a pair <key,value>. The key is the internal code “api” and the value is an specific identifier of the function we are instrumenting on. API functions also open a State event with a value according with the function duty. Both events will be closed once the function execution finishes. Here it is an example using nanos_yield() implementation:
+ * 
+ * \code
+ * nanos_err_t nanos_yield ( void )
+ * {
+ *    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","yield",SCHEDULING) );
+ *    try {
+ *       Scheduler::yield();
+ *    } catch ( ... ) {
+ *       return NANOS_UNKNOWN_ERR;
+ *    }
+ *    return NANOS_OK;
+ * }
+ * \endcode
+ *
+ * Yield function will wrap its execution between <”api”,“yield”> Burst and SCHEDULING State events. Although the function can have other exit points (apart from the return) InstrumentStateAndBurst destructor will throw closing events automatically.
+ * 
+ * \subsubsection example4 Example 4: Instrumenting Runtime Internal Functions
+ * 
+ * Different Nanos++ functions have different instrumentation approaches. In this sections we have chosen a scheduling related function: Scheduler::waitOnCondition(). Due space limitations we have abridged the code focusing our interest in the instrumentation parts.
+ * 
+ * \code
+ * void Scheduler::waitOnCondition (GenericSyncCond *condition)
+ * {
+ *    NANOS_INSTRUMENT( InstrumentState inst(SYNCHRONIZATION) );
+ * 
+ *    const int nspins = sys.getSchedulerConf().getNumSpins();
+ *    int spins = nspins;
+ * 
+ *    WD * current = myThread->getCurrentWD();
+ * 
+ *    while ( !condition->check() ) {
+ *       BaseThread *thread = getMyThreadSafe();
+ *       spins--;
+ *       if ( spins == 0 ) {
+ *          condition->lock();
+ *          if ( !( condition->check() ) ) {
+ *             condition->addWaiter( current );
+ * 
+ *             NANOS_INSTRUMENT( InstrumentState inst1(SCHEDULING) );
+ *             WD *next = _schedulePolicy.atBlock( thread, current );
+ *             NANOS_INSTRUMENT( inst1.close() );
+ * 
+ *             if ( next ) {
+ *                NANOS_INSTRUMENT( InstrumentState inst2(RUNTIME) );
+ *                switchTo ( next );
+ *             }
+ *             else {
+ *                condition->unlock();
+ *                NANOS_INSTRUMENT( InstrumentState inst3(YIELD) );
+ *                thread->yield();
+ *             }
+ *          } else {
+ *             condition->unlock();
+ *          }
+ *          spins = nspins;
+ *       }
+ *    }
+ * }
+ * \endcode
+ *
+ * In this function the instrumentation changes the thread state in several parts of the code. First, all the function code is surrounded by a SYNCHRONIZATION state (inst). A Opening state event is raised at the very beginning of the function and the corresponding close event will be thrown once the execution flow gets out from the function scope. During the function execution the thread state may change to SCHEDULING when calling _schedulePolicy.atBlock(), RUNTIME when we are context switching WorkDescriptors? and YIELD when we are forcing a thread yield. In this case the SCHEDULING state change is the only one we have to force to close before getting out from its scope. Note, that if an C++ exception is raised by any of the lower layers the states that are open at point will close automatically. So, the use of the Instrumentation modules improves the general exception safety of the code.
+ * 
+ */
+
 #ifdef NANOS_INSTRUMENTATION_ENABLED
 #define NANOS_INSTRUMENT(f) f;
 #else
@@ -180,6 +354,11 @@ namespace nanos {
          size_t getSize( void ) const;
    };
 
+/*!\class InstrumentationDictionary
+ * \brief InstrumentationDictionary is event's dictionary.
+ * \description It allows to register and recover keys and pairs of <key,value> objects given them an internal code which can be used as identifier. The dictionary also allow to associate a description to each key and <key,value> objects.
+ *
+ */ 
    class InstrumentationDictionary {
       public:
          typedef TR1::unordered_map<std::string, InstrumentationKeyDescriptor*> KeyMap;
@@ -264,7 +443,7 @@ namespace nanos {
             /* 09 */ registerEventKey("copy-in","Copying WD inputs", true);
             /* 10 */ registerEventKey("copy-out","Copying WD outputs", true);
 
-            /* 11 */ registerEventKey("user-funct-name","User Function Name", true);
+            /* 11 */ registerEventKey("user-funct-name","User Function Name", true, true, true);
 
             /* 12 */ registerEventKey("user-code","User Code (wd)", true);
 
@@ -279,7 +458,7 @@ namespace nanos {
             /* 19 */ registerEventKey("num-yields","Number of Yields", true);
             /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)", true);
 
-            /* 21 */ registerEventKey("user-funct-location","User Function Location", true);
+            /* 21 */ registerEventKey("user-funct-location","User Function Location", true, true, true);
 
             /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues", true);
             /* 23 */ registerEventKey("graph-size","Number tasks in the graph", true);
@@ -455,6 +634,33 @@ namespace nanos {
    };
 #endif
 
+//! \class Instrumentation
+//! \brief Instrumentation main class is the core of the insrumentation behaviour.
+/*! \description This class implements several type of methods: methods to create events, methods to raise event, WorkDescriptor context swhich methods and finally, specific Instrumentation methods which are actually defined into each derived class (plugins). Specific Instrumentation methods are (ideally) the ones that have to be implemented in each derived Instrumentation class.
+ *
+ *  They are:
+ *
+ *  - initialize(): this method is executed at runtime startup and can be used to create buffers, auxiliary structures, initialize values (e.g. time stamp), etc.
+ *  - finalize(): this method is executed at runtime shutdown and can be used to dump remaining data into a file or standard output, post-process trace information, delete buffers and auxiliary structures, etc.
+ *  - addEventList(): this method is executed each time the runtime raises an event. It receives a list of events (EventList) and the specific instrumentation class has to deal with each event in this list in order to generate (or not) a valid output.
+ *
+ *  The Instrumentation object implementation is based in the concept of plugins which allow that several implementations based on its interface can be used without having to modify the runtime library. As we can see in the class diagram we have a generic class which defines all the instrumentation interface and several specific classes which defines the specific output format. But specific Instrumentation programmers can also overload other base methods in order to get an specific behavior when the plugin is invoked. Derived classes have to define (at least) the three previously mentioned virtual methods:
+ *
+ *  \code
+ *  void initialize( void );
+ *  void finalize( void );
+ *  void addEventList(  unsigned int count, Event *events );
+ *  \endcode
+ *
+ *  Instrumentation also specify as virtual functions some generic services which can be used at runtime code. These services are grouped in:
+ *
+ *  - Create event's services: these services are focused in create specific event objects. Usually they are not called by external agents but they are used by raise event's services (explained below).
+ *  - Raise event's services: these services are focused in effectively producing an event (or list of events) which will be visible by the user. Usually these functions will call one or several create event's service(s) and finally produce an effective output by calling plugin's addEventList() service.
+ *  - Context switch's services: they are used to backup/restore the instrumentation information history for the current WorkDescriptor? (see InstrumentationContext class).
+ *
+ *  Finally, Instrumentation class also offers two more services to enable/disable state instrumentation. Once the user calls disableStateInstrumentation() the runtime will not produce more state events until the user enable it by calling enableStateInstrumentation(). Although no state events will be produced during this interval of time Instrumentation class will keep all potential state changes by creating a special event object: the substate event.
+ *
+*/
    class Instrumentation
    {
       public:
