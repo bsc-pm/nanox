@@ -20,6 +20,8 @@
 #ifndef _NANOS_CACHE_DECL
 #define _NANOS_CACHE_DECL
 
+#define CACHE_ALLOC_ERROR (void*)-1
+
 #include "cache_fwd.hpp"
 #include "config_decl.hpp"
 #include "compatibility.hpp"
@@ -248,7 +250,7 @@ namespace nanos {
          *  \param dir Directory to look for entries if the it needs to free space in the device.
          *  \param size size of the entry to allocate.
          */
-         virtual void * allocate( Directory &dir, size_t size ) = 0;
+         virtual void * allocate( Directory &dir, size_t size, uint64_t tag ) = 0;
 
         /*! \brief Resize a CacheEntry
          *  \param dir Directory to look for entries if the it needs to free space in the device.
@@ -591,7 +593,7 @@ namespace nanos {
          *  \param dir Directory to look for entries if the it needs to free space in the device.
          *  \param size size of the entry to allocate.
          */
-         void * allocate( Directory &dir, size_t size );
+         void * allocate( Directory &dir, size_t size, uint64_t tag = NULL );
 
         /*! \brief delete unused entries to make space in the cache (flush them if necessary)
          *  \param dir Directory to be able to synchronize flushed entries

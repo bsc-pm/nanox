@@ -30,7 +30,7 @@ using namespace nanos::ext;
 //
 
 OpenCLCache::~OpenCLCache() {
-    if (_mainBuffer!=0) clReleaseMemObject(_mainBuffer);
+    if (_mainBuffer!=NULL) clReleaseMemObject(_mainBuffer);
 }
 
 void OpenCLCache::initialize() {
@@ -47,13 +47,23 @@ void OpenCLCache::initialize() {
     if (_openclAdapter.getPreallocatesWholeMemory()){
         if (_openclAdapter.allocBuffer(_devCacheSize, _mainBuffer) != CL_SUCCESS)
             fatal0("Not enough memory available on device to allocate requested memory size");
+    } else {
+        _mainBuffer=NULL;
     }
 
     // Initialize the device allocator.
     _devAllocator.init(0 , _devCacheSize);
 }
 
-void *OpenCLCache::deviceAllocate(size_t size) {
+void *OpenCLCache::allocate(size_t size, uint64_t tag) {
+    //Shared memory buffers were already allocated
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) tag, size)){
+        cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)tag,size);
+        if (buf==NULL){
+            return CACHE_ALLOC_ERROR;
+        }
+        return (void*)tag;
+    }
     //cl_mem buf;
     
 
@@ -62,22 +72,26 @@ void *OpenCLCache::deviceAllocate(size_t size) {
 
     void *addr = _devAllocator.allocate(size);
     //Create the buffer
-    _openclAdapter.getBuffer(_mainBuffer,(size_t)addr,size);
-
+    cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)addr,size);
+    if (buf==NULL){
+        return CACHE_ALLOC_ERROR;
+    }
 
     //_bufAddrMappings[addr] = buf;
 
     return addr;
 }
 
-void *OpenCLCache::deviceReallocate(void * addr, size_t size, size_t ceSize) {
+void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
    
-    deviceFree(addr);
+    free(addr);
 
-    return deviceAllocate(size);
+    return allocate(size, (uint64_t) addr);
 }
 
-void OpenCLCache::deviceFree(void * addr) {
+void OpenCLCache::free(void * addr) {
+    //User must free shared memory buffers manually
+    //if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
     _devAllocator.free(addr);
     //cl_mem buf = _bufAddrMappings[addr];    
     //cl_int errCode;
@@ -88,13 +102,27 @@ void OpenCLCache::deviceFree(void * addr) {
     //_bufAddrMappings.erase(_bufAddrMappings.find(addr)); 
 }
 
-bool OpenCLCache::deviceCopyIn(void *localDst,
+bool OpenCLCache::copyIn(void *localDst,
         CopyDescriptor &remoteSrc,
         size_t size) {
-    cl_int errCode;   
+    //If shared memory, no need to copy
+    cl_int errCode;
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) remoteSrc.getTag(), size))
+    {
+        cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)remoteSrc.getTag(),size);  
+        errCode = _openclAdapter.unmapBuffer(buf,
+              (void*) remoteSrc.getTag(),
+              0,
+              size);
+        if (errCode != CL_SUCCESS){
+            fatal("Buffer unmap failed.");
+        }
+        return true;
+    }
     
-    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localDst,size);
     
+    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localDst,size);    
+                   
     errCode = _openclAdapter.writeBuffer(buf,
               (void*) remoteSrc.getTag(),
               0,
@@ -107,9 +135,25 @@ bool OpenCLCache::deviceCopyIn(void *localDst,
     return true;
 }
 
-bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
+
+bool OpenCLCache::copyOut(CopyDescriptor &remoteDst,
         void *localSrc,
         size_t size) {
+    //If shared memory, no need to copy
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) remoteDst.getTag(), size)){
+        cl_int errCode;
+        
+        cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
+        errCode = _openclAdapter.mapBuffer(buf,
+                    ((void*)remoteDst.getTag()),
+                    0,
+                    size);
+
+        if (errCode != CL_SUCCESS && localSrc!=0) {        
+            fatal("Buffer mapping failed.");
+        }            
+        return true;
+    }
     cl_int errCode;
     
     cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
@@ -127,9 +171,9 @@ bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
     return true;
 }
 
-bool OpenCLCache::deviceCopyInBuffer(void *localSrc,
+bool OpenCLCache::copyInBuffer(void *localSrc,
         cl_mem remoteBuffer,
-        size_t size) {    
+        size_t size) {            
     cl_int errCode;
     
     cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);

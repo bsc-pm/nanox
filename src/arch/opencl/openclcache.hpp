@@ -64,50 +64,20 @@ public:
    
    void initialize();
    
-   void *allocate( size_t size )
-   {
-         return deviceAllocate( size );
-   }
+   void *allocate( size_t size, uint64_t tag);
 
-   void *deviceAllocate( size_t size );
+   void *reallocate( void* addr, size_t size, size_t ceSize );
 
-   void *reallocate( void * addr, size_t size, size_t ceSize )
-   {
-      return deviceReallocate( addr, size, ceSize );
-   }
+   void free( void* addr );
 
-   void *deviceReallocate( void* addr, size_t size, size_t ceSize );
+   bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size );
 
-   void free( void* addr )
-   {
-         deviceFree( addr );
-   }
-
-   void deviceFree( void* addr );
-
-   bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size )
-   {
-         return deviceCopyIn( localDst, remoteSrc, size );
-   }
-
-   bool deviceCopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size );
-
-   bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size )
-   {
-         return deviceCopyOut( remoteDst, localSrc, size );
-   }
-   
-   bool deviceCopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size );
+   bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size );
    
    cl_mem getBuffer( void *localSrc, size_t size );
    
-   bool deviceCopyInBuffer( void *localDst, cl_mem buffer, size_t size );
+   bool copyInBuffer( void *localDst, cl_mem buffer, size_t size );
    
-   bool copyInBuffer( void *localDst, cl_mem buffer, size_t size )
-   {
-         return deviceCopyInBuffer( localDst, buffer, size );
-   }
-
    void *getDeviceBase()
    {
       return reinterpret_cast<void *>( _devAllocator.getBaseAddress() );

@@ -18,6 +18,8 @@ opencl_sources = \
     $(top_srcdir)/src/arch/opencl/openclthread.hpp \
     $(top_srcdir)/src/arch/opencl/openclthread.cpp \
     $(top_srcdir)/src/arch/opencl/openclutils.hpp \
+    $(top_srcdir)/src/arch/opencl/sharedmemallocator.cpp \
+    $(top_srcdir)/src/arch/opencl/sharedmemallocator.hpp \
     $(END)
 
 pe_opencl_sources = \

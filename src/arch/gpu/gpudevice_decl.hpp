@@ -96,7 +96,7 @@ namespace nanos
 
          /* \brief allocate size bytes in the device
           */
-         static void * allocate( size_t size, ProcessingElement *pe );
+         static void * allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  );
 
          /* \brief free address
           */

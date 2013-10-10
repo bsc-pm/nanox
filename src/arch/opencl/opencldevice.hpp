@@ -29,10 +29,10 @@ using namespace nanos::ext;
 
 OpenCLDevice::OpenCLDevice( const char *name ) : Device( name ) { }
 
-void *OpenCLDevice::allocate( size_t size, ProcessingElement *pe )
+void *OpenCLDevice::allocate( size_t size, ProcessingElement *pe, uint64_t tag )
 {
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
-      return proc->allocate( size );
+      return proc->allocate( size , tag);
 
 
    fatal( "Can allocate only on OpenCLProcessor" );
@@ -106,8 +106,9 @@ bool OpenCLDevice::copyDevToDev( void *addrDst,
    {
        nanos::ext::OpenCLProcessor *procDst = (nanos::ext::OpenCLProcessor *)( peDst );
        nanos::ext::OpenCLProcessor *procSrc = (nanos::ext::OpenCLProcessor *)( peSrc );
-       //If both devices are in the same vendor/context do a real copy in
-       if (procDst->getContext()==procSrc->getContext()){       
+       //If both devices are in the same vendor/context do a real copy in       
+      //If shared memory, no need to copy (I hope, all OCL devices should share the same memory space...)
+       if (procDst->getContext()==procSrc->getContext() && !OpenCLProcessor::getSharedMemAllocator().isSharedMem( addrSrc, size)) {       
            cl_mem buf=procSrc->getBuffer(addrSrc,size);
            procDst->copyInBuffer( addrDst, buf ,size);
        } else {
