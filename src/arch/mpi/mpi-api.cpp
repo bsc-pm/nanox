@@ -259,7 +259,6 @@ NANOS_API_DEF(int, nanos_mpi_worker, (void (*ompss_mpi_func_pointers_dev[])())){
     MPI_Comm ompss_parent_comp;
     err= MPI_Comm_get_parent(&ompss_parent_comp);
     while(1){
-        printf("soy el hijo y hago recv\n\n");
        err= nanos_mpi_recv_taskinit(&ompss_id_func, 1, ompss_get_mpi_type("__mpitype_ompss_signed_int"), 0, ompss_parent_comp, MPI_STATUS_IGNORE);
        if (ompss_id_func==-1){
           nanos_mpi_finalize(); 

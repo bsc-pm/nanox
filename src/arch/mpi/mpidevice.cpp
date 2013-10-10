@@ -53,7 +53,7 @@ MPIDevice::~MPIDevice() {
 
 /* \breif allocate size bytes in the device
  */
-void * MPIDevice::allocate(size_t size, ProcessingElement *pe) {
+void * MPIDevice::allocate(size_t size, ProcessingElement *pe, uint64_t tag ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ALLOC_EVENT);
     //std::cerr << "Inicio allocate\n";
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
@@ -66,6 +66,9 @@ void * MPIDevice::allocate(size_t size, ProcessingElement *pe) {
     nanos::ext::MPIProcessor::nanos_MPI_Recv(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ANSWER_ALLOC, myPE->getCommunicator(), MPI_STATUS_IGNORE );
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     //std::cerr << "Fin allocate\n";
+    if (order.devAddr==0){
+        return CACHE_ALLOC_ERROR;
+    }
     return (void *) order.devAddr;
 }
 
@@ -257,7 +260,6 @@ void MPIDevice::mpiCacheWorker() {
             //MPI_Comm_get_parent(&parentcomm);
             //printf("Espero orden\n");
             //TODO: Check if this is faster than sending ack's to the host  
-        printf("soy el cache hijo y hago recv\n\n");
             nanos::ext::MPIProcessor::nanos_MPI_Recv(&order, 1, cacheStruct, 0, TAG_CACHE_ORDER, parentcomm, MPI_STATUS_IGNORE );
 //            if (!(order.opId==OPID_COPYIN || order.opId>=OPID_DEVTODEV || order.opId<=0 )){
 //                doingCopyIn=false;
@@ -340,7 +342,7 @@ void MPIDevice::mpiCacheWorker() {
                 {
                     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
                     //std::cerr << "Hago un allocate en device\n";
-                    char* ptr = new char[order.size];
+                    char* ptr = new (std::nothrow) char[order.size];
                     order.devAddr = (uint64_t) ptr;
                     //printf("Dir alloc%p size %lu\n",(void*) order.devAddr,order.size);
                     //MPI_Comm_get_parent(&parentcomm);
