@@ -19,7 +19,7 @@
 
 
 #include "gpumemorytransfer.hpp"
-#include "gpuevent_decl.hpp"
+#include "gpuevent.hpp"
 #include "gpuprocessor.hpp"
 #include "instrumentationmodule_decl.hpp"
 

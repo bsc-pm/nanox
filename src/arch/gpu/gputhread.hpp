@@ -23,7 +23,7 @@
 #include "gputhread_decl.hpp"
 #include "compatibility.hpp"
 #include "gpudd.hpp"
-#include "gpuevent_decl.hpp"
+#include "gpuevent.hpp"
 #include "gpuprocessor.hpp"
 
 
