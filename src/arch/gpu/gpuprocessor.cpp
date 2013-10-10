@@ -20,6 +20,7 @@
 #include "gpuprocessor.hpp"
 #include "debug.hpp"
 #include "gpudd.hpp"
+#include "gpuutils.hpp"
 #include "schedule.hpp"
 #include "simpleallocator.hpp"
 
@@ -61,9 +62,9 @@ void GPUProcessor::init ()
          userDefinedMem = ( size_t ) ( maxMemoryAvailable * ( userDefinedMem / 100.0 ) );
       }
       if ( userDefinedMem > maxMemoryAvailable ) {
-         warning( "Could not set memory size to " << bytesToHumanReadable( userDefinedMem ) << " for GPU #" << _gpuDevice
-               << " because maximum memory available is " << bytesToHumanReadable( maxMemoryAvailable ) << ". Using "
-               << bytesToHumanReadable( maxMemoryAvailable ) );
+         warning( "Could not set memory size to " << GPUUtils::bytesToHumanReadable( userDefinedMem ) << " for GPU #" << _gpuDevice
+               << " because maximum memory available is " << GPUUtils::bytesToHumanReadable( maxMemoryAvailable ) << ". Using "
+               << GPUUtils::bytesToHumanReadable( maxMemoryAvailable ) );
       }
       else {
          maxMemoryAvailable = userDefinedMem;
@@ -165,6 +166,14 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
    GPUThread &th = *NEW GPUThread( helper, this, _gpuDevice );
 
    return ( BaseThread& )  th;
+}
+
+void GPUProcessor::printStats ()
+{
+   message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
+   message("    Total input transfers: " << GPUUtils::bytesToHumanReadable( _gpuProcessorStats._bytesIn.value() ) );
+   message("    Total output transfers: " << GPUUtils::bytesToHumanReadable( _gpuProcessorStats._bytesOut.value() ) );
+   message("    Total device transfers: " << GPUUtils::bytesToHumanReadable( _gpuProcessorStats._bytesDevice.value() ) );
 }
 
 

@@ -20,6 +20,7 @@
 #include "gputhread.hpp"
 #include "asyncthread.hpp"
 #include "gpuprocessor.hpp"
+#include "gpuutils.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
@@ -78,8 +79,17 @@ void GPUThread::switchHelperDependent( WD* oldWD, WD* newWD, void *arg )
 
 void GPUThread::initializeDependent ()
 {
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime =
+         sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" );
+
+   GPUUtils::GPUInstrumentationEventKeys::_user_funct_location =
+         sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" );
+#endif
+
    // Bind the thread to a GPU device
-   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_EVENT );
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_SET_DEVICE_EVENT );
    cudaError_t err = cudaSetDevice( _gpuDevice );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    if ( err != cudaSuccess )
@@ -90,7 +100,7 @@ void GPUThread::initializeDependent ()
 
    // Warming up GPU's...
    if ( GPUConfig::isGPUWarmupDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_FREE_EVENT );
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_FREE_EVENT );
       cudaFree(0);
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    }
@@ -98,7 +108,7 @@ void GPUThread::initializeDependent ()
 #ifndef NANOS_GPU_USE_CUDA32
    // Initialize CUBLAS handle in case of potentially using CUBLAS
    if ( GPUConfig::isCUBLASInitDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GENERIC_EVENT );
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_GENERIC_EVENT );
       cublasStatus_t cublasErr = cublasCreate( ( cublasHandle_t * ) &_cublasHandle );
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
       if ( cublasErr != CUBLAS_STATUS_SUCCESS ) {
@@ -122,7 +132,7 @@ void GPUThread::initializeDependent ()
 #endif
 
    // Reset CUDA errors that may have occurred inside the runtime initialization
-   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
    err = cudaGetLastError();
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
    if ( err != cudaSuccess )

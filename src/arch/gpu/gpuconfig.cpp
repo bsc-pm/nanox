@@ -248,7 +248,7 @@ void GPUConfig::printConfiguration()
    verbose0( "  Transfer mode: " << ( _transferMode == NANOS_GPU_TRANSFER_NORMAL ? "Sync" : "Async" ) );
    if ( _maxGPUMemory != 0 ) {
       if ( _maxGPUMemory > 100 ) {
-         verbose0( "  Limited memory: Enabled: " << bytesToHumanReadable( _maxGPUMemory ) );
+         verbose0( "  Limited memory: Enabled: " << GPUUtils::bytesToHumanReadable( _maxGPUMemory ) );
       } else {
          verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << "% of the total device memory" );
       }
