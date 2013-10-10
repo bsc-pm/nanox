@@ -133,8 +133,6 @@ void AsyncThread::preRunWD ( WD * wd )
    _previousWD = this->getCurrentWD();
 
    this->setCurrentWD( *wd );
-   // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( _previousWD, wd, /* last */ false ) );
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_PRE_RUN_EVENT );
 
@@ -142,9 +140,6 @@ void AsyncThread::preRunWD ( WD * wd )
    wd->init();
 
    ASYNC_THREAD_CLOSE_EVENT;
-
-   // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( wd, _previousWD, /* last */ false ) );
 
    this->setCurrentWD( *_previousWD );
 }

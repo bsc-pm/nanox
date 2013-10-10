@@ -39,10 +39,6 @@ inline void AsyncThread::checkEvents()
 
          WD * wd = evt->getWD();
          this->setCurrentWD( *wd );
-
-         // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-         NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( _previousWD, wd, /* last */ false ) );
-
          evt->setCompleted();
          // Move to next step if WD's event is raised
          while ( evt->hasNextAction() ) {
@@ -51,19 +47,8 @@ inline void AsyncThread::checkEvents()
             delete action;
          }
 
-         // Instrumenting context switch: wd leaves CPU, but will come back later (last = false) or not (last = true)
          // finishWork() function will modify thread's current WD because the active WD will be deleted at that point.
-         // In this case, we don't need to call switchWD because it's already been called at finishWork()
-         // UPDATE: finishWork() is not calling switchWD() any more, so we must call it here. Then, we don't know when
-         // will be the last time for this wd leaving CPU...
-
-         //if ( this->getCurrentWD() == wd  )
-         NANOS_INSTRUMENT( \
-                  sys.getInstrumentation()->wdSwitch( wd, _previousWD, /* last */ false ) \
-         );
-
          this->setCurrentWD( *_previousWD );
-
       }
    }
 
