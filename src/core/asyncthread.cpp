@@ -85,7 +85,9 @@ bool AsyncThread::inlineWorkDependent( WD &work )
 
 void AsyncThread::idle()
 {
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT )
    checkEvents();
+   ASYNC_THREAD_CLOSE_EVENT
 
    WD * last = ( _runningWDsCounter != 0 ) ? _runningWDs.back() : getCurrentWD();
 
@@ -114,7 +116,9 @@ void AsyncThread::idle()
          // Start steps to run this WD
          this->preRunWD( next );
 
+         ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT )
          checkEvents();
+         ASYNC_THREAD_CLOSE_EVENT
 
          last = next;
 
