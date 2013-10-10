@@ -9,6 +9,7 @@ opencl_sources = \
     $(top_srcdir)/src/arch/opencl/opencldd.cpp \
     $(top_srcdir)/src/arch/opencl/opencldevice_decl.hpp \
     $(top_srcdir)/src/arch/opencl/opencldevice.hpp \
+    $(top_srcdir)/src/arch/opencl/openclprocessor_fwd.hpp \
     $(top_srcdir)/src/arch/opencl/openclprocessor_decl.hpp \
     $(top_srcdir)/src/arch/opencl/openclprocessor.hpp \
     $(top_srcdir)/src/arch/opencl/openclprocessor.cpp \

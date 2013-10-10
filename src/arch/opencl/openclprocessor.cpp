@@ -75,8 +75,10 @@ void* OpenCLAdapter::allocSharedMemBuffer( size_t size )
    if (err!=CL_SUCCESS){
        fatal0("Failed to allocate OpenCL memory (nanos_malloc_opencl)");
    }
-   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;   
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT );
    void* addr= clEnqueueMapBuffer(_queue, buff, CL_TRUE, CL_MAP_READ  | CL_MAP_WRITE, 0, size, 0, NULL, NULL, &err);   
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    _bufCache[(void*)((size_t)addr+1)]=buff;
    return addr;
 }
@@ -205,7 +207,7 @@ cl_int OpenCLAdapter::mapBuffer( cl_mem buf,
    cl_int errCode, exitStatus;
    cl_event ev;
 
-   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMREAD_SYNC_EVENT );
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT );
    clEnqueueMapBuffer( _queue,
                                     buf,
                                     CL_TRUE,
@@ -254,7 +256,7 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                      &ev
                                    );
    _pendingEvents.push_back(ev);
-   //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 //   if( errCode != CL_SUCCESS ){
 //      return errCode;
 //   }
@@ -278,7 +280,7 @@ cl_int OpenCLAdapter::unmapBuffer( cl_mem buf,
 {
    cl_event ev;
 
-   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT );
    clEnqueueUnmapMemObject( _queue,
                                      buf,
                                      (void*) offset,
@@ -287,7 +289,7 @@ cl_int OpenCLAdapter::unmapBuffer( cl_mem buf,
                                      &ev
                                    );
    //_pendingEvents.push_back(ev);
-   //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 //   if( errCode != CL_SUCCESS ){
 //      return errCode;
 //   }
