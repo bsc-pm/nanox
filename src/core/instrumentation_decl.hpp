@@ -548,7 +548,10 @@ namespace nanos {
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT", "clCreateCommandQueue()" );                /* 7 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GET_PROGRAM_EVENT", "Compile, build and clCreateKernel() nanox routine" );                /* 8 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_COPY_BUFFER_EVENT", "clEnqueueCopyBuffer() Device to device transfer" );                /* 9 */
-            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 10 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_CREATE_SUBBUFFER_EVENT", "clCreateSubBuffer(blocking=true)" );                /* 10 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT", "clEnqueueMapBuffer(blocking=true)" );                /* 11 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT", "clEnqueueUnmapMemObject(blocking=true)" );                /* 12 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 13 */
 
             /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
             /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");

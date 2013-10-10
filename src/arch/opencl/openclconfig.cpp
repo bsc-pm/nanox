@@ -26,7 +26,7 @@ using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
-int OpenCLConfig::_devCacheSize = 0;
+size_t OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
@@ -86,9 +86,10 @@ void OpenCLConfig::prepare( Config &cfg )
 
    // Select the size of the device cache.
    cfg.registerConfigOption( "opencl-cache",
-                             NEW Config::IntegerVar( _devCacheSize ),
+                             NEW Config::SizeVar( _devCacheSize ),
                              "Defines the amount of the cache "
-                             "to be allocated on the device" );
+                             "to be allocated on the device (bytes). "
+                             " If this number is below 100, the amount of memory is taken as a percentage of the total device memory") ;
    cfg.registerEnvOption( "opencl-cache", "NX_OPENCL_CACHE" );
    cfg.registerArgOption( "opencl-cache", "opencl-cache" );
    
@@ -107,17 +108,11 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
     _devicesPtr=&_devices;
     //Auto-enable CUDA if it was not done before
    if (!_enableOpenCL) {
-       //ompss_uses_opencl pointer will be null (is extern) if the compiler didnt fill it
+       //ompss_uses_cuda pointer will be null (is extern) if the compiler didnt fill it
       _enableOpenCL=((&ompss_uses_opencl)!=0);
    }
-   if( _forceDisableOpenCL || !_enableOpenCL || _devNum == 0 ) {       
-     bool mercuriumHasTasks=((&ompss_uses_opencl)!=0);
-     if (mercuriumHasTasks){
-         message0(" OpenCL tasks were compiled and OpenCL was disabled, execution"
-               " could have unexpected behavior and can even hang, check configuration parameters");
-     } 
+   if( _forceDisableOpenCL || !_enableOpenCL ) 
      return;
-   }
 
    cl_int errCode;
 
@@ -219,18 +214,8 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
       {
           _devices.insert(std::make_pair( *j , ctx) );
       }
+	  _currNumDevices=_devices.size();
 
       delete [] devs;
    }
-	_currNumDevices=_devices.size();
-     
-   if (_currNumDevices==0){
-       bool mercuriumHasTasks=((&ompss_uses_opencl)!=0);
-       if (mercuriumHasTasks){
-          message0(" OpenCL tasks were compiled and no OpenCL devices were found, execution"
-               " could have unexpected behavior and can even hang ");
-       } else {
-           message0(" OpenCL plugin was enabled and no OpenCL devices were found ");
-       }
-    }
 }

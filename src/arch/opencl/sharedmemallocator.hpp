@@ -17,58 +17,47 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _OpenCL_DEVICE_DECL
-#define _OpenCL_DEVICE_DECL
+#ifndef SHAREDMEMALLOCATOR_DECL_HPP
+#define	SHAREDMEMALLOCATOR_DECL_HPP
 
-#include "workdescriptor_decl.hpp"
-#include "copydescriptor_decl.hpp"
-#include "processingelement_fwd.hpp"
+#include <stdint.h>
+#include <map>
+#include "openclprocessor_fwd.hpp"
+
+#include "atomic_decl.hpp"
 
 namespace nanos {
-
-class OpenCLDevice : public Device
-{
-public:
-   OpenCLDevice ( const char *name );
-
-public:
-   static void *allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  );
-
-   static void *realloc( void * address,
-                         size_t size,
-                         size_t ceSize,
-                         ProcessingElement *pe );
-
-   static void free( void *address, ProcessingElement *pe );
-
-   static bool copyDevToDev( void *addrDst,
-                             CopyDescriptor& dstCd,
-                             void* addrSrc,
-                             size_t size,
-                             ProcessingElement *peDst,
-                             ProcessingElement *peSrc );
-   
-   static bool copyIn( void *localDst,
-                       CopyDescriptor &remoteSrc,
-                       size_t size,
-                       ProcessingElement *pe );
-
-   static bool copyOut( CopyDescriptor &remoteDst,
-                        void *localSrc,
-                        size_t size,
-                        ProcessingElement *pe );
-
-   static void copyLocal( void *dst,
-                          void *src,
-                          size_t size,
-                          ProcessingElement *pe )
+    
+/*! \brief Memory allocator to manage shared memory memory allocations
+    */
+   class SharedMemAllocator
    {
-       return;
-   }
+      private:
+         typedef std::map < void *, size_t > SharedMemMemoryMap;
 
-   static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe );
-};
+         SharedMemMemoryMap            _pinnedChunks;
+         nanos::ext::OpenCLProcessor* _allocatingDevice;
+         bool _init;
+         Lock                       _lock;
+         
+         void initialize();
 
-} // End namespace nanos.
 
-#endif // _OpenCL_DEVICE_DECL
+      public:
+         SharedMemAllocator();
+        ~SharedMemAllocator () { }
+
+         void * allocate( size_t size );
+
+         void free( void * address );
+
+         bool isSharedMem( void * address, size_t size );
+         
+         void* getBasePointer( void * address, size_t size );
+
+         void printSharedMemMemoryMap();
+   };
+
+}
+#endif	/* SHAREDMEMALLOCATOR_DECL_HPP */
+
