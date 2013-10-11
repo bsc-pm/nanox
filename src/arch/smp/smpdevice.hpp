@@ -50,7 +50,7 @@ namespace nanos
 
         /* \breif allocate size bytes in the device
          */
-         static void * allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  )
+         static void * allocate( size_t size, ProcessingElement *pe, uint64_t tag = 0 )
          {
             return NEW char[size]; 
          }
