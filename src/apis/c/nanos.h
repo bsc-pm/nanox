@@ -326,9 +326,9 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
     typedef const char* nanos_string_t;
 #endif
 
-NANOS_API_DECL(nanos_err_t, nanos_begin_burst, (nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr));
+NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr));
 
-NANOS_API_DECL(nanos_err_t, nanos_end_burst, (nanos_string_t key, nanos_string_t value));
+NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
 
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
 

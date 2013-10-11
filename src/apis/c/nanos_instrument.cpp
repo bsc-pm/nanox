@@ -218,7 +218,7 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_disable,())
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_begin_burst,(nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr))
+NANOS_API_DEF(nanos_err_t, nanos_instrument_begin_burst,(nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
     try
@@ -239,7 +239,7 @@ NANOS_API_DEF(nanos_err_t, nanos_begin_burst,(nanos_string_t key, nanos_string_t
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_end_burst,(nanos_string_t key, nanos_string_t value))
+NANOS_API_DEF(nanos_err_t, nanos_instrument_end_burst,(nanos_string_t key, nanos_string_t value))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
     try
