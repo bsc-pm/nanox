@@ -124,6 +124,9 @@
  *   - 5: Including nanos_omp_find_worksharing( omp_sched_t kind );
  *   - 6:
  *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+ * - nanos interface family: instrumentation_api
+ *   - 1000: Instrumentation API interface family created
+ *
  */
 
 #include <unistd.h>
