@@ -44,11 +44,13 @@ namespace ext
          cudaStream_t   _inTransferStream;
          cudaStream_t   _outTransferStream;
          cudaStream_t   _localTransferStream;
-         cudaStream_t   _kernelExecStream;
+
+         // Execution
+         cudaStream_t * _kernelExecStream;
 
       public:
          GPUProcessorInfo ( int device ) : _deviceId( device ), _maxMemoryAvailable( 0 ),
-            _inTransferStream( 0 ), _outTransferStream( 0 ), _localTransferStream( 0 ), _kernelExecStream( 0 )
+            _inTransferStream( 0 ), _outTransferStream( 0 ), _localTransferStream( 0 ), _kernelExecStream( NULL )
          {}
 
          ~GPUProcessorInfo () {}
@@ -81,7 +83,13 @@ namespace ext
             return _localTransferStream;
          }
 
-         cudaStream_t getKernelExecStream ()
+         cudaStream_t getKernelExecStream ( unsigned int index )
+         {
+            return _kernelExecStream[index];
+         }
+
+         cudaStream_t getKernelExecStream ();
+
          {
             return _kernelExecStream;
          }

@@ -39,6 +39,7 @@ namespace ext
       private:
          pthread_t                     _pth;
          int                           _gpuDevice; // Assigned GPU device Id
+         int                           _kernelStreamIdx;
          bool                          _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
          void *                        _cublasHandle; //! Context pointer for CUBLAS library
 
@@ -55,7 +56,7 @@ namespace ext
 
       public:
          // constructor
-         GPUThread( WD &w, PE *pe, int device ) : AsyncThread( w, pe ), _gpuDevice( device ),
+         GPUThread( WD &w, PE *pe, int device ) : AsyncThread( w, pe ), _gpuDevice( device ), _kernelStreamIdx ( 0 ),
          _wdClosingEvents( false ), _cublasHandle( NULL ) {}
 
          // destructor
@@ -73,8 +74,9 @@ namespace ext
 
          void processTransfers();
 
-         int getGPUDevice ();
+         unsigned int getCurrentKernelExecStreamIdx();
 
+         int getGPUDevice ();
          void enableWDClosingEvents ();
 
          void * getCUBLASHandle();

@@ -214,19 +214,28 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
          // If an error occurred, disable stream overlapping
          _localTransferStream = 0;
          if ( err == CUDANODEVERR ) {
-            fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+            fatal( "Error while creating the CUDA local transfer stream: all CUDA-capable devices are busy or unavailable" );
          }
          warning( "Error while creating the CUDA local transfer stream: " << cudaGetErrorString( err ) );
       }
-      err = cudaStreamCreate( &_kernelExecStream );
-      if ( err != cudaSuccess ) {
-         // If an error occurred, disable stream overlapping
-         _kernelExecStream = 0;
-         if ( err == CUDANODEVERR ) {
-            fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+
+      // Create as many kernel streams as the number of prefetching tasks
+      int numStreams = GPUConfig::getNumPrefetch() + 1;
+      _kernelExecStream = ( cudaStream_t * ) malloc( numStreams * sizeof( cudaStream_t ) );
+      for ( int i = 0; i < numStreams; i++ ) {
+         err = cudaStreamCreate( &_kernelExecStream[i] );
+         if ( err != cudaSuccess ) {
+            // If an error occurred, disable stream overlapping for that kernel stream
+            _kernelExecStream[i] = 0;
+            if ( err == CUDANODEVERR ) {
+               fatal( "Error while creating the CUDA kernel transfer streams: all CUDA-capable devices are busy or unavailable" );
+            }
+            warning( "Error while creating the CUDA kernel execution stream #" << i << ": " << cudaGetErrorString( err ) );
          }
-         warning( "Error while creating the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
       }
+   } else {
+      _kernelExecStream = ( cudaStream_t * ) malloc( sizeof( cudaStream_t ) );
+      _kernelExecStream[0] = 0;
    }
 }
 
@@ -253,10 +262,18 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
       }
    }
 
-   if ( _kernelExecStream ) {
-      cudaError_t err = cudaStreamDestroy( _kernelExecStream );
-      if ( err != cudaSuccess ) {
-         warning( "Error while destroying the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
+   for ( int i = 0; i < GPUConfig::getNumPrefetch() + 1; i++ ) {
+      if ( _kernelExecStream[i] ) {
+         cudaError_t err = cudaStreamDestroy( _kernelExecStream[i] );
+         if ( err != cudaSuccess ) {
+            warning( "Error while destroying the CUDA kernel execution stream #" << i << ": " << cudaGetErrorString( err ) );
+         }
       }
    }
+}
+
+cudaStream_t GPUProcessor::GPUProcessorInfo::getKernelExecStream ()
+{
+   unsigned int index = ( ( GPUThread * ) myThread )->getCurrentKernelExecStreamIdx();
+   return _kernelExecStream[index];
 }

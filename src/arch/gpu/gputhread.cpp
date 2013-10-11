@@ -171,11 +171,15 @@ void GPUThread::runDependent ()
 //bool GPUThread::inlineWorkDependent ( WD &wd )
 bool GPUThread::runWDDependent( WD &wd )
 {
-   GPUDD &dd = ( GPUDD & )wd.getActiveDevice();
+   GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
    //GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
+
+   _kernelStreamIdx++;
+
+   if ( _kernelStreamIdx == GPUConfig::getNumPrefetch() + 1 ) _kernelStreamIdx = 0;
 
    return false;
 }
@@ -207,6 +211,10 @@ void GPUThread::processTransfers()
 }
 
 
+unsigned int GPUThread::getCurrentKernelExecStreamIdx()
+{
+   return _kernelStreamIdx;
+}
 void GPUThread::raiseWDClosingEvents ( WD * wd )
 {
    NANOS_INSTRUMENT(
