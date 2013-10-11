@@ -191,6 +191,17 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
          }
          warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      // Initialize the CUDA stream used for tracing input data transfers
+      err = cudaStreamCreate( &_tracingInStream );
+      if ( err != cudaSuccess ) {
+         _tracingInStream = 0;
+         warning( "CUDA stream creation for tracing input transfers failed: " << cudaGetErrorString( err ) );
+         warning( "Tracing information may differ from reality." );
+      }
+#endif
+
    }
 
    if ( outputStream ) {
@@ -205,6 +216,17 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
          }
          warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      // Initialize the CUDA stream used for tracing output data transfers
+      err = cudaStreamCreate( &_tracingOutStream );
+      if ( err != cudaSuccess ) {
+         _tracingOutStream = 0;
+         warning( "CUDA stream creation for tracing output transfers failed: " << cudaGetErrorString( err ) );
+         warning( "Tracing information may differ from reality." );
+      }
+#endif
+
    }
 
    if ( inputStream || outputStream ) {
@@ -233,9 +255,29 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
             warning( "Error while creating the CUDA kernel execution stream #" << i << ": " << cudaGetErrorString( err ) );
          }
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      // Initialize the CUDA streams used for tracing kernel launches
+      _tracingKernelStream = ( cudaStream_t * ) malloc( numStreams * sizeof( cudaStream_t ) );
+      for ( int i = 0; i < numStreams; i++ ) {
+         err = cudaStreamCreate( &_tracingKernelStream[i] );
+         if ( err != cudaSuccess ) {
+            _tracingKernelStream[i] = 0;
+            warning( "CUDA stream creation for tracing kernel launches failed: " << cudaGetErrorString( err ) );
+            warning( "Tracing information may differ from reality." );
+         }
+      }
+#endif
+
    } else {
       _kernelExecStream = ( cudaStream_t * ) malloc( sizeof( cudaStream_t ) );
       _kernelExecStream[0] = 0;
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      _tracingKernelStream = ( cudaStream_t * ) malloc( sizeof( cudaStream_t ) );
+      _tracingKernelStream[0] = 0;
+#endif
+
    }
 }
 
@@ -246,6 +288,13 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      err = cudaStreamDestroy( _tracingInStream );
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA stream for tracing input transfers: " << cudaGetErrorString( err ) );
+      }
+#endif
    }
 
    if ( _outTransferStream ) {
@@ -253,6 +302,13 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      err = cudaStreamDestroy( _tracingOutStream );
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA stream for tracing output transfers: " << cudaGetErrorString( err ) );
+      }
+#endif
    }
 
    if ( _localTransferStream ) {
@@ -270,6 +326,18 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
          }
       }
    }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   for ( int i = 0; i < GPUConfig::getNumPrefetch() + 1; i++ ) {
+      if ( _tracingKernelStream[i] ) {
+         cudaError_t err = cudaStreamDestroy( _tracingKernelStream[i] );
+         if ( err != cudaSuccess ) {
+            warning( "Error while destroying the CUDA stream for tracing kernel launches: " << cudaGetErrorString( err ) );
+         }
+      }
+   }
+#endif
+
 }
 
 cudaStream_t GPUProcessor::GPUProcessorInfo::getKernelExecStream ()

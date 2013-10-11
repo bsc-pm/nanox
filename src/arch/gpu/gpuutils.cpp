@@ -32,6 +32,10 @@ namespace ext
 
 nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime = 0;
 nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_user_funct_location = 0;
+nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu = 0;
+nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu = 0;
+
+
 void displayProperties( cudaDeviceProp* pDeviceProp, int device );
 
 

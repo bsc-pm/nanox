@@ -85,7 +85,6 @@ namespace ext
          GenericEvent * createRunEvent( WD * wd );
          GenericEvent * createPostRunEvent( WD * wd );
 
-
          void start();
          void join();
 
@@ -94,6 +93,15 @@ namespace ext
 
          void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
          void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
+
+         void raiseWDRunEvent ( WD * wd );
+         void closeWDRunEvent ( WD * wd );
+
+         void raiseAsyncInputEvent ( size_t size );
+         void closeAsyncInputEvent ( size_t size );
+
+         void raiseAsyncOutputEvent ( size_t size );
+         void closeAsyncOutputEvent ( size_t size );
 
    };
 

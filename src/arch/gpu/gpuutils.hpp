@@ -39,6 +39,8 @@ namespace ext
             public:
                static nanos_event_key_t   _in_cuda_runtime;
                static nanos_event_key_t   _user_funct_location;
+               static nanos_event_key_t   _copy_in_gpu;
+               static nanos_event_key_t   _copy_out_gpu;
          };
 
          typedef enum {

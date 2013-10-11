@@ -21,6 +21,7 @@
 #include "gpudevice.hpp"
 #include "basethread.hpp"
 #include "gpuutils.hpp"
+#include "gpucallback.hpp"
 #include "debug.hpp"
 #include <sys/resource.h>
 
@@ -175,6 +176,18 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
 
    myPE->transferInput( size );
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   cudaEvent_t evt1;
+   cudaEventCreate( &evt1, 0 );
+   cudaEventRecord( evt1, myPE->getGPUProcessorInfo()->getInTransferStream() );
+
+   cudaStreamWaitEvent( myPE->getGPUProcessorInfo()->getTracingInputStream(), evt1, 0 );
+
+   nanos::ext::GPUCallbackData * cbd = NEW nanos::ext::GPUCallbackData( ( nanos::ext::GPUThread * ) myThread, size );
+
+   cudaStreamAddCallback( myPE->getGPUProcessorInfo()->getTracingInputStream(), nanos::ext::beforeAsyncInputCallback, ( void * ) cbd, 0 );
+#endif
+
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::GPUUtils::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT );
    cudaError_t err = cudaMemcpyAsync(
             dst,
@@ -184,6 +197,18 @@ void GPUDevice::copyInAsyncToDevice( void * dst, void * src, size_t size )
             myPE->getGPUProcessorInfo()->getInTransferStream()
          );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   cudaEvent_t evt2;
+   cudaEventCreate( &evt2, 0 );
+   cudaEventRecord( evt2, myPE->getGPUProcessorInfo()->getInTransferStream() );
+
+   cudaStreamWaitEvent( myPE->getGPUProcessorInfo()->getTracingInputStream(), evt2, 0 );
+
+   nanos::ext::GPUCallbackData * cbd2 = NEW nanos::ext::GPUCallbackData( ( nanos::ext::GPUThread * ) myThread, size );
+
+   cudaStreamAddCallback( myPE->getGPUProcessorInfo()->getTracingInputStream(), nanos::ext::afterAsyncInputCallback, ( void * ) cbd2, 0 );
+#endif
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + ext::GPUUtils::bytesToHumanReadable( size )
          + " of data from host (" + toString<void *>( src ) + ") to device ("
@@ -215,6 +240,18 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
    nanos::ext::GPUProcessor * myPE = ( nanos::ext::GPUProcessor * ) myThread->runningOn();
    myPE->transferOutput( size );
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   cudaEvent_t evt1;
+   cudaEventCreate( &evt1, 0 );
+   cudaEventRecord( evt1, myPE->getGPUProcessorInfo()->getOutTransferStream() );
+
+   cudaStreamWaitEvent( myPE->getGPUProcessorInfo()->getTracingOutputStream(), evt1, 0 );
+
+   nanos::ext::GPUCallbackData * cbd = NEW nanos::ext::GPUCallbackData( ( nanos::ext::GPUThread * ) myThread, size );
+
+   cudaStreamAddCallback( myPE->getGPUProcessorInfo()->getTracingOutputStream(), nanos::ext::beforeAsyncOutputCallback, ( void * ) cbd, 0 );
+#endif
+
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::GPUUtils::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT );
    cudaError_t err = cudaMemcpyAsync(
             dst,
@@ -224,6 +261,18 @@ void GPUDevice::copyOutAsyncToBuffer ( void * dst, void * src, size_t size )
             myPE->getGPUProcessorInfo()->getOutTransferStream()
          );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   cudaEvent_t evt2;
+   cudaEventCreate( &evt2, 0 );
+   cudaEventRecord( evt2, myPE->getGPUProcessorInfo()->getOutTransferStream() );
+
+   cudaStreamWaitEvent( myPE->getGPUProcessorInfo()->getTracingOutputStream(), evt2, 0 );
+
+   nanos::ext::GPUCallbackData * cbd2 = NEW nanos::ext::GPUCallbackData( ( nanos::ext::GPUThread * ) myThread, size );
+
+   cudaStreamAddCallback( myPE->getGPUProcessorInfo()->getTracingOutputStream(), nanos::ext::afterAsyncOutputCallback, ( void * ) cbd2, 0 );
+#endif
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + ext::GPUUtils::bytesToHumanReadable( size )
          + " of data from device (" + toString<void *>( src ) + ") to host ("

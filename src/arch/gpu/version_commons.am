@@ -5,6 +5,8 @@ gpu_api_sources = \
 	$(END)
 		
 gpu_sources = \
+	$(top_srcdir)/src/arch/gpu/gpucallback.cpp \
+	$(top_srcdir)/src/arch/gpu/gpucallback.hpp \
 	$(top_srcdir)/src/arch/gpu/gpuconfig.cpp \
 	$(top_srcdir)/src/arch/gpu/gpuconfig.hpp \
 	$(top_srcdir)/src/arch/gpu/gpudevice_decl.hpp \

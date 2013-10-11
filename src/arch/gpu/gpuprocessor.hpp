@@ -48,9 +48,19 @@ namespace ext
          // Execution
          cudaStream_t * _kernelExecStream;
 
+         // Tracing
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         cudaStream_t   _tracingInStream;
+         cudaStream_t   _tracingOutStream;
+         cudaStream_t * _tracingKernelStream;
+#endif
+
       public:
          GPUProcessorInfo ( int device ) : _deviceId( device ), _maxMemoryAvailable( 0 ),
             _inTransferStream( 0 ), _outTransferStream( 0 ), _localTransferStream( 0 ), _kernelExecStream( NULL )
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         , _tracingInStream( 0 ), _tracingOutStream( 0 ), _tracingKernelStream( NULL )
+#endif
          {}
 
          ~GPUProcessorInfo () {}
@@ -90,9 +100,26 @@ namespace ext
 
          cudaStream_t getKernelExecStream ();
 
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+         cudaStream_t getTracingInputStream ()
          {
-            return _kernelExecStream;
+            return _tracingInStream;
          }
+
+         cudaStream_t getTracingOutputStream ()
+         {
+            return _tracingOutStream;
+         }
+
+         cudaStream_t getTracingKernelStream ( unsigned int index )
+         {
+            return _tracingKernelStream[index];
+         }
+
+
+#endif
+
    };
 }
 }

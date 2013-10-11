@@ -21,6 +21,7 @@
 #include "asyncthread.hpp"
 #include "gpuprocessor.hpp"
 #include "gpuutils.hpp"
+#include "gpucallback.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
@@ -86,6 +87,12 @@ void GPUThread::initializeDependent ()
 
    GPUUtils::GPUInstrumentationEventKeys::_user_funct_location =
          sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" );
+
+   GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu =
+         sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "copy-in-gpu" );
+
+   GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu =
+         sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "copy-out-gpu" );
 #endif
 
    // Bind the thread to a GPU device
@@ -232,4 +239,94 @@ void GPUThread::raiseWDClosingEvents ( WD * wd )
          // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
          sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false );
    );
+void GPUThread::raiseWDRunEvent ( WD * wd )
+{
+}
+
+void GPUThread::closeWDRunEvent ( WD * wd )
+{
+}
+
+
+void GPUThread::raiseAsyncInputEvent ( size_t size )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   //WD * oldwd = getCurrentWD();
+   //setCurrentWD( *wd );
+
+   Instrumentation::Event e;
+
+   nanos_event_value_t value = size;
+
+   //InstrumentationContextData *icd = wd->getInstrumentationContextData();
+
+   sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu, value );
+   //sys.getInstrumentation()->createBurstEvent( &e, _key, value, icd );
+
+   sys.getInstrumentation()->addEventList( 1, &e );
+
+   //setCurrentWD( *oldwd );
+#endif
+}
+
+
+void GPUThread::closeAsyncInputEvent ( size_t size )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   //WD * oldwd = getCurrentWD();
+   //setCurrentWD( *wd );
+
+   Instrumentation::Event e;
+
+   //InstrumentationContextData *icd = wd->getInstrumentationContextData();
+
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu );
+   //sys.getInstrumentation()->closeBurstEvent( &e, _key, icd );
+
+   sys.getInstrumentation()->addEventList( 1, &e );
+
+   //setCurrentWD( *oldwd );
+#endif
+}
+
+
+void GPUThread::raiseAsyncOutputEvent ( size_t size )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   //WD * oldwd = getCurrentWD();
+   //setCurrentWD( *wd );
+
+   Instrumentation::Event e;
+
+   nanos_event_value_t value = size;
+
+   //InstrumentationContextData *icd = wd->getInstrumentationContextData();
+
+   sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu, value );
+   //sys.getInstrumentation()->createBurstEvent( &e, _key, value, icd );
+
+   sys.getInstrumentation()->addEventList( 1, &e );
+
+   //setCurrentWD( *oldwd );
+#endif
+}
+
+
+void GPUThread::closeAsyncOutputEvent ( size_t size )
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   //WD * oldwd = getCurrentWD();
+   //setCurrentWD( *wd );
+
+   Instrumentation::Event e;
+
+   //InstrumentationContextData *icd = wd->getInstrumentationContextData();
+
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu );
+   //sys.getInstrumentation()->closeBurstEvent( &e, _key, icd );
+
+   sys.getInstrumentation()->addEventList( 1, &e );
+
+   //setCurrentWD( *oldwd );
+#endif
 }
