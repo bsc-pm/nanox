@@ -203,9 +203,11 @@ AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 # Check for architecture
 ARCHITECTURES=
 OS=
+OPTIONS=
 
 AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
+AC_SUBST([OPTIONS])
 AC_SUBST([SMP_ARCH])
 
 AC_CHECK_SIZEOF([size_t])
@@ -805,6 +807,7 @@ AC_ARG_WITH([hwloc],
                       HWLOC_LIB="$withval/lib"
                       HWLOC_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Hardware Locality library is compatible... yes])
+                      OPTIONS="$OPTIONS hwloc"
                    else
                       AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
                    fi
@@ -965,3 +968,4 @@ echo "================================"
 echo ""
 echo "Configured architectures:" $ARCHITECTURES
 echo ""
+echo "Extra options:" $OPTIONS

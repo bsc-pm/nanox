@@ -40,7 +40,8 @@ rpm:
 	@echo "Generating RPM structure"
 	mkdir -p SOURCES BUILD RPMS SPECS SRPMS
 	cp $(top_build_prefix)*.tar.gz SOURCES
-	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --without extrae
+        
+	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --define '_rpm_prefix $(RPM_PREFIX)' --with extrae
 
 clean-rpm:
 	-rm -rf BUILDROOT SOURCES BUILD RPMS SPECS SRPMS
