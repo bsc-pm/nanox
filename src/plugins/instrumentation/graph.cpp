@@ -31,6 +31,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       std::map<int, float> _wd_id_to_last_time_map;
       std::set<unsigned> _wd_id_independent;
       std::ofstream _dot_file;
+      unsigned int _last_tw;
 
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
@@ -38,7 +39,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       InstrumentationGraphInstrumentation() : Instrumentation(),
                                               _funct_id_to_color_map( ), _funct_id_to_funct_decl_map( ),
                                               _wd_id_to_time_map( ), _wd_id_to_last_time_map( ),
-                                              _wd_id_independent( ), _dot_file( dot_file_name ) {}
+                                              _wd_id_independent( ), _dot_file( dot_file_name ), _last_tw(1) {}
       // destructor
       ~InstrumentationGraphInstrumentation() {}
 
@@ -58,7 +59,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       InstrumentationGraphInstrumentation() : Instrumentation( *new InstrumentationContextDisabled() ),
                                               _funct_id_to_color_map( ), _funct_id_to_funct_decl_map( ),
                                               _wd_id_to_time_map( ), _wd_id_to_last_time_map( ),
-                                              _wd_id_independent( ), _dot_file( dot_file_name ) {}
+                                              _wd_id_independent( ), _dot_file( dot_file_name ), _last_tw(1) {}
       // destructor
       ~InstrumentationGraphInstrumentation ( ) {}
 
@@ -77,6 +78,8 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
       void finalize( void )
       {
+         _dot_file << "    }\n";
+         _dot_file << "  }\n";
          if( !_funct_id_to_funct_decl_map.empty( ) )
          {
             // Print the size of the nodes
@@ -182,15 +185,28 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       void addResumeTask( WorkDescriptor &w )
       {
           int wd_id = w.getId();
+
+         _dot_file << "  subgraph cluster_wd_" << wd_id << " {\n";
+
           if( wd_id != 1 )
           {
+            _dot_file << "  label=\"" << "other" << "\" style=\"rounded\"; rankdir=\"TB\";\n";
              _wd_id_to_last_time_map[wd_id] = get_current_time( );
+          } else {
+            _dot_file << "  label=\"" << "main" << "\" style=\"rounded\"; rankdir=\"TB\";\n";
           }
+         _dot_file << "    subgraph cluster_tw_" << _last_tw++ << " {\n";
+         _dot_file << "      label=\"\"\n";
       }
 
       void addSuspendTask( WorkDescriptor &w, bool last )
       {
+
          int wd_id = w.getId();
+
+         _dot_file << "    }\n";
+         _dot_file << "  }\n";
+
          if( wd_id != 1 )
          {
             double last_time = _wd_id_to_last_time_map[wd_id];
@@ -215,6 +231,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
          static const nanos_event_key_t dependence = iD->getEventKey("dependence");
          static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
          static const nanos_event_key_t user_funct_location = iD->getEventKey("user-funct-location");
+         static const nanos_event_key_t taskwait = iD->getEventKey("taskwait");
 
          unsigned int i;
          for( i=0; i<count; i++) {
@@ -233,6 +250,14 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                else if( e.getValue( ) == 1 )
                {    // Output dependence
                    _dot_file << "  " << sender << " -> " << receiver << " [style=dashed];\n";
+               }
+               else if( e.getValue( ) == 4 )
+               {    // Output dependence
+                   _dot_file << "  " << sender << " -> d" << receiver << " [style=dotted];\n";
+               }
+               else if( e.getValue( ) == 5 )
+               {    // Output dependence
+                   _dot_file << "  d" << sender << " -> " << receiver << " [style=dotted];\n";
                }
                _wd_id_independent.erase( sender );
                _wd_id_independent.erase( receiver );
@@ -269,6 +294,12 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                     int pos1 = description.find_last_of ( " ", pos2 );
                     _funct_id_to_funct_decl_map[ e.getValue( ) ] = '\"' + description.substr( pos1+1, pos2-pos1-1 ) + '\"';
                 }
+            }
+            else if ( e.getKey( ) == taskwait )
+            {
+               _dot_file << "    }\n";
+               _dot_file << "    subgraph cluster_tw_" << _last_tw++ << " {\n";
+               _dot_file << "      label=\"\"\n";
             }
          }
       }
