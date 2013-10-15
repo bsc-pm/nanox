@@ -57,7 +57,7 @@ namespace nanos
           *  \param callback Function to call if an immediate predecessor is found.
           */
          inline void dependOnLastWriter( DependableObject &depObj, TrackableObject const &status, BaseDependency const &target,
-                                          SchedulePolicySuccessorFunctor* callback );
+                                          SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Makes a DependableObject depend on the the readers of a set of regions.
           *  \param depObj target DependableObject
@@ -66,7 +66,7 @@ namespace nanos
           *  \param callback Function to call if an immediate predecessor is found.
           */
          inline void dependOnReaders( DependableObject &depObj, TrackableObject &status, BaseDependency const &target,
-                                      SchedulePolicySuccessorFunctor* callback );
+                                      SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Sets the last writer DependableObject of a region.
           *  \param depObj target DependableObject
@@ -81,7 +81,7 @@ namespace nanos
           *  \param target accessed base address/region
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Makes a DependableObject a reader of a region/address.
           *  \param depObj target DependableObject

@@ -147,16 +147,21 @@ class InstrumentationGraphInstrumentation: public Instrumentation
             _dot_file << "    subgraph A{\n";
             _dot_file << "      rank=same;\n";
             _dot_file << "      \"solid line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-            _dot_file << "      \"Input dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-            _dot_file << "      \"solid line\"->\"Input dependence\"[minlen=2.0];\n";
+            _dot_file << "      \"True dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
+            _dot_file << "      \"solid line\"->\"True dependence\"[minlen=2.0];\n";
             _dot_file << "    }\n";
             _dot_file << "    subgraph B{\n";
             _dot_file << "      rank=same;\n";
             _dot_file << "      \"dashed line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-            _dot_file << "      \"Output dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-            _dot_file << "      \"dashed line\"->\"Output dependence\"[style=\"dashed\", minlen=2.0];\n";
+            _dot_file << "      \"Anti-dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
+            _dot_file << "      \"dashed line\"->\"Anti-dependence\"[style=\"dashed\", minlen=2.0];\n";
             _dot_file << "    }\n";
-            _dot_file << "    \"solid line\"->\"dashed line\"[style=\"invis\"];\n";
+            _dot_file << "    subgraph C{\n";
+            _dot_file << "      rank=same;\n";
+            _dot_file << "      \"dotted line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
+            _dot_file << "      \"Output dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
+            _dot_file << "      \"dotted line\"->\"Output dependence\"[style=\"dotted\", minlen=2.0];\n";
+            _dot_file << "    }\n";
             _dot_file << "  }\n";
          }
 
@@ -243,21 +248,25 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
                e = events[++i];
                assert( e.getKey( ) == dep_direction );
-               if( e.getValue() == 0 )
-               {    // Input dependence
+               if( e.getValue() == 1 )
+               {    // True dependence
                    _dot_file << "  " << sender << " -> " << receiver << ";\n";
                }
-               else if( e.getValue( ) == 1 )
-               {    // Output dependence
+               else if( e.getValue( ) == 2 )
+               {    // Anti-dependence
                    _dot_file << "  " << sender << " -> " << receiver << " [style=dashed];\n";
+               }
+               else if( e.getValue( ) == 3 )
+               {    // Output dependence
+                   _dot_file << "  " << sender << " -> " << receiver << " [style=dotted];\n";
                }
                else if( e.getValue( ) == 4 )
                {    // Output dependence
-                   _dot_file << "  " << sender << " -> d" << receiver << " [style=dotted];\n";
+                   _dot_file << "  " << sender << " -> d" << receiver << ";\n";
                }
                else if( e.getValue( ) == 5 )
                {    // Output dependence
-                   _dot_file << "  d" << sender << " -> " << receiver << " [style=dotted];\n";
+                   _dot_file << "  d" << sender << " -> " << receiver << ";\n";
                }
                _wd_id_independent.erase( sender );
                _wd_id_independent.erase( receiver );
