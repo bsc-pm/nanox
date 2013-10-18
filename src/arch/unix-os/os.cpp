@@ -22,6 +22,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifdef BGQ
+#include <spi/include/kernel/location.h>
+#include <spi/include/kernel/process.h>
+#endif
+
 using namespace nanos;
 
 
@@ -87,3 +92,29 @@ void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
    return dlsym ( dlHandler, symbolName );
 }
 
+void OS::getProcessAffinity( cpu_set_t *cpu_set )
+{
+#ifdef BGQ
+   uint32_t myT = Kernel_MyTcoord();
+   uint64_t mask = Kernel_ThreadMask( myT );
+   uint64_t x, t;
+
+   x = mask;
+   /* 64-bit reversing to mantain compatibility with cpu_set_t */
+   x = (x << 32) | (x >> 32);
+   x = (x & 0x0001FFFF0001FFFFLL) << 15 |
+      (x & 0xFFFE0000FFFE0000LL) >> 17;
+   t = (x ^ (x >> 10)) & 0x003F801F003F801FLL;
+   x = (t | (t << 10)) ^ x;
+   t = (x ^ (x >> 4)) & 0x0E0384210E038421LL;
+   x = (t | (t << 4)) ^ x;
+   t = (x ^ (x >> 2)) & 0x2248884222488842LL;
+   x = (t | (t << 2)) ^ x;
+   /***/
+   mask = x;
+
+   memcpy( cpu_set, &mask, sizeof(uint64_t) );
+#else
+   sched_getaffinity( 0, sizeof( cpu_set_t ), cpu_set );
+#endif
+}

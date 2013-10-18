@@ -75,10 +75,12 @@ System::System () :
 {
    verbose0 ( "NANOS++ initializing... start" );
 
-   int nanox_pid = getpid();
+   // OS::init must be called here and not in System::start() as it can be too late
+   // to locate the program arguments at that point
+   OS::init();
+   config();
 
-   if (sched_getaffinity( nanox_pid, sizeof( cpu_set_t ), &_cpu_set ) != 0)
-	warning(" sched_getaffinity has FAILED!!!");
+   OS::getProcessAffinity( &_cpu_set );
 
    int cpu_count = getCpuCount();
 
@@ -94,11 +96,7 @@ System::System () :
    }
    oss_cpu_idx << "]";
    
-   // OS::init must be called here and not in System::start() as it can be too late
-   // to locate the program arguments at that point
-   OS::init();
-   config();
-   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_idx.str());
+   verbose0("PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str());
    
    // Ensure everything is properly configured
    if( getNumPEs() == INT_MAX && _numThreads == 0 )
