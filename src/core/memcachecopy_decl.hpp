@@ -20,6 +20,7 @@ namespace nanos {
          void generateOutOps( SeparateAddressSpaceOutOps &ops, bool input, bool output );
          unsigned int getVersion() const;
          void setVersion( unsigned int version );
+         bool isRooted( memory_space_id_t &loc ) const;
    };
 }
 #endif /* MEMCACHECOPY_DECL */

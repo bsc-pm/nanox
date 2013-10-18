@@ -1066,11 +1066,11 @@ void GASNetAPI::initialize ( Network *net )
 
    if ( _net->getNodeNum() == 0)
    {
-    message0( "GasNet segment information:" );
-    for ( idx = 0; idx < nodes; idx += 1)
-    {
-       message0( "\t"<< idx << "addr="<< pinnedSegmentAddr[idx]<<" len="<< pinnedSegmentLen[ idx ]  );
-    }
+    //message0( "GasNet segment information:" );
+    //for ( idx = 0; idx < nodes; idx += 1)
+    //{
+    //   message0( "\t"<< idx << "addr="<< pinnedSegmentAddr[idx]<<" len="<< pinnedSegmentLen[ idx ]  );
+    //}
       _pinnedAllocators.reserve( nodes );
       _pinnedAllocatorsLocks.reserve( nodes );
       _seqN = NEW Atomic<unsigned int>[nodes];

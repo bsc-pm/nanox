@@ -44,13 +44,14 @@
  #define _VERBOSE_CACHE 0
 #endif
 
-AllocatedChunk::AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddress, std::size_t size, global_reg_t const &allocatedRegion ) :
+AllocatedChunk::AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddress, std::size_t size, global_reg_t const &allocatedRegion, bool rooted ) :
    _owner( owner ),
    _lock(),
    _address( addr ),
    _hostAddress( hostAddress ),
    _size( size ),
    _dirty( false ),
+   _rooted( rooted ),
    _lruStamp( 0 ),
    _roBytes( 0 ),
    _rwBytes( 0 ),
@@ -700,8 +701,11 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
 
          void *deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ) );
          if ( deviceMem != NULL ) {
-            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion );
+            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
             allocChunkPtr = *(results.front().second);
+            if ( reg.isRooted() ) {
+               allocChunkPtr->addReference();
+            }
             //*(results.front().second) = allocChunkPtr;
          } else {
             // I have not been able to allocate a chunk, just return NULL;
@@ -856,13 +860,13 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
                   //fatal("Unable to allocate memory on the device.");
                   // let it return NULL 
                } else {
-                  *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion );
+                  *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
                   allocChunkPtr = *(results.front().second);
                }
             }
             //reg.key->invalUnlock();
          } else {
-            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion );
+            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
             allocChunkPtr = *(results.front().second);
             //*(results.front().second) = allocChunkPtr;
          }

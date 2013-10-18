@@ -18,15 +18,17 @@ class OSAllocator {
 
       size_t computeFreeSpace( uintptr_t start, uintptr_t end, char &unit ) const;
       uintptr_t lookForAlignedAddress( size_t len ) const; 
-      int tryAlloc( uintptr_t addr, size_t len ) const; 
+      int tryAlloc( uintptr_t addr, size_t len, int flags ) const; 
       void readeMaps();
 
       void print_current_maps(void) const;
       void print_parsed_maps() const; 
       void print_parsed_maps_full() const; 
+      void *_allocate( size_t len, bool none ); 
 
    public:
       void *allocate( size_t len ); 
+      void *allocate_none( size_t len ); 
 };
 
 }

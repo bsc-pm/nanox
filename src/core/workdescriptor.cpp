@@ -257,6 +257,13 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 void WorkDescriptor::submit( void )
 {
    _mcontrol.preInit();
+   memory_space_id_t loc = 0;
+   if ( _mcontrol.isRooted( loc ) ) {
+      if ( loc != 0 ) {
+         SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( loc );
+         this->tieTo( *(mem.getPE().getFirstThread()) );
+      }
+   }
    Scheduler::submit( *this );
 } 
 

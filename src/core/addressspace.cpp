@@ -167,5 +167,8 @@ bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned 
    return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations );
 }
 
+//void registerOwnedMemory(global_reg_t reg) {
+//   _cache.registerOwnedMemory(reg);
+//}
 
 }

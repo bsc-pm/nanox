@@ -7,8 +7,8 @@
 using namespace nanos;
 using namespace ext;
 
-#define DEFAULT_NODE_MEM (0x540000000ULL) 
-#define MAX_NODE_MEM     (0x540000000ULL) 
+#define DEFAULT_NODE_MEM (0x542000000ULL) 
+#define MAX_NODE_MEM     (0x542000000ULL) 
 
 unsigned int ClusterInfo::_numSegments = 0;
 void ** ClusterInfo::_segmentAddrList = NULL;

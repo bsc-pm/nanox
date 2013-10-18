@@ -46,6 +46,7 @@ namespace nanos {
          uint64_t                          _hostAddress;
          std::size_t                       _size;
          bool                              _dirty;
+         bool                              _rooted;
          unsigned int                      _lruStamp;
          std::size_t                       _roBytes;
          std::size_t                       _rwBytes;
@@ -56,7 +57,7 @@ namespace nanos {
 
       public:
          static Atomic<int> numCall;
-         AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddr, std::size_t size, global_reg_t const &allocatedRegion );
+         AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddr, std::size_t size, global_reg_t const &allocatedRegion, bool rooted );
          AllocatedChunk( AllocatedChunk const &chunk );
          AllocatedChunk &operator=( AllocatedChunk const &chunk );
          ~AllocatedChunk();
@@ -91,6 +92,7 @@ namespace nanos {
          DeviceOps *getDeviceOps( global_reg_t const &reg );
          void prepareRegion( reg_t reg, unsigned int version );
          global_reg_t getAllocatedRegion() const;
+         bool isRooted() const;
 
 
          //void clearDirty( global_reg_t const &reg );
@@ -209,6 +211,7 @@ namespace nanos {
          std::size_t getAllocatableSize( global_reg_t const &reg ) const;
          void getAllocatableRegion( global_reg_t const &reg, global_reg_t &allocRegion ) const;
          void prepareRegionsToCopyToHost( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks  ) ;
+         void registerOwnedMemory(void *addr, std::size_t len);
    };
 }
 

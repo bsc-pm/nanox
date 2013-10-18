@@ -1219,16 +1219,28 @@ namespace nanos {
                if ( locs.empty() ) {
                   //std::cerr << "empty list, version "<<  wd._mcontrol._memCacheCopies[ i ]._version << std::endl;
                   int loc = wd._mcontrol._memCacheCopies[ i ]._reg.getFirstLocation();
-                  scores[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                  unsigned int score_idx = ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 );
+                  if (wd._mcontrol._memCacheCopies[ i ]._reg.isRooted()) {
+                     fprintf(stderr, "ROOTED DATA!\n");
+                     scores[ score_idx ] = (std::size_t) -1;
+                  } else if ( scores[ score_idx ] != (std::size_t) -1 ) {
+                     scores[ score_idx ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                  }
                } else {
                   for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                      int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
+                     unsigned int score_idx = ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 );
                      if ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) {
                         //std::cerr << " wd " << wd.getId() << " has write loc " << NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
                      } else {
                         //std::cerr << " wd " << wd.getId() << " DOES NOT have write loc " << NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
                      }
-                     scores[ ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                     if (wd._mcontrol._memCacheCopies[ i ]._reg.isRooted()) {
+                     fprintf(stderr, "ROOTED DATA!\n");
+                        scores[ score_idx ] = (std::size_t) -1;
+                     } else if ( scores[ score_idx ] != (std::size_t) -1 ) {
+                        scores[ score_idx ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                     }
                   }
                }
             } //else { std::cerr << "ignored copy "<< std::endl; }

@@ -254,4 +254,17 @@ std::size_t MemController::getTotalAmountOfData() const {
    return total;
 }
 
+bool MemController::isRooted( memory_space_id_t &loc ) const {
+   bool result = false;
+   unsigned int count = 0;
+   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+      if ( _memCacheCopies[ index ].isRooted( loc ) ) {
+         count += 1;
+         result = true; 
+      }
+   }
+   ensure(count <= 1, "Invalid count of rooted copies! (> 1).");
+   return result;
+}
+
 }

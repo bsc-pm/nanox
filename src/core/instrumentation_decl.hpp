@@ -251,6 +251,7 @@ namespace nanos {
             registerEventValue("api","in_final","nanos_in_final()");
             registerEventValue("api","set_final","nanos_set_final()");
             registerEventValue("api","memalign","nanos_memalign()");
+            registerEventValue("api","cmalloc","nanos_cmalloc()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 

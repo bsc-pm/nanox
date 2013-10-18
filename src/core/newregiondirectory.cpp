@@ -247,6 +247,12 @@ void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsign
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
 }
 
+void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
+{
+   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   regEntry->addRootedAccess( memorySpaceId, version );
+}
+
 //void NewNewRegionDirectory::addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
 //{
 //   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );

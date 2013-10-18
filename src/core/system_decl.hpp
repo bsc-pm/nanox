@@ -630,6 +630,7 @@ namespace nanos
          bool haveDependencePendantWrites ( void *addr ) const;
          void increaseAffinityFailureCount() { _affinityFailureCount++; }
          unsigned int getAffinityFailureCount() { return _affinityFailureCount.value(); }
+         void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
    };
 
    extern System sys;

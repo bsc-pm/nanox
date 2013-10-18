@@ -1,7 +1,8 @@
 #include <stdint.h>
 #include "globalregt_decl.hpp"
-#include "newregiondirectory_decl.hpp"
+#include "newregiondirectory.hpp"
 #include "regiondict.hpp"
+#include "debug.hpp"
 
 uint64_t global_reg_t::getFirstAddress() const {
    RegionNode *n = key->getRegionNode( id );
@@ -178,4 +179,19 @@ bool global_reg_t::isLocatedIn( memory_space_id_t loc ) const {
 
 unsigned int global_reg_t::getVersion() const {
    return NewNewRegionDirectory::getVersion( key, id, false );
+}
+void global_reg_t::setRooted() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   entry->setRooted();
+}
+
+bool global_reg_t::isRooted() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   return entry->isRooted();
+}
+void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
+   setRooted();
+   NewNewRegionDirectory::addRootedAccess( key, id, loc, 1 );
 }

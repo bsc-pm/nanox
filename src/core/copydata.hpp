@@ -132,6 +132,10 @@ inline std::size_t CopyData::getNumDimensions() const
    return dimension_count;
 }
 
+inline void CopyData::setNumDimensions(unsigned int ndims) {
+   dimension_count = ndims;
+}
+
 inline nanos_region_dimension_internal_t const *CopyData::getDimensions() const
 {
    return dimensions;
