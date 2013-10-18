@@ -25,6 +25,7 @@
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
+#include "dlb.hpp"
 
 using namespace nanos;
 using namespace nanos::OpenMP;
@@ -222,8 +223,9 @@ extern "C"
 
    NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
    {
+      dlb_updateAvailableCpus();
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-
+/*** Marta ***/
       if ( threads_requested <= 0 ) {
          threads_requested = data->icvs()->getNumThreads();
       }

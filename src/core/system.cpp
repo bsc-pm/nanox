@@ -30,6 +30,7 @@
 #include "processingelement.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
+#include "dlb.hpp"
 #include <string.h>
 #include <set>
 #include <climits>
@@ -1476,7 +1477,9 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
 void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
+/*** Marta ***/
 
+   dlb_returnCpusIfNeeded();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
