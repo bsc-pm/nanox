@@ -35,7 +35,7 @@ typedef struct {
 //MPI
 NANOS_API_DECL(void *, nanos_opencl_factory, (void *args));
     
-#define NANOS_MPI_DESC( args ) { nanos_opencl_factory, &( args ) } 
+#define NANOS_OCL_DESC( args ) { nanos_opencl_factory, &( args ) } 
 
 NANOS_API_DECL(void*, nanos_create_current_kernel, (const char* kernel_name, const char* opencl_code, const char* compiler_opts)); 
 NANOS_API_DECL(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, void* pointer));

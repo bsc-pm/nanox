@@ -160,8 +160,8 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
       #ifndef NANOS_DISABLE_ALLOCATOR
          char buffer[200];
          clGetPlatformInfo(*i, CL_PLATFORM_VENDOR, 200, buffer, NULL);
-         if (std::string(buffer)=="Intel(R) Corporation"){
-            debug0("Intel OpenCL doesn't work correctly when using nanox allocator, "
+         if (std::string(buffer)=="Intel(R) Corporation" || std::string(buffer)=="ARM"){
+            debug0("Intel or ARM OpenCL don't work correctly when using nanox allocator, "
                     "please configure and reinstall nanox with --disable-allocator in case you want to use it, skipping Intel OpenCL devices");
             continue;
          }
