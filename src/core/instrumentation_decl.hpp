@@ -954,6 +954,12 @@ namespace nanos {
           */
          virtual void wdCreate( WorkDescriptor* newWD );
 
+         /*! \brief Flush the deferred events (if any) of the given work descriptor
+          *
+          *  \param[in] wd, this work descriptor's deferred events will be flushed
+          */
+         virtual void flushDeferredEvents ( WorkDescriptor* wd );
+
          /*! \brief Used in work descriptor context switch (oldWD has finished completely its execution
           *
           *  \param[in] oldWD, is the work descriptor which leaves the cpu

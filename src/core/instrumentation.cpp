@@ -332,6 +332,30 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    }
 }
 
+void Instrumentation::flushDeferredEvents ( WorkDescriptor* wd )
+{
+
+   if ( !wd ) return;
+
+   InstrumentationContextData *icd = wd->getInstrumentationContextData();
+   int numEvents = _instrumentationContext.getNumDeferredEvents ( icd );
+
+   if ( numEvents == 0 ) return;
+
+   Event *e = (Event *) alloca( sizeof( Event ) * numEvents );
+
+   int i = 0;
+   InstrumentationContextData::EventIterator itDE;
+   for ( itDE  = _instrumentationContext.beginDeferredEvents( icd );
+         itDE != _instrumentationContext.endDeferredEvents( icd ); itDE++ ) {
+      e[i++] = *itDE;
+   }
+   _instrumentationContext.clearDeferredEvents( icd );
+
+   addEventList ( numEvents, e );
+
+}
+
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
 {
    unsigned int i = 0;
