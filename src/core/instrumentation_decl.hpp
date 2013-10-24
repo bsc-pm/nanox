@@ -430,6 +430,7 @@ namespace nanos {
             registerEventValue("api","in_final","nanos_in_final()");
             registerEventValue("api","set_final","nanos_set_final()");
             registerEventValue("api","dependence_release_all","nanos_dependence_release_all()");
+            registerEventValue("api","set_translate_function","nanos_set_translate_function()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 
