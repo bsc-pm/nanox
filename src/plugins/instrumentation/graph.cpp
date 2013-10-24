@@ -31,6 +31,8 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       std::map<int, float> _wd_id_to_last_time_map;
       std::set<unsigned> _wd_id_independent;
       std::ofstream _dot_file;
+      unsigned int _last_tw;
+      std::string _indent;
 
 #ifndef NANOS_INSTRUMENTATION_ENABLED
    public:
@@ -38,7 +40,8 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       InstrumentationGraphInstrumentation() : Instrumentation(),
                                               _funct_id_to_color_map( ), _funct_id_to_funct_decl_map( ),
                                               _wd_id_to_time_map( ), _wd_id_to_last_time_map( ),
-                                              _wd_id_independent( ), _dot_file( dot_file_name ) {}
+                                              _wd_id_independent( ), _dot_file( dot_file_name ), 
+                                              _last_tw(1), _indent("") {}
       // destructor
       ~InstrumentationGraphInstrumentation() {}
 
@@ -58,7 +61,8 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       InstrumentationGraphInstrumentation() : Instrumentation( *new InstrumentationContextDisabled() ),
                                               _funct_id_to_color_map( ), _funct_id_to_funct_decl_map( ),
                                               _wd_id_to_time_map( ), _wd_id_to_last_time_map( ),
-                                              _wd_id_independent( ), _dot_file( dot_file_name ) {}
+                                              _wd_id_independent( ), _dot_file( dot_file_name ), 
+                                              _last_tw(1), _indent("") {}
       // destructor
       ~InstrumentationGraphInstrumentation ( ) {}
 
@@ -68,6 +72,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
          if( _dot_file.is_open( ) )
          {  // Open the graph in the dot file
             _dot_file << "digraph {\n";
+            _indent += "  ";
          }
          else
          {
@@ -77,6 +82,10 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
       void finalize( void )
       {
+         _dot_file << _indent << "}\n";
+         _indent = _indent.substr( 0, _indent.size( )-2 );
+         _dot_file << _indent << "}\n";
+         _indent = _indent.substr( 0, _indent.size( )-2 );
          if( !_funct_id_to_funct_decl_map.empty( ) )
          {
             // Print the size of the nodes
@@ -117,23 +126,43 @@ class InstrumentationGraphInstrumentation: public Instrumentation
             _dot_file << "  subgraph cluster0 {\n";
             _dot_file << "    label=\"User functions:\"; style=\"rounded\"; rankdir=\"TB\";\n";
             std::map<int64_t, std::string>::iterator it_name = _funct_id_to_funct_decl_map.begin( );
-            std::map<int64_t, std::string>::iterator it_color = _funct_id_to_color_map.begin( );
             int id = -1;
-            for( ; ( it_name != _funct_id_to_funct_decl_map.end( ) )
-                   && ( it_color != _funct_id_to_color_map.end( ) ) ; ++it_name, ++it_color )
+            std::set<std::string> printed_task_names;
+            for( ; it_name != _funct_id_to_funct_decl_map.end( ) ; ++it_name )
             {
-               _dot_file << "    subgraph {\n";
-               _dot_file << "      rank=same;\n";
-               _dot_file << "      " << id << "[label=\"\",  width=0.3, height=0.3, shape=box, "
-                         <<        "fillcolor=" << _funct_id_to_color_map[it_color->first].c_str( ) << ", style=filled];\n";
-               _dot_file << "      " << it_name->second << "[color=\"white\", margin=\"0.0,0.0\"];\n";
-               _dot_file << "      " << id << "->" << it_name->second << "[style=\"invis\"];\n";
-               _dot_file << "    }\n";
-               id--;
+                if( printed_task_names.find( it_name->second ) == printed_task_names.end( ) )
+                {
+                    _dot_file << "    subgraph {\n";
+                    _dot_file << "      rank=same;\n";
+                    _dot_file << "      " << it_name->second << "[color=\"white\", margin=\"0.0,0.0\"];\n";
+                    // All tasks with the same name must be printed in the same subgraph
+                    printed_task_names.insert( it_name->second );
+                    int last_id = 0;
+                    std::map<int64_t, std::string>::iterator it_color = _funct_id_to_color_map.begin( );
+                    for( std::map<int64_t, std::string>::iterator it_name_2 = _funct_id_to_funct_decl_map.begin( ); 
+                         ( it_name_2 != _funct_id_to_funct_decl_map.end( ) ) && ( it_color != _funct_id_to_color_map.end( ) ); 
+                         ++it_name_2, ++it_color )
+                    {
+                        if( it_name_2->second == it_name->second )
+                        {
+                            _dot_file << "      " << id << "[label=\"\",  width=0.3, height=0.3, shape=box, "
+                                    <<        "fillcolor=" << _funct_id_to_color_map[it_color->first].c_str( ) << ", style=filled];\n";
+                            if( last_id != 0 )
+                                _dot_file << "      " << last_id << "->" << id << "[style=\"invis\"];\n";
+                            last_id = id;
+                            id--;
+                        }
+                    }
+                    _dot_file << "      " << last_id << "->" << it_name->second << "[style=\"invis\"];\n";
+                    _dot_file << "    }\n";
+                }
             }
-            for( int idd = -1; idd > id+1; --idd)
+            std::set<std::string>::iterator it2;
+            for( std::set<std::string>::iterator it = printed_task_names.begin( ); it != printed_task_names.end( ); ++it )
             {
-                _dot_file << "    " << idd << "->" << idd-1 << "[style=\"invis\"];\n";
+                it2 = it; it2++;
+                if( it2 != printed_task_names.end( ) )
+                    _dot_file << "    " << *it << "->" << *it2 << "[style=\"invis\"];\n";
             }
 
             _dot_file << "  }\n";
@@ -144,16 +173,23 @@ class InstrumentationGraphInstrumentation: public Instrumentation
             _dot_file << "    subgraph A{\n";
             _dot_file << "      rank=same;\n";
             _dot_file << "      \"solid line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-            _dot_file << "      \"Input dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-            _dot_file << "      \"solid line\"->\"Input dependence\"[minlen=2.0];\n";
+            _dot_file << "      \"True dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
+            _dot_file << "      \"solid line\"->\"True dependence\"[minlen=2.0];\n";
             _dot_file << "    }\n";
             _dot_file << "    subgraph B{\n";
             _dot_file << "      rank=same;\n";
             _dot_file << "      \"dashed line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-            _dot_file << "      \"Output dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-            _dot_file << "      \"dashed line\"->\"Output dependence\"[style=\"dashed\", minlen=2.0];\n";
+            _dot_file << "      \"Anti-dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
+            _dot_file << "      \"dashed line\"->\"Anti-dependence\"[style=\"dashed\", minlen=2.0];\n";
             _dot_file << "    }\n";
-            _dot_file << "    \"solid line\"->\"dashed line\"[style=\"invis\"];\n";
+            _dot_file << "    subgraph C{\n";
+            _dot_file << "      rank=same;\n";
+            _dot_file << "      \"dotted line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
+            _dot_file << "      \"Output dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
+            _dot_file << "      \"dotted line\"->\"Output dependence\"[style=\"dotted\", minlen=2.0];\n";
+            _dot_file << "    }\n";
+            _dot_file << "    \"solid line\"->\"dashed line\"[ltail=A, lhead=B, style=\"invis\"];";
+            _dot_file << "    \"dashed line\"->\"dotted line\"[ltail=B, lhead=C, style=\"invis\"];";
             _dot_file << "  }\n";
          }
 
@@ -182,15 +218,31 @@ class InstrumentationGraphInstrumentation: public Instrumentation
       void addResumeTask( WorkDescriptor &w )
       {
           int wd_id = w.getId();
+
+         _dot_file << _indent << "subgraph cluster_wd_" << wd_id << " {\n";
+          _indent += "  ";
           if( wd_id != 1 )
           {
+            _dot_file << _indent << "label=\"" << "other" << "\" style=\"rounded\"; rankdir=\"TB\";\n";
              _wd_id_to_last_time_map[wd_id] = get_current_time( );
+          } else {
+            _dot_file << _indent << "label=\"" << "main" << "\" style=\"rounded\"; rankdir=\"TB\";\n";
           }
+         _dot_file << _indent << "subgraph cluster_tw_" << _last_tw++ << " {\n";
+         _indent += "  ";
+         _dot_file << _indent << "label=\"\"\n";
       }
 
       void addSuspendTask( WorkDescriptor &w, bool last )
       {
+
          int wd_id = w.getId();
+
+         _indent = _indent.substr( 0, _indent.size( )-2 );
+         _dot_file << _indent << "}\n";
+         _indent = _indent.substr( 0, _indent.size( )-2 );
+         _dot_file << _indent << "}\n";
+         
          if( wd_id != 1 )
          {
             double last_time = _wd_id_to_last_time_map[wd_id];
@@ -215,6 +267,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
          static const nanos_event_key_t dependence = iD->getEventKey("dependence");
          static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
          static const nanos_event_key_t user_funct_location = iD->getEventKey("user-funct-location");
+         static const nanos_event_key_t taskwait = iD->getEventKey("taskwait");
 
          unsigned int i;
          for( i=0; i<count; i++) {
@@ -226,13 +279,25 @@ class InstrumentationGraphInstrumentation: public Instrumentation
 
                e = events[++i];
                assert( e.getKey( ) == dep_direction );
-               if( e.getValue() == 0 )
-               {    // Input dependence
-                   _dot_file << "  " << sender << " -> " << receiver << ";\n";
+               if( e.getValue() == 1 )
+               {    // True dependence
+                   _dot_file << _indent << sender << " -> " << receiver << ";\n";
                }
-               else if( e.getValue( ) == 1 )
+               else if( e.getValue( ) == 2 )
+               {    // Anti-dependence
+                   _dot_file << _indent << sender << " -> " << receiver << " [style=dashed];\n";
+               }
+               else if( e.getValue( ) == 3 )
                {    // Output dependence
-                   _dot_file << "  " << sender << " -> " << receiver << " [style=dashed];\n";
+                   _dot_file << _indent << sender << " -> " << receiver << " [style=dotted];\n";
+               }
+               else if( e.getValue( ) == 4 )
+               {    // Output dependence
+                   _dot_file << _indent << sender << " -> d" << receiver << ";\n";
+               }
+               else if( e.getValue( ) == 5 )
+               {    // Output dependence
+                   _dot_file << _indent << "  d" << sender << " -> " << receiver << ";\n";
                }
                _wd_id_independent.erase( sender );
                _wd_id_independent.erase( receiver );
@@ -256,7 +321,7 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                e = events[--i];
                assert(e.getKey() == create_wd_id);
                int64_t wd_id = e.getValue();
-               _dot_file << "  " << wd_id << "[fillcolor=" << color.c_str( ) << ", style=filled];\n";
+               _dot_file << _indent << wd_id << "[fillcolor=" << color.c_str( ) << ", style=filled];\n";
                _wd_id_independent.insert( wd_id );
             }
             else if ( e.getKey( ) == user_funct_location )
@@ -269,6 +334,14 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                     int pos1 = description.find_last_of ( " ", pos2 );
                     _funct_id_to_funct_decl_map[ e.getValue( ) ] = '\"' + description.substr( pos1+1, pos2-pos1-1 ) + '\"';
                 }
+            }
+            else if ( e.getKey( ) == taskwait )
+            {
+                _indent = _indent.substr( 0, _indent.size( )-2 );
+               _dot_file << _indent << "}\n";
+               _dot_file << _indent << "subgraph cluster_tw_" << _last_tw++ << " {\n";
+               _indent += "  ";
+               _dot_file << _indent << "label=\"\"\n";
             }
          }
       }

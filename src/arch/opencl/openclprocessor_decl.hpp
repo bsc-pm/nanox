@@ -25,6 +25,7 @@
 #include "openclconfig.hpp"
 #include "opencldd.hpp"
 #include "opencldevice_decl.hpp"
+#include "sharedmemallocator.hpp"
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
@@ -49,10 +50,14 @@ public:
    void initialize(cl_device_id dev);
 
    cl_int allocBuffer( size_t size, cl_mem &buf );
+   void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
+   void freeSharedMemBuffer( void* addr );
 
    cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
+   cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
+   cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
    cl_mem getBuffer( cl_mem parentBuf, size_t offset, size_t size );
    void freeAddr( void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
@@ -95,63 +100,13 @@ public:
    
 
 public:
-   cl_int getDeviceType( unsigned long long &deviceType )
+   cl_int getDeviceType( cl_device_type &deviceType )
    {
       return getDeviceInfo( CL_DEVICE_TYPE,
-                            sizeof( unsigned long long ),
+                            sizeof( cl_device_type ),
                             &deviceType );
    }
 
-   cl_int
-   getMaxComputeUnits( unsigned &maxComputeUnits )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_COMPUTE_UNITS,
-                            sizeof( unsigned ),
-                            &maxComputeUnits );
-   }
-
-   cl_int getMaxWorkItemDimensions( unsigned &maxWorkItemDimensions )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS,
-                            sizeof( unsigned ),
-                            &maxWorkItemDimensions );
-   }
-
-   cl_int getMaxWorkGroupSize( size_t &maxWorkGroupSize )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_WORK_GROUP_SIZE,
-                            sizeof( size_t ),
-                            &maxWorkGroupSize );
-   }
-
-   cl_int getMaxMemoryAllocSize( size_t &maxMemoryAllocSize )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-                            sizeof( size_t ),
-                            &maxMemoryAllocSize );
-   }
-
-   cl_int getLocalMemoryMapping( unsigned &localMemoryMapping )
-   {
-      return getDeviceInfo( CL_DEVICE_LOCAL_MEM_TYPE,
-                            sizeof( unsigned ),
-                            &localMemoryMapping );
-   }
-
-   cl_int getLocalMemorySize( size_t &localMemorySize )
-   {
-      return getDeviceInfo( CL_DEVICE_LOCAL_MEM_SIZE,
-                            sizeof( size_t ),
-                            &localMemorySize );
-   }
-
-   cl_int
-   getSupportErrorCorrection( unsigned long long &supportErrorCorrection )
-   {
-      return getDeviceInfo( CL_DEVICE_ERROR_CORRECTION_SUPPORT,
-                            sizeof( unsigned long long ),
-                            &supportErrorCorrection );
-   }
 
    cl_int getSizeTypeMax( unsigned long long &sizeTypeMax );
 
@@ -172,6 +127,10 @@ public:
    cl_context& getContext() {
         return _ctx;
     }
+   
+   cl_command_queue& getCommandQueue(){
+       return _queue;
+   }
 
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
@@ -201,7 +160,7 @@ private:
 
 class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
 {
-public:
+public:        
    OpenCLProcessor( int id , int devId, int uid );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
@@ -215,8 +174,6 @@ public:
 
    WD &getMasterWD() const;
    
-   cl_context& getContext();
-
    BaseThread &createThread( WorkDescriptor &wd );
 
    bool supportsUserLevelThreads() const { return false; }
@@ -250,9 +207,9 @@ public:
    
    void cleanUp();
      
-   void *allocate( size_t size )
+   void *allocate( size_t size, uint64_t tag )
    {
-      return _cache.allocate( size );
+      return _cache.allocate( size, tag );
    }
    
    void *realloc( void *address, size_t size, size_t ceSize )
@@ -284,12 +241,34 @@ public:
    {
       return _cache.copyInBuffer( localSrc, remoteBuffer, size );
    }
+   
+    cl_context& getContext() {    
+        return _openclAdapter.getContext();
+    }
+
+    cl_command_queue& getCommandQueue() {    
+        return _openclAdapter.getCommandQueue();
+    }
+
+    cl_int getOpenCLDeviceType( cl_device_type &deviceType ){
+       return _openclAdapter.getDeviceType(deviceType);
+    }
+   
+    static SharedMemAllocator& getSharedMemAllocator() {
+       return _shmemAllocator;
+    }
+   
+    void* allocateSharedMemory( size_t size );   
+   
+    void freeSharedMemory( void* addr );
 
 
 private:
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
    int _devId;
+   static SharedMemAllocator _shmemAllocator;
+    
 
 };
 

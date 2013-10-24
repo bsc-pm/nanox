@@ -24,11 +24,7 @@
 #include "config.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "os.hpp"
-
-extern "C" {
-   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
-   void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
-}
+#include "dlb.hpp"
 
 using namespace nanos;
 
@@ -256,8 +252,9 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
          /* If DLB, return resources if needed */
-         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
-            DLB_ReturnClaimedCpus();
+	dlb_returnCpusIfNeeded();
+/*         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+            DLB_ReturnClaimedCpus();*/
 
          NANOS_INSTRUMENT ( total_spins+= nspins; )
          sleeps--;
@@ -408,8 +405,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                /* If DLB, return resources if needed */
-               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
-                  DLB_ReturnClaimedCpus();
+		dlb_returnCpusIfNeeded();
+/*               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+                  DLB_ReturnClaimedCpus();*/
 
                condition->unlock();
                if ( sleeps < 0 ) {
@@ -567,14 +565,17 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    wd->clear();
 
    /* If DLB, perform the adjustment of resources */
-   if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
+   if ( sys.getPMInterface().isMalleable() )
+	dlb_updateAvailableCpus();
+
+/*   if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
       if ( sys.getPMInterface().isMalleable() )
          DLB_ReturnClaimedCpus();
 
       int needed_resources = sys.getSchedulerStats()._readyTasks.value() - sys.getNumThreads();
       if ( needed_resources > 0 )
          DLB_UpdateResources_max( needed_resources );
-   }
+   }*/
 
 }
 
