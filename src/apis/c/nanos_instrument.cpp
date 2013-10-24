@@ -139,7 +139,7 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
                sys.getInstrumentation()->createBurstEvent(&e[i],events[i].key,events[i].value);
                break;
             case NANOS_BURST_END:
-               sys.getInstrumentation()->closeBurstEvent(&e[i],events[i].key);
+               sys.getInstrumentation()->closeBurstEvent(&e[i],events[i].key,events[i].value);
                break;
             case NANOS_POINT:
                sys.getInstrumentation()->createPointEvent(&e[i],events[i].key,events[i].value );

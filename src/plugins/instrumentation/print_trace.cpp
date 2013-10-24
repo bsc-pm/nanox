@@ -31,7 +31,7 @@ class InstrumentationPrintTrace: public Instrumentation
 #else
    public:
       // constructor
-      InstrumentationPrintTrace() : Instrumentation( *new InstrumentationContext() ) {}
+      InstrumentationPrintTrace() : Instrumentation( *new InstrumentationContextDisabled() ) {}
       // destructor
       ~InstrumentationPrintTrace ( ) {}
 
@@ -41,10 +41,10 @@ class InstrumentationPrintTrace: public Instrumentation
       void disable( void ) {}
       void enable( void ) {}
       void addResumeTask( WorkDescriptor &w ) {
-         //fprintf(stderr,"NANOS++: Resumed task %d in thread %d\n",w.getId(), myThread->getId());
+         fprintf(stderr,"NANOS++: (WD's) Resuming task %d in thread %d\n",w.getId(), myThread->getId());
       }
       void addSuspendTask( WorkDescriptor &w, bool last ) {
-         //fprintf(stderr,"NANOS++: %s task %d in thread %d\n",last?"Finished":"Suspended",w.getId(), myThread->getId());
+         fprintf(stderr,"NANOS++: (WD's) %s task %d in thread %d\n",last?"Finishing":"Suspending",w.getId(), myThread->getId());
       }
 
       void addEventList ( unsigned int count, Event *events )

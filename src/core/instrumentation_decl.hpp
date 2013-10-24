@@ -100,7 +100,7 @@
  *       NANOS_INSTRUMENT(k = Instrumentor->getInstrumentorDictionary()->getEventKey("cache-malloc"));
  *       NANOS_INSTRUMENT(Instrumentor()->raiseOpenStateAndBurst(CACHE, k, (nanos_event_value_t) size));
  *       result = _T::allocate(size);
- *       NANOS_INSTRUMENT(Instrumentor()->raiseCloseStateAndBurst(k));
+ *       NANOS_INSTRUMENT(Instrumentor()->raiseCloseStateAndBurst(k,0));
  *       return result;
  * }
  * \endcode
@@ -957,7 +957,7 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void closeBurstEvent ( Event *e, nanos_event_key_t key, InstrumentationContextData *icd = NULL );
+         void closeBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a STATE event
           *
@@ -1037,13 +1037,13 @@ namespace nanos {
          void raiseCloseStateEvent ( void );
 
          void raiseOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
-         void raiseCloseBurstEvent ( nanos_event_key_t key );
+         void raiseCloseBurstEvent ( nanos_event_key_t key, nanos_event_value_t value );
 
          void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
          void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
 
          void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
-         void raiseCloseStateAndBurst ( nanos_event_key_t key );
+         void raiseCloseStateAndBurst ( nanos_event_key_t key, nanos_event_value_t value );
 #endif
    };
 }

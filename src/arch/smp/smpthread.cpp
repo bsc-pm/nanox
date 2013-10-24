@@ -188,7 +188,7 @@ bool SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
    ( dd.getWorkFct() )( wd.getData() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
    return true;
 }
 
