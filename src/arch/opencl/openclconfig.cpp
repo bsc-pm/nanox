@@ -26,7 +26,7 @@ using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
-int OpenCLConfig::_devCacheSize = 0;
+size_t OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
@@ -86,9 +86,10 @@ void OpenCLConfig::prepare( Config &cfg )
 
    // Select the size of the device cache.
    cfg.registerConfigOption( "opencl-cache",
-                             NEW Config::IntegerVar( _devCacheSize ),
+                             NEW Config::SizeVar( _devCacheSize ),
                              "Defines the amount of the cache "
-                             "to be allocated on the device" );
+                             "to be allocated on the device (bytes). "
+                             " If this number is below 100, the amount of memory is taken as a percentage of the total device memory") ;
    cfg.registerEnvOption( "opencl-cache", "NX_OPENCL_CACHE" );
    cfg.registerArgOption( "opencl-cache", "opencl-cache" );
    
@@ -159,8 +160,8 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
       #ifndef NANOS_DISABLE_ALLOCATOR
          char buffer[200];
          clGetPlatformInfo(*i, CL_PLATFORM_VENDOR, 200, buffer, NULL);
-         if (std::string(buffer)=="Intel(R) Corporation"){
-            debug0("Intel OpenCL doesn't work correctly when using nanox allocator, "
+         if (std::string(buffer)=="Intel(R) Corporation" || std::string(buffer)=="ARM"){
+            debug0("Intel or ARM OpenCL don't work correctly when using nanox allocator, "
                     "please configure and reinstall nanox with --disable-allocator in case you want to use it, skipping Intel OpenCL devices");
             continue;
          }

@@ -33,7 +33,7 @@ GPUDevice::GPUDevice ( const char *n ) : Device ( n )
 
 GPUDevice::~GPUDevice() {}
 
-void * GPUDevice::allocate( size_t size, ProcessingElement *pe )
+void * GPUDevice::allocate( size_t size, ProcessingElement *pe, uint64_t tag )
 {
    void * address = ( ( nanos::ext::GPUProcessor * ) pe )->allocate( size );
    if ( address == NULL ) return NULL;

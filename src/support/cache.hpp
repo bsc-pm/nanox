@@ -88,7 +88,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
       c.addReference();
       ce = &(_cache.insert( tag, c, inserted ));
       if (inserted) { // allocate it
-         ce->setAddress( _cache.allocate( dir, size ) );
+         ce->setAddress( _cache.allocate( dir, size , tag) );
          ce->setAllocSize( size );
          if (input) {
             CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
@@ -112,7 +112,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
          c.addReference();
          ce = &(_cache.insert( tag, c, inserted ));
          if ( inserted ) { // allocate it
-            ce->setAddress( _cache.allocate( dir, size ) );
+            ce->setAddress( _cache.allocate( dir, size , tag) );
             ce->setAllocSize( size );
             Cache *owner = de->getOwner();
 #ifdef NANOS_GPU_USE_CUDA32
@@ -392,7 +392,7 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, CopyData &cpdata
    CacheEntry c =  CacheEntry( NULL, size, tag, 0, output, input );
    CacheEntry& ce = _cache.insert( tag, c, inserted );
    ensure ( inserted, "Private access cannot hit the cache.");
-   ce.setAddress( _cache.allocate( dir, size ) );
+   ce.setAddress( _cache.allocate( dir, size , tag ) );
    ce.setAllocSize( size );
    if ( input ) {
       CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
@@ -438,7 +438,7 @@ inline void NoCache::registerCacheAccess( Directory& dir, CopyData &cpdata, uint
    //ensure ( inserted, "Private access cannot hit the cache.");
 
    if ( inserted ) {
-      ce.setAddress( _cache.allocate( dir, size ) );
+      ce.setAddress( _cache.allocate( dir, size, tag ) );
       ce.setAllocSize( size );
    }
 
@@ -534,21 +534,26 @@ ProcessingElement * DeviceCache<_T>::getPE()
 }
 
 template <class _T>
-inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size )
+inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size , uint64_t tag)
 {
-   void *result;
-   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );
-   if ( _usedSize + size <= _size ) {
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
-      result = _T::allocate( size, _pe );
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
-   } else {
-      // FIXME: lock the cache
-      freeSpaceToFit( dir, size );
-      // FIXME: unlock
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
-      result = _T::allocate( size, _pe );
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   void *result=CACHE_ALLOC_ERROR;
+   NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-malloc") );  
+   while (result==CACHE_ALLOC_ERROR){
+      if ( _usedSize + size <= _size ) {
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
+         result = _T::allocate( size, _pe, tag);
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+         if (result==CACHE_ALLOC_ERROR){
+            freeSpaceToFit( dir, size );
+         }
+      } else {
+         // FIXME: lock the cache
+         freeSpaceToFit( dir, size );
+         // FIXME: unlock
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
+         result = _T::allocate( size, _pe, tag );
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+      }
    }
    _usedSize+= size;
    return result;

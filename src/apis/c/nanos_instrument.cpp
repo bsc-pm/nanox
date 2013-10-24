@@ -241,6 +241,43 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_disable,())
    return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_instrument_begin_burst,(nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+    try
+    {
+        nanos_event_t e;
+        nanos_instrument_register_key ( &e.key, (const char*) key,
+                (const char*) key_descr, /* abort_when_registered */ false );
+
+        nanos_instrument_register_value ( &e.value, (const char*) key,
+                (const char*) value, (const char*) value_descr, /* abort_when_registered */ false);
+
+        e.type = NANOS_BURST_START;
+        nanos_instrument_events( 1, &e);
+    } catch ( nanos_err_t err) {
+        return err;
+    }
+ #endif
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_instrument_end_burst,(nanos_string_t key, nanos_string_t value))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+    try
+    {
+        nanos_event_t e;
+        nanos_instrument_get_key( (const char*) key, &e.key);
+        nanos_instrument_get_value( (const char*) key, (const char*) value, &e.value);
+        e.type = NANOS_BURST_END;
+        nanos_instrument_events( 1, &e);
+    } catch ( nanos_err_t err) {
+        return err;
+    }
+ #endif
+   return NANOS_OK;
+}
 /*!
  * \}
  */ 

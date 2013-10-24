@@ -81,7 +81,7 @@ fi
 
 AC_MSG_CHECKING([for Linux Intel C compiler mode])
 AC_ARG_ENABLE([icc],
-  AC_HELP_STRING([--enable-icc],[Enable support fot Intel compiler (off by default)]),
+  AC_HELP_STRING([--enable-icc],[Enable support for Intel compiler (off by default)]),
   [
     use_icc=yes
     AC_MSG_RESULT([yes])
@@ -94,7 +94,7 @@ AC_ARG_ENABLE([icc],
 
 AC_MSG_CHECKING([for Linux IBM C compiler mode])
 AC_ARG_ENABLE([xlc],
-  AC_HELP_STRING([--enable-xlc],[Enable support fot IBM compiler (off by default)]),
+  AC_HELP_STRING([--enable-xlc],[Enable support for IBM compiler (off by default)]),
   [
     use_xlc=yes
     AC_MSG_RESULT([yes])
@@ -107,7 +107,7 @@ AC_ARG_ENABLE([xlc],
 
 AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
 AC_ARG_ENABLE([mic],
-  AC_HELP_STRING([--enable-mic],[Enable support fot Intel MIC compiler (off by default)]),
+  AC_HELP_STRING([--enable-mic],[Enable support for Intel MIC compiler (off by default)]),
   [
     use_icc=yes
     host_alias=$host
@@ -119,6 +119,19 @@ AC_ARG_ENABLE([mic],
     AC_MSG_RESULT([yes])
   ],
   [
+    AC_MSG_RESULT([no])
+  ]
+)
+
+AC_MSG_CHECKING([for IBM BlueGene/Q mode])
+AC_ARG_ENABLE([bgq],
+  AC_HELP_STRING([--enable-bgq],[Enable support for IBM BlueGene/Q (off by default)]),
+  [
+    use_bgq=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_bgq=no
     AC_MSG_RESULT([no])
   ]
 )
@@ -143,6 +156,14 @@ else
 	: ${CXX="g++"}
 	: ${FC="gfortran"}
     fi
+fi
+
+# Override all the options if we're compiling for BG/Q
+if test x$use_bgq = xyes; then
+    : ${CC="mpicc"}
+    : ${CXX="mpicxx"}
+    CFLAGS="$CFLAGS -dynamic"
+    CXXFLAGS="$CXXFLAGS -dynamic"
 fi
 
 # Check for programs
@@ -172,13 +193,16 @@ if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
 fi
 
 if test x$use_gnu = xyes; then
-    CFLAGS="$CFLAGS -Wredundant-decls"
-    CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+    if test x$use_bgq = xno; then
+        CFLAGS="$CFLAGS -Wredundant-decls"
+        CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+    fi
 fi
 
 AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
 AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
 AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
+AM_CONDITIONAL([BGQ], [test x$use_bgq = xyes])
 
 # Check for libraries
 
@@ -203,9 +227,11 @@ AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 # Check for architecture
 ARCHITECTURES=
 OS=
+OPTIONS=
 
 AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
+AC_SUBST([OPTIONS])
 AC_SUBST([SMP_ARCH])
 
 AC_CHECK_SIZEOF([size_t])
@@ -805,6 +831,7 @@ AC_ARG_WITH([hwloc],
                       HWLOC_LIB="$withval/lib"
                       HWLOC_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Hardware Locality library is compatible... yes])
+                      OPTIONS="$OPTIONS hwloc"
                    else
                       AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
                    fi
@@ -965,3 +992,4 @@ echo "================================"
 echo ""
 echo "Configured architectures:" $ARCHITECTURES
 echo ""
+echo "Extra options:" $OPTIONS

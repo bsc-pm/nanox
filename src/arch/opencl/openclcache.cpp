@@ -25,95 +25,104 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-Lock OpenCLMemDump::_dumpLock;
-
-
-//
-// OpenCLMemDump implementation.
-//
-
-void OpenCLMemDump::dumpCopyIn(void *localDst,
-        CopyDescriptor &remoteSrc,
-        size_t size) {
-    LockBlock lock(OpenCLMemDump::_dumpLock);
-
-    std::cerr << "### COPY-IN ###" << std::endl
-            << "  Dst = " << localDst
-            << std::endl
-            << "  Src = " << reinterpret_cast<void *> (remoteSrc.getTag())
-            << std::endl;
-}
-
-void OpenCLMemDump::dumpCopyOut(CopyDescriptor &remoteDst,
-        void *localSrc,
-        size_t size) {
-    LockBlock lock(OpenCLMemDump::_dumpLock);
-
-    std::cerr << "### COPY-OUT ###" << std::endl
-            << "  Dst = " << reinterpret_cast<void *> (remoteDst.getTag())
-            << std::endl
-            << "  Src = " << localSrc
-            << std::endl;
-}
-
 //
 // OpenCLCache implementation.
 //
 
-void OpenCLCache::initialize() {
-    size_t pageSize = getPageSize();
-
-    // Compute the amount of cache for the device.
-    _devCacheSize = OpenCLConfig::getDevCacheSize();
-    if (_devCacheSize == 0)
-        _devCacheSize = _openclAdapter.getGlobalSize();
-    _devCacheSize = roundUpToPageSize(_devCacheSize);
-
-    // Initialize the device allocator. It manages virtual addresses above the
-    // addresses managed by host allocator.
-    _devAllocator.init(pageSize , _devCacheSize);
+OpenCLCache::~OpenCLCache() {
+    if (_mainBuffer!=NULL) clReleaseMemObject(_mainBuffer);
 }
 
-void *OpenCLCache::deviceAllocate(size_t size) {
-    cl_mem buf;
+void OpenCLCache::initialize() {
+    // Compute the amount of cache for the device.
+    _devCacheSize = OpenCLConfig::getDevCacheSize();
+    //If no device memory specified, allocate 90% of the memory
+    if (_devCacheSize==0) _devCacheSize=90;
+    //If less than 100 "bytes", specified, assume its a x% of the memory
+    if (_devCacheSize <= 100)
+        _devCacheSize = _openclAdapter.getGlobalSize()*_devCacheSize/100;
 
-    if (_openclAdapter.allocBuffer(size, buf) != CL_SUCCESS)
-        fatal("Device allocation failed");
+    
+    //If device is not a CPU (aka shared memory, allocate the whole memory)
+    if (_openclAdapter.getPreallocatesWholeMemory()){
+        if (_openclAdapter.allocBuffer(_devCacheSize, _mainBuffer) != CL_SUCCESS)
+            fatal0("Not enough memory available on device to allocate requested memory size");
+    } else {
+        _mainBuffer=NULL;
+    }
+
+    // Initialize the device allocator.
+    _devAllocator.init(0 , _devCacheSize);
+}
+
+void *OpenCLCache::allocate(size_t size, uint64_t tag) {
+    //Shared memory buffers were already allocated
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) tag, size)){
+        cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)tag,size);
+        if (buf==NULL){
+            return CACHE_ALLOC_ERROR;
+        }
+        return (void*)tag;
+    }
+    //cl_mem buf;
+    
+
+    //if (_openclAdapter.allocBuffer(size, buf) != CL_SUCCESS)
+    //    fatal("Device allocation failed");
 
     void *addr = _devAllocator.allocate(size);
+    //Create the buffer
+    cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)addr,size);
+    if (buf==NULL){
+        return CACHE_ALLOC_ERROR;
+    }
 
-    if (!addr)
-        fatal("Device cache allocation failed");
-
-    _bufAddrMappings[addr] = buf;
+    //_bufAddrMappings[addr] = buf;
 
     return addr;
 }
 
-void *OpenCLCache::deviceReallocate(void * addr, size_t size, size_t ceSize) {
-    deviceFree(addr);
+void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
+   
+    free(addr);
 
-    return deviceAllocate(size);
+    return allocate(size, (uint64_t) addr);
 }
 
-void OpenCLCache::deviceFree(void * addr) {
-    void *allocAddr = addr;
-    _devAllocator.free(allocAddr);
-    cl_mem buf = _bufAddrMappings[allocAddr];    
-    cl_int errCode;
-    errCode = _openclAdapter.freeBuffer(buf);
-    if ( errCode != CL_SUCCESS)
-        fatal("Cannot free device buffer.");
+void OpenCLCache::free(void * addr) {
+    //User must free shared memory buffers manually
+    //if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
+    _devAllocator.free(addr);
+    //cl_mem buf = _bufAddrMappings[addr];    
+    //cl_int errCode;
+    _openclAdapter.freeAddr(addr);
+    //if ( errCode != CL_SUCCESS)
+    //    warning0("Cannot free device buffer.");
     
-    _bufAddrMappings.erase(_bufAddrMappings.find(allocAddr)); 
+    //_bufAddrMappings.erase(_bufAddrMappings.find(addr)); 
 }
 
-bool OpenCLCache::deviceCopyIn(void *localDst,
+bool OpenCLCache::copyIn(void *localDst,
         CopyDescriptor &remoteSrc,
         size_t size) {
-    cl_int errCode;    
-    cl_mem buf = _bufAddrMappings[localDst];  
+    //If shared memory, no need to copy
+    cl_int errCode;
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) remoteSrc.getTag(), size))
+    {
+        cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)remoteSrc.getTag(),size);  
+        errCode = _openclAdapter.unmapBuffer(buf,
+              (void*) remoteSrc.getTag(),
+              0,
+              size);
+        if (errCode != CL_SUCCESS){
+            fatal("Buffer unmap failed.");
+        }
+        return true;
+    }
     
+    
+    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localDst,size);    
+                   
     errCode = _openclAdapter.writeBuffer(buf,
               (void*) remoteSrc.getTag(),
               0,
@@ -126,18 +135,34 @@ bool OpenCLCache::deviceCopyIn(void *localDst,
     return true;
 }
 
-bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
+
+bool OpenCLCache::copyOut(CopyDescriptor &remoteDst,
         void *localSrc,
         size_t size) {
+    //If shared memory, no need to copy
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) remoteDst.getTag(), size)){
+        cl_int errCode;
+        
+        cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
+        errCode = _openclAdapter.mapBuffer(buf,
+                    ((void*)remoteDst.getTag()),
+                    0,
+                    size);
+
+        if (errCode != CL_SUCCESS && localSrc!=0) {        
+            fatal("Buffer mapping failed.");
+        }            
+        return true;
+    }
     cl_int errCode;
-    cl_mem buffer=_bufAddrMappings[localSrc];
     
-    errCode = _openclAdapter.readBuffer(buffer,
+    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
+    errCode = _openclAdapter.readBuffer(buf,
                 ((void*)remoteDst.getTag()),
                 0,
                 size);
     
-    if (errCode != CL_SUCCESS) {
+    if (errCode != CL_SUCCESS && localSrc!=0) {        
         fatal("Buffer reading failed.");
     }    
     
@@ -146,21 +171,21 @@ bool OpenCLCache::deviceCopyOut(CopyDescriptor &remoteDst,
     return true;
 }
 
-bool OpenCLCache::deviceCopyInBuffer(void *localSrc,
+bool OpenCLCache::copyInBuffer(void *localSrc,
         cl_mem remoteBuffer,
-        size_t size) {
-    
+        size_t size) {            
     cl_int errCode;
-    cl_mem buffer=_bufAddrMappings[localSrc];
     
-    errCode = _openclAdapter.copyInBuffer(buffer,
+    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
+    
+    errCode = _openclAdapter.copyInBuffer(buf,
                 remoteBuffer,
                 0,
                 0,
                 size);
     
     if (errCode != CL_SUCCESS) {
-        fatal("Buffer reading failed.");
+        fatal("Buffer copy dev2dev failed.");
     }    
     
     _bytesDevice += ( unsigned int ) size;
@@ -168,131 +193,14 @@ bool OpenCLCache::deviceCopyInBuffer(void *localSrc,
     return true;
 }
 
-//
-// DMATransfer implementation.
-//
 
-namespace nanos {
-    namespace ext {
-
-        template <>
-        void DMATransfer<void *, CopyDescriptor>::dump() const {
-            std::cerr << *this;
-        }
-
-        template <>
-        const uint64_t DMATransfer<void *, CopyDescriptor>::MaxId =
-                std::numeric_limits<uint64_t>::max();
-
-        template <>
-        Atomic<uint64_t> DMATransfer<void *, CopyDescriptor>::_freeId = 0;
-
-        template <>
-        void DMATransfer<CopyDescriptor, void *>::dump() const {
-            std::cerr << *this;
-        }
-
-        template <>
-        const uint64_t DMATransfer<CopyDescriptor, void *>::MaxId =
-                std::numeric_limits<uint64_t>::max();
-
-        template <>
-        Atomic<uint64_t> DMATransfer<CopyDescriptor, void *>::_freeId = 0;
-
-    } // End namespace ext.
-} // End namespace nanos.
-
-//
-// OpenCLDMA implementation.
-//
-
-bool OpenCLDMA::copyIn(void *localDst, CopyDescriptor &remoteSrc, size_t size) {
-    LockBlock lock(_lock);
-    
-    _ins.push(DMAInTransfer(localDst, remoteSrc, size));
-
-    return false;
+cl_mem OpenCLCache::toMemoryObjSS( void * addr ) { 
+    //Creates a buffer from this pointer to the end of the memory (not really correct...)    
+    return _openclAdapter.getBuffer(_mainBuffer,(size_t)addr,-1);
 }
+   
 
-bool OpenCLDMA::copyOut(CopyDescriptor &remoteDst, void *localSrc, size_t size) {
-    LockBlock lock(_lock);
-
-    _outs.push(DMAOutTransfer(remoteDst, localSrc, size));
-
-    return false;
-}
-
-void OpenCLDMA::syncTransfer(uint64_t hostAddress) {
-    LockBlock lock(_lock);
-
-    _ins.prioritize(hostAddress);
-    _outs.prioritize(hostAddress);
-}
-
-void OpenCLDMA::execTransfers() {
-    LockBlock lock(_lock);
-
-    // TODO: select a smarter policy.
-    while (!_ins.empty()) {
-        const DMAInTransfer &trans = _ins.top();
-        CopyDescriptor &src = trans.getSource();
-
-        _proc.copyIn(trans.getDestination(), src, trans.getSize());
-        _proc.synchronize(src);
-
-        _ins.pop();
-    }
-
-    // TODO: select a smarted policy.
-    while (!_outs.empty()) {
-        const DMAOutTransfer &trans = _outs.top();
-        CopyDescriptor &dst = trans.getDestination();
-
-        _proc.copyOut(dst, trans.getSource(), trans.getSize());
-        _proc.synchronize(dst);
-
-        _outs.pop();
-    }
-}
-
-std::ostream &nanos::ext::operator<<(std::ostream &os, size_t size) {
-
-    os << "### Size ###"
-            << std::endl
-            << "  RawSize: " 
-            << std::endl
-            << "  Operation: " << "DEVICE"
-            << std::endl;
-
-    return os;
-}
-
-std::ostream &
-nanos::ext::operator<<(std::ostream &os,
-        const DMATransfer<void *, CopyDescriptor> &trans) {
-    const CopyDescriptor &src = trans.getSource();
-
-    void *srcAddr = reinterpret_cast<void *> (src.getTag());
-    unsigned version = src.getDirectoryVersion();
-
-    os << "### DMA Input Transfer ###" << std::endl
-            << "  To: " << trans.getDestination() << std::endl
-            << "  From: [" << version << "] " << srcAddr << std::endl;
-
-    return os;
-}
-
-std::ostream &
-nanos::ext::operator<<(std::ostream &os,
-        const DMATransfer<CopyDescriptor, void *> &trans) {
-    const CopyDescriptor &dst = trans.getDestination();
-
-    void *dstAddr = reinterpret_cast<void *> (dst.getTag());
-    unsigned version = dst.getDirectoryVersion();
-
-    os << "### DMA Output Transfer ###" << std::endl
-            << "  To: [" << version << "] " << dstAddr << std::endl
-            << "  From: " << trans.getSource() << std::endl;
-
-    return os;
+cl_mem OpenCLCache::getBuffer( void *localSrc, size_t size)
+{
+   return _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
 }

@@ -411,7 +411,7 @@ namespace nanos {
             registerEventValue("api","enter_team","nanos_enter_team()");
             registerEventValue("api","leave_team","nanos_leave_team()");
             registerEventValue("api","end_team","nanos_end_team()");
-            registerEventValue("api","get_num_runnin_tasks","nanos_get_num_runnin_tasks()");
+            registerEventValue("api","get_num_running_tasks","nanos_get_num_running_tasks()");
             registerEventValue("api","get_addr","nanos_get_addr()");
             registerEventValue("api","copy_value","nanos_copy_value()");
             registerEventValue("api","omp_barrier","nanos_omp_barrier()");
@@ -555,7 +555,10 @@ namespace nanos {
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_CREATE_COMMAND_QUEUE_EVENT", "clCreateCommandQueue()" );                /* 7 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GET_PROGRAM_EVENT", "Compile, build and clCreateKernel() nanox routine" );                /* 8 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_COPY_BUFFER_EVENT", "clEnqueueCopyBuffer() Device to device transfer" );                /* 9 */
-            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 10 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_CREATE_SUBBUFFER_EVENT", "clCreateSubBuffer(blocking=true)" );                /* 10 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT", "clEnqueueMapBuffer(blocking=true)" );                /* 11 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT", "clEnqueueUnmapMemObject(blocking=true)" );                /* 12 */
+            registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 13 */
 
             /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
             /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");

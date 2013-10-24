@@ -35,7 +35,7 @@ namespace nanos {
    {
       public:
          PinnedMemoryManager();
-         ~PinnedMemoryManager();
+         virtual ~PinnedMemoryManager();
 
          virtual void * allocate( size_t size ) = 0;
          virtual void free( void * address ) = 0;

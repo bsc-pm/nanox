@@ -1,4 +1,5 @@
 support_sources = \
+	$(top_srcdir)/src/support/dlb.hpp\
 	$(top_srcdir)/src/support/new_decl.hpp\
 	$(top_srcdir)/src/support/new.cpp\
 	$(top_srcdir)/src/support/allocator_fwd.hpp\

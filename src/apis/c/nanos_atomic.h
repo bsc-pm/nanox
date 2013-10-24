@@ -54,7 +54,7 @@ extern "C"
 #ifdef _MF03
 
 // This is for Mercurium Fortran
-#define CHAR @byte@
+#define NANOS_CHAR @byte@
 #define NANOS_ATOMIC_DECL_OP(op, type_name, type) \
     NANOS_API_DECL(void, nanos_atomic_##op##_##type_name, (type @ref@, type));
 #define NANOS_ATOMIC_EXTRA_INT_OP(op) \
@@ -66,7 +66,7 @@ extern "C"
 
 #else
 
-#define CHAR char
+#define NANOS_CHAR char
 #define NANOS_ATOMIC_DECL_OP(op, type_name, type) \
     NANOS_API_DECL(void, nanos_atomic_##op##_##type_name, (volatile type *, type));
 #define NANOS_ATOMIC_EXTRA_INT_OP(op) \
@@ -79,12 +79,12 @@ extern "C"
 #endif
 
 #define NANOS_ATOMIC_INT_OP(op) \
-    NANOS_ATOMIC_DECL_OP(op, schar, signed CHAR) \
+    NANOS_ATOMIC_DECL_OP(op, schar, signed NANOS_CHAR) \
     NANOS_ATOMIC_DECL_OP(op, short, short) \
     NANOS_ATOMIC_DECL_OP(op, int, int) \
     NANOS_ATOMIC_DECL_OP(op, long, long) \
     NANOS_ATOMIC_DECL_OP(op, longlong, long long) \
-    NANOS_ATOMIC_DECL_OP(op, uchar, unsigned CHAR) \
+    NANOS_ATOMIC_DECL_OP(op, uchar, unsigned NANOS_CHAR) \
     NANOS_ATOMIC_DECL_OP(op, ushort, unsigned short int) \
     NANOS_ATOMIC_DECL_OP(op, uint, unsigned int) \
     NANOS_ATOMIC_DECL_OP(op, ulong, unsigned long) \
@@ -114,6 +114,8 @@ ATOMIC_OPS
 #undef NANOS_ATOMIC_FLOAT_OP
 #undef NANOS_ATOMIC_INT_OP
 #undef NANOS_ATOMIC_EXTRA_INT_OP
+
+#undef NANOS_CHAR
 
 #ifdef __cplusplus
 }
