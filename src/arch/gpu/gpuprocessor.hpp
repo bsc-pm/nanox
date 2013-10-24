@@ -46,6 +46,7 @@ namespace ext
          cudaStream_t   _localTransferStream;
 
          // Execution
+         int            _numExecStreams;
          cudaStream_t * _kernelExecStream;
 
          // Tracing
@@ -91,6 +92,11 @@ namespace ext
          cudaStream_t getLocalTransferStream ()
          {
             return _localTransferStream;
+         }
+
+         int getNumExecStreams ()
+         {
+            return _numExecStreams;
          }
 
          cudaStream_t getKernelExecStream ( unsigned int index )

@@ -33,6 +33,7 @@ bool GPUConfig::_forceDisableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
 System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
 int GPUConfig::_numPrefetch = 1;
+bool GPUConfig::_concurrentExec = true;
 bool GPUConfig::_overlap = false;
 bool GPUConfig::_overlapInputs = false;
 bool GPUConfig::_overlapOutputs = false;
@@ -77,6 +78,13 @@ void GPUConfig::prepare( Config& config )
                                  "Defines the maximum number of tasks to prefetch (defaults to 0)" );
    config.registerEnvOption ( "gpu-prefetch", "NX_GPUPREFETCH" );
    config.registerArgOption ( "gpu-prefetch", "gpu-prefetch" );
+
+   // Enable / disable concurrent kernel execution
+   config.registerConfigOption( "gpu-concurrent-exec", NEW Config::FlagOption( _concurrentExec ),
+                                "Enable or disable concurrent kernel execution, if supported\n\
+                                     by the hardware (enabled by default)" );
+   config.registerEnvOption( "gpu-concurrent-exec", "NX_GPU_CONCURRENT_EXEC" );
+   config.registerArgOption( "gpu-concurrent-exec", "gpu-concurrent-exec" );
 
    // Enable / disable overlapping
    config.registerConfigOption( "gpu-overlap", NEW Config::FlagOption( _overlap ),
@@ -129,6 +137,7 @@ void GPUConfig::apply()
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
       _numPrefetch = 0;
+      _concurrentExec = false;
       _overlap = false;
       _overlapInputs = false;
       _overlapOutputs = false;
@@ -147,6 +156,7 @@ void GPUConfig::apply()
          _numGPUs = 0;
          _cachePolicy = System::DEFAULT;
          _numPrefetch = 0;
+         _concurrentExec = false;
          _overlap = false;
          _overlapInputs = false;
          _overlapOutputs = false;
@@ -242,6 +252,7 @@ void GPUConfig::printConfiguration()
    verbose0( "  Number of GPU's: " << _numGPUs );
    verbose0( "  GPU cache policy: " << ( _cachePolicy == System::WRITE_THROUGH ? "write-through" : "write-back" ) );
    verbose0( "  Prefetching: " << _numPrefetch );
+   verbose0( "  Concurrent kernel execution: " << ( _concurrentExec ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping: " << ( _overlap ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping inputs: " << ( _overlapInputs ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping outputs: " << ( _overlapOutputs ? "Enabled" : "Disabled" ) );

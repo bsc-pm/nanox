@@ -77,7 +77,6 @@ namespace ext
          unsigned int getCurrentKernelExecStreamIdx();
 
          int getGPUDevice ();
-         void enableWDClosingEvents ();
 
          void * getCUBLASHandle();
 
@@ -93,6 +92,9 @@ namespace ext
 
          void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
          void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
+
+         void raiseKernelLaunchEvent ();
+         void closeKernelLaunchEvent ();
 
          void raiseWDRunEvent ( WD * wd );
          void closeWDRunEvent ( WD * wd );

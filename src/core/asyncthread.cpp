@@ -195,10 +195,8 @@ void AsyncThread::runWD ( WD * wd )
 
    evt->setPending();
 
-   Action * instrument = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::raiseWDClosingEvents, this, wd );
-   evt->addNextAction( instrument );
 #ifdef NANOS_GENERICEVENT_DEBUG
-   evt->setDescription( evt->getDescription() + " action:closeInstr" );
+   evt->setDescription( evt->getDescription() + " action:closeUsrFuncInstr" );
 #endif
 
    Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::postRunWD, this, wd );
@@ -440,7 +438,6 @@ void AsyncThread::addEvent( GenericEvent * evt )
    _pendingEvents.push_back( evt );
    _pendingEventsCounter++;
 }
-
 
 WD * AsyncThread::getNextWD ()
 {

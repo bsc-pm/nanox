@@ -493,6 +493,7 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_RECORD_EVENT", "cudaEventRecord()" );                          /* 23 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_QUERY_EVENT", "cudaEventQuery()" );                            /* 24 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_SYNC_EVENT", "cudaEventSynchronize()" );                       /* 25 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_LAUNCH_EVENT", "Launching CUDA kernel(s) in task" );          /* 26 */
 
             /* 28 */ registerEventKey("xfer-size","Transfer size", true);
 

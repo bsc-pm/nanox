@@ -172,25 +172,48 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
 NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-#ifdef GPU_DEV
-   try
-   {
-      ( ( ext::GPUThread *) myThread )->enableWDClosingEvents();
-   } catch ( nanos_err_t err) {
-      return err;
-   }
-#endif
 #ifdef OpenCL_DEV
    try
    {
-      ( ( ext::OpenCLThread *) myThread )->enableWDClosingEvents();
-   } catch ( nanos_err_t err) {
+      ( ( ext::OpenCLThread * ) myThread )->enableWDClosingEvents();
+   } catch ( nanos_err_t err ) {
       return err;
    }
 #endif
 #endif
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_instrument_raise_gpu_kernel_launch_event, ( void ))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+#ifdef GPU_DEV
+   try
+   {
+      ( ( ext::GPUThread * ) myThread )->raiseKernelLaunchEvent();
+   } catch ( nanos_err_t err ) {
+      return err;
+   }
+#endif
+#endif
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_instrument_close_gpu_kernel_launch_event, ( void ))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+#ifdef GPU_DEV
+   try
+   {
+      ( ( ext::GPUThread * ) myThread )->closeKernelLaunchEvent();
+   } catch ( nanos_err_t err ) {
+      return err;
+   }
+#endif
+#endif
+   return NANOS_OK;
+}
+
 
 NANOS_API_DEF(nanos_err_t, nanos_instrument_enable,())
 {

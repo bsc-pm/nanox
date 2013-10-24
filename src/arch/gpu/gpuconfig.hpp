@@ -54,6 +54,7 @@ namespace ext
          static int                       _numGPUs; //! Number of CUDA-capable GPUs
          static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by GPU devices
          static int                       _numPrefetch; //! Maximum number of tasks to prefetch (set by the user)
+         static bool                      _concurrentExec; //! Create more than one execution stream to enable concurrent kernels
          static bool                      _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
          static bool                      _overlapInputs;
          static bool                      _overlapOutputs;
@@ -78,6 +79,10 @@ namespace ext
          static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
 
          static int getNumPrefetch ( void ) { return _numPrefetch; }
+
+         static bool isConcurrentExecutionEnabled ( void ) { return _concurrentExec; }
+
+         static void setConcurrentExecution ( bool concurrent ) { _concurrentExec = concurrent; }
 
          static bool isOverlappingInputsDefined ( void ) { return _overlapInputs; }
 

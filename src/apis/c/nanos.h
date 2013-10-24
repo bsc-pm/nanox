@@ -318,6 +318,8 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_get_value, (const char *key, const 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, nanos_event_t events[] ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_close_user_fun_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_raise_gpu_kernel_launch_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_close_gpu_kernel_launch_event,());
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 

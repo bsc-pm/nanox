@@ -52,8 +52,6 @@ namespace nanos
          // Previous running WD, used for instrumentation only
          WD *              _previousWD; 
 
-
-
       private:
         /*! \brief AsyncThread default constructor
          */
@@ -67,12 +65,11 @@ namespace nanos
          */
          const AsyncThread & operator= ( const AsyncThread & );
 
-
       public:
         /*! \brief AsyncThread constructor
          */
          AsyncThread ( WD &wd, ProcessingElement *creator=0 ) : BaseThread( wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
-         _pendingEvents(), _pendingEventsCounter( 0 ), _previousWD( NULL ) { }
+         _pendingEvents(), _pendingEventsCounter( 0 ), _previousWD( NULL ) {}
 
         /*! \brief AsyncThread destructor
          */
@@ -130,7 +127,6 @@ namespace nanos
          void addEvent( GenericEvent * evt );
          void checkEvents();
          void checkEvents( WD * wd );
-         virtual void raiseWDClosingEvents( WD * wd ) {}
 
          virtual bool canGetWork ();
 

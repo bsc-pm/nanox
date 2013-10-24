@@ -242,9 +242,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
       }
 
       // Create as many kernel streams as the number of prefetching tasks
-      int numStreams = GPUConfig::getNumPrefetch() + 1;
-      _kernelExecStream = ( cudaStream_t * ) malloc( numStreams * sizeof( cudaStream_t ) );
-      for ( int i = 0; i < numStreams; i++ ) {
+      _numExecStreams = GPUConfig::isConcurrentExecutionEnabled() ? GPUConfig::getNumPrefetch() + 1 : 1;
+      std::cout << "Creating " << _numExecStreams << " exec streams" << std::endl;
+      _kernelExecStream = ( cudaStream_t * ) malloc( _numExecStreams * sizeof( cudaStream_t ) );
+      for ( int i = 0; i < _numExecStreams; i++ ) {
          err = cudaStreamCreate( &_kernelExecStream[i] );
          if ( err != cudaSuccess ) {
             // If an error occurred, disable stream overlapping for that kernel stream
@@ -258,8 +259,8 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       // Initialize the CUDA streams used for tracing kernel launches
-      _tracingKernelStream = ( cudaStream_t * ) malloc( numStreams * sizeof( cudaStream_t ) );
-      for ( int i = 0; i < numStreams; i++ ) {
+      _tracingKernelStream = ( cudaStream_t * ) malloc( _numExecStreams * sizeof( cudaStream_t ) );
+      for ( int i = 0; i < _numExecStreams; i++ ) {
          err = cudaStreamCreate( &_tracingKernelStream[i] );
          if ( err != cudaSuccess ) {
             _tracingKernelStream[i] = 0;
@@ -318,7 +319,7 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
       }
    }
 
-   for ( int i = 0; i < GPUConfig::getNumPrefetch() + 1; i++ ) {
+   for ( int i = 0; i < _numExecStreams; i++ ) {
       if ( _kernelExecStream[i] ) {
          cudaError_t err = cudaStreamDestroy( _kernelExecStream[i] );
          if ( err != cudaSuccess ) {
@@ -328,7 +329,7 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
    }
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-   for ( int i = 0; i < GPUConfig::getNumPrefetch() + 1; i++ ) {
+   for ( int i = 0; i < _numExecStreams; i++ ) {
       if ( _tracingKernelStream[i] ) {
          cudaError_t err = cudaStreamDestroy( _tracingKernelStream[i] );
          if ( err != cudaSuccess ) {

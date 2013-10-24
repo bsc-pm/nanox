@@ -39,6 +39,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
+
 void * nanos::ext::gpu_bootthread ( void *arg )
 {
    GPUThread *self = static_cast<GPUThread *>( arg );
@@ -82,6 +83,9 @@ void GPUThread::initializeDependent ()
 {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
+   GPUUtils::GPUInstrumentationEventKeys::_wd_id =
+         sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "wd-id" );
+
    GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime =
          sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" );
 
@@ -175,18 +179,63 @@ void GPUThread::runDependent ()
    ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
+
 //bool GPUThread::inlineWorkDependent ( WD &wd )
 bool GPUThread::runWDDependent( WD &wd )
 {
    GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
-   //GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
+   GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   // CUDA events and callbacks to instrument kernel execution on GPU
+   cudaEvent_t evtk1;
+   cudaEventCreate( &evtk1, 0 );
+   cudaEventRecord( evtk1, myGPU.getGPUProcessorInfo()->getKernelExecStream( _kernelStreamIdx ) );
+
+   cudaStreamWaitEvent( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), evtk1, 0 );
+
+   GPUCallbackData * cbd = NEW GPUCallbackData( this, &wd );
+
+   //cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getKernelExecStream(), beforeTaskCallback, ( void * ) cbd, 0 );
+   cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), beforeWDRunCallback, ( void * ) cbd, 0 );
+#endif
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   // Instrumenting task number (WorkDescriptor ID)
+   Instrumentation::Event e1;
+   sys.getInstrumentation()->createBurstEvent( &e1, GPUUtils::GPUInstrumentationEventKeys::_wd_id, wd.getId() );
+   sys.getInstrumentation()->addEventList( 1, &e1 );
+#endif
 
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   // Instrumenting task number (WorkDescriptor ID)
+   Instrumentation::Event e2;
+   sys.getInstrumentation()->closeBurstEvent( &e2, GPUUtils::GPUInstrumentationEventKeys::_wd_id );
+   sys.getInstrumentation()->addEventList( 1, &e2 );
+#endif
+
+   //NANOS_INSTRUMENT( cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getKernelExecStream(), afterTaskCallback, ( void * ) cbd2, 0 ); )
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   // CUDA events and callbacks to instrument kernel execution on GPU
+  cudaEvent_t evtk2;
+   cudaEventCreate( &evtk2, 0 );
+   cudaEventRecord( evtk2, myGPU.getGPUProcessorInfo()->getKernelExecStream( _kernelStreamIdx ) );
+
+   cudaStreamWaitEvent( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), evtk2, 0 );
+
+   GPUCallbackData * cbd2 = NEW GPUCallbackData( this, &wd );
+
+   //cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getKernelExecStream(), afterTaskCallback, ( void * ) cbd2, 0 );
+   cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), afterWDRunCallback, ( void * ) cbd2, 0 );
+#endif
+
    _kernelStreamIdx++;
 
-   if ( _kernelStreamIdx == GPUConfig::getNumPrefetch() + 1 ) _kernelStreamIdx = 0;
+   if ( _kernelStreamIdx == myGPU.getGPUProcessorInfo()->getNumExecStreams() ) _kernelStreamIdx = 0;
 
    return false;
 }
@@ -222,29 +271,84 @@ unsigned int GPUThread::getCurrentKernelExecStreamIdx()
 {
    return _kernelStreamIdx;
 }
-void GPUThread::raiseWDClosingEvents ( WD * wd )
+
+
+void GPUThread::raiseKernelLaunchEvent()
 {
-   NANOS_INSTRUMENT(
-         WD * oldwd = getCurrentWD();
-         // Instrumenting context switch: oldwd leaves CPU, but will come back later (last = false)
-         sys.getInstrumentation()->wdSwitch( oldwd, wd, /* last */ false );
-         Instrumentation::Event e[2];
-         sys.getInstrumentation()->closeBurstEvent( &e[0],
-               sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
-         sys.getInstrumentation()->closeBurstEvent( &e[1],
-               sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   Instrumentation::Event e;
 
-         sys.getInstrumentation()->addEventList( 2, e );
+   sys.getInstrumentation()->createBurstEvent( &e,
+         GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime,
+         GPUUtils::NANOS_GPU_CUDA_KERNEL_LAUNCH_EVENT );
 
-         // Instrumenting context switch: wd leaves CPU, but will come back later (last = false)
-         sys.getInstrumentation()->wdSwitch( wd, oldwd, /* last */ false );
-   );
+   sys.getInstrumentation()->addEventList( 1, &e );
+#endif
+}
+
+
+void GPUThread::closeKernelLaunchEvent()
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   Instrumentation::Event e;
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime );
+
+   sys.getInstrumentation()->addEventList( 1, &e );
+#endif
+}
+
+
 void GPUThread::raiseWDRunEvent ( WD * wd )
 {
+   //double tstart = nanos::OS::getMonotonicTimeUs();
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   WD * oldwd = getCurrentWD();
+   setCurrentWD( *wd );
+
+   Instrumentation::Event e;
+
+   GPUDD &dd = ( GPUDD & ) wd->getActiveDevice();
+   nanos_event_value_t value = ( nanos_event_value_t ) * ( dd.getWorkFct() );
+
+   //sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_kernel_launch, value );
+   sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_user_funct_location, value );
+
+   sys.getInstrumentation()->addEventList( 1, &e );
+
+   sys.getInstrumentation()->flushDeferredEvents( wd );
+
+   setCurrentWD( *oldwd );
+#endif
+
+   //double tend = nanos::OS::getMonotonicTimeUs() - tstart;
+
+   //std::cout << "Start  " << ( int ) tend << std::endl;
+
 }
 
 void GPUThread::closeWDRunEvent ( WD * wd )
 {
+
+   //double tstart = nanos::OS::getMonotonicTimeUs();
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   WD * oldwd = getCurrentWD();
+   setCurrentWD( *wd );
+
+   Instrumentation::Event e;
+
+   //sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_kernel_launch );
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_user_funct_location );
+
+   sys.getInstrumentation()->addEventList( 1, &e );
+
+   setCurrentWD( *oldwd );
+#endif
+
+   //double tend = nanos::OS::getMonotonicTimeUs() - tstart;
+
+   //std::cout << "Finish " << ( int ) tend << std::endl;
 }
 
 
