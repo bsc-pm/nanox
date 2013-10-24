@@ -411,7 +411,7 @@ namespace nanos {
             registerEventValue("api","enter_team","nanos_enter_team()");
             registerEventValue("api","leave_team","nanos_leave_team()");
             registerEventValue("api","end_team","nanos_end_team()");
-            registerEventValue("api","get_num_runnin_tasks","nanos_get_num_runnin_tasks()");
+            registerEventValue("api","get_num_running_tasks","nanos_get_num_running_tasks()");
             registerEventValue("api","get_addr","nanos_get_addr()");
             registerEventValue("api","copy_value","nanos_copy_value()");
             registerEventValue("api","omp_barrier","nanos_omp_barrier()");
