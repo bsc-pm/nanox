@@ -76,7 +76,7 @@ private:
 		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-opencl-runtime" ), (x) ); )
 
 #define NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT       NANOS_INSTRUMENT( \
-		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-opencl-runtime" ) ); )
+		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-opencl-runtime" ), 0 ); )
 
 
 typedef enum {

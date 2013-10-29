@@ -141,7 +141,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
  */
 NANOS_API_DEF(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_translate_args_t translate_args ))
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_set_translate_function",NANOS_CREATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_translate_function",NANOS_CREATION) );
    try 
    {
       WD *lwd = ( WD * ) wd;
