@@ -302,8 +302,6 @@ namespace nanos
           */
          void addCpuMask ( const cpu_set_t *mask );
 
-         void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
-
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
