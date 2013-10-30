@@ -215,7 +215,7 @@ inline void InstrumentationDictionary::switchAllEvents ( bool on_off )
 {
    KeyMapIterator it = _keyMap.begin();
 
-   fprintf(stderr,"Nanos++: %s %s event\n",on_off?"Enabling":"Disabling", "all events" );
+   fprintf(stderr,"Nanos++: %s %s event\n",on_off?"Enabling":"Disabling", "all events" ); // FIXME
    LockBlock lock( _lock );
    while ( it != _keyMap.end() ) {
       it->second->setEnabled( on_off );
