@@ -417,7 +417,7 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
 /*! \brief Get WorkDescriptor's priority
  *
  */
-NANOS_API_DEF(unsigned int, nanos_get_wd_priority, ( nanos_wd_t wd ))
+NANOS_API_DEF(int, nanos_get_wd_priority, ( nanos_wd_t wd ))
 {
    //! \note Why this is not instrumented?
    WD *lwd = ( WD * )wd;
