@@ -112,7 +112,6 @@ namespace nanos
    {
          friend class WDDeque;
          friend class WDLFQueue;
-         friend class WDPriorityQueue<unsigned>;
          friend class WDPriorityQueue<int>;
          friend class WDPriorityQueue<double>;
          friend class Scheduler;
