@@ -83,6 +83,8 @@ namespace nanos
          bool                 _profile;
          bool                 _instrument;
          bool                 _verboseMode;
+         bool                 _summary;            /*!< \brief Flag to enable the summary */
+         time_t               _summary_start_time; /*!< \brief Track time to show duration in summary */
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
          bool                 _untieMaster;
@@ -233,6 +235,12 @@ namespace nanos
          void unloadHwloc();
          
          PE * createPE ( std::string pe_type, int pid, int uid );
+
+         //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
+         void environmentSummary( void );
+
+         //* \brief Prints the Execution Summary (time, completed tasks, etc.) at the end of the execution
+         void executionSummary( void );
 
       public:
          /*! \brief System default constructor

@@ -55,7 +55,7 @@ System nanos::sys;
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ),
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
-      _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
+      _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
@@ -313,6 +313,10 @@ void System::config ()
    cfg.registerConfigOption( "verbose", NEW Config::FlagOption( _verboseMode ),
                              "Activates verbose mode" );
    cfg.registerArgOption( "verbose", "verbose" );
+
+   cfg.registerConfigOption( "summary", NEW Config::FlagOption( _summary ),
+                             "Activates summary mode" );
+   cfg.registerArgOption( "summary", "summary" );
 
 //! \bug implement execution modes (#146) */
 #if 0
@@ -575,6 +579,9 @@ void System::start ()
    // hwloc can be now unloaded
    if ( isHwlocAvailable() )
       unloadHwloc();
+
+   if ( _summary )
+      environmentSummary();
 }
 
 System::~System ()
@@ -664,6 +671,9 @@ void System::finish ()
    if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
+
+   if ( _summary )
+      executionSummary();
 }
 
 /*! \brief Creates a new WD
@@ -1663,4 +1673,64 @@ unsigned System::reservePE ( bool reserveNode, unsigned node, bool & reserved )
 void * System::getHwlocTopology ()
 {
    return _hwlocTopology;
+}
+
+void System::environmentSummary( void )
+{
+   /* Get Specific Mask String (depending on _bindThreads) */
+   cpu_set_t *cpu_set = _bindThreads ? &_cpu_active_set : &_cpu_set;
+   std::ostringstream mask;
+   mask << "[ ";
+   for ( int i=0; i<CPU_SETSIZE; i++ ) {
+      if ( CPU_ISSET(i, cpu_set) )
+         mask << i << ", ";
+   }
+   mask << "]";
+
+   /* Get Prog. Model string */
+   std::string prog_model;
+   switch ( getInitialMode() )
+   {
+      case POOL:
+         prog_model = "OmpSs";
+         break;
+      case ONE_THREAD:
+         prog_model = "OpenMP";
+         break;
+      default:
+         prog_model = "Unknown";
+         break;
+   }
+
+   message0( "========== Nanos++ Initial Environment Summary ==========" );
+   message0( "=== PID:            " << getpid() );
+   message0( "=== Num. threads:   " << _numThreads );
+   message0( "=== Active CPUs:    " << mask.str() );
+   message0( "=== Binding:        " << std::boolalpha << _bindThreads );
+   message0( "=== Prog. Model:    " << prog_model );
+
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it ) {
+
+      // Temporarily hide SMP plugin because it has empty information
+      if ( strcmp( (*it)->getName(), "SMP PE Plugin" ) == 0 )
+         continue;
+
+      message0( "=== Plugin:         " << (*it)->getName() );
+      message0( "===  | Threads:     " << (*it)->getNumThreads() );
+   }
+
+   message0( "=========================================================" );
+
+   // Get start time
+   _summary_start_time = time(NULL);
+}
+
+void System::executionSummary( void )
+{
+   time_t seconds = time(NULL) -_summary_start_time;
+   message0( "============ Nanos++ Final Execution Summary ============" );
+   message0( "=== Application ended in " << seconds << " seconds" );
+   message0( "=== " << getCreatedTasks() << " tasks have been executed" );
+   message0( "=========================================================" );
 }
