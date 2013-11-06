@@ -23,11 +23,7 @@ include $(top_srcdir)/src/apis/c/version_commons.am
 if INSTRUMENTATION_DEBUG_VERSION
 instrdebug_LTLIBRARIES=libnanox-c.la
 
-if GPU_SUPPORT
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(gpu_includes)
-else
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
-endif
 nanos_instrdebug_fcflags=$(common_includes) $(common_instrdebug_fcflags)
 
 libnanox_c_la_FCFLAGS=$(nanos_instrdebug_fcflags)
