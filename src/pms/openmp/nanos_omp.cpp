@@ -49,17 +49,17 @@ NANOS_API_DEF(nanos_err_t, nanos_omp_barrier, ( void ))
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_ws_t, nanos_omp_find_worksharing,( omp_sched_t kind ))
+NANOS_API_DEF(nanos_ws_t, nanos_omp_find_worksharing,( nanos_omp_sched_t kind ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_find_worksharing",NANOS_SYNCHRONIZATION) );
    return ((OpenMPInterface&)sys.getPMInterface()).findWorksharing(kind);
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_omp_get_schedule, ( omp_sched_t *kind, int *modifier ))
+NANOS_API_DEF(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, int *modifier ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","omp_get_schedule",NANOS_RUNTIME) );
    try {
-      omp_get_schedule ( kind, modifier);
+      omp_get_schedule ( reinterpret_cast<omp_sched_t *> (kind), modifier);
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
