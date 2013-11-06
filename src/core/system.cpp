@@ -1401,8 +1401,9 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
 
-   thread->reserve(); // set team flag only
+   // The sleep flag must be set before to avoid race conditions
    thread->wakeup();  // set sleep flag only
+   thread->reserve(); // set team flag only
 
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
