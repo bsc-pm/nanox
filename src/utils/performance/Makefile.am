@@ -24,7 +24,7 @@ if PERFORMANCE_VERSION
 
 bin_PROGRAMS = nanox-pfm
 
-nanox_pfm_CPPFLAGS = $(common_includes) $(common_performance_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_pfm_CPPFLAGS = $(common_includes) $(common_perfo_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
 
 nanox_pfm_SOURCES=  $(nanox_sources)
 

@@ -115,6 +115,11 @@ void OS::getProcessAffinity( cpu_set_t *cpu_set )
 
    memcpy( cpu_set, &mask, sizeof(uint64_t) );
 #else
-   sched_getaffinity( 0, sizeof( cpu_set_t ), cpu_set );
+   sched_getaffinity( 0, sizeof(cpu_set_t), cpu_set );
 #endif
+}
+
+void OS::bindThread( cpu_set_t *cpu_set )
+{
+   sched_setaffinity( 0, sizeof(cpu_set_t), cpu_set );
 }

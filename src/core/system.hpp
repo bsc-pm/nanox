@@ -52,11 +52,6 @@ inline int System::getNumThreads () const { return _numThreads; }
 
 inline int System::getCpuCount () const { return CPU_COUNT( &_cpu_set ) ; };
 
-inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
-   //ensure( checkCpuMask(mask), "invalid CPU mask set" );
-   sched_setaffinity( pid, cpusetsize, mask);
-}
-
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }

@@ -208,7 +208,7 @@ namespace nanos
 
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
 
-         unsigned int                  _priority;      /**< Task priority */
+         int                           _priority;      /**< Task priority */
 
          CommutativeOwnerMap           *_commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
          WorkDescriptorPtrList         *_commutativeOwners;   /**< Array of commutative target owners */
@@ -582,8 +582,8 @@ namespace nanos
          bool isConfigured ( void ) const;
          void setConfigured ( bool value=true );
 
-         void setPriority( unsigned int priority );
-         unsigned getPriority() const;
+         void setPriority( int priority );
+         int getPriority() const;
 
          /*! \brief Store addresses of commutative targets in hash and in child WorkDescriptor.
           *  Called when a task is submitted.

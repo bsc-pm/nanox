@@ -108,7 +108,8 @@ namespace nanos
          static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
          static const ModuleList & getRequestedModules () { return *_moduleList; }
 
-         static void getProcessAffinity( cpu_set_t *cpuset );
+         static void getProcessAffinity( cpu_set_t *cpu_set );
+         static void bindThread( cpu_set_t *cpu_set );
    };
 
 // inlined functions
