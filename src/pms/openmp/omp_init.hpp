@@ -62,7 +62,7 @@ namespace nanos
             virtual void addCpuMask( const cpu_set_t *cpu_set );
 
          public:
-            nanos_ws_t findWorksharing( omp_sched_t kind ) ;
+            nanos_ws_t findWorksharing( nanos_omp_sched_t kind ) ;
       };
 
       class OmpSsInterface : public OpenMPInterface

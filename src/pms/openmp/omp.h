@@ -31,7 +31,13 @@
 typedef void * omp_lock_t;
 typedef void * omp_nest_lock_t;
 
-typedef nanos_omp_sched_t omp_sched_t;
+typedef enum omp_sched_t {
+   omp_sched_static = nanos_omp_sched_static,
+   omp_sched_dynamic = nanos_omp_sched_dynamic,
+   omp_sched_guided = nanos_omp_sched_guided,
+   omp_sched_auto = nanos_omp_sched_auto
+} omp_sched_t;
+
 
 /*
 * define the schedule kinds
