@@ -854,6 +854,11 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
+   
+   /* DLB */
+   // In case the master have been busy crating tasks 
+   // every 10 tasks created I'll check available cpus
+   if(_atomicWDSeed.value()%10==0)dlb_updateAvailableCpus();
 }
 
 /*! \brief Creates a new Sliced WD
