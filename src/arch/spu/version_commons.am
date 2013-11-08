@@ -1,3 +1,5 @@
+devinclude_HEADERS = \
+	$(END) 
 
 spu_sources = \
 	$(top_srcdir)/src/arch/spu/spudd.hpp \
