@@ -15,10 +15,27 @@
 %define feature		nanox
 %define release		2
 %define buildroot       %{_topdir}/%{name}-%{version}-root
+# Avoid "*** ERROR: No build ID note found in XXXXXXX"
+%global debug_package   %{nil}
 
 # Override prefix if _rpm_prefix is given
 %{?_rpm_prefix: %define _prefix  %{_rpm_prefix} }
-
+# Override distribution flags
+%define configure ./configure --host=%{_host} --build=%{_build} \\\
+        --program-prefix=%{?_program_prefix} \\\
+        --prefix=%{_prefix} \\\
+        --exec-prefix=%{_exec_prefix} \\\
+        --bindir=%{_bindir} \\\
+        --sbindir=%{_sbindir} \\\
+        --sysconfdir=%{_sysconfdir} \\\
+        --datadir=%{_datadir} \\\
+        --includedir=%{_includedir} \\\
+        --libdir=%{_libdir} \\\
+        --libexecdir=%{_libexecdir} \\\
+        --localstatedir=%{_localstatedir} \\\
+        --sharedstatedir=%{_sharedstatedir} \\\
+        --mandir=%{_mandir} \\\
+        --infodir=%{_infodir}
 
 BuildRoot:	        %{buildroot}
 Summary: 		Nanos++

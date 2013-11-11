@@ -258,7 +258,7 @@ namespace nanos
        typedef std::list<WorkDescriptor *> BaseContainer;
    }
 
-   template<typename T = unsigned>
+   template<typename T = int>
    class WDPriorityQueue : public WDPool
    {
       public:

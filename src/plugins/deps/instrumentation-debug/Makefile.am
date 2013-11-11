@@ -27,7 +27,7 @@ instrdebug_LTLIBRARIES = \
         libnanox-deps-regions.la\
 	$(END)
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instr_cxxflags)
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
 
 libnanox_deps_plain_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 libnanox_deps_plain_la_LDFLAGS = $(ld_plugin_flags)

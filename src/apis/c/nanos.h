@@ -111,6 +111,7 @@
  *   - 5021: Including void nanos_free0( void *p ) service.
  *   - 5022: Adding const char* description in task creation.
  *   - 5024: Adding is final attribute in wd's dynamic properties.
+ *   - 5025: Changed WD priority from unsigned to int.
  * - nanos interface family: worksharing
  *   - 1000: First implementation of work-sharing services (create and next-item)
  * - nanos interface family: deps_api
@@ -177,7 +178,7 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
-NANOS_API_DECL(unsigned int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(int, nanos_get_wd_priority, (nanos_wd_t wd));
 NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions

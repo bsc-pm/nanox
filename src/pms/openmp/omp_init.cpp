@@ -37,7 +37,7 @@ namespace nanos
       int * ssCompatibility __attribute__( ( weak ) );
       OmpState *globalState;
 
-      nanos_ws_t OpenMPInterface::findWorksharing( omp_sched_t kind ) { return ws_plugins[kind]; }
+      nanos_ws_t OpenMPInterface::findWorksharing( nanos_omp_sched_t kind ) { return ws_plugins[kind]; }
 
       void OpenMPInterface::config ( Config & cfg )
       {

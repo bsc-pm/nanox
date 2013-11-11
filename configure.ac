@@ -738,10 +738,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
                 fi
            ]
 )
