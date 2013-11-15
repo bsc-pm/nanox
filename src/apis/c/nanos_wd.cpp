@@ -227,7 +227,7 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 
       NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, 0 );)
 
-      if ( data_accesses != NULL ) {
+      if ( num_data_accesses != 0 && data_accesses != NULL ) {
          sys.submitWithDependencies( *wd, num_data_accesses, data_accesses );
          return NANOS_OK;
       }
