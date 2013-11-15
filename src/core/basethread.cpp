@@ -25,17 +25,17 @@
 
 using namespace nanos;
 
-__thread BaseThread * nanos::myThread=0;
+__thread BaseThread * nanos::myThread = NULL;
 
 void BaseThread::run ()
 {
    _threadWD.tied().tieTo( *this );
    associate();
    initializeDependent();
-   /* Notify that the thread has finished all its initialization and it's ready to run */
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->threadStart ( *this ) );
-   if ( sys.getSynchronizedStart() ) 
-     sys.threadReady();
+   /* Notify that the thread has finished all its initialization and it's ready to run */
+   if ( sys.getSynchronizedStart() ) sys.threadReady();
    runDependent();
    NANOS_INSTRUMENT ( sys.getInstrumentation()->threadFinish ( *this ) );
 }
@@ -50,17 +50,14 @@ void BaseThread::addNextWD ( WD *next )
 
 WD * BaseThread::getNextWD ()
 {
-   if ( !sys.getSchedulerConf().getSchedulerEnabled() )
-      return NULL;
-
-   WD * next = _nextWDs.pop_front( this );
-
-   return next;
+   if ( !sys.getSchedulerConf().getSchedulerEnabled() ) return NULL;
+   return _nextWDs.pop_front( this );
 }
 
 void BaseThread::associate ()
 {
-   _started = true;
+   _status.has_started = true;
+
    myThread = this;
    setCurrentWD( _threadWD );
 
@@ -74,15 +71,17 @@ void BaseThread::associate ()
 
 bool BaseThread::singleGuard ()
 {
-   if ( getTeam() == NULL ) return true;
-   if ( getCurrentWD()->isImplicit() == false ) return true;
-   return getTeam()->singleGuard( getTeamData()->nextSingleGuard() );
+   ThreadTeam *team = getTeam();
+   if ( team == NULL ) return true;
+   if ( _currentWD->isImplicit() == false ) return true;
+   return team->singleGuard( _teamData->nextSingleGuard() );
 }
 
 bool BaseThread::enterSingleBarrierGuard ()
 {
-   if ( getTeam() == NULL ) return true;
-   return getTeam()->enterSingleBarrierGuard( getTeamData()->nextSingleBarrierGuard() );
+   ThreadTeam *team = getTeam();
+   if ( team == NULL ) return true;
+   return team->enterSingleBarrierGuard( _teamData->nextSingleBarrierGuard() );
 }
 
 void BaseThread::releaseSingleBarrierGuard ()
@@ -92,7 +91,7 @@ void BaseThread::releaseSingleBarrierGuard ()
 
 void BaseThread::waitSingleBarrierGuard ()
 {
-   getTeam()->waitSingleBarrierGuard( getTeamData()->currentSingleGuard() );
+   getTeam()->waitSingleBarrierGuard( _teamData->currentSingleGuard() );
 }
 
 /*
@@ -104,9 +103,5 @@ void BaseThread::waitSingleBarrierGuard ()
  * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myThread access
  * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
  */
-BaseThread * nanos::getMyThreadSafe()
-{
-   return myThread;
-}
-
+BaseThread * nanos::getMyThreadSafe() { return myThread; }
 

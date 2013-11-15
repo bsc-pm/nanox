@@ -184,7 +184,9 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
-      if ( thread->isTaggedToSleep() && !behaviour::exiting() ) thread->wait();
+      //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
+      // descriptor in its stack frame
+      if ( thread->isSleeping() && !behaviour::exiting() ) thread->wait();
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -252,7 +254,7 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
          /* If DLB, return resources if needed */
-	dlb_returnCpusIfNeeded();
+           dlb_returnCpusIfNeeded();
 /*         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
             DLB_ReturnClaimedCpus();*/
 
@@ -405,7 +407,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                /* If DLB, return resources if needed */
-		dlb_returnCpusIfNeeded();
+               dlb_returnCpusIfNeeded();
 /*               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
                   DLB_ReturnClaimedCpus();*/
 
@@ -553,7 +555,8 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
-   if ( schedule && !getMyThreadSafe()->isTaggedToSleep() ) {
+   //! \note getting more work to do (only if not going to sleep)
+   if ( schedule && !getMyThreadSafe()->isSleeping() ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {

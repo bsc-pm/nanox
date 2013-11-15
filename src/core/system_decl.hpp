@@ -464,8 +464,22 @@ namespace nanos
          /*!
           * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
           */
-         BaseThread * getAssignedWorker ( void );
+         BaseThread * getAssignedWorker ( ThreadTeam *team );
 
+         /*!
+          * \brief Returns, if any, the worker thread is inactive
+          */
+         BaseThread * getInactiveWorker ( void );
+  
+         /*!
+          * \brief Returns a new team of threads 
+          * \param[in] nthreads Number of threads in the team.
+          * \param[in] constraints This parameter is not used.
+          * \param[in] reuse Reuse current thread as part of the team.
+          * \param[in] parallel Identifies the type of team, parallel code or single executor.
+          */
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
+         
          /*!
           * \brief Returns a new created Team with the specified parameters
           * \param[in] nthreads The team size
@@ -476,7 +490,7 @@ namespace nanos
           * \param[in] starringCurrent Is this a star thread?
           * \param[in] starringOthers Are the others star threads?
           */
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
+         ThreadTeam * createTeam_FIXME ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
                                    bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
 
          BaseThread * getWorker( unsigned int n );

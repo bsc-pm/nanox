@@ -28,7 +28,7 @@ using namespace nanos;
 
 inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data,
                                 Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
-                              : _idCounter(0), _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
+                              : /*FIXME:xteruel _idCounter(0),*/_finalSize(0),  _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
@@ -85,8 +85,9 @@ inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool crea
    unsigned id;
    {
       LockBlock Lock( _lock );
-      id = _idCounter++;
+      for ( id = 0; id < _idList.size(); id++) if ( _idList[id] == false ) break;
       _threads[id] = thread;
+      _idList[id] = true;
    }
    if ( star ) _starSize++;
    if ( creator ) {
@@ -99,18 +100,22 @@ inline void ThreadTeam::removeThread ( unsigned id )
 {
    LockBlock Lock( _lock );
    _threads.erase( id );
+   _idList[id] = false;
 }
 
 inline BaseThread * ThreadTeam::popThread ( )
 {
    BaseThread * thread;
    {
+      // \todo It will be better to use _threads/_idList[] idiom
       LockBlock Lock( _lock );
       ThreadTeamList::iterator last = _threads.end();
+      ThreadTeamIdList::iterator lastId = _idList.end();
       --last;
+      --lastId;
       thread = last->second;
+      lastId->second = false;
       _threads.erase( last );
-      _idCounter--;
    }
    return thread;
 }
@@ -234,5 +239,9 @@ inline nanos_reduction_t *ThreadTeam::getReduction ( void* s )
 
    return NULL;
 }
+
+inline size_t ThreadTeam::getFinalSize ( void ) const { return _finalSize.value();}
+
+inline void ThreadTeam::setFinalSize ( size_t s ) { _finalSize = Atomic<size_t>(s);}
 
 #endif

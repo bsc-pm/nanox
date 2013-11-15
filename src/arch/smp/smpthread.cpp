@@ -45,7 +45,10 @@ void * smp_bootthread ( void *arg )
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
+
+   self->BaseThread::finish();
    pthread_exit ( 0 );
+
    // We should never get here!
    return NULL;
 }
@@ -78,6 +81,12 @@ void SMPThread::start ()
       fatal( "couldn't create pthread condition wait" );
 }
 
+void SMPThread::finish ()
+{
+   if ( pthread_cond_destroy( &_condWait ) < 0 )
+      fatal( "couldn't destroy pthread condition wait" );
+}
+
 void SMPThread::runDependent ()
 {
    WD &work = getThreadWD();
@@ -90,11 +99,8 @@ void SMPThread::runDependent ()
 
 void SMPThread::join ()
 {
-   if ( pthread_cond_destroy( &_condWait ) < 0 )
-      fatal( "couldn't destroy pthread condition wait" );
-
-   pthread_join( _pth,NULL );
-   joined();
+   if ( pthread_join( _pth, NULL ) ) fatal("Thread cannot be joined");
+   joined(); 
 }
 
 void SMPThread::bind( void )
@@ -126,9 +132,10 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
+   lock();
    pthread_mutex_lock( &_mutexWait );
 
-   if ( isTaggedToSleep() ) {
+   if ( isSleeping() ) {
       ThreadTeam *team = getTeam();
 
       if ( hasNextWD() ) {
@@ -138,12 +145,17 @@ void SMPThread::wait()
       }
       fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
 
-      if ( team != NULL ) {
-         team->removeThread( getTeamId() );
-         leaveTeam();
-      }
+      if ( team != NULL ) leaveTeam();
+
+      BaseThread::wait();
+
+      unlock();
       pthread_cond_wait( &_condWait, &_mutexWait );
-   }
+
+      //! \note Then we call base thread wakeup, which just mark thread as active
+      BaseThread::wakeup();
+      BaseThread::follow();
+   } else { unlock(); }
 
    pthread_mutex_unlock( &_mutexWait );
 
@@ -152,22 +164,29 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
-void SMPThread::signal()
-{
-   pthread_cond_signal( &_condWait );
-}
-
+//FIXME:xteruel to remove, just calling basethread method
 void SMPThread::sleep()
 {
-   pthread_mutex_lock( &_mutexWait );
    BaseThread::sleep();
-   pthread_mutex_unlock( &_mutexWait );
 }
 
 void SMPThread::wakeup()
 {
+   //! \note This function has to be in free race condition environment or externally
+   // protected, when called, with the thread common lock: lock() & unlock() functions.
+
+   // \note If thread is not marked as going to sleep, just ignore wakeup
+   if ( ! isSleeping() ) return;
+
    pthread_mutex_lock( &_mutexWait );
-   BaseThread::wakeup();
+   if ( isWaiting() ) {
+      pthread_cond_signal( &_condWait );
+   } else {
+      //! \note if (having the lock) thread is not waiting, mark as do not sleep
+      // we have take the lock before thread gets actually sleeped, so we will
+      // avoid any blocking
+      BaseThread::wakeup();
+   }
    pthread_mutex_unlock( &_mutexWait );
 }
 

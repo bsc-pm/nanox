@@ -106,37 +106,42 @@ namespace nanos
    class BaseThread
    {
       friend class Scheduler;
+      private:
+         typedef struct StatusFlags_t{
+            bool is_main_thread:1;
+            bool has_started:1;
+            bool must_stop:1;
+            bool must_sleep:1;
+            bool is_paused:1;
+            bool has_team:1;
+            bool has_joined:1;
+            bool is_waiting:1;
+            StatusFlags_t() { memset( this, 0, sizeof(*this)); }
+         } StatusFlags;
+      private:
+         // Thread info/status
+         unsigned short          _id;            /**< Thread identifier */
+         unsigned short          _maxPrefetch;   /**< Maximum number of tasks that the thread can be running simultaneously */
+         volatile StatusFlags    _status;        /**< BaseThread status flags */
+         // Relationships:
+         ProcessingElement      *_pe;            /**< Threads are binded to a PE for its life-time */
+         // Thread synchro:
+         Lock                    _mlock;         /**< Thread Lock */
+         // Current/following tasks: 
+         WD                     &_threadWD;      /**< Thread implicit WorkDescriptor */
+         WD                     *_currentWD;     /**< Current WorkDescriptor the thread is executing */
+         WDDeque                 _nextWDs;       /**< Queue with all the tasks that the thread is being run simultaneously */
+         // Thread's Team info:
+         TeamData               *_teamData;      /**< Current team data, thread is registered and also it has entered to the team */
+         TeamData               *_nextTeamData;  /**< Next team data, thread is already registered in a new team but has not enter yet */
+         nanos_ws_desc_t         _wsDescriptor;  /**< Local worksharing descriptor */
+         // Name and description:
+         std::string             _name;          /**< Thread name */
+         std::string             _description;   /**< Thread description */
+         // Allocator:
+         Allocator               _allocator;     /**< Per thread allocator */
 
       private:
-         Lock                    _mlock;
-
-         // Thread info
-         int                     _id;
-         std::string             _name;
-         std::string             _description;
-
-         ProcessingElement *     _pe;         /**< Threads are binded to a PE for its life-time */
-         WD &                    _threadWD;
-
-         unsigned int            _maxPrefetch;  /**< Maximum number of tasks that the thread can be running simultaneously */
-         WDDeque                 _nextWDs;      /**< Queue with all the tasks that the thread is being run simultaneously */
-
-         // Thread status
-         bool                    _started;
-         volatile bool           _mustStop;
-         volatile bool           _mustSleep;    /**< Flag that triggers the wait mechanism of the thread */
-         volatile bool           _paused;
-         WD *                    _currentWD;
-
-         // Team info
-         bool                    _hasTeam;
-         TeamData *              _teamData;
-         TeamData *              _nextTeamData; /**< Next team data, thread is already registered in a new team but has not enter yet */
-
-         nanos_ws_desc_t         _wsDescriptor; /**< Local worksharing descriptor */
-
-         Allocator               _allocator;
-
          virtual void initializeDependent () = 0;
          virtual void runDependent () = 0;
 
@@ -148,17 +153,11 @@ namespace nanos
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
       protected:
-
-         /*!
-          *  Must be called by children classes after the join operation
+         /*! \brief Must be called by children classes after the join operation (protected)
           */ 
-         void joined ()
-         {
-            _started = false;
-         }
-
+         void joined ( void ); 
       private:
-        /*! \brief BaseThread default constructor
+        /*! \brief BaseThread default constructor (private)
          */
          BaseThread ();
         /*! \brief BaseThread copy constructor (private)
@@ -170,16 +169,15 @@ namespace nanos
       public:
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator=0 );
-
+         BaseThread ( WD &wd, ProcessingElement *creator = NULL );
         /*! \brief BaseThread destructor
          */
          virtual ~BaseThread()
          {
-            ensure0(!_hasTeam,"Destroying thread inside a team!");
-            ensure0((!_started || _id == 0),"Trying to destroy running thread");
+            finish();
+            ensure0( ( !_status.has_team ), "Destroying thread inside a team!" );
+            ensure0( ( _status.has_joined || _status.is_main_thread ), "Trying to destroy running thread" );
          }
-
 
          // atomic access
          void lock ();
@@ -187,6 +185,7 @@ namespace nanos
          void unlock ();
 
          virtual void start () = 0;
+         virtual void finish () { if ( _status.has_team ) leaveTeam(); };
          void run();
          void stop();
          virtual void sleep();
@@ -201,8 +200,8 @@ namespace nanos
          virtual void join() = 0;
          virtual void bind() {};
 
-         virtual void wait() {};
-         virtual void signal() {};
+         virtual void wait();
+         virtual void follow();
 
          // set/get methods
          void setCurrentWD ( WD &current );
@@ -217,7 +216,7 @@ namespace nanos
          bool canPrefetch () const;
          void addNextWD ( WD *next );
          WD * getNextWD ();
-         bool hasNextWD ();
+         bool hasNextWD () const;
 
          // team related methods
          void reserve();
@@ -226,12 +225,10 @@ namespace nanos
          void leaveTeam();
 
          ThreadTeam * getTeam() const;
-
          TeamData * getTeamData() const;
-
          TeamData * getNextTeamData() const;
 
-         void setNextTeamData( TeamData *td);
+         void setNextTeamData( TeamData *td );
 
         /*! \brief Returns the address of the local worksharing descriptor
          */
@@ -248,7 +245,7 @@ namespace nanos
 
          bool isRunning () const;
 
-         bool isTaggedToSleep () const;
+         bool isSleeping () const;
          
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;
@@ -259,7 +256,7 @@ namespace nanos
 
          int getId() const;
 
-         int getCpuId();
+         int getCpuId() const;
 
          bool singleGuard();
          bool enterSingleBarrierGuard ();
@@ -289,6 +286,16 @@ namespace nanos
          /*! \brief Get BaseThread description
           */
          const std::string &getDescription ( void );
+
+         /*! \brief Get Status: Main Thread
+          */
+         bool isMainThread ( void ) const;
+         /*! \brief Get Status: Is waiting
+          */
+         bool isWaiting () const; 
+         /*! \brief Set Status: Main Thread
+          */
+         void setMainThread ( bool v = true );
    };
 
    extern __thread BaseThread *myThread;

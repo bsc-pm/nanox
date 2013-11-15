@@ -108,6 +108,7 @@ BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
    
    BaseThread &thread = createThread( worker );
 
+   thread.setMainThread();
    thread.associate();
 
    _threads.push_back( &thread );
@@ -119,20 +120,24 @@ BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
    return thread;
 }
 
-void ProcessingElement::stopAll ()
+void ProcessingElement::stopAllThreads ()
 {
    ThreadList::iterator it;
    BaseThread *thread;
 
+   //! \note signaling all threads to stop them
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;
-      if ( thread->getId() == 0) continue; /* Protection for master thread */
+      if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
       thread->wakeup();
       thread->stop();
-      thread->signal();
+   }
+
+   //! \note joining threads
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      thread = *it;
+      if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
       thread->join();
-      if ( thread->hasTeam() )
-         thread->leaveTeam();
    }
 }
 
@@ -153,7 +158,7 @@ BaseThread* ProcessingElement::getFirstRunningThread()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->hasTeam() && !(*it)->isTaggedToSleep() )
+      if ( (*it)->hasTeam() && !(*it)->isSleeping() )
          return (*it);
    }
    return NULL;
@@ -163,7 +168,7 @@ BaseThread* ProcessingElement::getFirstStoppedThread()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() || (*it)->isTaggedToSleep() )
+      if ( !(*it)->hasTeam() || (*it)->isSleeping() )
          return (*it);
    }
    return NULL;

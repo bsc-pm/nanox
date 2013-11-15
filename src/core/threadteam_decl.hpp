@@ -55,9 +55,12 @@ namespace nanos
       private:
          typedef std::list<nanos_reduction_t*>     ReductionList;  /**< List of Reduction op's (Bursts) */
          typedef std::map<unsigned, BaseThread *>  ThreadTeamList; /**< List of team members */
+         typedef std::map<unsigned, bool>          ThreadTeamIdList; /**< List of team members */
 
          ThreadTeamList               _threads;          /**< Threads that make up the team */
-         unsigned                     _idCounter;        /**< Identifier for the next thread that enters the team */
+         ThreadTeamIdList             _idList;           /**< List of id usage (reusing old id's) */
+         //FIXME:xteruel unsigned                     _idCounter;        /**< Identifier for the next thread that enters the team */
+         Atomic<size_t>               _finalSize;
          Atomic<size_t>               _starSize;
          int                          _idleThreads;
          int                          _numTasks;
@@ -198,6 +201,13 @@ namespace nanos
         /*! \brief Compute reduction
          */
          void computeVectorReductions ( void );
+
+        /*! \brief Get final size 
+         */
+         size_t getFinalSize ( void ) const;
+        /*! \brief Set final size 
+         */
+         void setFinalSize ( size_t s );
    };
 
 }

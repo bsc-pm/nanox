@@ -80,7 +80,7 @@ namespace nanos
          BaseThread & associateThisThread ( bool untieMain=true );
 
          BaseThread & startWorker ( );
-         void stopAll();
+         void stopAllThreads();
 
          /* capabilitiy query functions */
          virtual bool supportsUserLevelThreads() const = 0;
