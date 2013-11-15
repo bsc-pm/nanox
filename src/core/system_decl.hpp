@@ -599,8 +599,10 @@ namespace nanos
          size_t registerArchitecture( ArchPlugin * plugin );
 
 #ifdef GPU_DEV
+         char * getOmpssUsesCuda();
+         char * getOmpssUsesCublas();
+
          PinnedAllocator& getPinnedAllocatorCUDA();
-         char* getOmpssUsesCuda();
 #endif
 
          void threadReady ();

@@ -413,7 +413,11 @@ inline size_t System::registerArchitecture( ArchPlugin * plugin )
 //TODO: remove this from system, should be inside gpuconfig.cpp, but weak attributes don't seem to be working inside gpu device
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not rename it)
 extern __attribute__((weak)) char ompss_uses_cuda;
-inline char*  System::getOmpssUsesCuda(){ return &ompss_uses_cuda; }
+extern __attribute__((weak)) char gpu_cublas_init;
+
+inline char *  System::getOmpssUsesCuda() { return &ompss_uses_cuda; }
+inline char *  System::getOmpssUsesCublas() { return &gpu_cublas_init; }
+
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 
