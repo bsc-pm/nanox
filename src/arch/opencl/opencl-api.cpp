@@ -79,7 +79,17 @@ NANOS_API_DEF(void *, nanos_malloc_opencl, ( size_t size ))
    return nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate(size);
 }
 
+NANOS_API_DEF(intptr_t, nanos_malloc_openclf, ( int size ))
+{
+   return (intptr_t)nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate((size_t)size);
+}
+
 NANOS_API_DEF( void, nanos_free_opencl, ( void * address ) )
 {
    nanos::ext::OpenCLProcessor::getSharedMemAllocator().free(address);
+}
+
+NANOS_API_DEF(void, nanos_free_openclf, ( intptr_t address ))
+{
+   nanos::ext::OpenCLProcessor::getSharedMemAllocator().free((void*)address);
 }

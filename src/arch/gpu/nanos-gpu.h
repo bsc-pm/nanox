@@ -34,11 +34,7 @@
 
 /*! \page cuda_main CUDA Documentation
  *
- * The programmer needs to call cublasSetStream() function just before any call to the CUBLAS library.
- * If the function is not called CUBLAS library is not set to the appropriate stream and this makes
- * Nanos++ to incorrectly detect the end of the task: Nanox synchronizes with its execution stream,
- * but the CUBLAS call is sent to the default stream (NULL stream), so calling cudaStreamSynchronize()
- * returns immediately.
+ * TBD
  */
 
 #ifdef __cplusplus
