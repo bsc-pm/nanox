@@ -192,10 +192,10 @@ namespace nanos {
             do {
                thid = ( thid + 1 ) % size;
 
-               BaseThread &victim = thread->getTeam()->getThread(thid);
+               BaseThread *victim = &thread->getTeam()->getThread(thid);
 
-               if ( victim.getTeam() != NULL ) {
-                 ThreadData &tdata = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
+               if ( victim && victim->getTeam() != NULL ) {
+                 ThreadData &tdata = ( ThreadData & ) *victim->getTeamData()->getScheduleData();
                  wd = tdata._readyQueue->pop_back ( thread );
                }
 

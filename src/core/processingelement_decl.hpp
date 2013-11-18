@@ -101,12 +101,21 @@ namespace nanos
          /*!
           * \brief Returns the first thread of the PE that has team and is not tagged to sleep
           */
-         virtual BaseThread* getFirstRunningThread();
+         virtual BaseThread* getFirstRunningThread_FIXME();
 
          /*!
           * \brief Returns the first thread of the PE that has no team or is tagged to sleep
           */
-         virtual BaseThread* getFirstStoppedThread();
+         virtual BaseThread* getFirstStoppedThread_FIXME();
+
+         /*!
+          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
+          */
+         virtual BaseThread* getUnassignedThread();
+         /*!
+          * \brief Returns the first thread of the PE that is not tagged to sleep
+          */
+         virtual BaseThread* getActiveThread();
    };
 
    typedef class ProcessingElement PE;

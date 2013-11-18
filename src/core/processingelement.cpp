@@ -154,7 +154,7 @@ void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nan
    memcpy( dst, actualTag, size );
 }
 
-BaseThread* ProcessingElement::getFirstRunningThread()
+BaseThread* ProcessingElement::getFirstRunningThread_FIXME()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
@@ -164,12 +164,40 @@ BaseThread* ProcessingElement::getFirstRunningThread()
    return NULL;
 }
 
-BaseThread* ProcessingElement::getFirstStoppedThread()
+BaseThread* ProcessingElement::getFirstStoppedThread_FIXME()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() || (*it)->isSleeping() )
+      if ( !(*it)->hasTeam() && (*it)->isSleeping() )
          return (*it);
+   }
+   return NULL;
+}
+
+BaseThread* ProcessingElement::getActiveThread()
+{
+   ThreadList::iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      if ( !(*it)->isSleeping() )
+         return (*it);
+   }
+   return NULL;
+}
+BaseThread* ProcessingElement::getUnassignedThread()
+{
+   ThreadList::iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      if ( !(*it)->hasTeam() && (*it)->isSleeping() ) {
+         (*it)->lock();
+         if ( (*it)->hasTeam() || (*it)->isSleeping() ) {
+            (*it)->unlock();
+            continue;
+         }
+         (*it)->reserve();
+         (*it)->wakeup();
+         (*it)->unlock();
+         return (*it);
+      }
    }
    return NULL;
 }

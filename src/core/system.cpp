@@ -605,6 +605,7 @@ void System::finish ()
    myThread->getCurrentWD()->waitCompletion( true );
 
    //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
+   _workers[0]->wakeup();
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
@@ -1454,9 +1455,20 @@ void System::releaseWorker ( BaseThread * thread )
    //! \todo Destroy if too many?
    debug("Releasing thread " << thread << " from team " << thread->getTeam() );
 
+//FIXME:xteruel to remove
+#if 0
    //! \note Threads will only sleep if DLB is enabled. Sleep will also remove thread from the team.
-   if ( _enable_dlb && thread->getTeamId() != 0 ) { thread->lock(); thread->sleep(); thread->unlock();}
+   if ( _enable_dlb && thread->getTeamId() != 0 ) {
+thread->lock(); thread->sleep(); thread->unlock();
+}
    else thread->leaveTeam();
+#else
+
+   thread->lock();
+   thread->sleep();
+   thread->unlock();
+
+#endif
 }
 
 int System::getNumWorkers( DeviceData *arch )
@@ -1632,42 +1644,35 @@ inline void System::applyCpuMask()
 
    BaseThread *thread;
    ThreadTeam *team = myThread->getTeam();
+   unsigned int _activePEs = 0;
 
-   for ( unsigned pe_id = 0; pe_id < _pes.size() || _numPEs < (size_t)CPU_COUNT(&_cpu_active_set); pe_id++ ) {
+   for ( unsigned pe_id = 0; pe_id < _pes.size() || _activePEs < (size_t)CPU_COUNT(&_cpu_active_set); pe_id++ ) {
 
       // Create PE & Worker if it does not exist
       if ( pe_id == _pes.size() ) {
          createWorker( pe_id );
+         _numThreads++;
+         _numPEs++;
       }
 
-      bool pe_dirty = false;
       int pe_binding = getBindingId( pe_id );
       if ( CPU_ISSET( pe_binding, &_cpu_active_set) ) {
-
+         _activePEs++;
          // This PE should be running
-         while ( (thread = _pes[pe_id]->getFirstStoppedThread()) != NULL ) {
-            thread->lock(); // FIXME: actually needed?
+         while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
+            thread->lock(); //FIXME:xteruel not needed?
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-            thread->unlock();
-            _numThreads++;
-            pe_dirty = true;
+            thread->unlock(); //FIXME:xteruel not needed?
          }
-         if ( pe_dirty ) _numPEs++;
-
       } else {
-
          // This PE should not
-         while ( (thread = _pes[pe_id]->getFirstRunningThread()) != NULL ) {
+         while ( (thread = _pes[pe_id]->getActiveThread()) != NULL ) {
             thread->lock();
             thread->sleep();
             thread->unlock();
-            _numThreads--;
-            pe_dirty = true;
          }
-         if ( pe_dirty ) _numPEs--;
       }
    }
-   ensure( _numPEs ==  (size_t)CPU_COUNT(&_cpu_active_set), "applyCpuMask fatal error" );
 }
 
 void System::getCpuMask ( cpu_set_t *mask ) const
@@ -1710,7 +1715,7 @@ inline void System::processCpuMask( void )
       }
    }
    else {
-      verbose0( "PID[" << getpid() << "]. Num threads: " << CPU_COUNT( &_cpu_active_set ) );
+      verbose0( "PID[" << getpid() << "]. Changing number of threads: " << (int) myThread->getTeam()->getFinalSize() << " to " << (int) CPU_COUNT( &_cpu_active_set ) );
       if ( _pmInterface->isMalleable() ) {
          sys.updateActiveWorkers( CPU_COUNT( &_cpu_active_set ) );
       }
