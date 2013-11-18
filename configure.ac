@@ -61,20 +61,20 @@ AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line
 : ${FCFLAGS=""}
 
 # Allocator support
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  AS_HELP_STRING([--enable-allocator], [Enables Allocator module]),
   [
-    allocator_disabled=yes
+    allocator_enabledd=yes
     AC_MSG_RESULT([yes])
   ],
   [
-    allocator_disabled=no
+    allocator_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$allocator_disabled = xyes; then
+if test x$allocator_enabled = xno; then
 	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
 	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
 fi
