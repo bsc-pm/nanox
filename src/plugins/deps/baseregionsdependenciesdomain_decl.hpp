@@ -45,9 +45,11 @@ namespace nanos
           *  \param depObj target DependableObject
           *  \param[in,out] statusContainer container with the statuses of the addresses/regions
           *  \param callback Function to call if an immediate predecessor is found.
+          *  \param accessType Current data access type (in, out, inout, concurrent,...)
           */
          template<typename CONTAINER_T>
-         inline void dependOnLastWriter( DependableObject &depObj, CONTAINER_T &statusContainer, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnLastWriter( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target,
+                                         SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Makes a DependableObject depend on the the readers of a set of regions.
           *  \tparam CONTAINER_T type of the TrackableObject* container
@@ -55,9 +57,11 @@ namespace nanos
           *  \param[in] statusContainer container with the statuses of the addresses/regions
           *  \param target accessed base address/region
           *  \param callback Function to call if an immediate predecessor is found.
+          *  \param accessType Current data access type (in, out, inout, concurrent,...)
           */
          template<typename CONTAINER_T>
-         inline void dependOnReaders( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnReaders( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target,
+                                      SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Adds a commutative access of a DependableObject to the domains dependency system.
           *  \param target accessed base address/region

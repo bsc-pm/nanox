@@ -34,7 +34,6 @@ GPUDevice::GPUDevice ( const char *n ) : Device ( n )
 
 GPUDevice::~GPUDevice() {}
 
-
 //void GPUDevice::free( void *address, ProcessingElement *pe )
 //{
 //   // Check there are no pending copies to execute before we free the memory (and if there are, execute them)

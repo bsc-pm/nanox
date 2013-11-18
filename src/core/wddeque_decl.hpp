@@ -185,7 +185,7 @@ namespace nanos
           */
          WDLFQueue()
          {
-            _head = _tail = new WDNode(NULL,NULL);
+            _head = _tail = NEW WDNode(NULL,NULL);
          }
          /*! \brief WDFifo destructor
           */
@@ -261,7 +261,7 @@ namespace nanos
        typedef std::list<WorkDescriptor *> BaseContainer;
    }
 
-   template<typename T = unsigned>
+   template<typename T = int>
    class WDPriorityQueue : public WDPool
    {
       public:

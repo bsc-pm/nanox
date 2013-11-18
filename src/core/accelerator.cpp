@@ -32,36 +32,10 @@ using namespace nanos;
 Lock Accelerator::_transferLock;
 #endif
 
-Accelerator::Accelerator ( int newId, const Device *arch, const Device *subArch ) : ProcessingElement( newId, arch, subArch, sys.getMemorySpaceId() ) {}
-
-#if 0
-bool Accelerator::dataCanBlockUs( WorkDescriptor &work ) 
-{
-   bool result = false;
-   CopyData *copies = work.getCopies();
-   for ( unsigned int i = 0; i < work.getNumCopies() && !result; i++ ) {
-      CopyData & cd = copies[i];
-      if ( !cd.isPrivate() )
-      {
-	      uint64_t tag = cd.getAddress();
-	      result = this->checkBlockingCacheAccessDependent( *(work.getParent()->getDirectory(true)), tag, cd.getSize(), cd.isInput(), cd.isOutput() ); 
-      }
-   }
-   return result;
-}
-#endif
+Accelerator::Accelerator ( int newId, const Device *arch, int uid, const Device *subArch ) : ProcessingElement( newId, arch, uid, subArch, sys.getMemorySpaceId() ) {}
 
 void Accelerator::waitInputs( WorkDescriptor &work )
 {
-   //CopyData *copies = work.getCopies();
-   //for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-   //   CopyData & cd = copies[i];
-   //   uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
-   //   if ( cd.isInput() ) {
-   //        this->waitInputDependent( tag );
-   //   }
-   //}
-
    this->waitInputsDependent( work );
 }
 
@@ -74,25 +48,3 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
    _transferLock.release();
 #endif
 }
-
-//void* Accelerator::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
-//{
-//   uint64_t actualTag = (uint64_t) ( sharing == NANOS_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
-//   return getAddressDependent( actualTag );
-//}
-
-#if 0
-void* Accelerator::newGetAddress( CopyData const &cd )
-{
-   //uint64_t actualTag = (uint64_t) ( sharing == NANOS_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
-   return newGetAddressDependent( cd );
-}
-#endif
-
-#if 0
-void Accelerator::copyTo( WorkDescriptor &wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
-{
-   uint64_t actualTag = (uint64_t) ( sharing == NANOS_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
-   copyToDependent( dst, actualTag, size );
-}
-#endif

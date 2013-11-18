@@ -1,3 +1,17 @@
+devinclude_HEADERS = \
+    $(top_srcdir)/src/arch/opencl/openclconfig.hpp \
+    $(top_srcdir)/src/arch/opencl/opencldd.hpp \
+    $(top_srcdir)/src/arch/opencl/opencldevice_decl.hpp \
+    $(top_srcdir)/src/arch/opencl/opencldevice.hpp \
+    $(top_srcdir)/src/arch/opencl/openclprocessor_decl.hpp \
+    $(top_srcdir)/src/arch/opencl/openclprocessor.hpp \
+    $(top_srcdir)/src/arch/opencl/openclcache.hpp \
+    $(top_srcdir)/src/arch/opencl/openclthread_decl.hpp \
+    $(top_srcdir)/src/arch/opencl/openclthread.hpp \
+    $(top_srcdir)/src/arch/opencl/openclutils.hpp \
+    $(top_srcdir)/src/arch/opencl/sharedmemallocator.hpp \
+	$(END) 
+
 opencl_api_sources = \
 	$(top_srcdir)/src/arch/opencl/nanos-opencl.h \
 	$(top_srcdir)/src/arch/opencl/opencl-api.cpp \
@@ -9,6 +23,7 @@ opencl_sources = \
     $(top_srcdir)/src/arch/opencl/opencldd.cpp \
     $(top_srcdir)/src/arch/opencl/opencldevice_decl.hpp \
     $(top_srcdir)/src/arch/opencl/opencldevice.hpp \
+    $(top_srcdir)/src/arch/opencl/openclprocessor_fwd.hpp \
     $(top_srcdir)/src/arch/opencl/openclprocessor_decl.hpp \
     $(top_srcdir)/src/arch/opencl/openclprocessor.hpp \
     $(top_srcdir)/src/arch/opencl/openclprocessor.cpp \
@@ -18,6 +33,8 @@ opencl_sources = \
     $(top_srcdir)/src/arch/opencl/openclthread.hpp \
     $(top_srcdir)/src/arch/opencl/openclthread.cpp \
     $(top_srcdir)/src/arch/opencl/openclutils.hpp \
+    $(top_srcdir)/src/arch/opencl/sharedmemallocator.cpp \
+    $(top_srcdir)/src/arch/opencl/sharedmemallocator.hpp \
     $(END)
 
 pe_opencl_sources = \

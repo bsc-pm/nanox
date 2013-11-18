@@ -134,14 +134,38 @@ class GPUPlugin : public ArchPlugin
          }
       }
 
-      virtual PE* createPE( unsigned id )
+      virtual PE* createPE( unsigned id, unsigned uid )
       {
+//<<<<<<< HEAD
          //jbueno: disabled verbose( "Calling getBinding for id " << id << ", result: " << getBinding( id ) );
          //jbueno: disabled PE* pe = NEW GPUProcessor( getBinding( id ) , id );
          //jbueno: disabled pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
          //jbueno: disabled return pe;
          return NULL;
+//=======
+//         verbose( "Calling getBinding for id " << id << ", result: " << getBinding( id ) );
+//         PE* pe = NEW GPUProcessor( getBinding( id ) , id, uid );
+//         pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
+//         return pe;
+//>>>>>>> master
       }
+
+//      virtual void boot() {
+//   int gpuC;
+//   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
+//      SeparateMemoryAddressSpace *gpuMemory = sys.createNewSeparateMemoryAddressSpace( GPU, false );
+//      gpuMemory->setNodeNumber( 0 );
+//      ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
+//      gpuMemory->setSpecificData( gpuMemSpace );
+//      
+//      nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( gpuC, *gpuMemSpace );
+//      _pes.push_back( gpuPE );
+//      BaseThread *gpuThd = &gpuPE->startWorker();
+//      _workers.push_back( gpuThd );
+//      _masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
+//   }
+//         
+//      }
 };
 
 }

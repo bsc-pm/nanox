@@ -28,7 +28,16 @@ namespace nanos
 {
 
   /*! \class DataAccess
+   * 
    *  \brief Contains information about dependency data access necessary to add a \a DependableObject to the Dependencies system
+   *
+   *  The DataAccess class encapsulates the necessary information to identify and classify dependencies.
+   *
+   *  - address: Reference to the address used to identify a dependency.
+   *  - input: Determines if the storage pointed by address is read by the user of the dependency.
+   *  - output: Determines if the storage pointed by address is written by the user of the dependency.
+   *  - canRename: Currently unused. Intended to allow renaming or not for the dependency.
+   *  - size: Currently unused. Size of the storage pointed by address. Intended to use when renaming is allowed.
    */
    class DataAccess : public nanos_data_access_internal_t
    {

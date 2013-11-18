@@ -32,7 +32,6 @@ namespace nanos
    {
       private:
         memory_space_id_t _addressSpaceId;
-        RegionCache             _newCache;
 
         /*! \brief CachedAccelerator default constructor (private)
          */
@@ -46,15 +45,14 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator( int newId, const Device *arch, const Device *subArch = NULL,
-            Device *cacheArch = NULL, std::size_t cacheSize = 0, enum RegionCache::CacheOptions flags = RegionCache::ALLOC_WIDE, memory_space_id_t addressSpace = (memory_space_id_t) -1 );
+         CachedAccelerator( int newId, const Device *arch, int uniqueId, const Device *subArch = NULL,
+            memory_space_id_t addressSpace = (memory_space_id_t) -1 );
 
         /*! \brief CachedAccelerator destructor
          */
          virtual ~CachedAccelerator();
 
          void waitInputsDependent( WorkDescriptor &wd );
-         virtual Device const *getCacheDeviceType() const;
    };
 
 };

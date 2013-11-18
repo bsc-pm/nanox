@@ -62,7 +62,7 @@ namespace ext
 
       public:
          // constructors
-         SMPProcessor( int id );
+         SMPProcessor( int id, int uid );
 
          virtual ~SMPProcessor() {}
 

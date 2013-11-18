@@ -59,7 +59,7 @@ namespace nanos
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
-         static void finishWork( WD *oldwd, WD * wd, bool schedule = false );
+         static void finishWork( WD * wd, bool schedule = false );
 
          static void workerLoop ( void );
          static void workerClusterLoop ( void );
@@ -119,7 +119,7 @@ namespace nanos
    {
          friend class WDDeque;
          friend class WDLFQueue;
-         friend class WDPriorityQueue<unsigned>;
+         friend class WDPriorityQueue<int>;
          friend class WDPriorityQueue<double>;
          friend class Scheduler;
          friend class System;

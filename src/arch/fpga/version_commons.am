@@ -1,3 +1,5 @@
+devinclude_HEADERS = \
+	$(END) 
 
 fpga_sources = \
 	$(END)

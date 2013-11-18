@@ -73,3 +73,23 @@ NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim,
 NANOS_API_DEF(unsigned int,nanos_get_opencl_num_devices, (void)){
     return nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
 }
+
+NANOS_API_DEF(void *, nanos_malloc_opencl, ( size_t size ))
+{
+   return nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate(size);
+}
+
+NANOS_API_DEF(intptr_t, nanos_malloc_openclf, ( int size ))
+{
+   return (intptr_t)nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate((size_t)size);
+}
+
+NANOS_API_DEF( void, nanos_free_opencl, ( void * address ) )
+{
+   nanos::ext::OpenCLProcessor::getSharedMemAllocator().free(address);
+}
+
+NANOS_API_DEF(void, nanos_free_openclf, ( intptr_t address ))
+{
+   nanos::ext::OpenCLProcessor::getSharedMemAllocator().free((void*)address);
+}

@@ -1,3 +1,10 @@
+devinclude_HEADERS = \
+	$(top_srcdir)/src/arch/smp/smpdevice.hpp \
+	$(top_srcdir)/src/arch/smp/smpdd.hpp \
+	$(top_srcdir)/src/arch/smp/smpprocessor.hpp \
+	$(top_srcdir)/src/arch/smp/smpthread.hpp \
+	$(END) 
+
 common_libadd=\
         -lpthread \
         $(END)

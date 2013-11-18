@@ -198,7 +198,7 @@ namespace nanos
  
    inline bool BaseThread::isRunning () const { return _started && !_mustStop; }
 
-   inline bool BaseThread::isEligible () const { return !_mustSleep; }
+   inline bool BaseThread::isTaggedToSleep () const { return _mustSleep; }
    
    inline bool BaseThread::isPaused () const { return _paused; }
  

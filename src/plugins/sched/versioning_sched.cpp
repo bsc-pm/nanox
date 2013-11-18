@@ -124,11 +124,11 @@ namespace ext
       sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ), (x) ); )
 
 #define NANOS_SCHED_VER_CLOSE_EVENT       NANOS_INSTRUMENT( \
-      sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ) ); )
+      sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ), 0 ); )
 
 #define NANOS_SCHED_VER_POINT_EVENT(x) NANOS_INSTRUMENT( \
 		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ), (x) ); \
-		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ) ); )
+		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "sched-versioning" ), 0 ); )
 
 
 

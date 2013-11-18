@@ -1,4 +1,73 @@
+devinclude_HEADERS = \
+	$(top_srcdir)/src/support/allocator_fwd.hpp\
+	$(top_srcdir)/src/support/config_fwd.hpp\
+	$(top_srcdir)/src/support/containeradapter_fwd.hpp \
+	$(top_srcdir)/src/support/bitcounter_fwd.hpp \
+	$(top_srcdir)/src/support/region_fwd.hpp \
+	$(top_srcdir)/src/support/regionbuilder_fwd.hpp \
+	$(top_srcdir)/src/support/regioncollection_fwd.hpp \
+	$(top_srcdir)/src/support/regionpart_fwd.hpp \
+	$(top_srcdir)/src/support/regiontree_fwd.hpp \
+	$(top_srcdir)/src/support/regiontreenode_fwd.hpp \
+	$(top_srcdir)/src/support/dlb.hpp\
+	$(top_srcdir)/src/support/new_decl.hpp\
+	$(top_srcdir)/src/support/new.cpp\
+	$(top_srcdir)/src/support/allocator_decl.hpp\
+	$(top_srcdir)/src/support/allocator.hpp\
+	$(top_srcdir)/src/support/allocator.cpp\
+	$(top_srcdir)/src/support/atomic_decl.hpp\
+	$(top_srcdir)/src/support/atomic.hpp\
+	$(top_srcdir)/src/support/lazy.hpp\
+	$(top_srcdir)/src/support/lazy_decl.hpp\
+	$(top_srcdir)/src/support/compatibility.hpp\
+	$(top_srcdir)/src/support/queue_decl.hpp\
+	$(top_srcdir)/src/support/queue.hpp\
+	$(top_srcdir)/src/support/debug.hpp\
+	$(top_srcdir)/src/support/config_decl.hpp\
+	$(top_srcdir)/src/support/config.hpp\
+	$(top_srcdir)/src/support/config.cpp \
+	$(top_srcdir)/src/support/functors_decl.hpp \
+	$(top_srcdir)/src/support/functors.hpp \
+	$(top_srcdir)/src/support/plugin_decl.hpp \
+	$(top_srcdir)/src/support/plugin.hpp \
+	$(top_srcdir)/src/support/plugin.cpp \
+	$(top_srcdir)/src/support/archplugin_decl.hpp \
+	$(top_srcdir)/src/support/archplugin.hpp \
+	$(top_srcdir)/src/support/archplugin.cpp \
+	$(top_srcdir)/src/support/xstring.hpp \
+	$(top_srcdir)/src/support/simpleallocator_decl.hpp \
+	$(top_srcdir)/src/support/simpleallocator.hpp \
+	$(top_srcdir)/src/support/simpleallocator.cpp \
+	$(top_srcdir)/src/support/list_decl.hpp \
+	$(top_srcdir)/src/support/list.hpp \
+	$(top_srcdir)/src/support/hashmap.hpp \
+	$(top_srcdir)/src/support/hashmap_decl.hpp \
+	$(top_srcdir)/src/support/copydescriptor.hpp \
+	$(top_srcdir)/src/support/copydescriptor_decl.hpp \
+	$(top_srcdir)/src/support/malign.hpp \
+	$(top_srcdir)/src/support/containeradapter_decl.hpp \
+	$(top_srcdir)/src/support/containeradapter.hpp \
+	$(top_srcdir)/src/support/containertraits.hpp \
+	$(top_srcdir)/src/support/bitcounter_decl.hpp \
+	$(top_srcdir)/src/support/bitcounter.hpp \
+	$(top_srcdir)/src/support/region_decl.hpp \
+	$(top_srcdir)/src/support/region.hpp \
+	$(top_srcdir)/src/support/region.cpp \
+	$(top_srcdir)/src/support/regionbuilder_decl.hpp \
+	$(top_srcdir)/src/support/regionbuilder.hpp \
+	$(top_srcdir)/src/support/regionbuilder.cpp \
+	$(top_srcdir)/src/support/regioncollection_decl.hpp \
+	$(top_srcdir)/src/support/regioncollection.hpp \
+	$(top_srcdir)/src/support/regionpart_decl.hpp \
+	$(top_srcdir)/src/support/regionpart.hpp \
+	$(top_srcdir)/src/support/regiontree_decl.hpp \
+	$(top_srcdir)/src/support/regiontree.hpp \
+	$(top_srcdir)/src/support/regiontreenode_decl.hpp \
+	$(top_srcdir)/src/support/regiontreenode.hpp \
+	$(END) 
+
 support_sources = \
+	$(top_srcdir)/src/support/dlb.hpp\
 	$(top_srcdir)/src/support/new_decl.hpp\
 	$(top_srcdir)/src/support/new.cpp\
 	$(top_srcdir)/src/support/allocator_fwd.hpp\

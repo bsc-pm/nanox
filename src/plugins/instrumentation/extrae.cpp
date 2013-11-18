@@ -21,32 +21,22 @@
 #include <unistd.h>
 
 #ifndef EXTRAE_VERSION
-#warning Extrae library version is not supported (use >= 2.3):
+#warning Extrae library version is not supported (use >= 2.4):
 #else
+
 #  define NANOX_EXTRAE_SUPPORTED_VERSION
+
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /************* version 2.x.x */
 #      define extrae_size_t unsigned int
 
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */ 
-#      warning Extrae library version is not supported (use >= 2.3):
+#      warning Extrae library version is not supported (use >= 2.4):
 #      undef NANOX_EXTRAE_SUPPORTED_VERSION
 #    endif /*------------------------------------------------- version 2.2.x */
 
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 3 /*********** version 2.3.x */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.3.0 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.0 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 1 /****** version 2.3.1 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.1 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 2 /****** version 2.3.2 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.2 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 3 /****** version 2.3.3 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.3 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 4 /****** version 2.3.4 */
-#      endif /*----------------------------------------------- version 2.3.4 */
+#      warning Extrae library version is not supported (use >= 2.4):
+#      undef NANOX_EXTRAE_SUPPORTED_VERSION
 #    endif /*------------------------------------------------- version 2.3.x */
 
 #  endif /*--------------------------------------------------- version 2.x.x */
@@ -65,11 +55,11 @@ extern "C" {
 
 namespace nanos {
 
-   const extrae_type_t _eventState      = 9000000;   /*<< event coding state changes */
-   const extrae_type_t _eventPtPStart   = 9000001;   /*<< event coding comm start */
-   const extrae_type_t _eventPtPEnd     = 9000002;   /*<< event coding comm end */
-   const extrae_type_t _eventSubState   = 9000004;   /*<< event coding sub-state changes */
-   const extrae_type_t _eventBase       = 9200000;   /*<< event base (used in key/value pairs) */
+   const extrae_type_t _eventState      = 9000000;   /*!< event coding state changes */
+   const extrae_type_t _eventPtPStart   = 9000001;   /*!< event coding comm start */
+   const extrae_type_t _eventPtPEnd     = 9000002;   /*!< event coding comm end */
+   const extrae_type_t _eventSubState   = 9000004;   /*!< event coding sub-state changes */
+   const extrae_type_t _eventBase       = 9200000;   /*!< event base (used in key/value pairs) */
 
 class InstrumentationExtrae: public Instrumentation 
 {
@@ -94,610 +84,23 @@ class InstrumentationExtrae: public Instrumentation
       void incrementMaxThreads( void ) {}
 #else
    private:
-      std::string                                    _listOfTraceFileNames;
-      std::string                                    _traceDirectory;        /*<< Extrae directory: EXTRAE_DIR */
-      std::string                                    _traceFinalDirectory;   /*<< Extrae final directory: EXTRAE_FINAL_DIR */
-      std::string                                    _traceParaverDirectory; /*<< Paraver output files directory */
-      std::string                                    _traceFileName_PRV;     /*<< Paraver: file.prv */
-      std::string                                    _traceFileName_PCF;     /*<< Paraver: file.pcf */
-      std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
-      std::string                                    _binFileName;           /*<< Binnary file name */
       int                                            _maxThreads;
-   public: /* must be updated by Configure */
-      static std::string                             _traceBaseName;
-      static std::string                             _postProcessScriptPath;
-      static bool                                    _keepMpits; /*<< Keeps mpits temporary files (default = no)*/
-      static bool                                    _skipMerge; /*<< Skip merge phase and keeps mpits temporary files (default = no)*/
    public:
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
       // destructor
       ~InstrumentationExtrae ( ) { }
 
-      int recursiveMkdir( const char *dir, mode_t mode)
-      {
-         int i=0, err=0;
-         char tmp[256];
-
-         while ( dir[i]!=0 && dir[i]=='/'){tmp[i] = dir[i];i++;}
-
-         while ( dir[i]!=0 ) {
-            while ( dir[i]!=0 && dir[i]!='/'){tmp[i] = dir[i];i++;}
-            tmp[i] = 0;
-            err = mkdir(tmp, mode);
-            /* do not throwing intermediate dir's creation errors */
-            /* if (err!= 0) return err; */
-            while ( dir[i]!=0 && dir[i]=='/'){tmp[i] = dir[i];i++;}
-         }
-         return err;
-      }
-
-      void mergeParaverTraceFiles ()
-      {
-         char str[255];
-         int status, options = 0;
-         pid_t pid;
-
-         // Merging trace files
-         strcpy(str, MPITRACE_BIN);
-         strcat(str, "/mpi2prv");
-
-         pid = vfork();
-         if ( pid == (pid_t) 0 ) {
-            int result = execl ( str, "mpi2prv", "-f", _listOfTraceFileNames.c_str(), "-o", _traceFileName_PRV.c_str(), "-e", _binFileName.c_str(), (char *) NULL); 
-            exit(result);
-         }
-         else {
-            if ( pid < 0 ) {
-                int errsv = errno;
-                message0("Error: Cannot execute mpi2prv due following error:");
-                switch ( errsv ){
-                   case EAGAIN:
-                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
-                      break;
-                   case ENOMEM:
-                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
-                      break;
-                   default:
-                      message0("fork() unknow error.");
-                      break;
-                }
-                message0("Keeping .mpits files. You can try to execute mpi2prv manually:");
-                message0(str << " -f " << _listOfTraceFileNames.c_str() << " -o " << _traceFileName_PRV.c_str() << " -e " << _binFileName.c_str() );
-                _keepMpits = true;
-            } else {
-               waitpid( pid, &status, options);
-               if ( status != 0 ) {
-                  message0("Error while merging trace (mpi2prv returns: " << status << ")");
-                  message0("Keeping .mpits files. You can try to execute mpi2prv manually:");
-                  message0(str << " -f " << _listOfTraceFileNames.c_str() << " -o " << _traceFileName_PRV.c_str() << " -e " << _binFileName.c_str() );
-                _keepMpits = true;
-               }
-            }
-         }
-      }
-
-      void postProcessTraceFile ()
-      {
-         char str[255];
-         int status, options = 0;
-         pid_t pid;
-
-         if ( _postProcessScriptPath == "" ) {
-            strcpy(str, PREFIX);
-            strcat(str,"/bin/extrae_post_process.sh");
-         } else {
-            strcpy(str, _postProcessScriptPath.c_str());
-            strcat(str,"/extrae_post_process.sh");
-         }
-
-         pid = vfork();
-         if ( pid == (pid_t) 0 ) {
-            int result = execlp ( "sh", "sh", str, _traceFileName_PRV.c_str(), (char *) NULL); 
-            exit(result);
-         } else {
-            if ( pid < 0 ) {
-                int errsv = errno;
-                message0("Error: Cannot execute mpi2prv due following error:");
-                switch ( errsv ){
-                   case EAGAIN:
-                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
-                      break;
-                   case ENOMEM:
-                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
-                      break;
-                   default:
-                      message0("fork() unknow error.");
-                      break;
-                }
-                message0("Keeping .mpits files. You can try to execute mpi2prv manually:");
-                message0(str << " -f " << _listOfTraceFileNames.c_str() << " -o " << _traceFileName_PRV.c_str() << " -e " << _binFileName.c_str() );
-                _keepMpits = true;
-            } else {
-               waitpid( pid, &status, options);
-            }
-         }
-
-         if ( status != 0 ) {
-            message0("Error in trace post-process. Trace generated but might be incorrect");
-         }
-      }
-      
-      void modifyParaverConfigFile()
-      {
-         // Writing paraver config 
-         std::fstream p_file;
-         p_file.open ( _traceFileName_PCF.c_str(), std::ios::out | std::ios::app);
-         if (p_file.is_open())
-         {
-            /* Event: State */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventState  << "    Thread state: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
-            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
-            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
-            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
-            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
-            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_IN << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
-            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
-            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << NANOS_DEBUG            << "     DEBUG" << std::endl;
-            p_file << 27                     << "     EXTRAE I/O" << std::endl;
-            p_file << std::endl;
-
-            /* Event: PtPStart main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPStart  << "    Point-to-point origin: " << std::endl;
-            p_file << std::endl;
-
-            /* Event: PtPEnd main event */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventPtPEnd    << "    Point-to-point destination: " << std::endl;
-            p_file << std::endl;
-
-            /* Event: Sub-state (key == state)  */
-            p_file << "EVENT_TYPE" << std::endl;
-            p_file << "9    " << _eventSubState  << "    Thread sub-state: " << std::endl;
-            p_file << "VALUES" << std::endl;
-            p_file << NANOS_NOT_CREATED      << "     NOT CREATED" << std::endl;
-            p_file << NANOS_NOT_RUNNING      << "     NOT RUNNING" << std::endl;
-            p_file << NANOS_STARTUP          << "     STARTUP" << std::endl;
-            p_file << NANOS_SHUTDOWN         << "     SHUTDOWN" << std::endl;
-            p_file << NANOS_ERROR            << "     ERROR" << std::endl;
-            p_file << NANOS_IDLE             << "     IDLE" << std::endl;
-            p_file << NANOS_RUNTIME          << "     RUNTIME" << std::endl;
-            p_file << NANOS_RUNNING          << "     RUNNING" << std::endl;
-            p_file << NANOS_SYNCHRONIZATION  << "     SYNCHRONIZATION" << std::endl;
-            p_file << NANOS_SCHEDULING       << "     SCHEDULING" << std::endl;
-            p_file << NANOS_CREATION         << "     CREATION" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_IN  << "     DATA TRANSFER TO DEVICE" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_OUT << "     DATA TRANSFER TO HOST" << std::endl;
-            p_file << NANOS_MEM_TRANSFER_DEVICE_LOCAL << "     LOCAL DATA TRANSFER IN DEVICE" << std::endl;
-            p_file << NANOS_CACHE            << "     CACHE ALLOC/FREE" << std::endl;
-            p_file << NANOS_YIELD            << "     YIELD" << std::endl;
-            p_file << NANOS_ACQUIRING_LOCK   << "     ACQUIRING LOCK" << std::endl;
-            p_file << NANOS_CONTEXT_SWITCH   << "     CONTEXT SWITCH" << std::endl;
-            p_file << 27                     << "     EXTRAE I/O" << std::endl;
-            p_file << std::endl;
-
-            /* Getting Instrumentation Dictionary */
-            InstrumentationDictionary::ConstKeyMapIterator itK;
-            InstrumentationKeyDescriptor::ConstValueMapIterator itV;
-
-            InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
-
-            /* Generating key/value events */
-            for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
-               InstrumentationKeyDescriptor *kD = itK->second;
- 
-               p_file << "EVENT_TYPE" << std::endl;
-               p_file << "9    " << _eventBase+kD->getId() << " " << kD->getDescription() << std::endl;
-               p_file << "VALUES" << std::endl;
-
-               if ( kD->getId() == 38 ) {
-                  p_file << 0 << "      No constraint" << std::endl;
-                  p_file << 1 << "      There are no copies" << std::endl;
-                  p_file << 2 << "      There are copies from master" << std::endl;
-                  p_file << 3 << "      There are copies not from master" << std::endl;
-                  p_file << 4 << "      There are copies" << std::endl;
-                  p_file << 5 << "      Init only: Copy from master (Remote WD)" << std::endl;
-                  p_file << 6 << "      Init only: Copy/Not from master (Remote WD)" << std::endl;
-                  p_file << 7 << "      Init only: Copy/Not from master (WD to be executed at master)" << std::endl;
-                  p_file << 8 << "      WD already initialized" << std::endl;
-               }
-
-               // First: Ordering list of values and descriptions 
-               std::map<unsigned long long,std::string> lov;
-               for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
-                  InstrumentationValueDescriptor *vD = itV->second;
-                  lov.insert( make_pair( vD->getId(), vD->getDescription() ));
-               }
-
-               // Second:: Generating already ordered list of values
-               std::map<unsigned long long,std::string>::iterator itLoV;
-               for ( itLoV = lov.begin(); itLoV != lov.end(); itLoV++ ) {
-                  p_file << itLoV->first << "  " << itLoV->second << std::endl;
-               }
-
-               p_file << std::endl;
-            }
-            p_file << std::endl;
-
-            /* Closing configuration file */
-            p_file.close();
-         }
-         else message0("Unable to open paraver config file");
-      }
-
-      void modifyParaverRowFile()
-      {
-         // rename ROW file to a temporary file
-         std::string line;
-         std::string _traceFileName_ROW_tmp = _traceFileName_ROW + "__tmp";
-         rename ( _traceFileName_ROW.c_str(), _traceFileName_ROW_tmp.c_str() );
-
-         // Input file: temporary file
-         std::ifstream i_file;
-         i_file.open ( _traceFileName_ROW_tmp.c_str(), std::ios::in );
-
-         // Output file: paraver config 
-         std::ofstream o_file;
-         o_file.open ( _traceFileName_ROW.c_str(), std::ios::out | std::ios::app);
-
-         if ( o_file.is_open() && i_file.is_open() ) {
-            bool cont = true;
-            bool print = true;
-            while ( cont ) {
-               cont = getline ( i_file, line );
-               if ( print == true ) {
-                  // printing was alredy enabled, so disable if...
-                  print = print && line.find("LEVEL THREAD"); // ... found LEVEL THREAD section
-                  print = print && line.find("LEVEL CPU"); // ... found LEVEL CPU section
-               } else {
-                  // printing was already disabled so enabled if...
-                  print = !line.find("LEVEL NODE"); // ... found LEVEL NODE section
-               }
-
-               if ( print ) o_file << line << std::endl;
-            }
-
-            // Adding thread info
-            unsigned int num_threads = sys.getNumWorkers();
-            o_file << "LEVEL CPU SIZE " << num_threads << std::endl;
-            for ( unsigned int i = 0; i < num_threads; i++ ) {
-               o_file << sys.getWorker(i)->getDescription() << std::endl;
-            }
-            o_file << std::endl;
-
-            o_file.close();
-            i_file.close();
-
-            remove ( _traceFileName_ROW_tmp.c_str() );
-         } else {
-            if (o_file.is_open()) o_file.close();
-            if (i_file.is_open()) i_file.close();
-            message0("Unable to open paraver config file");  
-            rename ( _traceFileName_ROW_tmp.c_str(), _traceFileName_ROW.c_str() );
-         }
-      }
-
-      void removeTemporaryFiles()
-      {
-         char *file_name    = (char *) alloca ( 255 * sizeof (char));
-         bool file_exists; int num;
-
-         if ( !_keepMpits && !_skipMerge ) {
-            /* Removig Temporary trace files */
-            char str[255];
-            std::fstream p_file;
-            p_file.open(_listOfTraceFileNames.c_str());
-
-            if (p_file.is_open())
-            {
-               while (!p_file.eof() )
-               {
-                  p_file.getline (str, 255);
-                  if ( strlen(str) > 0 )
-                  {
-                     unsigned int i;
-                     for (i = 0; i < strlen(str); i++) { if ( str[i] == ' ' ) {str[i] = 0x0; break;} }
-
-                     // jbueno: cluster workaround until we get the new extrae
-                     //std::cerr << "Removing file " << str << std::endl;
-                     //str[ strlen(str) - 12 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
-                     //str[ strlen(str) - 13 ] = '0' + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
-
-                     if ( remove(str) != 0 ) message0("nanox: Unable to delete temporary/partial trace file" << str);
-                     /* Try to remove sample file: if present */
-                     str[i-4]='s';str[i-3]='a';str[i-2]='m';str[i-1]='p';str[i]='l';str[i+1]='e';str[i+2]=0x0;
-                     remove(str);
-                  }
-               }
-               p_file.close();
-            }
-            else message0("Unable to open " << _listOfTraceFileNames << " file");
-
-            if ( remove(_listOfTraceFileNames.c_str()) != 0 ) message0("Unable to delete "<< _listOfTraceFileNames << " file");
-         
-            /* Removing EXTRAE_FINAL_DIR temporary directories and files */
-            file_exists = true; num = 0;
-            while ( file_exists ) {
-               sprintf( file_name, "%s/set-%d", _traceFinalDirectory.c_str(), num++ );
-               if ( remove( file_name ) != 0 ) file_exists = false;
-
-            } 
-
-            // Removing TRACE.sym file
-            sprintf( file_name, "%s/TRACE.sym", _traceFinalDirectory.c_str() );
-            remove( file_name );
-            // Removing directory
-            remove( _traceFinalDirectory.c_str());
-         }
-
-         /* Removing (always) EXTRAE_DIR temporary directories and files */
-         file_exists = true; num = 0;
-         while ( file_exists ) {
-            sprintf( file_name, "%s/set-%d", _traceDirectory.c_str(), num++ );
-            if ( remove( file_name ) != 0 ) file_exists = false;
-
-         }
-         // Removing TRACE.sym file
-         sprintf( file_name, "%s/TRACE.sym", _traceDirectory.c_str() );
-         remove( file_name );
-         // Removing directory
-         remove( _traceDirectory.c_str());
-
-      }
-
-      void secureCopy(const char *orig, std::string dest)
-      {
-         pid_t pid;
-         int status, options = 0;
-
-         std::cerr << "secure copy " << orig << " to " << dest << std::endl;
-
-         pid = vfork();
-         if ( pid == (pid_t) 0 ) {
-            int execret = execl ( "/usr/bin/scp", "scp", orig, dest.c_str(), (char *) NULL); 
-            if ( execret == -1 )
-            {
-               std::cerr << "Error calling /usr/bin/scp " << orig << " " << dest.c_str() << std::endl;
-               exit(-1);
-            }
-         } else {
-            if ( pid < 0 ) {
-                int errsv = errno;
-                message0("Error: Cannot execute mpi2prv due following error:");
-                switch ( errsv ){
-                   case EAGAIN:
-                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
-                      break;
-                   case ENOMEM:
-                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
-                      break;
-                   default:
-                      message0("fork() unknow error.");
-                      break;
-                }
-            } else {
-               waitpid( pid, &status, options);
-            }
-         }
-      }
-
-      void copyFilesToMaster()
-      {
-         /* Removig Temporary trace files */
-         char str[255];
-         std::fstream p_file;
-
-         for ( unsigned int j = 0; j < sys.getNetwork()->getNumNodes(); j++ )
-         {
-            if ( j == sys.getNetwork()->getNodeNum() )
-            {
-               p_file.open(_listOfTraceFileNames.c_str());
-               //size_t found = _traceFinalDirectory.find_last_of("/");
-               std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
-
-               if (p_file.is_open())
-               {
-                  while (!p_file.eof() )
-                  {
-                     p_file.getline (str, 255);
-                     if ( strlen(str) > 0 )
-                     {
-                        std::string src_path( str );
-                        std::size_t pos = src_path.size() ;
-                        for (unsigned int i = 0; i < 3; i++ ) {
-                           pos = src_path.find_last_of('/', pos - 1);
-                        }
-                        //int pos0 =  src_path.find_last_of('/');
-                        //int pos1 =  src_path.find_first_of(' ');
-                        //std::cerr << "len is " << pos1-pos0 << " pos0: " << pos0 << " total size is " << src_path.size()<< "src_path is " << src_path<< std::endl;
-                        //std::string name( src_path.substr( pos0, pos1-pos0 ) );
-
-                        for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
-                        // jbueno: cluster workaround until we get the new extrae
-                        //if ( sys.getNetwork()->getNodeNum() > 0 ) {
-                        //   str[ strlen(str) - 12 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
-                        //   str[ strlen(str) - 13 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
-                        //   str[ strlen(str) - 14 ] = '0';
-                        //   str[ strlen(str) - 15 ] = '0';
-                        //   str[ strlen(str) - 16 ] = '0';
-                        //   str[ strlen(str) - 17 ] = '0';
-                        //}
-                        //std::cerr << "NAME: " << name << std::endl;
-                        secureCopy(str, dst + ":" + src_path.substr( 0, pos + 1 ) /* + name */ );
-                     }
-                  }
-                  p_file.close();
-               }
-               else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
-
-            }
-            nanos_extrae_instrumentation_barrier();
-         }
-
-         // copy pcf file too
-         {
-            std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
-            size_t found = _traceFinalDirectory.find_last_of("/");
-            std::cerr << "Copying pcf file: " << _traceFileName_PCF << std::endl;
-            secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1));
-         }
-
-      }
-
-      void getTraceFileName ()
-      {
-         // Check if the trace file exists
-         struct stat buffer;
-         int err1, err2, err3;
-         std::string file_name;
-         _binFileName = ( OS::getArg( 0 ) );
-         size_t found = _binFileName.find_last_of("/\\");
-
-         /* Choose between executable name or user name */
-         std::string trace_base;
-         if ( _traceBaseName.compare("") != 0 ) {
-            trace_base = _traceBaseName;
-         } else {
-            trace_base = _binFileName.substr(found+1);
-         }
-
-         if ( _skipMerge) trace_base = trace_base + "-local";
-
-         int num = 1;
-         std::string trace_suffix = "_001";
-         bool file_exists = true;
-
-         while ( file_exists ) {
-            // Attempt to get the file attributes
-            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".prv";
-            err1 = stat( file_name.c_str(), &buffer );
-            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".pcf";
-            err2 = stat( file_name.c_str(), &buffer );
-            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".row";
-            err3 = stat( file_name.c_str(), &buffer );
-
-            if ( err1 == 0 || err2 == 0 || err3 == 0) {
-               // Some of the files exist
-               num++;
-               std::stringstream trace_num;
-               trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
-               trace_suffix =  trace_num.str();
-            } else {
-               std::ofstream trace_file(file_name.c_str(), std::ios::out);
-               if ( !trace_file.fail() ) file_exists = false;
-            }
-         }
-
-         /* New file names */
-         _traceFileName_PRV = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".prv" ;
-         _traceFileName_PCF = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".pcf";
-         _traceFileName_ROW = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".row";
-      }
-
       void initialize ( void )
       {
-         char *mpi_trace_on;
-         char *mpi_trace_dir;
-         char *mpi_trace_final_dir;
-         char *tmp_dir;
-         char *tmp_dir_backup;
-         char *env_tmp_dir = NEW char[255];
-         char *env_trace_dir = NEW char[255];
-         char *env_trace_final_dir = NEW char[255];
-
          /* check environment variable: EXTRAE_ON */
-         mpi_trace_on = getenv("EXTRAE_ON");
+         char *mpi_trace_on = getenv("EXTRAE_ON");
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL ) {
             mpi_trace_on = NEW char[12];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
-
-         /* check environment variable: EXTRAE_FINAL_DIR */
-         mpi_trace_final_dir = getenv("EXTRAE_FINAL_DIR");
-         /* if EXTRAE_FINAL_DIR not defined, active it */
-         if ( mpi_trace_final_dir == NULL ) {
-            mpi_trace_final_dir = NEW char[3];
-            strcpy(mpi_trace_final_dir, "./");
-         }
-
-         /* check environment variable: EXTRAE_DIR */
-         mpi_trace_dir = getenv("EXTRAE_DIR");
-         /* if EXTRAE_DIR not defined, active it */
-         if ( mpi_trace_dir == NULL ) {
-            mpi_trace_dir = NEW char[3];
-            strcpy(mpi_trace_dir, "./");
-         }
-
-         /* check environment variable: TMPDIR */
-         tmp_dir = getenv("TMPDIR");
-         /* if TMPDIR defined, save it and remove it */
-         if ( tmp_dir != NULL ) {
-            tmp_dir_backup = NEW char[strlen(tmp_dir)];
-            strcpy(tmp_dir_backup, tmp_dir);
-            sprintf(env_tmp_dir, "TMPDIR=");
-            putenv (env_tmp_dir);
-         }
-         else {
-            tmp_dir_backup = NEW char[3];
-            strcpy(tmp_dir_backup, "./");
-         }
-
-         recursiveMkdir(mpi_trace_dir, S_IRWXU);
-         recursiveMkdir(mpi_trace_final_dir, S_IRWXU);
-
-         /* Creating temporary directory and setting directory */
-         _traceDirectory = tempnam(mpi_trace_dir, "trace");
-         if ( recursiveMkdir(_traceDirectory.c_str(), S_IRWXU ) != 0 )
-            fatal0 ( "Trace directory doesn't exists or user has no permissions on this directory" ); ;
-
-         /* Creating temporary final directory and setting final directory */
-         _traceFinalDirectory = tempnam(mpi_trace_final_dir, "trace");
-         if ( recursiveMkdir(_traceFinalDirectory.c_str(), S_IRWXU) != 0 ) {
-            remove ( _traceDirectory.c_str());
-            fatal0 ( "Trace final directory doesn't exists or user has no permissions on this directory" ); ;
-         }
-
-         if ( _skipMerge ) _traceParaverDirectory = _traceFinalDirectory;
-         else   _traceParaverDirectory = mpi_trace_final_dir; 
-
-         _listOfTraceFileNames = _traceFinalDirectory + "/TRACE.mpits";
-
-         /* Restoring TMPDIR*/
-         if ( tmp_dir != NULL ) {
-            sprintf(env_tmp_dir, "TMPDIR=%s", tmp_dir_backup);
-            putenv (env_tmp_dir);
-         }
-
-         /* Setting EXTRAE_DIR environment variable */
-         sprintf(env_trace_dir, "EXTRAE_DIR=%s", _traceDirectory.c_str());
-         putenv (env_trace_dir);
-
-         /* Setting EXTRAE_FINAL_DIR environment variable */
-         sprintf(env_trace_final_dir, "EXTRAE_FINAL_DIR=%s", _traceFinalDirectory.c_str());
-         putenv (env_trace_final_dir);
 
         // Common thread information
         Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
@@ -808,11 +211,7 @@ class InstrumentationExtrae: public Instrumentation
                   strncpy(val_desc[val_id], vD->getDescription().c_str(), vD->getDescription().size()+1 );
                   val_id++;
                }
-#ifdef NANOX_EXTRAE_OLD_DEFINE_TYPE
-               Extrae_define_event_type( (extrae_type_t) type, type_desc, val_id, values, val_desc);
-#else
                Extrae_define_event_type( (extrae_type_t *) &type, type_desc, &val_id, values, val_desc);
-#endif
 
             }
          }
@@ -836,33 +235,14 @@ class InstrumentationExtrae: public Instrumentation
             values[i] = 27;
             val_desc[i++] = (char *) "EXTRAE I/O";
 
-#ifdef NANOX_EXTRAE_OLD_DEFINE_TYPE
-            Extrae_define_event_type( (extrae_type_t ) _eventState, (char *) "Thread state: ", nval, values, val_desc );
-            Extrae_define_event_type( (extrae_type_t ) _eventPtPStart, (char *) "Point-to-point origin", 0, NULL, NULL );
-            Extrae_define_event_type( (extrae_type_t ) _eventPtPEnd, (char *) "Point-to-point destination", 0, NULL, NULL );
-            Extrae_define_event_type( (extrae_type_t ) _eventSubState, (char *) "Thread sub-state", nval, values, val_desc );
-#else
             unsigned extrae_zero = 0;
             Extrae_define_event_type( (extrae_type_t *) &_eventState, (char *) "Thread state: ", &nval, values, val_desc );
             Extrae_define_event_type( (extrae_type_t *) &_eventPtPStart, (char *) "Point-to-point origin", &extrae_zero, NULL, NULL );
             Extrae_define_event_type( (extrae_type_t *) &_eventPtPEnd, (char *) "Point-to-point destination", &extrae_zero, NULL, NULL );
             Extrae_define_event_type( (extrae_type_t *) &_eventSubState, (char *) "Thread sub-state", &nval, values, val_desc );
-#endif
          }
 
          OMPItrace_fini();
-         getTraceFileName();
-         modifyParaverConfigFile();
-         modifyParaverRowFile();
-         if ( !_skipMerge ) {
-            mergeParaverTraceFiles();
-            postProcessTraceFile();
-         }
-         else
-         {
-            copyFilesToMaster();
-         }
-         removeTemporaryFiles();
       }
 
       void disable( void ) { Extrae_shutdown(); }
@@ -1018,13 +398,6 @@ class InstrumentationExtrae: public Instrumentation
 #endif
 };
 
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-std::string InstrumentationExtrae::_traceBaseName = std::string("");
-std::string InstrumentationExtrae::_postProcessScriptPath = std::string("");
-bool InstrumentationExtrae::_keepMpits = false;
-bool InstrumentationExtrae::_skipMerge = false;
-#endif
-
 namespace ext {
 
 class InstrumentationParaverPlugin : public Plugin {
@@ -1032,34 +405,7 @@ class InstrumentationParaverPlugin : public Plugin {
       InstrumentationParaverPlugin () : Plugin("Instrumentation which generates a Paraver trace.",1) {}
       ~InstrumentationParaverPlugin () {}
 
-      void config( Config &cfg )
-      {
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-         cfg.setOptionsSection( "Extrae module", "Extrae instrumentation module" );
-
-         cfg.registerConfigOption ( "extrae-file-name",
-                                       NEW Config::StringVar ( InstrumentationExtrae::_traceBaseName ),
-                                       "Defines extrae instrumentation file name" );
-         cfg.registerArgOption ( "extrae-file-name", "extrae-file-name" );
-         cfg.registerEnvOption ( "extrae-file-name", "NX_EXTRAE_FILE_NAME" );
-
-         cfg.registerConfigOption ( "extrae-post-process",
-                                       NEW Config::StringVar ( InstrumentationExtrae::_postProcessScriptPath ),
-                                       "Defines extrae post processing script location" );
-         cfg.registerArgOption ( "extrae-post-process", "extrae-post-processor-path" );
-         cfg.registerEnvOption ( "extrae-post-process", "NX_EXTRAE_POST_PROCESSOR_PATH" );
-         
-
-         cfg.registerConfigOption ( "extrae-keep-mpits", NEW Config::FlagOption( InstrumentationExtrae::_keepMpits ),
-                                       "Keeps mpits temporary files generated by extrae library" );
-         cfg.registerArgOption ( "extrae-keep-mpits", "extrae-keep-mpits" );
-
-         cfg.registerConfigOption ( "extrae-skip-merge", NEW Config::FlagOption( InstrumentationExtrae::_skipMerge ),
-                                       "Skips merge phase in trace generation (also keeps mpits temporary files)" );
-         cfg.registerArgOption ( "extrae-skip-merge", "extrae-skip-merge" );
-
-#endif
-      }
+      void config( Config &cfg ) {}
 
       void init ()
       {

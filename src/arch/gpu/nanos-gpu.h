@@ -32,25 +32,21 @@
 #include <cublas_v2.h>
 #endif
 
+/*! \page cuda_main CUDA Documentation
+ *
+ * The programmer needs to call cublasSetStream() function just before any call to the CUBLAS library.
+ * If the function is not called CUBLAS library is not set to the appropriate stream and this makes
+ * Nanos++ to incorrectly detect the end of the task: Nanox synchronizes with its execution stream,
+ * but the CUBLAS call is sent to the default stream (NULL stream), so calling cudaStreamSynchronize()
+ * returns immediately.
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void * nanos_gpu_factory( void *args );
-#define NANOS_GPU_DESC( args ) { nanos_gpu_factory, &( args ) }
-
-cudaStream_t nanos_get_kernel_execution_stream();
-
-cublasHandle_t nanos_get_cublas_handle();
-
-void * nanos_malloc_pinned_cuda ( size_t size );
-void nanos_free_pinned_cuda ( void * address );
-
-
-// Commented out by now, as it does not compile
-#if 0
-   // gpu factory
-NANOS_API_DECL(void *, nanos_gpu_factory,( void *prealloc ,void *args));
+// gpu factory
+NANOS_API_DECL(void *, nanos_gpu_factory,( void *args ));
 #define NANOS_GPU_DESC( args ) { nanos_gpu_factory, &( args ) }
 
 NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
@@ -60,7 +56,6 @@ NANOS_API_DECL(cublasHandle_t, nanos_get_cublas_handle,());
 // Pinned memory
 NANOS_API_DECL( void *, nanos_malloc_pinned_cuda, ( size_t size ) );
 NANOS_API_DECL( void, nanos_free_pinned_cuda, ( void * address ) );
-#endif
 
 #ifdef __cplusplus
 }

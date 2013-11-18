@@ -32,7 +32,7 @@ public:
    OpenCLDevice ( const char *name );
 
 public:
-   static void *allocate( size_t size, ProcessingElement *pe );
+   static void *allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  );
 
    static void *realloc( void * address,
                          size_t size,
@@ -46,13 +46,8 @@ public:
                              void* addrSrc,
                              size_t size,
                              ProcessingElement *peDst,
-                             ProcessingElement *peSrc )
-   {
-       copyOut(dstCd,addrSrc,size,peSrc);
-       copyIn(addrDst,dstCd,size,peDst);
-       return true;
-   }
-
+                             ProcessingElement *peSrc );
+   
    static bool copyIn( void *localDst,
                        CopyDescriptor &remoteSrc,
                        size_t size,

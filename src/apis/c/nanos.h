@@ -23,26 +23,119 @@
  * \brief Main Nanos++ header file.
  */
 
-/*!
- * \mainpage  Nanos++ Runtime Library
+/*! \mainpage  Nanos++ Runtime Library
  *
  * This is the main development page for documenting Nanos++ Runtime Library (Nanos++ RTL).
+ * Nanos++ is a runtime library designed to serve as runtime support in parallel environments.
+ * It is mainly used to support OmpSs (an extension to the OpenMP programming model) developed
+ * at BSC, but it also has modules to support OpenMP and Chapel.
  * <p/><br/>
- * Nanos++ is an extensible Runtime Library designed to serve as a runtime support in parallel environments.
- * It is mainly used to support OmpSs (an extension to the OpenMP programming model) developed at BSC but it also has modules to support OpenMP and Chapel.
+ * The runtime provides several services to support task parallelism using synchronizations
+ * based on data-dependencies. Data parallelism is also supported by means of services mapped
+ * on top of its task support. Task are implemented as user-level threads when possible
+ * (currently x86, x86-64, ia64, arm, ppc32 and ppc64 are supported). It also provides support
+ * for maintaining coherence across different address spaces (such as with GPUs or cluster nodes).
  * <p/><br/>
+ * The main purpose of Nanos++ is to be used in research of parallel programming environments.
+ * Our aim has been to enable easy development of different parts of the runtime so researchers
+ * have a platform that allows them to try different mechanisms. As such it is designed to be
+ * extensible by means of plugins: the scheduling policy, the throttling policy, the dependence
+ * approach, the barrier implementations, the slicers implementation, the instrumentation layer
+ * and the architectural level. This extensibility does not come for free. The runtime overheads
+ * are slightly increased, but there should be low enough for results to be meaningful except
+ * for cases of extreme-fine grain applications.
+ * <p/><br/>
+ * \section repository Working with the repository
+ *
+ * Once you have cloned the code you will need to run autoreconf to generate all the initial files.
+ * Enter the mcxx directory which has been created from git clone and run there
+ *
+ * \code
+ * $ autoreconf -f -i -v
+ * \endcode
+ *
+ * This process is somewhat fragile: some warnings will appear in several Makefile.am (due to GNU
+ * Make extensions used in Mercurium makefiles) and some m4 warnings might or might not appear
+ * depending on your precise environments (although this is now rare in Linux it might happen in
+ * some versions of Solaris). However, no errors should happen.
+ *
+ * It may happen that autoreconf does complain about some Libtool macros not recognized. It usually
+ * happens if the Libtool used is not 2.2.6 or it is not installed system-wide. In the latter case,
+ * adjust your PATH variable to use a 2.2.6 (or better) Libtool. In either case, run the following
+ * command (make sure it comes from a 2.2.6 Libtool installation directory!)
+ *
+ * \code
+ * $ libtoolize --version
+ * libtoolize (GNU libtool) 2.2.6
+ * Written by Gary V. Vaughan <gary@gnu.org>, 2003
+ * $ libtoolize -f -i
+ * \endcode
+ *
+ * and then run again:
+ *
+ * \code
+ * $ autoreconf -f -v -i
+ * \endcode
+ *
+ * This should do. There is an obscure bug with autoreconf not discovering that libtool is being used
+ * which seems only triggered in environments where the Libtool being used is not system-wide installed,
+ * so it might not be a problem in your environment.
+ */
+
+//! \defgroup capi Nanos++ C/C++ API
+
+/*! \page capi_families API Families & Versions
+ *  \ingroup capi
+ * 
+ * - nanos interface family: master
+ *   - 5004: adding data alignment parameter to slicer wd
+ *   - 5005: translate function support
+ *   - 5006: adding new parameter to nanos_wg_wait_completation service
+ *   - 5007: enable/disable instrumentation through the API
+ *   - 5008: removing slicer data parameters in create sliced wd
+ *   - 5009: Adding priority management to runtime (compiler advice)
+ *   - 5010: stopping and resuming scheduler services
+ *   - 5011: distinguish thread's roles within the team (starring/supporting threads)
+ *   - 5012: changing work descriptor creation functions and removing field dd_size @ nanos_device_t which is not needed anymore
+ *   - 5013: creating memory allocation/deallocation services
+ *   - 5014: Wd's props conmute from const to dyn properties
+ *   - 5015: Nanos Delayed start, start and finish.
+ *   - 5016: Providing runtime general information (architecture, programming model and scheduler)
+ *   - 5017: Some common instrumentation changes:
+ *     - Removing unnecessary instrument services
+ *     - Using a common event generator service nanos_instrument_events(int num_events, nanos_event_t events[]).
+ *     - Also using a new event structure.
+ *   - 5018: Added nanos_get_wd_priority service.
+ *   - 5019: Instrumenting user functions on different address spaces.
+ *   - 5020: Service to enable/disable stealing in the scheduling policy.
+ *   - 5021: Including void nanos_free0( void *p ) service.
+ *   - 5022: Adding const char* description in task creation.
+ *   - 5024: Adding is final attribute in wd's dynamic properties.
+ *   - 5025: Changed WD priority from unsigned to int.
+ * - nanos interface family: worksharing
+ *   - 1000: First implementation of work-sharing services (create and next-item)
+ * - nanos interface family: deps_api
+ *   - 1000: First implementation of dependencies plugins.
+ *   - 1001: Commutative clause support.
+ * - nanos interface family: openmp
+ *   - 1: First Nanos OpenMP interface: nanos_omp_single ( b ) service
+ *   - 2: Including nanos_omp_barrier() service
+ *   - 3: Including nanos_omp_set_implicit( uwd ) service
+ *   - 4: Including nanos_omp_get_max_threads() service
+ *   - 5: Including nanos_omp_find_worksharing( omp_sched_t kind );
+ *   - 6:
+ *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
  */
 
 #include <unistd.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 
-/*! \defgroup capi C/C++ API */
-/*! \addtogroup capi
- *  \{
- */
-
 #include "nanos_version.h"
+
+//! \addtogroup capi_types Types and Structures
+//! \ingroup capi
+//! \{
 
 // C++ types hidden as void *
 typedef void * nanos_wg_t;
@@ -71,9 +164,7 @@ typedef struct {
    void *arch;
 } nanos_constraint_t;
 
-/*!
- * \}
- */ 
+//! \}
 
 #ifdef __cplusplus
 
@@ -87,7 +178,7 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
-NANOS_API_DECL(unsigned int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(int, nanos_get_wd_priority, (nanos_wd_t wd));
 NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions
@@ -158,6 +249,7 @@ NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, voi
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
 // dependence
+NANOS_API_DECL(nanos_err_t, nanos_dependence_release_all, ( void ) );
 NANOS_API_DECL(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *addr ));
 
 // worksharing
@@ -231,6 +323,16 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 NANOS_API_DECL(nanos_err_t, nanos_get_node_num, ( unsigned int *num ));
 NANOS_API_DECL(int, nanos_get_num_nodes, ( ));
+
+#ifdef _MF03
+    typedef void*  nanos_string_t;
+#else
+    typedef const char* nanos_string_t;
+#endif
+
+NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr));
+
+NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
 
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
 

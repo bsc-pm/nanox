@@ -1,7 +1,8 @@
 # Good tutorials:
 # http://freshrpms.net/docs/fight/
 # http://rpm.org/api/4.4.2.2/conditionalbuilds.html
-# http://fedoraproject.org/wiki/How_to_create_an_RPM_package/
+# http://fedoraproject.org/wiki/How_to_create_an_RPM_package
+# http://backreference.org/2011/09/17/some-tips-on-rpm-conditional-macros/
 # Repos:
 # http://eureka.ykyuen.info/2010/01/06/opensuse-create-your-own-software-repository-1/
 # http://en.opensuse.org/SDB:Creating_YaST_installation_sources
@@ -14,6 +15,27 @@
 %define feature		nanox
 %define release		2
 %define buildroot       %{_topdir}/%{name}-%{version}-root
+# Avoid "*** ERROR: No build ID note found in XXXXXXX"
+%global debug_package   %{nil}
+
+# Override prefix if _rpm_prefix is given
+%{?_rpm_prefix: %define _prefix  %{_rpm_prefix} }
+# Override distribution flags
+%define configure ./configure --host=%{_host} --build=%{_build} \\\
+        --program-prefix=%{?_program_prefix} \\\
+        --prefix=%{_prefix} \\\
+        --exec-prefix=%{_exec_prefix} \\\
+        --bindir=%{_bindir} \\\
+        --sbindir=%{_sbindir} \\\
+        --sysconfdir=%{_sysconfdir} \\\
+        --datadir=%{_datadir} \\\
+        --includedir=%{_includedir} \\\
+        --libdir=%{_libdir} \\\
+        --libexecdir=%{_libexecdir} \\\
+        --localstatedir=%{_localstatedir} \\\
+        --sharedstatedir=%{_sharedstatedir} \\\
+        --mandir=%{_mandir} \\\
+        --infodir=%{_infodir}
 
 BuildRoot:	        %{buildroot}
 Summary: 		Nanos++
@@ -26,11 +48,11 @@ Name: 			%{feature}-no-extrae
 Version: 		%{version}
 Release: 		%{release}
 Source: 		%{feature}-%{version}.tar.gz
-Prefix: 		/usr
+Prefix: 		%{_prefix}
 Group: 			Development/Tools
 Provides:		%{feature}
 %if %_with_extrae
-BuildRequires: 		extrae
+#BuildRequires: 		extrae
 Requires: 		extrae
 Conflicts: 		%{feature}-no-extrae
 %else
@@ -70,3 +92,4 @@ make -j4
 #%{_libdir}/instrumentation-debug/*
 %{_libdir}/performance/*
 %{_includedir}/*
+%{_datarootdir}/doc/nanox/*

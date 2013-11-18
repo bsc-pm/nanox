@@ -25,6 +25,7 @@
 #include "openclconfig.hpp"
 #include "opencldd.hpp"
 #include "opencldevice_decl.hpp"
+#include "sharedmemallocator.hpp"
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
@@ -43,15 +44,23 @@ public:
 
 public:
    ~OpenCLAdapter();
+   OpenCLAdapter() : _preallocateWholeMemory(false){}
 
 public:
    void initialize(cl_device_id dev);
 
    cl_int allocBuffer( size_t size, cl_mem &buf );
+   void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
+   void freeSharedMemBuffer( void* addr );
 
    cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
+   cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
+   cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
+   cl_mem getBuffer( cl_mem parentBuf, size_t offset, size_t size );
+   void freeAddr( void* addr );
+   cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
 
    // Low-level program builder. Lifetime of prog is under caller
    // responsability.
@@ -86,74 +95,42 @@ public:
    // TODO: replace with new APIs.
    size_t getGlobalSize();
    
+   void waitForEvents();
+   
    
 
 public:
-   cl_int getDeviceType( unsigned long long &deviceType )
+   cl_int getDeviceType( cl_device_type &deviceType )
    {
       return getDeviceInfo( CL_DEVICE_TYPE,
-                            sizeof( unsigned long long ),
+                            sizeof( cl_device_type ),
                             &deviceType );
    }
 
-   cl_int
-   getMaxComputeUnits( unsigned &maxComputeUnits )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_COMPUTE_UNITS,
-                            sizeof( unsigned ),
-                            &maxComputeUnits );
-   }
-
-   cl_int getMaxWorkItemDimensions( unsigned &maxWorkItemDimensions )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS,
-                            sizeof( unsigned ),
-                            &maxWorkItemDimensions );
-   }
-
-   cl_int getMaxWorkGroupSize( size_t &maxWorkGroupSize )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_WORK_GROUP_SIZE,
-                            sizeof( size_t ),
-                            &maxWorkGroupSize );
-   }
-
-   cl_int getMaxMemoryAllocSize( size_t &maxMemoryAllocSize )
-   {
-      return getDeviceInfo( CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-                            sizeof( size_t ),
-                            &maxMemoryAllocSize );
-   }
-
-   cl_int getLocalMemoryMapping( unsigned &localMemoryMapping )
-   {
-      return getDeviceInfo( CL_DEVICE_LOCAL_MEM_TYPE,
-                            sizeof( unsigned ),
-                            &localMemoryMapping );
-   }
-
-   cl_int getLocalMemorySize( size_t &localMemorySize )
-   {
-      return getDeviceInfo( CL_DEVICE_LOCAL_MEM_SIZE,
-                            sizeof( size_t ),
-                            &localMemorySize );
-   }
-
-   cl_int
-   getSupportErrorCorrection( unsigned long long &supportErrorCorrection )
-   {
-      return getDeviceInfo( CL_DEVICE_ERROR_CORRECTION_SUPPORT,
-                            sizeof( unsigned long long ),
-                            &supportErrorCorrection );
-   }
 
    cl_int getSizeTypeMax( unsigned long long &sizeTypeMax );
 
    cl_int getPreferredWorkGroupSizeMultiple( size_t &preferredWorkGroupSizeMultiple );
+   
+   bool getPreallocatesWholeMemory(){
+       return _preallocateWholeMemory;
+   }
+   
+   void setPreallocatedWholeMemory(bool val){
+      // _preallocateWholeMemory=val;
+   }
 
    ProgramCache& getProgCache() {
         return _progCache;
     }
+   
+   cl_context& getContext() {
+        return _ctx;
+    }
+   
+   cl_command_queue& getCommandQueue(){
+       return _queue;
+   }
 
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
@@ -174,14 +151,17 @@ private:
    cl_device_id _dev;
    cl_context _ctx;
    cl_command_queue _queue;
+   std::map<void *, cl_mem> _bufCache;
+   const bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
+   std::vector<cl_event> _pendingEvents;
 };
 
 class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
 {
-public:
-   OpenCLProcessor( int id , int devId);
+public:        
+   OpenCLProcessor( int id , int devId, int uid );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.
@@ -193,14 +173,13 @@ public:
    WD &getWorkerWD() const;
 
    WD &getMasterWD() const;
-
+   
    BaseThread &createThread( WorkDescriptor &wd );
 
    bool supportsUserLevelThreads() const { return false; }
     
    OpenCLAdapter::ProgramCache& getProgCache() {
-       OpenCLAdapter::ProgramCache& pc=_openclAdapter.getProgCache();
-        return pc;
+       return _openclAdapter.getProgCache();
    }
    
    // Get program from cache, increasing reference-counting.
@@ -222,13 +201,17 @@ public:
    
    void printStats();
    
+   void waitForEvents() {       
+       _openclAdapter.waitForEvents();
+   }
+   
    void cleanUp();
      
-   void *allocate( size_t size )
+   void *allocate( size_t size, uint64_t tag )
    {
-      return _cache.allocate( size );
+      return _cache.allocate( size, tag );
    }
-
+   
    void *realloc( void *address, size_t size, size_t ceSize )
    {
       return _cache.reallocate( address, size, ceSize );
@@ -248,39 +231,48 @@ public:
    {
       return _cache.copyOut( remoteDst, localSrc, size );
    }
-
-   bool asyncCopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size )
+   
+   cl_mem getBuffer( void *localSrc, size_t size )
    {
-      return _dma.copyIn( localDst, remoteSrc, size );
-   }
-
-   bool asyncCopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size )
+      return _cache.getBuffer( localSrc, size );
+   } 
+   
+   bool copyInBuffer( void *localSrc, cl_mem remoteBuffer, size_t size )
    {
-      return _dma.copyOut( remoteDst, localSrc, size );
+      return _cache.copyInBuffer( localSrc, remoteBuffer, size );
    }
+   
+    cl_context& getContext() {    
+        return _openclAdapter.getContext();
+    }
 
-   void syncTransfer( uint64_t hostAddress )
-   {
-      _dma.syncTransfer( hostAddress );
-   }
+    cl_command_queue& getCommandQueue() {    
+        return _openclAdapter.getCommandQueue();
+    }
 
-   void execTransfers()
-   {
-      _dma.execTransfers();
-   }
-
+    cl_int getOpenCLDeviceType( cl_device_type &deviceType ){
+       return _openclAdapter.getDeviceType(deviceType);
+    }
+   
+    static SharedMemAllocator& getSharedMemAllocator() {
+       return _shmemAllocator;
+    }
+   
+    void* allocateSharedMemory( size_t size );   
+   
+    void freeSharedMemory( void* addr );
 
 
 private:
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
-   OpenCLDMA _dma;
    int _devId;
+   static SharedMemAllocator _shmemAllocator;
+    
 
 };
 
-}
- // End namespace ext.
+} // End namespace ext.
 } // End namespace nanos.
 
 #endif // _NANOS_OpenCL_PROCESSOR_DECL

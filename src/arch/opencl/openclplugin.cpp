@@ -40,6 +40,8 @@ class OpenCLPlugin : public ArchPlugin
 private:
     
    static std::string _devTy;
+  // All found devices.
+  static std::map<cl_device_id, cl_context> _devices;
 
    friend class OpenCLConfig;
    
@@ -63,7 +65,7 @@ public:
 
    void init()
    {
-      OpenCLConfig::apply(_devTy);
+      OpenCLConfig::apply(_devTy,_devices);
    }
    
    /*virtual unsigned getPEsInNode( unsigned node ) const
@@ -106,15 +108,17 @@ public:
       }
    }
 
-   virtual PE* createPE( unsigned id )
+   virtual PE* createPE( unsigned id, unsigned uid )
    {
-      PE * pe = NEW OpenCLProcessor( getBinding( id ) , id );
+      PE * pe = NEW OpenCLProcessor( getBinding( id ) , id, uid );
       pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
       return pe;
    }
 };
 
 std::string OpenCLPlugin::_devTy = "ALL";
+// All found devices.
+std::map<cl_device_id, cl_context> OpenCLPlugin::_devices;
 } // End namespace ext.
 } // End namespace nanos.
 

@@ -24,14 +24,14 @@ if PERFORMANCE_VERSION
 
 bin_PROGRAMS = nanox-pfm
 
-nanox_pfm_CPPFLAGS = $(common_includes) $(common_performance_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(@USED_VERSION@dir)\"
+nanox_pfm_CPPFLAGS = $(common_includes) $(common_perfo_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
 
 nanox_pfm_SOURCES=  $(nanox_sources)
 
 nanox_pfm_LDADD=\
 	-ldl \
-	../../core/@USED_VERSION@/libnanox.la \
-	@CUDA_RPATH@
+	../../core/performance/libnanox.la \
+	@CUDA_RPATH@ \
 	$(END)
 
 endif

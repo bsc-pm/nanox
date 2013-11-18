@@ -32,10 +32,7 @@
 #include "smpdd.hpp"
 #include "wddeque.hpp"
 #endif
-extern "C" {
-   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
-   void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
-}
+#include "dlb.hpp"
 
 using namespace nanos;
 
@@ -85,7 +82,7 @@ void Scheduler::submit ( WD &wd )
       return;
    }
 
-   // TODO (#581): move this to the upper if
+   //! \todo (#581): move this to the upper if
    if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
       // Pause this thread
       mythread->pause();
@@ -202,7 +199,7 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
-      if ( !thread->isEligible() && !behaviour::exiting() ) thread->wait();
+      if ( thread->isTaggedToSleep() && !behaviour::exiting() ) thread->wait();
 
       myThread->getNextWDQueue().iterate<TestInputs>();
       WD * next = myThread->getNextWD();
@@ -272,7 +269,9 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
          /* If DLB, return resources if needed */
-         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus ) DLB_ReturnClaimedCpus();
+	dlb_returnCpusIfNeeded();
+/*         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+            DLB_ReturnClaimedCpus();*/
 
          NANOS_INSTRUMENT ( total_spins+= nspins; )
          sleeps--;
@@ -424,7 +423,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                /* If DLB, return resources if needed */
-               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus ) DLB_ReturnClaimedCpus();
+		dlb_returnCpusIfNeeded();
+/*               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+                  DLB_ReturnClaimedCpus();*/
 
                condition->unlock();
                if ( sleeps < 0 ) {
@@ -515,23 +516,22 @@ void Scheduler::wakeUp ( WD *wd )
 
 WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 {
-   // If the scheduler is running
    if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
-      // The thread is not paused, mark it as so
+      //! If the scheduler is running
+      //! The thread is not paused, mark it as so...
       thread->unpause();
       
+      //! ... and do the prefetch
       WD *prefetchedWD = thread->getTeam()->getSchedulePolicy().atPrefetch( thread, wd );
       if ( prefetchedWD ) {
          prefetchedWD->_mcontrol.preInit();
       }
       return prefetchedWD;
-   }
-   else {
-      // Pause this thread
+   } else {
+      //! Otherwise, pause this thread
       thread->pause();
    }
-   // Otherwise, do nothing
-   // FIXME (#581): Consequences?
+   //! \bug FIXME (#581): Otherwise, do nothing: consequences?
    return NULL;
 }
 
@@ -774,7 +774,7 @@ void Scheduler::preOutlineWorkWithThread ( BaseThread * thread, WD *wd )
    if (!wd->started())
       wd->init();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
    //NANOS_INSTRUMENT( inst2.close(); );
 }
@@ -810,7 +810,7 @@ void Scheduler::preOutlineWork ( WD *wd )
    if (!wd->started())
       wd->init();
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
    //NANOS_INSTRUMENT( inst2.close(); );
 }
@@ -840,7 +840,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
          wd->init();
       }
 
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key ); )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
       //NANOS_INSTRUMENT( inst2.close(); );
    }
    return result;
@@ -889,15 +889,12 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
    //NANOS_INSTRUMENT( inst2.close(); );
 }
 
-void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
+void Scheduler::finishWork( WD * wd, bool schedule )
 {
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
-
-   if ( schedule && getMyThreadSafe()->isEligible() ) {
+   if ( schedule && !getMyThreadSafe()->isTaggedToSleep() ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
@@ -909,15 +906,18 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
    wd->clear();
 
    /* If DLB, perform the adjustment of resources */
-   if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
-      DLB_ReturnClaimedCpus();
+   if ( sys.getPMInterface().isMalleable() )
+	dlb_updateAvailableCpus();
+
+/*   if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
+      if ( sys.getPMInterface().isMalleable() )
+         DLB_ReturnClaimedCpus();
+
       int needed_resources = sys.getSchedulerStats()._readyTasks.value() - sys.getNumThreads();
       if ( needed_resources > 0 )
          DLB_UpdateResources_max( needed_resources );
-   }
+   }*/
 
-   debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-          " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
 }
 
 bool Scheduler::inlineWork ( WD *wd, bool schedule )
@@ -963,8 +963,12 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->finish();
 
-   if ( done )
-      finishWork( oldwd, wd, schedule );
+   if ( done ) {
+      finishWork( wd, schedule );
+      /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
+      NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
+   }
+
 
    /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, wd, true) );
@@ -1082,7 +1086,7 @@ struct ExitBehaviour
 
 void Scheduler::exitTo ( WD *to )
  {
-//   FIXME: stack reusing was wrongly implementd and it's disabled (see #374)
+//! \bug FIXME: stack reusing was wrongly implementd and it's disabled (see #374)
 //    WD *current = myThread->getCurrentWD();
 
     if (!to->started()) {
@@ -1116,7 +1120,7 @@ void Scheduler::exit ( void )
 
    oldwd->finish();
 
-   finishWork( next, oldwd, ( next == NULL ) );
+   finishWork( oldwd, ( next == NULL ) );
 
    /* update next WorkDescriptor (if any) */
    next = ( next == NULL ) ? thread->getNextWD() : next;

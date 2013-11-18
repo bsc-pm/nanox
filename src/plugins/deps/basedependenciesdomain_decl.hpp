@@ -21,6 +21,8 @@
 #define _NANOS_BASE_DEPENDENCIES_DOMAIN_DECL
 
 #include "dependenciesdomain_decl.hpp"
+#include "instrumentation_decl.hpp"
+#include "system.hpp"
 
 
 namespace nanos
@@ -40,6 +42,7 @@ namespace nanos
           *  \param[in,out] status status of the base address
           */
          CommutationDO *createCommutationDO(BaseDependency const &target, AccessType const &accessType, TrackableObject &status);
+         NANOS_INSTRUMENT ( nanos_event_key_t   _insKeyDeps[3]; ) /**< Instrumentation key dependences */
 
       protected:         
          /*! \brief Finalizes a reduction if active.
@@ -53,7 +56,8 @@ namespace nanos
           *  \param[in,out] status status of the address/region
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void dependOnLastWriter( DependableObject &depObj, TrackableObject const &status, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnLastWriter( DependableObject &depObj, TrackableObject const &status, BaseDependency const &target,
+                                          SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Makes a DependableObject depend on the the readers of a set of regions.
           *  \param depObj target DependableObject
@@ -61,7 +65,8 @@ namespace nanos
           *  \param target accessed base address/region
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void dependOnReaders( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnReaders( DependableObject &depObj, TrackableObject &status, BaseDependency const &target,
+                                      SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Sets the last writer DependableObject of a region.
           *  \param depObj target DependableObject
@@ -76,7 +81,7 @@ namespace nanos
           *  \param target accessed base address/region
           *  \param callback Function to call if an immediate predecessor is found.
           */
-         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback );
+         inline void dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
          /*! \brief Makes a DependableObject a reader of a region/address.
           *  \param depObj target DependableObject
@@ -136,11 +141,19 @@ namespace nanos
          inline void submitDependableObjectInputDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback );
          
       public:
-         BaseDependenciesDomain ( ) :  DependenciesDomain(), _lastDepObjId ( 0 ) {}
+         BaseDependenciesDomain ( ) :  DependenciesDomain(), _lastDepObjId ( 0 ) {
+            NANOS_INSTRUMENT ( InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+            NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
+         }
          
-         BaseDependenciesDomain ( const BaseDependenciesDomain &depDomain )
-            : DependenciesDomain( depDomain ) ,
-            _lastDepObjId ( depDomain._lastDepObjId ) {}
+         BaseDependenciesDomain ( const BaseDependenciesDomain &depDomain ) : DependenciesDomain( depDomain ), _lastDepObjId ( depDomain._lastDepObjId ) {
+            NANOS_INSTRUMENT ( InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+            NANOS_INSTRUMENT ( _insKeyDeps[0] = ID->getEventKey("dependence"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[1] = ID->getEventKey("dep-direction"); )
+            NANOS_INSTRUMENT ( _insKeyDeps[2] = ID->getEventKey("dep-address"); )
+         }
    };
 
 };

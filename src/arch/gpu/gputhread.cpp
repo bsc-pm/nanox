@@ -228,9 +228,9 @@ void GPUThread::raiseWDClosingEvents ()
       NANOS_INSTRUMENT(
             Instrumentation::Event e[2];
             sys.getInstrumentation()->closeBurstEvent( &e[0],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ), 0 );
             sys.getInstrumentation()->closeBurstEvent( &e[1],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ), 0 );
 
             sys.getInstrumentation()->addEventList( 2, e );
       );

@@ -50,12 +50,12 @@ namespace nanos
 
         /* \breif allocate size bytes in the device
          */
-         static void * allocate( size_t size, ProcessingElement *pe )
+         static void * allocate( size_t size, ProcessingElement *pe, uint64_t tag = 0 )
          {
 #ifdef CLUSTER_DEV
             char * addr = (char *)0xdeadbeef;
 #else
-            char *addr = new char[size];
+            char *addr = NEW char[size];
 #endif
             return addr; 
          }

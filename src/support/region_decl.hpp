@@ -16,13 +16,9 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-
-
 #ifndef _NANOS_REGION_DECL
 #define _NANOS_REGION_DECL
 
-
-//#include <cstddef>
 #include <stddef.h>
 #include <unistd.h>
 #include <ostream>
@@ -30,11 +26,8 @@
 #include "region_fwd.hpp"
 #include "basedependency_decl.hpp"
 
-
 namespace nanos
 {
-   
-   
    //! \brief Region stream formatter
    //! \param o the output stream
    //! \param region the region
@@ -61,7 +54,6 @@ namespace nanos
       
       friend class RegionBuilder;
       
-      
    public:
       //! Type of a bit
       enum bit_value_t {
@@ -69,7 +61,6 @@ namespace nanos
          BIT_1 = 1,
          X = 2
       };
-      
       
       //! \brief Region default constructor
       Region():
@@ -728,6 +719,9 @@ namespace nanos
       
       friend class RegionPart;
       friend std::ostream& operator<< (std::ostream& o, Region const &region);
+
+      //! \brief Returns dependency base address
+      virtual void * getAddress () const;
    };
 
 

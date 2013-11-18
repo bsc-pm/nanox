@@ -1240,7 +1240,7 @@ SEARCH_INCLUDES        = YES
 # contain include files that are not input files but should be processed by
 # the preprocessor.
 
-INCLUDE_PATH           = @top_srcdir@/src/core/
+INCLUDE_PATH           = @top_srcdir@/src/core/ @MPITRACE_INC@
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the
@@ -1258,7 +1258,8 @@ INCLUDE_FILE_PATTERNS  =
 # instead of the = operator.
 
 PREDEFINED             = "NANOS_API_DEF(x, y, z) = x y z" \
-                         "NANOS_API_DECL(x, y, z) = x y z"
+                         "NANOS_API_DECL(x, y, z) = x y z" \
+                         "NANOS_INSTRUMENTATION_ENABLED"
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then
 # this tag can be used to specify a list of macro names that should be expanded.

@@ -1,3 +1,16 @@
+devinclude_HEADERS = \
+	$(top_srcdir)/src/arch/gpu/gpuconfig.hpp \
+	$(top_srcdir)/src/arch/gpu/gpudevice_decl.hpp \
+	$(top_srcdir)/src/arch/gpu/gpudevice.hpp \
+	$(top_srcdir)/src/arch/gpu/gpudd.hpp \
+	$(top_srcdir)/src/arch/gpu/gpumemorytransfer_decl.hpp \
+	$(top_srcdir)/src/arch/gpu/gpumemorytransfer.hpp \
+	$(top_srcdir)/src/arch/gpu/gpuprocessor_decl.hpp \
+	$(top_srcdir)/src/arch/gpu/gpuprocessor.hpp \
+	$(top_srcdir)/src/arch/gpu/gputhread_decl.hpp \
+	$(top_srcdir)/src/arch/gpu/gputhread.hpp \
+	$(top_srcdir)/src/arch/gpu/gpuutils.hpp \
+	$(END) 
 
 gpu_api_sources = \
 	$(top_srcdir)/src/arch/gpu/nanos-gpu.h \

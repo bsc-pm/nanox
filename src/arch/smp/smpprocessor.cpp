@@ -32,9 +32,9 @@ System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 #ifdef SMP_NUMA
-SMPProcessor::SMPProcessor( int id ) : CachedAccelerator<SMPDevice>( id, &SMP ) {}
+SMPProcessor::SMPProcessor( int id, int uid ) : CachedAccelerator<SMPDevice>( id, &SMP, uid, 0 ) {}
 #else
-SMPProcessor::SMPProcessor( int id ) : PE( id, &SMP, NULL, sys.getRootMemorySpaceId() ) {}
+SMPProcessor::SMPProcessor( int id, int uid ) : PE( id, &SMP, uid, NULL, sys.getRootMemorySpaceId() ) {}
 #endif
 
 void SMPProcessor::prepareConfig ( Config &config )
@@ -80,8 +80,11 @@ void SMPProcessor::prepareConfig ( Config &config )
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
 {
-   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
-   WD *wd = NEW WD( dd );
+   SMPDD  *dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   DeviceData **dd_ptr = (DeviceData **) NEW ( SMPDD * )(dd);
+
+   WD *wd = NEW WD( 1, dd_ptr );
+
    return *wd;
 }
 
@@ -98,7 +101,11 @@ WorkDescriptor & SMPProcessor::getMultiWorkerWD () const
 
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
-   WD * wd = NEW WD( NEW SMPDD() );
+   SMPDD  *dd = NEW SMPDD();
+   DeviceData **dd_ptr = (DeviceData **) NEW ( SMPDD * )(dd);
+
+   WD * wd = NEW WD( 1, dd_ptr );
+
    return *wd;
 }
 

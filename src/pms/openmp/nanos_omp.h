@@ -22,14 +22,15 @@
 
 #include "nanos.h"
 #include "nanos_reduction.h"
+#include "nanos_atomic.h"
 
 typedef void * nanos_cpu_set_t;
 
 typedef enum nanos_omp_sched_t {
-   omp_sched_static = 1,
-   omp_sched_dynamic = 2,
-   omp_sched_guided = 3,
-   omp_sched_auto = 4
+   nanos_omp_sched_static = 1,
+   nanos_omp_sched_dynamic = 2,
+   nanos_omp_sched_guided = 3,
+   nanos_omp_sched_auto = 4
 } nanos_omp_sched_t;
 
 #ifdef __cplusplus

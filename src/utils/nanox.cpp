@@ -53,33 +53,30 @@ void utilInit ( void * )
       perror( "scandir" );
    else {
       while ( n-- ) {
-         std::string name( namelist[n]->d_name );
+         std::string name( namelist[n]->d_name );    
+         void    *handle;
+         int     *iptr;
+         if ( name.compare(0,9,"libnanox-") == 0 && name.compare( name.size()-3,3,".so" ) == 0 ) {
+            //Check if the library has the symbol NanosXPlugin
+            handle = dlopen( (std::string(PLUGIN_DIR) + std::string("/") + name).c_str(), RTLD_LOCAL | RTLD_LAZY);
+            iptr = (int *)dlsym(handle, "NanosXPlugin");
+            if (iptr!=NULL){
+                name.erase( name.size()-3 );
+                name.erase( 0, std::string("libnanox-").size() );
 
-         if (   ( name.compare( 0,15,"libnanox-sched-" ) != 0 ) 
-              &&( name.compare( 0,17,"libnanox-barrier-"  ) != 0 )
-              &&( name.compare( 0,14,"libnanox-deps-"  ) != 0 )
-              &&( name.compare( 0,16,"libnanox-slicer-"  ) != 0 )
-              &&( name.compare( 0,18,"libnanox-throttle-"  ) != 0 )
-              &&( name.compare( 0,21,"libnanox-worksharing-"  ) != 0 )
-              &&( name.compare( 0,25,"libnanox-instrumentation-"  ) != 0 )
-            ) continue;
+                Plugin *plugin = sys.loadAndGetPlugin( name );
 
-         if ( name.compare( name.size()-3,3,".so" ) == 0 ) {
-            name.erase( name.size()-3 );
-            name.erase( 0, std::string("libnanox-").size() );
+                if ( plugin != NULL ) {
+                   size_t separator = name.find( "-" );
+                   std::string module = name.substr( 0, separator );
+                   // The option name of the plugin (i.e. sched-priority -> priority)
+                   std::string pluginName = name.substr( separator + 1 );
 
-            Plugin *plugin = sys.loadAndGetPlugin( name );
+                   sys.setValidPlugin( module, pluginName );
 
-            if ( plugin != NULL ) {
-               size_t separator = name.find( "-" );
-               std::string module = name.substr( 0, separator );
-               // The option name of the plugin (i.e. sched-priority -> priority)
-               std::string pluginName = name.substr( separator + 1 );
-               
-               sys.setValidPlugin( module, pluginName );
-               
-               pluginNames->push_back( PluginInfo( name, plugin ) );
-               
+                   pluginNames->push_back( PluginInfo( name, plugin ) );
+
+                }
             }
          }
 

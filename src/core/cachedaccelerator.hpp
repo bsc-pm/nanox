@@ -27,10 +27,9 @@
 
 using namespace nanos;
 
-inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch,
-   const Device *subArch, Device *cacheArch, std::size_t cacheSize, enum RegionCache::CacheOptions flags, memory_space_id_t addressSpace ) :
-   Accelerator( newId, arch, subArch ), _addressSpaceId( addressSpace ) , _newCache( (memory_space_id_t ) -1, *cacheArch, flags )  {
-   //sys.getCaches()[this->getMemorySpaceId()] = &_newCache;
+inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch, int uid,
+   const Device *subArch, memory_space_id_t addressSpace ) :
+   Accelerator( newId, arch, uid, subArch ), _addressSpaceId( addressSpace ) {
 }
 
 inline CachedAccelerator::~CachedAccelerator() {
@@ -39,11 +38,6 @@ inline CachedAccelerator::~CachedAccelerator() {
 inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
 {
    while ( !wd._mcontrol.isDataReady( wd ) ) { myThread->idle(); } 
-   //while ( !wd._ccontrol.dataIsReady() ) { myThread->idle(); } 
-}
-
-inline Device const *CachedAccelerator::getCacheDeviceType( ) const {
-   return &_newCache.getDevice();
 }
 
 #endif

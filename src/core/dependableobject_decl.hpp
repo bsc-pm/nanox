@@ -45,6 +45,29 @@ namespace nanos
 
    /*! \class DependableObject
     *  \brief Abstract entity submitted to the Dependency system
+    *
+    *  Form the dependency graph and are representants of the entities that have dependencies. The
+    *  DependableObject class provides four virtual methods which are used by the Domain when some
+    *  action needs to be taken. The dependenciesSatisfied() method, for instance is invoked when
+    *  an object's dependencies are satisfied and the specific implementation of the
+    *  DependableObject will make the action desired for this event.
+    *
+    *  - init(): Is invoked by the DependenciesDomain when the DependableObeject is submitted.
+    *    Initializes the DependableObject internal members if necessary.
+    *  - wait(): Is invoked by DependenciesDomain when the 'DependableObject has been submitted.
+    *  - dependenciesSatisfied(): Invoked by DependenciesDomain when the object's dependencies
+    *    are satisfied.
+    *  - waits(): Used by the DependenciesDomain to know whether the wait() method waits until
+    *    dependencies are
+    *  - satisfied. If so, the only action during DependableObject submission is adding it as
+    *    successor for the tasks updating its dependencies.
+    *
+    *  There is two kinds of DependableObject currently which are associated to WorkDescriptors.
+    *  DOSubmit represents an entity (task) which is submitted to the dependency system and its
+    *  action takes place when its dependencies are satisfied. When a DOWait is submitted to a
+    *  domain, the thread executing submitDependableObject() will add the DOWait to the dependency
+    *  system and wait until its dependencies are satisfied before returning control to the caller.
+    *
     */
    class DependableObject
    {

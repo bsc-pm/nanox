@@ -37,6 +37,8 @@ namespace nanos
       private:
          typedef std::vector<BaseThread *>    ThreadList;
          int                                  _id;
+         //! Unique ID
+         int                                  _uid;
          const Device *                       _device;
          const Device *                       _subDevice;
          const Device *                       _deviceNo;
@@ -62,7 +64,7 @@ namespace nanos
       public:
          /*! \brief ProcessingElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch, const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
+         ProcessingElement ( int newId, const Device *arch, int uniqueId,  const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _uid( uniqueId ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
 
          /*! \brief ProcessingElement destructor
           */
@@ -70,6 +72,9 @@ namespace nanos
 
          /* get/put methods */
          int getId() const;
+         
+         //! \brief Returns a unique ID that no other PE will have.
+         int getUId() const;
          
          //! \brief Returns the socket this thread is running on.
          int getNUMANode() const;
@@ -121,12 +126,19 @@ namespace nanos
          virtual bool isGPU() const = 0;
          BaseThread *getFirstThread() const { return _threads[0]; }
 
+         /*!
+          * \brief Returns the first thread of the PE that has team and is not tagged to sleep
+          */
          virtual BaseThread* getFirstRunningThread();
+
+         /*!
+          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
+          */
          virtual BaseThread* getFirstStoppedThread();
    };
 
    typedef class ProcessingElement PE;
-   typedef PE * ( *peFactory ) ( int pid );
+   typedef PE * ( *peFactory ) ( int pid, int uid );
 };
 
 #endif

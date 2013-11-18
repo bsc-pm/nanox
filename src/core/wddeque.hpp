@@ -289,7 +289,7 @@ inline void WDLFQueue::push_back( WorkDescriptor *wd )
 {
    volatile WDNode *tail;
    volatile WDNode *next;
-   WDNode *node = new WDNode( wd, NULL);
+   WDNode *node = NEW WDNode( wd, NULL);
 
    while (1) {
       tail = _tail;

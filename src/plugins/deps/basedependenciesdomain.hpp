@@ -23,7 +23,6 @@
 #include "basedependenciesdomain_decl.hpp"
 #include "debug.hpp"
 #include "schedule_decl.hpp"
-#include "system.hpp"
 
 
 namespace nanos {
@@ -51,29 +50,42 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
    }
 }
 
-inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj, TrackableObject const &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnLastWriter ( DependableObject &depObj, TrackableObject const &status,
+                                                         BaseDependency const &target, SchedulePolicySuccessorFunctor* callback, AccessType const &accessType )
 {
    DependableObject *lastWriter = status.getLastWriter();
    if ( lastWriter != NULL ) {
       SyncLockBlock lck( lastWriter->getLock() );
       if ( status.getLastWriter() == lastWriter ) {
-         if ( lastWriter->addSuccessor( depObj ) ) {
-            // new instrument event: dependence predecessorReader -> depObj
-            NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-            NANOS_INSTRUMENT ( static nanos_event_key_t dependence_key  = ID->getEventKey("dependence"); )
-            NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) lastWriter->getRelatedObject(); )
-            NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
-            NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
-            NANOS_INSTRUMENT ( static nanos_event_key_t dep_direction_key  = ID->getEventKey("dep-direction"); )
-            NANOS_INSTRUMENT ( nanos_event_key_t Keys[2]; )
-            NANOS_INSTRUMENT ( Keys[0] = dependence_key; )
-            NANOS_INSTRUMENT ( Keys[1] = dep_direction_key; )
-            NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
-            NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 0); )
-            NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(2, Keys, Values); )
-            NANOS_INSTRUMENT ( } )
 
+         // new instrument event: dependence lastWriter -> depObj
+         NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) lastWriter->getRelatedObject(); )
+         NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
+         NANOS_INSTRUMENT ( int id_sender = wd_sender ? wd_sender->getId() : lastWriter->getId(); )
+         NANOS_INSTRUMENT ( int id_receiver = wd_receiver ? wd_receiver->getId() : depObj.getId(); )
+
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+         NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) id_sender) << 32 ) + id_receiver; )
+
+         NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
+            NANOS_INSTRUMENT ( if ( accessType.input ) { )
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 1); )
+            NANOS_INSTRUMENT ( } else if ( accessType.output ) { )
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 3); )
+            NANOS_INSTRUMENT ( } )
+         NANOS_INSTRUMENT ( } else if ( wd_sender && !wd_receiver ) { )
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 4); )
+         NANOS_INSTRUMENT ( } else if ( !wd_sender && wd_receiver ) {)
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 5); )
+         NANOS_INSTRUMENT ( } else {)
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 6); )
+         NANOS_INSTRUMENT ( })
+
+         NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
+
+         if ( lastWriter->addSuccessor( depObj ) ) {
+            // new dependence lastWriter -> depObj
             depObj.increasePredecessors();
             if ( callback != NULL ) {
                ( *callback )( lastWriter, &depObj );
@@ -83,39 +95,33 @@ inline void BaseDependenciesDomain::dependOnLastWriter( DependableObject &depObj
    }
 }
 
-inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, TrackableObject &status, BaseDependency const &target,
+                                                     SchedulePolicySuccessorFunctor* callback, AccessType const &accessType )
 {
    TrackableObject::DependableObjectList &readersList = status.getReaders();
    SyncLockBlock lock4( status.getReadersLock() );
    for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
       DependableObject * predecessorReader = *i;
       SyncLockBlock lock5(predecessorReader->getLock());
-      if ( predecessorReader->addSuccessor( depObj ) ) {
-         // new instrument event: dependence predecessorReader -> depObj
-         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-         NANOS_INSTRUMENT ( static nanos_event_key_t dependence_key  = ID->getEventKey("dependence"); )
-         NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) predecessorReader->getRelatedObject(); )
-         NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
-         NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
-         NANOS_INSTRUMENT ( static nanos_event_key_t dep_direction_key  = ID->getEventKey("dep-direction"); )
-         NANOS_INSTRUMENT ( nanos_event_key_t Keys[2]; )
-         NANOS_INSTRUMENT ( Keys[0] = dependence_key; )
-         NANOS_INSTRUMENT ( Keys[1] = dep_direction_key; )
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[4]; )
+
+      // new instrument event: dependence predecessorReader -> depObj
+      NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) predecessorReader->getRelatedObject(); )
+      NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
+      NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
          NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
-         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 1); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(2, Keys, Values); )
-         NANOS_INSTRUMENT ( } )
+         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 2); )
+         NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
+      NANOS_INSTRUMENT ( } )
+
+      if ( predecessorReader->addSuccessor( depObj ) ) {
+         // new dependence predecessorReader -> depObj
          depObj.increasePredecessors();
          if ( callback != NULL ) {
             ( *callback )( predecessorReader, &depObj );
          }
       }
-      // WaR dependency
-#if 0
-      debug (" DO_ID_" << predecessorReader->getId() << " [style=filled label=" << predecessorReader->getDescription() << " color=" << "red" << "];");
-      debug (" DO_ID_" << predecessorReader->getId() << "->" << "DO_ID_" << depObj.getId() << "[color=red];");
-#endif
    }
 }
 
@@ -132,9 +138,10 @@ inline void BaseDependenciesDomain::setAsWriter( DependableObject &depObj, Track
    }
 }
 
-inline void BaseDependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target,
+                                                                   SchedulePolicySuccessorFunctor* callback, AccessType const &accessType )
 {
-   dependOnReaders(depObj, status, target, callback);
+   dependOnReaders( depObj, status, target, callback, accessType );
    setAsWriter( depObj, status, target );
 }
 
@@ -146,8 +153,9 @@ inline void BaseDependenciesDomain::addAsReader( DependableObject &depObj, Track
 
 inline CommutationDO * BaseDependenciesDomain::createCommutationDO( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
 {
-   CommutationDO *commDO = new CommutationDO( target, accessType.commutative );
+   CommutationDO *commDO = NEW CommutationDO( target, accessType.commutative );
    commDO->setDependenciesDomain( this );
+   commDO->setId ( _lastDepObjId++ );
    commDO->increasePredecessors();
    status.setCommDO( commDO );
    commDO->addWriteTarget( target );
@@ -181,12 +189,13 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
    CommutationDO *initialCommDO = NULL;
 
    if ( status.hasReaders() ) {
-      initialCommDO = new CommutationDO( target, accessType.commutative );
+      initialCommDO = NEW CommutationDO( target, accessType.commutative );
       initialCommDO->setDependenciesDomain( this );
+      initialCommDO->setId ( _lastDepObjId++ );
       initialCommDO->increasePredecessors();
 
       // add dependencies to all previous reads using a CommutationDO
-      dependOnReaders( *initialCommDO, status, target, NULL );
+      dependOnReaders( *initialCommDO, status, target, NULL, accessType );
       {
          SyncLockBlock lock3( status.getReadersLock() );
          status.flushReaders();
@@ -201,17 +210,29 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
 }
 
 
-inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    // NOTE: Do not change the order
    CommutationDO *initialCommDO = setUpInitialCommutationDependableObject( target, accessType, status );
    CommutationDO *commDO = setUpTargetCommutationDependableObject( target, accessType, status );
 
+   // Concurrent new instrument event: dependence depObj -> commDO
+   NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) depObj.getRelatedObject(); )
+   NANOS_INSTRUMENT ( if ( wd_sender && commDO ) { )
+      NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+      NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + commDO->getId(); )
+      NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 4); )
+      NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
+   NANOS_INSTRUMENT ( } )
+
    // Add the Commutation object as successor of the current DO (depObj)
    depObj.addSuccessor( *commDO );
 
    // assumes no new readers added concurrently
-   dependOnLastWriter( depObj, status, callback );
+   dependOnLastWriter( depObj, status, target, callback, accessType );
 
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
@@ -220,33 +241,39 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    }
 }
 
-inline void BaseDependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectInoutDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
-   dependOnLastWriter( depObj, status, callback );
-   dependOnReadersAndSetAsWriter( depObj, status, target, callback );
+   dependOnLastWriter( depObj, status, target, callback, accessType );
+   dependOnReadersAndSetAsWriter( depObj, status, target, callback, accessType );
 }
 
-inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectInputDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
-   dependOnLastWriter( depObj, status, callback );
+   dependOnLastWriter( depObj, status, target, callback, accessType );
 
    if ( !depObj.waits() ) {
       addAsReader( depObj, status );
    }
 }
 
-inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback )
+inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
 {
    finalizeReduction( status, target );
 
    // assumes no new readers added concurrently
    if ( !status.hasReaders() ) {
-      dependOnLastWriter( depObj, status, callback );
+      dependOnLastWriter( depObj, status, target, callback, accessType );
    }
 
-   dependOnReadersAndSetAsWriter( depObj, status, target, callback );
+   dependOnReadersAndSetAsWriter( depObj, status, target, callback, accessType );
 }
 
 }

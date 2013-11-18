@@ -332,11 +332,6 @@ void WorkDescriptor::printCopies()
       }
 
 }
-void WorkDescriptor::workFinished(WorkDescriptor &wd)
-{
-   if ( wd._doSubmit != NULL )
-      wd._doSubmit->finished();
-}
 void WorkDescriptor::setNotifyCopyFunc( void (*func)(WD &, BaseThread const&) ) {
    _notifyCopy = func;
 }

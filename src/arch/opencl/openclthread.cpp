@@ -50,6 +50,10 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
    wd.start(WD::IsNotAUserLevelThread);
 
    OpenCLDD &dd = ( OpenCLDD & )wd.getActiveDevice();
+   
+   
+   OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
+   myProc->waitForEvents();
 
    ( dd.getWorkFct() )( wd.getData() );
    
@@ -58,16 +62,16 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
 }
 
 void OpenCLThread::yield() {
-    OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
+    //OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
 
-    proc.execTransfers();
+   // proc.execTransfers();
 
 }
 
 void OpenCLThread::idle() {
-    OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
+    //OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
 
-    proc.execTransfers();
+   // proc.execTransfers();
 
 }
 
@@ -80,13 +84,11 @@ void OpenCLThread::raiseWDClosingEvents ()
 {
    if ( _wdClosingEvents ) {
       NANOS_INSTRUMENT(
-            Instrumentation::Event e[2];
+            Instrumentation::Event e[1];
             sys.getInstrumentation()->closeBurstEvent( &e[0],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
-            sys.getInstrumentation()->closeBurstEvent( &e[1],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ), 0 );
 
-            sys.getInstrumentation()->addEventList( 2, e );
+            sys.getInstrumentation()->addEventList( 1, e );
       );
       _wdClosingEvents = false;
    }

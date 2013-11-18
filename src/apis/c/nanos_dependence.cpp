@@ -22,13 +22,32 @@
 #include "nanos.h"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
+#include "basethread.hpp"
+#include "workdescriptor.hpp"
 
-/*! \defgroup capi_wd C/C++ API: Dependences services. */
-/*! \addtogroup capi_wd
+/*! \defgroup capi_dependence Dependence services.
+ *  \ingroup capi
+ */
+
+/*! \addtogroup capi_dependence
  *  \{
  */
 
 using namespace nanos;
+
+//! \brief Release all current WorkDescriptor dependences
+NANOS_API_DEF(nanos_err_t, nanos_dependence_release_all, ( void ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","dependence_release_all",NANOS_RUNTIME) );
+   try {
+      WD *parent = NULL, *wd = myThread->getCurrentWD();
+      if ( wd ) parent = wd->getParent();
+      if ( parent ) parent->workFinished( *wd );
+   } catch ( nanos_err_t e) {
+      return e;                                                                                                                          
+   }
+   return NANOS_OK;
+}
 
 /*! \brief Returns if there are any pendant write for a given addr
  *
