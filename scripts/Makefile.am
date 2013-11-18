@@ -58,15 +58,15 @@ deb:
 
 # Generate an empty changelog if git is not present
 	if test ! -d $(top_srcdir)/.git; \
-	then dch --create -c upstream_dir/debian/changelog --empty --package nanox -v $(VERSION) "$(VERSION)"; \
-	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"nanox ($(VERSION)) UNRELEASED; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD" > upstream_dir/debian/changelog; \
+	then dch --create -c upstream_dir/debian/changelog --empty --package nanox -v $(DEB_VERSION) "$(DEB_VERSION)"; \
+	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"nanox ($(DEB_VERSION)) unstable; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD" > upstream_dir/debian/changelog; \
 	fi
 
 	cd upstream_dir; DEB_BUILD_OPTIONS="nocheck parallel=4" debuild -us -uc
 	-rm -rf upstream_dir
 
 clean-deb:
-	-rm -f nanox_$(VERSION).orig.tar.gz nanox_$(VERSION).debian.tar.gz nanox_$(VERSION).dsc nanox_$(VERSION)*.build nanox_$(VERSION)*.changes *.deb
+	-rm -f nanox_$(VERSION).orig.tar.gz nanox_$(DEB_VERSION).debian.tar.gz nanox_$(DEB_VERSION).dsc nanox_$(DEB_VERSION)*.build nanox_$(DEB_VERSION)*.changes *.deb
 	-rm -rf upstream_dir
 
 clean-local: clean-rpm clean-deb
