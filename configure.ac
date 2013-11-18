@@ -69,8 +69,8 @@ AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator],
   AS_HELP_STRING([--enable-allocator], [Enables Allocator module]),
   [
-    allocator_enabledd=yes
-    AC_MSG_RESULT([yes])
+    allocator_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
     allocator_enabled=no
