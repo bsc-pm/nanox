@@ -66,12 +66,8 @@ namespace nanos
    class MPIDevice : public Device
    {
       private:
-         static unsigned int _rlimit;
+         static bool executingTask;
          static Directory *_masterDir;
-         //This boolean will be checked by the task so it will wait until copyIns finish
-         //This way we do not need to send ACKs back to the host
-         //Writes here are only done by one thread
-         static bool doingCopyIn;
 
          static void getMemoryLockLimit();
 
@@ -173,7 +169,9 @@ namespace nanos
          
          static void mpiCacheWorker();
          
-         static void waitForCopies(MPI_Comm& comm);
+         static void taskPreInit(MPI_Comm& comm);
+         
+         static void taskPostFinish(MPI_Comm& comm);
          
          static void setMasterDirectory(Directory *dir) {_masterDir=dir;};
 

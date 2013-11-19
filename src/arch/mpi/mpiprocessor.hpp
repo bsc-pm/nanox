@@ -58,8 +58,11 @@ namespace nanos {
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
+            static bool _inicialized;
             MPI_Comm _communicator;
             int _rank;
+            int _localRank;
+            static int _currentProcessParent;
 
             // disable copy constructor and assignment operator
             MPIProcessor(const MPIProcessor &pe);
@@ -70,6 +73,7 @@ namespace nanos {
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
             MPIProcessor(int id, void* communicator, int rank, int uid);
+            MPIProcessor(int id, void* communicator, int local_rank, int rank, int uid);
 
             virtual ~MPIProcessor() {
             }
@@ -128,7 +132,10 @@ namespace nanos {
             int getRank() const {
                 return _rank;
             }
-
+            
+            int getLocalRank() const {
+                return _localRank;
+            }
 
             virtual WD & getWorkerWD() const;
             virtual WD & getMasterWD() const;
@@ -158,39 +165,41 @@ namespace nanos {
             
             static void nanos_MPI_Finalize();
             
-            static void DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset);  
+            static int nanosMpiGetParentRank();
             
-            static int nanos_MPI_Send_taskinit(void *buf, int count, MPI_Datatype datatype, int dest,
+            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset);  
+            
+            static int nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
                     MPI_Comm comm);
 
-            static int nanos_MPI_Recv_taskinit(void *buf, int count, MPI_Datatype datatype, int source,
+            static int nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
                     MPI_Comm comm, MPI_Status *status); 
 
-            static int nanos_MPI_Send_taskend(void *buf, int count, MPI_Datatype datatype, int dest,
+            static int nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int dest,
                     MPI_Comm comm);
 
-            static int nanos_MPI_Recv_taskend(void *buf, int count, MPI_Datatype datatype, int source,
+            static int nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,
                     MPI_Comm comm, MPI_Status *status);
 
-            static int nanos_MPI_Send_datastruct(void *buf, int count, MPI_Datatype datatype, int dest,
+            static int nanosMPISendDatastruct(void *buf, int count, MPI_Datatype datatype, int dest,
                     MPI_Comm comm);
 
-            static int nanos_MPI_Recv_datastruct(void *buf, int count, MPI_Datatype datatype, int source,
+            static int nanosMPIRecvDatastruct(void *buf, int count, MPI_Datatype datatype, int source,
                     MPI_Comm comm, MPI_Status *status);
 
-            static int nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+            static int nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                     MPI_Comm comm);
             
-            static int nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+            static int nanosMPISsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                     MPI_Comm comm);
             
-            static int nanos_MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+            static int nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
              MPI_Comm comm,MPI_Request *req);
 
-            static int nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+            static int nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                     MPI_Comm comm, MPI_Status *status);
             
-            static int nanos_MPI_Type_create_struct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
+            static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
                     MPI_Datatype array_of_types[], MPI_Datatype *newtype);
             
             

@@ -425,6 +425,11 @@ extern __attribute__((weak)) char ompss_uses_cuda;
 inline char*  System::getOmpssUsesCuda(){ return &ompss_uses_cuda; }
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
+#ifdef MPI_DEV
+extern __attribute__((weak)) char ompss_uses_offload;
+inline char* System::getOmpssUsesOffload(){ printf("olakase %d\n",ompss_uses_offload); return &ompss_uses_offload; }
+#endif
+
 
 inline bool System::throttleTaskIn ( void ) const { return _throttlePolicy->throttleIn(); }
 inline void System::throttleTaskOut ( void ) const { _throttlePolicy->throttleOut(); }

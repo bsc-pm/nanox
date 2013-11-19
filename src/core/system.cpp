@@ -575,7 +575,7 @@ void System::start ()
       
    // hwloc can be now unloaded
    if ( isHwlocAvailable() )
-      unloadHwloc();
+      unloadHwloc();   
 }
 
 System::~System ()
@@ -1665,10 +1665,10 @@ void * System::getHwlocTopology ()
 }
  
 void System::addPEsToTeam(PE **pes, int num_pes) {  
-    for (int rank=0; rank<num_pes; rank++){
-        _pes.push_back ( pes[rank] );
+    for (int i=0; i<num_pes; i++){
+        _pes.push_back ( pes[i] );
         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-        BaseThread* bt= &pes[rank]->startWorker();
+        BaseThread* bt= &pes[i]->startWorker();
         _workers.push_back( bt );
         acquireWorker( _currentTeam , bt);
         //CPU_SET( pes[rank]->getId(), &_cpu_active_set );

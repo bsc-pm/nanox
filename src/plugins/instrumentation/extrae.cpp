@@ -18,6 +18,11 @@
 #include "errno.h"
 #include <unistd.h>
 
+#ifdef MPI_DEV
+#include "mpi.h"
+#include "mpiprocessor.hpp"
+#endif
+
 #ifndef EXTRAE_VERSION
 #warning Extrae library version is not supported (use >= 2.3):
 #else
@@ -174,10 +179,23 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_taskid_function ( nanos_extrae_node_id );
         Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
-
-        /* OMPItrace initialization */
-        OMPItrace_init();
-
+#ifdef MPI_DEV
+        /* if MPITRAE_ON not defined, activate it */
+        int provided;
+        //MPI Init triggers extrae init
+        //If OmpSs has compiled MPI tasks, we assume we are in an offload environment
+        //if (sys.getOmpssUsesOffload()!=0){ //doesnt seem to be working...
+        char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
+        if (offload_trace_on != NULL){
+           MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
+        } else {
+#endif
+            /* Regular SMP OMPItrace initialization */      
+            OMPItrace_init();      
+#ifdef MPI_DEV
+        }
+#endif
+        
         Extrae_register_codelocation_type( 9200011, 9200021, "User Function Name", "User Function Location" );
 
         Extrae_register_stacked_type( (extrae_type_t) _eventState );

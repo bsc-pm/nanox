@@ -605,6 +605,9 @@ namespace nanos
          PinnedAllocator& getPinnedAllocatorCUDA();
          char* getOmpssUsesCuda();
 #endif
+#ifdef MPI_DEV
+         char* getOmpssUsesOffload();
+#endif
 
          void threadReady ();
 

@@ -42,10 +42,19 @@ int MPIProcessor::_mpiFileArrSize;
 int MPIProcessor::_numPrevPEs=-1;
 int MPIProcessor::_numFreeCores;
 int MPIProcessor::_currPE;
+bool MPIProcessor::_inicialized=false;
+int MPIProcessor::_currentProcessParent=-1;
 
 MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid) : CachedAccelerator<MPIDevice>(id, &MPI, uid) {
     _communicator = *((MPI_Comm *)communicator);
     _rank = rank;
+    _localRank=rank;
+}
+
+MPIProcessor::MPIProcessor(int id, void* communicator, int local_rank, int rank, int uid) : CachedAccelerator<MPIDevice>(id, &MPI, uid) {
+    _communicator = *((MPI_Comm *)communicator);
+    _rank = rank;
+    _localRank= local_rank;
 }
 
 void MPIProcessor::prepareConfig(Config &config) {
@@ -59,7 +68,7 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerEnvOption("mpi-launcher", "NX_MPILAUNCHER");
     
 
-    config.registerConfigOption("mpihostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n\nEnvironment variables for the host can be specified separated by comma using hostA:n>env_vars or hostA>env_vars");
+    config.registerConfigOption("mpihostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n\nEnvironment variables for the host can be specified separated by comma using hostA:n>env_var1,envar2... or hostA>env_var1,envar2...");
     config.registerArgOption("mpihostfile", "mpihostfile");
     config.registerEnvOption("mpihostfile", "NX_MPIHOSTFILE");
 
@@ -114,34 +123,52 @@ std::string MPIProcessor::getMpiExename() {
     return _mpiFilename;
 }
 
+int MPIProcessor::nanosMpiGetParentRank(){
+    if (_currentProcessParent!=-1) return _currentProcessParent;
+    
+    MPI_Comm parentcomm; /* intercommunicator */
+    MPI_Comm_get_parent(&parentcomm);        
+    int parentRank=-1;
+    //If this process was not spawned, we don't need this reorder (and shouldnt have been called)
+    if ( parentcomm != 0 && parentcomm != MPI_COMM_NULL ) {
+        //Search which of the spawners is our "master" (MPI_COMM_WORLD spawn case)
+        int parent_size;
+        MPI_Comm_remote_size(parentcomm, &parent_size);
+        if (parent_size==1){
+            parentRank=0;
+        } else {
+           int currParent=0;   
+           int pendingMessage=0;
+           while (parentRank==-1){
+              pendingMessage=0;
+              MPI_Iprobe(currParent, TAG_FP_NAME_SYNC, parentcomm,&pendingMessage, MPI_STATUS_IGNORE);
+              if (pendingMessage==1) parentRank=currParent;
+              currParent=(currParent+1)%parent_size;
+           }
+        }
+    }
+    _currentProcessParent=parentRank;
+    return parentRank;
+}
+
 void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_FREE_EVENT);
     cacheOrder order;
     order.opId = OPID_FINISH;
     int nThreads=sys.getNumWorkers();
     int id = -1; 
-    if (rank == -1) {
-        int size;
-        MPI_Comm_remote_size(*intercomm, &size);
-        for (int i = 0; i < size; i++) {
-            //Closing cache daemon and user-level daemon
-            nanos_MPI_Ssend(&order, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, *intercomm);
-            nanos_MPI_Ssend(&id, 1, MPI_INT, i, TAG_INI_TASK, *intercomm);
-        }
-    } else {
-        nanos_MPI_Ssend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_CACHE_ORDER, *intercomm);
-        nanos_MPI_Ssend(&id, 1, MPI_INT, rank, TAG_INI_TASK, *intercomm);
-    }
     //Now sleep the threads which represent the remote processes
     int res=MPI_UNEQUAL;
     for (int i=0; i< nThreads; ++i){
         BaseThread* bt=sys.getWorker(i);
         nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) bt->runningOn();
-        if ((myPE->getRank()==rank || rank == -1)){
+        if ((myPE->getRank()==rank || myPE->getLocalRank()==rank || rank == -1)){           
             //Releasing workers from the team
             MPI_Comm threadcomm=myPE->getCommunicator();
-            if (threadcomm!=NULL) MPI_Comm_compare(threadcomm,*intercomm,&res);
-            if (res==MPI_IDENT){
+            if (threadcomm!=0) MPI_Comm_compare(threadcomm,*intercomm,&res);
+            if (res==MPI_IDENT){ 
+                nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, *intercomm);
+                nanosMPISsend(&id, 1, MPI_INT, myPE->getRank(), TAG_INI_TASK, *intercomm);
                 sys.releaseWorker(bt);
                 bt->sleep();
             }
@@ -154,22 +181,22 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
  * All this tasks redefine nanox messages
  */
 void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {    
-   NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_INIT_EVENT);
-   verbose0( "loading MPI support" );
+    if (_inicialized) return;
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_INIT_EVENT);
+    verbose0( "loading MPI support" );
 
-   if ( !sys.loadPlugin( "pe-mpi" ) )
+    if ( !sys.loadPlugin( "pe-mpi" ) )
       fatal0 ( "Couldn't load MPI support" );
    
+    _inicialized=true;   
     int provided, claimed;
     //TODO: Try with multiple MPI thread
-    int initialized;
+    int initialized;    
     MPI_Initialized(&initialized);
     //In case it was already initialized (shouldn't happen, since we theorically "rename" the calls with mercurium), we won't try to do so
     //We'll trust user criteria, but show a warning
     if (!initialized)
         MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
-    else
-        warning0("MPI was already initialized, please, call to nanos_MPI_Init routine instead of default MPI_routines");
     
     //If not initiliazed with the paralelism level we need/implementation doesn't provide it, error.
     MPI_Query_thread(&claimed);
@@ -194,7 +221,7 @@ void MPIProcessor::nanos_MPI_Init(int *argc, char ***argv) {
         MPI_Comm mworld= MPI_COMM_WORLD;
         //It will share a core with last SMP PE
         //THIS PE will not be in the team (uid -1)
-        PE *mpi = NEW nanos::ext::MPIProcessor(getNextPEId(), &mworld, CACHETHREADRANK,-1);
+        PE *mpi = NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()), &mworld, CACHETHREADRANK,-1);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
@@ -234,12 +261,10 @@ static inline void trim(std::string& params){
     if( std::string::npos != pos ) params = params.substr( pos );
 }
 
-void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset) {  
+void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset) {  
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
-    //IF MPI not initialized, do it
-    int initialized;
-    MPI_Initialized(&initialized);
-    if (!initialized)
+    //IF nanos MPI not initialized, do it
+    if (!_inicialized)
         nanos_MPI_Init(0,0);
     
     std::list<std::string> tmp_storage;
@@ -282,18 +307,18 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
                 trim(params);
             }
             if (pos_sep!=line.npos){
-                 std::string real_host=line.substr(0,pos_sep);
-                 int number=atoi(line.substr(pos_sep+1,pos_end).c_str());            
-                 trim(real_host);
-                 host_instances.push_back(number);
-                 tokens_host.push_back(real_host); 
-                 tokens_params.push_back(params);
+                std::string real_host=line.substr(0,pos_sep);
+                int number=atoi(line.substr(pos_sep+1,pos_end).c_str());            
+                trim(real_host);
+                host_instances.push_back(number);
+                tokens_host.push_back(real_host); 
+                tokens_params.push_back(params);
             } else {
-              std::string real_host=line.substr(0,pos_end);           
-              trim(real_host);  
-              host_instances.push_back(1);                
-              tokens_host.push_back(real_host); 
-              tokens_params.push_back(params);
+                std::string real_host=line.substr(0,pos_end);           
+                trim(real_host);  
+                host_instances.push_back(1);                
+                tokens_host.push_back(real_host); 
+                tokens_params.push_back(params);
             }
         }
     }
@@ -358,15 +383,14 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         char **argvv=new char*[params_size];
         //Fill the params
         argvv[0]= const_cast<char*> (result_str.c_str());
-        argvv[1]= const_cast<char*> (TAG_MAIN_OMPSS);    
+        argvv[1]= const_cast<char*> (TAG_MAIN_OMPSS);  
         int param_counter=2;
         while (getline(all_param, tmp_param, ',')) {            
             //Trim current param
             trim(params);
             char* arg_copy=new char[tmp_param.size()+1];
             strcpy(arg_copy,tmp_param.c_str());
-            argvv[param_counter]=arg_copy;
-            param_counter++;
+            argvv[param_counter++]=arg_copy;
         }
         argvv[params_size-1]=NULL;              
         array_of_argv[spawn_arrays_length]=argvv;     
@@ -380,7 +404,6 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         i+=n_process[spawn_arrays_length]; 
         spawn_arrays_length++;
     }   
-
     MPI_Comm_spawn_multiple(spawn_arrays_length,array_of_commands, array_of_argv, n_process,
             array_of_info, 0, comm, intercomm,
             MPI_ERRCODES_IGNORE); 
@@ -393,56 +416,72 @@ void MPIProcessor::DEEP_Booster_alloc(MPI_Comm comm, int number_of_spawns, MPI_C
         delete[] array_of_argv[i];
     }
     //Register spawned processes so nanox can use them
-    PE* pes[number_of_spawns];
+    int res=MPI_UNEQUAL;
+    MPI_Comm_compare(comm,MPI_COMM_WORLD,&res);
+    int number_of_spawns_this_process=number_of_spawns;
+    int spawn_start=0;
+    //If MPI_COMM_WORLD, split total spawns between nodes
+    if (res!=MPI_UNEQUAL){
+        int mpi_size,rank;
+        MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
+        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+        number_of_spawns_this_process=number_of_spawns/mpi_size;
+        spawn_start=rank*number_of_spawns_this_process;
+        if (rank==mpi_size-1) //Last process owns the remaining processes
+            number_of_spawns_this_process+=number_of_spawns%mpi_size;
+    }
+    PE* pes[number_of_spawns_this_process];
     int uid=sys.getNumCreatedPEs();
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
-    for ( int rank=0; rank<number_of_spawns; rank++ ){  
-        pes[rank]=NEW nanos::ext::MPIProcessor(getNextPEId() ,intercomm, rank,uid++);
-        nanos_MPI_Send(_mpiFileHashname, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
-        nanos_MPI_Send(_mpiFileSize, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
+    for ( int rank=spawn_start; rank<spawn_start+number_of_spawns_this_process; rank++ ){  
+        pes[rank-spawn_start]=NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()) ,intercomm, rank-spawn_start, rank,uid++);
+        nanosMPISend(_mpiFileHashname, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
+        nanosMPISend(_mpiFileSize, _mpiFileArrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
     }
-    sys.addPEsToTeam(pes,number_of_spawns);
+    sys.addPEsToTeam(pes,number_of_spawns_this_process);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
-int MPIProcessor::nanos_MPI_Send_taskinit(void *buf, int count, MPI_Datatype datatype, int dest,
+int MPIProcessor::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
         MPI_Comm comm) {
-    return nanos_MPI_Send(buf, count, datatype, dest, TAG_INI_TASK, comm);
+    return nanosMPISend(buf, count, datatype, dest, TAG_INI_TASK, comm);
 }
 
-int MPIProcessor::nanos_MPI_Recv_taskinit(void *buf, int count, MPI_Datatype datatype, int source,
+int MPIProcessor::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
         MPI_Comm comm, MPI_Status *status) {
-    return nanos_MPI_Recv(buf, count, datatype, source, TAG_INI_TASK, comm, status);
+    return nanosMPIRecv(buf, count, datatype, source, TAG_INI_TASK, comm, status);
 }
 
-int MPIProcessor::nanos_MPI_Send_taskend(void *buf, int count, MPI_Datatype datatype, int dest,
+int MPIProcessor::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int dest,
         MPI_Comm comm) {
-    return nanos_MPI_Send(buf, count, datatype, dest, TAG_END_TASK, comm);
+    //Ignore destination (as is always parent) and get currentParent
+    return nanosMPISend(buf, count, datatype, nanos::ext::MPIProcessor::nanosMpiGetParentRank(), TAG_END_TASK, comm);
 }
 
-int MPIProcessor::nanos_MPI_Recv_taskend(void *buf, int count, MPI_Datatype datatype, int source,
+int MPIProcessor::nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,
         MPI_Comm comm, MPI_Status *status) {
-    return nanos_MPI_Recv(buf, count, datatype, source, TAG_END_TASK, comm, status);
+    return nanosMPIRecv(buf, count, datatype, source, TAG_END_TASK, comm, status);
 }
 
-int MPIProcessor::nanos_MPI_Send_datastruct(void *buf, int count, MPI_Datatype datatype, int dest,
+int MPIProcessor::nanosMPISendDatastruct(void *buf, int count, MPI_Datatype datatype, int dest,
         MPI_Comm comm) {
-    return nanos_MPI_Send(buf, count, datatype, dest, TAG_ENV_STRUCT, comm);
+    return nanosMPISend(buf, count, datatype, dest, TAG_ENV_STRUCT, comm);
 }
 
-int MPIProcessor::nanos_MPI_Recv_datastruct(void *buf, int count, MPI_Datatype datatype, int source,
+int MPIProcessor::nanosMPIRecvDatastruct(void *buf, int count, MPI_Datatype datatype, int source,
         MPI_Comm comm, MPI_Status *status) {
-    return nanos_MPI_Recv(buf, count, datatype, source, TAG_ENV_STRUCT, comm, status);
+    //Ignore destination (as is always parent) and get currentParent
+    return nanosMPIRecv(buf, count, datatype, nanos::ext::MPIProcessor::nanosMpiGetParentRank(), TAG_ENV_STRUCT, comm, status);
 }
 
-int MPIProcessor::nanos_MPI_Type_create_struct( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
+int MPIProcessor::nanosMPITypeCreateStruct( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
         MPI_Datatype array_of_types[], MPI_Datatype *newtype) {
     int err=MPI_Type_create_struct(count,array_of_blocklengths,array_of_displacements, array_of_types,newtype );
     MPI_Type_commit(newtype);
     return err;
 }
 
-int MPIProcessor::nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIProcessor::nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
@@ -457,7 +496,7 @@ int MPIProcessor::nanos_MPI_Send(void *buf, int count, MPI_Datatype datatype, in
     return err;
 }
 
-int MPIProcessor::nanos_MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIProcessor::nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm,MPI_Request *req) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
@@ -472,7 +511,7 @@ int MPIProcessor::nanos_MPI_Isend(void *buf, int count, MPI_Datatype datatype, i
     return err;
 }
 
-int MPIProcessor::nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIProcessor::nanosMPISsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SSEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
@@ -487,7 +526,7 @@ int MPIProcessor::nanos_MPI_Ssend(void *buf, int count, MPI_Datatype datatype, i
     return err;
 }
 
-int MPIProcessor::nanos_MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+int MPIProcessor::nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
         MPI_Comm comm, MPI_Status *status) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RECV_EVENT);
     if (source==UNKOWN_RANKSRCDST){

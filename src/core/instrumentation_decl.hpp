@@ -568,7 +568,7 @@ namespace nanos {
             registerEventValue("in-mpi-runtime", "NANOS_MPI_COPYDEV2DEV_SYNC_EVENT", "MPI copy data between two nodes" );                      /* 6 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_DEEP_BOOSTER_FREE_EVENT", "deep_booster_free(...)" );                      /* 7 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_INIT_EVENT", "nanos_mpi_init()" );                      /* 8 */
-            registerEventValue("in-mpi-runtime", "NANOS_MPI_FINALIZE_EVENT", "nanos_mpi_init()" );                      /* 9 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_FINALIZE_EVENT", "nanos_mpi_finalize()" );                      /* 9 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_SEND_EVENT", "nanos mpi_send()" );                      /* 10 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_RECV_EVENT", "nanos mpi_recv()" );                      /* 11 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_SSEND_EVENT", "nanos mpi_ssend()" );                      /* 12 */
