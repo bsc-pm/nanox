@@ -55,26 +55,30 @@ AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
+# Debian release
+AC_CHECK_PROG([DEB_VERSION], [lsb_release], [$VERSION-$(lsb_release -sc)], [$VERSION])
+AC_SUBST([DEB_VERSION])
+
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
 : ${FCFLAGS=""}
 
 # Allocator support
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  AS_HELP_STRING([--enable-allocator], [Enables Allocator module]),
   [
-    allocator_disabled=yes
-    AC_MSG_RESULT([yes])
+    allocator_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
-    allocator_disabled=no
+    allocator_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$allocator_disabled = xyes; then
+if test x$allocator_enabled = xno; then
 	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
 	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
 fi

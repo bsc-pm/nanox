@@ -1811,7 +1811,6 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
 void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
-/*** Marta ***/
 
    dlb_returnCpusIfNeeded();
    while ( team->size ( ) > 0 ) {
