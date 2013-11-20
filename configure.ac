@@ -56,8 +56,8 @@ nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
 # Debian release
-AC_CHECK_PROG([DEB_VERSION], [lsb_release], [$VERSION-$(lsb_release -sc)], [$VERSION])
-AC_SUBST([DEB_VERSION])
+AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
+AC_SUBST([DEB_RELEASE])
 
 # Set compiler default flags
 : ${CFLAGS=""}

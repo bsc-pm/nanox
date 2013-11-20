@@ -58,8 +58,8 @@ deb:
 
 # Generate an empty changelog if git is not present
 	if test ! -d $(top_srcdir)/.git; \
-	then dch --create -c upstream_dir/debian/changelog --empty --package nanox -v $(DEB_VERSION) "$(DEB_VERSION)"; \
-	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"nanox ($(DEB_VERSION)) unstable; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD" > upstream_dir/debian/changelog; \
+	then dch --create -c upstream_dir/debian/changelog --empty --package nanox -v "$(VERSION)-$(shell date +%Y%m%d)$(DEB_RELEASE)"; \
+	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"nanox ($(VERSION)-$(shell date +%Y%m%d)$(DEB_RELEASE)) unstable; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD" > upstream_dir/debian/changelog; \
 	fi
 
 	cd upstream_dir; DEB_BUILD_OPTIONS="nocheck parallel=4" debuild -us -uc
