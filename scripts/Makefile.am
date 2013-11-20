@@ -41,7 +41,7 @@ rpm:
 	mkdir -p SOURCES BUILD RPMS SPECS SRPMS
 	cp $(top_build_prefix)*.tar.gz SOURCES
         
-	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --with extrae --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --define '_rpm_prefix $(RPM_PREFIX)' --define '_host $(host_triplet)' --define '_target $(target_triplet)' --define '_build $(build_triplet)' 
+	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --with extrae --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --define 'release $(shell date +%Y%m%d)' --define '_rpm_prefix $(RPM_PREFIX)' --define '_host $(host_triplet)' --define '_target $(target_triplet)' --define '_build $(build_triplet)' 
 
 clean-rpm:
 	-rm -rf BUILDROOT SOURCES BUILD RPMS SPECS SRPMS

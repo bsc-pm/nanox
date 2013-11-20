@@ -12,7 +12,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability])
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Enable silent rules if available
