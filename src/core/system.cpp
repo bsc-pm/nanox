@@ -1662,6 +1662,7 @@ inline void System::applyCpuMask()
          while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
             thread->lock(); //FIXME:xteruel not needed?
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+            team->increaseFinalSize();
             thread->unlock(); //FIXME:xteruel not needed?
          }
       } else {
@@ -1670,6 +1671,7 @@ inline void System::applyCpuMask()
             thread->lock();
             thread->sleep();
             thread->unlock();
+            team->decreaseFinalSize();
          }
       }
    }

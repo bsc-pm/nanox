@@ -208,6 +208,8 @@ namespace nanos
         /*! \brief Set final size 
          */
          void setFinalSize ( size_t s );
+         void increaseFinalSize ( void );
+         void decreaseFinalSize ( void );
    };
 
 }

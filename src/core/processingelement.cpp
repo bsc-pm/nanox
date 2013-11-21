@@ -187,9 +187,9 @@ BaseThread* ProcessingElement::getUnassignedThread()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() && (*it)->isSleeping() ) {
+      if ( !(*it)->hasTeam() ) {
          (*it)->lock();
-         if ( (*it)->hasTeam() || (*it)->isSleeping() ) {
+         if ( (*it)->hasTeam() ) {
             (*it)->unlock();
             continue;
          }
