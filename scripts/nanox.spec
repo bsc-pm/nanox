@@ -15,9 +15,9 @@
 %define feature		nanox
 
 %if 0%{?suse_version}
-%define dist        opensuse%{?suse_version}
+%define distro        opensuse%{?suse_version}
 %else
-%define dist        %{?dist}
+%define distro        %{?dist}
 %endif
 
 %define buildroot    %{_topdir}/%{name}-%{version}-root
@@ -52,7 +52,7 @@ Name: 			%{feature}-extrae
 Name: 			%{feature}-no-extrae
 %endif
 Version: 		%{version}
-Release: 		%{release}%{dist}
+Release: 		%{release}%{distro}
 Source:        %{feature}-%{version}.tar.gz
 Prefix: 		   %{_prefix}
 Group: 			Development/Tools
