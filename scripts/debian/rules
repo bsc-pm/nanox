@@ -17,4 +17,4 @@ endif
 
 # Compat version != 8 sets libdir and libexecdir to something like /usr/lib/x86_64-linux-gnu
 override_dh_auto_configure:
-	dh_auto_configure -- --libdir=$$\{prefix\}/lib/ --libexecdir=$$\{prefix\}/lib/
+	dh_auto_configure -- --libdir=$$\{prefix\}/lib/ --libexecdir=$$\{prefix\}/lib/ --with-extrae=/usr
