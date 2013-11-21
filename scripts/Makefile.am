@@ -66,7 +66,7 @@ deb:
 	-rm -rf upstream_dir
 
 clean-deb:
-	-rm -f nanox_$(VERSION).orig.tar.gz nanox_$(DEB_VERSION).debian.tar.gz nanox_$(DEB_VERSION).dsc nanox_$(DEB_VERSION)*.build nanox_$(DEB_VERSION)*.changes *.deb
+	-rm -f nanox_$(VERSION).orig.tar.gz nanox_$(VERSION)*.debian.tar.gz nanox_$(VERSION)*.dsc nanox_$(DEB_RELEASE)*.build nanox_$(DEB_RELEASE)*.changes *.deb
 	-rm -rf upstream_dir
 
 clean-local: clean-rpm clean-deb
