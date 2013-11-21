@@ -193,6 +193,7 @@ namespace nanos
 
          const int                 _lockPoolSize;
          Lock *                    _lockPool;
+         ThreadTeam               *_mainTeam;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -635,6 +636,11 @@ namespace nanos
           *  \return {True/False} depending if there are pendant writes
           */
          bool haveDependencePendantWrites ( void *addr ) const;
+
+         /*! \brief Active current thread (i.e. pthread ) and include it into the main team
+          */
+         void admitCurrentThread ( void );
+         void expelCurrentThread ( void );
    };
 
    extern System sys;
