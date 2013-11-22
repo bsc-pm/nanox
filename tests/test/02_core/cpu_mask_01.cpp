@@ -59,12 +59,18 @@ int main ( int argc, char *argv[])
    sys.setCpuMask( &nanos_mask2 );
    sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask2 );
    
-   fprintf(stdout,"Thread team final size will be %d and %d is expected\n", (int) myThread->getTeam()->getFinalSize(), CPU_COUNT(&nanos_mask2));
+   fprintf(stdout,"Thread team final size will be %d and %d is expected\n",
+      (int) myThread->getTeam()->getFinalSize(),
+            CPU_COUNT(&nanos_mask2)
+   );
    if ( sys.getPMInterface().isMalleable() && myThread->getTeam()->getFinalSize() != (size_t) CPU_COUNT(&nanos_mask2) ) error++;
 
 
    /* If binding is disabled further tests make no sense */
-   if ( !sys.getBinding() ) return error;
+   if ( !sys.getBinding() ) {
+      fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
+      return error;
+   }
 
    // check intersections
    cpu_set_t intxn;
