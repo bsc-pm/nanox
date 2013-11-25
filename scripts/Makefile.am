@@ -20,20 +20,21 @@
 SUBDIRS = .
 
 EXTRA_DIST=\
-           astyle-nanox.sh \
-           bets \
-           headache.cfg \
-           headerfy.sh \
-           Makefile.am \
-           preamble.txt \
-           extrae_post_process.sh \
-           nanox.spec \
-           nanox\
-           $(END)
+	astyle-nanox.sh \
+	bets \
+	headache.cfg \
+	headerfy.sh \
+	preamble.txt \
+	nanox.spec \
+	debian/compat \
+	debian/source/format \
+	debian/rules \
+	debian/control \
+	$(END)
 
-bin_SCRIPTS=\
+dist_bin_SCRIPTS=\
 	extrae_post_process.sh\
-   nanox\
+	nanox\
 	$(END)
 
 rpm:
