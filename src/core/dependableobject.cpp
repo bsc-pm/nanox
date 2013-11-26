@@ -23,6 +23,8 @@
 
 using namespace nanos;
 
+void DependableObject::wait ( std::list<uint64_t>const & flushDeps  ) { }
+
 void DependableObject::finished ( )
 {
    if ( --_references == 0) {

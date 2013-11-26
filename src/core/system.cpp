@@ -1361,13 +1361,6 @@ BaseThread * System::getInactiveWorker ( void )
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
       thread = _workers[i];
       if ( !thread->hasTeam() && thread->isWaiting() ) {
-// FIXME:xteruel
-#if 0 
-         // skip if the thread is not in the mask
-         if ( sys.getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpu_active_set) )
-            continue;
-#endif
-
          // recheck availability with exclusive access
          thread->lock();
          if ( thread->hasTeam() || !thread->isWaiting() ) {
@@ -1375,7 +1368,6 @@ BaseThread * System::getInactiveWorker ( void )
             thread->unlock();
             continue;
          }
-
          thread->reserve(); // set team flag only
          thread->wakeup();
          thread->unlock();
@@ -1607,20 +1599,21 @@ void System::updateActiveWorkers ( int nthreads )
    int num_threads = nthreads - team->getFinalSize();
    team->setFinalSize(nthreads);
 
+   //! \bug We need to consider not only numThreads < nthreads but num_threads < availables?
+   while (  _numThreads < nthreads ) {
+      createWorker( _pes.size() );
+      _numThreads++;
+      _numPEs++;
+   }
+
    //! \note If requested threads are more than current increase number of threads
    while ( num_threads > 0 ) {
       thread = getUnassignedWorker();
-
       if (!thread) thread = getInactiveWorker();
-
-      if ( !thread ) {
-         createWorker( _pes.size() );
-         _numThreads++;
-         _numPEs++;
-         continue;
+      if (thread) {
+         acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+         num_threads--;
       }
-      acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-      num_threads--;
    }
 
    //! \note If requested threads are less than current decrease number of threads

@@ -122,7 +122,7 @@ namespace nanos
           * The regions code will call Region::getFirstValue() and the
           * non region code will use the address + the offset.
           */
-         virtual void wait ( std::list<uint64_t>const & flushDeps  ) { }
+         virtual void wait ( std::list<uint64_t>const & flushDeps  );
 
          virtual bool waits ( );
 
