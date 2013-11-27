@@ -564,7 +564,7 @@ void System::start ()
    for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
       _gpus = (_gpus == NULL) ? NEW std::vector<nanos::ext::GPUProcessor *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUProcessor *) NULL) : _gpus; 
       memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-      SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU, false );
+      SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU, nanos::ext::GPUConfig::getAllocWide());
       gpuMemory->setNodeNumber( 0 );
       ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
       gpuMemory->setSpecificData( gpuMemSpace );

@@ -41,6 +41,7 @@ size_t GPUConfig::_maxGPUMemory = 0;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
 void * GPUConfig::_gpusProperties = NULL;
+bool GPUConfig::_allocWide = false;
 
 void GPUConfig::prepare( Config& config )
 {
@@ -116,6 +117,11 @@ void GPUConfig::prepare( Config& config )
                                 "Enable or disable CUBLAS initialization (disabled by default)" );
    config.registerEnvOption( "gpu-cublas-init", "NX_GPUCUBLASINIT" );
    config.registerArgOption( "gpu-cublas-init", "gpu-cublas-init" );
+
+   config.registerConfigOption( "gpu-alloc-wide", NEW Config::FlagOption( _allocWide ),
+                                "Alloc full objects in the cache." );
+   config.registerEnvOption( "gpu-alloc-wide", "NX_GPUALLOCWIDE" );
+   config.registerArgOption( "gpu-alloc-wide", "gpu-alloc-wide" );
 }
 
 void GPUConfig::apply()
@@ -288,6 +294,10 @@ void GPUConfig::getGPUsProperties( int device, void * deviceProps )
 {
    void * props = &( ( cudaDeviceProp * ) _gpusProperties)[device];
    memcpy( deviceProps, props, sizeof( cudaDeviceProp ) );
+}
+
+bool GPUConfig::getAllocWide() {
+   return _allocWide;
 }
 
 }
