@@ -20,20 +20,21 @@
 SUBDIRS = .
 
 EXTRA_DIST=\
-           astyle-nanox.sh \
-           bets \
-           headache.cfg \
-           headerfy.sh \
-           Makefile.am \
-           preamble.txt \
-           extrae_post_process.sh \
-           nanox.spec \
-           nanox\
-           $(END)
+	astyle-nanox.sh \
+	bets \
+	headache.cfg \
+	headerfy.sh \
+	preamble.txt \
+	nanox.spec \
+	debian/compat \
+	debian/source/format \
+	debian/rules \
+	debian/control \
+	$(END)
 
-bin_SCRIPTS=\
+dist_bin_SCRIPTS=\
 	extrae_post_process.sh\
-   nanox\
+	nanox\
 	$(END)
 
 rpm:
@@ -41,7 +42,7 @@ rpm:
 	mkdir -p SOURCES BUILD RPMS SPECS SRPMS
 	cp $(top_build_prefix)*.tar.gz SOURCES
         
-	rpmbuild -v -bb --clean $(srcdir)/nanox.spec --with extrae --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --define '_rpm_prefix $(RPM_PREFIX)' --define '_host $(host_triplet)' --define '_target $(target_triplet)' --define '_build $(build_triplet)' 
+	THREADS=$$(getconf _NPROCESSORS_ONLN); THREADS=$${THREADS:-1}; rpmbuild -v -bb --clean $(srcdir)/nanox.spec --with extrae --define '_topdir $(CURDIR)' --define 'version $(VERSION)' --define 'release $(shell date +%Y%m%d)' --define '_rpm_prefix $(RPM_PREFIX)' --define '_host $(host_triplet)' --define '_target $(target_triplet)' --define '_build $(build_triplet)' --define "threads $${THREADS}"
 
 clean-rpm:
 	-rm -rf BUILDROOT SOURCES BUILD RPMS SPECS SRPMS
@@ -58,15 +59,15 @@ deb:
 
 # Generate an empty changelog if git is not present
 	if test ! -d $(top_srcdir)/.git; \
-	then dch --create -c upstream_dir/debian/changelog --empty --package nanox -v $(DEB_VERSION) "$(DEB_VERSION)"; \
-	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"nanox ($(DEB_VERSION)) unstable; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD" > upstream_dir/debian/changelog; \
+	then dch --create -c upstream_dir/debian/changelog --empty --package nanox -v "$(VERSION)-$(shell date +%Y%m%d)$(DEB_RELEASE)"; \
+	else git --git-dir="$(top_srcdir)/.git" --work-tree="$(top_srcdir)/.git" log -1 --pretty=format:"nanox ($(VERSION)-$(shell date +%Y%m%d)$(DEB_RELEASE)) unstable; urgency=low%x0A%x0A  * %h %s%x0A%x0A -- %an <%ae>  %aD" > upstream_dir/debian/changelog; \
 	fi
 
-	cd upstream_dir; DEB_BUILD_OPTIONS="nocheck parallel=4" debuild -us -uc
+	THREADS=$$(getconf _NPROCESSORS_ONLN); THREADS=$${THREADS:-1};  cd upstream_dir; DEB_BUILD_OPTIONS="nocheck parallel=$${THREADS}" debuild -us -uc
 	-rm -rf upstream_dir
 
 clean-deb:
-	-rm -f nanox_$(VERSION).orig.tar.gz nanox_$(DEB_VERSION).debian.tar.gz nanox_$(DEB_VERSION).dsc nanox_$(DEB_VERSION)*.build nanox_$(DEB_VERSION)*.changes *.deb
+	-rm -f nanox_$(VERSION).orig.tar.gz nanox_$(VERSION)*.debian.tar.gz nanox_$(VERSION)*.dsc nanox_$(DEB_RELEASE)*.build nanox_$(DEB_RELEASE)*.changes *.deb
 	-rm -rf upstream_dir
 
 clean-local: clean-rpm clean-deb

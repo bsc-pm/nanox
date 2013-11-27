@@ -248,6 +248,10 @@ NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, voi
 
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
+NANOS_API_DECL(nanos_err_t, nanos_admit_current_thread, (void));
+NANOS_API_DECL(nanos_err_t, nanos_expel_current_thread, (void));
+
+
 // dependence
 NANOS_API_DECL(nanos_err_t, nanos_dependence_release_all, ( void ) );
 NANOS_API_DECL(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *addr ));

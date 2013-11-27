@@ -98,7 +98,7 @@ System::System () :
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
 #endif
-      , _lockPoolSize(37), _lockPool( NULL ), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
+      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
 #ifdef CLUSTER_DEV
       , _nodes( NULL )
 #endif
@@ -698,11 +698,11 @@ void System::start ()
    {
       case POOL:
          verbose0("Pool model enabled (OmpSs)");
-         createTeam( _workers.size() );
+         _mainTeam = createTeam( _workers.size() );
          break;
       case ONE_THREAD:
          verbose0("One-thread model enabled (OpenMP)");
-         createTeam(1);
+         _mainTeam = createTeam(1);
          break;
       default:
          fatal("Unknown initial mode!");
@@ -2056,6 +2056,42 @@ void System::environmentSummary( void )
 
    // Get start time
    _summary_start_time = time(NULL);
+}
+
+void System::admitCurrentThread ( void )
+{
+   int pe_id = _pes.size();   
+
+   //! \note Create a new PE and configure it
+   PE *pe = createPE ( "smp", getBindingId( pe_id ), pe_id );
+   pe->setNUMANode( getNodeOfPE( pe->getId() ) );
+   _pes.push_back ( pe );
+
+   //! \note Create a new Thread object and associate it to the current thread
+   BaseThread *thread = &pe->associateThisThread ( /* untie */ true ) ;
+   _workers.push_back( thread );
+
+   //! \note Update current cpu active set mask
+   CPU_SET( getBindingId( pe_id ), &_cpu_active_set );
+
+   //! \note Getting Programming Model interface data
+   WD &mainWD = *myThread->getCurrentWD();
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      mainWD.setInternalData( data );
+   }
+
+   //! \note Include thread into main thread
+   acquireWorker( _mainTeam, thread, /* enter */ true, /* starring */ false, /* creator */ false );
+   
+}
+
+void System::expelCurrentThread ( void )
+{
+   int pe_id =  myThread->runningOn()->getUId();
+   _pes.erase( _pes.begin() + pe_id );
+   _workers.erase ( _workers.begin() + myThread->getId() );
 }
 
 void System::executionSummary( void )
