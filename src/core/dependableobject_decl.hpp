@@ -112,18 +112,6 @@ namespace nanos
 
          virtual void dependenciesSatisfied ( ) { }
 
-         /*! \brief Waits until the dependencies with the given addresses
-          * are satisfied.
-          * \param flushDeps List of memory addresses.
-          * \note Previously we were passing a list of Dependency pointers,
-          * and used getDepAddress to create the flushDeps list inside this 
-          * function. As the regions code passes regions and does the same,
-          * the list will have to be created before calling this function.
-          * The regions code will call Region::getFirstValue() and the
-          * non region code will use the address + the offset.
-          */
-         virtual void wait ( std::list<uint64_t>const & flushDeps  );
-
          virtual bool waits ( );
 
          virtual unsigned long getDescription ( );
@@ -153,9 +141,10 @@ namespace nanos
 
         /*! \brief Decrease the number of predecessors of the DependableObject
          *         if it becomes 0, the dependencies are satisfied and the virtual
-         *         method dependenciesSatisfied is invoked.
+         *         method dependenciesSatisfied is invoked. It can be also a blocking
+         *         call in some cases, if blocking is set to true.
          */
-         int decreasePredecessors ( );
+         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking = false );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */

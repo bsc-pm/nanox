@@ -1597,6 +1597,11 @@ void System::updateActiveWorkers ( int nthreads )
    ThreadTeam *team = myThread->getTeam();
 
    int num_threads = nthreads - team->getFinalSize();
+
+   int backup_num_threads = num_threads; // FIXME:xteruel To remove
+   team->setFinalSize(backup_num_threads);
+   
+  
    team->setFinalSize(nthreads);
 
    //! \bug We need to consider not only numThreads < nthreads but num_threads < availables?

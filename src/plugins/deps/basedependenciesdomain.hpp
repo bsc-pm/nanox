@@ -46,7 +46,7 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
       commDO->addWriteTarget( target );
       status.setLastWriter( *commDO );
       commDO->resetReferences();
-      commDO->decreasePredecessors();
+      commDO->decreasePredecessors( NULL );
    }
 }
 
@@ -237,7 +237,7 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
    if ( initialCommDO != NULL ) {
-      initialCommDO->decreasePredecessors();
+      initialCommDO->decreasePredecessors( NULL );
    }
 }
 

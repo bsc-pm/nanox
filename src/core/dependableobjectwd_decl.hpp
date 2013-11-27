@@ -117,10 +117,6 @@ namespace nanos
           */
          virtual void init ( );
 
-         /*! \brief Wait method blocks execution untill dependencies are satisfied
-          */
-         virtual void wait ( std::list<uint64_t> const & flushDeps  );
-
          /*! \brief whether the DO gets blocked and no more dependencies can
           *  be submitted until it is satisfied.
           */
@@ -129,6 +125,10 @@ namespace nanos
          /*! \brief Unblock method when dependencies are satisfied
           */
          virtual void dependenciesSatisfied ( );
+
+         /*! \brief
+          */
+         int decreasePredecessors ( std::list<uint64_t>const * flushDeps, bool blocking = false );
 
          /*! \brief TODO
           */

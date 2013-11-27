@@ -23,8 +23,6 @@
 
 using namespace nanos;
 
-void DependableObject::wait ( std::list<uint64_t>const & flushDeps  ) { }
-
 void DependableObject::finished ( )
 {
    if ( --_references == 0) {
@@ -60,7 +58,7 @@ void DependableObject::finished ( )
 
          NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
 
-         (*it)->decreasePredecessors();
+         (*it)->decreasePredecessors( NULL );
       }
    }
 }

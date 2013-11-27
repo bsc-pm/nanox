@@ -80,12 +80,13 @@ inline int DependableObject::increasePredecessors ( )
 	  return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking )
 {
    int  numPred = --_numPredecessors; 
    if ( numPred == 0 ) {
       dependenciesSatisfied( );
    }
+
    return numPred;
 }
 

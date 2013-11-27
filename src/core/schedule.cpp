@@ -45,7 +45,7 @@ void SchedulerConf::config (Config &cfg)
    cfg.registerEnvOption ( "sleep_time", "NX_SLEEP_TIME" );
 }
 
-void Scheduler::submit ( WD &wd )
+void Scheduler::submit ( WD &wd, bool force_queue )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
@@ -66,7 +66,7 @@ void Scheduler::submit ( WD &wd )
    }
 
    /* handle tasks which cannot run in current thread */
-   if ( !wd.canRunIn(*mythread->runningOn()) ) {
+   if ( force_queue || !wd.canRunIn(*mythread->runningOn()) ) {
      /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
       * it in our scheduler system. Global ready task queue will take care about task/thread
       * architecture, while local ready task queue will wait until stealing. */

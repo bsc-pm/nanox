@@ -49,7 +49,7 @@ namespace nanos
       public:
          static bool inlineWork ( WD *work, bool schedule = false );
 
-         static void submit ( WD &wd );
+         static void submit ( WD &wd, bool force_queue = false );
          static void submitAndWait ( WD &wd );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
