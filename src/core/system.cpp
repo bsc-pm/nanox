@@ -688,6 +688,9 @@ void System::start ()
        }
    }
 
+   if ( getSynchronizedStart() )
+      threadReady();
+
    // FIXME (855): do this before thread creation, after PE creation
    completeNUMAInfo();
 
