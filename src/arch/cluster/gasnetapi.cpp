@@ -366,6 +366,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    {
       new ( &newCopies[i] ) CopyData( recvCopies[i] );
       newCopies[i].setDimensions( (*dimensions_ptr) + ( ( uintptr_t ) recvCopies[i].getDimensions() ) );
+      fprintf(stderr, "Copy %d, host id %d\n", i, newCopies[i].getHostRegionId() );
    }
 
    localWD->setId( wdId );

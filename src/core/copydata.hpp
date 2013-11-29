@@ -25,7 +25,7 @@
 
 using namespace nanos;
 
-inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off, uint64_t hostBaseAddress )
+inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off, uint64_t hostBaseAddress, memory_space_id_t hostRegionId )
 {
    address = (void *) addr;
    sharing = nxSharing;
@@ -35,6 +35,7 @@ inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input
    dimensions = dims;
    offset = off;
    _hostBaseAddress = hostBaseAddress;
+   _hostRegionId = hostRegionId;
 }
 
 inline CopyData::CopyData ( const CopyData &cd )
@@ -47,6 +48,7 @@ inline CopyData::CopyData ( const CopyData &cd )
    dimensions = cd.dimensions;
    offset = cd.offset;
    _hostBaseAddress = cd._hostBaseAddress;
+   _hostRegionId = cd._hostRegionId;
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
@@ -60,6 +62,7 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    dimensions = cd.dimensions;
    offset = cd.offset;
    _hostBaseAddress = cd._hostBaseAddress;
+   _hostRegionId = cd._hostRegionId;
    return *this;
 }
 
@@ -172,5 +175,12 @@ inline void CopyData::setHostBaseAddress( uint64_t addr ) {
    _hostBaseAddress = addr;
 }
 
+inline memory_space_id_t CopyData::getHostRegionId() const {
+   return _hostRegionId;
+}
+
+inline void CopyData::setHostRegionId( memory_space_id_t id ) {
+   _hostRegionId = id;
+}
 
 #endif

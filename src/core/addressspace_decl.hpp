@@ -135,8 +135,6 @@ class MemSpace : public T {
 typedef MemSpace<SeparateAddressSpace> SeparateMemoryAddressSpace;
 typedef MemSpace<HostAddressSpace> HostMemoryAddressSpace;
 
-typedef unsigned int memory_space_id_t;
-
 }
 
 #endif /* ADDRESSSPACE_DECL */

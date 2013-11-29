@@ -140,6 +140,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       newCopies[i].setHostBaseAddress( (uint64_t) wd.getCopies()[i].getBaseAddress() );
       //newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
       newCopies[i].setBaseAddress( (void *) wd._mcontrol.getAddress( i ) );
+      newCopies[i].setHostRegionId( wd._mcontrol._memCacheCopies[i]._reg.id );
       dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
 

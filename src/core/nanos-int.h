@@ -118,6 +118,8 @@ typedef struct {
    void (*cleanup)(void *);
 } nanos_reduction_t;
 
+typedef unsigned int memory_space_id_t;
+
 /* This structure is initialized in copydata.hpp. Any change in
  * its contents has to be reflected in CopyData constructor
  */
@@ -140,6 +142,7 @@ typedef struct {
 #endif
    ptrdiff_t offset;
    uint64_t _hostBaseAddress;
+   memory_space_id_t _hostRegionId;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;
