@@ -300,7 +300,7 @@ bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addr
 //   return mem;
 //}
 
-void * GPUDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem ) const
+void * GPUDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr) const
 {
    void * address = NULL;
 
@@ -332,7 +332,7 @@ void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
    if ( done ) ops->completeOp();
 }
 
-void GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const {
+bool GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const {
    CopyDescriptor cd( 0xdeaddead ); cd._ops = ops; cd._functor = f;
    ext::GPUMemorySpace *gpuMemDataOrig = ( ext::GPUMemorySpace * ) memOrig.getSpecificData();
    ext::GPUMemorySpace *gpuMemDataDest = ( ext::GPUMemorySpace * ) memDest.getSpecificData();
@@ -346,6 +346,7 @@ void GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
          (*f)(); 
       }
    }
+   return true;
 }
 
 void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd ) {
@@ -356,8 +357,9 @@ void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::siz
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
 }
 
-void GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const {
+bool GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const {
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
+   return false;
 }
 std::size_t GPUDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) const {
    ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
@@ -365,7 +367,7 @@ std::size_t GPUDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) const {
    return gpu->getMaxMemoryAvailable();
 }
 
-void GPUDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
+void GPUDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) const {
    ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
    SimpleAllocator *allocator = gpuMemData->getAllocator();
    allocator->getFreeChunksList( list );

@@ -26,10 +26,10 @@ using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
+bool OpenCLConfig::_allocWide = false;
 size_t OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
-System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
 extern __attribute__((weak)) char ompss_uses_opencl;
 
@@ -55,6 +55,10 @@ cl_context OpenCLConfig::getContextDevice(cl_device_id dev) {
    return (*_devicesPtr)[dev];
 }
 
+bool OpenCLConfig::getAllocWide() {
+   return _allocWide;
+}
+
 void OpenCLConfig::prepare( Config &cfg )
 {
    cfg.setOptionsSection( "OpenCL Arch", "OpenCL specific options" );
@@ -75,15 +79,6 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerEnvOption( "disable-opencl", "NX_DISABLEOPENCL" );
    cfg.registerArgOption( "disable-opencl", "disable-opencl" );
 
-   System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
-   cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
-   cachePolicyCfg->addOption("wb", System::WRITE_BACK );
-   cachePolicyCfg->addOption( "nocache", System::NONE );
-   // Set the cache policy for OpenCL devices
-   cfg.registerConfigOption ( "opencl-cache-policy", cachePolicyCfg, "Defines the cache policy for OpenCL devices" );
-   cfg.registerEnvOption ( "opencl-cache-policy", "NX_OPENCL_CACHE_POLICY" );
-   cfg.registerArgOption( "opencl-cache-policy", "opencl-cache-policy" );
-
    // Select the size of the device cache.
    cfg.registerConfigOption( "opencl-cache",
                              NEW Config::SizeVar( _devCacheSize ),
@@ -101,6 +96,10 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerEnvOption( "opencl-max-devices", "NX_OPENCL_MAX_DEVICES" );
    cfg.registerArgOption( "opencl-max-devices", "opencl-max-devices" );
 
+   cfg.registerConfigOption( "opencl-alloc-wide", NEW Config::FlagOption( _allocWide ),
+                                "Alloc full objects in the cache." );
+   cfg.registerEnvOption( "opencl-alloc-wide", "NX_OPENCL_ALLOCWIDE" );
+   cfg.registerArgOption( "opencl-alloc-wide", "opencl-alloc-wide" );
 }
 
 void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices)

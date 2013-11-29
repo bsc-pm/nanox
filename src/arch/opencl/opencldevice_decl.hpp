@@ -32,41 +32,55 @@ public:
    OpenCLDevice ( const char *name );
 
 public:
-   static void *allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  );
+//   static void *allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  );
+//
+//   static void *realloc( void * address,
+//                         size_t size,
+//                         size_t ceSize,
+//                         ProcessingElement *pe );
+//
+//   static void free( void *address, ProcessingElement *pe );
+//
+//   static bool copyDevToDev( void *addrDst,
+//                             CopyDescriptor& dstCd,
+//                             void* addrSrc,
+//                             size_t size,
+//                             ProcessingElement *peDst,
+//                             ProcessingElement *peSrc );
+//   
+//   static bool copyIn( void *localDst,
+//                       CopyDescriptor &remoteSrc,
+//                       size_t size,
+//                       ProcessingElement *pe );
+//
+//   static bool copyOut( CopyDescriptor &remoteDst,
+//                        void *localSrc,
+//                        size_t size,
+//                        ProcessingElement *pe );
+//
+//   static void copyLocal( void *dst,
+//                          void *src,
+//                          size_t size,
+//                          ProcessingElement *pe )
+//   {
+//       return;
+//   }
+//
+//   static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe );
+//   
+   void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr=0) const;
+   std::size_t getMemCapacity( SeparateMemoryAddressSpace &mem ) const;
+   void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
+   void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) const;
+   void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd ) const;
+   void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd ) const;
+   bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const ;
+//   void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd ) ;
+//   void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd ) ;
+//   bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const;
 
-   static void *realloc( void * address,
-                         size_t size,
-                         size_t ceSize,
-                         ProcessingElement *pe );
 
-   static void free( void *address, ProcessingElement *pe );
 
-   static bool copyDevToDev( void *addrDst,
-                             CopyDescriptor& dstCd,
-                             void* addrSrc,
-                             size_t size,
-                             ProcessingElement *peDst,
-                             ProcessingElement *peSrc );
-   
-   static bool copyIn( void *localDst,
-                       CopyDescriptor &remoteSrc,
-                       size_t size,
-                       ProcessingElement *pe );
-
-   static bool copyOut( CopyDescriptor &remoteDst,
-                        void *localSrc,
-                        size_t size,
-                        ProcessingElement *pe );
-
-   static void copyLocal( void *dst,
-                          void *src,
-                          size_t size,
-                          ProcessingElement *pe )
-   {
-       return;
-   }
-
-   static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe );
 };
 
 } // End namespace nanos.

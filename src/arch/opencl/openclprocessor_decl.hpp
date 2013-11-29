@@ -61,7 +61,7 @@ public:
    cl_mem getBuffer( cl_mem parentBuf, size_t offset, size_t size );
    void freeAddr( void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
-
+   
    // Low-level program builder. Lifetime of prog is under caller
    // responsability.
    cl_int buildProgram( const char *src,
@@ -158,10 +158,10 @@ private:
    std::vector<cl_event> _pendingEvents;
 };
 
-class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
+class OpenCLProcessor : public CachedAccelerator
 {
 public:        
-   OpenCLProcessor( int id , int devId, int uid );
+   OpenCLProcessor( int id , int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.
@@ -173,11 +173,21 @@ public:
    WD &getWorkerWD() const;
 
    WD &getMasterWD() const;
-   
-   BaseThread &createThread( WorkDescriptor &wd );
-
-   bool supportsUserLevelThreads() const { return false; }
     
+   virtual WD & getMultiWorkerWD () const
+   {
+      fatal( "getMultiWorkerWD: OpenCLProcessor is not allowed to create MultiThreads" );
+   }
+   BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent );
+   virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
+   {
+      fatal( "OpenCLNode is not allowed to create MultiThreads" );
+   }
+    
+
+   bool supportsUserLevelThreads () const { return false; }
+   bool isGPU () const { return true; }
+
    OpenCLAdapter::ProgramCache& getProgCache() {
        return _openclAdapter.getProgCache();
    }
@@ -222,14 +232,14 @@ public:
       return _cache.free( address );
    }
 
-   bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size )
+   bool copyIn( uint64_t devAddr,  uint64_t hostAddr, size_t size, DeviceOps *ops )
    {
-      return _cache.copyIn( localDst, remoteSrc, size );
+      return _cache.copyIn( devAddr, hostAddr, size, ops );
    }
 
-   bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size )
+   bool copyOut( uint64_t hostAddr, uint64_t devAddr, size_t size, DeviceOps *ops )
    {
-      return _cache.copyOut( remoteDst, localSrc, size );
+      return _cache.copyOut( hostAddr, devAddr, size, ops );
    }
    
    cl_mem getBuffer( void *localSrc, size_t size )
@@ -262,6 +272,11 @@ public:
    
     void freeSharedMemory( void* addr );
 
+    
+    SimpleAllocator& getCacheAllocator(){
+        return _cache.getAllocator();
+    }
+    
 
 private:
    OpenCLAdapter _openclAdapter;

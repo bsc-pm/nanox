@@ -21,6 +21,7 @@
 #include "openclcache.hpp"
 #include "openclconfig.hpp"
 #include "openclprocessor.hpp"
+#include "deviceops.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -60,7 +61,7 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
     if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) tag, size)){
         cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)tag,size);
         if (buf==NULL){
-            return CACHE_ALLOC_ERROR;
+            return NULL;
         }
         return (void*)tag;
     }
@@ -71,11 +72,11 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
     //    fatal("Device allocation failed");
 
     void *addr = _devAllocator.allocate(size);
-    if (addr==NULL) return CACHE_ALLOC_ERROR;
+    if (addr==NULL) return NULL;
     //Create the buffer
     cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)addr,size);
     if (buf==NULL){
-        return CACHE_ALLOC_ERROR;
+        return NULL;
     }
 
     //_bufAddrMappings[addr] = buf;
@@ -103,16 +104,16 @@ void OpenCLCache::free(void * addr) {
     //_bufAddrMappings.erase(_bufAddrMappings.find(addr)); 
 }
 
-bool OpenCLCache::copyIn(void *localDst,
-        CopyDescriptor &remoteSrc,
-        size_t size) {
+bool OpenCLCache::copyIn(uint64_t devAddr,
+        uint64_t hostAddr,
+        size_t size, DeviceOps *ops) {
     //If shared memory, no need to copy
     cl_int errCode;
-    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) remoteSrc.getTag(), size))
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) hostAddr, size))
     {
-        cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)remoteSrc.getTag(),size);  
+        cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)hostAddr,size);  
         errCode = _openclAdapter.unmapBuffer(buf,
-              (void*) remoteSrc.getTag(),
+              (void*) hostAddr,
               0,
               size);
         if (errCode != CL_SUCCESS){
@@ -122,12 +123,13 @@ bool OpenCLCache::copyIn(void *localDst,
     }
     
     
-    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localDst,size);    
+    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)devAddr,size);    
                    
     errCode = _openclAdapter.writeBuffer(buf,
-              (void*) remoteSrc.getTag(),
+              (void*) hostAddr,
               0,
               size);
+    ops->completeOp();
     if (errCode != CL_SUCCESS){
         fatal("Buffer writing failed.");
     }
@@ -137,33 +139,35 @@ bool OpenCLCache::copyIn(void *localDst,
 }
 
 
-bool OpenCLCache::copyOut(CopyDescriptor &remoteDst,
-        void *localSrc,
-        size_t size) {
+bool OpenCLCache::copyOut(uint64_t hostAddr,
+        uint64_t devAddr,
+        size_t size,
+        DeviceOps *ops) {
     //If shared memory, no need to copy
-    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) remoteDst.getTag(), size)){
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) hostAddr, size)){
         cl_int errCode;
         
-        cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
+        cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)devAddr,size);
         errCode = _openclAdapter.mapBuffer(buf,
-                    ((void*)remoteDst.getTag()),
+                    ((void*)hostAddr),
                     0,
                     size);
 
-        if (errCode != CL_SUCCESS && localSrc!=0) {        
+        if (errCode != CL_SUCCESS && devAddr!=0) {        
             fatal("Buffer mapping failed.");
         }            
         return true;
     }
     cl_int errCode;
     
-    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)localSrc,size);
+    cl_mem buf = _openclAdapter.getBuffer(_mainBuffer,(size_t)devAddr,size);
     errCode = _openclAdapter.readBuffer(buf,
-                ((void*)remoteDst.getTag()),
+                ((void*)hostAddr),
                 0,
                 size);
+    ops->completeOp();
     
-    if (errCode != CL_SUCCESS && localSrc!=0) {        
+    if (errCode != CL_SUCCESS && devAddr!=0) {        
         fatal("Buffer reading failed.");
     }    
     

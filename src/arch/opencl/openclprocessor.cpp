@@ -247,7 +247,7 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
    errCode = clEnqueueWriteBuffer( _queue,
                                      buf,
-                                     CL_FALSE,
+                                     CL_TRUE,
                                      offset,
                                      size,
                                      src,
@@ -255,7 +255,7 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                      NULL,
                                      &ev
                                    );
-   _pendingEvents.push_back(ev);
+   //_pendingEvents.push_back(ev);
     NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 //   if( errCode != CL_SUCCESS ){
 //      return errCode;
@@ -808,8 +808,8 @@ void  OpenCLAdapter::waitForEvents(){
 
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
-OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid ) :
-   CachedAccelerator<OpenCLDevice>( id, &OpenCLDev, uid ),
+OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem ) :
+   CachedAccelerator( id, &OpenCLDev, uid , NULL, memId ),
    _openclAdapter(),
    _cache( _openclAdapter ),
    _devId ( devId ) { }
@@ -823,9 +823,7 @@ void OpenCLProcessor::initialize()
 
    // Initialize the caching subsystem.
    _cache.initialize();
-
-   // Register this device as cache-aware.
-   configureCache( _cache.getSize(), OpenCLConfig::getCachePolicy());
+   
 }
 
 WD &OpenCLProcessor::getWorkerWD() const
@@ -840,10 +838,10 @@ WD & OpenCLProcessor::getMasterWD() const {
    fatal("Attempting to create a OpenCL master thread");
 }
 
-BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd )
+BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd, SMPMultiThread *parent )
 {
 
-   OpenCLThread &thr = *NEW OpenCLThread( wd, this );
+   OpenCLThread &thr = *NEW OpenCLThread( wd, this, parent );
 
    return thr;
 }

@@ -40,7 +40,7 @@ private:
    void raiseWDClosingEvents ();
    
 public:
-   OpenCLThread( WD &wd, PE *pe ) : SMPThread( wd, pe ) {}
+   OpenCLThread( WD &wd, PE *pe, SMPMultiThread* parent ) : SMPThread( wd, pe, parent ) {}
    ~OpenCLThread() {}
    
    void initializeDependent();

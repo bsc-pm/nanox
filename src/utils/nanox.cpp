@@ -92,11 +92,15 @@ void utilInit ( void * )
 #define INIT_NULL { utilInit, 0 }                                                                                                                                         
 LINKER_SECTION(nanos_init, nanos_init_desc_t , INIT_NULL) 
 
+#ifdef CLUSTER_DEV
 extern "C" {
 int _nanox_main (int argc, char* argv[]);
 }
 
 int _nanox_main (int argc, char* argv[])
+#else
+int main (int argc, char* argv[])
+#endif
 {
    bool listVersion = false;
    bool listHelp = false;
