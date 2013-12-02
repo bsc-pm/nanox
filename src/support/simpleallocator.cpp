@@ -36,6 +36,7 @@ void SimpleAllocator::init( uint64_t baseAddress, std::size_t len )
    _baseAddress = baseAddress;
    _freeChunks[ baseAddress ] = len;
    _remaining = len;
+   _capacity = len;
 }
 
 void * SimpleAllocator::allocate( std::size_t size )

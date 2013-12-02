@@ -75,8 +75,6 @@ void OpenCLDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len
 //      else
         proc->copyIn( devAddr, hostAddr, len, ops );
    }
-
-   fatal( "Can copyIn only on OpenCLProcessor" );
 }
 
 void OpenCLDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd ) const
@@ -93,8 +91,6 @@ void OpenCLDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t le
 //      else
         proc->copyOut( hostAddr, devAddr, len, ops );
    }
-
-   fatal( "Can copyOut only on OpenCLProcessor" );
 }
 
 bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const
@@ -104,8 +100,9 @@ bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, st
     //If both devices are in the same vendor/context do a real copy in       
    //If shared memory, no need to copy (I hope, all OCL devices should share the same memory space...)
     if (procDst->getContext()==procSrc->getContext() && !OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) devOrigAddr, len)) {       
-        cl_mem buf=procSrc->getBuffer( (void*) devDestAddr, len);
-        procDst->copyInBuffer( (void*) devOrigAddr, buf, len);
+        ops->addOp();
+        cl_mem buf=procSrc->getBuffer( (void*) devOrigAddr, len);
+        procDst->copyInBuffer( (void*) devDestAddr, buf, len);
         ops->completeOp(); 
         if ( f ) {
            (*f)(); 

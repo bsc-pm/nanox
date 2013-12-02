@@ -117,7 +117,7 @@ public:
    }
    
    void setPreallocatedWholeMemory(bool val){
-      // _preallocateWholeMemory=val;
+      //_preallocateWholeMemory=val;
    }
 
    ProgramCache& getProgCache() {

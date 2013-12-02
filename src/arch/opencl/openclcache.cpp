@@ -71,7 +71,9 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
     //if (_openclAdapter.allocBuffer(size, buf) != CL_SUCCESS)
     //    fatal("Device allocation failed");
 
+    _devAllocator.lock();
     void *addr = _devAllocator.allocate(size);
+    _devAllocator.unlock();
     if (addr==NULL) return NULL;
     //Create the buffer
     cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)addr,size);
@@ -116,6 +118,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
               (void*) hostAddr,
               0,
               size);
+       // ops->completeOp();
         if (errCode != CL_SUCCESS){
             fatal("Buffer unmap failed.");
         }
@@ -129,7 +132,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
               (void*) hostAddr,
               0,
               size);
-    ops->completeOp();
+   // ops->completeOp();
     if (errCode != CL_SUCCESS){
         fatal("Buffer writing failed.");
     }
@@ -153,6 +156,7 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
                     0,
                     size);
 
+        //ops->completeOp();
         if (errCode != CL_SUCCESS && devAddr!=0) {        
             fatal("Buffer mapping failed.");
         }            
@@ -165,7 +169,7 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
                 ((void*)hostAddr),
                 0,
                 size);
-    ops->completeOp();
+   // ops->completeOp();
     
     if (errCode != CL_SUCCESS && devAddr!=0) {        
         fatal("Buffer reading failed.");
