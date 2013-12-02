@@ -49,6 +49,7 @@ namespace nanos
          TeamData         *_parentData;
          nanos_ws_desc_t  *_wsDescriptor; /*< pointer to last worksharing descriptor */
          bool              _star;         /*< is current thread a star (or role) within the team */
+         bool              _creator;      /*< is team creator */
 
       private:
         /*! \brief TeamData copy constructor (private)
@@ -60,7 +61,7 @@ namespace nanos
       public:
         /*! \brief TeamData default constructor
          */
-         TeamData () : _id( 0 ), _team(NULL), _singleCount( 0 ), _schedData( NULL ), _parentData( NULL ), _wsDescriptor( NULL ), _star( false ) {}
+         TeamData () : _id( 0 ), _team(NULL), _singleCount( 0 ), _schedData( NULL ), _parentData( NULL ), _wsDescriptor( NULL ), _star( false ), _creator(false) {}
         /*! \brief TeamData destructor
          */
          ~TeamData ();
@@ -101,6 +102,9 @@ namespace nanos
 
          void setParentTeamData ( TeamData *data ) { _parentData = data; }
          TeamData * getParentTeamData () const { return _parentData; }
+
+         void setCreator ( bool value ) ;
+         bool isCreator ( void ) const;
    };
 
    class BaseThread
@@ -247,6 +251,8 @@ namespace nanos
 
          bool isSleeping () const;
          
+         bool isTeamCreator () const;
+
          //! \brief Is the thread paused as the result of stopping the scheduler?
          bool isPaused () const;
 

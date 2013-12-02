@@ -41,6 +41,10 @@ namespace nanos
 
    inline void TeamData::setStar ( bool v ) { _star = v; }
 
+   inline void TeamData::setCreator ( bool value ) { _creator = value; }
+
+   inline bool TeamData::isCreator ( void ) const { return _creator; }
+
    inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( BaseThread *thread, bool *b )
    {
       nanos_ws_desc_t *next = NULL, *myNext = NULL;
@@ -161,9 +165,11 @@ namespace nanos
  
    inline void BaseThread::enterTeam( TeamData *data )
    { 
+      lock();
       if ( data != NULL ) _teamData = data;
       else _teamData = _nextTeamData;
       _status.has_team = true;
+      unlock();
    }
  
    inline bool BaseThread::hasTeam() const { return _status.has_team; }
@@ -171,11 +177,13 @@ namespace nanos
    inline void BaseThread::leaveTeam()
    {
       ensure( this == myThread, "thread is not leaving team by itself" );
-
       if ( _teamData ) 
       {
          TeamData *td = _teamData;
          td->getTeam()->removeThread( getTeamId() );
+         debug( "removing thread " << this << " with id " << toString<int>(getTeamId()) << " from " << _teamData->getTeam() );
+         debug( td->getTeam()->size() << " of " << td->getTeam()->getFinalSize() << " threads" );
+         if ( td->getTeam()->size() == td->getTeam()->getFinalSize() ) td->getTeam()->setStable(true);
          _teamData = _teamData->getParentTeamData();
          _status.has_team = _teamData != NULL;
          delete td;
@@ -205,6 +213,8 @@ namespace nanos
 
    inline bool BaseThread::isSleeping () const { return _status.must_sleep; }
    
+   inline bool BaseThread::isTeamCreator () const { return _teamData->isCreator(); } 
+
    inline void BaseThread::wait ( void ) { _status.is_waiting = true; }
 
    inline void BaseThread::follow ( void ) {_status.is_waiting = false; }

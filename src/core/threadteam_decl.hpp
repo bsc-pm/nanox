@@ -75,6 +75,7 @@ namespace nanos
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
          ReductionList                _redList;          /**< Reduction List */
          Lock                         _lock;
+         bool                         _stable; 
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -210,6 +211,8 @@ namespace nanos
          void setFinalSize ( size_t s );
          void increaseFinalSize ( void );
          void decreaseFinalSize ( void );
+         void setStable ( bool value ) ;
+         bool isStable ( void ) const;
    };
 
 }

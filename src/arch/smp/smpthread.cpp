@@ -135,27 +135,31 @@ void SMPThread::wait()
    lock();
    pthread_mutex_lock( &_mutexWait );
 
+   ThreadTeam *team = getTeam();
+
+   if ( hasNextWD() ) {
+      WD *next = getNextWD();
+      next->untie();
+      team->getSchedulePolicy().queue( this, *next );
+   }
+   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+
+   if ( team != NULL ) leaveTeam();
+
    if ( isSleeping() ) {
-      ThreadTeam *team = getTeam();
-
-      if ( hasNextWD() ) {
-         WD *next = getNextWD();
-         next->untie();
-         team->getSchedulePolicy().queue( this, *next );
-      }
-      fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
-
-      if ( team != NULL ) leaveTeam();
-
       BaseThread::wait();
 
       unlock();
       pthread_cond_wait( &_condWait, &_mutexWait );
 
       //! \note Then we call base thread wakeup, which just mark thread as active
-      BaseThread::wakeup();
+      lock();
       BaseThread::follow();
-   } else { unlock(); }
+      BaseThread::wakeup();
+      unlock();
+   } else {
+      unlock();
+   }
 
    pthread_mutex_unlock( &_mutexWait );
 
@@ -175,18 +179,12 @@ void SMPThread::wakeup()
    //! \note This function has to be in free race condition environment or externally
    // protected, when called, with the thread common lock: lock() & unlock() functions.
 
-   // \note If thread is not marked as going to sleep, just ignore wakeup
-   if ( ! isSleeping() ) return;
+   //! \note If thread is not marked as waiting, just ignore wakeup (abort in debug)
+   ensure( isSleeping() && isWaiting(), "No sleeping thread asked to wakeup");
+   if ( !isSleeping() || !isWaiting() ) return;
 
    pthread_mutex_lock( &_mutexWait );
-   if ( isWaiting() ) {
-      pthread_cond_signal( &_condWait );
-   } else {
-      //! \note if (having the lock) thread is not waiting, mark as do not sleep
-      // we have take the lock before thread gets actually sleeped, so we will
-      // avoid any blocking
-      BaseThread::wakeup();
-   }
+   pthread_cond_signal( &_condWait );
    pthread_mutex_unlock( &_mutexWait );
 }
 

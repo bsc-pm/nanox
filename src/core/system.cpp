@@ -605,7 +605,7 @@ void System::finish ()
    myThread->getCurrentWD()->waitCompletion( true );
 
    //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
-   _workers[0]->wakeup();
+   if ( _workers[0]->isSleeping() ) _workers[0]->wakeup();
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
@@ -1313,6 +1313,8 @@ void System::createWorker( unsigned p )
    _workers.push_back( thread );
    ++_targetThreads;
 
+   CPU_SET( getBindingId( p ), &_cpu_active_set );
+
    //Set up internal data
    WD & threadWD = thread->getThreadWD();
    if ( _pmInterface->getInternalDataSize() > 0 ) {
@@ -1385,18 +1387,13 @@ BaseThread * System::getAssignedWorker ( ThreadTeam *team )
    ThreadList::reverse_iterator rit;
    for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
       thread = *rit;
+      thread->lock();
       //! \note Checking thread availabitity.
-      if ( (thread->getTeam() == team) && !thread->isSleeping() ) {
-         //! \note Then recheck availability with exclusive access,
-         thread->lock();
-         if ( (thread->getTeam() != team ) || thread->isSleeping() ) {
-            //! \note if it fails then continue looking for a thread in the team
-            thread->unlock();
-            continue;
-         }
-         //! \note otherwise we will return this thread LOCKED!!!
+      if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
+         //! \note return this thread LOCKED!!!
          return thread;
       }
+      thread->unlock();
    }
 
    //! \note If no thread has found, return NULL.
@@ -1413,6 +1410,7 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
 {
    int thId = team->addThread( thread, star, creator );
    TeamData *data = NEW TeamData();
+   if ( creator ) data->setCreator( true );
 
    data->setStar(star);
 
@@ -1596,12 +1594,12 @@ void System::updateActiveWorkers ( int nthreads )
    //! \bug Team variable must be received as a function parameter
    ThreadTeam *team = myThread->getTeam();
 
+   while ( !(team->isStable()) ) ;
+
    int num_threads = nthreads - team->getFinalSize();
 
-   int backup_num_threads = num_threads; // FIXME:xteruel To remove
-   team->setFinalSize(backup_num_threads);
-   
-  
+   if ( num_threads < 0 ) team->setStable(false);
+
    team->setFinalSize(nthreads);
 
    //! \bug We need to consider not only numThreads < nthreads but num_threads < availables?

@@ -32,7 +32,7 @@ inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, Schedule
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
-                                _wsDescriptor(NULL), _redList(), _lock()
+                                _wsDescriptor(NULL), _redList(), _lock(), _stable(true)
 { }
 
 inline ThreadTeam::~ThreadTeam ()
@@ -246,4 +246,8 @@ inline void ThreadTeam::setFinalSize ( size_t s ) { _finalSize = Atomic<size_t>(
 
 inline void ThreadTeam::increaseFinalSize ( void ) { _finalSize++; }
 inline void ThreadTeam::decreaseFinalSize ( void ) { _finalSize--; }
+
+inline void ThreadTeam::setStable ( bool value )  { _stable = value;}
+inline bool ThreadTeam::isStable ( void ) const { return _stable; }
+
 #endif
