@@ -282,7 +282,9 @@ inline void Scheduler::idleLoop ()
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
    current->~WorkDescriptor();
-   delete[] (char *) current;
+
+   // This is actually a free(current) but dressed up as C++
+   delete (char*) current;
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)

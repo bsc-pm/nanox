@@ -61,7 +61,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                                 _numDevices ( 1 ), _devices ( NEW DeviceData *( device ) ), _activeDeviceIdx( 0 ),
+                                 _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
@@ -69,6 +69,8 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData()
                                  {
+                                     _devices = new DeviceData*[1];
+                                     _devices[0] = device;
                                     _flags.is_final = 0;
                                  }
 
