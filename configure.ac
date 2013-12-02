@@ -83,6 +83,25 @@ if test x$allocator_enabled = xno; then
 	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
 fi
 
+# Memtracker support
+AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
+AC_ARG_ENABLE([memtracker],
+  AS_HELP_STRING([--disable-memtracker], [Disables Memtracker module]),
+  [
+    memtracker_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    memtracker_disabled=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$memtracker_disabled = xno; then
+	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
+	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
+fi
+
 AC_MSG_CHECKING([for Linux Intel C compiler mode])
 AC_ARG_ENABLE([icc],
   AC_HELP_STRING([--enable-icc],[Enable support for Intel compiler (off by default)]),
