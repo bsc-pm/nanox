@@ -82,7 +82,7 @@ Nanos++ without extrae support.
 %else
 %configure
 %endif
-make -j4
+make -j%{threads}
 
 #%check
 #make check
