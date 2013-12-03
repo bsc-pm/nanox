@@ -818,6 +818,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    else {
       desc = (chunk + offset_DESC);
       strncpy ( desc, description, strlen(description));
+      desc[strlen(description)] = '\0';
    }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
