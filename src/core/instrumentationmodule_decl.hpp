@@ -138,7 +138,7 @@ namespace nanos {
          /*! \brief InstrumentBurst constructor
           */
          InstrumentBurst ( const char* keydesc, nanos_event_value_t val )
-            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)), _val(0),
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)), _val(val),
               _closed(false)
          {
             _inst.raiseOpenBurstEvent(_key, _val);
