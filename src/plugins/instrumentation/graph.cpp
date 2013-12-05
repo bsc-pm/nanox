@@ -92,7 +92,8 @@ class InstrumentationGraphInstrumentation: public Instrumentation
          size_t slash_pos = _file_name.find_last_of("/");
          if( slash_pos != std::string::npos )
             _file_name = _file_name.substr( slash_pos+1, _file_name.size( ) - slash_pos );
-         _file_name = "graph_" + _file_name;
+         std::stringstream ss; ss << getpid();
+         _file_name = _file_name + "_" + ss.str();
          
          // Open the file and start the graph
          _dot_file.open( std::string( _file_name + ".dot" ).c_str( ) );
