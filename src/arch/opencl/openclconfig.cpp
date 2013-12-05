@@ -26,7 +26,8 @@ using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
-bool OpenCLConfig::_allocWide = false;
+bool OpenCLConfig::_allocWide = true;
+bool OpenCLConfig::_disableOCLdev2dev = false;
 size_t OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
@@ -97,9 +98,14 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerArgOption( "opencl-max-devices", "opencl-max-devices" );
 
    cfg.registerConfigOption( "opencl-alloc-wide", NEW Config::FlagOption( _allocWide ),
-                                "Alloc full objects in the cache." );
-   cfg.registerEnvOption( "opencl-alloc-wide", "NX_OPENCL_ALLOCWIDE" );
-   cfg.registerArgOption( "opencl-alloc-wide", "opencl-alloc-wide" );
+                                "Do not alloc full objects in the cache." );
+   cfg.registerEnvOption( "opencl-alloc-wide", "NX_OPENCL_DISABLE_ALLOCWIDE" );
+   cfg.registerArgOption( "opencl-alloc-wide", "opencl-disable-alloc-wide" );
+   
+   cfg.registerConfigOption( "opencl-disable-devtodev", NEW Config::FlagOption( _disableOCLdev2dev ),
+                                "Disable OpenCL dev to dev." );
+   cfg.registerEnvOption( "opencl-disable-devtodev", "NX_OPENCL_DISABLE_DEVTODEV" );
+   cfg.registerArgOption( "opencl-disable-devtodev", "opencl-disable-devtodev" );
 }
 
 void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices)

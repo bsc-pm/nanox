@@ -24,7 +24,7 @@ public:
   static cl_device_id getFreeDevice();
   static cl_context getContextDevice(cl_device_id dev);
   static bool getAllocWide();
-
+  static bool getDisableDev2Dev() { return _disableOCLdev2dev; }
   static size_t getDevCacheSize() { return _devCacheSize; }
   
 private:
@@ -60,6 +60,8 @@ private:
 
   // The next free device.
   static Atomic<unsigned> _freeDevice;
+  // Whether to disable OpenCL dev2dev.
+  static bool _disableOCLdev2dev;
 
   friend class OpenCLPlugin;
 };

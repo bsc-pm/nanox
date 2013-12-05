@@ -95,6 +95,8 @@ void OpenCLDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t le
 
 bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd ) const
 {
+    //If user disabled devToDev copies (sometimes they give bad performance...)
+    if (nanos::ext::OpenCLConfig::getDisableDev2Dev()) return false;
     nanos::ext::OpenCLProcessor *procDst = (nanos::ext::OpenCLProcessor *)( &(memDest.getPE()) );
     nanos::ext::OpenCLProcessor *procSrc = (nanos::ext::OpenCLProcessor *)( &(memOrig.getPE()) );
     //If both devices are in the same vendor/context do a real copy in       

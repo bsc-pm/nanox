@@ -41,6 +41,7 @@ class OpenCLAdapter
 {
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
+   typedef std::map<std::pair<uint64_t,size_t>, cl_mem> BufferCache;
 
 public:
    ~OpenCLAdapter();
@@ -58,8 +59,9 @@ public:
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
-   cl_mem getBuffer( cl_mem parentBuf, size_t offset, size_t size );
-   void freeAddr( void* addr );
+   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size, bool unkownSize = false );
+   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size);
+   void freeAddr(void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
    
    // Low-level program builder. Lifetime of prog is under caller
@@ -151,7 +153,8 @@ private:
    cl_device_id _dev;
    cl_context _ctx;
    cl_command_queue _queue;
-   std::map<void *, cl_mem> _bufCache;
+   BufferCache _bufCache;
+   std::map<uint64_t,size_t> _sizeCache;
    const bool _preallocateWholeMemory;
 
    ProgramCache _progCache;

@@ -229,6 +229,31 @@ void SimpleAllocator::unlock() {
    _lock.release();
 }
 
+uint64_t SimpleAllocator::getBasePointer( uint64_t address, size_t size )
+{
+   //This is likely an error
+   if (_allocatedChunks.size()==0) return 0;
+   
+   SegmentMap::iterator it = _allocatedChunks.lower_bound( address );
+
+   // Perfect match, check size
+   if ( it->first == address ) {
+      if ( it->second >= size ) return it->first;
+   }
+
+   // address is lower than any other pinned address
+   if ( it == _allocatedChunks.begin() ) return 0;
+
+   // It is an intermediate region, check it fits into a pinned area
+   it--;
+
+   if ( ( it->first < address ) && ( ( ( size_t ) it->first + it->second ) >= ( ( size_t ) address + size ) ) ){
+       return it->first;
+   }
+   
+   return 0;
+}
+
 void SimpleAllocator::canAllocate( std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const {
    bool *allocated = (bool *) alloca( numChunks * sizeof(bool) );
    unsigned int allocated_chunks = 0;

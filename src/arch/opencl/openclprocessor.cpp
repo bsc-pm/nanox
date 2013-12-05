@@ -79,7 +79,8 @@ void* OpenCLAdapter::allocSharedMemBuffer( size_t size )
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT );
    void* addr= clEnqueueMapBuffer(_queue, buff, CL_TRUE, CL_MAP_READ  | CL_MAP_WRITE, 0, size, 0, NULL, NULL, &err);   
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-   _bufCache[(void*)((size_t)addr+1)]=buff;
+   _bufCache[std::make_pair(((uint64_t)addr)+1,size)]=buff;
+   _sizeCache[((uint64_t)addr)+1]=size;
    return addr;
 }
 
@@ -96,46 +97,79 @@ cl_int OpenCLAdapter::freeBuffer( cl_mem &buf )
 
 void OpenCLAdapter::freeSharedMemBuffer( void* addr )
 {
-    freeBuffer(_bufCache.find(addr)->second);
-    _bufCache.erase(_bufCache.find(addr)); 
+    //Right now is the same
+    freeAddr(addr);
 }
 
 
-void OpenCLAdapter::freeAddr( void* addr )
+void OpenCLAdapter::freeAddr(void* addr )
 {
-    freeBuffer(_bufCache.find(addr)->second);
-    _bufCache.erase(_bufCache.find(addr)); 
+    uint64_t address=(uint64_t)addr;
+    size_t size=_sizeCache[address];
+    freeBuffer(_bufCache.find(std::make_pair(address,size))->second);
+    _bufCache.erase(_bufCache.find(std::make_pair(address,size))); 
+    //Remove sub-buffers which are part of this buffer
+    for (BufferCache::iterator i = _bufCache.begin(); i != _bufCache.end(); ++i) {
+        uint64_t iter_addr=i->first.first;
+        if (iter_addr>address && iter_addr < address+size){
+            freeBuffer(i->second);
+            _bufCache.erase(i); 
+        }
+    }
 }
 
 
-cl_mem OpenCLAdapter::getBuffer( cl_mem parentBuf,
+cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
                                size_t offset,
-                               size_t size)
+                               size_t size,
+                               bool unkownSize)
 {
-   size_t baseAddress=0;
-   //Cache buffers so we dont create a subBuffer everytime
-   if (_bufCache.count((void*) offset)!=0){
-       return _bufCache[(void*)offset];
+   //Fill size when it's unkown
+   if (unkownSize){ //size==SIZE_MAX
+       size=_sizeCache[offset];
+   }
+   std::pair<uint64_t,size_t> cacheKey= std::make_pair(offset,size);
+   //If this exact buffer is in cache, return
+   if (_bufCache.count(cacheKey)!=0){
+       return _bufCache[cacheKey];
    } 
-   //If shared memory and not in the buffer cache, it must be a subbuffer
+   
+   //If there is a buffer which covers this buffer (same base address but bigger), return it
+   uint64_t baseAddress=allocator.getBasePointer(offset, size);
+   if (baseAddress==offset && size<_sizeCache[baseAddress]){
+       cacheKey= std::make_pair(offset,_sizeCache[baseAddress]);
+       return _bufCache[cacheKey];
+   }
+   
+   //Free the current buffer if it's the same pointer and different size
+   //Except when it's not a subbuffer (main cache controls these)
+   //The second part of this if shouldn't be needed (two previous ifs cover the 
+   //case of new_size < buffSize and new_size == buffSize, so nanox cache should have reallocated this)
+   if (_sizeCache.count(offset)!=0 && baseAddress!=offset)  {
+       freeAddr((void*)offset);
+   }
+   
+   
+   //Look for the right parent buffer to be sub-buffered
    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) offset, size)) {
-       //Search the baseAddress (addres when it was allocated)
-       baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) offset, size);
-       parentBuf=_bufCache[(void*)(baseAddress+1)];
-//       CopyData* cd=myThread->getCurrentWD()->getCopies();
-//       int cdSize=myThread->getCurrentWD()->getNumCopies();
-//       bool found=false;
-//       for (int i=0;i < cdSize && !found; i++){
-//           if (cd[i].getBaseAddress()==(void*)offset){
-//               size=cd[i].getSize();
-//               found=true;
-//           }
-//       }
+       //Search the baseAddress (addres where it was allocated)       
+       //Addresses from shared mem are stored with an offset of 1
+       baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) offset, size) +1 ;
+       size_t old_size=_sizeCache[baseAddress];
+       parentBuf=_bufCache[std::make_pair(baseAddress,old_size)];
+       
+       //Offset is address - baseAddress
+       offset=offset-baseAddress;
+   } else if (parentBuf==NULL && baseAddress!=offset) { 
+       size_t old_size=_sizeCache[baseAddress];
+       
+       parentBuf=_bufCache[std::make_pair(baseAddress,old_size)];
        
        //Offset is address - baseAddress
        offset=offset-baseAddress;
    }
    
+   //Now create the subbuffer (either from sharedMemory, mainBuffer when in prealloc mode, or from its "baseBuffer" in normal mode)
    if (parentBuf!=NULL){
        cl_int errCode;
        NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_SUBBUFFER_EVENT );
@@ -145,9 +179,10 @@ cl_mem OpenCLAdapter::getBuffer( cl_mem parentBuf,
        cl_mem buf = clCreateSubBuffer(parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
-       _bufCache[(void*)(offset+baseAddress)]=buf;
+       _bufCache[std::make_pair(offset+baseAddress,size)]=buf;
+       _sizeCache[offset+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-       if (errCode != CL_SUCCESS) {        
+       if (errCode != CL_SUCCESS) {      
            return NULL;
        }    
 
@@ -156,9 +191,40 @@ cl_mem OpenCLAdapter::getBuffer( cl_mem parentBuf,
    //If im a CPU (probably any kind of shared memory device), allocate buffers on demand
    //so we don't allocate the whole CPU memory
    } else {
+       fatal0("Error in OpenCL Cache, tried to get a buffer which was not allocated before");
+   }
+}
+
+
+cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
+                               size_t offset,
+                               size_t size)
+{
+   //Preallote whole memory mode
+   if (parentBuf!=NULL){
+       cl_int errCode;
+       NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_SUBBUFFER_EVENT );
+       cl_buffer_region regInfo;
+       regInfo.origin=offset;
+       regInfo.size=size;
+       cl_mem buf = clCreateSubBuffer(parentBuf,
+                CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
+                &regInfo, &errCode);
+       _bufCache[std::make_pair(offset,size)]=buf;
+       _sizeCache[offset]=size;
+       NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+       if (errCode != CL_SUCCESS) {      
+           return NULL;
+       }    
+
+       //Buf is a pointer, so this should be safe
+       return buf;
+   //If not in preallocation mode
+   } else {
        cl_mem buf;
        allocBuffer(size,buf);
-       _bufCache[(void*)offset]=buf;
+       _bufCache[std::make_pair(offset,size)]=buf;
+       _sizeCache[offset]=size;
        return buf;
    }
 }
@@ -505,6 +571,13 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
    return kern;    
 }
 
+static void processOpenCLError(cl_int errCode){    
+      std::cerr << "Error code when executing kernel " << errCode << "\n"; 
+      if (errCode==-52){
+          std::cerr << "Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
+      }
+}
+
 cl_int OpenCLAdapter::execKernel(void* oclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
@@ -531,7 +604,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    {
       // Don't worry about exit code, we are cleaning an error.
       clReleaseKernel( openclKernel );
-      std::cerr << "Error code when executing kernel " << errCode << "\n"; 
+      processOpenCLError(errCode);
       fatal0("Error launching OpenCL kernel");
    }
 
@@ -542,8 +615,8 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Clean up environment.
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
-      std::cerr << "Error code when waiting for kernel " << errCode << "\n";
-      fatal0("Error launching OpenCL kernel");
+      processOpenCLError(errCode);
+      fatal0("Error when waiting for OpenCL kernel");
    }
 
    // Check if any errors has occurred.
