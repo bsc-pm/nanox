@@ -75,7 +75,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    sys.getPMInterface().wdStarted( *this );
 
    // Setting state to ready
-   setReady();
+   _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
 }
 
 void WorkDescriptor::prepareDevice ()

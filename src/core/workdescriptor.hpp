@@ -88,7 +88,8 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _wakeUpQueue( wd._wakeUpQueue ), 
                                  _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData()
                                  {
-                                    _flags.is_final = 0;
+                                    _flags.is_final = false;
+                                    _flags.is_ready = false;
                                  }
 
 /* DeviceData inlined functions */
@@ -136,11 +137,28 @@ inline void WorkDescriptor::setStart () { _state = WorkDescriptor::START; }
 inline bool WorkDescriptor::isIdle () const { return _state == WorkDescriptor::IDLE; }
 inline void WorkDescriptor::setIdle () { _state = WorkDescriptor::IDLE; }
 
-inline bool WorkDescriptor::isBlocked () const { return _state == WorkDescriptor::BLOCKED; }
-inline void WorkDescriptor::setBlocked () { _state = WorkDescriptor::BLOCKED; }
+inline bool WorkDescriptor::isReady () const { return _flags.is_ready; }
 
-inline bool WorkDescriptor::isReady () const { return _state == WorkDescriptor::READY; }
-inline void WorkDescriptor::setReady () { _state = WorkDescriptor::READY; }
+inline void WorkDescriptor::setBlocked () {
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys  = ID->getEventKey("wd-blocked"); )
+   NANOS_INSTRUMENT ( if ( _flags.is_ready ) { )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) this; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT ( } )
+   _flags.is_ready = false;
+}
+
+inline void WorkDescriptor::setReady ()
+{
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys  = ID->getEventKey("wd-ready"); )
+   NANOS_INSTRUMENT ( if ( !_flags.is_ready ) { )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) this; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT ( } )
+   _flags.is_ready = true;
+}
 
 inline bool WorkDescriptor::isFinal () const { return _flags.is_final; }
 inline void WorkDescriptor::setFinal ( bool value ) { _flags.is_final = value; }

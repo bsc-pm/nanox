@@ -151,9 +151,9 @@ namespace nanos
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
             bool is_final:1;
-            bool reserved1:1;
-            bool reserved2:1;
-            bool reserved3:1;
+            bool is_initialized:1;
+            bool is_started:1;
+            bool is_ready:1;
             bool reserved4:1;
             bool reserved5:1;
             bool reserved6:1;
@@ -377,8 +377,6 @@ namespace nanos
          bool isIdle () const;
 
          void setIdle ();
-
-         bool isBlocked () const;
 
          void setBlocked ();
 

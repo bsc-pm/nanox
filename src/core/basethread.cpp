@@ -55,6 +55,8 @@ WD * BaseThread::getNextWD ()
 
    WD * next = _nextWDs.pop_front( this );
 
+   if ( next ) next->setReady();
+
    return next;
 }
 

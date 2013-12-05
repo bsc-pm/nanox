@@ -53,6 +53,7 @@ void Scheduler::submit ( WD &wd )
    debug ( "submitting task " << wd.getId() );
 
    wd.submitted();
+   wd.setReady();
 
    /* handle tied tasks */
    BaseThread *wd_tiedto = wd.isTiedTo();
@@ -469,7 +470,7 @@ void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
    
-   if ( wd->isBlocked() ) {
+   if ( !wd->isReady() ) {
       /* Setting ready wd */
       wd->setReady();
       WD *next = NULL;
