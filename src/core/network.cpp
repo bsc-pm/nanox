@@ -25,6 +25,8 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "deviceops.hpp"
+#include "regiondict.hpp"
+#include "version.hpp"
 
 #define VERBOSE_COMPLETION 0
 
@@ -165,8 +167,6 @@ void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAdd
    {
       _sentWdData.addSentData( wdId, size );
       if ( !_forwardedRegions[remoteNode-1].isRegionForwarded( global_reg_t( hostRegId, (reg_key_t) hostObject ) ) ) {
-         std::cerr << " I HAVE TO FWD REGION META DATA TO NODE " << remoteNode << " hostRegId is " << hostRegId << std::endl;
-
          global_reg_t reg( hostRegId, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
          CopyData cd;
          reg.fillCopyData( cd );
@@ -676,45 +676,51 @@ unsigned int SendDataRequest::getSeqNumber() const {
 }
 
 void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId ) {
-   std::cerr << "I HAVE TO INVALIDATE DATA!!!" << std::endl;
    reg_t id = sys.getHostMemory().getLocalRegionId( hostObject, hostRegId );
-   std::cerr << " local id is " << id << " host is " << hostRegId << std::endl;
+   global_reg_t reg( id, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
 
-   //NewDirectory::LocationInfoList locations;
-   //unsigned int currentVersion;
-   //nanos_region_dimension_internal_t aDimension = { len, 0, len };
-   //CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
-   //Region reg = NewRegionDirectory::build_region( cd );
-   //getInstance()->_newMasterDir->lock();
-   ////getInstance()->_newMasterDir->masterRegisterAccess( reg, true, true /* will increase version number */, 0, addr /*this is currently unused */, locations );
-   //getInstance()->_newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
-   //getInstance()->_newMasterDir->addAccess( reg, 0, currentVersion + 1 ); 
-   //getInstance()->_newMasterDir->unlock();
+   if ( reg.isRegistered() ) {
+      if ( reg.getFirstLocation() != 0 ) {
+         reg.setLocationAndVersion( 0, reg.getVersion() );
+      }
+   }
 }
 
 void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId ) {
-   std::cerr << "I HAVE TO GET DATA!!! host object " << (void *) hostObject << " reg " << hostRegId << std::endl;
    reg_t id = sys.getHostMemory().getLocalRegionId( hostObject, hostRegId );
-   std::cerr << " local id is " << id << " host is " << hostRegId << std::endl;
+   global_reg_t thisReg( id, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
 
-   //NewDirectory::LocationInfoList locations;
-   //unsigned int currentVersion;
-   //nanos_region_dimension_internal_t aDimension = { len, 0, len };
-   //CopyData cd( addr, NANOS_SHARED, true, true, 1, &aDimension, 0);
-   //Region reg = NewRegionDirectory::build_region( cd );
-   //getInstance()->_newMasterDir->lock();
-   //getInstance()->_newMasterDir->masterGetLocation( reg, locations, currentVersion ); 
-   //getInstance()->_newMasterDir->addAccess( reg, 0, currentVersion ); 
-   //getInstance()->_newMasterDir->unlock();
-   //for ( NewDirectory::LocationInfoList::iterator it = locations.begin(); it != locations.end(); it++ ) {
-   //   if (!it->second.isLocatedIn( 0 ) ) { 
-   //      unsigned int loc = it->second.getFirstLocation();
-   //      //std::cerr << "Houston, we have a problem, data is not in Host and we need it back. HostAddr: " << (void *) (((it->first)).getFirstValue()) << it->second << std::endl;
-   //      sys.getCaches()[ loc ]->syncRegion( it->first /*, it->second.getAddressOfLocation( loc )*/ );
-   //      //std::cerr <<"[" << gasnet_mynode() << "] Sync data to host mem, got " << *((double *) it->first.getFirstValue())<< " addr is " << (void *) it->first.getFirstValue() << std::endl;
-   //   }
-   //  //else { /*if ( sys.getNetwork()->getNodeNum() == 0)*/ std::cerr << "["<<sys.getNetwork()->getNodeNum()<<"]  All ok, checked directory " << _newMasterDir  <<" location is " << it->second << std::endl; }
-   //}
+   if ( thisReg.isRegistered() ) {
+      if ( thisReg.getFirstLocation() != 0 ) {
+         SeparateAddressSpaceOutOps outOps( false, false );
+
+         std::list< std::pair< reg_t, reg_t > > missingParts;
+         unsigned int version = 0;
+
+         thisReg.key->registerRegion(thisReg.id, missingParts, version, true);
+         for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
+            global_reg_t reg( mit->first, thisReg.key );
+            if ( !reg.isLocatedIn( 0 ) ) {
+               DeviceOps *thisOps = reg.getDeviceOps();
+               if ( thisOps->addCacheOp( /* debug: */ &myThread->getThreadWD() ) ) {
+                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                  if ( /*_VERBOSE_CACHE*/ 0 ) {
+                     std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                     if ( entry ) std::cerr << " " << *entry << std::endl;
+                     else std::cerr << " nil " << std::endl; 
+                  }
+                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
+                  outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
+               } else {
+                  outOps.getOtherOps().insert( thisOps );
+               }
+               //regEntry->addAccess( 0, regEntry->getVersion() );
+            }
+         }
+         outOps.issue( *( (WD *) NULL ) );
+         while ( !outOps.isDataReady( myThread->getThreadWD()) ) { myThread->idle(); }
+      }
+   }
 }
 
 unsigned int Network::getPutRequestSequenceNumber( unsigned int dest ) {

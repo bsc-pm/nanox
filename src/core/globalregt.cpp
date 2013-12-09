@@ -192,3 +192,8 @@ void global_reg_t::fillCopyData( CopyData &cd ) const {
    cd.setHostBaseAddress( key->getKeyBaseAddress() );
    cd.setNumDimensions( key->getNumDimensions() );
 }
+
+bool global_reg_t::isRegistered() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   return entry != NULL;
+}

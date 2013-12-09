@@ -378,7 +378,6 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    {
       new ( &newCopies[i] ) CopyData( recvCopies[i] );
       newCopies[i].setDimensions( (*dimensions_ptr) + ( ( uintptr_t ) recvCopies[i].getDimensions() ) );
-      fprintf(stderr, "Copy %d, host id %d\n", i, newCopies[i].getHostRegionId() );
       //fprintf(stderr, "Copy %d has HostAddr 0x%lx, BaseAddr 0x%p\n", i, newCopies[i].getHostBaseAddress(), newCopies[i].getBaseAddress() );
    }
 
@@ -748,7 +747,6 @@ void GASNetAPI::amGet( gasnet_token_t token, void *buff, std::size_t nbytes ) {
 
    getInstance()->_txBytes += msg->_len;
 
-   fprintf(stderr, "dest addr %p\n",  msg->_destAddr);
    SendDataGetRequest *req = NEW SendDataGetRequest( getInstance(), msg->_seqNumber, msg->_destAddr, msg->_origAddr, msg->_len, 1, 0, msg->_waitObj, msg->_cd, dims );
    getInstance()->_net->notifyRegionMetaData( &( req->_cd ) );
    getInstance()->_net->notifyGet( req );

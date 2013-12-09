@@ -43,7 +43,6 @@ void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
    reg.id = reg.key->obtainRegionId( cd );
    reg_t master_id = cd.getHostRegionId();
    if ( master_id != 0 ) {
-      fprintf(stderr, "%d Registering map from master id %d to local id %d\n", sys.getNetwork()->getNodeNum(), master_id, reg.id);
       NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
    }
 }

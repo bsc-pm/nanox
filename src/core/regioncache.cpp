@@ -35,7 +35,7 @@
 #include "regiondict.hpp"
 #include "memoryops_decl.hpp"
 
-#define VERBOSE_DEV_OPS 1
+#define VERBOSE_DEV_OPS 0
 #define VERBOSE_INVAL 0
 
 #if VERBOSE_CACHE
