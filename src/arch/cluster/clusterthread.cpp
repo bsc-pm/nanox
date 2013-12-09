@@ -144,7 +144,6 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       dimensionIndex += wd.getCopies()[i].getNumDimensions();
    }
 
-   //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << " copies " << wd.getNumCopies() << " dimensions " << dimensionIndex << std::endl;
 
 #ifdef GPU_DEV
    int arch = -1;
@@ -159,6 +158,8 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 #else
    int arch = 0;
 #endif
+
+   std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " arch: "<< arch << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << " copies " << wd.getNumCopies() << " dimensions " << dimensionIndex << std::endl;
 
    ( ( ClusterNode * ) pe )->incExecutedWDs();
    sys.getNetwork()->sendWorkMsg( ( ( ClusterNode * ) pe )->getClusterNodeNum(), dd.getWorkFct(), wd.getDataSize(), wd.getId(), /* this should be the PE id */ arch, totalBufferSize, buff, wd.getTranslateArgs(), arch, (void *) &wd );
@@ -250,6 +251,11 @@ void ClusterThread::idle( bool debug )
       }
    }
 }
+
+bool ClusterThread::acceptsWDsGPU() const {
+   return ( ( (int) numRunningWDsGPU() ) < ext::ClusterInfo::getGpuPresend() );
+}
+
 
 bool ClusterThread::isCluster() {
    return true;

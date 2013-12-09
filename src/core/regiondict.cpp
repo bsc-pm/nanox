@@ -140,7 +140,7 @@ void RegionDictionary< ContainerDense >::printRegion( reg_t region ) const {
       fprintf(stderr, "[%zu;%zu]", lowerBound, accessedLength);
       regNode = regNode->getParent();
    }
-   fprintf(stderr, "{%p:%zu:%zu}", (void*)reg.getFirstAddress(), reg.getBreadth(), reg.getDataSize() );
+   fprintf(stderr, "{key %p : FAkey %p : Real %p : FAReal %p : %zu : %zu}", (void*)_keyBaseAddress, (void*)reg.getKeyFirstAddress(), (void*)_realBaseAddress, (void*) reg.getRealFirstAddress(), reg.getBreadth(), reg.getDataSize() );
 }
 
 }

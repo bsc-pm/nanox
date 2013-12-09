@@ -60,14 +60,15 @@ typedef unsigned int reg_t;
 
    template < class T >
    class ContainerDense {
-      std::vector< T >            _container;
-      Atomic<unsigned int>        _leafCount;
-      Atomic<reg_t>               _idSeed;
-      std::vector< std::size_t >  _dimensionSizes;
-      RegionNode                  _root;
-      Lock                        _rogueLock;
-      Lock                        _lock;
-      Lock                        _invalidationsLock;
+      std::vector< T >           _container;
+      Atomic<unsigned int>       _leafCount;
+      Atomic<reg_t>              _idSeed;
+      std::vector< std::size_t > _dimensionSizes;
+      RegionNode                 _root;
+      Lock                       _rogueLock;
+      Lock                       _lock;
+      Lock                       _invalidationsLock;
+      std::map< reg_t, reg_t >   _masterIdToLocalId;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
@@ -85,6 +86,8 @@ typedef unsigned int reg_t;
       std::vector< std::size_t > const &getDimensionSizes() const;
       void invalLock();
       void invalUnlock();
+      void addMasterRegionId( reg_t masterId, reg_t localId );
+      reg_t getLocalRegionIdFromMasterRegionId( reg_t masterId ) const;
    };
 
    template < template <class> class > class RegionDictionary;
@@ -124,7 +127,8 @@ typedef unsigned int reg_t;
    template< template <class> class Sparsity >
    class RegionDictionary : public Sparsity< RegionVectorEntry > {
       std::vector< MemoryMap< std::set< reg_t > > > _intersects;
-      uint64_t _baseAddress;
+      uint64_t _keyBaseAddress;
+      uint64_t _realBaseAddress;
       Lock _lock;
 
       public:
@@ -146,7 +150,8 @@ typedef unsigned int reg_t;
       reg_t tryObtainRegionId( CopyData const &cd );
       void addLeaf( RegionNode *leaf );
 
-      uint64_t getBaseAddress() const;
+      uint64_t getKeyBaseAddress() const;
+      uint64_t getRealBaseAddress() const;
 
       void printRegion( reg_t ) const;
 

@@ -91,6 +91,7 @@ namespace nanos
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd );
          void synchronize( bool flushData, WD const &wd );
+         reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
 
          /*! \brief NewDirectory default constructor
           */
@@ -131,7 +132,9 @@ namespace nanos
          static void tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static void __getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static void initializeEntry( RegionDirectoryKey dict, reg_t reg );
-
+         static void addRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
+         static reg_t getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t localId );
+         static void addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
    };
 }
 

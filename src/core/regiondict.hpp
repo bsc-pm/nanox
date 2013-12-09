@@ -89,6 +89,21 @@ void ContainerDense< T >::invalUnlock() {
 }
 
 template <class T>
+void ContainerDense< T >::addMasterRegionId( reg_t masterId, reg_t localId ) {
+   _masterIdToLocalId[ masterId ] = localId;
+}
+
+template <class T>
+reg_t ContainerDense< T >::getLocalRegionIdFromMasterRegionId( reg_t masterId ) const {
+   reg_t result = 0;
+   std::map< reg_t, reg_t >::const_iterator it = _masterIdToLocalId.find( masterId );
+   if ( it != _masterIdToLocalId.end() ) {
+      result = it->second;
+   }
+   return result;
+}
+
+template <class T>
 ContainerSparse< T >::ContainerSparse( RegionDictionary< ContainerDense > &orig ) : _container(), _orig( orig ), sparse( true ) {
 }
 
@@ -124,6 +139,10 @@ Version *ContainerSparse< T >::getRegionData( reg_t id ) {
 
 template <class T>
 void ContainerSparse< T >::setRegionData( reg_t id, Version *data ) {
+   if ( _container[ id ].getLeaf() == NULL ) {
+   std::cerr << "WARNING: null leaf, region "<< id << " region node is " << (void*) _orig.getRegionNode( id ) << " addr orig " << (void*)&_orig <<std::endl;
+      _container[ id ].setLeaf( _orig.getRegionNode( id ) );
+   }
    _container[ id ].setData( data );
 }
 
@@ -135,6 +154,7 @@ unsigned int ContainerSparse< T >::getRegionNodeCount() const {
 template <class T>
 reg_t ContainerSparse< T >::addRegion( nanos_region_dimension_internal_t const region[] ) {
    reg_t id = _orig.addRegion( region, true );
+   if ( sys.getNetwork()->getNodeNum() > 0) { std::cerr << " ADDED REG " << id << std::endl; }
    return id;
 }
 
@@ -185,7 +205,8 @@ std::vector< std::size_t > const &ContainerSparse< T >::getDimensionSizes() cons
 
 
 template < template <class> class Sparsity>
-RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : Sparsity< RegionVectorEntry >( cd ), _intersects( cd.getNumDimensions(), MemoryMap< std::set< reg_t > >() ), _baseAddress( (uint64_t) cd.getBaseAddress() ), _lock() {
+RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : Sparsity< RegionVectorEntry >( cd ), _intersects( cd.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
+      _keyBaseAddress( cd.getHostBaseAddress() == 0 ? ( (uint64_t) cd.getBaseAddress() ) : cd.getHostBaseAddress() ), _realBaseAddress( (uint64_t) cd.getBaseAddress() ), _lock() {
    //std::cerr << "CREATING MASTER DICT: tree: " << (void *) &_tree << std::endl;
    nanos_region_dimension_internal_t dims[ cd.getNumDimensions() ];
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx++ ) {
@@ -201,7 +222,8 @@ RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : Sparsity<
 }
 
 template < template <class> class Sparsity>
-RegionDictionary< Sparsity >::RegionDictionary( GlobalRegionDictionary &dict ) : Sparsity< RegionVectorEntry >( dict ), _intersects( dict.getNumDimensions(), MemoryMap< std::set< reg_t > >() ), _baseAddress( dict.getBaseAddress() ), _lock() {
+RegionDictionary< Sparsity >::RegionDictionary( GlobalRegionDictionary &dict ) : Sparsity< RegionVectorEntry >( dict ), _intersects( dict.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
+      _keyBaseAddress( dict.getKeyBaseAddress() ), _realBaseAddress( dict.getRealBaseAddress() ), _lock() {
    //std::cerr << "CREATING CACHE DICT: tree: " << (void *) &_tree << " orig tree: " << (void *) &dict._tree << std::endl;
 }
 
@@ -515,7 +537,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    unsigned int thisRegionVersion = thisEntry != NULL ? thisEntry->getVersion() : ( this->sparse ? 0 : 1 );
 
    RegionNode const *regNode = this->getRegionNode( id );
-   if ( regNode == NULL ) { std::cerr << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id <<std::endl;}
+   if ( regNode == NULL ) { std::cerr << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id << " sparse? "<< (this->sparse ? 1 : 0)  <<std::endl; sys.printBt();}
    MemoryMap< std::set< reg_t > >::MemChunkList results[ this->getNumDimensions() ];
    std::map< reg_t, unsigned int > interacts;
    unsigned int skipDimensions = 0;
@@ -981,8 +1003,13 @@ void RegionDictionary< Sparsity >::_combine ( nanos_region_dimension_internal_t 
 }  
 
 template < template <class> class Sparsity>
-uint64_t RegionDictionary< Sparsity >::getBaseAddress() const {
-   return _baseAddress;
+uint64_t RegionDictionary< Sparsity >::getKeyBaseAddress() const {
+   return _keyBaseAddress;
+}
+
+template < template <class> class Sparsity>
+uint64_t RegionDictionary< Sparsity >::getRealBaseAddress() const {
+   return _realBaseAddress;
 }
 
 template < template <class> class Sparsity>

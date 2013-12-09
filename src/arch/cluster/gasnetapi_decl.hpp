@@ -57,7 +57,8 @@ namespace ext {
             protected:
             GASNetAPI *_gasnetApi;
             public:
-            GASNetSendDataRequest( GASNetAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId );
+            GASNetSendDataRequest( GASNetAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len,
+               std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId );
          };
 
          struct SendDataPutRequestPayload {
@@ -73,9 +74,30 @@ namespace ext {
             void         *_tmpBuffer;
             WD const     *_wd;
             Functor      *_functor;
+            void         *_hostObject;
+            reg_t         _hostRegId;
 
             SendDataPutRequestPayload ( unsigned int seqNumber, void *origAddr, void *dstAddr, std::size_t len, std::size_t count,
-               std::size_t ld, unsigned int dest, unsigned int wdId, void *tmpBuffer, WD const *wd, Functor *func );
+               std::size_t ld, unsigned int dest, unsigned int wdId, void *tmpBuffer, WD const *wd, Functor *func,
+               void *hostObject, reg_t hostRegId );
+            };
+
+         struct SendDataGetRequestPayload {
+            unsigned int  _seqNumber;
+            void         *_origAddr;
+            void         *_destAddr;
+            std::size_t   _len;
+            std::size_t   _count;
+            std::size_t   _ld;
+            void         *_waitObj;
+
+            //void         *_hostObject;
+            //reg_t         _hostRegId;
+            CopyData      _cd;
+            
+
+            SendDataGetRequestPayload ( unsigned int seqNumber, void *origAddr, void *dstAddr, std::size_t len, std::size_t count,
+               std::size_t ld, void *waitObj, CopyData const &cd );
             };
 
          class SendDataPutRequest : public GASNetSendDataRequest {
@@ -93,7 +115,9 @@ namespace ext {
          class SendDataGetRequest : public GASNetSendDataRequest {
             void *_waitObj;
             public:
-            SendDataGetRequest( GASNetAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj );
+            CopyData _cd;
+            SendDataGetRequest( GASNetAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len,
+            std::size_t count, std::size_t ld, void *waitObj, CopyData const &cd, nanos_region_dimension_internal_t *dims );
             virtual ~SendDataGetRequest();
             virtual void doSingleChunk();
             virtual void doStrided( void *localAddr );
@@ -123,18 +147,20 @@ namespace ext {
          void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd, std::size_t expectedData );
          void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
          void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId);
-         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd );
-         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd );
-         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *requestComplete );
-         void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *requestComplete );
+         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
+         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
+         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *requestComplete, CopyData const &cd );
+         void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *requestComplete, CopyData const &cd );
          void malloc ( unsigned int remoteNode, std::size_t size, void *waitObjAddr );
          void memFree ( unsigned int remoteNode, void *addr );
          void memRealloc ( unsigned int remoteNode, void *oldAddr, std::size_t oldSize, void *newAddr, std::size_t newSize );
          void nodeBarrier( void );
          
          void sendMyHostName( unsigned int dest );
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f);
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
+         void sendRegionMetadata( unsigned int dest, CopyData *cd );
+
          std::size_t getMaxGetStridedLen() const;
          std::size_t getTotalBytes();
          std::size_t getRxBytes();
@@ -145,8 +171,8 @@ namespace ext {
          void processSendDataRequest( SendDataRequest *req );
 
       private:
-         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f );
-         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f );
+         void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
+         void _putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
          void sendFreeTmpBuffer( void *addr, WD const *wd, Functor *f );
          void sendWaitForRequestPut( unsigned int dest, uint64_t addr, unsigned int wdId );
          static void print_copies( WD const *wd, int deps );
@@ -200,21 +226,28 @@ namespace ext {
                gasnet_handlerarg_t first,
                gasnet_handlerarg_t last,
                gasnet_handlerarg_t functorLo,
-               gasnet_handlerarg_t functorHi );
-         static void amGet( gasnet_token_t token,
-               gasnet_handlerarg_t destAddrLo,
-               gasnet_handlerarg_t destAddrHi,
-               gasnet_handlerarg_t origAddrLo,
-               gasnet_handlerarg_t origAddrHi,
-               gasnet_handlerarg_t tagAddrLo,
-               gasnet_handlerarg_t tagAddrHi,
-               gasnet_handlerarg_t lenLo,
-               gasnet_handlerarg_t lenHi,
-               gasnet_handlerarg_t totalLenLo,
-               gasnet_handlerarg_t totalLenHi,
-               gasnet_handlerarg_t waitObjLo,
-               gasnet_handlerarg_t waitObjHi,
-               gasnet_handlerarg_t seqNumber );
+               gasnet_handlerarg_t functorHi,
+               gasnet_handlerarg_t hostObjectLo,
+               gasnet_handlerarg_t hostObjectHi,
+               gasnet_handlerarg_t regId );
+         static void amGet( gasnet_token_t token, void *buff, std::size_t nbytes );
+         //static void amGet( gasnet_token_t token,
+         //      gasnet_handlerarg_t destAddrLo,
+         //      gasnet_handlerarg_t destAddrHi,
+         //      gasnet_handlerarg_t origAddrLo,
+         //      gasnet_handlerarg_t origAddrHi,
+         //      gasnet_handlerarg_t tagAddrLo,
+         //      gasnet_handlerarg_t tagAddrHi,
+         //      gasnet_handlerarg_t lenLo,
+         //      gasnet_handlerarg_t lenHi,
+         //      gasnet_handlerarg_t totalLenLo,
+         //      gasnet_handlerarg_t totalLenHi,
+         //      gasnet_handlerarg_t waitObjLo,
+         //      gasnet_handlerarg_t waitObjHi,
+         //      gasnet_handlerarg_t seqNumber,
+         //      gasnet_handlerarg_t hostObjectLo,
+         //      gasnet_handlerarg_t hostObjectHi,
+         //      gasnet_handlerarg_t regId );
          static void amGetReply( gasnet_token_t token,
                void *buf,
                std::size_t len,
@@ -272,26 +305,35 @@ namespace ext {
                gasnet_handlerarg_t firstMsg,
                gasnet_handlerarg_t lastMsg,
                gasnet_handlerarg_t functorLo,
-               gasnet_handlerarg_t functorHi );
-         static void amGetStrided1D( gasnet_token_t token,
-               gasnet_handlerarg_t destAddrLo,
-               gasnet_handlerarg_t destAddrHi,
-               gasnet_handlerarg_t origAddrLo,
-               gasnet_handlerarg_t origAddrHi,
-               gasnet_handlerarg_t origTagLo,
-               gasnet_handlerarg_t origTagHi,
-               gasnet_handlerarg_t lenLo,
-               gasnet_handlerarg_t lenHi,
-               gasnet_handlerarg_t count,
-               gasnet_handlerarg_t ld,
-               gasnet_handlerarg_t waitObjLo,
-               gasnet_handlerarg_t waitObjHi,
-               gasnet_handlerarg_t seqNumber );
+               gasnet_handlerarg_t functorHi,
+               gasnet_handlerarg_t hostObjectLo,
+               gasnet_handlerarg_t hostObjectHi,
+               gasnet_handlerarg_t regId );
+         static void amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nbytes );
+         //static void amGetStrided1D( gasnet_token_t token,
+         //      gasnet_handlerarg_t destAddrLo,
+         //      gasnet_handlerarg_t destAddrHi,
+         //      gasnet_handlerarg_t origAddrLo,
+         //      gasnet_handlerarg_t origAddrHi,
+         //      gasnet_handlerarg_t origTagLo,
+         //      gasnet_handlerarg_t origTagHi,
+         //      gasnet_handlerarg_t lenLo,
+         //      gasnet_handlerarg_t lenHi,
+         //      gasnet_handlerarg_t count,
+         //      gasnet_handlerarg_t ld,
+         //      gasnet_handlerarg_t waitObjLo,
+         //      gasnet_handlerarg_t waitObjHi,
+         //      gasnet_handlerarg_t seqNumber,
+         //      gasnet_handlerarg_t hostObjectLo,
+         //      gasnet_handlerarg_t hostObjectHi,
+         //      gasnet_handlerarg_t regId );
          static void amGetReplyStrided1D( gasnet_token_t token,
                void *buf,
                std::size_t len,
                gasnet_handlerarg_t waitObjLo,
                gasnet_handlerarg_t waitObjHi);
+         static void amRegionMetadata(gasnet_token_t token,
+               void *arg, std::size_t argSize );
    };
 }
 }

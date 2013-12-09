@@ -103,6 +103,7 @@ namespace ext
          virtual void switchToNextThread();
 
       bool acceptsWDsSMP() const;
+      bool acceptsWDsGPU() const;
 
       bool hasAPendingWDToInit() const;
       WD *getPendingInitWD();

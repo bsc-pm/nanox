@@ -686,15 +686,107 @@ void Scheduler::workerClusterLoop ()
 #ifdef GPU_DEV
             thisNode->disableDevice( 0 ); 
             myClusterThread->clearCompletedWDsGPU2();
-            if ( ( (int) myClusterThread->numRunningWDsGPU() ) < ext::ClusterInfo::getGpuPresend() )
-            {
-               WD* newwd = getClusterWD( myThread, 1 );
-               if ( newwd )
-               {
-                  //message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << newwd->getId());
-                  myClusterThread->addRunningWDGPU( newwd );
-                  Scheduler::preOutlineWork(newwd);
-                  myThread->outlineWorkDependent(*newwd);
+
+            if ( myClusterThread->hasWaitingDataWDs() ) {
+               WD * wd_waiting = myClusterThread->getWaitingDataWD();
+               if ( wd_waiting->isInputDataReady() ) {
+                  myClusterThread->addRunningWDGPU( wd_waiting );
+                  myThread->outlineWorkDependent(*wd_waiting);
+               } else {
+                  myClusterThread->addWaitingDataWD( wd_waiting );
+
+
+// Try to get a WD normally, this is needed because otherwise we will keep only checking the WaitingData WDs
+               if ( myClusterThread->hasAPendingWDToInit() ) {
+                  WD * wd = myClusterThread->getPendingInitWD();
+                  if ( Scheduler::tryPreOutlineWork(wd) ) {
+                     myThread->preOutlineWorkDependent( *wd );
+                     //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     if ( wd->isInputDataReady() ) {
+                        myClusterThread->addRunningWDGPU( wd );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                        myThread->outlineWorkDependent(*wd);
+                     //NANOS_INSTRUMENT( inst2.close(); );
+                     } else {
+                        myClusterThread->addWaitingDataWD( wd );
+                     }
+                  } else {
+                     //std::cerr << "REPEND WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     myClusterThread->setPendingInitWD( wd );
+                  }
+               } else {
+                  if ( myClusterThread->acceptsWDsGPU() )
+                  {
+                     WD * wd = getClusterWD( myThread, 0 );
+                     if ( wd )
+                     {
+                        Scheduler::prePreOutlineWork(wd); 
+                        if ( Scheduler::tryPreOutlineWork(wd) ) {
+                           myThread->preOutlineWorkDependent( *wd );
+                           if ( wd->isInputDataReady() ) {
+                              //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                              myClusterThread->addRunningWDGPU( wd );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              myThread->outlineWorkDependent(*wd);
+                              //NANOS_INSTRUMENT( inst2.close(); );
+                           } else {
+                              myClusterThread->addWaitingDataWD( wd );
+                           }
+                        } else {
+                           //std::cerr << "ADDED A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                           myClusterThread->setPendingInitWD( wd );
+                        }
+                     }
+                  }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+               }
+
+
+
+
+               }
+            } else {
+
+               if ( myClusterThread->hasAPendingWDToInit() ) {
+                  WD * wd = myClusterThread->getPendingInitWD();
+                  if ( Scheduler::tryPreOutlineWork(wd) ) {
+                     myThread->preOutlineWorkDependent( *wd );
+                     //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     if ( wd->isInputDataReady() ) {
+                        myClusterThread->addRunningWDGPU( wd );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                        myThread->outlineWorkDependent(*wd);
+                     //NANOS_INSTRUMENT( inst2.close(); );
+                     } else {
+                        myClusterThread->addWaitingDataWD( wd );
+                     }
+                  } else {
+                     //std::cerr << "REPEND WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     myClusterThread->setPendingInitWD( wd );
+                  }
+               } else {
+                  if ( myClusterThread->acceptsWDsGPU() )
+                  {
+                     WD * wd = getClusterWD( myThread, 0 );
+                     if ( wd )
+                     {
+                        Scheduler::prePreOutlineWork(wd); 
+                        if ( Scheduler::tryPreOutlineWork(wd) ) {
+                           myThread->preOutlineWorkDependent( *wd );
+                           if ( wd->isInputDataReady() ) {
+                              //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                              myClusterThread->addRunningWDGPU( wd );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              myThread->outlineWorkDependent(*wd);
+                              //NANOS_INSTRUMENT( inst2.close(); );
+                           } else {
+                              myClusterThread->addWaitingDataWD( wd );
+                           }
+                        } else {
+                           //std::cerr << "ADDED A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                           myClusterThread->setPendingInitWD( wd );
+                        }
+                     }
+                  }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
                }
             }
             thisNode->enableDevice( 0 ); 

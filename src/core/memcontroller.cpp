@@ -129,9 +129,9 @@ bool MemController::allocateInputMemory() {
 }
 
 void MemController::copyDataIn() {
-   
+  
    if ( _VERBOSE_CACHE ) {
-      if ( sys.getNetwork()->getNodeNum() == 0 ) {
+      //if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << " ops: "<< (void *) _inOps << std::endl;
          for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
          NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
@@ -139,7 +139,7 @@ void MemController::copyDataIn() {
          if ( d ) std::cerr << " " << *d << std::endl; 
          else std::cerr << " dir entry n/a" << std::endl;
          }
-      }
+      //}
    }
    
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;

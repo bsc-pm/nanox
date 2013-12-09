@@ -96,6 +96,7 @@ namespace nanos
          nanos_sharing_t getSharing() const;
 
          std::size_t getNumDimensions() const;
+         void setNumDimensions( std::size_t numDims );
          nanos_region_dimension_internal_t const *getDimensions() const;
          void setDimensions(nanos_region_dimension_internal_t const *);
          

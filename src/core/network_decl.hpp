@@ -24,12 +24,14 @@
 #include <string>
 #include <set>
 #include "functor_decl.hpp"
+#include "globalregt_decl.hpp"
 #include "requestqueue_decl.hpp"
 #include "networkapi.hpp"
 #include "packer_decl.hpp"
 #include "deviceops_decl.hpp"
 
 namespace nanos {
+
    class SendDataRequest {
       protected:
          NetworkAPI *_api;
@@ -41,8 +43,10 @@ namespace nanos {
          std::size_t _ld;
          unsigned int _destination;
          unsigned int _wdId;
+         void *_hostObject;
+         reg_t _hostRegId;
       public:
-         SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId );
+         SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId );
          virtual ~SendDataRequest();
          void doSend();
          void *getOrigAddr() const;
@@ -79,6 +83,34 @@ namespace nanos {
 
       virtual void clear();
    };
+
+   class RegionsForwarded {
+      std::map< const_reg_key_t, std::set< reg_t > > _regions;
+
+      public:
+
+      bool isRegionForwarded( global_reg_t const &reg ) const {
+         bool result = false;
+         std::map< const_reg_key_t, std::set< reg_t > >::const_iterator it = _regions.find( reg.key );
+         if ( it != _regions.end() ) {
+            result = ( it->second.end() != it->second.find( reg.id ) );
+         }
+         return result;
+      }
+
+      void addForwardedRegion( global_reg_t const &reg ) {
+         std::map< const_reg_key_t, std::set< reg_t > >::iterator it = _regions.lower_bound( reg.key );
+         if ( it == _regions.end() || _regions.key_comp()( reg.key, it->first ) ) {
+            it = _regions.insert( it, std::map< const_reg_key_t, std::set< reg_t > >::value_type( reg.key, std::set< reg_t >() ) );
+         }
+         std::set< reg_t >::iterator sit = it->second.lower_bound( reg.id );
+         if ( sit == it->second.end() || it->second.key_comp()( reg.id, *sit ) ) {
+            sit = it->second.insert( sit, reg.id );
+         }
+      }
+   };
+
+
    class Network
    {
       private:
@@ -146,6 +178,9 @@ namespace nanos {
          std::list< UnorderedRequest > _delayedBySeqNumberPutReqs;
          Lock _delayedBySeqNumberPutReqsLock;
 
+
+         RegionsForwarded *_forwardedRegions;
+
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
          typedef struct {
@@ -181,20 +216,21 @@ namespace nanos {
          void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *remoteWdAddr );
          bool isWorking( unsigned int dest, unsigned int numPe ) const;
          void sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdaddr, int peId );
-         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd );
-         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd );
-         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req );
-         void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *req );
+         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
+         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
+         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req, void *hostObject, reg_t hostRegId );
+         void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *req, void *hostObject, reg_t hostRegId );
          void *malloc ( unsigned int remoteNode, std::size_t size );
          void memFree ( unsigned int remoteNode, void *addr );
          void memRealloc ( unsigned int remoteNode, void *oldAddr, std::size_t oldSize, void *newAddr, std::size_t newSize );
          void nodeBarrier( void );
+         void sendRegionMetadata( unsigned int dest, CopyData *cd );
 
          void setMasterHostname( char *name );
          //const std::string & getMasterHostname( void ) const;
          const char * getMasterHostname( void ) const;
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f );
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
          std::size_t getTotalBytes();
          void mallocSlaves ( void **addresses, std::size_t size );
 
@@ -212,12 +248,13 @@ namespace nanos {
          void freeReceiveMemory( void * addr );
 
          void notifyWork( std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
-         void notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag );
+         void notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag, void *hostObject, reg_t hostRegId );
          void notifyWaitRequestPut( void *addr, unsigned int wdId, unsigned int seqNumber );
          void notifyRequestPut( SendDataRequest *req );
          void notifyGet( SendDataRequest *req );
-         void invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld );
-         void getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld );
+         void notifyRegionMetaData( CopyData *cd );
+         void invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
+         void getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
          unsigned int getPutRequestSequenceNumber( unsigned int dest );
          unsigned int checkPutRequestSequenceNumber( unsigned int dest ) const;
          bool updatePutRequestSequenceNumber( unsigned int dest, unsigned int value );

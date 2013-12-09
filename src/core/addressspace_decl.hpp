@@ -73,6 +73,8 @@ class HostAddressSpace {
 
    void synchronize( bool flushData, WD const &wd );
    memory_space_id_t getMemorySpaceId() const;
+   reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
+   NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
 };
 
 

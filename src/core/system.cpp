@@ -568,6 +568,7 @@ void System::start ()
       gpuMemory->setNodeNumber( 0 );
       ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
       gpuMemory->setSpecificData( gpuMemSpace );
+      std::cerr << "Memory space " << id << " is a gpu" << std::endl;
       _separateAddressSpaces[ id ] = gpuMemory;
       int peid = p++;
       nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( peid, gpuC, peid, id, *gpuMemSpace );
@@ -641,6 +642,7 @@ void System::start ()
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
       memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
+      std::cerr << "Memory space " << id << " is a cluster" << std::endl;
       SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster, nanos::ext::ClusterInfo::getAllocWide() );
       nodeMemory->setSpecificData( NEW SimpleAllocator( ( uintptr_t ) nanos::ext::ClusterInfo::getSegmentAddr( nodeC ), nanos::ext::ClusterInfo::getSegmentLen( nodeC ) ) );
       nodeMemory->setNodeNumber( nodeC );
@@ -1094,6 +1096,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // allocating copy-ins/copy-outs
    if ( copies != NULL && *copies == NULL ) {
       *copies = ( CopyData * ) (chunk + offset_Copies);
+      ::bzero(*copies, size_Copies);
       *dimensions = ( nanos_region_dimension_internal_t * ) ( chunk + offset_Dimensions );
    }
 
@@ -1967,7 +1970,11 @@ void System::waitUntilThreadsUnpaused ()
 }
 
 bool System::canCopy( memory_space_id_t from, memory_space_id_t to ) const {
-   return true;
+   if ( from == 0 || to == 0 ) {
+      return true;
+   } else {
+      return &(_separateAddressSpaces[ from ]->getCache().getDevice()) == &(_separateAddressSpaces[ to ]->getCache().getDevice());
+   }
 }
 
 unsigned System::reservePE ( bool reserveNode, unsigned node, bool & reserved )

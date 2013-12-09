@@ -176,7 +176,9 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
    missingParts.clear();
    //sys.getMasterRegionDirectory().print();
 
+   //std::cerr << "1. Leaf for reg " << reg << " leaf is " << (void*) dict->getRegionNode(reg) << " dict is "  << (void *) &dict << std::endl;
    dict->registerRegion( reg, missingParts, version );
+   //std::cerr << "2. Leaf for reg " << reg << " leaf is " << (void*) dict->getRegionNode(reg) << " dict is "  << (void *) &dict << std::endl;
 
    for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
       if ( it->first != it->second ) {
@@ -425,3 +427,16 @@ void NewNewRegionDirectory::initializeEntry( RegionDirectoryKey dict, reg_t reg 
    dict->setRegionData( reg, entry );
 }
 
+reg_t NewNewRegionDirectory::getLocalRegionId(void * hostObject, reg_t hostRegionId ) const {
+   GlobalRegionDictionary *dict = getRegionDictionary( (uint64_t) hostObject );
+   return dict->getLocalRegionIdFromMasterRegionId( hostRegionId );
+}
+
+//reg_t NewNewRegionDirectory::getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t masterId ) {
+//   //TODO
+//   return dict->getLocalRegionIdFromMasterRegionId( masterId );
+//}
+
+void NewNewRegionDirectory::addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId ) {
+   dict->addMasterRegionId( masterId, localId );
+}

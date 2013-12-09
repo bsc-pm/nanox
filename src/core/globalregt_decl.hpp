@@ -21,7 +21,8 @@ struct global_reg_t {
    global_reg_t();
    global_reg_t( reg_t r, reg_key_t k );
    global_reg_t( reg_t r, const_reg_key_t k );
-   uint64_t getFirstAddress() const;
+   uint64_t getKeyFirstAddress() const;
+   uint64_t getRealFirstAddress() const;
    std::size_t getBreadth() const;
    std::size_t getDataSize() const;
    unsigned int getNumDimensions() const;
@@ -33,12 +34,15 @@ struct global_reg_t {
    unsigned int getVersion() const;
    unsigned int getHostVersion( bool increaseVersion ) const;
    reg_t getFitRegionId() const;
-   uint64_t getBaseAddress() const;
+   uint64_t getRealBaseAddress() const;
    DeviceOps *getDeviceOps() const;
    void initializeGlobalEntryIfNeeded() const;
    void setLocationAndVersion( memory_space_id_t loc, unsigned int version ) const;
    bool contains( global_reg_t const &reg ) const;
    bool isLocatedIn( memory_space_id_t loc ) const;
+   void fillCopyData( CopyData &cd ) const;
+private:
+   uint64_t getFirstAddress(uint64_t baseAddress) const;
 };
 
 }

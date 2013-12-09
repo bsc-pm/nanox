@@ -3,9 +3,16 @@
 #include "newregiondirectory_decl.hpp"
 #include "regiondict.hpp"
 
-uint64_t global_reg_t::getFirstAddress() const {
+uint64_t global_reg_t::getKeyFirstAddress() const {
+   return getFirstAddress( key->getKeyBaseAddress() );
+}
+
+uint64_t global_reg_t::getRealFirstAddress() const {
+   return getFirstAddress( key->getRealBaseAddress() );
+}
+
+uint64_t global_reg_t::getFirstAddress( uint64_t baseAddress ) const {
    RegionNode *n = key->getRegionNode( id );
-   uint64_t baseAddress = key->getBaseAddress();
    uint64_t offset = 0;
    std::vector< std::size_t > const &sizes = key->getDimensionSizes();
    uint64_t acumSizes = 1;
@@ -118,8 +125,8 @@ bool global_reg_t::setCopying( SeparateMemoryAddressSpace &from ) const {
 void global_reg_t::waitCopy( ) const {
 }
 
-uint64_t global_reg_t::getBaseAddress() const {
-   return key->getBaseAddress();
+uint64_t global_reg_t::getRealBaseAddress() const {
+   return key->getRealBaseAddress();
 }
 
 reg_t global_reg_t::getFitRegionId() const {
@@ -178,4 +185,10 @@ bool global_reg_t::isLocatedIn( memory_space_id_t loc ) const {
 
 unsigned int global_reg_t::getVersion() const {
    return NewNewRegionDirectory::getVersion( key, id, false );
+}
+
+void global_reg_t::fillCopyData( CopyData &cd ) const {
+   cd.setBaseAddress( 0 );
+   cd.setHostBaseAddress( key->getKeyBaseAddress() );
+   cd.setNumDimensions( key->getNumDimensions() );
 }

@@ -183,4 +183,8 @@ inline void CopyData::setHostRegionId( memory_space_id_t id ) {
    _hostRegionId = id;
 }
 
+inline void CopyData::setNumDimensions( std::size_t numDims ) {
+   dimension_count = numDims;
+}
+
 #endif

@@ -41,6 +41,11 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
    reg.id = reg.key->obtainRegionId( cd );
+   reg_t master_id = cd.getHostRegionId();
+   if ( master_id != 0 ) {
+      fprintf(stderr, "%d Registering map from master id %d to local id %d\n", sys.getNetwork()->getNodeNum(), master_id, reg.id);
+      NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
+   }
 }
 
 void HostAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {
@@ -53,6 +58,14 @@ void HostAddressSpace::synchronize( bool flushData, WD const &wd ) {
 
 memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
    return 0;
+}
+
+NewNewRegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) const {
+   return _directory.getRegionDirectoryKey( addr );
+}
+
+reg_t HostAddressSpace::getLocalRegionId( void *hostObject, reg_t hostRegionId ) const {
+   return _directory.getLocalRegionId( hostObject, hostRegionId );
 }
 
 SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT ), _nodeNumber( 0 )  {
