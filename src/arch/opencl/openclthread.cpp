@@ -54,8 +54,48 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
    
    OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
    myProc->waitForEvents();
+   
+   
+   if (OpenCLProcessor::getSharedMemAllocator().initialized()){
+       //myProc->mapBuffers();
+     int nCopies=wd.getNumCopies();
+     CopyData* cd=wd.getCopies();
+     for (int i=0; i<nCopies; ++i){
+        CopyData copy=cd[i];
+        if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) copy.getHostBaseAddress(), copy.getSize())){
+           cl_uint ret_val;
+           cl_mem buf=myProc->getBuffer((void*)copy.getHostBaseAddress(),copy.getSize());
+           clGetMemObjectInfo(buf, CL_MEM_MAP_COUNT, sizeof(cl_uint), &ret_val, NULL);          
+           while (ret_val>0){
+               myProc->unmapBuffer(buf,(void*)copy.getHostBaseAddress(),0, copy.getSize());
+               --ret_val;
+           }
+           clGetMemObjectInfo(buf, CL_MEM_MAP_COUNT, sizeof(cl_uint), &ret_val, NULL);     
+        }
+     }
+   }
 
    ( dd.getWorkFct() )( wd.getData() );
+   
+   //If this address was shared mem, unmap from host (in case it was not done before)
+   //This can happen when the address was an output
+   if (OpenCLProcessor::getSharedMemAllocator().initialized()){       
+     int nCopies=wd.getNumCopies();
+     CopyData* cd=wd.getCopies();
+     for (int i=0; i<nCopies; ++i){
+       CopyData copy=cd[i];
+        if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) copy.getHostBaseAddress(), copy.getSize())){
+           cl_uint ret_val;
+           cl_mem buf=myProc->getBuffer( (void*)copy.getHostBaseAddress(),copy.getSize());
+           clGetMemObjectInfo(buf, CL_MEM_MAP_COUNT, sizeof(cl_uint), &ret_val, NULL);          
+           while (ret_val<=0){
+               myProc->mapBuffer(buf,(void*)copy.getHostBaseAddress(),0, copy.getSize());
+               ret_val++;
+           }
+        }
+     }
+   }
+   
    
    NANOS_INSTRUMENT ( raiseWDClosingEvents() );
    return true;

@@ -34,6 +34,7 @@
 #include <string.h>
 #include <set>
 #include <climits>
+#include "smpthread.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -49,7 +50,6 @@
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
 #include "clusterinfo_decl.hpp"
-#include "smpthread.hpp"
 #endif
 
 #include "addressspace.hpp"

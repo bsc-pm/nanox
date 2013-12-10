@@ -59,8 +59,9 @@ public:
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
-   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size, bool unkownSize = false );
-   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size);
+   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
+   size_t getSizeFromCache(size_t addr);
+   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size);   
    void freeAddr(void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
    
@@ -202,7 +203,7 @@ public:
        return _openclAdapter.createKernel(kernel_name,opencl_code, compiler_opts);
    }
    
-   void setKernelBufferArg(void* openclKernel, int argNum, void* pointer);
+   void setKernelBufferArg(void* openclKernel, int argNum,const void* pointer);
    
    void execKernel(void* openclKernel, 
                         int workDim, 
@@ -210,7 +211,7 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
-   void setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer);
+   void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);
    
    void printStats();
    
@@ -266,7 +267,15 @@ public:
     cl_int getOpenCLDeviceType( cl_device_type &deviceType ){
        return _openclAdapter.getDeviceType(deviceType);
     }
-   
+    
+    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size ){
+       return _openclAdapter.mapBuffer( buf, dst, offset, size);
+    }
+    
+    cl_int unmapBuffer( cl_mem buf, void *dst, size_t offset, size_t size ){
+       return _openclAdapter.unmapBuffer( buf, dst, offset, size);
+    }
+    
     static SharedMemAllocator& getSharedMemAllocator() {
        return _shmemAllocator;
     }

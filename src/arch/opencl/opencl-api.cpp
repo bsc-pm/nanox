@@ -37,7 +37,7 @@ NANOS_API_DEF(void*, nanos_create_current_kernel, (const char* kernel_name,const
     return pe->createKernel(kernel_name,opencl_code,compiler_opts);
 }
 
-NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, void* pointer)){
+NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num,const void* pointer)){
    try {
       nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
       pe->setKernelBufferArg(opencl_kernel, arg_num, pointer);
@@ -48,7 +48,7 @@ NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int 
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_num, size_t size, void* pointer)){
+NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_num, size_t size,const void* pointer)){
     try {
       nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
       pe->setKernelArg(opencl_kernel, arg_num, size, pointer);

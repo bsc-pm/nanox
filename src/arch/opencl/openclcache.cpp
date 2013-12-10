@@ -60,11 +60,11 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
     //Shared memory buffers are already allocated
     //We only need to search for them with tag +1 (they are internally stored in different address)
     if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) tag, size)){
-        cl_mem buf=_openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)tag+1,size);
-        if (buf==NULL){
-            return NULL;
-        }
-        return (void*)(tag+1);
+        _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)tag,size);
+        //if (buf==NULL){
+        //    return NULL;
+        //}
+        return (void*)(tag);
     } else {
         _devAllocator.lock();
         void *addr = _devAllocator.allocate(size);
@@ -99,15 +99,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
     cl_int errCode;
     if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) hostAddr, size))
     {
-        cl_mem buf=_openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)hostAddr,size);  
-        errCode = _openclAdapter.unmapBuffer(buf,
-              (void*) hostAddr,
-              0,
-              size);
-       // ops->completeOp();
-        if (errCode != CL_SUCCESS){
-            fatal("Buffer unmap failed.");
-        }
+        _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)hostAddr,size);  
     } else {
         cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);    
 
@@ -130,19 +122,8 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
         size_t size,
         DeviceOps *ops) {
     //If shared memory, no need to copy
-    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) hostAddr, size)){
-        cl_int errCode;
-        
-        cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);
-        errCode = _openclAdapter.mapBuffer(buf,
-                    ((void*)hostAddr),
-                    0,
-                    size);
-
-        //ops->completeOp();
-        if (errCode != CL_SUCCESS && devAddr!=0) {        
-            fatal("Buffer mapping failed.");
-        }            
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) hostAddr, size)){        
+        _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);
     } else {
         cl_int errCode;
 
@@ -185,9 +166,8 @@ bool OpenCLCache::copyInBuffer(void *localSrc,
 }
 
 
-cl_mem OpenCLCache::toMemoryObjSS( void * addr ) { 
-    //Creates a buffer from this pointer to the end of the memory (not really correct...)    
-    return _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)addr,0, /* unkownsize*/ true);
+cl_mem OpenCLCache::toMemoryObjSS( const void * addr ) { 
+    return _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)addr,_openclAdapter.getSizeFromCache((size_t)addr));
 }
    
 
