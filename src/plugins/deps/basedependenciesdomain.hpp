@@ -127,6 +127,8 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
 
 inline void BaseDependenciesDomain::setAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target )
 {
+   fprintf(stderr, "dependOnReadersAndSetAsWriter for %p , wd related: %p\n", &depObj, depObj.getRelatedObject());
+
    {
       SyncLockBlock lock3( status.getReadersLock() );
       status.flushReaders();
@@ -141,6 +143,7 @@ inline void BaseDependenciesDomain::setAsWriter( DependableObject &depObj, Track
 inline void BaseDependenciesDomain::dependOnReadersAndSetAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target,
                                                                    SchedulePolicySuccessorFunctor* callback, AccessType const &accessType )
 {
+//   fprintf(stderr, "dependOnReadersAndSetAsWriter for %p , wd related: %p\n", &depObj, depObj.getRelatedObject());
    dependOnReaders( depObj, status, target, callback, accessType );
    setAsWriter( depObj, status, target );
 }
