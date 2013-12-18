@@ -1438,20 +1438,10 @@ void System::releaseWorker ( BaseThread * thread )
    //! \todo Destroy if too many?
    debug("Releasing thread " << thread << " from team " << thread->getTeam() );
 
-//FIXME:xteruel to remove
-#if 0
-   //! \note Threads will only sleep if DLB is enabled. Sleep will also remove thread from the team.
-   if ( _enable_dlb && thread->getTeamId() != 0 ) {
-thread->lock(); thread->sleep(); thread->unlock();
-}
-   else thread->leaveTeam();
-#else
-
    thread->lock();
    thread->sleep();
    thread->unlock();
 
-#endif
 }
 
 int System::getNumWorkers( DeviceData *arch )
