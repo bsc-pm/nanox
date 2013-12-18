@@ -127,8 +127,6 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
 
 inline void BaseDependenciesDomain::setAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target )
 {
-   WorkDescriptor * relObj = ( WorkDescriptor * )depObj.getRelatedObject();
-
    {
       SyncLockBlock lock3( status.getReadersLock() );
       status.flushReaders();
