@@ -127,7 +127,8 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
 
 inline void BaseDependenciesDomain::setAsWriter( DependableObject &depObj, TrackableObject &status, BaseDependency const &target )
 {
-   fprintf(stderr, "dependOnReadersAndSetAsWriter for %p , wd related: %p\n", &depObj, depObj.getRelatedObject());
+   WorkDescriptor * relObj = ( WorkDescriptor * )depObj.getRelatedObject();
+   fprintf(stderr, "dependOnReadersAndSetAsWriter for %p , wd id related: %d\n", &depObj, relObj->getId());
 
    {
       SyncLockBlock lock3( status.getReadersLock() );
