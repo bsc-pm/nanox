@@ -28,7 +28,7 @@ using namespace nanos;
 
 inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data,
                                 Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
-                              : /*FIXME:xteruel _idCounter(0),*/_finalSize(0),  _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
+                              : _finalSize(0),  _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),

@@ -59,7 +59,6 @@ namespace nanos
 
          ThreadTeamList               _threads;          /**< Threads that make up the team */
          ThreadTeamIdList             _idList;           /**< List of id usage (reusing old id's) */
-         //FIXME:xteruel unsigned                     _idCounter;        /**< Identifier for the next thread that enters the team */
          Atomic<size_t>               _finalSize;
          Atomic<size_t>               _starSize;
          int                          _idleThreads;
