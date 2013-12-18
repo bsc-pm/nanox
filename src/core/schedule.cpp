@@ -269,10 +269,17 @@ inline void Scheduler::idleLoop ()
             }
             sleeps = nsleeps;
          } else {
-            NANOS_INSTRUMENT ( total_sleeps++; )
-            struct timespec req ={0,tsleep};
-            nanosleep ( &req, NULL );
-            NANOS_INSTRUMENT ( time_sleeps += time_sleeps + tsleep; )
+            if ( sys.dlbEnabled() && DLB_ReturnCpu && sys.getPMInterface().isMalleable() ){
+               sys.removeCpuFromMask(thread->getCpuId());
+               DLB_ReturnCpu(thread->getCpuId());
+               thread->sleep();
+               thread->wait();
+            }else{
+               NANOS_INSTRUMENT ( total_sleeps++; )
+               struct timespec req ={0,tsleep};
+               nanosleep ( &req, NULL );
+               NANOS_INSTRUMENT ( time_sleeps += time_sleeps + tsleep; )
+            }
          }
          spins = nspins;
       }
