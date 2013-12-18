@@ -85,7 +85,7 @@ namespace nanos
       private:
         /*! \brief SchedulerConf default constructor (private)
          */
-        SchedulerConf() : _numSpins(100), _numSleeps(20), _timeSleep(100), _schedulerEnabled(true) {}
+        SchedulerConf() : _numSpins(100), _numSleeps(0), _timeSleep(100), _schedulerEnabled(true) {}
         /*! \brief SchedulerConf copy constructor (private)
          */
         SchedulerConf ( SchedulerConf &sc ) : _numSpins( sc._numSpins ), _numSleeps(sc._numSleeps), _timeSleep(sc._timeSleep), _schedulerEnabled( true )  {}

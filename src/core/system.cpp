@@ -56,7 +56,7 @@ System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ),
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
-      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
+      _untieMaster( true ), _delayedStart( false ), _useYield( false ), _synchronizedStart( true ),
       _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
@@ -1528,7 +1528,7 @@ void System::updateActiveWorkers ( int nthreads )
 
    int num_threads = nthreads - team->getFinalSize();
 
-   while ( !(team->isStable()) ) ;
+   while ( !(team->isStable()) ) memoryFence();
 
    if ( num_threads < 0 ) team->setStable(false);
 
