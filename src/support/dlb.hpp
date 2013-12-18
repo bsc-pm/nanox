@@ -27,6 +27,7 @@ extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
    void DLB_UpdateResources( void ) __attribute__(( weak ));
    void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
+   void DLB_ReturnCpu ( int cpu ) __attribute__(( weak )); 
 }
 
 namespace nanos {

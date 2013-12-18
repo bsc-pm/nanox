@@ -423,10 +423,18 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   }
                   sleeps = nsleeps;
                } else {
-                  NANOS_INSTRUMENT ( total_sleeps++; )
-                  struct timespec req = {0,tsleep};
-                  nanosleep ( &req, NULL );
-                  NANOS_INSTRUMENT ( time_sleeps += tsleep; )
+                  /* if DLB release thread */
+                  if ( sys.dlbEnabled() && DLB_ReturnCpu && sys.getPMInterface().isMalleable() ){
+                     sys.removeCpuFromMask(thread->getCpuId());
+                     DLB_ReturnCpu(thread->getCpuId());
+                     thread->sleep();
+                     thread->wait();
+                  }else{
+                     NANOS_INSTRUMENT ( total_sleeps++; )
+                     struct timespec req = {0,tsleep};
+                     nanosleep ( &req, NULL );
+                     NANOS_INSTRUMENT ( time_sleeps += tsleep; )
+                  }
                }
             }
          } else {

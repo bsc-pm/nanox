@@ -311,6 +311,13 @@ namespace nanos
           */
          void addCpuMask ( const cpu_set_t *mask );
 
+         /*!
+         * \brief Remove cpu from the current system's _cpu_active_set
+         * \param[in] cpu
+         */
+
+         void removeCpuFromMask ( const int cpu );
+
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;

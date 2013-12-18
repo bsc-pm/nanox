@@ -1599,6 +1599,14 @@ void System::addCpuMask ( const cpu_set_t *mask )
    sys.processCpuMask();
 }
 
+void System::removeCpuFromMask ( const int cpu )
+{
+   cpu_set_t mask;
+   memcpy( &mask, &_cpu_active_set, sizeof(cpu_set_t) );
+   CPU_CLR(cpu, &mask);
+   memcpy( &_cpu_active_set, &mask, sizeof(cpu_set_t) );
+}
+
 inline void System::processCpuMask( void )
 {
    // if _bindThreads is enabled, update _bindings adding new elements of _cpu_active_set
