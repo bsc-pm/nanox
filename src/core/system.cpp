@@ -1500,54 +1500,6 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
 
 }
 
-//FIXME:xteruel to remove
-ThreadTeam * System::createTeam_FIXME ( unsigned nthreads, void *constraints, bool reuseCurrent,
-                                  bool enterCurrent, bool enterOthers, bool starringCurrent, bool starringOthers )
-{
-   if ( nthreads == 0 ) {
-      nthreads = getNumThreads();
-   }
-   
-   SchedulePolicy *sched = 0;
-   if ( !sched ) sched = sys.getDefaultSchedulePolicy();
-
-   ScheduleTeamData *stdata = 0;
-   if ( sched->getTeamDataSize() > 0 )
-      stdata = sched->createTeamData();
-
-   // create team
-   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
-                                       reuseCurrent ? myThread->getTeam() : NULL );
-
-   debug( "Creating team " << team << " of " << nthreads << " threads" );
-
-   // find threads
-   if ( reuseCurrent ) {
-      acquireWorker( team, myThread, enterCurrent, starringCurrent, /* creator */ true );
-      nthreads--;
-   }
-
-   while ( nthreads > 0 ) {
-      BaseThread *thread = getUnassignedWorker();
-
-      if ( !thread ) {
-         createWorker( _pes.size() );
-         _numPEs++;
-         _numThreads++;
-         continue;
-      }
-
-      thread->lock(); //FIXME:xteruel actually needed?
-      acquireWorker( team, thread, enterOthers, starringOthers, /* creator */ false );
-      thread->unlock();
-      nthreads--;
-   }
-
-   team->init();
-
-   return team;
-}
-
 void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );

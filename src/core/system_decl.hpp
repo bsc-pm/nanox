@@ -480,19 +480,6 @@ namespace nanos
           */
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
          
-         /*!
-          * \brief Returns a new created Team with the specified parameters
-          * \param[in] nthreads The team size
-          * \param[in] constraints Not used
-          * \param[in] reuseCurrent Will this thread be a member of the team?
-          * \param[in] enterCurrent Will this thread immediately enter the team?
-          * \param[in] enterOthers Will the other threads immediately enter the team?
-          * \param[in] starringCurrent Is this a star thread?
-          * \param[in] starringOthers Are the others star threads?
-          */
-         ThreadTeam * createTeam_FIXME ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
-                                   bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
-
          BaseThread * getWorker( unsigned int n );
 
          void endTeam ( ThreadTeam *team );
