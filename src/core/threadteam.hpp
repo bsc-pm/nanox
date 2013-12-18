@@ -96,11 +96,12 @@ inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool crea
    return id;
 }
 
-inline void ThreadTeam::removeThread ( unsigned id )
+inline size_t ThreadTeam::removeThread ( unsigned id )
 {
    LockBlock Lock( _lock );
    _threads.erase( id );
    _idList[id] = false;
+   return ( _threads.size() );
 }
 
 inline BaseThread * ThreadTeam::popThread ( )

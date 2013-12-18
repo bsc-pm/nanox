@@ -180,16 +180,16 @@ namespace nanos
       if ( _teamData ) 
       {
          TeamData *td = _teamData;
-         td->getTeam()->removeThread( getTeamId() );
          debug( "removing thread " << this << " with id " << toString<int>(getTeamId()) << " from " << _teamData->getTeam() );
-         debug( td->getTeam()->size() << " of " << td->getTeam()->getFinalSize() << " threads" );
-         if ( td->getTeam()->size() == td->getTeam()->getFinalSize() ) td->getTeam()->setStable(true);
+
+         size_t final_size = td->getTeam()->removeThread( getTeamId() );
+         if ( final_size == td->getTeam()->getFinalSize() ) td->getTeam()->setStable(true);
          _teamData = _teamData->getParentTeamData();
          _status.has_team = _teamData != NULL;
          delete td;
       }
    }
- 
+
    inline ThreadTeam * BaseThread::getTeam() const { return _teamData ? _teamData->getTeam() : NULL; }
  
    inline TeamData * BaseThread::getTeamData() const { return _teamData; }

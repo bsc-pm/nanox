@@ -126,8 +126,10 @@ namespace nanos
           */
          unsigned addThread ( BaseThread *thread, bool star = false, bool creator = false );
          /*! \brief removes a thread from the team pool
+          *  
+          *  \returns Team final size
           */
-         void removeThread ( unsigned id );
+         size_t  removeThread ( unsigned id );
 
          /*! \brief removes and returns the last thread from the team pool
           */
