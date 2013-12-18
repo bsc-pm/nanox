@@ -179,8 +179,7 @@ void SMPThread::wakeup()
    //! \note This function has to be in free race condition environment or externally
    // protected, when called, with the thread common lock: lock() & unlock() functions.
 
-   //! \note If thread is not marked as waiting, just ignore wakeup (abort in debug)
-   ensure( isSleeping() && isWaiting(), "No sleeping thread asked to wakeup");
+   //! \note If thread is not marked as waiting, just ignore wakeup
    if ( !isSleeping() || !isWaiting() ) return;
 
    pthread_mutex_lock( &_mutexWait );
