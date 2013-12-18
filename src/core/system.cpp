@@ -1506,11 +1506,8 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
          continue;
       }
 
-      thread->lock(); //FIXME:xteruel actually needed?
-
       acquireWorker( team, thread, /*enter*/ enter, /* staring */ parallel, /* creator */ false );
 
-      thread->unlock();  //FIXME:xteruel actually needed?
       nthreads--;
    }
 
@@ -1594,9 +1591,9 @@ void System::updateActiveWorkers ( int nthreads )
    //! \bug Team variable must be received as a function parameter
    ThreadTeam *team = myThread->getTeam();
 
-   while ( !(team->isStable()) ) ;
-
    int num_threads = nthreads - team->getFinalSize();
+
+   while ( !(team->isStable()) ) ;
 
    if ( num_threads < 0 ) team->setStable(false);
 
@@ -1628,6 +1625,8 @@ void System::updateActiveWorkers ( int nthreads )
          num_threads++;
       }
    }
+
+
 }
 
 // Not thread-safe
