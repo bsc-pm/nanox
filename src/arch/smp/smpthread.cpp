@@ -168,12 +168,6 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
-//FIXME:xteruel to remove, just calling basethread method
-void SMPThread::sleep()
-{
-   BaseThread::sleep();
-}
-
 void SMPThread::wakeup()
 {
    //! \note This function has to be in free race condition environment or externally

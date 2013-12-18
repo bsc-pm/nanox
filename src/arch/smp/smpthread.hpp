@@ -86,11 +86,6 @@ namespace ext
          virtual void wait();
 
          /*!
-          * \brief Set the flag
-          */
-         virtual void sleep();
-
-         /*!
           * \brief Unset the flag
           */
          virtual void wakeup();
