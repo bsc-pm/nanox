@@ -12,7 +12,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability])
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Enable silent rules if available
@@ -55,28 +55,51 @@ AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
+# Debian release
+AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
+AC_SUBST([DEB_RELEASE])
+
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
 : ${FCFLAGS=""}
 
 # Allocator support
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  AS_HELP_STRING([--enable-allocator], [Enables Allocator module]),
   [
-    allocator_disabled=yes
-    AC_MSG_RESULT([yes])
+    allocator_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
-    allocator_disabled=no
+    allocator_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$allocator_disabled = xyes; then
+if test x$allocator_enabled = xno; then
 	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
 	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+fi
+
+# Memtracker support
+AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
+AC_ARG_ENABLE([memtracker],
+  AS_HELP_STRING([--disable-memtracker], [Disables Memtracker module]),
+  [
+    memtracker_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    memtracker_disabled=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$memtracker_disabled = xno; then
+	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
+	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
 fi
 
 AC_MSG_CHECKING([for Linux Intel C compiler mode])
@@ -718,33 +741,6 @@ MPITRACE_INC=""
 MPITRACE_LIB=""
 MPITRACE_BIN=""
 
-AC_ARG_WITH([mpitrace],
-           AS_HELP_STRING([--with-mpitrace=dir], [Directory of Extrae installation (deprecated)]),
-           [
-                extrae_version_h=$withval/include/extrae_version.h
-                if test -e $extrae_version_h ;
-                then
-                   extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
-                   extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 230;
-                   then
-                      MPITRACE_HOME="$withval"
-                      MPITRACE_INC="$withval/include"
-                      MPITRACE_LIB="$withval/lib" ;
-                      if test -d "$MPITRACE_HOME/lib64"
-                      then
-                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
-                      fi
-                      MPITRACE_BIN="$withval/bin"
-                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
-                   else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
-                   fi
-                else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
-                fi
-           ]
-)
 AC_ARG_WITH([extrae],
            AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
            [
@@ -753,7 +749,7 @@ AC_ARG_WITH([extrae],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 230;
+                   if test "$extrae_version" -ge 240;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -765,10 +761,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
                 fi
            ]
 )

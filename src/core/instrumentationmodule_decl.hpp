@@ -34,6 +34,7 @@ namespace nanos {
       private:
          Instrumentation     &_inst;   /**< Instrumentation object*/
          nanos_event_key_t    _key;    /**< Key used in burst event */
+         nanos_event_value_t  _val;
 	 bool		      _closed; /**< Closed flag */
       private:
          /*! \brief InstrumentStateAndBurst default constructor (private)
@@ -49,26 +50,27 @@ namespace nanos {
          /*! \brief InstrumentStateAndBurst constructor
           */
          InstrumentStateAndBurst ( const char* keydesc, const char *valdesc, nanos_event_state_value_t state )
-            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)), _val(0),
               _closed(false)
          {
-            nanos_event_value_t val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
-            _inst.raiseOpenStateAndBurst(state, _key, val);
+            _val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
+            _inst.raiseOpenStateAndBurst(state, _key, _val);
          }
          /*! \brief InstrumentStateAndBurst constructor
           */
          InstrumentStateAndBurst ( const char* keydesc, nanos_event_value_t val, nanos_event_state_value_t state )
-            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)), _val(0),
               _closed(false)
          {
-            _inst.raiseOpenStateAndBurst(state, _key, val);
+            _val = val;
+            _inst.raiseOpenStateAndBurst(state, _key, _val);
          }
          /*! \brief InstrumentStateAndBurst destructor
           */
          ~InstrumentStateAndBurst ( ) { if (!_closed) close(); }
          /*! \brief Closes states and burst
           */
-	 void close() { _closed=true; _inst.raiseCloseStateAndBurst(_key);  }
+	 void close() { _closed=true; _inst.raiseCloseStateAndBurst(_key, _val);  }
    };
 
 /*!\class InstrumentState
@@ -111,6 +113,7 @@ namespace nanos {
       private:
          Instrumentation     &_inst;   /**< Instrumentation object*/
          nanos_event_key_t    _key;    /**< Key used in burst event */
+         nanos_event_value_t  _val;
          bool                 _closed; /**< Closed flag */
       private:
          /*! \brief InstrumentBurst default constructor (private)
@@ -126,26 +129,26 @@ namespace nanos {
          /*! \brief InstrumentBurst constructor
           */
          InstrumentBurst ( const char* keydesc, const char *valdesc )
-            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)), _val(0),
               _closed(false)
          {
-            nanos_event_value_t val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
-            _inst.raiseOpenBurstEvent(_key, val);
+            _val = _inst.getInstrumentationDictionary()->getEventValue(keydesc,valdesc);
+            _inst.raiseOpenBurstEvent(_key, _val);
          }
          /*! \brief InstrumentBurst constructor
           */
          InstrumentBurst ( const char* keydesc, nanos_event_value_t val )
-            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)),
+            : _inst(*sys.getInstrumentation()), _key( _inst.getInstrumentationDictionary()->getEventKey(keydesc)), _val(val),
               _closed(false)
          {
-            _inst.raiseOpenBurstEvent(_key, val);
+            _inst.raiseOpenBurstEvent(_key, _val);
          }
          /*! \brief InstrumentBurst destructor
           */
          ~InstrumentBurst ( ) { if (!_closed) close(); }
          /*! \brief Closes Burst event
           */
-         void close() { _closed=true; _inst.raiseCloseBurstEvent(_key);  }
+         void close() { _closed=true; _inst.raiseCloseBurstEvent(_key, _val);  }
    };
 #endif
 }

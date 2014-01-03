@@ -273,6 +273,18 @@ unsigned int GPUThread::getCurrentKernelExecStreamIdx()
 }
 
 
+void * GPUThread::getCUBLASHandle()
+{
+   ensure( _cublasHandle, "Trying to use CUBLAS handle without initializing CUBLAS library (please, use NX_GPUCUBLASINIT=yes)" );
+
+   // Set the appropriate stream for CUBLAS handle
+   cublasSetStream( ( cublasHandle_t ) _cublasHandle,
+         ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream() );
+
+   return _cublasHandle;
+}
+
+
 void GPUThread::raiseKernelLaunchEvent()
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED

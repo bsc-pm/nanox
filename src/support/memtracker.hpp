@@ -19,7 +19,7 @@
 #ifndef _NANOS_MEMTRACKER_HPP
 #define _NANOS_MEMTRACKER_HPP
 
-#ifdef NANOS_DEBUG_ENABLED
+#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
 
 #include "memtracker_decl.hpp"
 #include "new_decl.hpp"

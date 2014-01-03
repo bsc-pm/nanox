@@ -100,7 +100,7 @@
  *       NANOS_INSTRUMENT(k = Instrumentor->getInstrumentorDictionary()->getEventKey("cache-malloc"));
  *       NANOS_INSTRUMENT(Instrumentor()->raiseOpenStateAndBurst(CACHE, k, (nanos_event_value_t) size));
  *       result = _T::allocate(size);
- *       NANOS_INSTRUMENT(Instrumentor()->raiseCloseStateAndBurst(k));
+ *       NANOS_INSTRUMENT(Instrumentor()->raiseCloseStateAndBurst(k,0));
  *       return result;
  * }
  * \endcode
@@ -411,7 +411,6 @@ namespace nanos {
             registerEventValue("api","enter_team","nanos_enter_team()");
             registerEventValue("api","leave_team","nanos_leave_team()");
             registerEventValue("api","end_team","nanos_end_team()");
-            registerEventValue("api","get_num_running_tasks","nanos_get_num_running_tasks()");
             registerEventValue("api","get_addr","nanos_get_addr()");
             registerEventValue("api","copy_value","nanos_copy_value()");
             registerEventValue("api","omp_barrier","nanos_omp_barrier()");
@@ -430,6 +429,7 @@ namespace nanos {
             registerEventValue("api","in_final","nanos_in_final()");
             registerEventValue("api","set_final","nanos_set_final()");
             registerEventValue("api","dependence_release_all","nanos_dependence_release_all()");
+            registerEventValue("api","set_translate_function","nanos_set_translate_function()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 
@@ -566,7 +566,10 @@ namespace nanos {
 
             /* 43 */ registerEventKey("dep-address", "Dependence address", true);
 
-            /* 44 */ registerEventKey("async-thread","Asynchronous thread state events", true);
+            /* 44 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 45 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+
+            /* 46 */ registerEventKey("async-thread","Asynchronous thread state events", true);
             registerEventValue("async-thread", "ASYNC_THREAD_INLINE_WORK_DEP_EVENT", "inlineWorkDependent()" );  /* 1 */
             registerEventValue("async-thread", "ASYNC_THREAD_PRE_RUN_EVENT", "WD pre-run" );                     /* 2 */
             registerEventValue("async-thread", "ASYNC_THREAD_RUN_EVENT", "Running WD" );                         /* 3 */
@@ -578,9 +581,9 @@ namespace nanos {
             registerEventValue("async-thread", "ASYNC_THREAD_PROCESS_EVT_EVENT", "Processing finished event" );  /* 9 */
             registerEventValue("async-thread", "ASYNC_THREAD_SYNCHRONIZE_EVENT", "Synchronize copy" );          /* 10 */
 
-            /* 45 */ registerEventKey("copy-in-gpu", "Asynchronous memory copy from host to device", true);
+            /* 47 */ registerEventKey("copy-in-gpu", "Asynchronous memory copy from host to device", true);
 
-            /* 46 */ registerEventKey("copy-out-gpu", "Asynchronous memory copy from device to host", true);
+            /* 48 */ registerEventKey("copy-out-gpu", "Asynchronous memory copy from device to host", true);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
@@ -985,7 +988,7 @@ namespace nanos {
           *  \param[in] key is the key in the related  pair <key,value>
           *  \param[in] value is the value in related pair <key,value>
           */
-         void closeBurstEvent ( Event *e, nanos_event_key_t key, InstrumentationContextData *icd = NULL );
+         void closeBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value, InstrumentationContextData *icd = NULL );
 
          /*! \brief Used by higher levels to create a STATE event
           *
@@ -1065,13 +1068,13 @@ namespace nanos {
          void raiseCloseStateEvent ( void );
 
          void raiseOpenBurstEvent ( nanos_event_key_t key, nanos_event_value_t val );
-         void raiseCloseBurstEvent ( nanos_event_key_t key );
+         void raiseCloseBurstEvent ( nanos_event_key_t key, nanos_event_value_t value );
 
          void raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
          void raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
 
          void raiseOpenStateAndBurst ( nanos_event_state_value_t state, nanos_event_key_t key, nanos_event_value_t val );
-         void raiseCloseStateAndBurst ( nanos_event_key_t key );
+         void raiseCloseStateAndBurst ( nanos_event_key_t key, nanos_event_value_t value );
 #endif
    };
 }

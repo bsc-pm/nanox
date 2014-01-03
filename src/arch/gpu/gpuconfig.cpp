@@ -130,14 +130,16 @@ void GPUConfig::apply()
 {
    //Auto-enable CUDA if it was not done before
    if ( !_enableCUDA ) {
-       //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
+      //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
       _enableCUDA = ( sys.getOmpssUsesCuda() != 0 );
    }
+
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
-      bool mercuriumHasTasks=( sys.getOmpssUsesCuda()!=0);
-      if (mercuriumHasTasks){
-         message0(" CUDA tasks were compiled and CUDA was disabled, execution"
-               " could have unexpected behavior and can even hang, check configuration parameters");
+      bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != 0 );
+
+      if ( mercuriumHasTasks ) {
+         message0( " CUDA tasks were compiled and CUDA was disabled, execution"
+               " could have unexpected behavior and can even hang, check configuration parameters" );
       }
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
@@ -150,6 +152,7 @@ void GPUConfig::apply()
       _gpuWarmup = false;
       _initCublas = false;
       _gpusProperties = NULL;
+
    } else {
       verbose0( "Initializing GPU support component" );
       // Find out how many CUDA-capable GPUs the system has
@@ -240,20 +243,23 @@ void GPUConfig::apply()
             warning0( "Couldn't set the GPU device flags:" << cudaGetErrorString( cudaErr ) );
       }
 
-      if ( _initCublas ) {
+      if ( _initCublas || ( sys.getOmpssUsesCublas() != 0 ) ) {
+         //gpu_cublas_init pointer will be null (it's extern) if the compiler did not fill it
+         _initCublas = true;
          verbose0( "Initializing CUBLAS Library" );
          if ( !sys.loadPlugin( "gpu-cublas" ) ) {
+            _initCublas = false;
             warning0( "Couldn't initialize CUBLAS library at runtime startup" );
          }
       }
       
-      if (_numGPUs==0){
-         bool mercuriumHasTasks=( sys.getOmpssUsesCuda()!=0);
-         if (mercuriumHasTasks){
-            message0(" CUDA tasks were compiled and no CUDA devices were found, execution"
-                    " could have unexpected behavior and can even hang");
+      if ( _numGPUs == 0 ) {
+         bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != 0 );
+         if ( mercuriumHasTasks ) {
+            message0( " CUDA tasks were compiled and no CUDA devices were found, execution"
+                    " could have unexpected behavior and can even hang" );
          } else {
-             message0(" CUDA plugin was enabled and no CUDA devices were found ");
+             message0( " CUDA plugin was enabled and no CUDA devices were found " );
          }
       }
    }
@@ -283,6 +289,7 @@ void GPUConfig::printConfiguration()
       verbose0( "  Limited memory: Disabled" );
    }
    verbose0( "  GPU warm up: " << ( _gpuWarmup ? "Enabled" : "Disabled" ) );
+   verbose0( "  CUBLAS initialization: " << ( _initCublas ? "Enabled" : "Disabled" ) );
 
    verbose0( "--- end of GPUDD configuration ---" );
 }

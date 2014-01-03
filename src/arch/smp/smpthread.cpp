@@ -17,6 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include "os.hpp"
 #include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
@@ -104,7 +105,7 @@ void SMPThread::bind( void )
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   sys.setCpuAffinity( ( pid_t ) 0, sizeof( cpu_set ), &cpu_set );
+   OS::bindThread( &cpu_set );
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
@@ -188,7 +189,7 @@ bool SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
    ( dd.getWorkFct() )( wd.getData() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key ) );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
    return true;
 }
 

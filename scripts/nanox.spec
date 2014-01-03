@@ -13,14 +13,37 @@
 %{?_with_extrae: %define _with_extrae 1}
 %{!?_with_extrae: %define _with_extrae 0}
 %define feature		nanox
-%define release		2
-%define buildroot       %{_topdir}/%{name}-%{version}-root
+
+%if 0%{?suse_version}
+%define distro        opensuse%{?suse_version}
+%else
+%define distro        %{?dist}
+%endif
+
+%define buildroot    %{_topdir}/%{name}-%{version}-root
+# Avoid "*** ERROR: No build ID note found in XXXXXXX"
+%global debug_package   %{nil}
 
 # Override prefix if _rpm_prefix is given
 %{?_rpm_prefix: %define _prefix  %{_rpm_prefix} }
+# Override distribution flags
+%define configure ./configure --host=%{_host} --build=%{_build} \\\
+        --program-prefix=%{?_program_prefix} \\\
+        --prefix=%{_prefix} \\\
+        --exec-prefix=%{_exec_prefix} \\\
+        --bindir=%{_bindir} \\\
+        --sbindir=%{_sbindir} \\\
+        --sysconfdir=%{_sysconfdir} \\\
+        --datadir=%{_datadir} \\\
+        --includedir=%{_includedir} \\\
+        --libdir=%{_libdir} \\\
+        --libexecdir=%{_libexecdir} \\\
+        --localstatedir=%{_localstatedir} \\\
+        --sharedstatedir=%{_sharedstatedir} \\\
+        --mandir=%{_mandir} \\\
+        --infodir=%{_infodir}
 
-
-BuildRoot:	        %{buildroot}
+BuildRoot:     %{buildroot}
 Summary: 		Nanos++
 License: 		GPL
 %if %_with_extrae
@@ -29,9 +52,9 @@ Name: 			%{feature}-extrae
 Name: 			%{feature}-no-extrae
 %endif
 Version: 		%{version}
-Release: 		%{release}
-Source: 		%{feature}-%{version}.tar.gz
-Prefix: 		%{_prefix}
+Release: 		%{release}%{distro}
+Source:        %{feature}-%{version}.tar.gz
+Prefix: 		   %{_prefix}
 Group: 			Development/Tools
 Provides:		%{feature}
 %if %_with_extrae
@@ -59,7 +82,7 @@ Nanos++ without extrae support.
 %else
 %configure
 %endif
-make -j4
+make -j%{threads}
 
 #%check
 #make check

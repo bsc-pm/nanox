@@ -31,7 +31,7 @@ class InstrumentationPrintTrace: public Instrumentation
 #else
    public:
       // constructor
-      InstrumentationPrintTrace() : Instrumentation( *new InstrumentationContext() ) {}
+      InstrumentationPrintTrace() : Instrumentation( *new InstrumentationContextDisabled() ) {}
       // destructor
       ~InstrumentationPrintTrace ( ) {}
 
@@ -41,10 +41,10 @@ class InstrumentationPrintTrace: public Instrumentation
       void disable( void ) {}
       void enable( void ) {}
       void addResumeTask( WorkDescriptor &w ) {
-         //fprintf(stderr,"NANOS++: Resumed task %d in thread %d\n",w.getId(), myThread->getId());
+         fprintf(stderr,"NANOS++: (WD's) Resuming task %d in thread %d\n",w.getId(), myThread->getId());
       }
       void addSuspendTask( WorkDescriptor &w, bool last ) {
-         //fprintf(stderr,"NANOS++: %s task %d in thread %d\n",last?"Finished":"Suspended",w.getId(), myThread->getId());
+         fprintf(stderr,"NANOS++: (WD's) %s task %d in thread %d\n",last?"Finishing":"Suspending",w.getId(), myThread->getId());
       }
 
       void addEventList ( unsigned int count, Event *events )
@@ -58,6 +58,10 @@ class InstrumentationPrintTrace: public Instrumentation
          nanos_event_key_t dependence       = false ? iD->getEventKey("dependence") : 0xFFFFFFFF;
          nanos_event_key_t dep_address      = false ? iD->getEventKey("dep-address") : 0xFFFFFFFF;
          nanos_event_key_t nanos_api        = true ? iD->getEventKey("api") : 0xFFFFFFFF;
+         nanos_event_key_t wd_id_event      = true ? iD->getEventKey("wd-id") : 0xFFFFFFFF;
+         nanos_event_key_t user_code        = true ? iD->getEventKey("user-code") : 0xFFFFFFFF;
+         nanos_event_key_t wd_ready         = true ? iD->getEventKey("wd-ready") : 0xFFFFFFFF;
+         nanos_event_key_t wd_blocked       = true ? iD->getEventKey("wd-blocked") : 0xFFFFFFFF;
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -86,7 +90,20 @@ class InstrumentationPrintTrace: public Instrumentation
 
                      fprintf(stderr,"NANOS++: (DEP) Adding dependence %d->%d (related data address %p)\n",sender_id,receiver_id, address_id );
                   }
+                  if ( e.getKey() == wd_ready ) {
+                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d becomes ready\n", ((WD *) value)->getId() );
+                  }
+                  if ( e.getKey() == wd_blocked ) {
+                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d becomes blocked\n", ((WD *) value)->getId() );
+                  }
+                  break;
                case NANOS_BURST_START:
+                  if ( e.getKey() == wd_id_event ) {
+                     fprintf(stderr,"NANOS++: (WD-ID) Entering %ld Work Descriptor\n", (long) value );
+                  }
+                  if ( e.getKey() == user_code ) {
+                     fprintf(stderr,"NANOS++: (USER-CODE) Entering %ld User Code Function\n", (long) value );
+                  }
                   if ( e.getKey() == nanos_api ) {
                      std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
                      fprintf(stderr,"NANOS++: (API) Entering %ld named %s\n", (long) value, description.c_str() );
@@ -97,9 +114,19 @@ class InstrumentationPrintTrace: public Instrumentation
                   }
                   break;
                case NANOS_BURST_END:
+                  if ( e.getKey() == wd_id_event ) {
+                     fprintf(stderr,"NANOS++: (WD-ID) Exiting %ld Work Descriptor\n", (long) value );
+                  }
+                  if ( e.getKey() == user_code ) {
+                     fprintf(stderr,"NANOS++: (USER-CODE) Exiting %ld User Code Function\n", (long) value );
+                  }
                   if ( e.getKey() == nanos_api ) {
                      std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
                      fprintf(stderr,"NANOS++: (API) Exiting %ld named %s\n", (long) value, description.c_str() );
+                  }
+                  if ( e.getKey() == funct_location ) {
+                     std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
+                     fprintf(stderr,"NANOS++: (TASK) Finishing %s function location\n", description.c_str() );
                   }
                   break;
                default:

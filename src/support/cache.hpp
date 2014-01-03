@@ -101,7 +101,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
       } else {        // wait for address
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_94 ); )
          while ( ce->getAddress() == NULL ) {}
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), 0 ); )
       }
    } else {
       // DirectoryEntry exists
@@ -121,7 +121,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                owner->syncTransfer(tag);
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_112 ); )
                while( de->getOwner() != NULL ) myThread->idle();
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), 0 ); )
             }
 #else
             if ( owner != NULL ) {
@@ -159,7 +159,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
             if (input) {
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_122 ); )
                while ( de->getOwner() != NULL ) myThread->idle();
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), 0 ); )
                CopyDescriptor cd = CopyDescriptor(tag);
                if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
@@ -179,7 +179,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
             // has to be input, otherwise the program is incorrect so just wait the address to exist
             NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_141 ); )
             while ( ce->getAddress() == NULL ) {}
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+            NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), 0 ); )
 
             if ( size != ce->getSize() ) {
                if ( ce->trySetToResizing() ) {
@@ -542,7 +542,7 @@ inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size , uint64_t 
       if ( _usedSize + size <= _size ) {
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
          result = _T::allocate( size, _pe, tag);
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key, 0 ) );
          if (result==CACHE_ALLOC_ERROR){
             freeSpaceToFit( dir, size );
          }
@@ -552,7 +552,7 @@ inline void * DeviceCache<_T>::allocate( Directory &dir, size_t size , uint64_t 
          // FIXME: unlock
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_CACHE, key, (nanos_event_value_t) size) );
          result = _T::allocate( size, _pe, tag );
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key, 0 ) );
       }
    }
    _usedSize+= size;
@@ -616,7 +616,7 @@ inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
          }
          myThread->enableGettingWork();
       }
-      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ),0  ); )
 
       if ( !ce->isFlushing() ) {
          // Copy the entry because once erased it can be recycled
@@ -649,7 +649,7 @@ inline void DeviceCache<_T>::deleteEntry( uint64_t tag, size_t size )
    _T::free( ce.getAddress(), _pe );
    _usedSize -= ce.getAllocSize();
    _cache.erase( tag );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key, 0 ) );
 }
 
 template <class _T>
@@ -682,7 +682,7 @@ inline bool DeviceCache<_T>::copyData( void * dstAddr, CopyDescriptor &dstCd, vo
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
    result = _T::copyDevToDev( dstAddr, dstCd, srcAddr, size, _pe, srcCache->getPE() );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key, 0 ) );
    return result;
 }
 
@@ -693,7 +693,7 @@ inline bool DeviceCache<_T>::copyDataToCache( CopyDescriptor &cd, size_t size )
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-copy-in") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_IN, key, (nanos_event_value_t) size) );
    result = _T::copyIn( _cache[cd.getTag()].getAddress(), cd, size, _pe );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key, 0 ) );
    return result;
 }
 
@@ -705,7 +705,7 @@ inline bool DeviceCache<_T>::copyBackFromCache( CopyDescriptor &cd, size_t size 
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_OUT, key1, size ) );
    CacheEntry &entry = _cache[cd.getTag()];
    result = _T::copyOut( cd, entry.getAddress(), size, _pe );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1 ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key1, 0 ) );
    return result;
 }
 
@@ -715,7 +715,7 @@ inline void DeviceCache<_T>::copyTo( void *dst, uint64_t tag, size_t size )
    NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cache-local-copy") );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenStateAndBurst( NANOS_MEM_TRANSFER_LOCAL, key, size ) );
    _T::copyLocal( dst, _cache[tag].getAddress(), size, _pe );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key ) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseStateAndBurst( key, 0 ) );
 }
 
 template <class _T>
@@ -833,7 +833,7 @@ inline void DeviceCache<_T>::waitInput( uint64_t tag )
    ensure( ce != NULL, "Cache has been corrupted" );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_WAIT_INPUT ); )
    while ( ce->isCopying() ) {}
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ),0 ); )
 
 }
 
@@ -844,7 +844,7 @@ inline void DeviceCache<_T>::waitInput( DeviceCache<_T>* _this, uint64_t tag )
    ensure( ce != NULL, "Cache has been corrupted" );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_WAIT_INPUT ); )
    while ( ce->isCopying() ) {}
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ) ); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), 0 ); )
 
 }
 

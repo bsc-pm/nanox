@@ -86,7 +86,7 @@ void OpenCLThread::raiseWDClosingEvents ()
       NANOS_INSTRUMENT(
             Instrumentation::Event e[1];
             sys.getInstrumentation()->closeBurstEvent( &e[0],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ), 0 );
 
             sys.getInstrumentation()->addEventList( 1, e );
       );

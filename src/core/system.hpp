@@ -54,11 +54,6 @@ inline System::DeviceList & System::getSupportedDevices() { return _devices; }
 
 inline int System::getCpuCount () const { return CPU_COUNT( &_cpu_set ) ; };
 
-inline void System::setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask){
-   //ensure( checkCpuMask(mask), "invalid CPU mask set" );
-   sched_setaffinity( pid, cpusetsize, mask);
-}
-
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
@@ -420,7 +415,11 @@ inline size_t System::registerArchitecture( ArchPlugin * plugin )
 //TODO: remove this from system, should be inside gpuconfig.cpp, but weak attributes don't seem to be working inside gpu device
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not rename it)
 extern __attribute__((weak)) char ompss_uses_cuda;
-inline char*  System::getOmpssUsesCuda(){ return &ompss_uses_cuda; }
+extern __attribute__((weak)) char gpu_cublas_init;
+
+inline char *  System::getOmpssUsesCuda() { return &ompss_uses_cuda; }
+inline char *  System::getOmpssUsesCublas() { return &gpu_cublas_init; }
+
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 

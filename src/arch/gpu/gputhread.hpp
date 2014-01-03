@@ -36,12 +36,6 @@ int GPUThread::getGPUDevice ()
    return _gpuDevice;
 }
 
-void * GPUThread::getCUBLASHandle()
-{
-   ensure( _cublasHandle, "Trying to use CUBLAS handle without initializing CUBLAS library (please, use NX_GPUCUBLASINIT=yes)" );
-   return _cublasHandle;
-}
-
 GenericEvent * GPUThread::createPreRunEvent( WD * wd )
 {
    GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();

@@ -222,6 +222,30 @@ NANOS_API_DEF(nanos_err_t, nanos_reduction_get, (nanos_reduction_t** dest, void 
 
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_admit_current_thread, (void))
+{
+
+   try {
+       sys.admitCurrentThread( );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
+{
+
+   try {
+       sys.expelCurrentThread( );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
 /*!
  * \}
  */ 

@@ -53,6 +53,7 @@ void Scheduler::submit ( WD &wd )
    debug ( "submitting task " << wd.getId() );
 
    wd.submitted();
+   wd.setReady();
 
    /* handle tied tasks */
    BaseThread *wd_tiedto = wd.isTiedTo();
@@ -282,7 +283,9 @@ inline void Scheduler::idleLoop ()
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
    current->~WorkDescriptor();
-   delete[] (char *) current;
+
+   // This is actually a free(current) but dressed up as C++
+   delete (char*) current;
 }
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
@@ -467,7 +470,7 @@ void Scheduler::wakeUp ( WD *wd )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
    
-   if ( wd->isBlocked() ) {
+   if ( !wd->isReady() ) {
       /* Setting ready wd */
       wd->setReady();
       WD *next = NULL;
