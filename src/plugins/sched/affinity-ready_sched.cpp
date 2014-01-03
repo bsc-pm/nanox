@@ -72,7 +72,7 @@ namespace nanos {
 
          public:
             // constructor
-            CacheSchedPolicy() : SchedulePolicy ( "Cache" ) {}
+            CacheSchedPolicy() : SchedulePolicy ( "Cache-ready" ) {}
 
             // destructor
             virtual ~CacheSchedPolicy() {}
