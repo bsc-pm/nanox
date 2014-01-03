@@ -279,7 +279,7 @@ void * GPUThread::getCUBLASHandle()
 
    // Set the appropriate stream for CUBLAS handle
    cublasSetStream( ( cublasHandle_t ) _cublasHandle,
-         ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream() );
+         ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream( _kernelStreamIdx ));
 
    return _cublasHandle;
 }
