@@ -895,7 +895,7 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
    updateExitStats (*wd);
 
    /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
 
    if ( schedule && getMyThreadSafe()->isEligible() ) {
       BaseThread *thread = getMyThreadSafe();
@@ -909,15 +909,16 @@ void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )
    wd->clear();
 
    /* If DLB, perform the adjustment of resources */
+   /*
    if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
       DLB_ReturnClaimedCpus();
       int needed_resources = sys.getSchedulerStats()._readyTasks.value() - sys.getNumThreads();
       if ( needed_resources > 0 )
          DLB_UpdateResources_max( needed_resources );
    }
+   */
 
-   debug( "exiting task(inlined) " << wd << ":" << wd->getId() <<
-          " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
+   //debug( "exiting task(inlined) " << wd << ":" << wd->getId() << " to " << oldwd << ":" << ( oldwd ? oldwd->getId() : 0 ) );
 }
 
 bool Scheduler::inlineWork ( WD *wd, bool schedule )
@@ -950,7 +951,6 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
 
    thread->setCurrentWD( *wd );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, wd, false) );
 
    /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
@@ -963,13 +963,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    wd->finish();
 
-   if ( done )
+   if ( done ) {
       finishWork( oldwd, wd, schedule );
+      /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
+      NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
+   }
 
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and oldwd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(NULL, wd, true) );
    thread->setCurrentWD( *oldwd );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(oldwd, NULL, false) );
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread

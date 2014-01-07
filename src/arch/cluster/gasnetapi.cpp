@@ -361,7 +361,9 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    // the index is the position inside the dimension array that must be set as the base address for the dimensions
    CopyData *recvCopies = ( ( CopyData *) &work_data[ dataSize + sizeof( int ) ] );
    nanos_region_dimension_t *recvDimensions = ( ( nanos_region_dimension_t * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof(int) ] );
-   memcpy( *dimensions_ptr, recvDimensions, num_dimensions * sizeof(nanos_region_dimension_t) );
+   if ( numCopies > 0 ) {
+      memcpy( *dimensions_ptr, recvDimensions, num_dimensions * sizeof(nanos_region_dimension_t) );
+   }
    for (i = 0; i < numCopies; i += 1)
    {
       new ( &newCopies[i] ) CopyData( recvCopies[i] );

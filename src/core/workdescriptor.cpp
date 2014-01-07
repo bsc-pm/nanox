@@ -169,6 +169,8 @@ bool WorkDescriptor::isInputDataReady() {
    // Test if copies have completed
    if ( getNumCopies() > 0 ) {
       result = pe->testInputs( *this );
+   } else {
+      result = true;
    }
 
    if ( result ) {
@@ -289,7 +291,8 @@ void WorkDescriptor::done ()
    // Notifying parent we have finished ( dependence's relationships )
    this->getParent()->workFinished( *this );
 
-   /* FIXME: removed during merge from master */ //this->wgdone();
+   /* FIXME: removed during merge from master */ this->wgdone();
+
    // Workgroup specific done ( parent's relationships)
    WorkGroup::done();
 
@@ -313,11 +316,33 @@ void WorkDescriptor::notifyOutlinedCompletion()
 }
 void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
 {
+   //if ( predecessorWd != NULL )
+   //{
+   //   setMyGraphRepList( predecessorWd->getMyGraphRepList() );
+   //}
+   //
+   //if ( _myGraphRepList == NULL ) {
+   //   _myGraphRepList = sys.getGraphRepList();
+   //   if ( predecessorWd != NULL ) {
+   //      _myGraphRepList.value()->push_back( predecessorWd->getGE() );
+   //      predecessorWd->listed();
+   //   }
+   //}
+   //_myGraphRepList.value()->push_back( getGE() );
+   //if (predecessorWd != NULL) predecessorWd->listed();
+
    _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
 }
 
 void WorkDescriptor::wgdone()
 {
+   //if (!_listed)
+   //{
+   //   if ( _myGraphRepList == NULL ) {
+   //      _myGraphRepList = sys.getGraphRepList();
+   //   }
+   //   _myGraphRepList.value()->push_back( this->getParent()->getGENext() );
+   //}
 }
 
 void WorkDescriptor::listed()
@@ -440,3 +465,23 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalidations ) const {
    return _mcontrol.canAllocateMemory( thd.runningOn()->getMemorySpaceId(), considerInvalidations );
 }
+
+//void WorkDescriptor::initMyGraphRepListNoPred( ) {
+//   _myGraphRepList = sys.getGraphRepList();
+//   _myGraphRepList.value()->push_back( this->getParent()->getGE() );
+//   _myGraphRepList.value()->push_back( getGE() );
+//}
+
+//void WorkDescriptor::setMyGraphRepList( std::list<GraphEntry *> *myList ) {
+//   _myGraphRepList = myList;
+//}
+
+//std::list<GraphEntry *> *WorkDescriptor::getMyGraphRepList(  )
+//{
+//   std::list<GraphEntry *> *myList = NULL;
+//   do {
+//      myList = _myGraphRepList.value();
+//   }
+//   while ( ! _myGraphRepList.cswap( myList, NULL ) );
+//   return myList;
+//}

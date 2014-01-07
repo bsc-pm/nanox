@@ -71,6 +71,9 @@ support_sources = \
 	$(top_srcdir)/src/support/regiontreenode_fwd.hpp \
 	$(top_srcdir)/src/support/regiontreenode_decl.hpp \
 	$(top_srcdir)/src/support/regiontreenode.hpp \
+	$(top_srcdir)/src/support/functor_decl.hpp \
+	$(top_srcdir)/src/support/requestqueue_decl.hpp \
+	$(top_srcdir)/src/support/requestqueue.hpp \
 	$(END) 
 
 debug_sources = \

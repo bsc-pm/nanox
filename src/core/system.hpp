@@ -29,7 +29,7 @@
 #include "nanos-int.h"
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
-#include "cache_map.hpp"
+#include "regioncache.hpp"
 #include <cmath>
 
 

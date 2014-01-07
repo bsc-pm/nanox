@@ -80,8 +80,6 @@ common_sources=\
 	$(top_srcdir)/src/core/synchronizedcondition_fwd.hpp \
 	$(top_srcdir)/src/core/synchronizedcondition_decl.hpp \
 	$(top_srcdir)/src/core/synchronizedcondition.hpp \
-	$(top_srcdir)/src/core/cache_map_decl.hpp \
-	$(top_srcdir)/src/core/cache_map.hpp \
 	$(top_srcdir)/src/core/pminterface_decl.hpp  \
 	$(top_srcdir)/src/core/basethread_decl.hpp \
 	$(top_srcdir)/src/core/networkapi.hpp  \
@@ -121,7 +119,7 @@ common_sources=\
 	$(top_srcdir)/src/core/memcachecopy_fwd.hpp \
 	$(top_srcdir)/src/core/memcachecopy.cpp \
 	$(top_srcdir)/src/core/memoryops_decl.hpp \
-	$(top_srcdir)/src/core/memoryops.hpp \
+	$(top_srcdir)/src/core/memoryops_fwd.hpp \
 	$(top_srcdir)/src/core/memoryops.cpp \
 	$(top_srcdir)/src/core/globalregt_decl.hpp \
 	$(top_srcdir)/src/core/globalregt.cpp \
@@ -130,6 +128,7 @@ common_sources=\
 	$(top_srcdir)/src/core/address.hpp \
 	$(top_srcdir)/src/core/basedependency_fwd.hpp \
 	$(top_srcdir)/src/core/basedependency_decl.hpp \
+	$(top_srcdir)/src/core/graphentry_decl.hpp \
 	$(END)
 
 instr_sources = \
