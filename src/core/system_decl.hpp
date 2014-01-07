@@ -33,7 +33,6 @@
 #include "instrumentation_decl.hpp"
 #include "network_decl.hpp"
 #include "pminterface_decl.hpp"
-#include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "archplugin_decl.hpp"
 #include "barrier_decl.hpp"
