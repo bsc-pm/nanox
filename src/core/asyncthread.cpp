@@ -36,7 +36,7 @@ using namespace nanos;
 		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ), (x) ); )
 
 #define ASYNC_THREAD_CLOSE_EVENT       NANOS_INSTRUMENT( \
-		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ) ); )
+		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ), 0 ); )
 
 
 typedef enum {

@@ -303,7 +303,7 @@ void GPUThread::closeKernelLaunchEvent()
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    Instrumentation::Event e;
-   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime );
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime, 0 );
 
    sys.getInstrumentation()->addEventList( 1, &e );
 #endif
@@ -351,7 +351,7 @@ void GPUThread::closeWDRunEvent ( WD * wd )
    Instrumentation::Event e;
 
    //sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_kernel_launch );
-   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_user_funct_location );
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_user_funct_location, 0 );
 
    sys.getInstrumentation()->addEventList( 1, &e );
 
@@ -396,7 +396,7 @@ void GPUThread::closeAsyncInputEvent ( size_t size )
 
    //InstrumentationContextData *icd = wd->getInstrumentationContextData();
 
-   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu );
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu, 0 );
    //sys.getInstrumentation()->closeBurstEvent( &e, _key, icd );
 
    sys.getInstrumentation()->addEventList( 1, &e );
@@ -438,7 +438,7 @@ void GPUThread::closeAsyncOutputEvent ( size_t size )
 
    //InstrumentationContextData *icd = wd->getInstrumentationContextData();
 
-   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu );
+   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu, 0 );
    //sys.getInstrumentation()->closeBurstEvent( &e, _key, icd );
 
    sys.getInstrumentation()->addEventList( 1, &e );

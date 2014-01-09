@@ -89,7 +89,7 @@ namespace ext
    sys.getInstrumentation()->raiseOpenBurstEvent ( nanos::ext::GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime, (x) ); )
 
 #define NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT       NANOS_INSTRUMENT( \
-   sys.getInstrumentation()->raiseCloseBurstEvent ( nanos::ext::GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime ); )
+   sys.getInstrumentation()->raiseCloseBurstEvent ( nanos::ext::GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime, 0 ); )
 
 
 
