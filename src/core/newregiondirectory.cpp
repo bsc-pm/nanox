@@ -391,7 +391,7 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
          for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
             //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
             global_reg_t reg( mit->first, it->second );
-            if ( !reg.isLocatedIn( 0 ) ) {
+            if ( !reg.isLocatedIn( 0 ) && !reg.isRooted() ) {
               DeviceOps *thisOps = reg.getDeviceOps();
               if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
