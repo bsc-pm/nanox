@@ -850,8 +850,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      unsigned priority = dyn_props->priority;
-      wd->setPriority( priority );
+      wd->setPriority( dyn_props->priority );
       wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
@@ -1250,10 +1249,8 @@ void System::setupWD ( WD &work, WD *parent )
    
    // Inherit priority
    if ( parent != NULL ){
-      unsigned priority = work.getPriority();
       // Add the specified priority to its parent's
-      priority += parent->getPriority();
-      work.setPriority( priority );
+      work.setPriority( work.getPriority() + parent->getPriority() );
    }
 
    // Prepare private copy structures to use relative addresses
