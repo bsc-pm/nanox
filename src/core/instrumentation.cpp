@@ -73,7 +73,7 @@ void Instrumentation::createBurstEvent ( Event *e, nanos_event_key_t key, nanos_
    _instrumentationContext.insertBurst( icd, *e );
 }
 
-void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key, InstrumentationContextData *icd )
+void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key, nanos_event_value_t value, InstrumentationContextData *icd )
 {
    /* Recovering a state event in instrumentation context */
    if ( icd == NULL ) icd = myThread->getCurrentWD()->getInstrumentationContextData();
@@ -88,7 +88,7 @@ void Instrumentation::closeBurstEvent ( Event *e, nanos_event_key_t key, Instrum
       _instrumentationContext.removeBurst( icd, it ); 
    }
    else {
-      new (e) Burst( false, key, (nanos_event_value_t) 0 );
+      new (e) Burst( false, key, (nanos_event_value_t) value );
    }
 
    /* If not needed to show stacked bursts then close current event by openning next one (if any)  */
@@ -225,14 +225,14 @@ void Instrumentation::raiseOpenBurstEvent ( nanos_event_key_t key, nanos_event_v
    addEventList ( 1, &e );
 }
 
-void Instrumentation::raiseCloseBurstEvent ( nanos_event_key_t key )
+void Instrumentation::raiseCloseBurstEvent ( nanos_event_key_t key, nanos_event_value_t value )
 {
    if ( key == 0 ) return; // key == 0 means disabled event
 
    Event e; /* Event */
 
    /* Create event: BURST */
-   closeBurstEvent( &e, key );
+   closeBurstEvent( &e, key, value );
 
    /* Spawning event: specific instrumentation call */
    addEventList ( 1, &e );
@@ -281,7 +281,7 @@ void Instrumentation::raiseOpenStateAndBurst ( nanos_event_state_value_t state, 
 
 }
 
-void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key )
+void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key, nanos_event_value_t value )
 {
    int ne = 0; // Number of max events
    Event e[2]; // Event array
@@ -290,7 +290,7 @@ void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key )
    if ( _emitStateEvents == true ) returnPreviousStateEvent( &e[ne++] );
 
    /* Create burst event */
-   if ( key != 0 ) closeBurstEvent( &e[ne++], key ); 
+   if ( key != 0 ) closeBurstEvent( &e[ne++], key, value );
  
    if ( ne == 0 ) return;
 
@@ -318,7 +318,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    }
    
    static nanos_event_key_t priorityKey = getInstrumentationDictionary()->getEventKey("wd-priority");
-   nanos_event_value_t wd_priority = newWD->getPriority() + 1;
+   nanos_event_value_t wd_priority = (nanos_event_value_t) newWD->getPriority() + 1;
    createBurstEvent( &e3, priorityKey, wd_priority, icd );
    
    /* Create event: STATE */

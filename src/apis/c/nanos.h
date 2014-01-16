@@ -111,6 +111,7 @@
  *   - 5021: Including void nanos_free0( void *p ) service.
  *   - 5022: Adding const char* description in task creation.
  *   - 5024: Adding is final attribute in wd's dynamic properties.
+ *   - 5025: Changed WD priority from unsigned to int.
  * - nanos interface family: worksharing
  *   - 1000: First implementation of work-sharing services (create and next-item)
  * - nanos interface family: deps_api
@@ -177,7 +178,7 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
-NANOS_API_DECL(unsigned int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(int, nanos_get_wd_priority, (nanos_wd_t wd));
 NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions
@@ -246,6 +247,10 @@ NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) 
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, void *original ) );
 
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
+
+NANOS_API_DECL(nanos_err_t, nanos_admit_current_thread, (void));
+NANOS_API_DECL(nanos_err_t, nanos_expel_current_thread, (void));
+
 
 // dependence
 NANOS_API_DECL(nanos_err_t, nanos_dependence_release_all, ( void ) );
@@ -320,6 +325,16 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 
+#ifdef _MF03
+    typedef void*  nanos_string_t;
+#else
+    typedef const char* nanos_string_t;
+#endif
+
+NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr));
+
+NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
+
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
 
 // scheduling interface
@@ -332,6 +347,9 @@ NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_get_stealing, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_set_stealing, ( bool value ));
 
+//funtion which will be called by mercurium
+//on first line of user main (in some cases, offload and cluster)
+NANOS_API_DECL(void, ompss_nanox_main, ());
 
 // utility macros
 

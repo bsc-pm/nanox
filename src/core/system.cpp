@@ -30,6 +30,7 @@
 #include "processingelement.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
+#include "dlb.hpp"
 #include <string.h>
 #include <set>
 #include <climits>
@@ -54,7 +55,7 @@ System nanos::sys;
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ),
       _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
-      _instrument( false ), _verboseMode( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
+      _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
       _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
@@ -70,14 +71,16 @@ System::System () :
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
 #endif
-      , _lockPoolSize(37), _lockPool( NULL )
+      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
-   int nanox_pid = getpid();
+   // OS::init must be called here and not in System::start() as it can be too late
+   // to locate the program arguments at that point
+   OS::init();
+   config();
 
-   if (sched_getaffinity( nanox_pid, sizeof( cpu_set_t ), &_cpu_set ) != 0)
-	warning(" sched_getaffinity has FAILED!!!");
+   OS::getProcessAffinity( &_cpu_set );
 
    int cpu_count = getCpuCount();
 
@@ -93,11 +96,7 @@ System::System () :
    }
    oss_cpu_idx << "]";
    
-   // OS::init must be called here and not in System::start() as it can be too late
-   // to locate the program arguments at that point
-   OS::init();
-   config();
-   verbose0("PID[" << nanox_pid << "]. CPU affinity " << oss_cpu_idx.str());
+   verbose0("PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str());
    
    // Ensure everything is properly configured
    if( getNumPEs() == INT_MAX && _numThreads == 0 )
@@ -314,6 +313,10 @@ void System::config ()
    cfg.registerConfigOption( "verbose", NEW Config::FlagOption( _verboseMode ),
                              "Activates verbose mode" );
    cfg.registerArgOption( "verbose", "verbose" );
+
+   cfg.registerConfigOption( "summary", NEW Config::FlagOption( _summary ),
+                             "Activates summary mode" );
+   cfg.registerArgOption( "summary", "summary" );
 
 //! \bug implement execution modes (#146) */
 #if 0
@@ -536,11 +539,11 @@ void System::start ()
    {
       case POOL:
          verbose0("Pool model enabled (OmpSs)");
-         _currentTeam = createTeam( _workers.size() );
+         _mainTeam = createTeam( _workers.size() );
          break;
       case ONE_THREAD:
          verbose0("One-thread model enabled (OpenMP)");
-         _currentTeam = createTeam(1);
+         _mainTeam = createTeam(1);
          break;
       default:
          fatal("Unknown initial mode!");
@@ -576,6 +579,9 @@ void System::start ()
    // hwloc can be now unloaded
    if ( isHwlocAvailable() )
       unloadHwloc();   
+
+   if ( _summary )
+      environmentSummary();
 }
 
 System::~System ()
@@ -665,6 +671,9 @@ void System::finish ()
    if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
+
+   if ( _summary )
+      executionSummary();
 }
 
 /*! \brief Creates a new WD
@@ -808,7 +817,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( description == NULL ) desc = NULL;
    else {
       desc = (chunk + offset_DESC);
-      strncpy ( desc, description, strlen(description));
+      strncpy ( desc, description, size_DESC);
+//      desc[strlen(description)]='\0';
    }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
@@ -840,11 +850,15 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      unsigned priority = dyn_props->priority;
-      wd->setPriority( priority );
+      wd->setPriority( dyn_props->priority );
       wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
+   
+   /* DLB */
+   // In case the master have been busy crating tasks 
+   // every 10 tasks created I'll check available cpus
+   if(_atomicWDSeed.value()%10==0)dlb_updateAvailableCpus();
 }
 
 /*! \brief Creates a new Sliced WD
@@ -1235,10 +1249,8 @@ void System::setupWD ( WD &work, WD *parent )
    
    // Inherit priority
    if ( parent != NULL ){
-      unsigned priority = work.getPriority();
       // Add the specified priority to its parent's
-      priority += parent->getPriority();
-      work.setPriority( priority );
+      work.setPriority( work.getPriority() + parent->getPriority() );
    }
 
    // Prepare private copy structures to use relative addresses
@@ -1392,8 +1404,9 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
 
-   thread->reserve(); // set team flag only
+   // The sleep flag must be set before to avoid race conditions
    thread->wakeup();  // set sleep flag only
+   thread->reserve(); // set team flag only
 
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
@@ -1477,6 +1490,7 @@ void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
 
+   dlb_returnCpusIfNeeded();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
@@ -1675,3 +1689,108 @@ void System::addPEsToTeam(PE **pes, int num_pes) {
     }
 }
 
+void System::environmentSummary( void )
+{
+   /* Get Specific Mask String (depending on _bindThreads) */
+   cpu_set_t *cpu_set = _bindThreads ? &_cpu_active_set : &_cpu_set;
+   std::ostringstream mask;
+   mask << "[ ";
+   for ( int i=0; i<CPU_SETSIZE; i++ ) {
+      if ( CPU_ISSET(i, cpu_set) )
+         mask << i << ", ";
+   }
+   mask << "]";
+
+   /* Get Prog. Model string */
+   std::string prog_model;
+   switch ( getInitialMode() )
+   {
+      case POOL:
+         prog_model = "OmpSs";
+         break;
+      case ONE_THREAD:
+         prog_model = "OpenMP";
+         break;
+      default:
+         prog_model = "Unknown";
+         break;
+   }
+
+   message0( "========== Nanos++ Initial Environment Summary ==========" );
+   message0( "=== PID:            " << getpid() );
+   message0( "=== Num. threads:   " << _numThreads );
+   message0( "=== Active CPUs:    " << mask.str() );
+   message0( "=== Binding:        " << std::boolalpha << _bindThreads );
+   message0( "=== Prog. Model:    " << prog_model );
+
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it ) {
+
+      // Temporarily hide SMP plugin because it has empty information
+      if ( strcmp( (*it)->getName(), "SMP PE Plugin" ) == 0 )
+         continue;
+
+      message0( "=== Plugin:         " << (*it)->getName() );
+      message0( "===  | Threads:     " << (*it)->getNumThreads() );
+   }
+
+   message0( "=========================================================" );
+
+   // Get start time
+   _summary_start_time = time(NULL);
+}
+
+void System::admitCurrentThread ( void )
+{
+   int pe_id = _pes.size();   
+
+   //! \note Create a new PE and configure it
+   PE *pe = createPE ( "smp", getBindingId( pe_id ), pe_id );
+   pe->setNUMANode( getNodeOfPE( pe->getId() ) );
+   _pes.push_back ( pe );
+
+   //! \note Create a new Thread object and associate it to the current thread
+   BaseThread *thread = &pe->associateThisThread ( /* untie */ true ) ;
+   _workers.push_back( thread );
+
+   //! \note Update current cpu active set mask
+   CPU_SET( getBindingId( pe_id ), &_cpu_active_set );
+
+   //! \note Getting Programming Model interface data
+   WD &mainWD = *myThread->getCurrentWD();
+   (void) mainWD.getDirectory(true); // FIXME: this may cause future problems
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      mainWD.setInternalData( data );
+   }
+
+   //! \note Include thread into main thread
+   acquireWorker( _mainTeam, thread, /* enter */ true, /* starring */ false, /* creator */ false );
+   
+}
+
+void System::expelCurrentThread ( void )
+{
+   int pe_id =  myThread->runningOn()->getUId();
+   _pes.erase( _pes.begin() + pe_id );
+   _workers.erase ( _workers.begin() + myThread->getId() );
+}
+
+void System::executionSummary( void )
+{
+   time_t seconds = time(NULL) -_summary_start_time;
+   message0( "============ Nanos++ Final Execution Summary ============" );
+   message0( "=== Application ended in " << seconds << " seconds" );
+   message0( "=== " << getCreatedTasks() << " tasks have been executed" );
+   message0( "=========================================================" );
+}
+
+//If someone needs argc and argv, it may be possible, but then a fortran 
+//main should be done too
+void System::ompss_nanox_main(){
+    #ifdef MPI_DEV
+    //This function will already do exit(0) after the slave finishes (when we are on slave)
+    nanos::ext::MPIProcessor::mpiOffloadSlaveMain();
+    #endif    
+}

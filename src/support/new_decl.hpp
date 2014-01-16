@@ -21,7 +21,7 @@
 
 #include <new>
 
-#ifdef NANOS_DEBUG_ENABLED // ----- debug -----
+#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED) // ----- debug AND memtracker -----
 
 #include <cstdlib>
 
@@ -29,8 +29,8 @@
 
    void* operator new ( size_t size, const char *file, int line );
    void* operator new[] ( size_t size, const char *file, int line );
-   
-#else // ----- performance ------
+ 
+#else // ----- no memtracker ------
 
 #define NEW new
 

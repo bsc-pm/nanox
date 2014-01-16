@@ -24,32 +24,22 @@
 #endif
 
 #ifndef EXTRAE_VERSION
-#warning Extrae library version is not supported (use >= 2.3):
+#warning Extrae library version is not supported (use >= 2.4):
 #else
+
 #  define NANOX_EXTRAE_SUPPORTED_VERSION
+
 #  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 2 /************* version 2.x.x */
 #      define extrae_size_t unsigned int
 
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 2 /*********** version 2.2.x */ 
-#      warning Extrae library version is not supported (use >= 2.3):
+#      warning Extrae library version is not supported (use >= 2.4):
 #      undef NANOX_EXTRAE_SUPPORTED_VERSION
 #    endif /*------------------------------------------------- version 2.2.x */
 
 #    if EXTRAE_VERSION_MINOR(EXTRAE_VERSION) == 3 /*********** version 2.3.x */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 0 /****** version 2.3.0 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.0 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 1 /****** version 2.3.1 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.1 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 2 /****** version 2.3.2 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.2 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 3 /****** version 2.3.3 */
-#         define NANOX_EXTRAE_OLD_DEFINE_TYPE
-#      endif /*----------------------------------------------- version 2.3.3 */
-#      if EXTRAE_VERSION_REVISION(EXTRAE_VERSION) == 4 /****** version 2.3.4 */
-#      endif /*----------------------------------------------- version 2.3.4 */
+#      warning Extrae library version is not supported (use >= 2.4):
+#      undef NANOX_EXTRAE_SUPPORTED_VERSION
 #    endif /*------------------------------------------------- version 2.3.x */
 
 #  endif /*--------------------------------------------------- version 2.x.x */
@@ -105,60 +95,6 @@ class InstrumentationExtrae: public Instrumentation
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
       // destructor
       ~InstrumentationExtrae ( ) { }
-
-      void modifyParaverRowFile()
-      {
-#if 0
-         // rename ROW file to a temporary file
-         std::string line;
-         std::string _traceFileName_ROW_tmp = _traceFileName_ROW + "__tmp";
-         rename ( _traceFileName_ROW.c_str(), _traceFileName_ROW_tmp.c_str() );
-
-         // Input file: temporary file
-         std::ifstream i_file;
-         i_file.open ( _traceFileName_ROW_tmp.c_str(), std::ios::in );
-
-         // Output file: paraver config 
-         std::ofstream o_file;
-         o_file.open ( _traceFileName_ROW.c_str(), std::ios::out | std::ios::app);
-
-         if ( o_file.is_open() && i_file.is_open() ) {
-            bool cont = true;
-            bool print = true;
-            while ( cont ) {
-               cont = getline ( i_file, line );
-               if ( print == true ) {
-                  // printing was alredy enabled, so disable if...
-                  print = print && line.find("LEVEL THREAD"); // ... found LEVEL THREAD section
-                  print = print && line.find("LEVEL CPU"); // ... found LEVEL CPU section
-               } else {
-                  // printing was already disabled so enabled if...
-                  print = !line.find("LEVEL NODE"); // ... found LEVEL NODE section
-               }
-
-               if ( print ) o_file << line << std::endl;
-            }
-
-            // Adding thread info
-            unsigned int num_threads = sys.getNumWorkers();
-            o_file << "LEVEL CPU SIZE " << num_threads << std::endl;
-            for ( unsigned int i = 0; i < num_threads; i++ ) {
-               o_file << sys.getWorker(i)->getDescription() << std::endl;
-            }
-            o_file << std::endl;
-
-            o_file.close();
-            i_file.close();
-
-            remove ( _traceFileName_ROW_tmp.c_str() );
-         } else {
-            if (o_file.is_open()) o_file.close();
-            if (i_file.is_open()) i_file.close();
-            message0("Unable to open paraver config file");  
-            rename ( _traceFileName_ROW_tmp.c_str(), _traceFileName_ROW.c_str() );
-         }
-#endif
-      }
 
       void initialize ( void )
       {
@@ -257,11 +193,7 @@ class InstrumentationExtrae: public Instrumentation
                   strncpy(val_desc[val_id], vD->getDescription().c_str(), vD->getDescription().size()+1 );
                   val_id++;
                }
-#ifdef NANOX_EXTRAE_OLD_DEFINE_TYPE
-               Extrae_define_event_type( (extrae_type_t) type, type_desc, val_id, values, val_desc);
-#else
                Extrae_define_event_type( (extrae_type_t *) &type, type_desc, &val_id, values, val_desc);
-#endif
 
             }
          }
@@ -285,22 +217,14 @@ class InstrumentationExtrae: public Instrumentation
             values[i] = 27;
             val_desc[i++] = (char *) "EXTRAE I/O";
 
-#ifdef NANOX_EXTRAE_OLD_DEFINE_TYPE
-            Extrae_define_event_type( (extrae_type_t ) _eventState, (char *) "Thread state: ", nval, values, val_desc );
-            Extrae_define_event_type( (extrae_type_t ) _eventPtPStart, (char *) "Point-to-point origin", 0, NULL, NULL );
-            Extrae_define_event_type( (extrae_type_t ) _eventPtPEnd, (char *) "Point-to-point destination", 0, NULL, NULL );
-            Extrae_define_event_type( (extrae_type_t ) _eventSubState, (char *) "Thread sub-state", nval, values, val_desc );
-#else
             unsigned extrae_zero = 0;
             Extrae_define_event_type( (extrae_type_t *) &_eventState, (char *) "Thread state: ", &nval, values, val_desc );
             Extrae_define_event_type( (extrae_type_t *) &_eventPtPStart, (char *) "Point-to-point origin", &extrae_zero, NULL, NULL );
             Extrae_define_event_type( (extrae_type_t *) &_eventPtPEnd, (char *) "Point-to-point destination", &extrae_zero, NULL, NULL );
             Extrae_define_event_type( (extrae_type_t *) &_eventSubState, (char *) "Thread sub-state", &nval, values, val_desc );
-#endif
          }
 
          OMPItrace_fini();
-         modifyParaverRowFile();
       }
 
       void disable( void ) { Extrae_shutdown(); }

@@ -11,7 +11,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability])
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Enable silent rules if available
@@ -54,33 +54,56 @@ AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
+# Debian release
+AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
+AC_SUBST([DEB_RELEASE])
+
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
 : ${FCFLAGS=""}
 
 # Allocator support
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  AS_HELP_STRING([--enable-allocator], [Enables Allocator module]),
   [
-    allocator_disabled=yes
-    AC_MSG_RESULT([yes])
+    allocator_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
-    allocator_disabled=no
+    allocator_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$allocator_disabled = xyes; then
+if test x$allocator_enabled = xno; then
 	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
 	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
 fi
 
+# Memtracker support
+AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
+AC_ARG_ENABLE([memtracker],
+  AS_HELP_STRING([--disable-memtracker], [Disables Memtracker module]),
+  [
+    memtracker_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    memtracker_disabled=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$memtracker_disabled = xno; then
+	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
+	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
+fi
+
 AC_MSG_CHECKING([for Linux Intel C compiler mode])
 AC_ARG_ENABLE([icc],
-  AC_HELP_STRING([--enable-icc],[Enable support fot Intel compiler (off by default)]),
+  AC_HELP_STRING([--enable-icc],[Enable support for Intel compiler (off by default)]),
   [
     use_icc=yes
     AC_MSG_RESULT([yes])
@@ -93,7 +116,7 @@ AC_ARG_ENABLE([icc],
 
 AC_MSG_CHECKING([for Linux IBM C compiler mode])
 AC_ARG_ENABLE([xlc],
-  AC_HELP_STRING([--enable-xlc],[Enable support fot IBM compiler (off by default)]),
+  AC_HELP_STRING([--enable-xlc],[Enable support for IBM compiler (off by default)]),
   [
     use_xlc=yes
     AC_MSG_RESULT([yes])
@@ -106,7 +129,7 @@ AC_ARG_ENABLE([xlc],
 
 AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
 AC_ARG_ENABLE([mic],
-  AC_HELP_STRING([--enable-mic],[Enable support fot Intel MIC compiler (off by default)]),
+  AC_HELP_STRING([--enable-mic],[Enable support for Intel MIC compiler (off by default)]),
   [
     use_icc=yes
     host_alias=$host
@@ -118,6 +141,19 @@ AC_ARG_ENABLE([mic],
     AC_MSG_RESULT([yes])
   ],
   [
+    AC_MSG_RESULT([no])
+  ]
+)
+
+AC_MSG_CHECKING([for IBM BlueGene/Q mode])
+AC_ARG_ENABLE([bgq],
+  AC_HELP_STRING([--enable-bgq],[Enable support for IBM BlueGene/Q (off by default)]),
+  [
+    use_bgq=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    use_bgq=no
     AC_MSG_RESULT([no])
   ]
 )
@@ -142,6 +178,15 @@ else
 	: ${CXX="g++"}
 	: ${FC="gfortran"}
     fi
+fi
+
+# Check for programs
+# Override all the options if we're compiling for BG/Q
+if test x$use_bgq = xyes; then
+    : ${CC="mpicc"}
+    : ${CXX="mpicxx"}
+    CFLAGS="$CFLAGS -dynamic"
+    CXXFLAGS="$CXXFLAGS -dynamic"
 fi
 
 # Check for architecture
@@ -249,13 +294,16 @@ if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
 fi
 
 if test x$use_gnu = xyes; then
-    CFLAGS="$CFLAGS -Wredundant-decls"
-    CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+    if test x$use_bgq = xno; then
+        CFLAGS="$CFLAGS -Wredundant-decls"
+        CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+    fi
 fi
 
 AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
 AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
 AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
+AM_CONDITIONAL([BGQ], [test x$use_bgq = xyes])
 
 # Check for libraries
 
@@ -277,9 +325,11 @@ AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
+OPTIONS=
 
 AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
+AC_SUBST([OPTIONS])
 AC_SUBST([SMP_ARCH])
 
 AC_CHECK_SIZEOF([size_t])
@@ -766,33 +816,6 @@ MPITRACE_INC=""
 MPITRACE_LIB=""
 MPITRACE_BIN=""
 
-AC_ARG_WITH([mpitrace],
-           AS_HELP_STRING([--with-mpitrace=dir], [Directory of Extrae installation (deprecated)]),
-           [
-                extrae_version_h=$withval/include/extrae_version.h
-                if test -e $extrae_version_h ;
-                then
-                   extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
-                   extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 230;
-                   then
-                      MPITRACE_HOME="$withval"
-                      MPITRACE_INC="$withval/include"
-                      MPITRACE_LIB="$withval/lib" ;
-                      if test -d "$MPITRACE_HOME/lib64"
-                      then
-                         MPITRACE_LIB="$MPITRACE_HOME/lib64"
-                      fi
-                      MPITRACE_BIN="$withval/bin"
-                      AC_MSG_RESULT([checking if Extrae library is compatible... yes])
-                   else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
-                   fi
-                else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
-                fi
-           ]
-)
 AC_ARG_WITH([extrae],
            AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
            [
@@ -801,7 +824,7 @@ AC_ARG_WITH([extrae],
                 then
                    extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
                    extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 230;
+                   if test "$extrae_version" -ge 240;
                    then
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
@@ -813,10 +836,10 @@ AC_ARG_WITH([extrae],
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
                    else
-                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
+                      AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
                    fi
                 else
-                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.3 needed)])
+                   AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
                 fi
            ]
 )
@@ -879,6 +902,7 @@ AC_ARG_WITH([hwloc],
                       HWLOC_LIB="$withval/lib"
                       HWLOC_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Hardware Locality library is compatible... yes])
+                      OPTIONS="$OPTIONS hwloc"
                    else
                       AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
                    fi
@@ -1044,3 +1068,4 @@ echo "================================"
 echo ""
 echo "Configured architectures:" $ARCHITECTURES
 echo ""
+echo "Extra options:" $OPTIONS

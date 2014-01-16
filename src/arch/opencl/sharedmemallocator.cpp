@@ -61,12 +61,11 @@ void * SharedMemAllocator::allocate( size_t size )
     if (_allocatingDevice==NULL){
         res=malloc(size);
     } else {
-        res=_allocatingDevice->allocateSharedMemory(size);
+        res=_allocatingDevice->allocateSharedMemory(size);    
+        _lock.acquire();
+        _pinnedChunks[ res ] = size;
+        _lock.release();
     }
-    
-   _lock.acquire();
-   _pinnedChunks[ res ] = size;
-   _lock.release();
    
     return res;
 }
@@ -74,10 +73,15 @@ void * SharedMemAllocator::allocate( size_t size )
 void SharedMemAllocator::free( void * addr )
 {
    initialize();   
-   _lock.acquire();
-   _pinnedChunks.erase( addr );
-   _lock.release();
-   _allocatingDevice->freeSharedMemory(addr);
+  
+   if (_allocatingDevice==NULL){
+      free(addr);
+   } else {
+     _lock.acquire();
+     _pinnedChunks.erase( addr );
+     _lock.release();
+     _allocatingDevice->freeSharedMemory(addr);
+   }
 }
 
 

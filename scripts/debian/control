@@ -1,13 +1,13 @@
 # Tutorial: http://wiki.debian.org/IntroDebianPackaging
 # Interesting stuff: http://honk.sigxcpu.org/projects/git-buildpackage/manual-html/gbp.releases.html
 Source: nanox
-Maintainer: The Nanos++ developers <pmtools@bsc.es>
+Maintainer: The Nanos++ developers <pm-tools@bsc.es>
 Section: devel
 Priority: optional
 Standards-Version: 3.9.3
-Build-Depends: debhelper (>= 9)
+Build-Depends: debhelper (>= 9), extrae (>=2.4.0)
 
 Package: nanox
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, extrae (>=2.4.0)
 Description: The Nanos++ runtime library

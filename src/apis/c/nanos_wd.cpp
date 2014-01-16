@@ -141,7 +141,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
  */
 NANOS_API_DEF(nanos_err_t, nanos_set_translate_function, ( nanos_wd_t wd, nanos_translate_args_t translate_args ))
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_set_translate_function",NANOS_CREATION) );
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_translate_function",NANOS_CREATION) );
    try 
    {
       WD *lwd = ( WD * ) wd;
@@ -227,7 +227,7 @@ NANOS_API_DEF(nanos_err_t, nanos_submit, ( nanos_wd_t uwd, size_t num_data_acces
 
       NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, 0 );)
 
-      if ( data_accesses != NULL ) {
+      if ( num_data_accesses != 0 && data_accesses != NULL ) {
          sys.submitWithDependencies( *wd, num_data_accesses, data_accesses );
          return NANOS_OK;
       }
@@ -417,7 +417,7 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
 /*! \brief Get WorkDescriptor's priority
  *
  */
-NANOS_API_DEF(unsigned int, nanos_get_wd_priority, ( nanos_wd_t wd ))
+NANOS_API_DEF(int, nanos_get_wd_priority, ( nanos_wd_t wd ))
 {
    //! \note Why this is not instrumented?
    WD *lwd = ( WD * )wd;

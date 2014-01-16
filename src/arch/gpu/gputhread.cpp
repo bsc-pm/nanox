@@ -211,15 +211,27 @@ void GPUThread::idle()
 }
 
 
+void * GPUThread::getCUBLASHandle()
+{
+   ensure( _cublasHandle, "Trying to use CUBLAS handle without initializing CUBLAS library (please, use NX_GPUCUBLASINIT=yes)" );
+
+   // Set the appropriate stream for CUBLAS handle
+   cublasSetStream( ( cublasHandle_t ) _cublasHandle,
+         ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream() );
+
+   return _cublasHandle;
+}
+
+
 void GPUThread::raiseWDClosingEvents ()
 {
    if ( _wdClosingEvents ) {
       NANOS_INSTRUMENT(
             Instrumentation::Event e[2];
             sys.getInstrumentation()->closeBurstEvent( &e[0],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ) );
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-name" ), 0 );
             sys.getInstrumentation()->closeBurstEvent( &e[1],
-                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ) );
+                  sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "user-funct-location" ), 0 );
 
             sys.getInstrumentation()->addEventList( 2, e );
       );

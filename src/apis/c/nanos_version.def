@@ -1,5 +1,5 @@
-master=5024
+master=5026
 worksharing=1000
 deps_api=1001
 copies_api=1002
-openmp=7
+openmp=8

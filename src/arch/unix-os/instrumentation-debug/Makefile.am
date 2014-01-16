@@ -25,6 +25,9 @@ noinst_LTLIBRARIES=libos.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
 
+if BGQ
+libos_la_CPPFLAGS=-DBGQ
+endif
 libos_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
 libos_la_SOURCES=$(os_sources)
 libos_la_LIBADD=$(common_libadd)

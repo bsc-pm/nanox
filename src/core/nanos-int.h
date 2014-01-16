@@ -242,7 +242,7 @@ typedef struct {
 typedef struct {
    nanos_wd_dyn_flags_t flags;
    nanos_thread_t tie_to;
-   unsigned int priority;
+   int priority;
 } nanos_wd_dyn_props_t;
 
 typedef struct {

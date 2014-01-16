@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2013 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,60 +17,43 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "threadteam.hpp"
-#include "atomic.hpp"
-#include "debug.hpp"
-#include "allocator.hpp"
-#include "memtracker.hpp"
+#ifndef _NANOS_DLB
+#define _NANOS_DLB
+
 
 using namespace nanos;
 
-
-bool ThreadTeam::singleGuard( int local )
-{
-   if ( local <= _singleGuardCount ) return false;
-   
-   return compareAndSwap( &_singleGuardCount, local-1, local );
+extern "C" {
+   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
+   void DLB_UpdateResources( void ) __attribute__(( weak ));
+   void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
 }
 
-bool ThreadTeam::enterSingleBarrierGuard( int local )
-{
-   if ( local <= _singleGuardCount ) return false;
-   
-   return compareAndSwap( &_singleGuardCount, local-2, local-1 );
+namespace nanos {
 
-}
+   inline void dlb_returnCpusIfNeeded ( void )
+   {
+      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
+         DLB_ReturnClaimedCpus();
+   }
 
-void ThreadTeam::releaseSingleBarrierGuard( void )
-{
-   _singleGuardCount++;
-}
+   inline void dlb_updateAvailableCpus ( void )
+   {
+      if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
+            DLB_ReturnClaimedCpus();
 
-void ThreadTeam::waitSingleBarrierGuard( int local )
-{
-   while ( local > _singleGuardCount ) { memoryFence(); }
-}
+         if ( sys.getPMInterface().isMalleable() ) {
+            int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getNumThreads();
+            if ( needed_resources > 0 )
+               DLB_UpdateResources_max( needed_resources );
 
-void ThreadTeam::cleanUpReductionList( void ) 
-{
-   nanos_reduction_t *red;
-   while ( !_redList.empty() ) {
-      red = _redList.back();
-      red->cleanup( red->descriptor ); 
-      if ( red->descriptor != red->privates ) 
-      { 
-#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
-         nanos::getMemTracker().deallocate( red->descriptor ); 
-#else 
-         nanos::getAllocator().deallocate ( red->descriptor ); 
-#endif 
-      } 
-#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
-      nanos::getMemTracker().deallocate( (void *) red );
-#else
-      nanos::getAllocator().deallocate ( (void *) red );
-#endif
-      _redList.pop_back();
+         } else {
+            DLB_UpdateResources();
+         }
+
+
+      }
+
    }
 }
-
+#endif

@@ -35,7 +35,7 @@ typedef struct {
 //MPI
 NANOS_API_DECL(void *, nanos_opencl_factory, (void *args));
     
-#define NANOS_MPI_DESC( args ) { nanos_opencl_factory, &( args ) } 
+#define NANOS_OCL_DESC( args ) { nanos_opencl_factory, &( args ) } 
 
 NANOS_API_DECL(void*, nanos_create_current_kernel, (const char* kernel_name, const char* opencl_code, const char* compiler_opts)); 
 NANOS_API_DECL(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, void* pointer));
@@ -43,7 +43,9 @@ NANOS_API_DECL(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_n
 NANOS_API_DECL(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size));
 NANOS_API_DECL(unsigned int,nanos_get_opencl_num_devices, (void));
 NANOS_API_DECL(void *, nanos_malloc_opencl, ( size_t size ) );
+NANOS_API_DECL(intptr_t, nanos_malloc_openclf, ( int size ) );
 NANOS_API_DECL(void, nanos_free_opencl, ( void * address ) );
+NANOS_API_DECL(void, nanos_free_openclf, ( intptr_t address ) );
 
 #ifdef _MERCURIUM_OPENCL_
 //unsigned get_work_dim();

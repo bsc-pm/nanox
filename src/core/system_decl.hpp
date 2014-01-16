@@ -85,6 +85,8 @@ namespace nanos
          bool                 _profile;
          bool                 _instrument;
          bool                 _verboseMode;
+         bool                 _summary;            /*!< \brief Flag to enable the summary */
+         time_t               _summary_start_time; /*!< \brief Track time to show duration in summary */
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
          bool                 _untieMaster;
@@ -196,6 +198,7 @@ namespace nanos
 
          const int                 _lockPoolSize;
          Lock *                    _lockPool;
+         ThreadTeam               *_mainTeam;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -238,6 +241,12 @@ namespace nanos
          void unloadHwloc();
          
          PE * createPE ( std::string pe_type, int pid, int uid );
+
+         //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
+         void environmentSummary( void );
+
+         //* \brief Prints the Execution Summary (time, completed tasks, etc.) at the end of the execution
+         void executionSummary( void );
 
       public:
          /*! \brief System default constructor
@@ -306,8 +315,6 @@ namespace nanos
           * \param[in] mask
           */
          void addCpuMask ( const cpu_set_t *mask );
-
-         void setCpuAffinity(const pid_t pid, size_t cpusetsize, cpu_set_t *mask);
 
          void setDeviceStackSize ( int stackSize );
 
@@ -602,8 +609,10 @@ namespace nanos
          size_t registerArchitecture( ArchPlugin * plugin );
 
 #ifdef GPU_DEV
+         char * getOmpssUsesCuda();
+         char * getOmpssUsesCublas();
+
          PinnedAllocator& getPinnedAllocatorCUDA();
-         char* getOmpssUsesCuda();
 #endif
 #ifdef MPI_DEV
          char* getOmpssUsesOffload();
@@ -649,6 +658,16 @@ namespace nanos
          */
          void addPEsToTeam(PE **pes, int num_pes);
          
+
+         /*! \brief Active current thread (i.e. pthread ) and include it into the main team
+          */
+         void admitCurrentThread ( void );
+         void expelCurrentThread ( void );
+         
+         //This main will do nothing normally
+         //It will act as an slave and call exit(0) when we need slave behaviour
+         //in offload or cluster version
+         void ompss_nanox_main ();         
    };
 
    extern System sys;

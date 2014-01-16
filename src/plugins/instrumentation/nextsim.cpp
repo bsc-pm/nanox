@@ -19,9 +19,6 @@
 #include <nextsim/trace/ompss/Trace.h>
 #include <nextsim/trace/BinaryEventStream.h>
 
-//#define DEBUG_TASKSIM
-//#define CAPTURE_FLUSHING_TIME
-
 namespace nanos {
 
 const unsigned int WD_ID_PHASE = 32;
@@ -127,6 +124,38 @@ public:
 
 
     inline
+    void pause_wd(unsigned long long timestamp, unsigned int wd_id)
+    {
+       wd_id = WD_INDEX(wd_id);
+       sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
+
+       assert(wd.active == true and wd.phase_stack.empty() == false);
+
+       //closing phase (if existed)
+       if( timestamp > wd.phase_st_time ) {
+          unsigned long long time = timestamp - wd.phase_st_time;
+          verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack.top(), time)) == true);
+       }
+
+       wd.active = false;
+       //wd.phase_stack.pop();
+       //assert(wd.phase_stack.empty() == true);
+    }
+
+    inline
+    void resume_wd(unsigned long long timestamp, unsigned int wd_id)
+    {
+       assert(wd_id > 0);
+       wd_id = WD_INDEX(wd_id);
+       sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
+       assert(wd.active == false);
+       wd.active = true;
+       if (wd.phase_stack.empty() == false) { //not start of wd
+          wd.phase_st_time = getns();
+       }
+    }
+ 
+    inline
     void start_phase(unsigned long long timestamp, unsigned int wd_id, unsigned int phase)
     {
         wd_id = WD_INDEX(wd_id);
@@ -152,7 +181,7 @@ public:
         assert(wd_id > 0);
         wd_id = WD_INDEX(wd_id);
         sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
-        assert(wd.active == false);
+        assert(wd.active == true);
         wd.active = true;
         assert(wd.phase_stack.empty() == true);
 
@@ -317,12 +346,15 @@ class InstrumentationTasksimTrace: public Instrumentation
       {
           wd_events_.fini();
       }
+
       virtual void threadStart ( BaseThread &thread ) {}
       virtual void threadFinish ( BaseThread &thread ) {}
-      virtual void enable() {}
-      virtual void disable() {}
-      virtual void addResumeTask(nanos::WorkDescriptor&) {}
-      virtual void addSuspendTask(nanos::WorkDescriptor&, bool) {}
+
+      virtual void enable() { std::cerr << "Disabling tasksim instrumentation not supported" << std::endl; exit(1); }
+      virtual void disable() { std::cerr << "Disabling tasksim instrumentation not supported" << std::endl; exit(1); }
+
+      virtual void addResumeTask(nanos::WorkDescriptor& wd) { wd_events_.resume_wd(TaskSimEvents::getns(), wd.getId()); }
+      virtual void addSuspendTask(nanos::WorkDescriptor& wd, bool) { wd_events_.pause_wd(TaskSimEvents::getns(), wd.getId()); }
 
       virtual void addEventList ( unsigned int count, Event *events )
       {
@@ -399,13 +431,6 @@ class InstrumentationTasksimTrace: public Instrumentation
                   else if ( e_key == user_func ) {
                       wd_events_.start_phase(timestamp, which_WD, USER_FUNCTION);
                   }
-#ifdef DEBUG_TASKSIM
-                  std::string valueD = getInstrumentationDictionary()->getValueDescription ( e_key, e_val );
-                  std::string keyD = getInstrumentationDictionary()->getKeyDescription ( e_key );
-                  if ( e_key == api || e_key == user_code || e_key == wd_id || e_key == user_func )  {
-                     std::cout << "WD:"<< which_WD << "(Start) " << keyD << " - " << valueD << std::endl;
-                  }
-#endif
                   break;
                }
                case NANOS_BURST_END: {
@@ -448,13 +473,6 @@ class InstrumentationTasksimTrace: public Instrumentation
                       }
                       wd_events_.stop_phase(timestamp, which_WD, USER_FUNCTION, name);
                    }
-#ifdef DEBUG_TASKSIM
-                   std::string valueD = getInstrumentationDictionary()->getValueDescription ( e_key, e_val );
-                   std::string keyD = getInstrumentationDictionary()->getKeyDescription ( e_key );
-                   if ( e_key == api   || e_key == user_code || e_key == wd_id || e_key == user_func )  {
-                      std::cout << "WD:"<< which_WD << "   (Stop) " << keyD << " - " << valueD << std::endl;
-                   }
-#endif
                    break;
                }
                default:
@@ -462,6 +480,9 @@ class InstrumentationTasksimTrace: public Instrumentation
             }
          }
       }
+
+       virtual void threadStart ( BaseThread &thread ) {}
+       virtual void threadFinish ( BaseThread &thread ) {}
 #endif
 };
 

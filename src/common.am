@@ -12,6 +12,8 @@ common_includes= \
 	-I$(top_srcdir)/src/arch/mpi \
 	$(END)
 
+devincludedir = $(prefix)/include/nanox-dev
+
 if HWLOC
 hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@
 hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc
