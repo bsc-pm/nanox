@@ -1774,3 +1774,12 @@ void System::executionSummary( void )
    message0( "=== " << getCreatedTasks() << " tasks have been executed" );
    message0( "=========================================================" );
 }
+
+//If someone needs argc and argv, it may be possible, but then a fortran 
+//main should be done too
+void System::ompss_nanox_main(){
+    #ifdef MPI_DEV
+    //This function will already do exit(0) after the slave finishes (when we are on slave)
+    nanos::ext::MPIProcessor::mpiOffloadSlaveMain();
+    #endif    
+}
