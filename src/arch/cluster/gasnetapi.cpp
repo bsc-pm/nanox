@@ -383,7 +383,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       //fprintf(stderr, "Copy %d has HostAddr 0x%lx, BaseAddr 0x%p\n", i, newCopies[i].getHostBaseAddress(), newCopies[i].getBaseAddress() );
    }
 
-   localWD->setId( wdId );
+   //localWD->setId( wdId );
    localWD->setRemoteAddr( rmwd );
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
