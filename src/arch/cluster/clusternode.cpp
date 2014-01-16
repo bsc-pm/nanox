@@ -99,3 +99,10 @@ unsigned int ClusterNode::getExecutedWDs() const {
 unsigned int ClusterNode::getNodeNum() const {
    return _clusterNode;
 }
+
+void ClusterNode::clusterWorker() {
+   if ( sys.getNetwork()->getNodeNum() > 0 ) {
+      Scheduler::workerLoop();
+      exit(0);
+   }
+}

@@ -318,7 +318,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    }
    
    static nanos_event_key_t priorityKey = getInstrumentationDictionary()->getEventKey("wd-priority");
-   nanos_event_value_t wd_priority = newWD->getPriority() + 1;
+   nanos_event_value_t wd_priority = (nanos_event_value_t) newWD->getPriority() + 1;
    createBurstEvent( &e3, priorityKey, wd_priority, icd );
    
    /* Create event: STATE */

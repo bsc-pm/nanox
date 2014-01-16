@@ -170,14 +170,16 @@ namespace nanos
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
             bool is_final:1;
-            bool reserved1:1;
-            bool reserved2:1;
-            bool reserved3:1;
+            bool is_initialized:1;
+            bool is_started:1;
+            bool is_ready:1;
             bool reserved4:1;
             bool reserved5:1;
             bool reserved6:1;
             bool reserved7:1;
          } WDFlags;
+
+         typedef int PriorityType;
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -230,9 +232,7 @@ namespace nanos
          void (*_notifyCopy)( WD &wd, BaseThread const &thread);
          BaseThread const*_notifyThread;
 
-         int                           _priority;      /**< Task priority */
-      public:
-         MemController                 _mcontrol;
+         PriorityType                  _priority;      /**< Task priority */
 
          CommutativeOwnerMap           *_commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
          WorkDescriptorPtrList         *_commutativeOwners;   /**< Array of commutative target owners */
@@ -244,6 +244,9 @@ namespace nanos
          char                         *_description; /**< WorkDescriptor description, usually user function name */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
+
+      public:
+         MemController                 _mcontrol;
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -402,8 +405,6 @@ namespace nanos
          bool isIdle () const;
 
          void setIdle ();
-
-         bool isBlocked () const;
 
          void setBlocked ();
 
@@ -612,8 +613,8 @@ namespace nanos
          bool isConfigured ( void ) const;
          void setConfigured ( bool value=true );
 
-         void setPriority( int priority );
-         int getPriority() const;
+         void setPriority( PriorityType priority );
+         PriorityType getPriority() const;
          void setNotifyCopyFunc( void (*func)(WD &, BaseThread const &) );
 
          void notifyCopy();

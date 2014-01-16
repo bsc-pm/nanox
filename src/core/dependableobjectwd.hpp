@@ -37,6 +37,11 @@ inline void * DOSubmit::getRelatedObject ( )
    return (void *) getWD();
 }
 
+inline const void * DOSubmit::getRelatedObject ( ) const
+{
+   return (void *) getWD();
+}
+
 inline const DOWait & DOWait::operator= ( const DOWait &dow )
 {
    if ( this == &dow ) return *this; 
@@ -46,6 +51,11 @@ inline const DOWait & DOWait::operator= ( const DOWait &dow )
 }
 
 inline void * DOWait::getRelatedObject ( )
+{
+   return (void *) getWD();
+}
+
+inline const void * DOWait::getRelatedObject ( ) const
 {
    return (void *) getWD();
 }

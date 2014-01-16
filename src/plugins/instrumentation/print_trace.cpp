@@ -60,6 +60,8 @@ class InstrumentationPrintTrace: public Instrumentation
          nanos_event_key_t nanos_api        = true ? iD->getEventKey("api") : 0xFFFFFFFF;
          nanos_event_key_t wd_id_event      = true ? iD->getEventKey("wd-id") : 0xFFFFFFFF;
          nanos_event_key_t user_code        = true ? iD->getEventKey("user-code") : 0xFFFFFFFF;
+         nanos_event_key_t wd_ready         = true ? iD->getEventKey("wd-ready") : 0xFFFFFFFF;
+         nanos_event_key_t wd_blocked       = true ? iD->getEventKey("wd-blocked") : 0xFFFFFFFF;
 
          for (unsigned int i = 0; i < count; i++)
          {
@@ -88,6 +90,13 @@ class InstrumentationPrintTrace: public Instrumentation
 
                      fprintf(stderr,"NANOS++: (DEP) Adding dependence %d->%d (related data address %p)\n",sender_id,receiver_id, address_id );
                   }
+                  if ( e.getKey() == wd_ready ) {
+                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d becomes ready\n", ((WD *) value)->getId() );
+                  }
+                  if ( e.getKey() == wd_blocked ) {
+                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d becomes blocked\n", ((WD *) value)->getId() );
+                  }
+                  break;
                case NANOS_BURST_START:
                   if ( e.getKey() == wd_id_event ) {
                      fprintf(stderr,"NANOS++: (WD-ID) Entering %ld Work Descriptor\n", (long) value );

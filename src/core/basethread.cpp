@@ -58,6 +58,8 @@ WD * BaseThread::getNextWD ()
    debug("Get next WD as: " << next << ":"<< next->getId() << " @ thread " << _id );
    }
 
+   if ( next ) next->setReady();
+
    return next;
 }
 

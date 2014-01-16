@@ -92,11 +92,7 @@ void utilInit ( void * )
 #define INIT_NULL { utilInit, 0 }                                                                                                                                         
 LINKER_SECTION(nanos_init, nanos_init_desc_t , INIT_NULL) 
 
-extern "C" {
-int _nanox_main (int argc, char* argv[]);
-}
-
-int _nanox_main (int argc, char* argv[])
+int main (int argc, char* argv[])
 {
    bool listVersion = false;
    bool listHelp = false;

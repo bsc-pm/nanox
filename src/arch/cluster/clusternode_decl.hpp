@@ -73,6 +73,8 @@ namespace nanos {
             void incExecutedWDs();
             unsigned int getExecutedWDs() const;
             unsigned int getNodeNum() const;
+
+            static void clusterWorker();
       };
    }
 }

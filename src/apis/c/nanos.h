@@ -350,6 +350,9 @@ NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_get_stealing, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_set_stealing, ( bool value ));
 
+//funtion which will be called by mercurium
+//on first line of user main (in some cases, offload and cluster)
+NANOS_API_DECL(void, ompss_nanox_main, ());
 
 // utility macros
 
@@ -359,7 +362,6 @@ do {\
    if ( err != NANOS_OK ) nanos_handle_error( err );\
 } while (0)
 
-extern int _nanox_main( int argc, char *argv[] );
 void nanos_reduction_int_vop ( int, void *, void * );
 
 #ifdef __cplusplus

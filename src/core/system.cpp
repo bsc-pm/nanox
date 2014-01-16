@@ -746,22 +746,22 @@ void System::start ()
       environmentSummary();
 }
 
-extern "C" {
-extern int _nanox_main( int argc, char *argv[]);
-};
-
-int main( int argc, char *argv[] )
-{
-
-   if ( sys.getNetwork()->getNodeNum() == 0  ) 
-   {
-      _nanox_main(argc, argv);
-   }
-   else
-   {
-      Scheduler::workerLoop();
-   }
-}
+//extern "C" {
+//extern int _nanox_main( int argc, char *argv[]);
+//};
+//
+//int main( int argc, char *argv[] )
+//{
+//
+//   if ( sys.getNetwork()->getNodeNum() == 0  ) 
+//   {
+//      _nanox_main(argc, argv);
+//   }
+//   else
+//   {
+//      Scheduler::workerLoop();
+//   }
+//}
 
 System::~System ()
 {
@@ -1104,7 +1104,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( description == NULL ) desc = NULL;
    else {
       desc = (chunk + offset_DESC);
-      strncpy ( desc, description, strlen(description));
+      strncpy ( desc, description, size_DESC);
+//      desc[strlen(description)]='\0';
    }
 
    WD * wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
@@ -1136,8 +1137,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      unsigned priority = dyn_props->priority;
-      wd->setPriority( priority );
+      wd->setPriority( dyn_props->priority );
       wd->setFinal ( dyn_props->flags.is_final );
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
@@ -1536,10 +1536,8 @@ void System::setupWD ( WD &work, WD *parent )
    
    // Inherit priority
    if ( parent != NULL ){
-      unsigned priority = work.getPriority();
       // Add the specified priority to its parent's
-      priority += parent->getPriority();
-      work.setPriority( priority );
+      work.setPriority( work.getPriority() + parent->getPriority() );
    }
 
    /**************************************************/
@@ -2110,14 +2108,15 @@ void System::executionSummary( void )
    message0( "=========================================================" );
 }
 
-
-//SeparateMemoryAddressSpace *System::createNewSeparateMemoryAddressSpace( Device &arch, bool allocWide ) {
-//   memory_space_id_t id = sys.getNewSeparateMemoryAddressSpaceId();
-//   SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide );
-//   _separateAddressSpaces[ id ] = mem;
-//   return mem;
-//}
-//
-//int System::getNewPEId() {
-//   return 0;
-//}
+//If someone needs argc and argv, it may be possible, but then a fortran 
+//main should be done too
+void System::ompss_nanox_main(){
+    #ifdef MPI_DEV
+    //This function will already do exit(0) after the slave finishes (when we are on slave)
+    nanos::ext::MPIProcessor::mpiOffloadSlaveMain();
+    #else
+      #ifdef CLUSTER_DEV
+      nanos::ext::ClusterNode::clusterWorker();
+      #endif
+    #endif
+}

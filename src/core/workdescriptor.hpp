@@ -50,8 +50,10 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
                                  _submitted( false ), _implicit(false), _translateArgs( translate_args ),
                                  _notifyCopy( NULL ), _notifyThread( NULL ),
-                                 _priority( 0 ), _mcontrol( *this ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
-                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData() { 
+                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData(),
+                                 _mcontrol( *this )
+                                 { 
                                     _flags.is_final = 0;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
@@ -65,14 +67,18 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                                 _numDevices ( 1 ), _devices ( NEW DeviceData *( device ) ), _activeDeviceIdx( 0 ),
+                                 _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _submitted( false ), _implicit(false), _translateArgs( translate_args ),
                                  _notifyCopy( NULL ), _notifyThread( NULL ),
-                                 _priority( 0 ), _mcontrol( *this ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
-                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData() {
+                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
+                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData(),
+                                 _mcontrol( *this )
+                                 {
+                                    _devices = new DeviceData*[1];
+                                    _devices[0] = device;
                                     _flags.is_final = 0;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
@@ -92,10 +98,12 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _submitted( false ), _implicit( wd._implicit ), _translateArgs( wd._translateArgs ),
                                  _notifyCopy( NULL ), _notifyThread( NULL ),
-                                 _priority( wd._priority ), _mcontrol( *this ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( wd._wakeUpQueue ), 
-                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData()
+                                 _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( wd._wakeUpQueue ), 
+                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(),
+                                 _mcontrol( *this )
                                  {
-                                    _flags.is_final = 0;
+                                    _flags.is_final = false;
+                                    _flags.is_ready = false;
                                  }
 
 /* DeviceData inlined functions */
@@ -144,11 +152,28 @@ inline void WorkDescriptor::setStart () { _state = WorkDescriptor::START; }
 inline bool WorkDescriptor::isIdle () const { return _state == WorkDescriptor::IDLE; }
 inline void WorkDescriptor::setIdle () { _state = WorkDescriptor::IDLE; }
 
-inline bool WorkDescriptor::isBlocked () const { return _state == WorkDescriptor::BLOCKED; }
-inline void WorkDescriptor::setBlocked () { _state = WorkDescriptor::BLOCKED; }
+inline bool WorkDescriptor::isReady () const { return _flags.is_ready; }
 
-inline bool WorkDescriptor::isReady () const { return _state == WorkDescriptor::READY; }
-inline void WorkDescriptor::setReady () { _state = WorkDescriptor::READY; }
+inline void WorkDescriptor::setBlocked () {
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys  = ID->getEventKey("wd-blocked"); )
+   NANOS_INSTRUMENT ( if ( _flags.is_ready ) { )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) this; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT ( } )
+   _flags.is_ready = false;
+}
+
+inline void WorkDescriptor::setReady ()
+{
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys  = ID->getEventKey("wd-ready"); )
+   NANOS_INSTRUMENT ( if ( !_flags.is_ready ) { )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) this; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+   NANOS_INSTRUMENT ( } )
+   _flags.is_ready = true;
+}
 
 inline bool WorkDescriptor::isFinal () const { return _flags.is_final; }
 inline void WorkDescriptor::setFinal ( bool value ) { _flags.is_final = value; }
@@ -314,8 +339,8 @@ inline void WorkDescriptor::submitted()  { _submitted = true; }
 inline bool WorkDescriptor::isConfigured ( void ) const { return _configured; }
 inline void WorkDescriptor::setConfigured ( bool value ) { _configured = value; }
 
-inline void WorkDescriptor::setPriority( int priority ) { _priority = priority; }
-inline int WorkDescriptor::getPriority() const { return _priority; }
+inline void WorkDescriptor::setPriority( WorkDescriptor::PriorityType priority ) { _priority = priority; }
+inline WorkDescriptor::PriorityType WorkDescriptor::getPriority() const { return _priority; }
 
 inline void WorkDescriptor::releaseCommutativeAccesses()
 {

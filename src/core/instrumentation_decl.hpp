@@ -564,6 +564,9 @@ namespace nanos {
             /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data in");
             /* 47 */ registerEventKey("sched-affinity-constraint","Constraint used by affinity scheduler");
 
+            /* 44 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 45 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 
