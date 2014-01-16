@@ -43,6 +43,11 @@ inline void * DOSubmit::getRelatedObject ( )
    return (void *) _submittedWD;
 }
 
+inline const void * DOSubmit::getRelatedObject ( ) const
+{
+   return (void *) _submittedWD;
+}
+
 inline const DOWait & DOWait::operator= ( const DOWait &dow )
 {
    if ( this == &dow ) return *this; 
@@ -57,6 +62,11 @@ inline void DOWait::setWD( WorkDescriptor *wd )
 }
 
 inline void * DOWait::getRelatedObject ( )
+{
+   return (void *) _waitDomainWD;
+}
+
+inline const void * DOWait::getRelatedObject ( ) const
 {
    return (void *) _waitDomainWD;
 }

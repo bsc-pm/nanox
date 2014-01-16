@@ -327,8 +327,8 @@ inline void WorkDescriptor::submitted()  { _submitted = true; }
 inline bool WorkDescriptor::isConfigured ( void ) const { return _configured; }
 inline void WorkDescriptor::setConfigured ( bool value ) { _configured = value; }
 
-inline void WorkDescriptor::setPriority( int priority ) { _priority = priority; }
-inline int WorkDescriptor::getPriority() const { return _priority; }
+inline void WorkDescriptor::setPriority( WorkDescriptor::PriorityType priority ) { _priority = priority; }
+inline WorkDescriptor::PriorityType WorkDescriptor::getPriority() const { return _priority; }
 
 inline void WorkDescriptor::releaseCommutativeAccesses()
 {

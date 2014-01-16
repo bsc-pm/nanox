@@ -641,6 +641,11 @@ namespace nanos
           */
          void admitCurrentThread ( void );
          void expelCurrentThread ( void );
+         
+         //This main will do nothing normally
+         //It will act as an slave and call exit(0) when we need slave behaviour
+         //in offload or cluster version
+         void ompss_nanox_main ();         
    };
 
    extern System sys;
