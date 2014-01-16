@@ -55,6 +55,7 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenStateAndBurst(NANOS_RUNNING, key, val));
     
     (dd.getWorkFct())(wd.getData());
-    NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseStateAndBurst(key));
+    
+    NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseStateAndBurst(key, val));
     return true;
 }

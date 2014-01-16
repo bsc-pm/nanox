@@ -354,6 +354,7 @@ namespace nanos {
    class CachePolicy
    {
       private:
+        Lock                           _lock;
         /*! \brief Copy Constructor
          */
          CachePolicy( const CachePolicy &policy );

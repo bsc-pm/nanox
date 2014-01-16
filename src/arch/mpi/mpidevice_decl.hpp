@@ -37,8 +37,8 @@ typedef struct {
 
 //MPI Communication tags, we use that many so messages don't collide for different operations
 enum {
-    TAG_CACHE_ORDER = 200, TAG_CACHE_DATA_IN =201,TAG_CACHE_DATA_OUT =205, 
-    TAG_CACHE_ANSWER =202, TAG_INI_TASK=99,TAG_END_TASK=100, TAG_ENV_STRUCT=101,TAG_CACHE_ANSWER_REALLOC,
+    TAG_CACHE_ORDER = 1200, TAG_CACHE_DATA_IN,TAG_CACHE_DATA_OUT, 
+    TAG_CACHE_ANSWER, TAG_INI_TASK,TAG_END_TASK, TAG_ENV_STRUCT,TAG_CACHE_ANSWER_REALLOC,
     TAG_CACHE_ANSWER_ALLOC, TAG_CACHE_ANSWER_CIN,TAG_CACHE_ANSWER_COUT,TAG_CACHE_ANSWER_FREE,TAG_CACHE_ANSWER_DEV2DEV,TAG_CACHE_ANSWER_CL,
     TAG_FP_NAME_SYNC, TAG_FP_SIZE_SYNC, TAG_CACHE_DEV2DEV
 };
@@ -53,7 +53,9 @@ enum {
 //When source or destination comes with this value, it means that the user
 //didn't specify any concrete device, runtime launchs in whatever it wants
 //so we have to override it's value with the PE value
-#define UNKOWN_RANKSRCDST -2
+//WARNING: Keep this defines with the same value than the one existing in the compiler (nanox-mpi.hpp)
+#define UNKOWN_RANKSRCDST -95
+#define MASK_TASK_NUMBER 989
 
 
 

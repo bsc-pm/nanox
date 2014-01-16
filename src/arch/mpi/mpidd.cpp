@@ -44,7 +44,6 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     //if has both rank and comm, only execute on his PE
     bool resul =(_assignedComm == 0 && _assignedRank == UNKOWN_RANKSRCDST) 
             || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
-            || (myPE->getLocalRank() == _assignedRank && res == MPI_IDENT)
             || (myPE->getRank() == _assignedRank && res == MPI_IDENT);
     return resul;
 }

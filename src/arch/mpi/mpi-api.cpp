@@ -29,67 +29,40 @@ using namespace nanos;
 
 NANOS_API_DEF(void *, nanos_mpi_factory, (void *args)) {
     nanos_mpi_args_t *mpi = (nanos_mpi_args_t *) args;
-    return (void *) new ext::MPIDD(mpi->outline,mpi->assignedComm,mpi->assignedRank);
+    return (void *) NEW ext::MPIDD(mpi->outline,mpi->assignedComm,mpi->assignedRank);
 }
 
-NANOS_API_DEF(int, deep_booster_free, (MPI_Comm *intercomm)) {
-    try {
-        nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, -1);
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
-
-    return NANOS_OK;
+void deep_booster_free (MPI_Comm *intercomm) {
+    nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, -1);
 }
 
-NANOS_API_DEF(int, deep_booster_free_single, (MPI_Comm *intercomm, int rank)) {
-    try {
-        nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, rank);
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
-
-    return NANOS_OK;
+void deep_booster_free_ (MPI_Comm *intercomm) {
+    nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, -1);
 }
 
-//NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc_hostfile, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts)) {
-//    try {
-//        sys.DEEP_Booster_alloc(comm, number_of_spawns, intercomm, hosts);
-//    } catch (...) {
-//        return NANOS_UNKNOWN_ERR;
-//    }
-//
-//    return NANOS_OK;
-//}
-
-//NANOS_API_DEF(nanos_err_t, DEEP_Booster_alloc_hostlist, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, char* hosts, char* exec_name)) {
-//    try {
-//        sys.DEEP_Booster_alloc(comm, number_of_spawns, intercomm, hosts, exec_name);
-//    } catch (...) {
-//        return NANOS_UNKNOWN_ERR;
-//    }
-//
-//    return NANOS_OK;
-//}
-//
-NANOS_API_DEF(int, deep_booster_alloc, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm)) {
-    try {
-        nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_spawns, intercomm, 0);
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
-
-    return NANOS_OK;
+void deep_booster_free_single (MPI_Comm *intercomm, int rank) {
+    nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, rank);
 }
 
-NANOS_API_DEF(int, deep_booster_alloc_offset, (MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset)) {
-    try {
-        nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_spawns, intercomm, offset);
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
+void deep_booster_free_single_ (MPI_Comm *intercomm, int* rank) {
+    nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, *rank);
+}
 
-    return NANOS_OK;
+void deep_booster_alloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm) {
+    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, 0);
+}
+
+void deep_booster_alloc_(MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm *intercomm) {
+    nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts, *process_per_host, intercomm, 0);
+}
+
+
+void deep_booster_alloc_offset (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset) {
+        nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, offset);
+}
+
+void deep_booster_alloc_offset_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm, int* offset) {
+        nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts,*process_per_host, intercomm, *offset);
 }
 
 NANOS_API_DEF(nanos_err_t, set_mpi_exename, (char * new_name)) {
@@ -103,7 +76,18 @@ NANOS_API_DEF(nanos_err_t, set_mpi_exename, (char * new_name)) {
 
 NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {
     try {
-        nanos::ext::MPIProcessor::nanos_MPI_Init(argc, argv);
+        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv);
+    } catch (...) {
+        return NANOS_UNKNOWN_ERR;
+    }
+
+    return NANOS_OK;
+}
+
+
+NANOS_API_DEF(nanos_err_t, nanos_mpi_init_thread, (int* argc, char ***argv, int required, int *provided)) {
+    try {
+        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }
@@ -112,17 +96,16 @@ NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {
 }
 
 NANOS_API_DEF(void, nanos_mpi_initf, (void)) {
-        nanos::ext::MPIProcessor::nanos_MPI_Init(0, 0);
+    nanos::ext::MPIProcessor::nanosMPIInit(0, 0);
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_mpi_finalize, (void)) {
-    try {
-        nanos::ext::MPIProcessor::nanos_MPI_Finalize();
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
-
+int nanos_mpi_finalize (void) {
+    nanos::ext::MPIProcessor::nanosMPIFinalize();
     return NANOS_OK;
+}
+
+void nanos_mpi_finalizef_ (void) {
+    nanos::ext::MPIProcessor::nanosMPIFinalize();
 }
 
 NANOS_API_DEF(int, nanos_mpi_send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm)) {
@@ -148,72 +131,6 @@ NANOS_API_DEF(int, nanos_mpi_type_create_struct, ( int count, int array_of_block
         MPI_Aint array_of_displacements[], MPI_Datatype array_of_types[], MPI_Datatype *newtype)){
     return nanos::ext::MPIProcessor::nanosMPITypeCreateStruct(count,array_of_blocklengths,array_of_displacements, array_of_types,newtype);
 }
-
-NANOS_API_DEF(nanos_err_t, nanos_set_mpi_control_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size)){    
-    try {
-        int i;
-        for (i=0;file_mask[i]==mask;i++){};
-        nanos::ext::MPIProcessor::setMpiFileHashname(file_namehash);
-        nanos::ext::MPIProcessor::setMpiFileArrSize(i);
-        nanos::ext::MPIProcessor::setMpiFileSize(file_size);
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
-    return NANOS_OK;
-}
-/**
- * Synchronizes host and device function pointer arrays to ensure that are in the same order
- * in both files (host and device, which are different architectures, so maybe they were not compiled in the same order)
- */
-NANOS_API_DEF(nanos_err_t, nanos_sync_dev_pointers, (int* file_mask, int mask, unsigned int* file_namehash, unsigned int* file_size,
-            unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])())){
-    try {        
-        MPI_Comm parentcomm; /* intercommunicator */
-        MPI_Comm_get_parent(&parentcomm);   
-        //If this process was not spawned, we don't need this reorder (and shouldnt have been called)
-        if ( parentcomm != 0 && parentcomm != MPI_COMM_NULL ) {     
-            int parentRank=nanos::ext::MPIProcessor::nanosMpiGetParentRank();
-            //MPI_Status status;
-            int arr_size;
-            for ( arr_size=0;file_mask[arr_size]==mask;arr_size++ ){};
-            unsigned int total_size=0;
-            for ( int k=0;k<arr_size;k++ ) total_size+=task_per_file[k];
-            size_t filled_arr_size=0;
-            unsigned int* host_file_size=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
-            unsigned int* host_file_namehash=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
-            void (**ompss_mpi_func_pointers_dev_out)()=(void (**)()) malloc(sizeof(void (*)())*total_size);
-            //Receive host information
-            nanos::ext::MPIProcessor::nanosMPIRecv(host_file_namehash, arr_size, MPI_UNSIGNED, parentRank, TAG_FP_NAME_SYNC, parentcomm, MPI_STATUS_IGNORE);
-            nanos::ext::MPIProcessor::nanosMPIRecv(host_file_size, arr_size, MPI_UNSIGNED, parentRank, TAG_FP_SIZE_SYNC, parentcomm, MPI_STATUS_IGNORE );
-            int i,e,func_pointers_arr;
-            bool found;
-            //i loops at host files
-            for ( i=0;i<arr_size;i++ ){   
-                func_pointers_arr=0;
-                found=false;
-                //Search the host file in dev file and copy every pointer in the same order
-                for ( e=0;!found && e<arr_size;e++ ){
-                    if( file_namehash[e] == host_file_namehash[i] && file_size[e] == host_file_size[i] ){
-                        found=true; 
-                        //Copy from _dev_tmp array to _dev array in the same order than the host
-                        memcpy(ompss_mpi_func_pointers_dev_out+filled_arr_size,ompss_mpi_func_pointers_dev+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
-                        filled_arr_size+=task_per_file[e];  
-                    }
-                    func_pointers_arr+=task_per_file[e];
-                }
-                fatal_cond0(!found,"File not found in device, please compile the code using exactly the same sources (same filename and size) for each architecture");
-            }
-            memcpy(ompss_mpi_func_pointers_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
-            free(ompss_mpi_func_pointers_dev_out);
-            free(host_file_size);
-            free(host_file_namehash);
-        }
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
-    return NANOS_OK;    
-}
-
 
 NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (const char* type)) {
     MPI_Datatype result = MPI_DATATYPE_NULL;
@@ -253,29 +170,10 @@ NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (const char* type)) {
     return result;
 }
 
-NANOS_API_DEF(int, nanos_mpi_worker, (void (*ompss_mpi_func_pointers_dev[])())){
-    int ompss_id_func;
-    int err;
-    //MPI_Status status;
-    MPI_Comm ompss_parent_comp;
-    err= MPI_Comm_get_parent(&ompss_parent_comp);
-    int parentRank=nanos::ext::MPIProcessor::nanosMpiGetParentRank();
-    while(1){
-       err= nanos_mpi_recv_taskinit(&ompss_id_func, 1, ompss_get_mpi_type("__mpitype_ompss_signed_int"), parentRank, ompss_parent_comp, MPI_STATUS_IGNORE);
-       if (ompss_id_func==-1){
-          nanos_mpi_finalize(); 
-          return 0;
-       } else {           
-          void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[ompss_id_func];      
-          //Wait until copies have finished before executing the task
-          nanos::MPIDevice::taskPreInit(ompss_parent_comp);
-          function_pointer();       
-          nanos::MPIDevice::taskPostFinish(ompss_parent_comp);
-       }
-    }
-    return err;
-}
-
 NANOS_API_DEF(int, nanos_mpi_get_parent, (MPI_Comm* parent_out)){
     return MPI_Comm_get_parent(parent_out);
+}
+
+NANOS_API_DEF(int, ompss_mpi_get_function_index_host, (void* func_pointer)){
+    return nanos::ext::MPIProcessor::ompssMpiGetFunctionIndexHost(func_pointer);
 }

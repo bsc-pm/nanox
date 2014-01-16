@@ -29,9 +29,6 @@
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
 
-//This var must keep same value than in mercurium MPI Device
-#define TAG_MAIN_OMPSS "__ompss_mpi_daemon" 
-
 namespace nanos {
     namespace ext {
 
@@ -51,18 +48,19 @@ namespace nanos {
             static std::string _mpiLauncherFile;
             static std::string _mpiFilename;
             static std::string _mpiHosts;
-            static std::string _mpiHostsFile;
-            static int _mpiFileArrSize;
-            static unsigned int* _mpiFileHashname;
-            static unsigned int* _mpiFileSize;            
+            static std::string _mpiHostsFile;      
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
             static bool _inicialized;
+            static int _currentTaskParent;      
+            static size_t _alignThreshold;          
+            static size_t _alignment;
+            
+            
             MPI_Comm _communicator;
             int _rank;
-            int _localRank;
-            static int _currentProcessParent;
+            bool _owner;
 
             // disable copy constructor and assignment operator
             MPIProcessor(const MPIProcessor &pe);
@@ -72,8 +70,7 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor(int id, void* communicator, int rank, int uid);
-            MPIProcessor(int id, void* communicator, int local_rank, int rank, int uid);
+            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned);
 
             virtual ~MPIProcessor() {
             }
@@ -90,30 +87,6 @@ namespace nanos {
                 return _communicator;
             }
 
-            static int getMpiFileArrSize() {
-                return _mpiFileArrSize;
-            }
-
-            static void setMpiFileArrSize(int mpiFileArrSize) {
-                _mpiFileArrSize = mpiFileArrSize;
-            }
-
-            static unsigned int* getMpiFileHashname() {
-                return _mpiFileHashname;
-            }
-
-            static void setMpiFileHashname(unsigned int* mpiFileHashname) {
-                _mpiFileHashname = mpiFileHashname;
-            }
-
-            static unsigned int* getMpiFileSize() {
-                return _mpiFileSize;
-            }
-
-            static void setMpiFileSize(unsigned int* mpiFileSize) {
-                _mpiFileSize = mpiFileSize;
-            }
-
             static std::string getMpiFilename() {
                 return _mpiFilename;
             }
@@ -128,13 +101,29 @@ namespace nanos {
             static std::string getMpiLauncherFile() {
                 return _mpiLauncherFile;
             }
+            
+            static size_t getAlignment() {
+                return _alignment;
+            }
+            
+            static size_t getAlignThreshold() {
+                return _alignThreshold;
+            }
+                         
+            static int getCurrentTaskParent() {
+                return _currentTaskParent;
+            }
+
+            static void setCurrentTaskParent(int parentId) {
+                _currentTaskParent = parentId;
+            }
  
             int getRank() const {
                 return _rank;
             }
             
-            int getLocalRank() const {
-                return _localRank;
+            bool getOwner() const {
+                return _owner;
             }
 
             virtual WD & getWorkerWD() const;
@@ -161,13 +150,11 @@ namespace nanos {
             
             static int getNextPEId();
             
-            static void nanos_MPI_Init(int* argc, char ***argv);
+            static void nanosMPIInit(int* argc, char ***argv);
             
-            static void nanos_MPI_Finalize();
-            
-            static int nanosMpiGetParentRank();
-            
-            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_spawns, MPI_Comm *intercomm, int offset);  
+            static void nanosMPIFinalize();
+                        
+            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset);  
             
             static int nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
                     MPI_Comm comm);
@@ -202,6 +189,15 @@ namespace nanos {
             static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
                     MPI_Datatype array_of_types[], MPI_Datatype *newtype);
             
+            static void nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
+                    unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])());
+            
+            static int nanosMPIWorker(void (*ompss_mpi_func_pointers_dev[])());
+            
+            static void mpiOffloadSlaveMain();
+            
+            //Search function pointer and get index
+            static int ompssMpiGetFunctionIndexHost(void* func_pointer);
             
         };   
 
@@ -210,7 +206,7 @@ namespace nanos {
               sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ), (x) ); )
 
         #define NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT       NANOS_INSTRUMENT( \
-              sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ) ); )
+              sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ), 0 ); )
 
 
         typedef enum {

@@ -43,6 +43,11 @@
 #include "gpuprocessor_decl.hpp"
 #endif
 
+#ifdef MPI_DEV
+#include "mpiprocessor.hpp"
+#endif
+
+
 #ifdef OpenCL_DEV
 #include "openclprocessor.hpp"
 #endif

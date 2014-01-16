@@ -294,7 +294,7 @@ if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
 fi
 
 if test x$use_gnu = xyes; then
-    if test x$use_bgq = xno; then
+    if test x$use_bgq = xno -a test x$use_icc = xno; then
         CFLAGS="$CFLAGS -Wredundant-decls"
         CXXFLAGS="$CXXFLAGS -Wredundant-decls"
     fi

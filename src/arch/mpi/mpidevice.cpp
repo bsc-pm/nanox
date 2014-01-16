@@ -75,6 +75,7 @@ void * MPIDevice::allocate(size_t size, ProcessingElement *pe, uint64_t tag ) {
 /* \brief free address
  */
 void MPIDevice::free(void *address, ProcessingElement *pe) {
+    if (address == NULL) return;
     //std::cerr << "Inicio free\n";
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FREE_EVENT);
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
@@ -270,26 +271,23 @@ void MPIDevice::mpiCacheWorker() {
     //myThread = myThread->getNextThread();
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);
+    const size_t alignThreshold = nanos::ext::MPIProcessor::getAlignThreshold();
+    const size_t alignment = nanos::ext::MPIProcessor::getAlignment();
     //If this process was not spawned, we don't need this daemon-thread
     if (parentcomm != 0 && parentcomm != MPI_COMM_NULL) {
-        //MPI_Status status;
+        MPI_Status status;
         //short ans=1;
         cacheOrder order;      
-        MPI_Request recv_request;        
-        int parentRank=nanos::ext::MPIProcessor::nanosMpiGetParentRank();
-        MPI_Recv_init(&order, 1, cacheStruct, parentRank , TAG_CACHE_ORDER, parentcomm, &recv_request);
+        int parentRank=0;
         while(1) {
             //if (!t->isRunning()) break; //{ //std::cerr << "FINISHING MPI THD!" << std::endl; break; }
             //if (sys.getNetwork()->getNodeNum() == 0  ) //std::cerr <<"ppp poll " << myThread->getId() << std::endl;
             //MPI_Comm_get_parent(&parentcomm);
             //TODO: Check if this is faster than sending ack's to the host  
-            int pendingMessage=0;
-            MPI_Iprobe(parentRank, TAG_CACHE_ORDER, parentcomm,&pendingMessage, MPI_STATUS_IGNORE);
-            if (pendingMessage==0 && executingTask){
-                myThread->yield();
-            } else if (pendingMessage==1) {
-                MPI_Start( &recv_request );
-                MPI_Wait( &recv_request, MPI_STATUS_IGNORE );
+//            int pendingMessage=0;
+//            } else if (pendingMessage==1) {       
+                MPI_Recv(&order, 1, cacheStruct, MPI_ANY_SOURCE , TAG_CACHE_ORDER, parentcomm, &status);
+                parentRank=status.MPI_SOURCE;
         //printf("recv con tag %d, desde %d\n",tag,source);
                  // MPI_Recv(buf, count, datatype, source, tag, comm, MPI_STATUS_IGNORE );
     //            if (!(order.opId==OPID_COPYIN || order.opId>=OPID_DEVTODEV || order.opId<=0 )){
@@ -356,7 +354,7 @@ void MPIDevice::mpiCacheWorker() {
                         NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
                         //std::cerr << "Hago un free en device\n";
                         //nanoxRegisterMPIFree((void*)order.devAddr, order.size);
-                        delete[] (char *) order.devAddr;
+                        std::free((char *) order.devAddr);
                         //printf("Dir free%p\n",(char*) order.devAddr);    
     //                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
     //                    if (ent != NULL) 
@@ -373,7 +371,12 @@ void MPIDevice::mpiCacheWorker() {
                     {
                         NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
                         //std::cerr << "Hago un allocate en device\n";
-                        char* ptr = new (std::nothrow) char[order.size];
+                        char* ptr;                        
+                        if (order.size<alignThreshold){
+                           ptr = (char*) malloc(order.size);
+                        } else {
+                           posix_memalign((void**)&ptr,alignment,order.size);
+                        }
                         order.devAddr = (uint64_t) ptr;
                         //printf("Dir alloc%p size %lu\n",(void*) order.devAddr,order.size);
                         //MPI_Comm_get_parent(&parentcomm);
@@ -386,8 +389,13 @@ void MPIDevice::mpiCacheWorker() {
                     {
                         NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
                         //std::cerr << "Hago un reallocate en device\n";
-                        delete[] (char *) order.devAddr;
-                        char* ptr = new char[order.size];
+                        std::free((char *) order.devAddr);
+                        char* ptr;                        
+                        if (order.size<alignThreshold){
+                           ptr = (char*) malloc(order.size);
+                        } else {
+                           posix_memalign((void**)&ptr,alignment,order.size);
+                        }
                         ////printf("Realloc %d, %d\n", order.size,order.old_size);
                         ////printf("Copio de %p a %p, tam %d\n",(void*)  order.devAddr, ptr, order.old_size);
                         //printf("Copio valor %p\n",((void*)  order.devAddr));                    
@@ -457,7 +465,7 @@ void MPIDevice::mpiCacheWorker() {
                         }
                         break;
                   }
-               }
+               //}
             //if ( sys.getNetwork()->getNodeNum() == 0 ) //std::cerr <<"ppp poll complete " << myThread->getId() << std::endl;
             //if ( sys.getNetwork()->getNodeNum() == 0 ) //std::cerr << "thread change! " << std::endl;
             //myThread = myThread->getNextThread();
