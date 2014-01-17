@@ -40,7 +40,7 @@ bool SlicerDynamicFor::dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slic
    nanos_loop_info_t *nli = ( nanos_loop_info_t * ) wd->getData();
 
    //! Compute next (chunk) lower bound
-   int _upper = nli->lower + nli->chunk * nli->step ;
+   int _upper = nli->lower + nli->chunk * nli->step - nli->step;
 
    //! Computing empty iteration spaces in order to avoid infinite task generation
    bool empty = (( nli->step > 0 ) && (nli->lower > nli->upper )) ? true : false;
