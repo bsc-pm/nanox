@@ -1590,10 +1590,8 @@ inline void System::applyCpuMask()
          _activePEs++;
          // This PE should be running
          while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
-            thread->lock(); //FIXME:xteruel not needed?
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
             team->increaseFinalSize();
-            thread->unlock(); //FIXME:xteruel not needed?
          }
       } else {
          // This PE should not
