@@ -585,6 +585,9 @@ namespace nanos {
 
             /* 48 */ registerEventKey("copy-out-gpu", "Asynchronous memory copy from device to host", true);
 
+            /* 49 */ registerEventKey("gpu-wd-id","GPU Work Descriptor id:", true, true, true);
+
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 

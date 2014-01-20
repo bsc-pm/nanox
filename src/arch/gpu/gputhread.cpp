@@ -83,8 +83,8 @@ void GPUThread::initializeDependent ()
 {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-   GPUUtils::GPUInstrumentationEventKeys::_wd_id =
-         sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "wd-id" );
+   GPUUtils::GPUInstrumentationEventKeys::_gpu_wd_id =
+         sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "gpu-wd-id" );
 
    GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime =
          sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" );
@@ -199,24 +199,8 @@ bool GPUThread::runWDDependent( WD &wd )
    cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), beforeWDRunCallback, ( void * ) cbd, 0 );
 #endif
 
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   // Instrumenting task number (WorkDescriptor ID)
-   Instrumentation::Event e1;
-   sys.getInstrumentation()->createBurstEvent( &e1, GPUUtils::GPUInstrumentationEventKeys::_wd_id, wd.getId() );
-   sys.getInstrumentation()->addEventList( 1, &e1 );
-#endif
-
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
-
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   // Instrumenting task number (WorkDescriptor ID)
-   Instrumentation::Event e2;
-   sys.getInstrumentation()->closeBurstEvent( &e2, GPUUtils::GPUInstrumentationEventKeys::_wd_id );
-   sys.getInstrumentation()->addEventList( 1, &e2 );
-#endif
-
-   //NANOS_INSTRUMENT( cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getKernelExecStream(), afterTaskCallback, ( void * ) cbd2, 0 ); )
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    // CUDA events and callbacks to instrument kernel execution on GPU
@@ -316,15 +300,18 @@ void GPUThread::raiseWDRunEvent ( WD * wd )
    WD * oldwd = getCurrentWD();
    setCurrentWD( *wd );
 
-   Instrumentation::Event e;
+   Instrumentation::Event e[2];
 
    GPUDD &dd = ( GPUDD & ) wd->getActiveDevice();
    nanos_event_value_t value = ( nanos_event_value_t ) * ( dd.getWorkFct() );
 
-   //sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_kernel_launch, value );
-   sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_user_funct_location, value );
+   sys.getInstrumentation()->createBurstEvent( &e[0], GPUUtils::GPUInstrumentationEventKeys::_user_funct_location, value );
 
-   sys.getInstrumentation()->addEventList( 1, &e );
+   // Instrumenting task number (WorkDescriptor ID)
+   sys.getInstrumentation()->createBurstEvent( &e[1], GPUUtils::GPUInstrumentationEventKeys::_gpu_wd_id, wd->getId() );
+
+
+   sys.getInstrumentation()->addEventList( 2, e );
 
    sys.getInstrumentation()->flushDeferredEvents( wd );
 
@@ -346,12 +333,14 @@ void GPUThread::closeWDRunEvent ( WD * wd )
    WD * oldwd = getCurrentWD();
    setCurrentWD( *wd );
 
-   Instrumentation::Event e;
+   Instrumentation::Event e[2];
 
-   //sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_kernel_launch );
-   sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_user_funct_location, 0 );
+   sys.getInstrumentation()->closeBurstEvent( &e[0], GPUUtils::GPUInstrumentationEventKeys::_user_funct_location, 0 );
 
-   sys.getInstrumentation()->addEventList( 1, &e );
+   sys.getInstrumentation()->closeBurstEvent( &e[1], GPUUtils::GPUInstrumentationEventKeys::_gpu_wd_id, 0 );
+
+
+   sys.getInstrumentation()->addEventList( 2, e );
 
    setCurrentWD( *oldwd );
 #endif

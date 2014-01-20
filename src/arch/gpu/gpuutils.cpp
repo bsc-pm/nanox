@@ -30,7 +30,7 @@ namespace nanos {
 namespace ext
 {
 
-nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_wd_id = 0;
+nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_gpu_wd_id = 0;
 nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_in_cuda_runtime = 0;
 nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_user_funct_location = 0;
 nanos_event_key_t   GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu = 0;
