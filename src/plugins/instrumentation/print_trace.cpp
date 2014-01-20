@@ -73,7 +73,7 @@ class InstrumentationPrintTrace: public Instrumentation
                      WorkDescriptor *wd = (WorkDescriptor *) value;
                      int64_t wd_id = wd->getId();
                      int64_t funct_id = (int64_t) ((ext::SMPDD &) (wd->getActiveDevice ())).getWorkFct ();
-                     fprintf(stderr,"NANOS++: (WD) Executing %"PRId64" function within task %"PRId64" in thread %d\n",
+                     fprintf(stderr,"NANOS++: (WD) Executing %" PRId64 " function within task %" PRId64 " in thread %d\n",
                              funct_id, wd_id, myThread->getId());
                   }
                   if ( (nanos_event_key_t)(events[i]).getKey() == dependence ) {
