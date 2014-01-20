@@ -205,7 +205,7 @@ namespace nanos
          virtual void bind() {};
 
          virtual void wait();
-         virtual void follow();
+         virtual void resume();
 
          // set/get methods
          void setCurrentWD ( WD &current );

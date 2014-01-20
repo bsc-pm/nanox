@@ -154,7 +154,7 @@ void SMPThread::wait()
 
       //! \note Then we call base thread wakeup, which just mark thread as active
       lock();
-      BaseThread::follow();
+      BaseThread::resume();
       BaseThread::wakeup();
       unlock();
    } else {
