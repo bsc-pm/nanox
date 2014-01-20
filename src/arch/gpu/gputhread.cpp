@@ -196,7 +196,6 @@ bool GPUThread::runWDDependent( WD &wd )
 
    GPUCallbackData * cbd = NEW GPUCallbackData( this, &wd );
 
-   //cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getKernelExecStream(), beforeTaskCallback, ( void * ) cbd, 0 );
    cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), beforeWDRunCallback, ( void * ) cbd, 0 );
 #endif
 
@@ -229,7 +228,6 @@ bool GPUThread::runWDDependent( WD &wd )
 
    GPUCallbackData * cbd2 = NEW GPUCallbackData( this, &wd );
 
-   //cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getKernelExecStream(), afterTaskCallback, ( void * ) cbd2, 0 );
    cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), afterWDRunCallback, ( void * ) cbd2, 0 );
 #endif
 
@@ -377,7 +375,6 @@ void GPUThread::raiseAsyncInputEvent ( size_t size )
    //InstrumentationContextData *icd = wd->getInstrumentationContextData();
 
    sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu, value );
-   //sys.getInstrumentation()->createBurstEvent( &e, _key, value, icd );
 
    sys.getInstrumentation()->addEventList( 1, &e );
 
@@ -397,7 +394,6 @@ void GPUThread::closeAsyncInputEvent ( size_t size )
    //InstrumentationContextData *icd = wd->getInstrumentationContextData();
 
    sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_in_gpu, 0 );
-   //sys.getInstrumentation()->closeBurstEvent( &e, _key, icd );
 
    sys.getInstrumentation()->addEventList( 1, &e );
 
@@ -419,7 +415,6 @@ void GPUThread::raiseAsyncOutputEvent ( size_t size )
    //InstrumentationContextData *icd = wd->getInstrumentationContextData();
 
    sys.getInstrumentation()->createBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu, value );
-   //sys.getInstrumentation()->createBurstEvent( &e, _key, value, icd );
 
    sys.getInstrumentation()->addEventList( 1, &e );
 
@@ -439,10 +434,10 @@ void GPUThread::closeAsyncOutputEvent ( size_t size )
    //InstrumentationContextData *icd = wd->getInstrumentationContextData();
 
    sys.getInstrumentation()->closeBurstEvent( &e, GPUUtils::GPUInstrumentationEventKeys::_copy_out_gpu, 0 );
-   //sys.getInstrumentation()->closeBurstEvent( &e, _key, icd );
 
    sys.getInstrumentation()->addEventList( 1, &e );
 
    //setCurrentWD( *oldwd );
 #endif
 }
+
