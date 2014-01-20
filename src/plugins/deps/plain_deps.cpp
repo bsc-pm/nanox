@@ -110,6 +110,8 @@ namespace nanos {
                   submitDependableObjectDataAccess( depObj, target, accessType, callback );
                   flushDeps.push_back( (uint64_t) target() );
                }
+
+               sys.getDefaultSchedulePolicy()->atCreate( depObj );
                
                // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
                increaseTasksInGraph();

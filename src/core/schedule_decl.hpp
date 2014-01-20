@@ -232,6 +232,7 @@ namespace nanos
          virtual WD * atYield       ( BaseThread *thread, WD *current);
          virtual WD * atWakeUp      ( BaseThread *thread, WD &wd );
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
+         virtual void atCreate      ( DependableObject &depObj );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          

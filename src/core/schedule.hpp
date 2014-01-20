@@ -98,6 +98,11 @@ inline WD * SchedulePolicy::atYield       ( BaseThread *thread, WD *current)
    return atIdle( thread );
 }
 
+inline void SchedulePolicy::atCreate ( DependableObject &depObj )
+{
+   return;
+}
+
 inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 {
    // Ticket #716: execute earlier tasks that have been waiting for children
