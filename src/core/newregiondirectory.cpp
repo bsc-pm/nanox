@@ -391,22 +391,27 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
          for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
             //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
             global_reg_t reg( mit->first, it->second );
-            if ( !reg.isLocatedIn( 0 ) && !reg.isRooted() ) {
-              DeviceOps *thisOps = reg.getDeviceOps();
-              if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                 NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
-                  if ( _VERBOSE_CACHE ) {
-                     std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
-                     if ( entry ) std::cerr << " " << *entry << std::endl;
-                     else std::cerr << " nil " << std::endl; 
+            if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
+               if ( !reg.isLocatedIn( 0 ) ) {
+                  DeviceOps *thisOps = reg.getDeviceOps();
+                  if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
+                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                     if ( _VERBOSE_CACHE ) {
+                        std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                        if ( entry ) std::cerr << " " << *entry << std::endl;
+                        else std::cerr << " nil " << std::endl; 
+                     }
+                     //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                     outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
+                     outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
+                  } else {
+                     outOps.getOtherOps().insert( thisOps );
                   }
-                 //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                 outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
-                 outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
-              } else {
-                 outOps.getOtherOps().insert( thisOps );
-              }
-              //regEntry->addAccess( 0, regEntry->getVersion() );
+                  //regEntry->addAccess( 0, regEntry->getVersion() );
+               } else if ( reg.getNumLocations() > 1 ) {
+                  //std::cerr << " have too upgrade host region" << std::endl;
+                  reg.setLocationAndVersion( 0, reg.getVersion()+1 ); //increase version to invalidate the device copy
+               }
             }
          }
          //std::cerr << "=============================================================="<<std::endl;

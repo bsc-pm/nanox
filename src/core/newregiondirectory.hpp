@@ -151,6 +151,10 @@ inline void NewNewDirectoryEntryData::print() const {
    std::cerr << std::endl;
 }
 
+inline std::set< int > const &NewNewDirectoryEntryData::getLocationsSet() const {
+   return _location;
+}
+
 //inline bool NewNewDirectoryEntryData::equal( const NewNewDirectoryEntryData &d ) const {
 //   bool soFarOk = ( this->getVersion() == d.getVersion() && _writeLocation == d._writeLocation );
 //   for ( std::set< int >::iterator it = _location.begin(); it != _location.end() && soFarOk; it++ ) {

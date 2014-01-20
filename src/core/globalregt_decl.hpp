@@ -42,6 +42,8 @@ struct global_reg_t {
    void setRooted() const;
    bool isRooted() const;
    void setOwnedMemory( memory_space_id_t loc ) const;
+   std::set< int > const& getLocations() const;
+   unsigned int getNumLocations() const;
 };
 
 }

@@ -195,3 +195,15 @@ void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
    setRooted();
    NewNewRegionDirectory::addRootedAccess( key, id, loc, 1 );
 }
+
+std::set< int > const &global_reg_t::getLocations() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   return entry->getLocationsSet();
+}
+
+unsigned int global_reg_t::getNumLocations() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   return entry->getLocationsSet().size();
+}

@@ -61,6 +61,7 @@ namespace nanos
          void setOps( DeviceOps *ops );
          DeviceOps *getOps() ;
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
+         std::set< int > const &getLocationsSet() const;
    };
 
   /*! \class NewDirectory
