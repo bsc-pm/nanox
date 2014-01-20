@@ -43,6 +43,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _id = depObj._id;
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
+   _predecessors = depObj._predecessors;
    _successors = depObj._successors;
    _domain = depObj._domain;
    _outputObjects = depObj._outputObjects;
@@ -95,13 +96,29 @@ inline int DependableObject::numPredecessors () const
    return _numPredecessors.value();
 }
 
+inline DependableObject::DependableObjectVector & DependableObject::getPredecessors ( )
+{
+   return _predecessors;
+}
+
 inline DependableObject::DependableObjectVector & DependableObject::getSuccessors ( )
 {
    return _successors;
 }
 
+inline bool DependableObject::addPredecessor ( DependableObject &depObj )
+{
+   _predLock.acquire();
+   bool inserted = _predecessors.insert ( &depObj ).second;
+   _predLock.release();
+
+   return inserted;
+}
+
 inline bool DependableObject::addSuccessor ( DependableObject &depObj )
 {
+   depObj.addPredecessor( *this );
+
    return _successors.insert ( &depObj ).second;
 }
 

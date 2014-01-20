@@ -78,6 +78,8 @@ namespace nanos
          unsigned int             _id;              /**< DependableObject identifier */
          Atomic<unsigned int>     _numPredecessors; /**< Number of predecessors locking this object */
          unsigned int             _references;      /** References counter */
+         Lock                     _predLock;        /**< Lock to add/remove predecessors */
+         DependableObjectVector   _predecessors;    /**< List of predecessors */
          DependableObjectVector   _successors;      /**< List of successors */
          DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
          TargetVector             _outputObjects;   /**< List of output objects */
@@ -90,14 +92,14 @@ namespace nanos
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references( 1 ), _successors(), _domain( NULL ), _outputObjects(),
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references( 1 ), _predecessors(), _successors(), _domain( NULL ), _outputObjects(),
                _readObjects(), _objectLock(), _submitted( false ), _needsSubmission( false ) {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(),
+              _predecessors ( depObj._predecessors ), _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(),
               _objectLock(), _submitted( false ), _needsSubmission( false ) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
@@ -163,10 +165,21 @@ namespace nanos
           */
          int numPredecessors () const;
 
+         /*! \brief Obtain the list of predecessors
+          *  \return List of DependableObject* that "this" depends on
+          */
+         DependableObjectVector & getPredecessors ( );
+
         /*! \brief Obtain the list of successors
          *  \return List of DependableObject* that depend on "this"
          */
          DependableObjectVector & getSuccessors ( );
+
+         /*! \brief Add a predecessor to the predecessors list
+          *  \param depObj DependableObject to be added.
+          *  returns true if the predecessor didn't already exist in the list (a new edge has been added)
+          */
+         bool addPredecessor ( DependableObject &depObj );
 
         /*! \brief Add a successor to the successors list
          *  \param depObj DependableObject to be added.
