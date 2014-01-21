@@ -62,12 +62,18 @@ inline void ThreadTeam::resized ()
 
 inline const BaseThread & ThreadTeam::getThread ( int i ) const
 {
-   return *_threads.find(i)->second;
+   // Return the i-th valid element in _threads
+   ThreadTeamList::const_iterator it = _threads.begin();
+   std::advance( it, i );
+   return *(it->second);
 }
 
 inline BaseThread & ThreadTeam::getThread ( int i )
 {
-   return *_threads.find(i)->second;
+   // Return the i-th valid element in _threads
+   ThreadTeamList::iterator it = _threads.begin();
+   std::advance( it, i );
+   return *(it->second);
 }
 
 inline const BaseThread & ThreadTeam::operator[]  ( int i ) const

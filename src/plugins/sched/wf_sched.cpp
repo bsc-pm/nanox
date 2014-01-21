@@ -154,8 +154,9 @@ namespace nanos {
             *  try to steal tasks from other queues
             *  \warning other queues are checked cyclically: should be random
             */
-            int thid = thread->getTeamId();
             int size = thread->getTeam()->size();
+            int thid = rand() % size;
+            int count = 0;
             wd = NULL;
 
             do {
@@ -168,7 +169,9 @@ namespace nanos {
                  wd = pop( tdata._readyQueue, _stealPolicy, thread );
                }
 
-            } while ( wd == NULL && thid != thread->getTeamId() );
+               count++;
+
+            } while ( wd == NULL && count < size );
 
             return wd;
          }
