@@ -479,7 +479,8 @@ void Scheduler::wakeUp ( WD *wd )
          myThread->unpause();
          
          /* atWakeUp must check basic constraints */
-         next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atWakeUp( myThread, *wd );
+         ThreadTeam *myTeam = getMyThreadSafe()->getTeam();
+         if ( myTeam ) next = myTeam->getSchedulePolicy().atWakeUp( myThread, *wd );
       }
       else {
          // Pause this thread

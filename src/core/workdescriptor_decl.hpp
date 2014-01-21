@@ -159,6 +159,8 @@ namespace nanos
             bool reserved6:1;
             bool reserved7:1;
          } WDFlags;
+
+         typedef int PriorityType;
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -208,7 +210,7 @@ namespace nanos
 
          nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
 
-         int                           _priority;      /**< Task priority */
+         PriorityType                  _priority;      /**< Task priority */
 
          CommutativeOwnerMap           *_commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
          WorkDescriptorPtrList         *_commutativeOwners;   /**< Array of commutative target owners */
@@ -584,8 +586,8 @@ namespace nanos
          bool isConfigured ( void ) const;
          void setConfigured ( bool value=true );
 
-         void setPriority( int priority );
-         int getPriority() const;
+         void setPriority( PriorityType priority );
+         PriorityType getPriority() const;
 
          /*! \brief Store addresses of commutative targets in hash and in child WorkDescriptor.
           *  Called when a task is submitted.

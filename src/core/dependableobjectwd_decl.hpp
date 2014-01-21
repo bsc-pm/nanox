@@ -73,6 +73,8 @@ namespace nanos
          /*! \brief Get the related object which actually has the dependence
           */
          virtual void * getRelatedObject ( );
+         
+         virtual const void * getRelatedObject ( ) const;
 
          /*! \brief Instrument predecessor -> successor dependency
           */
@@ -137,6 +139,8 @@ namespace nanos
          /*! \brief Get the related object which actually has the dependence
           */
          virtual void * getRelatedObject ( );
+         
+         virtual const void * getRelatedObject ( ) const;
 
          /*! \brief Instrument predecessor -> successor dependency
           */

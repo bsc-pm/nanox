@@ -67,12 +67,17 @@ inline void * DependableObject::getRelatedObject ( )
    return NULL;
 }
 
+inline const void * DependableObject::getRelatedObject ( ) const
+{
+   return NULL;
+}
+
 inline void DependableObject::setId ( unsigned int id )
 {
    _id = id;
 }
 
-inline unsigned int DependableObject::getId ()
+inline unsigned int DependableObject::getId () const
 {
    return _id;
 }
