@@ -104,7 +104,7 @@ inline void BaseRegionsDependenciesDomain::submitDependableObjectCommutativeData
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
    if ( initialCommDO != NULL ) {
-      initialCommDO->decreasePredecessors();
+      initialCommDO->decreasePredecessors( NULL );
    }
 }
 

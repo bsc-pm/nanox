@@ -119,7 +119,7 @@ namespace nanos {
                depObj.submitted();
             
                // now everything is ready
-               depObj.decreasePredecessors();
+               depObj.decreasePredecessors( NULL );
                //Flush the object
                depObj.wait( flushDeps );
             }

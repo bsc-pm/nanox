@@ -82,12 +82,22 @@ inline int DependableObject::increasePredecessors ( )
 	  return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( )
+inline int DependableObject::decreasePredecessors ( DependableObject * finishedPred )
 {
    int  numPred = --_numPredecessors; 
+
+   if( finishedPred != NULL ) {
+      //remove the predecessor from the list!
+      _predLock.acquire();
+      DependableObjectVector::iterator it = _predecessors.find( finishedPred );
+      _predecessors.erase(it);
+      _predLock.release();
+   }
+
    if ( numPred == 0 ) {
       dependenciesSatisfied( );
    }
+
    return numPred;
 }
 

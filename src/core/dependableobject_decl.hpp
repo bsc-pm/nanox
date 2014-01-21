@@ -159,7 +159,7 @@ namespace nanos
          *         if it becomes 0, the dependencies are satisfied and the virtual
          *         method dependenciesSatisfied is invoked.
          */
-         int decreasePredecessors ( );
+         int decreasePredecessors ( DependableObject * finishedPred );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */
