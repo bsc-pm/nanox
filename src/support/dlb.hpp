@@ -27,7 +27,8 @@ extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
    void DLB_UpdateResources( void ) __attribute__(( weak ));
    void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
-   void DLB_ReturnCpu ( int cpu ) __attribute__(( weak )); 
+   int DLB_ReleaseCpu ( int cpu ) __attribute__(( weak )); 
+   void DLB_ClaimCpus (int cpus) __attribute__(( weak ));
 }
 
 namespace nanos {
@@ -45,6 +46,9 @@ namespace nanos {
 
          if ( sys.getPMInterface().isMalleable() ) {
             int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getNumThreads();
+            if ( needed_resources > sys.getNumThreads())
+               DLB_ClaimCpus(needed_resources - sys.getNumThreads());
+                             
             if ( needed_resources > 0 )
                DLB_UpdateResources_max( needed_resources );
 
@@ -55,6 +59,16 @@ namespace nanos {
 
       }
 
+   }
+   inline bool dlb_releaseMyCpu( void ){
+  
+      bool released=0;
+      int myCpu=getMyThreadSafe()->getCpuId();
+      int me =getMyThreadSafe()->getId();
+      if ( sys.dlbEnabled() && DLB_ReleaseCpu && sys.getPMInterface().isMalleable() && me != 0 && !getMyThreadSafe()->isTaggedToSleep() ){
+         released=DLB_ReleaseCpu(myCpu);
+      }
+      return released;
    }
 }
 #endif

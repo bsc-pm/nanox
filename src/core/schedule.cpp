@@ -212,6 +212,10 @@ inline void Scheduler::idleLoop ()
       } 
 
       if ( next ) {
+         /* If DLB, perform the adjustment of resources */
+         if ( sys.getPMInterface().isMalleable() )
+	    dlb_updateAvailableCpus();
+
          sys.getSchedulerStats()._idleThreads--;
 
          NANOS_INSTRUMENT (total_spins+= (nspins - spins); )
@@ -269,9 +273,8 @@ inline void Scheduler::idleLoop ()
             }
             sleeps = nsleeps;
          } else {
-            if ( sys.dlbEnabled() && DLB_ReturnCpu && sys.getPMInterface().isMalleable() ){
-               sys.removeCpuFromMask(thread->getCpuId());
-               DLB_ReturnCpu(thread->getCpuId());
+            /* if DLB release thread */
+            if ( dlb_releaseMyCpu()){
                thread->sleep();
                thread->wait();
             }else{
@@ -379,6 +382,11 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             }
 
             if ( next ) {
+
+               /* If DLB, perform the adjustment of resources */
+               if ( sys.getPMInterface().isMalleable() )
+                  dlb_updateAvailableCpus();
+
                sys.getSchedulerStats()._idleThreads--;
 
                NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
@@ -431,11 +439,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   sleeps = nsleeps;
                } else {
                   /* if DLB release thread */
-                  if ( sys.dlbEnabled() && DLB_ReturnCpu && sys.getPMInterface().isMalleable() ){
-                     sys.removeCpuFromMask(thread->getCpuId());
-                     DLB_ReturnCpu(thread->getCpuId());
-                     thread->sleep();
-                     thread->wait();
+                     if ( dlb_releaseMyCpu()){
+                           thread->sleep();
+                           thread->wait();
+                     
                   }else{
                      NANOS_INSTRUMENT ( total_sleeps++; )
                      struct timespec req = {0,tsleep};
@@ -583,18 +590,7 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    wd->done();
    wd->clear();
 
-   /* If DLB, perform the adjustment of resources */
-   if ( sys.getPMInterface().isMalleable() )
-	dlb_updateAvailableCpus();
 
-/*   if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
-      if ( sys.getPMInterface().isMalleable() )
-         DLB_ReturnClaimedCpus();
-
-      int needed_resources = sys.getSchedulerStats()._readyTasks.value() - sys.getNumThreads();
-      if ( needed_resources > 0 )
-         DLB_UpdateResources_max( needed_resources );
-   }*/
 
 }
 
