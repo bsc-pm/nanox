@@ -481,8 +481,6 @@ class InstrumentationTasksimTrace: public Instrumentation
          }
       }
 
-       virtual void threadStart ( BaseThread &thread ) {}
-       virtual void threadFinish ( BaseThread &thread ) {}
 #endif
 };
 
