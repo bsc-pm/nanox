@@ -429,7 +429,7 @@ namespace ext {
 
 class InstrumentationGraphInstrumentationPlugin : public Plugin {
    public:
-      InstrumentationGraphInstrumentationPlugin () : Plugin("Instrumentation which print the trace to std out.",1) {}
+      InstrumentationGraphInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
       ~InstrumentationGraphInstrumentationPlugin () {}
 
       void config( Config &cfg ) {}
@@ -444,4 +444,4 @@ class InstrumentationGraphInstrumentationPlugin : public Plugin {
 
 } // namespace nanos
 
-DECLARE_PLUGIN("intrumentation-print_trace",nanos::ext::InstrumentationGraphInstrumentationPlugin);
+DECLARE_PLUGIN("intrumentation-graph",nanos::ext::InstrumentationGraphInstrumentationPlugin);
