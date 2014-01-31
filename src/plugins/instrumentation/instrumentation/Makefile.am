@@ -25,6 +25,7 @@ instrumentation_LTLIBRARIES = \
 	libnanox-instrumentation-empty_trace.la \
 	libnanox-instrumentation-print_trace.la \
 	libnanox-instrumentation-graph.la \
+	libnanox-instrumentation-new-graph.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
@@ -54,6 +55,10 @@ libnanox_instrumentation_print_trace_la_SOURCES = $(print_sources)
 libnanox_instrumentation_graph_la_CXXFLAGS = $(nanos_instr_cxxflags)
 libnanox_instrumentation_graph_la_LDFLAGS = $(ld_plugin_flags)
 libnanox_instrumentation_graph_la_SOURCES = $(graph_sources)
+
+libnanox_instrumentation_new_graph_la_CXXFLAGS = $(nanos_instr_cxxflags)
+libnanox_instrumentation_new_graph_la_LDFLAGS = $(ld_plugin_flags)
+libnanox_instrumentation_new_graph_la_SOURCES = $(new_graph_sources)
 
 if INSTRUMENTATION_EXTRAE
 libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_instr_cxxflags) $(extrae_mpitrace_cxxflags)
