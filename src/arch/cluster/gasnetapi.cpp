@@ -1557,7 +1557,7 @@ void GASNetAPI::sendMyHostName( unsigned int dest )
    if ( masterHostname == NULL )
       fprintf(stderr, "Error, master hostname not set!\n" );
 
-   if ( gasnet_AMRequestMedium0( dest, 209, ( void * ) masterHostname, ::strlen( masterHostname ) ) != GASNET_OK )
+   if ( gasnet_AMRequestMedium0( dest, 209, ( void * ) masterHostname, ::strlen( masterHostname ) + 1 ) != GASNET_OK ) //+1 to add the last \0 character
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest );
    }
