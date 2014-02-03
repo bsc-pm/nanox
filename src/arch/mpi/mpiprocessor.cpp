@@ -51,10 +51,11 @@ extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[1U];
 extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[1];
 extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[1])();
 
-MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner) : CachedAccelerator<MPIDevice>(id, &MPI, uid) {
+MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared) : CachedAccelerator<MPIDevice>(id, &MPI, uid) {
     _communicator = *((MPI_Comm *)communicator);
     _rank = rank;
     _owner=owner;
+    _shared=shared;
 }
 
 void MPIProcessor::prepareConfig(Config &config) {
@@ -165,7 +166,7 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
 /**
  * All this tasks redefine nanox messages
  */
-void MPIProcessor::nanosMPIInit(int *argc, char ***argv) {    
+void MPIProcessor::nanosMPIInit(int *argc, char ***argv, int userRequired, int* userProvided) {    
     if (_inicialized) return;
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_INIT_EVENT);
     verbose0( "loading MPI support" );
@@ -174,18 +175,25 @@ void MPIProcessor::nanosMPIInit(int *argc, char ***argv) {
       fatal0 ( "Couldn't load MPI support" );
    
     _inicialized=true;   
-    int provided, claimed;
+    int provided;
+    //If user provided a null pointer, we'll a value for internal checks
+    if (userProvided==NULL) userProvided=&provided;
     //TODO: Try with multiple MPI thread
     int initialized;    
     MPI_Initialized(&initialized);
     //In case it was already initialized (shouldn't happen, since we theorically "rename" the calls with mercurium), we won't try to do so
     //We'll trust user criteria, but show a warning
-    if (!initialized)
-        MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
+    if (!initialized) {
+        if (userRequired != MPI_THREAD_MULTIPLE) {
+            warning0("Initializing MPI with MPI_THREAD_MULTIPLE instead of user required mode, this is a requeriment for OmpSs offload");
+        }
+        MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, userProvided);
+    } else {
+        //Do not initialise, but check thread level and return the right provided value to the user
+        MPI_Query_thread(userProvided);        
+    }
     
-    //If not initiliazed with the paralelism level we need/implementation doesn't provide it, error.
-    MPI_Query_thread(&claimed);
-    fatal_cond0(claimed < MPI_THREAD_MULTIPLE,"MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, check your MPI "
+    fatal_cond0( (*userProvided) < MPI_THREAD_MULTIPLE,"MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, check your MPI "
             "implementation and try to configure it so it can support this multithread level");
     if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
         _bufferPtr = new char[_bufferDefaultSize];
@@ -206,7 +214,7 @@ void MPIProcessor::nanosMPIInit(int *argc, char ***argv) {
         MPI_Comm mworld= MPI_COMM_WORLD;
         //It will share a core with last SMP PE
         //THIS PE will not be in the team (uid -1)
-        PE *mpi = NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()), &mworld, CACHETHREADRANK,-1, true);
+        PE *mpi = NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()), &mworld, CACHETHREADRANK,-1, true, false);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
@@ -250,7 +258,7 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
     //IF nanos MPI not initialized, do it
     if (!_inicialized)
-        nanosMPIInit(0,0);
+        nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
     
     bool ignorePPH=false;
     if (process_per_host<=0){
@@ -359,7 +367,13 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
             host=tokens_host.at(host_counter);
             host_counter++;
         } while (host.empty());        
-        MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
+        //If host is a file, give it to Intel, otherwise put the host in the spawn
+        std::ifstream hostfile(host.c_str());
+        if (hostfile){
+            MPI_Info_set(info, const_cast<char*> ("hostfile"), const_cast<char*> (host.c_str()));
+        } else {            
+            MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
+        }
         array_of_info[spawn_arrays_length]=info;
         
         
@@ -417,9 +431,11 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
     MPI_Comm_compare(comm,MPI_COMM_WORLD,&res);
     int number_of_spawns_this_process=number_of_spawns;
     int spawn_start=0;
+    bool shared=false;
     //If MPI_COMM_WORLD, split total spawns between nodes in order to balance syncs
     if (res!=MPI_UNEQUAL){
         int mpi_size,rank;
+        shared=true;
         MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
         MPI_Comm_rank(MPI_COMM_WORLD,&rank);
         number_of_spawns_this_process=number_of_spawns/mpi_size;
@@ -431,19 +447,21 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
     int uid=sys.getNumCreatedPEs();
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
+    int rank=spawn_start; //Balance spawn order so each process starts with his owned processes
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
-    for ( int rank=0; rank<number_of_spawns; rank++ ){  
+    for ( int rankCounter=0; rankCounter<number_of_spawns; rankCounter++ ){  
         //Each process will have access to every remote node, but only one master will sync each child
         //this way we balance syncs with childs
         if (rank>=spawn_start && rank<spawn_start+number_of_spawns_this_process) {
-            pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()) ,intercomm, rank,uid++, true);
+            pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()) ,intercomm, rank,uid++, true, shared);
             nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
         } else {            
-            pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()) ,intercomm, rank,uid++, false);
+            pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()) ,intercomm, rank,uid++, false, shared);
         }
+        rank=(rank+1)%number_of_spawns;
     }
-    sys.addPEsToTeam(pes,number_of_spawns);
+    sys.addPEsToTeam(pes,number_of_spawns);   
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
@@ -567,7 +585,7 @@ int MPIProcessor::getNextPEId() {
  * in both files (host and device, which are different architectures, so maybe they were not compiled in the same order)
  */
 void MPIProcessor::nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
-            unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])()){
+            unsigned int* task_per_file,void (*ompss_mpi_func_ptrs_dev[])()){
     const int mask = MASK_TASK_NUMBER;
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);   
@@ -596,21 +614,21 @@ void MPIProcessor::nanosSyncDevPointers(int* file_mask, unsigned int* file_nameh
                 if( file_namehash[e] == host_file_namehash[i] && file_size[e] == host_file_size[i] ){
                     found=true; 
                     //Copy from _dev_tmp array to _dev array in the same order than the host
-                    memcpy(ompss_mpi_func_pointers_dev_out+filled_arr_size,ompss_mpi_func_pointers_dev+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
+                    memcpy(ompss_mpi_func_pointers_dev_out+filled_arr_size,ompss_mpi_func_ptrs_dev+func_pointers_arr,task_per_file[e]*sizeof(void (*)()));
                     filled_arr_size+=task_per_file[e];  
                 }
                 func_pointers_arr+=task_per_file[e];
             }
             fatal_cond0(!found,"File not found in device, please compile the code using exactly the same sources (same filename and size) for each architecture");
         }
-        memcpy(ompss_mpi_func_pointers_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
+        memcpy(ompss_mpi_func_ptrs_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
         free(ompss_mpi_func_pointers_dev_out);
         free(host_file_size);
         free(host_file_namehash);
     }
 }
 
-int MPIProcessor::nanosMPIWorker(void (*ompss_mpi_func_pointers_dev[])()){
+int MPIProcessor::nanosMPIWorker(void (*ompss_mpi_func_ptrs_dev[])()){
     int ompss_id_func;
     int err;
     MPI_Status status;
@@ -623,7 +641,7 @@ int MPIProcessor::nanosMPIWorker(void (*ompss_mpi_func_pointers_dev[])()){
           nanosMPIFinalize(); 
           return 0;
        } else {                     
-          void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[ompss_id_func];          
+          void (* function_pointer)()=(void (*)()) ompss_mpi_func_ptrs_dev[ompss_id_func];          
           //Wait until copies have finished before executing the task
           nanos::MPIDevice::taskPreInit(ompss_parent_comp);
           function_pointer();       
@@ -636,7 +654,7 @@ int MPIProcessor::nanosMPIWorker(void (*ompss_mpi_func_pointers_dev[])()){
 void MPIProcessor::mpiOffloadSlaveMain(){    
     //If we are slave, turn on slave mode (which keeps working until shutdown) and exit
     if (getenv("OMPSS_OFFLOAD_SLAVE")){
-       nanosMPIInit(0,0);
+       nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
        nanos::ext::MPIProcessor::nanosSyncDevPointers(ompss_mpi_masks, ompss_mpi_filenames, ompss_mpi_file_sizes,ompss_mpi_file_ntasks,ompss_mpi_func_pointers_dev);
        nanos::ext::MPIProcessor::nanosMPIWorker(ompss_mpi_func_pointers_dev);
        exit(0);
@@ -645,6 +663,7 @@ void MPIProcessor::mpiOffloadSlaveMain(){
 
 int MPIProcessor::ompssMpiGetFunctionIndexHost(void* func_pointer){  
     int i;
+    //This function WILL find the pointer, if it doesnt, program would crash anyways so I won't limit it
     for (i=0;ompss_mpi_func_pointers_host[i]!=func_pointer;i++);
     return i;
 }

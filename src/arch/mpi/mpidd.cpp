@@ -40,8 +40,18 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     int res=MPI_UNEQUAL;
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
     if (_assignedComm!=0) MPI_Comm_compare(myPE->getCommunicator(),_assignedComm,&res);
+    
+    //If our remote node is shared and we are not bound to a rank (if we are, we don't care, we have to execute here
+    //Query the node to check if it's doing something
+//    if (_assignedRank  == UNKOWN_RANKSRCDST && myPE->getShared()){
+//        int err=-2;
+//        err=MPI_Rsend(&err, 1, MPI_INT, myPE->getRank(), TAG_INI_TASK, myPE->getCommunicator());
+//        printf("test %d\n",err);
+//        if (err!=MPI_SUCCESS) return false;
+//    }
+    
     //If no assigned comm nor rank, it can run on any PE, if only has a unkown rank, match with comm
-    //if has both rank and comm, only execute on his PE
+    //if has both rank and comm, only execute on his PE    
     bool resul =(_assignedComm == 0 && _assignedRank == UNKOWN_RANKSRCDST) 
             || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
             || (myPE->getRank() == _assignedRank && res == MPI_IDENT);

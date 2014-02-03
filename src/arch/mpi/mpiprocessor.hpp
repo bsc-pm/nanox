@@ -61,6 +61,7 @@ namespace nanos {
             MPI_Comm _communicator;
             int _rank;
             bool _owner;
+            bool _shared;
 
             // disable copy constructor and assignment operator
             MPIProcessor(const MPIProcessor &pe);
@@ -70,7 +71,7 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned);
+            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned, bool shared);
 
             virtual ~MPIProcessor() {
             }
@@ -125,7 +126,11 @@ namespace nanos {
             bool getOwner() const {
                 return _owner;
             }
-
+            
+            bool getShared() const {
+                return _shared;
+            }
+            
             virtual WD & getWorkerWD() const;
             virtual WD & getMasterWD() const;
             virtual BaseThread & createThread(WorkDescriptor &wd);
@@ -150,7 +155,7 @@ namespace nanos {
             
             static int getNextPEId();
             
-            static void nanosMPIInit(int* argc, char ***argv);
+            static void nanosMPIInit(int* argc, char ***argv, int required, int* provided);
             
             static void nanosMPIFinalize();
                         

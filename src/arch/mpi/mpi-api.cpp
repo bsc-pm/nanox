@@ -76,7 +76,7 @@ NANOS_API_DEF(nanos_err_t, set_mpi_exename, (char * new_name)) {
 
 NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {
     try {
-        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv);
+        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv, MPI_THREAD_MULTIPLE, 0);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }
@@ -87,7 +87,7 @@ NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {
 
 NANOS_API_DEF(nanos_err_t, nanos_mpi_init_thread, (int* argc, char ***argv, int required, int *provided)) {
     try {
-        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv);
+        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv, required, provided);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }
@@ -96,7 +96,7 @@ NANOS_API_DEF(nanos_err_t, nanos_mpi_init_thread, (int* argc, char ***argv, int 
 }
 
 NANOS_API_DEF(void, nanos_mpi_initf, (void)) {
-    nanos::ext::MPIProcessor::nanosMPIInit(0, 0);
+    nanos::ext::MPIProcessor::nanosMPIInit(0, 0,MPI_THREAD_MULTIPLE,0);
 }
 
 int nanos_mpi_finalize (void) {

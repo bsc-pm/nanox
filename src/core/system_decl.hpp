@@ -66,8 +66,6 @@ namespace nanos
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          typedef std::vector<ArchPlugin*> ArchitecturePlugins;
          
-         //Current thread team
-         ThreadTeam* _currentTeam;
          //! CPU id binding list
          typedef std::vector<int> Bindings;
          

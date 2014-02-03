@@ -36,7 +36,7 @@ using namespace nanos;
 
 MPI_Datatype MPIDevice::cacheStruct;
 Directory* MPIDevice::_masterDir;
-bool MPIDevice::executingTask=false;
+char MPIDevice::_executingTask=0;
 
 MPIDevice::MPIDevice(const char *n) : Device(n) {
 }
@@ -227,7 +227,7 @@ void MPIDevice::initMPICacheStruct() {
 
 void MPIDevice::taskPreInit(MPI_Comm& comm){
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_WAIT_FOR_COPIES_EVENT);
-    executingTask=true;
+    _executingTask=1;
     //int flag=0;
     //MPI_Status status;
     
@@ -248,7 +248,7 @@ void MPIDevice::taskPreInit(MPI_Comm& comm){
 }
 
 void MPIDevice::taskPostFinish(MPI_Comm& comm){
-    executingTask=false;
+    _executingTask=0;
     //int flag=0;
     //MPI_Status status;
     
@@ -270,7 +270,7 @@ void MPIDevice::taskPostFinish(MPI_Comm& comm){
 void MPIDevice::mpiCacheWorker() {
     //myThread = myThread->getNextThread();
     MPI_Comm parentcomm; /* intercommunicator */
-    MPI_Comm_get_parent(&parentcomm);
+    MPI_Comm_get_parent(&parentcomm);    
     const size_t alignThreshold = nanos::ext::MPIProcessor::getAlignThreshold();
     const size_t alignment = nanos::ext::MPIProcessor::getAlignment();
     //If this process was not spawned, we don't need this daemon-thread
@@ -296,7 +296,12 @@ void MPIDevice::mpiCacheWorker() {
                 //TODO: make this operation single-message
                 //and check performance with probe+remake struct datatype+single-message vs dual message
                 switch (order.opId) {
-                    case OPID_FINISH:
+//                    case OPID_CONTROL:
+//                    {
+//                        char send=_executingTask;
+//                        nanos::ext::MPIProcessor::nanosMPISend(&send, 1, MPI_CHAR, parentRank, TAG_EXEC_CONTROL, parentcomm);
+//                    }
+                    case OPID_FINISH:                        
                         return;
                     case OPID_COPYIN:
                     {    

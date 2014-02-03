@@ -1689,7 +1689,7 @@ void System::addPEsToTeam(PE **pes, int num_pes) {
         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
         BaseThread* bt= &pes[i]->startWorker();
         _workers.push_back( bt );
-        acquireWorker( _currentTeam , bt);
+        acquireWorker( _mainTeam , bt);
         //CPU_SET( pes[rank]->getId(), &_cpu_active_set );
     }
 }

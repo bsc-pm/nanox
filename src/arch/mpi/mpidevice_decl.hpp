@@ -40,12 +40,12 @@ enum {
     TAG_CACHE_ORDER = 1200, TAG_CACHE_DATA_IN,TAG_CACHE_DATA_OUT, 
     TAG_CACHE_ANSWER, TAG_INI_TASK,TAG_END_TASK, TAG_ENV_STRUCT,TAG_CACHE_ANSWER_REALLOC,
     TAG_CACHE_ANSWER_ALLOC, TAG_CACHE_ANSWER_CIN,TAG_CACHE_ANSWER_COUT,TAG_CACHE_ANSWER_FREE,TAG_CACHE_ANSWER_DEV2DEV,TAG_CACHE_ANSWER_CL,
-    TAG_FP_NAME_SYNC, TAG_FP_SIZE_SYNC, TAG_CACHE_DEV2DEV
+    TAG_FP_NAME_SYNC, TAG_FP_SIZE_SYNC, TAG_CACHE_DEV2DEV, TAG_EXEC_CONTROL
 };
 
 //Because of DEV2DEV OPIDs <=0 are RESERVED, and OPIDs > OPID_DEVTODEV too
 enum {
-    OPID_FINISH=1, OPID_COPYIN = 2, OPID_COPYOUT=3, OPID_FREE = 4, OPID_ALLOCATE =5 , OPID_COPYLOCAL = 6, OPID_REALLOC = 7, 
+    OPID_FINISH=1, OPID_COPYIN = 2, OPID_COPYOUT=3, OPID_FREE = 4, OPID_ALLOCATE =5 , OPID_COPYLOCAL = 6, OPID_REALLOC = 7, OPID_CONTROL = 8,
     /*Keep DEV2DEV value as highest in the OPIDs*/ OPID_DEVTODEV=999
 };
 //Assigned rank value for the Daemon Thread, so it doesn't get used by any DD
@@ -68,7 +68,7 @@ namespace nanos
    class MPIDevice : public Device
    {
       private:
-         static bool executingTask;
+         static char _executingTask;
          static Directory *_masterDir;
 
          static void getMemoryLockLimit();
@@ -176,7 +176,7 @@ namespace nanos
          static void taskPostFinish(MPI_Comm& comm);
          
          static void setMasterDirectory(Directory *dir) {_masterDir=dir;};
-
+         
          /* \brief copy from src in the host to dst in the device synchronously
           */
          //static void copyInSyncToDevice ( void * dst, void * src, size_t size );
