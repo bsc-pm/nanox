@@ -70,15 +70,16 @@ namespace nanos {
     };
     
     enum NodeType {
+        BarrierNode,
+        ConcurrentNode,
         TaskNode,
-        TaskwaitNode,
-        BarrierNode
+        TaskwaitNode
     };
     
     struct Node {
         // Class members
         int64_t _wd_id;
-        unsigned int _func_id;
+        int _func_id;
         NodeType _type;
         std::set<Edge*> _entry_edges;
         std::set<Edge*> _exit_edges;
@@ -98,7 +99,7 @@ namespace nanos {
             return _wd_id;
         }
         
-        unsigned int get_funct_id( ) {
+        int get_funct_id( ) {
             return _func_id;
         }
         
@@ -126,7 +127,40 @@ namespace nanos {
             _total_time += time;
         }
         
-        bool is_synchronized( ) {
+        Node* get_parent_task( ) {
+            Node* res = NULL;
+            for( std::set<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
+                if( (*it)->is_nesting( ) ) {
+                    res = (*it)->get_source( );
+                    break;
+                }
+            }
+            return res;
+        }
+        
+        bool is_connected_with( Node* target ) {
+            bool res = false;
+            for( std::set<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+                if( (*it)->get_target( ) == target ) {
+                    res = true;
+                    break;
+                }
+            }
+            return res;
+        }
+        
+        bool is_previous_synchronized( ) {
+            bool res = false;
+            for( std::set<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
+                if( (*it)->is_dependency( ) || (*it)->is_synchronization( ) ) {
+                    res = true;
+                    break;
+                }
+            }
+            return res;
+        }
+        
+        bool is_next_synchronized( ) {
             bool res = false;
             for( std::set<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->is_dependency( ) || (*it)->is_synchronization( ) ) {
@@ -138,9 +172,11 @@ namespace nanos {
         }
         
         static void connect_nodes( Node* source, Node* target, EdgeKind kind, DependencyType dep_type = Null ) {
-            Edge* new_edge = new Edge( kind, dep_type, source, target );
-            source->_exit_edges.insert( new_edge );
-            target->_entry_edges.insert( new_edge );
+            if( !source->is_connected_with( target ) ) {
+                Edge* new_edge = new Edge( kind, dep_type, source, target );
+                source->_exit_edges.insert( new_edge );
+                target->_entry_edges.insert( new_edge );
+            }
         }
         
         bool is_task( ) {
@@ -153,6 +189,10 @@ namespace nanos {
         
         bool is_barrier( ) {
             return _type == BarrierNode;
+        }
+        
+        bool is_concurrent( ) {
+            return _type == ConcurrentNode;
         }
         
         bool is_printed( ) {

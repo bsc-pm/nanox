@@ -8,6 +8,7 @@
 #include "system.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -18,7 +19,7 @@
 
 namespace nanos {
 
-int taskwait_id = -1;
+const int64_t concurrent_min_id = 1000000;
     
 class InstrumentationNewGraphInstrumentation: public Instrumentation
 {
@@ -26,6 +27,9 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
     std::map<int64_t, std::string> _funct_id_to_decl_map;   /*!< relation between a task id and its name */
     double _time_avg;
+    
+    int64_t _next_tw_id;
+    int64_t _next_conc_id;
     
     inline int64_t getMyWDId( ) {
         BaseThread *current_thread = getMyThreadSafe( );
@@ -35,19 +39,27 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     }
     
     inline std::string print_node( Node* n, std::string indentation ) {
-        // Get the style of the node
+        
         std::string node_attrs = "";
-        if( n->is_taskwait( ) ) {
-            node_attrs += "label=\"Taskwait\", ";
-        } else if( n->is_barrier( ) ) {
-            node_attrs += "label=\"Barrier\", ";
+        // Get the label of the node
+        {
+            std::stringstream ss; ss << n->get_wd_id( );
+            if( n->is_taskwait( ) ) {
+                node_attrs += "label=\"Taskwait\", ";
+            } else if( n->is_barrier( ) ) {
+                node_attrs += "label=\"Barrier\", ";
+            } else if( n->is_concurrent( ) ) {
+                node_attrs += "label=\"Concurrent\", ";
+            }
         }
+        
+        // Get the style of the node
         node_attrs += "style=\"";
-        node_attrs += ( ( n->is_taskwait( ) || n->is_barrier( ) ) ? "bold" 
-                                                                  : "filled" );
+        node_attrs += ( ( !n->is_task( ) ) ? "bold" : "filled" );
+        
         // Get the color of the node
         if( n->is_task( ) ) {
-            node_attrs += "\", color=\"" + wd_to_color_hash( n->get_funct_id( ) );
+            node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash( n->get_funct_id( ) );
         }
         
         // Get the size of the node
@@ -67,16 +79,19 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     
     inline std::string print_edge( Edge* e, std::string indentation ) {
         std::string edge_attrs = "style=\"";
+        
         // Compute the style of the edge
         edge_attrs += ( ( !e->is_dependency( ) || 
                         e->is_true_dependency( ) ) ? "solid" 
                                                    : ( e->is_anti_dependency( ) ? "dashed" 
                                                                                 : "dotted" ) );
+        
         // Compute the color of the edge
         edge_attrs += "\", color=\"";
         edge_attrs += ( e->is_nesting( ) ? "gray47" 
                                          : "black" );
         edge_attrs += "\"";
+        
         // Print the edge
         std::stringstream sss; sss << e->get_source( )->get_wd_id( );
         std::stringstream sst; sst << e->get_target( )->get_wd_id( );
@@ -164,7 +179,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     {
                         std::stringstream ss; ss << id;
                         nodes_legend += "      0" + ss.str( ) + "[label=\"\",  width=0.3, height=0.3, shape=box, "
-                                      + "fillcolor=" + wd_to_color_hash( it->first ) + ", style=filled];\n";
+                                      + "fillcolor=" + wd_to_color_hash( it2->first ) + ", style=filled];\n";
                         if( last_id != 0 ) {
                             std::stringstream ss2; ss2 << last_id;
                             nodes_legend += "      0" + ss2.str( ) + " -> 0" + ss.str( ) + "[style=\"invis\"];\n";
@@ -211,7 +226,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     // constructor
     InstrumentationNewGraphInstrumentation() : Instrumentation(),
                                                _graph_nodes( ), _funct_id_to_decl_map( ), 
-                                               _time_avg( 0.0 )
+                                               _time_avg( 0.0 ), _next_tw_id( 0 ), _next_conc_id( 0 )
     {}
     
     // destructor
@@ -232,17 +247,44 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     // constructor
     InstrumentationNewGraphInstrumentation() : Instrumentation( *new InstrumentationContextDisabled() ),
                                                _graph_nodes( ), _funct_id_to_decl_map( ), 
-                                               _time_avg( 0.0 )
+                                               _time_avg( 0.0 ), _next_tw_id( 0 ), _next_conc_id( 0 )
     {}
     
     // destructor
     ~InstrumentationNewGraphInstrumentation ( ) {}
 
     // low-level instrumentation interface (mandatory functions)
-    void initialize( void ) {}
+    void initialize( void ) 
+    {}
     
     void finalize( void )
     {
+        // So far, taskwaits have been synchronized with the tasks created previously
+        // But those tasks created after a given taskwait have not been connected to the taskwait
+        // Note: The wd of a taskwait is always a negative number!
+        for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it ) {
+            if( !(*it)->is_previous_synchronized( ) ) {
+                // The task has no parent, look for a taskwait|barrier suitable to be its parent
+                int64_t wd_id = (*it)->get_wd_id( ) - ( (*it)->is_concurrent( ) ? concurrent_min_id : 0 );
+                Node* it_parent = (*it)->get_parent_task( );
+                Node* last_taskwait_sync = NULL;
+                for( std::set<Node*>::iterator it2 = _graph_nodes.begin( ); it2 != _graph_nodes.end( ); ++it2 ) {
+                    if( ( it_parent == (*it2)->get_parent_task( ) ) &&                  // The two nodes are in the same region
+                        ( !(*it2)->is_task( ) ) &&                                      // The potential last sync is a taskwait|barrier|concurrent
+                        ( std::abs( wd_id ) > std::abs( (*it2)->get_wd_id( ) ) ) ) {    // The potential last sync was created before
+                        if( ( last_taskwait_sync == NULL ) || 
+                            ( last_taskwait_sync->get_wd_id( ) > (*it2)->get_wd_id( ) ) ) {
+                            // From all suitable previous syncs. we want the one created the latest
+                            last_taskwait_sync = *it2;
+                        }
+                    }
+                }
+                if( last_taskwait_sync != NULL ) {
+                    Node::connect_nodes( last_taskwait_sync, *it, Synchronization );
+                }
+            }
+        }
+        
         // Generate the name of the dot file from the name of the binary
         std::string file_name = OS::getArg( 0 );
         size_t slash_pos = file_name.find_last_of( "/" );
@@ -272,7 +314,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 continue;
             
             // Print the current node
-            std::string node_info = print_node( (*it), /*indentation*/"    " );
+            std::string node_info = print_node( (*it), /*indentation*/"  " );
             (*it)->set_printed( );
             // Print all nested nodes
             std::string nested_nodes_info = print_nested_nodes( (*it), /*indentation*/"    " );
@@ -344,7 +386,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         // Get the node corresponding to the wd_id calling this function
         // This node won't exist if the calling wd corresponds to that of the master thread
         int64_t current_wd_id = getMyWDId( );
-        Node* current_node = find_node_from_wd_id( current_wd_id );
+        Node* current_parent = find_node_from_wd_id( current_wd_id );
         
         unsigned int i;
         for( i=0; i<count; i++ ) {
@@ -360,14 +402,15 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 e = events[--i];
                 assert( e.getKey( ) == create_wd_id );
                 int64_t wd_id = e.getValue( );
-                
+                _next_tw_id = std::min(_next_tw_id, -wd_id);
+                _next_conc_id = wd_id + 1;
                 // Create the new node
                 Node* new_node = new Node( wd_id, funct_id, TaskNode );
                 _graph_nodes.insert( new_node );
                 
                 // Connect the task with its parent task, if exists
-                if( current_node != NULL ) {
-                    Node::connect_nodes( current_node, new_node, Nesting );
+                if( current_parent != NULL ) {
+                    Node::connect_nodes( current_parent, new_node, Nesting );
                 }
             }
             else if ( e.getKey( ) == user_funct_location )
@@ -397,8 +440,12 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     case 1:     dep_type = True;        break;
                     case 2:     dep_type = Anti;        break;
                     case 3:     dep_type = Output;      break;
-                    case 4:     dep_type = d_Output;    break;
-                    case 5:     dep_type = Output_d;    break;
+                    case 4:     dep_type = d_Output;                    // concurrent -> wd
+                                receiver_wd_id += concurrent_min_id;
+                                break;
+                    case 5:     dep_type = Output_d;                    // wd -> concurrent
+                                sender_wd_id += concurrent_min_id;
+                                break;
                     default:    { printf( "Unexpected type dependency %d. "
                                           "Not printing any edge for it in the Task Dependency graph\n", 
                                           dep_value );
@@ -407,31 +454,28 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 
                 // Create the relation between the sender and the receiver
                 Node* sender = find_node_from_wd_id( sender_wd_id );
+                if( sender == NULL ) {
+                    sender = new Node( sender_wd_id, 0, ConcurrentNode );
+                    _graph_nodes.insert( sender );
+                }
                 Node* receiver = find_node_from_wd_id( receiver_wd_id );
-                assert( ( sender != NULL ) && ( receiver != NULL ) );
+                if( receiver == NULL ) {
+                    receiver = new Node( receiver_wd_id, 0, ConcurrentNode );
+                    _graph_nodes.insert( receiver );
+                }
                 Node::connect_nodes( sender, receiver, Dependency, dep_type );
             }
             else if ( e.getKey( ) == taskwait )
             {   // A taskwait occurs
                 // Synchronize all previous nodes created by the same task that have not been yet synchronized
-                Node* new_node = new Node( taskwait_id--, 0, TaskwaitNode );
+                Node* new_node = new Node( _next_tw_id, -1, TaskwaitNode );
+                --_next_tw_id;
                 for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it )
                 {
-                    if( (*it)->is_task( ) ) {
-                        std::set<Edge*> entries = (*it)->get_entries( );
-                        if( entries.empty( ) && ( current_node == NULL ) && !(*it)->is_synchronized( ) ) {
+                    if( !(*it)->is_next_synchronized( ) ) {
+                        Node* parent_task = (*it)->get_parent_task( );
+                        if( current_parent == parent_task ) {
                             Node::connect_nodes( *it, new_node, Synchronization );
-                        } else {
-                            for( std::set<Edge*>::iterator edge = entries.begin( ); edge != entries.end( ); ++edge )
-                            {
-                                // The node is a child of 'current_wd_id' and
-                                // it has no synchronization, synchronize it here
-                                if( ( (*edge)->get_source( ) == current_node ) && 
-                                    ( !(*it)->is_synchronized( ) ) )
-                                {
-                                    Node::connect_nodes( *it, new_node, Synchronization );
-                                }
-                            }
                         }
                     }
                 }
