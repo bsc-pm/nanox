@@ -55,9 +55,10 @@ namespace nanos
       private:
          typedef std::list<nanos_reduction_t*>     ReductionList;  /**< List of Reduction op's (Bursts) */
          typedef std::map<unsigned, BaseThread *>  ThreadTeamList; /**< List of team members */
+         typedef std::map<unsigned, bool>          ThreadTeamIdList; /**< List of team members */
 
          ThreadTeamList               _threads;          /**< Threads that make up the team */
-         unsigned                     _idCounter;        /**< Identifier for the next thread that enters the team */
+         ThreadTeamIdList             _idList;           /**< List of id usage (reusing old id's) */
          Atomic<size_t>               _starSize;
          int                          _idleThreads;
          int                          _numTasks;
