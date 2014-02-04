@@ -559,8 +559,11 @@ class InstrumentationExtrae: public Instrumentation
          {
             std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
             size_t found = _traceFinalDirectory.find_last_of("/");
+            size_t found_pcf = _traceFileName_PCF.find_last_of("/");
             std::cerr << "Copying pcf file: " << _traceFileName_PCF << std::endl;
-            secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1));
+            char number[16];
+            sprintf(number, "%08d", sys.getNetwork()->getNodeNum() );
+            secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1) + number + "." + _traceFileName_PCF.substr(found_pcf+1));
          }
 
       }
