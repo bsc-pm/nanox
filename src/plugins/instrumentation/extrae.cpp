@@ -563,24 +563,17 @@ class InstrumentationExtrae: public Instrumentation
                }
                else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
 
+               // copy pcf file too
+               {
+                  size_t found = _traceFinalDirectory.find_last_of("/");
+                  size_t found_pcf = _traceFileName_PCF.find_last_of("/");
+                  char number[16];
+                  sprintf(number, "%08d", sys.getNetwork()->getNodeNum() );
+                  secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1) + number + "." + _traceFileName_PCF.substr(found_pcf+1));
+               }
             }
             nanos_extrae_instrumentation_barrier();
          }
-
-         // copy pcf file too
-         {
-            
-         std::cerr << "Im node " << sys.getNetwork()->getNodeNum() << " traceDir: " << _traceDirectory << std::endl;
-         std::cerr << "Im node " << sys.getNetwork()->getNodeNum() << " traceFinalDir: " << _traceFinalDirectory << std::endl;
-            std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
-            size_t found = _traceFinalDirectory.find_last_of("/");
-            size_t found_pcf = _traceFileName_PCF.find_last_of("/");
-            std::cerr << "Copying pcf file: " << _traceFileName_PCF << std::endl;
-            char number[16];
-            sprintf(number, "%08d", sys.getNetwork()->getNodeNum() );
-            secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1) + number + "." + _traceFileName_PCF.substr(found_pcf+1));
-         }
-
       }
 
       void getTraceFileName ()
