@@ -518,6 +518,7 @@ class InstrumentationExtrae: public Instrumentation
 
                if (p_file.is_open())
                {
+                  unsigned int thread = 0;
                   while (!p_file.eof() )
                   {
                      p_file.getline (str, 255);
@@ -545,6 +546,17 @@ class InstrumentationExtrae: public Instrumentation
                         //}
                         //std::cerr << "NAME: " << name << std::endl;
                         secureCopy(str, dst + ":" + src_path.substr( 0, pos + 1 ) /* + name */ );
+
+                        //Copy the symbol file
+                        if ( thread == 0 ) {
+                           char sym_file_name[256];
+                           std::size_t dot_pos = src_path.find(".mpit");
+                           std::string myName = src_path.substr( src_path.find_last_of('/') + 1, dot_pos - src_path.find_last_of('/') );
+                           sprintf( sym_file_name, "%s/set-0/%ssym", _traceDirectory.c_str(), myName.c_str() );
+                           secureCopy(sym_file_name, dst + ":" + src_path.substr( 0, pos + 1 ) );
+                        }
+
+                        thread += 1;
                      }
                   }
                   p_file.close();
@@ -557,6 +569,9 @@ class InstrumentationExtrae: public Instrumentation
 
          // copy pcf file too
          {
+            
+         std::cerr << "Im node " << sys.getNetwork()->getNodeNum() << " traceDir: " << _traceDirectory << std::endl;
+         std::cerr << "Im node " << sys.getNetwork()->getNodeNum() << " traceFinalDir: " << _traceFinalDirectory << std::endl;
             std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
             size_t found = _traceFinalDirectory.find_last_of("/");
             size_t found_pcf = _traceFileName_PCF.find_last_of("/");
