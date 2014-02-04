@@ -470,9 +470,10 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 // Synchronize all previous nodes created by the same task that have not been yet synchronized
                 Node* new_node = new Node( _next_tw_id, -1, TaskwaitNode );
                 --_next_tw_id;
-                for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it )
-                {
-                    if( !(*it)->is_next_synchronized( ) ) {
+                // First synchronize the tasks
+                for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it ) {
+                    // Synchronization nodes will be connected, if necessary, when 'finalize' is called
+                    if( !(*it)->is_next_synchronized( ) && (*it)->is_task( ) ) {
                         Node* parent_task = (*it)->get_parent_task( );
                         if( current_parent == parent_task ) {
                             Node::connect_nodes( *it, new_node, Synchronization );
