@@ -193,8 +193,6 @@ function finalizeTracingNoInteractive
 {
    if [ x$TRACE = xyes ] ; then
       MASTER=$SLURMD_NODENAME
-      echo Master is $MASTER
-      echo Num nodes is $NUM_NODES
       ITER=0
       for i in `seq 1 $NUM_NODES ` ; do
          FILE_EXP=`printf "$TMPTRACEDIR/TRACE.??????????%06d??????.mpit" $ITER`
@@ -205,15 +203,14 @@ function finalizeTracingNoInteractive
          done
          ITER=$(($ITER + 1))
       done
-      ssh $MASTER cat $TMPTRACEDIR/tmp.$ID.mpits
       echo Merging mpit files into a prv file...
       FILEID=trace.$APP.`printf "%04d" $NUM_NODES`.$ID
-      #ssh $MASTER ls -lh "$TMPTRACEDIR/*.mpit"
-      PCF_FILE=`ssh $MASTER ls -S $TMPTRACEDIR/????????.*.pcf | head -n 1` # select the heaviest file, it contains the symbols
-      #ssh $MASTER /gpfs/apps/NVIDIA/CEPBATOOLS/extrae/latest/64/bin/mpi2prv -syn -f $TMPTRACEDIR/tmp.$ID.mpits -o $TMPTRACEDIR/$FILEID.prv
-      ssh $MASTER /apps/CEPBATOOLS/extrae/latest/default/64/bin/mpi2prv -syn -f $TMPTRACEDIR/tmp.$ID.mpits -o $TMPTRACEDIR/$FILEID.prv -e ./$APP -translate-addresses
+      SYM_FILE=`ssh $MASTER ls -S $TMPTRACEDIR/*.sym | head -n 1` # select the heaviest file, it contains the symbols
+      ssh $MASTER mv $SYM_FILE $SYM_FILE.tmp
+      ssh $MASTER rm "$TMPTRACEDIR/*.sym"
+      ssh $MASTER mv $SYM_FILE.tmp $SYM_FILE
+      ssh $MASTER /apps/CEPBATOOLS/extrae/latest/default/64/bin/mpi2prv -syn -f $TMPTRACEDIR/tmp.$ID.mpits -o $TMPTRACEDIR/$FILEID.prv
       scp $MASTER:$TMPTRACEDIR/$FILEID.* .
-      scp $MASTER:$PCF_FILE $FILEID.pcf
       ssh $MASTER "rm $TMPTRACEDIR/*mpit* $TMPTRACEDIR/*prv $TMPTRACEDIR/*pcf $TMPTRACEDIR/*row"
    fi
 }
