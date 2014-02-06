@@ -30,8 +30,8 @@
 #include "clusternode_decl.hpp"
 #include "gpudd.hpp"
 #include "smpdd.hpp"
-#include "wddeque.hpp"
 #endif
+#include "wddeque.hpp"
 #include "dlb.hpp"
 
 using namespace nanos;

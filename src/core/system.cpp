@@ -34,6 +34,7 @@
 #include <string.h>
 #include <set>
 #include <climits>
+#include "smpthread.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -49,7 +50,6 @@
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
 #include "clusterinfo_decl.hpp"
-#include "smpthread.hpp"
 #endif
 
 #include "addressspace.hpp"
@@ -912,6 +912,7 @@ void System::finish ()
    //   sys.getNetwork()->nodeBarrier();
    //}
 
+#ifdef CLUSTER_DEV
    message("Created " << createdWds << " WDs.");
    message("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
    if ( _net.getNodeNum() == 0 ) {
@@ -949,7 +950,7 @@ void System::finish ()
       message("GPUs Hard invalidations: " << hard_inv);
 #endif
    }
-
+#endif
 
    _net.finalize();
 
