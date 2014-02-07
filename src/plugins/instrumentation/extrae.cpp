@@ -564,13 +564,13 @@ class InstrumentationExtrae: public Instrumentation
                else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
 
                // copy pcf file too
-               {
-                  size_t found = _traceFinalDirectory.find_last_of("/");
-                  size_t found_pcf = _traceFileName_PCF.find_last_of("/");
-                  char number[16];
-                  sprintf(number, "%08d", sys.getNetwork()->getNodeNum() );
-                  secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1) + number + "." + _traceFileName_PCF.substr(found_pcf+1));
-               }
+               //{
+               //   size_t found = _traceFinalDirectory.find_last_of("/");
+               //   size_t found_pcf = _traceFileName_PCF.find_last_of("/");
+               //   char number[16];
+               //   sprintf(number, "%08d", sys.getNetwork()->getNodeNum() );
+               //   secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1) + number + "." + _traceFileName_PCF.substr(found_pcf+1));
+               //}
             }
             nanos_extrae_instrumentation_barrier();
          }
@@ -863,17 +863,17 @@ class InstrumentationExtrae: public Instrumentation
 
          OMPItrace_fini();
          getTraceFileName();
-         modifyParaverConfigFile();
-         modifyParaverRowFile();
+         //modifyParaverConfigFile();
+         //modifyParaverRowFile();
          if ( !_skipMerge ) {
-            mergeParaverTraceFiles();
-            postProcessTraceFile();
+         //   mergeParaverTraceFiles();
+         //   postProcessTraceFile();
          }
          else
          {
             copyFilesToMaster();
          }
-         removeTemporaryFiles();
+         //removeTemporaryFiles();
       }
 
       void disable( void ) { Extrae_shutdown(); }

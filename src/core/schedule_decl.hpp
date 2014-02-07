@@ -53,6 +53,7 @@ namespace nanos
          static void preOutlineWorkWithThread ( BaseThread *thread, WD *work );
          static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
          static bool inlineWork ( WD *work, bool schedule = false );
+         static void outlineWork( BaseThread *currentThread, WD *wd ); 
 
          static void submit ( WD &wd );
          static void submitAndWait ( WD &wd );

@@ -36,10 +36,12 @@
 #include "allocator_decl.hpp"
 #include "basethread_fwd.hpp"
 
+
 #define NANOX_INSTRUMENTATION_PARTNER_MYSELF 0xFFFFFFFF
 
 namespace nanos {
 
+//   extern __thread BaseThread *myThread;
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    class InstrumentationValueDescriptor
    {
@@ -624,8 +626,7 @@ namespace nanos {
             public:
                /*! \brief PtP event constructor
                 */
-               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key,  nanos_event_value_t value, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF )
-                   : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , key, value, domain, id, partner ) { }
+               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key,  nanos_event_value_t value, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
                friend class Instrumentation;
          };
 #ifndef NANOS_INSTRUMENTATION_ENABLED

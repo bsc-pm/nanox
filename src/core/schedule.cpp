@@ -584,7 +584,7 @@ void Scheduler::workerClusterLoop ()
                WD * wd_waiting = myClusterThread->getWaitingDataWD();
                if ( wd_waiting->isInputDataReady() ) {
                   myClusterThread->addRunningWDSMP( wd_waiting );
-                  myThread->outlineWorkDependent(*wd_waiting);
+                  outlineWork( myThread, wd_waiting );
                } else {
                   myClusterThread->addWaitingDataWD( wd_waiting );
 
@@ -598,7 +598,7 @@ void Scheduler::workerClusterLoop ()
                      if ( wd->isInputDataReady() ) {
                         myClusterThread->addRunningWDSMP( wd );
                      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
-                        myThread->outlineWorkDependent(*wd);
+                        outlineWork( myThread, wd );
                      //NANOS_INSTRUMENT( inst2.close(); );
                      } else {
                         myClusterThread->addWaitingDataWD( wd );
@@ -620,7 +620,7 @@ void Scheduler::workerClusterLoop ()
                               //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                               myClusterThread->addRunningWDSMP( wd );
                               //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
-                              myThread->outlineWorkDependent(*wd);
+                              outlineWork( myThread, wd );
                               //NANOS_INSTRUMENT( inst2.close(); );
                            } else {
                               myClusterThread->addWaitingDataWD( wd );
@@ -647,7 +647,7 @@ void Scheduler::workerClusterLoop ()
                      if ( wd->isInputDataReady() ) {
                         myClusterThread->addRunningWDSMP( wd );
                      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
-                        myThread->outlineWorkDependent(*wd);
+                        outlineWork( myThread, wd );
                      //NANOS_INSTRUMENT( inst2.close(); );
                      } else {
                         myClusterThread->addWaitingDataWD( wd );
@@ -669,7 +669,7 @@ void Scheduler::workerClusterLoop ()
                               //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                               myClusterThread->addRunningWDSMP( wd );
                               //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
-                              myThread->outlineWorkDependent(*wd);
+                              outlineWork( myThread, wd );
                               //NANOS_INSTRUMENT( inst2.close(); );
                            } else {
                               myClusterThread->addWaitingDataWD( wd );
@@ -694,7 +694,7 @@ void Scheduler::workerClusterLoop ()
                   //message("adding a GPU task for node " << thisNode->getClusterNodeNum() << " task is " << newwd->getId());
                   myClusterThread->addRunningWDGPU( newwd );
                   Scheduler::preOutlineWork(newwd);
-                  myThread->outlineWorkDependent(*newwd);
+                  outlineWork( myThread, newwd );
                }
             }
             thisNode->enableDevice( 0 ); 
@@ -863,15 +863,14 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
    wd->done();
    wd->clear();
 
-   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, false) );
-
 
    //std::cerr << "thd " << myThread->getId() << "exiting task(inlined) " << wd << ":" << wd->getId() <<
    //       " to " << oldwd << ":" << oldwd->getId() << std::endl;
    debug( "exiting task(post outline) " << wd << ":" << wd->getId() << " to " << &(thread->getThreadWD()) << ":" << thread->getThreadWD().getId() );
 
-
    thread->setCurrentWD( thread->getThreadWD() );
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, NULL, true) );
 
    //std::cerr << "completed WD " << wd->getId() << " at thd " << owner->getId() << " thd addr " << owner << std::endl; 
    //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, oldwd, false) );
@@ -887,6 +886,11 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
    //        "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
    //NANOS_INSTRUMENT( inst2.close(); );
+}
+
+void Scheduler::outlineWork( BaseThread *currentThread, WD *wd ) {
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, wd, false) );
+   currentThread->outlineWorkDependent( *wd );
 }
 
 void Scheduler::finishWork( WD *oldwd, WD * wd, bool schedule )

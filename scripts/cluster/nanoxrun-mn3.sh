@@ -138,8 +138,8 @@ function runApp
 {
    if [ x$USE_MPI = xyes ] ; then
       export NX_ARGS="$EXTRA_NX_ARGS --cluster --throttle-upper 10000000 $NANOS_TRACE_FLAGS $DISABLE_CUDA"
-      #export NX_CLUSTER_NETWORK=ibv
-      export NX_CLUSTER_NETWORK=mpi
+      export NX_CLUSTER_NETWORK=ibv
+      #export NX_CLUSTER_NETWORK=mpi
       export GASNET_BACKTRACE=1
       export IB_USE_GPU=1
       export CUDA_NIC_INTEROP=1
