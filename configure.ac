@@ -154,8 +154,16 @@ AC_ARG_ENABLE([bgq],
     AC_MSG_RESULT([yes])
   ],
   [
-    use_bgq=no
-    AC_MSG_RESULT([no])
+    case $host in
+      powerpc64-bgq-linux*)
+         use_bgq=yes
+         AC_MSG_RESULT([yes])
+         ;;
+      *)
+         use_bgq=no
+         AC_MSG_RESULT([no])
+         ;;
+    esac
   ]
 )
 
@@ -183,10 +191,29 @@ fi
 
 # Override all the options if we're compiling for BG/Q
 if test x$use_bgq = xyes; then
-    : ${CC="mpicc"}
-    : ${CXX="mpicxx"}
-    CFLAGS="$CFLAGS -dynamic"
-    CXXFLAGS="$CXXFLAGS -dynamic"
+    if test x$use_xlc = xyes; then
+        AC_CHECK_PROGS([BGQ_CC],[bgxlc_r bgxlc],[no])
+        AC_CHECK_PROGS([BGQ_CXX],[bgxlc++_r bgxlC_r bgxlc++ bgxlC],[no])
+        AC_CHECK_PROGS([BGQ_FC],[bgxlf90_r bgxlf90 bgxlf_r bgxlf],[no])
+    else
+        AC_CHECK_PROGS([BGQ_CC],[powerpc64-bgq-linux-gcc bgxlc_r bgxlc],[no])
+        AC_CHECK_PROGS([BGQ_CXX],[powerpc64-bgq-linux-g++ bgxlc++_r bgxlC_r bgxlc++ bgxlC],[no])
+        AC_CHECK_PROGS([BGQ_FC],[powerpc64-bgq-linux-gfortran bgxlf90_r bgxlf90 bgxlf_r bgxlf],[no])
+    fi
+    CC=$BGQ_CC
+    CXX=$BGQ_CXX
+    FC=$BGQ_FC
+    CPPFLAGS="$CPPFLAGS -I/bgsys/drivers/V1R2M1/ppc64 -I/bgsys/drivers/V1R2M1/ppc64/spi/include/kernel/cnk"
+
+    if test x$BGQ_CC = xno; then
+        AC_MSG_ERROR([No BG/Q C cross-compiler can be found. Please update your PATH.])
+    fi
+    if test x$BGQ_CXX = xno; then
+        AC_MSG_ERROR([No BG/Q C++ cross-compiler can be found. Please update your PATH.])
+    fi
+    if test x$BGQ_FC = xno; then
+        AC_MSG_ERROR([No BG/Q Fortran cross-compiler can be found. Please update your PATH.])
+    fi
 fi
 
 # Check for programs
@@ -219,6 +246,15 @@ if test x$use_gnu = xyes; then
     if test x$use_bgq = xno; then
         CFLAGS="$CFLAGS -Wredundant-decls"
         CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+    fi
+fi
+
+if test x$use_bgq = xyes; then
+    if test x$use_gnu = xyes; then
+        LDFLAGS="$LDFLAGS -dynamic"
+    fi
+    if test x$use_xlcu = xyes; then
+        LDFLAGS="$LDFLAGS -qnostaticlink"
     fi
 fi
 
