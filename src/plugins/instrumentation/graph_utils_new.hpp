@@ -13,8 +13,10 @@ namespace nanos {
         True,
         Anti,
         Output,
-        d_Output,
-        Output_d
+        InConcurrent,
+        OutConcurrent,
+        InCommutative,
+        OutCommutative
     };
     
     enum EdgeKind{
@@ -43,6 +45,10 @@ namespace nanos {
             return _target;
         }
         
+        EdgeKind get_kind( ) {
+            return _kind;
+        }
+        
         bool is_nesting( ) {
             return _kind == Nesting;
         }
@@ -55,8 +61,13 @@ namespace nanos {
             return _kind == Dependency;
         }
         
+        DependencyType get_dependency_type( ) {
+            return _dep_type;
+        }
+        
         bool is_true_dependency( ) {
-            return ( _kind == Dependency ) && ( _dep_type == True );
+            return ( _kind == Dependency ) && 
+                   ( ( _dep_type == True ) || ( _dep_type == InConcurrent ) || ( _dep_type == InCommutative ) );
         }
         
         bool is_anti_dependency( ) {
@@ -65,13 +76,14 @@ namespace nanos {
         
         bool is_output_dependency( ) {
             return ( _kind == Dependency ) && 
-                   ( ( _dep_type == Output ) || ( _dep_type == d_Output ) || ( _dep_type == Output_d ) );
+                   ( ( _dep_type == Output ) || ( _dep_type == OutConcurrent ) || ( _dep_type == OutCommutative ) );
         }
     };
     
     enum NodeType {
         BarrierNode,
         ConcurrentNode,
+        CommutativeNode,
         TaskNode,
         TaskwaitNode
     };
@@ -149,6 +161,17 @@ namespace nanos {
             return res;
         }
         
+        Edge* get_connection( Node* target ) {
+            Edge* result = NULL;
+            for( std::set<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+                if( (*it)->get_target( ) == target ) {
+                    result = *it;
+                    break;
+                }
+            }
+            return result;
+        }
+        
         bool is_previous_synchronized( ) {
             bool res = false;
             for( std::set<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
@@ -171,8 +194,12 @@ namespace nanos {
             return res;
         }
         
+        //! Only connect the nodes if they are not previously connected or 
+        //! the new type of connection is different from the existing one
         static void connect_nodes( Node* source, Node* target, EdgeKind kind, DependencyType dep_type = Null ) {
-            if( !source->is_connected_with( target ) ) {
+            if( !source->is_connected_with( target ) || 
+                ( source->get_connection( target )->get_kind( ) != kind ) ||
+                ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
                 Edge* new_edge = new Edge( kind, dep_type, source, target );
                 source->_exit_edges.insert( new_edge );
                 target->_entry_edges.insert( new_edge );
@@ -193,6 +220,10 @@ namespace nanos {
         
         bool is_concurrent( ) {
             return _type == ConcurrentNode;
+        }
+        
+        bool is_commutative( ) {
+            return _type == CommutativeNode;
         }
         
         bool is_printed( ) {

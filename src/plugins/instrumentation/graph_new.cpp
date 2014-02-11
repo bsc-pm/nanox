@@ -50,6 +50,8 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 node_attrs += "label=\"Barrier\", ";
             } else if( n->is_concurrent( ) ) {
                 node_attrs += "label=\"Concurrent\", ";
+            } else if( n->is_commutative( ) ) {
+                node_attrs += "label=\"Commutative\", ";
             }
         }
         
@@ -265,7 +267,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it ) {
             if( !(*it)->is_previous_synchronized( ) ) {
                 // The task has no parent, look for a taskwait|barrier suitable to be its parent
-                int64_t wd_id = (*it)->get_wd_id( ) - ( (*it)->is_concurrent( ) ? concurrent_min_id : 0 );
+                int64_t wd_id = (*it)->get_wd_id( ) - ( ( (*it)->is_concurrent( ) || (*it)->is_commutative( ) ) ? concurrent_min_id : 0 );
                 Node* it_parent = (*it)->get_parent_task( );
                 Node* last_taskwait_sync = NULL;
                 for( std::set<Node*>::iterator it2 = _graph_nodes.begin( ); it2 != _graph_nodes.end( ); ++it2 ) {
@@ -440,11 +442,17 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     case 1:     dep_type = True;        break;
                     case 2:     dep_type = Anti;        break;
                     case 3:     dep_type = Output;      break;
-                    case 4:     dep_type = d_Output;                    // concurrent -> wd
+                    case 4:     dep_type = OutConcurrent;               // wd -> concurrent
                                 receiver_wd_id += concurrent_min_id;
                                 break;
-                    case 5:     dep_type = Output_d;                    // wd -> concurrent
+                    case 5:     dep_type = InConcurrent;                // concurrent -> wd
                                 sender_wd_id += concurrent_min_id;
+                                break;
+                    case 7:     dep_type = OutCommutative;
+                                receiver_wd_id += concurrent_min_id;    // wd -> commutative
+                                break;
+                    case 8:     dep_type = InCommutative;
+                                sender_wd_id += concurrent_min_id;      // commutative -> wd
                                 break;
                     default:    { printf( "Unexpected type dependency %d. "
                                           "Not printing any edge for it in the Task Dependency graph\n", 
@@ -454,14 +462,22 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 
                 // Create the relation between the sender and the receiver
                 Node* sender = find_node_from_wd_id( sender_wd_id );
-                if( sender == NULL ) {
-                    sender = new Node( sender_wd_id, 0, ConcurrentNode );
-                    _graph_nodes.insert( sender );
-                }
                 Node* receiver = find_node_from_wd_id( receiver_wd_id );
-                if( receiver == NULL ) {
-                    receiver = new Node( receiver_wd_id, 0, ConcurrentNode );
-                    _graph_nodes.insert( receiver );
+                if( sender == NULL || receiver == NULL ) {
+                    // Compute the type for the new node
+                    NodeType nt = ( ( (dep_type == InConcurrent) || (dep_type == OutConcurrent) ) ? ConcurrentNode : CommutativeNode );
+                    
+                    // Create the new sender node, if necessary
+                    if( sender == NULL ) {
+                        sender = new Node( sender_wd_id, 0, nt );
+                        _graph_nodes.insert( sender );
+                    }
+                    
+                    // Create the new receiver node, if necessary
+                    if( receiver == NULL ) {
+                        receiver = new Node( receiver_wd_id, 0, nt );
+                        _graph_nodes.insert( receiver );
+                    }
                 }
                 Node::connect_nodes( sender, receiver, Dependency, dep_type );
             }
