@@ -23,6 +23,7 @@
 #include "mpidd.hpp"
 #include "basethread.hpp"
 #include "smpthread.hpp"
+#include "mpiprocessor_fwd.hpp"
 
 //TODO: Make mpi independent from pthreads? move it to OS?
 
@@ -37,6 +38,10 @@ namespace ext
 
       private:
          pthread_t   _pth;
+         std::vector<MPIProcessor*> _runningPEs;
+         int _totRunningWds;
+         int _currPe;
+         WD* _markedToDelete;
          //size_t      _stackSize;
          //bool        _useUserThreads;         
 //         MPI_Comm _communicator;
@@ -48,7 +53,11 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe ) : SMPThread( w,pe ) {}
+         MPIThread( WD &w, PE *pe ) : _runningPEs(), SMPThread( w,pe ) {
+             _currPe=0;
+             _totRunningWds=0;
+             _markedToDelete=NULL;
+         }
 //         MPIThread( WD &w, PE *pe , MPI_Comm communicator, int rank) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true);
 
          // named parameter idiom
@@ -62,8 +71,20 @@ namespace ext
          
          virtual void runDependent ( void );
          void initializeDependent( void );
+         
+         void idle();
+
+         void addRunningPEs( MPIProcessor** pe, int nPes);
+         
+         void switchToNextPE( );
+         
+         bool switchToPE(int rank, int uuid);
 
          virtual bool inlineWorkDependent( WD &work );
+         
+         void checkTaskEnd();
+         
+         std::vector<MPIProcessor*>& getRunningPEs();
 
    };
 

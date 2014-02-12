@@ -201,6 +201,8 @@ namespace nanos
    inline bool BaseThread::isPaused () const { return _paused; }
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
+   
+   inline void BaseThread::setRunningOn(ProcessingElement* element) { _pe=element; }
  
    inline int BaseThread::getId() const { return _id; }
  

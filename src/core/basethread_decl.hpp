@@ -254,7 +254,9 @@ namespace nanos
          bool isPaused () const;
 
          ProcessingElement * runningOn() const;
-
+         
+         void setRunningOn(ProcessingElement* element);
+         
          void associate();
 
          int getId() const;

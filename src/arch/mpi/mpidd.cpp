@@ -28,6 +28,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 MPIDevice nanos::ext::MPI("MPI");
+Atomic<int> MPIDD::uidGen=1;
 
 MPIDD * MPIDD::copyTo(void *toAddr) {
     MPIDD *dd = new (toAddr) MPIDD(*this);
@@ -52,9 +53,22 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     
     //If no assigned comm nor rank, it can run on any PE, if only has a unkown rank, match with comm
     //if has both rank and comm, only execute on his PE    
-    bool resul =(_assignedComm == 0 && _assignedRank == UNKOWN_RANKSRCDST) 
+    bool resul = (_assignedComm == 0 && _assignedRank == UNKOWN_RANKSRCDST) 
             || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
             || (myPE->getRank() == _assignedRank && res == MPI_IDENT);
+    
+    //If compatible, set the device as busy (if possible)
+    resul = resul && myPE->testAndSetBusy(uid);
+    
+    //If our current PE is not the right one for the task, check if the right one is free
+    if (res == MPI_IDENT && !resul){           
+       //Only MPI threads will enter this function
+       nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread *) myThread;
+       resul=mpiThread->switchToPE(_assignedRank,uid); 
+//       if (!free){
+//           mpiThread->switchToNextPE(); 
+//       }
+    } 
     return resul;
 }
 

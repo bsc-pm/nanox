@@ -62,6 +62,9 @@ namespace nanos {
             int _rank;
             bool _owner;
             bool _shared;
+            Atomic<bool> _busy;
+            WorkDescriptor* _currExecutingWd;
+            int _currExecutingDD;
 
             // disable copy constructor and assignment operator
             MPIProcessor(const MPIProcessor &pe);
@@ -127,8 +130,49 @@ namespace nanos {
                 return _owner;
             }
             
+            void setOwner(bool owner) {
+                _owner=owner;
+            }
+            
             bool getShared() const {
                 return _shared;
+            }     
+
+            WD* getCurrExecutingWd() const {
+                return _currExecutingWd;
+            }
+
+            void setCurrExecutingWd(WD* currExecutingWd) {
+                this->_currExecutingWd = currExecutingWd;
+            }
+
+            bool isBusy() const {
+                return _busy.value();
+            }
+
+            void setBusy(bool busy) {
+                _busy = busy;
+            }
+            
+            //Try to reserve this PE, if the one who reserves it is the same
+            //which already has the PE, return true
+            inline bool testAndSetBusy(int dduid) {
+                if (dduid==_currExecutingDD) return true;
+                Atomic<bool> expected = false;
+                Atomic<bool> value = true;
+                bool ret= _busy.cswap( expected, value );
+                if (ret){                    
+                  _currExecutingDD=dduid;
+                }
+                return ret;
+            }     
+            
+            int getCurrExecutingDD() const {
+                return _currExecutingDD;
+            }
+
+            void setCurrExecutingDD(int currExecutingDD) {
+                this->_currExecutingDD = currExecutingDD;
             }
             
             virtual WD & getWorkerWD() const;
@@ -147,8 +191,7 @@ namespace nanos {
 
             virtual bool supportsUserLevelThreads() const {
                 return false;
-            }
-
+            }       
             /**
              * Nanos MPI override
              **/                        
@@ -243,7 +286,6 @@ namespace nanos {
         } in_mpi_runtime_event_value;
 
     }
-
 
 }
 #endif

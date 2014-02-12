@@ -56,6 +56,10 @@ MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool o
     _rank = rank;
     _owner=owner;
     _shared=shared;
+    _currExecutingWd=NULL;
+    _busy=false;
+    _currExecutingDD=0;
+    configureCache(MPIProcessor::getCacheDefaultSize(), MPIProcessor::getCachePolicy());
 }
 
 void MPIProcessor::prepareConfig(Config &config) {
@@ -132,6 +136,8 @@ std::string MPIProcessor::getMpiExename() {
     return _mpiFilename;
 }
 
+//TODO: only works Rank -1, which means free whole communicator
+//I don't know if freeing only a rank makes sense, maybe we'll remove the API call
 void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_FREE_EVENT);
     cacheOrder order;
@@ -149,14 +155,23 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
             MPI_Comm threadcomm=myPE->getCommunicator();
             if (threadcomm!=0) MPI_Comm_compare(threadcomm,*intercomm,&res);
             if (res==MPI_IDENT){ 
-                //Only owner will send kill signal to the worker
-                if ( myPE->getOwner() ) 
-                {
-                    nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, *intercomm);
-                    nanosMPISsend(&id, 1, MPI_INT, myPE->getRank(), TAG_INI_TASK, *intercomm);
+                nanos::ext::MPIThread* mpiThread = (nanos::ext::MPIThread *)bt;
+                std::vector<MPIProcessor*>& myPEs = mpiThread->getRunningPEs();
+                for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
+                        //Only owner will send kill signal to the worker
+                        if ( (*it)->getOwner() ) 
+                        {
+                            nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
+                            nanosMPISsend(&id, 1, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
+                            //After sending finalization signals, we are not the owners anymore
+                            //This way we prevent finalizing them multiple times if more than one thread uses them
+                            (*it)->setOwner(false);
+                        }
                 }
-                sys.releaseWorker(bt);
-                bt->sleep();
+                if (rank==-1){
+                    sys.releaseWorker(bt);
+                    bt->sleep();
+                }
             }
         }
     }
@@ -433,8 +448,9 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
     int spawn_start=0;
     bool shared=false;
     //If MPI_COMM_WORLD, split total spawns between nodes in order to balance syncs
+    int mpi_size;
     if (res!=MPI_UNEQUAL){
-        int mpi_size,rank;
+        int rank;
         shared=true;
         MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
         MPI_Comm_rank(MPI_COMM_WORLD,&rank);
@@ -442,26 +458,42 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         spawn_start=rank*number_of_spawns_this_process;
         if (rank==mpi_size-1) //Last process syncs the remaining processes
             number_of_spawns_this_process+=number_of_spawns%mpi_size;
+    } else {
+        mpi_size=1; //Using MPI_COMM_SELF
     }
     PE* pes[number_of_spawns];
     int uid=sys.getNumCreatedPEs();
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
     int rank=spawn_start; //Balance spawn order so each process starts with his owned processes
+    int bindingId=sys.getBindingId(getNextPEId()); //All the PEs share the same local bind ID (at the end they'll be executed by the same thread)
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
     for ( int rankCounter=0; rankCounter<number_of_spawns; rankCounter++ ){  
         //Each process will have access to every remote node, but only one master will sync each child
         //this way we balance syncs with childs
         if (rank>=spawn_start && rank<spawn_start+number_of_spawns_this_process) {
-            pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()) ,intercomm, rank,uid++, true, shared);
+            pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, true, shared);
             nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
         } else {            
-            pes[rank]=NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()) ,intercomm, rank,uid++, false, shared);
+            pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, false, shared);
         }
         rank=(rank+1)%number_of_spawns;
     }
-    sys.addPEsToTeam(pes,number_of_spawns);   
+    //Each node will have nSpawns/nNodes running, with a Maximum of 4
+    //We supose that if 8 hosts spawns 16 nodes, each one will usually run 2
+    //HINT: This does not mean that some remote nodes wont be accesible
+    //using more than 1 thread is a performance tweak
+    int number_of_threads=(number_of_spawns/mpi_size);
+    if (number_of_threads<1) number_of_threads=1;
+    if (number_of_threads>2) number_of_threads=2;
+    BaseThread* threads[number_of_threads];
+    sys.addOffloadPEsToTeam(pes, number_of_spawns, number_of_threads, threads); 
+    //Add all the PEs to the thread
+    for ( i=0; i<number_of_threads; i++ ){ 
+        MPIThread* mpiThread=(MPIThread*) threads[i];
+        mpiThread->addRunningPEs((MPIProcessor**)pes,number_of_spawns);
+    }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 

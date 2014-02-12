@@ -13,7 +13,7 @@ ARG1=$1
 ARG2=$2
 shift
 shift
-#OMP_NUM_THREADS ignored, MIC_OMP_NUM_THREADS
+#OMP_NUM_THREADS ignored, MIC_OMP_NUM_THREADS used
 unset OMP_NUM_THREADS 
 if [ "x$MIC_OMP_NUM_THREADS" != "x" ]; then 
 	export OMP_NUM_THREADS=$MIC_OMP_NUM_THREADS
@@ -22,8 +22,11 @@ unset MIC_OMP_NUM_THREADS
 export ${@} 
 if [ "x$TASKSET" != "x" ]; then 
 	taskset -cp $TASKSET $$ > /dev/null 2>&1
+elif [ "x$NX_BINDING_START" == "x" ]; then
+   #thread 0 on MIC is last core so we start on first core by default
+   export NX_BINDING_START=1
 fi
-#In case user specified the mic_omp num threads only for this booster...
+#After we exported user-defined environment vars, use MIC_OMP_NUM_THREADS again
 if [ "x$MIC_OMP_NUM_THREADS" != "x" ]; then 
 	export OMP_NUM_THREADS=$MIC_OMP_NUM_THREADS
 fi

@@ -42,6 +42,8 @@ namespace ext
          work_fct       _work;
          MPI_Comm _assignedComm;
          int _assignedRank;
+         size_t uid;
+         static Atomic<int> uidGen;
 
       public:
        
@@ -50,6 +52,7 @@ namespace ext
 
          MPIDD( work_fct w , MPI_Comm assignedComm, int assignedRank) : DD( &MPI ),_work( w ), _assignedComm(assignedComm) , _assignedRank(assignedRank) {
              if (_assignedRank==CACHETHREADRANK) fatal0("Error, rank value (-1) reserved for nanox");
+             uid=uidGen++;
          }
 
          MPIDD() : DD( &MPI ),_work( 0 ), _assignedRank( CACHETHREADRANK ) {}

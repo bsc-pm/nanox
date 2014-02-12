@@ -654,7 +654,7 @@ namespace nanos
          * \param num_pes number of process spawned
          * \param pes pointer to a list of Processing Elements
          */
-         void addPEsToTeam(PE **pes, int num_pes);
+         void addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** out_threads);
          
 
          /*! \brief Active current thread (i.e. pthread ) and include it into the main team

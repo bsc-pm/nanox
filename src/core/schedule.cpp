@@ -615,9 +615,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
-   wd->finish();
-
    if ( done ) {
+      wd->finish();
       finishWork( wd, schedule );
       /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
