@@ -18,7 +18,7 @@
 /*************************************************************************************/
 #include "new_decl.hpp"
 
-#ifdef NANOS_DEBUG_ENABLED // ----- debug -----
+#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED) // ----- debug AND memtracker -----
 
 #include "memtracker.hpp"
 void* operator new ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
@@ -29,9 +29,10 @@ void* operator new[] ( size_t size ) throw (std::bad_alloc) { return nanos::getM
 void operator delete ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
 void operator delete[] ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
 
-#else // ----- performance -----
+#else // ----- default -----
 
 #ifndef NANOS_DISABLE_ALLOCATOR
+
 #include "allocator.hpp"
 
 void* operator new ( size_t size ) throw (std::bad_alloc) { return nanos::getAllocator().allocate( size ); }
@@ -41,7 +42,9 @@ void* operator new ( size_t size, std::nothrow_t const& ) throw () { return nano
 void* operator new[] ( size_t size, std::nothrow_t const& ) throw () { return nanos::getAllocator().allocate( size ); }
 void operator delete ( void *p ) throw() { nanos::getAllocator().deallocate( p ); }
 void operator delete[] ( void *p ) throw() { nanos::getAllocator().deallocate( p ); }
+
 #endif
 
 #endif
+
 

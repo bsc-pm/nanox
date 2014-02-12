@@ -26,7 +26,7 @@
 #include "debug.hpp"
 #include "atomic.hpp"
 
-#ifdef NANOS_DEBUG_ENABLED
+#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
 
 using namespace nanos;
 
@@ -35,4 +35,3 @@ MemTracker *nanos::mem = NULL;
 NanosMemTrackerHelper nanos_memtracker_dummy;
 
 #endif
-

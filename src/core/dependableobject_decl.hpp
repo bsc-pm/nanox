@@ -119,6 +119,11 @@ namespace nanos
          /*! \brief Get the related object which actually has the dependence
           */
          virtual void * getRelatedObject ( );
+         
+         /*! \brief Get the related object which actually has the dependence
+          * (const version)
+          */
+         virtual const void * getRelatedObject ( ) const;
 
          /*! \brief Instrument predecessor -> successor dependency
           */
@@ -133,7 +138,7 @@ namespace nanos
         /*! \brief Id getter function.
          *         Returns the id  for the DependableObject (unique in its domain).
          */
-         unsigned int getId ();
+         unsigned int getId () const;
 
         /*! \brief Increase the number of predecessors of the DependableObject.
          */

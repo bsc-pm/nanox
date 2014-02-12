@@ -108,7 +108,7 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
     _devicesPtr=&_devices;
     //Auto-enable CUDA if it was not done before
    if (!_enableOpenCL) {
-       //ompss_uses_cuda pointer will be null (is extern) if the compiler didnt fill it
+       //ompss_uses_opencl pointer will be null (is extern) if the compiler did not fill it
       _enableOpenCL=((&ompss_uses_opencl)!=0);
    }
    if( _forceDisableOpenCL || !_enableOpenCL ) 

@@ -40,7 +40,7 @@ void OpenCLCache::initialize() {
     if (_devCacheSize==0) _devCacheSize=90;
     //If less than 100 "bytes", specified, assume its a x% of the memory
     if (_devCacheSize <= 100)
-        _devCacheSize = _openclAdapter.getGlobalSize()*_devCacheSize/100;
+        _devCacheSize = (size_t)((double)_openclAdapter.getGlobalSize()*_devCacheSize/100);
 
     
     //If device is not a CPU (aka shared memory, allocate the whole memory)
@@ -52,7 +52,7 @@ void OpenCLCache::initialize() {
     }
 
     // Initialize the device allocator.
-    _devAllocator.init(0 , _devCacheSize);
+    _devAllocator.init(4 , _devCacheSize);
 }
 
 void *OpenCLCache::allocate(size_t size, uint64_t tag) {
@@ -71,6 +71,7 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
     //    fatal("Device allocation failed");
 
     void *addr = _devAllocator.allocate(size);
+    if (addr==NULL) return CACHE_ALLOC_ERROR;
     //Create the buffer
     cl_mem buf=_openclAdapter.getBuffer(_mainBuffer,(size_t)addr,size);
     if (buf==NULL){

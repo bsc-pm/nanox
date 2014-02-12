@@ -28,7 +28,8 @@ using namespace nanos;
 
 inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data,
                                 Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
-                              : _finalSize(0),  _starSize(0), _idleThreads( 0 ), _numTasks( 0 ), _barrier(barrierImpl),
+                              : _threads(), _idList(), _finalSize(0),  _starSize(0), _idleThreads( 0 ),
+                                _numTasks( 0 ), _barrier(barrierImpl),
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
@@ -62,12 +63,18 @@ inline void ThreadTeam::resized ()
 
 inline const BaseThread & ThreadTeam::getThread ( int i ) const
 {
-   return *_threads.find(i)->second;
+   // Return the i-th valid element in _threads
+   ThreadTeamList::const_iterator it = _threads.begin();
+   std::advance( it, i );
+   return *(it->second);
 }
 
 inline BaseThread & ThreadTeam::getThread ( int i )
 {
-   return *_threads.find(i)->second;
+   // Return the i-th valid element in _threads
+   ThreadTeamList::iterator it = _threads.begin();
+   std::advance( it, i );
+   return *(it->second);
 }
 
 inline const BaseThread & ThreadTeam::operator[]  ( int i ) const

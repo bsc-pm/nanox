@@ -32,7 +32,7 @@ public:
    OpenCLDevice ( const char *name );
 
 public:
-   static void *allocate( size_t size, ProcessingElement *pe, uint64_t tag = NULL  );
+   static void *allocate( size_t size, ProcessingElement *pe, uint64_t tag = 0 );
 
    static void *realloc( void * address,
                          size_t size,

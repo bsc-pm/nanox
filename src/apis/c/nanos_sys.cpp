@@ -100,3 +100,10 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
    return NANOS_OK;
 }
 
+//This main will do nothing normally
+//It will act as an slave and call exit(0) when we need slave behaviour
+//in offload or cluster version
+NANOS_API_DEF(void, ompss_nanox_main, ( ))
+{    
+    sys.ompss_nanox_main();    
+}

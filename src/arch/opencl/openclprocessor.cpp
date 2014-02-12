@@ -477,12 +477,12 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
                    if (sizeret_kernels>=n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char))
                        warning0("Maximum kernel name length is 100 characters, you shouldn't use longer names");            
 
-                   //Tokenize with ',' as separator            
+                   //Tokenize with ';' as separator     
                    str=kernel_ids;
                    do
                    {
-                      const char *begin = kernel_ids;
-                      while(*str != ',' && *str) str++;
+                      const char *begin = str;
+                      while( *str != ';' && *str) str++;
                       curr_kernel_hash=gnuHash(begin, str);
                       progCache[curr_kernel_hash]=prog;
                       if (curr_kernel_hash==hash) found=true;

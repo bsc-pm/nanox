@@ -51,7 +51,9 @@ void BaseThread::addNextWD ( WD *next )
 WD * BaseThread::getNextWD ()
 {
    if ( !sys.getSchedulerConf().getSchedulerEnabled() ) return NULL;
-   return _nextWDs.pop_front( this );
+   WD * next = _nextWDs.pop_front( this );
+   if ( next ) next->setReady();
+   return next;
 }
 
 void BaseThread::associate ()

@@ -59,13 +59,13 @@ void ThreadTeam::cleanUpReductionList( void )
       red->cleanup( red->descriptor ); 
       if ( red->descriptor != red->privates ) 
       { 
-#ifdef NANOS_DEBUG_ENABLED 
+#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
          nanos::getMemTracker().deallocate( red->descriptor ); 
 #else 
          nanos::getAllocator().deallocate ( red->descriptor ); 
 #endif 
       } 
-#ifdef NANOS_DEBUG_ENABLED
+#if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
       nanos::getMemTracker().deallocate( (void *) red );
 #else
       nanos::getAllocator().deallocate ( (void *) red );

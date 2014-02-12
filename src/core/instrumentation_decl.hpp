@@ -559,6 +559,9 @@ namespace nanos {
 
             /* 43 */ registerEventKey("dep-address", "Dependence address", true);
 
+            /* 44 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 45 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 

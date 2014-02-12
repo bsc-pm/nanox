@@ -12,7 +12,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall dist-bzip2])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability])
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Enable silent rules if available
@@ -55,28 +55,51 @@ AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
 AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
 
+# Debian release
+AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
+AC_SUBST([DEB_RELEASE])
+
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
 : ${FCFLAGS=""}
 
 # Allocator support
-AC_MSG_CHECKING([if Nanos++ Allocator has been disabled])
+AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--disable-allocator], [Disables Allocator module]),
+  AS_HELP_STRING([--enable-allocator], [Enables Allocator module]),
   [
-    allocator_disabled=yes
-    AC_MSG_RESULT([yes])
+    allocator_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
-    allocator_disabled=no
+    allocator_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$allocator_disabled = xyes; then
+if test x$allocator_enabled = xno; then
 	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
 	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+fi
+
+# Memtracker support
+AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
+AC_ARG_ENABLE([memtracker],
+  AS_HELP_STRING([--disable-memtracker], [Disables Memtracker module]),
+  [
+    memtracker_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    memtracker_disabled=no
+    AC_MSG_RESULT([no])
+  ]
+)
+
+if test x$memtracker_disabled = xno; then
+	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
+	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
 fi
 
 AC_MSG_CHECKING([for Linux Intel C compiler mode])
@@ -131,8 +154,16 @@ AC_ARG_ENABLE([bgq],
     AC_MSG_RESULT([yes])
   ],
   [
-    use_bgq=no
-    AC_MSG_RESULT([no])
+    case $host in
+      powerpc64-bgq-linux*)
+         use_bgq=yes
+         AC_MSG_RESULT([yes])
+         ;;
+      *)
+         use_bgq=no
+         AC_MSG_RESULT([no])
+         ;;
+    esac
   ]
 )
 
@@ -160,10 +191,29 @@ fi
 
 # Override all the options if we're compiling for BG/Q
 if test x$use_bgq = xyes; then
-    : ${CC="mpicc"}
-    : ${CXX="mpicxx"}
-    CFLAGS="$CFLAGS -dynamic"
-    CXXFLAGS="$CXXFLAGS -dynamic"
+    if test x$use_xlc = xyes; then
+        AC_CHECK_PROGS([BGQ_CC],[bgxlc_r bgxlc],[no])
+        AC_CHECK_PROGS([BGQ_CXX],[bgxlc++_r bgxlC_r bgxlc++ bgxlC],[no])
+        AC_CHECK_PROGS([BGQ_FC],[bgxlf90_r bgxlf90 bgxlf_r bgxlf],[no])
+    else
+        AC_CHECK_PROGS([BGQ_CC],[powerpc64-bgq-linux-gcc bgxlc_r bgxlc],[no])
+        AC_CHECK_PROGS([BGQ_CXX],[powerpc64-bgq-linux-g++ bgxlc++_r bgxlC_r bgxlc++ bgxlC],[no])
+        AC_CHECK_PROGS([BGQ_FC],[powerpc64-bgq-linux-gfortran bgxlf90_r bgxlf90 bgxlf_r bgxlf],[no])
+    fi
+    CC=$BGQ_CC
+    CXX=$BGQ_CXX
+    FC=$BGQ_FC
+    CPPFLAGS="$CPPFLAGS -I/bgsys/drivers/V1R2M1/ppc64 -I/bgsys/drivers/V1R2M1/ppc64/spi/include/kernel/cnk"
+
+    if test x$BGQ_CC = xno; then
+        AC_MSG_ERROR([No BG/Q C cross-compiler can be found. Please update your PATH.])
+    fi
+    if test x$BGQ_CXX = xno; then
+        AC_MSG_ERROR([No BG/Q C++ cross-compiler can be found. Please update your PATH.])
+    fi
+    if test x$BGQ_FC = xno; then
+        AC_MSG_ERROR([No BG/Q Fortran cross-compiler can be found. Please update your PATH.])
+    fi
 fi
 
 # Check for programs
@@ -196,6 +246,15 @@ if test x$use_gnu = xyes; then
     if test x$use_bgq = xno; then
         CFLAGS="$CFLAGS -Wredundant-decls"
         CXXFLAGS="$CXXFLAGS -Wredundant-decls"
+    fi
+fi
+
+if test x$use_bgq = xyes; then
+    if test x$use_gnu = xyes; then
+        LDFLAGS="$LDFLAGS -dynamic"
+    fi
+    if test x$use_xlcu = xyes; then
+        LDFLAGS="$LDFLAGS -qnostaticlink"
     fi
 fi
 
