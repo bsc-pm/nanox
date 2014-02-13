@@ -20,7 +20,8 @@
 namespace nanos {
 
 const int64_t concurrent_min_id = 1000000;
-    
+static unsigned int cluster_id = 1;
+
 class InstrumentationNewGraphInstrumentation: public Instrumentation
 {
     private:
@@ -69,7 +70,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             node_attrs += "\", width=\"1\", height=\"1\"";
         }
         else {
-            double size = std::max( 0.01, std::abs( (double)( n->get_total_time( ) / _time_avg ) ) );
+            double size = std::max( 0.01, (double)( n->get_total_time( ) / _time_avg ) );
             std::stringstream ss; ss << size;
             node_attrs += "\", width=\"" + ss.str( ) + "\", height=\"" + ss.str( ) + "\"";
         }
@@ -84,9 +85,9 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         
         // Compute the style of the edge
         edge_attrs += ( ( !e->is_dependency( ) || 
-                        e->is_true_dependency( ) ) ? "solid" 
-                                                   : ( e->is_anti_dependency( ) ? "dashed" 
-                                                                                : "dotted" ) );
+                          e->is_true_dependency( ) ) ? "solid" 
+                                                     : ( e->is_anti_dependency( ) ? "dashed" 
+                                                                                  : "dotted" ) );
         
         // Compute the color of the edge
         edge_attrs += "\", color=\"";
@@ -105,8 +106,8 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         // Find all nodes which parent is 'n' and the edges connecting them is a 'Nesting' edge
         for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it ) 
         {
-            std::set<Edge*> entries = (*it)->get_entries( );
-            for( std::set<Edge*>::iterator it2 = entries.begin( ); it2 != entries.end( ); ++it2 )
+            std::vector<Edge*> entries = (*it)->get_entries( );
+            for( std::vector<Edge*>::iterator it2 = entries.begin( ); it2 != entries.end( ); ++it2 )
             {
                 if( ( (*it2)->get_source( ) == n ) && (*it2)->is_nesting( ) ) 
                 {   // This is a nested relation!
@@ -121,43 +122,45 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     }
     
     inline std::string print_edges_legend( ) {
+        std::stringstream ss; ss << cluster_id++;
         std::string edges_legend = "";
-        edges_legend += "  subgraph cluster1 {\n";
+        edges_legend += "  subgraph cluster_" + ss.str( ) + " {\n";
         edges_legend += "    label=\"Edge types:\"; style=\"rounded\"; rankdir=\"TB\";\n";
-        edges_legend += "    subgraph A{\n";
-        edges_legend += "      rank=same;\n";
+        edges_legend += "    subgraph {\n";
+        edges_legend += "      rank=same\n";
         edges_legend += "      \"solid gray line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
         edges_legend += "      \"Nested task\"[color=\"white\", margin=\"0.0,0.0\"];\n";
         edges_legend += "      \"solid gray line\"->\"Nested task\"[minlen=2.0, color=gray47];\n";
         edges_legend += "    }\n";
-        edges_legend += "    subgraph B{\n";
+        edges_legend += "    subgraph {\n";
         edges_legend += "      rank=same;\n";
         edges_legend += "      \"solid black line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
         edges_legend += "      \"True dependence \\n Taskwait | Barrier\"[color=\"white\", margin=\"0.0,0.0\"];\n";
         edges_legend += "      \"solid black line\"->\"True dependence \\n Taskwait | Barrier\"[minlen=2.0];\n";
         edges_legend += "    }\n";
-        edges_legend += "    subgraph C{\n";
+        edges_legend += "    subgraph {\n";
         edges_legend += "      rank=same;\n";
         edges_legend += "      \"dashed line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
         edges_legend += "      \"Anti-dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
         edges_legend += "      \"dashed line\"->\"Anti-dependence\"[style=\"dashed\", minlen=2.0];\n";
         edges_legend += "    }\n";
-        edges_legend += "    subgraph D{\n";
+        edges_legend += "    subgraph {\n";
         edges_legend += "      rank=same;\n";
         edges_legend += "      \"dotted line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
         edges_legend += "      \"Output dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
         edges_legend += "      \"dotted line\"->\"Output dependence\"[style=\"dotted\", minlen=2.0];\n";
         edges_legend += "    }\n";
-        edges_legend += "    \"solid gray line\"->\"solid black line\"[ltail=A, lhead=B, style=\"invis\"];\n";
-        edges_legend += "    \"solid black line\"->\"dashed line\"[ltail=B, lhead=C, style=\"invis\"];\n";
-        edges_legend += "    \"dashed line\"->\"dotted line\"[ltail=C, lhead=D, style=\"invis\"];\n";
+        edges_legend += "    \"solid gray line\"->\"solid black line\"[style=\"invis\"];\n";
+        edges_legend += "    \"solid black line\"->\"dashed line\"[style=\"invis\"];\n";
+        edges_legend += "    \"dashed line\"->\"dotted line\"[style=\"invis\"];\n";
         edges_legend += "  }\n";
         return edges_legend;
     }
     
     inline std::string print_nodes_legend( ) {
+        std::stringstream ssc; ssc << cluster_id++;
         std::string nodes_legend = "";
-        nodes_legend += "  subgraph cluster0 {\n";
+        nodes_legend += "  subgraph cluster_" + ssc.str( ) + " {\n";
         nodes_legend += "    label=\"User functions:\"; style=\"rounded\"; rankdir=\"TB\";\n";
         
         int id = 1;
@@ -179,20 +182,20 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 {
                     if( it2->second == it->second )
                     {
-                        std::stringstream ss; ss << id;
-                        nodes_legend += "      0" + ss.str( ) + "[label=\"\",  width=0.3, height=0.3, shape=box, "
+                        std::stringstream ssid; ssid << id;
+                        nodes_legend += "      0" + ssid.str( ) + "[label=\"\",  width=0.3, height=0.3, shape=box, "
                                       + "fillcolor=" + wd_to_color_hash( it2->first ) + ", style=filled];\n";
                         if( last_id != 0 ) {
                             std::stringstream ss2; ss2 << last_id;
-                            nodes_legend += "      0" + ss2.str( ) + " -> 0" + ss.str( ) + "[style=\"invis\"];\n";
+                            nodes_legend += "      0" + ss2.str( ) + " -> 0" + ssid.str( ) + "[style=\"invis\"];\n";
                         }
                         last_id = id;
                         ++id;
                     }
                 }
                 // Print the edge between the last function id node and the name of the function
-                std::stringstream ss; ss << last_id;
-                nodes_legend += "      0" + ss.str( ) + "->" + it->second + "[style=\"invis\"];\n";
+                std::stringstream sslid; sslid << last_id;
+                nodes_legend += "      0" + sslid.str( ) + "->" + it->second + "[style=\"invis\"];\n";
                 nodes_legend += "    }\n";
             }
         }
@@ -221,6 +224,240 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             }
         }
         return result;
+    }
+    
+    inline std::string print_node_and_its_nested( Node* n, std::string indentation ) {
+        std::string result = "";
+        // Print the current node
+        std::string node_info = print_node( n, indentation );
+        n->set_printed( );
+        // Print all nested nodes
+        std::string nested_nodes_info = print_nested_nodes( n, /*indentation*/"    " );
+        
+        if( nested_nodes_info.empty( ) ) {
+            result = node_info;
+        } else {
+            // We want all nodes nested in a task to be printed horizontally
+            result += "  subgraph {\n";
+            result += "    rank=\"same\"; style=\"rounded\";\n";
+            result += node_info;
+            result += nested_nodes_info;
+            result += "  }\n";
+        }
+        return result;
+    }
+    
+    inline std::string print_clustered_subgraph( int64_t current_wd, bool cluster_is_source, bool cluster_is_concurrent,
+                                                 const std::vector<Edge*>& cluster_edges,
+                                                 std::map<int, int>& node_to_cluster, Node* cluster_exit ) {
+        std::string result = "";
+        // Get the identifier of the cluster if it has been previously created or create a new identifier otherwise
+        int cluster_inner_node_id = ( cluster_is_source ? cluster_edges[0]->get_source( )->get_wd_id( ) : 
+                                                          cluster_edges[0]->get_target( )->get_wd_id( ) );
+        int current_cluster_id;
+        std::map<int, int>::const_iterator cluster_inner_node_it = node_to_cluster.find( cluster_inner_node_id );
+        if( cluster_inner_node_it == node_to_cluster.end( ) )
+            current_cluster_id = cluster_id++;
+        else
+            current_cluster_id = cluster_inner_node_it->second;
+        std::stringstream ss; ss << current_cluster_id;
+        
+        // Print all nodes that are concurrent|commutative with the current node inside the same subgraph
+        result += "  subgraph cluster_" + ss.str( ) + "{\n";
+        result += "    rank=\"same\"; style=\"rounded\"; ";
+        if( cluster_is_concurrent )
+            result += "label=\"Concurrent\"; \n";
+        else
+            result += "label=\"Commutative\"; \n";
+        
+        if( cluster_is_source ) {
+            for( std::vector<Edge*>::const_iterator e = cluster_edges.begin( ); e != cluster_edges.end( ); ++e ) {
+                result += print_node_and_its_nested( (*e)->get_source( ), /*indentation*/"    " );
+                if( node_to_cluster.find( (*e)->get_source( )->get_wd_id( ) ) == node_to_cluster.end( ) )
+                    node_to_cluster[(*e)->get_source( )->get_wd_id( )] = current_cluster_id;
+            }
+        } else {
+            for( std::vector<Edge*>::const_iterator e = cluster_edges.begin( ); e != cluster_edges.end( ); ++e ) {
+                result += print_node_and_its_nested( (*e)->get_target( ), /*indentation*/"    " );
+                if( node_to_cluster.find( (*e)->get_target( )->get_wd_id( ) ) == node_to_cluster.end( ) )
+                    node_to_cluster[(*e)->get_target( )->get_wd_id( )] = current_cluster_id;
+            }
+        }
+        result += "  }\n";
+        
+        if( cluster_exit != NULL ) {
+            std::vector<Edge*> new_exits = cluster_exit->get_exits( );
+            for( std::vector<Edge*>::iterator e = new_exits.begin( ); e != new_exits.end( ); ++e ) {
+                std::stringstream sss; sss << current_wd;
+                std::stringstream sst; sst << (*e)->get_target( )->get_wd_id( );
+                result += "  " + sss.str( ) + " -> " + sst.str( ) + "[ltail=\"cluster_" + ss.str( ) + "\", style=\"solid\", color=\"black\"];\n";
+            }
+        }
+        
+        return result;
+    }
+    
+    inline void print_full_graph( std::string partial_file_name ) {
+        // Generate the name of the dot file from the name of the binary
+        std::string file_name = partial_file_name + "_full.dot";
+        
+        // Open the file and start the graph
+        std::ofstream dot_file;
+        dot_file.open( file_name.c_str( ) );
+        if( !dot_file.is_open( ) )
+            exit( EXIT_FAILURE );
+        
+        // Compute the time average to print the nodes size accordingly
+        for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it ) {
+            _time_avg += (*it)->get_total_time( );
+        }
+        _time_avg /= _graph_nodes.size( );
+        
+        // Print the graph
+        std::map<int, int> node_to_cluster;
+        dot_file << "digraph {\n";
+            // Print attributes of the graph
+            dot_file << "  graph[compound=true];\n";
+            // Print the graph nodes
+            for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it )
+            {
+                if( (*it)->is_printed( ) )
+                    continue;
+                
+                if( (*it)->is_concurrent( ) || (*it)->is_commutative( ) ) {
+                    (*it)->set_printed( );
+                    continue;
+                }
+                
+                std::vector<Edge*> entries = (*it)->get_entries( );
+                std::vector<Edge*> exits = (*it)->get_exits( );
+                if( ( entries.size( ) == 1 ) && ( entries[0]->is_concurrent_dep( ) || entries[0]->is_commutative_dep( ) ) && 
+                    ( exits.size( ) == 1 ) && ( exits[0]->is_concurrent_dep( ) || exits[0]->is_commutative_dep( ) ) ) 
+                {
+                    /* This happens when we treat either T1 or T2, whichever is the first in _graph_nodes:
+                     *       C
+                     *     /   \
+                     *   T1     T2      -> All concurrent nodes from the same task are printed inside
+                     *     \   /        -> And the edges must be collapsed in one only entry edge and one only exit edge
+                     *       C
+                     */
+                    std::vector<Edge*> edges_to_clustered_tasks = entries[0]->get_source( )->get_exits( );
+                    dot_file << print_clustered_subgraph( (*it)->get_wd_id( ), /*cluster_is_source*/ false, 
+                                                          /*cluster_is_concurrent*/ entries[0]->is_concurrent_dep( ),
+                                                          edges_to_clustered_tasks, node_to_cluster,
+                                                          ( exits.empty( ) ? NULL : exits[0]->get_target( ) ) );
+                } else if( ( exits.size( ) == 1 ) && ( exits[0]->is_concurrent_dep( ) || exits[0]->is_commutative_dep( ) ) ) {
+                    /* This happens when:
+                     *    ...               -> Tasks may have some entry, but it is not a concurrent|commutative node
+                     * T1     T2            -> T1 and T2 do not have any previous dependency
+                     *   \   /                 so the first case of the IfElseStatement never occurs
+                     *     C
+                     */
+                    Node* subgraph_exit = exits[0]->get_target( );
+                    std::vector<Edge*> edges_from_clustered_tasks = subgraph_exit->get_entries( );
+                    dot_file << print_clustered_subgraph( (*it)->get_wd_id( ), /*cluster_is_source*/ true, 
+                                                          /*cluster_is_concurrent*/ exits[0]->is_concurrent_dep( ),
+                                                          edges_from_clustered_tasks, node_to_cluster, subgraph_exit );
+                } else {
+                    // Print the node and its nested nodes
+                    dot_file << print_node_and_its_nested( *it, /*indentation*/"  " );
+                    
+                    // Print the exit edges ( outside the rank, so they are displayed top-bottom )
+                    std::set<Node*> nodes_in_same_cluster_to_avoid;
+                    for( std::vector<Edge*>::iterator edge = exits.begin( ); edge != exits.end( ); ++edge ) {
+                        if( !(*edge)->is_nesting( ) ) 
+                        {   // nesting edges have been printed previously in 'print_nested_nodes'
+                            if( !(*edge)->get_target( )->is_concurrent( ) && !(*edge)->get_target( )->is_commutative( ) && 
+                                ( (*edge)->get_target( )->get_exits( ).empty( ) || 
+                                  ( !(*edge)->get_target( )->get_exits( )[0]->get_target( )->is_concurrent( ) && 
+                                    !(*edge)->get_target( )->get_exits( )[0]->get_target( )->is_commutative( ) ) ) ) 
+                            {
+                                dot_file << print_edge( *edge, /*indentation*/"  " );
+                            } 
+                            else 
+                            {
+                                if( nodes_in_same_cluster_to_avoid.find( (*edge)->get_target( ) ) != nodes_in_same_cluster_to_avoid.end( ) )
+                                    continue;
+                                
+                                if( (*edge)->get_target( )->is_concurrent( ) || (*edge)->get_target( )->is_commutative( ) ) {
+                                    /*     n
+                                     *     |
+                                     *     C
+                                     *   /   \
+                                     * ...   ...
+                                     */
+                                    std::stringstream ssc;
+                                    if( node_to_cluster.find( (*edge)->get_target( )->get_exits( )[0]->get_target( )->get_wd_id( ) ) != node_to_cluster.end( ) ) {
+                                        // Get the identifier of the cluster that has already been printed
+                                        ssc << node_to_cluster[(*edge)->get_target( )->get_exits( )[0]->get_target( )->get_wd_id( )];
+                                    } else {
+                                        // Otherwise, we assign a cluster id for the new cluster that will be created, so we can link it now
+                                        std::vector<Edge*> conc_or_comm_exits = (*edge)->get_target( )->get_exits( );
+                                        int current_cluster_id = cluster_id++;
+                                        for( std::vector<Edge*>::iterator e = conc_or_comm_exits.begin( ); e != conc_or_comm_exits.end( ); ++e ) {
+                                            node_to_cluster[(*e)->get_target( )->get_wd_id( )] = current_cluster_id;
+                                        }
+                                        ssc << current_cluster_id;
+                                    }
+                                    // Print the node in the dot file_name                                        
+                                    std::stringstream sss; sss << (*it)->get_wd_id( );
+                                    std::stringstream sst; sst << (*edge)->get_target( )->get_exits( )[0]->get_target( )->get_wd_id( );
+                                    dot_file << "  " << sss.str( ) + " -> " + sst.str( ) + "[lhead=\"cluster_" + ssc.str( ) + "\", style=\"solid\", color=\"black\"];\n";
+                                    // The rest of nodes in the same cluster must not be connected
+                                    std::vector<Edge*> conc_or_comm_exits = (*edge)->get_target( )->get_exits( );
+                                    for( std::vector<Edge*>::iterator e = conc_or_comm_exits.begin( ); e != conc_or_comm_exits.end( ); ++e ) {
+                                        nodes_in_same_cluster_to_avoid.insert( (*e)->get_target( ) );
+                                    }
+                                } else {
+                                    /*     n
+                                     *   /   \    \
+                                     *  T1   T2   Tn     -> Note that not all children tasks must be concurrent!
+                                     *   \   /
+                                     *     C
+                                     */ 
+                                    std::stringstream ssc;
+                                    if( node_to_cluster.find( (*edge)->get_target( )->get_wd_id( ) ) != node_to_cluster.end( ) ) {
+                                        // Get the identifier of the cluster that has already been printed
+                                        ssc << node_to_cluster[(*edge)->get_target( )->get_wd_id( )];
+                                    } else {
+                                        // Otherwise, we assign a cluster id for the new cluster that will be created, so we can link it now
+                                        int current_cluster_id = cluster_id++;
+                                        for( std::vector<Edge*>::iterator e = exits.begin( ); e != exits.end( ); ++e ) {
+                                            if( ( (*e)->get_target( )->get_exits( ).size( ) == 1 ) && 
+                                                ( (*e)->get_target( )->get_exits( )[0]->get_target( )->is_concurrent( ) || 
+                                                  (*e)->get_target( )->get_exits( )[0]->get_target( )->is_commutative( ) ) ) 
+                                            {
+                                                node_to_cluster[(*e)->get_target( )->get_wd_id( )] = current_cluster_id;
+                                            }
+                                        }
+                                        ssc << current_cluster_id;
+                                    }
+                                    // Print the node in the dot file
+                                    std::stringstream sss; sss << (*it)->get_wd_id( );
+                                    std::stringstream sst; sst << (*edge)->get_target( )->get_wd_id( );
+                                    dot_file << "  " << sss.str( ) + " -> " + sst.str( ) + "[lhead=\"cluster_" + ssc.str( ) + "\", style=\"solid\", color=\"black\"];\n";
+                                    // The rest of nodes in the same cluster must not be connected
+                                    for( std::vector<Edge*>::iterator e = exits.begin( ); e != exits.end( ); ++e ) {
+                                        if( ( (*e)->get_target( )->get_exits( ).size( ) == 1 ) && 
+                                            ( (*e)->get_target( )->get_exits( )[0]->get_target( )->is_commutative( ) || 
+                                              (*e)->get_target( )->get_exits( )[0]->get_target( )->is_concurrent( ) ) ) 
+                                        {
+                                            nodes_in_same_cluster_to_avoid.insert( (*e)->get_target( ) );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Print the legends
+            dot_file << print_nodes_legend( );
+            dot_file << print_edges_legend( );
+        dot_file << "}";
+        
+        std::cerr << "Task Dependency Graph printed to file '" << file_name << "'" << std::endl;
     }
     
 #ifndef NANOS_INSTRUMENTATION_ENABLED
@@ -287,64 +524,36 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             }
         }
         
-        // Generate the name of the dot file from the name of the binary
+        // Get partial name of the file that will contain the dot graph
+        std::string unique_key_name;
+        time_t t = time(NULL);
+        struct tm* tmp = localtime(&t);
+        if (tmp == NULL) {
+            std::stringstream ss; ss << getpid( );
+            unique_key_name = ss.str( );
+        } else {
+            char outstr[200];
+            if (strftime(outstr, sizeof(outstr), "%s", tmp) == 0) {
+                std::stringstream ss; ss << getpid( );
+                unique_key_name = ss.str( );
+            } else {
+                outstr[199] = '\0';
+                unique_key_name = std::string( outstr );
+            }
+        }
+        
         std::string file_name = OS::getArg( 0 );
         size_t slash_pos = file_name.find_last_of( "/" );
         if( slash_pos != std::string::npos )
             file_name = file_name.substr( slash_pos+1, file_name.size( )-slash_pos );
-        std::stringstream ss; ss << getpid( );
-        file_name = file_name + "_" + ss.str( ) + ".dot";
+        file_name = file_name + "_" + unique_key_name;
         
-        // Open the file and start the graph
-        std::ofstream dot_file;
-        dot_file.open( file_name.c_str( ) );
-        if( !dot_file.is_open( ) )
-            exit( EXIT_FAILURE );
+        // Print the full graph
+        print_full_graph( file_name );
         
-        // Compute the time average to print the nodes size accordingly
-        for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it ) {
-            _time_avg += (*it)->get_total_time( );
-        }
-        _time_avg /= _graph_nodes.size( );
-        
-        // Print the graph
-        dot_file << "digraph {\n";
-        // Print the graph nodes
-        for( std::set<Node*>::iterator it = _graph_nodes.begin( ); it != _graph_nodes.end( ); ++it )
-        {
-            if( (*it)->is_printed( ) )
-                continue;
-            
-            // Print the current node
-            std::string node_info = print_node( (*it), /*indentation*/"  " );
-            (*it)->set_printed( );
-            // Print all nested nodes
-            std::string nested_nodes_info = print_nested_nodes( (*it), /*indentation*/"    " );
-            
-            if( nested_nodes_info.empty( ) ) {
-                dot_file << node_info;
-            } else {
-                // We want all nodes nested in a task to be printed horizontally
-                dot_file << "  subgraph {\n";
-                dot_file << "    rank=same;\n";
-                dot_file << node_info;
-                dot_file << nested_nodes_info;
-                dot_file << "  }\n";
-            }
-            
-            // Print the exit edges ( outside the rank, so they are displayed top-bottom )
-            std::set<Edge*> exits = (*it)->get_exits( );
-            for( std::set<Edge*>::iterator edge = exits.begin( ); edge != exits.end( ); ++edge ) {
-                if( !(*edge)->is_nesting( ) )   // nesting edges have been printed previously in 'print_nested_nodes'
-                    dot_file << print_edge( *edge, /*indentation*/"  " );
-            }
-        }
-        // Print the legends
-        dot_file << print_nodes_legend( );
-        dot_file << print_edges_legend( );
-        dot_file << "}";
-        
-        printf( "Task Dependency Graph printed to file %s\n", file_name.c_str( ) );
+        // TODO
+        // Print the summarized graph
+//         print_summarized_graph( file_name );
     }
 
     void disable( void ) {}
@@ -370,7 +579,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     {
         Node* n = find_node_from_wd_id( w.getId( ) );
         if( n != NULL ) {
-            double time = n->get_last_time( ) - get_current_time( );
+            double time = (double) get_current_time( ) - n->get_last_time( );
             n->add_total_time( time );
         }
     }
@@ -454,9 +663,9 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     case 8:     dep_type = InCommutative;
                                 sender_wd_id += concurrent_min_id;      // commutative -> wd
                                 break;
-                    default:    { printf( "Unexpected type dependency %d. "
-                                          "Not printing any edge for it in the Task Dependency graph\n", 
-                                          dep_value );
+                    default:    { std::cerr << "Unexpected type dependency " << dep_value << "."
+                                            << "Not printing any edge for it in the Task Dependency graph\n"
+                                            << std::endl;
                                   return; }
                 }
                 

@@ -1,4 +1,4 @@
-#include <set>
+#include <vector>
 #include <stdint.h>
 #include <string>
 
@@ -66,17 +66,27 @@ namespace nanos {
         }
         
         bool is_true_dependency( ) {
-            return ( _kind == Dependency ) && 
-                   ( ( _dep_type == True ) || ( _dep_type == InConcurrent ) || ( _dep_type == InCommutative ) );
+            return ( ( _kind == Dependency ) && 
+                     ( ( _dep_type == True ) || ( _dep_type == InConcurrent ) || ( _dep_type == InCommutative ) ) );
         }
         
         bool is_anti_dependency( ) {
-            return ( _kind == Dependency ) && ( _dep_type == Anti );
+            return ( ( _kind == Dependency ) && ( _dep_type == Anti ) );
         }
         
         bool is_output_dependency( ) {
-            return ( _kind == Dependency ) && 
-                   ( ( _dep_type == Output ) || ( _dep_type == OutConcurrent ) || ( _dep_type == OutCommutative ) );
+            return ( ( _kind == Dependency ) && 
+                     ( ( _dep_type == Output ) || ( _dep_type == OutConcurrent ) || ( _dep_type == OutCommutative ) ) );
+        }
+        
+        bool is_concurrent_dep( ) {
+            return ( ( _kind == Dependency ) && 
+                     ( ( _dep_type == InConcurrent ) || ( _dep_type == OutConcurrent ) ) );
+        }
+        
+        bool is_commutative_dep( ) {
+            return ( ( _kind == Dependency ) && 
+                     ( ( _dep_type == InCommutative ) || ( _dep_type == OutCommutative ) ) );
         }
     };
     
@@ -93,8 +103,8 @@ namespace nanos {
         int64_t _wd_id;
         int _func_id;
         NodeType _type;
-        std::set<Edge*> _entry_edges;
-        std::set<Edge*> _exit_edges;
+        std::vector<Edge*> _entry_edges;
+        std::vector<Edge*> _exit_edges;
         double _total_time;
         double _last_time;
         
@@ -115,11 +125,11 @@ namespace nanos {
             return _func_id;
         }
         
-        std::set<Edge*> get_entries( ) {
+        std::vector<Edge*> get_entries( ) {
             return _entry_edges;
         }
         
-        std::set<Edge*> get_exits( ) {
+        std::vector<Edge*> get_exits( ) {
             return _exit_edges;
         }
         
@@ -141,7 +151,7 @@ namespace nanos {
         
         Node* get_parent_task( ) {
             Node* res = NULL;
-            for( std::set<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
                 if( (*it)->is_nesting( ) ) {
                     res = (*it)->get_source( );
                     break;
@@ -152,7 +162,7 @@ namespace nanos {
         
         bool is_connected_with( Node* target ) {
             bool res = false;
-            for( std::set<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->get_target( ) == target ) {
                     res = true;
                     break;
@@ -163,7 +173,7 @@ namespace nanos {
         
         Edge* get_connection( Node* target ) {
             Edge* result = NULL;
-            for( std::set<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->get_target( ) == target ) {
                     result = *it;
                     break;
@@ -174,7 +184,7 @@ namespace nanos {
         
         bool is_previous_synchronized( ) {
             bool res = false;
-            for( std::set<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
                 if( (*it)->is_dependency( ) || (*it)->is_synchronization( ) ) {
                     res = true;
                     break;
@@ -185,7 +195,7 @@ namespace nanos {
         
         bool is_next_synchronized( ) {
             bool res = false;
-            for( std::set<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->is_dependency( ) || (*it)->is_synchronization( ) ) {
                     res = true;
                     break;
@@ -201,8 +211,8 @@ namespace nanos {
                 ( source->get_connection( target )->get_kind( ) != kind ) ||
                 ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
                 Edge* new_edge = new Edge( kind, dep_type, source, target );
-                source->_exit_edges.insert( new_edge );
-                target->_entry_edges.insert( new_edge );
+                source->_exit_edges.push_back( new_edge );
+                target->_entry_edges.push_back( new_edge );
             }
         }
         
