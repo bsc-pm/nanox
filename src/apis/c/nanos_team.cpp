@@ -157,7 +157,7 @@ NANOS_API_DEF(nanos_err_t, nanos_team_get_starring_threads_FIXME, ( int *n, nano
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_team_get_num_supporting_threads_FIXME, ( int *n ))
+NANOS_API_DEF(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_supporting_threads",NANOS_RUNTIME) );
 
@@ -170,7 +170,7 @@ NANOS_API_DEF(nanos_err_t, nanos_team_get_num_supporting_threads_FIXME, ( int *n
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_team_get_supporting_threads_FIXME, ( int *n, nanos_thread_t *list_of_threads))
+NANOS_API_DEF(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_supporting_threads",NANOS_RUNTIME) );
 
