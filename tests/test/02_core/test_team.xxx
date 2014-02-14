@@ -32,10 +32,12 @@ using namespace nanos;
 int main ( int argc, char **argv )
 {
    // nanos_create_team
-   ThreadTeam *team = sys.createTeam( 1 );
+   ThreadTeam *team = sys.createTeam( 1, NULL, true );
 
-   // nanos_leave_team
-   sys.releaseWorker( getMyThreadSafe() );
+   // nanos_enter_team
+   //myThread->enterTeam( NULL );
+
+   //myThread->leaveTeam( );
 
    // nanos_end_team
    sys.endTeam( team );
