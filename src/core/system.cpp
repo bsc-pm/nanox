@@ -54,7 +54,7 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ),
-      _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
+      _numPEs( INT_MAX ), _numThreads( 0 ), _maxCpus(0), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _useYield( false ), _synchronizedStart( true ),
       _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
@@ -71,7 +71,7 @@ System::System () :
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
 #endif
-      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL)
+      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -82,6 +82,7 @@ System::System () :
 
    OS::getProcessAffinity( &_cpu_set );
 
+   _maxCpus = OS::getMaxProcessors();
    int cpu_count = getCpuCount();
 
    std::vector<int> cpu_affinity;
@@ -395,6 +396,10 @@ void System::config ()
    cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ),
                               "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
    cfg.registerArgOption( "enable-dlb", "enable-dlb" );
+
+   cfg.registerConfigOption( "simulator", NEW Config::FlagOption ( _simulator ),
+                             "Nanos++ will be executed by a simulator (disabled as default)" );
+   cfg.registerArgOption( "simulator", "simulator" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -1621,11 +1626,17 @@ void System::addCpuMask ( const cpu_set_t *mask )
 
 inline void System::processCpuMask( void )
 {
+
    // if _bindThreads is enabled, update _bindings adding new elements of _cpu_active_set
    if ( sys.getBinding() ) {
       std::ostringstream oss_cpu_idx;
       oss_cpu_idx << "[";
       for ( int cpu=0; cpu<CPU_SETSIZE; cpu++) {
+         if ( cpu > _maxCpus-1 && !_simulator ) {
+            CPU_CLR( cpu, &_cpu_active_set);
+            debug("Trying to use more cpus than available is not allowed (do you forget --simulator option?)");
+            continue;
+         }
          if ( CPU_ISSET( cpu, &_cpu_active_set ) ) {
 
             if ( std::find( _bindings.begin(), _bindings.end(), cpu ) == _bindings.end() ) {

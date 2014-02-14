@@ -76,6 +76,7 @@ namespace nanos
          // configuration variables
          unsigned int         _numPEs;
          int                  _numThreads;
+         int                  _maxCpus;
          int                  _deviceStackSize;
          int                  _bindingStart;
          int                  _bindingStride;
@@ -194,6 +195,7 @@ namespace nanos
          const int                 _lockPoolSize;
          Lock *                    _lockPool;
          ThreadTeam               *_mainTeam;
+         bool                      _simulator;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
