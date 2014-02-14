@@ -29,6 +29,7 @@ test_schedule="bf"
 #include <sched.h>
 #include "config.hpp"
 #include "nanos.h"
+#include "os.hpp"
 #include "atomic.hpp"
 #include <iostream>
 #include "smpprocessor.hpp"
@@ -39,6 +40,10 @@ using namespace nanos::ext;
 
 #define NUM_ITERS     1000
 #define NUM_RUNS   10
+
+#ifndef min
+#define min(x,y) ((x<y)?x:y)
+#endif
 
 Atomic<int> A;
 
@@ -76,11 +81,12 @@ void set_random_mask( void )
 {
    cpu_set_t new_mask;
    CPU_ZERO( &new_mask );
+   int max_procs = min ( 2,OS::getMaxProcessors()); // only checking 2 procs as maximun
 
    int i;
    for (i=0; i<CPU_SETSIZE; i++) {
       if ( CPU_ISSET( i, &default_mask ) ) {
-         if (rand()%2) {
+         if (rand()%max_procs) {
             CPU_SET( i, &new_mask );
          }
       }
@@ -98,6 +104,11 @@ void main__loop_1 ( void *args )
 
 int main ( int argc, char **argv )
 {
+   if ( OS::getMaxProcessors() < 2 ) {
+      fprintf(stdout, "Skiping %s test\n", argv[0]);
+      return 0;
+   }
+
    sys.setUntieMaster( false );
 
    int i;

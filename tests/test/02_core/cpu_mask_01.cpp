@@ -3,7 +3,7 @@
 #include <sched.h>
 #include <string.h>
 #include <iostream>
-
+#include "os.hpp"
 #include "nanos.h"
 #include "system.hpp"
 
@@ -17,6 +17,10 @@ test_ignore_fail=1
 */
 
 #define SIZE 100
+
+#ifndef min
+#define min(x,y) ((x<y)?x:y)
+#endif
 
 void print_mask( const char *pre, cpu_set_t *mask );
 
@@ -42,6 +46,8 @@ void print_mask( const char *pre, cpu_set_t *mask )
 int main ( int argc, char *argv[])
 {
    int error = 0;
+   int max_procs = OS::getMaxProcessors();
+
    cpu_set_t nanos_mask1, nanos_mask2;
    cpu_set_t sched_mask1, sched_mask2;
    CPU_ZERO( &nanos_mask1 );
@@ -61,7 +67,7 @@ int main ( int argc, char *argv[])
    
    fprintf(stdout,"Thread team final size will be %d and %d is expected\n",
       (int) myThread->getTeam()->getFinalSize(),
-            CPU_COUNT(&nanos_mask2)
+            min(CPU_COUNT(&nanos_mask2),max_procs)
    );
    if ( sys.getPMInterface().isMalleable() && myThread->getTeam()->getFinalSize() != (size_t) CPU_COUNT(&nanos_mask2) ) error++;
 
