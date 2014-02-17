@@ -65,6 +65,7 @@ namespace nanos {
             Atomic<bool> _busy;
             WorkDescriptor* _currExecutingWd;
             int _currExecutingDD;
+            
 
             // disable copy constructor and assignment operator
             MPIProcessor(const MPIProcessor &pe);
@@ -152,7 +153,7 @@ namespace nanos {
 
             void setBusy(bool busy) {
                 _busy = busy;
-            }
+            }       
             
             //Try to reserve this PE, if the one who reserves it is the same
             //which already has the PE, return true

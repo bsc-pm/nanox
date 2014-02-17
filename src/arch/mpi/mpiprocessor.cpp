@@ -486,13 +486,26 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
     //using more than 1 thread is a performance tweak
     int number_of_threads=(number_of_spawns/mpi_size);
     if (number_of_threads<1) number_of_threads=1;
-    if (number_of_threads>2) number_of_threads=2;
+    if (number_of_threads>4) number_of_threads=4;
     BaseThread* threads[number_of_threads];
     sys.addOffloadPEsToTeam(pes, number_of_spawns, number_of_threads, threads); 
     //Add all the PEs to the thread
+    Lock* gLock=NULL;
+    Atomic<int>* gCounter;
+    std::vector<MPIThread*>* threadList;
     for ( i=0; i<number_of_threads; i++ ){ 
         MPIThread* mpiThread=(MPIThread*) threads[i];
+        //Get the lock of one of the threads
+        if (gLock==NULL) {
+            gLock=mpiThread->getSelfLock();
+            gCounter=mpiThread->getSelfCounter();
+            threadList=mpiThread->getSelfThreadList();
+        }
         mpiThread->addRunningPEs((MPIProcessor**)pes,number_of_spawns);
+        //Set the group lock so they all share the same lock
+        mpiThread->setGroupLock(gLock);
+        mpiThread->setGroupCounter(gCounter);
+        mpiThread->setGroupThreadList(threadList);
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }

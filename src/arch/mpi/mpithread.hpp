@@ -39,9 +39,16 @@ namespace ext
       private:
          pthread_t   _pth;
          std::vector<MPIProcessor*> _runningPEs;
-         int _totRunningWds;
          int _currPe;
          WD* _markedToDelete;
+         Lock _selfLock;
+         Lock* _groupLock;
+         Atomic<int> _totRunningWds;
+         Atomic<int>* _groupTotRunningWds;
+         std::vector<MPIThread*> _threadList;
+         std::vector<MPIThread*>* _groupThreadList;
+         std::list<WD*> _wdMarkedToDelete;
+         
          //size_t      _stackSize;
          //bool        _useUserThreads;         
 //         MPI_Comm _communicator;
@@ -53,7 +60,7 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe ) : _runningPEs(), SMPThread( w,pe ) {
+         MPIThread( WD &w, PE *pe ) : _selfLock(), _runningPEs(), SMPThread( w,pe ) {
              _currPe=0;
              _totRunningWds=0;
              _markedToDelete=NULL;
@@ -82,7 +89,33 @@ namespace ext
 
          virtual bool inlineWorkDependent( WD &work );
          
+         /**
+          * Deletes an WD if no thread is executing it
+          * @param wd
+          * @param markToDelete If wd couldn't be deleted, add to pending list
+          * @return if thread was deleted
+          */
+         bool deleteWd(WD* wd, bool markToDelete);
+         
          void checkTaskEnd();
+         
+         /**
+          * Frees current exrcuting WD of given PE
+          * @param finishedPE
+          */
+         void freeCurrExecutingWD(MPIProcessor* finishedPE);
+         
+         void setGroupLock(Lock* gLock);
+         
+         Lock* getSelfLock();
+         
+         Atomic<int>* getSelfCounter();
+         
+         void setGroupCounter(Atomic<int>* gCounter);
+                  
+         std::vector<MPIThread*>* getSelfThreadList();
+         
+         void setGroupThreadList(std::vector<MPIThread*>* threadList);
          
          std::vector<MPIProcessor*>& getRunningPEs();
 

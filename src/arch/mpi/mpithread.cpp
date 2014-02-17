@@ -52,7 +52,7 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     NANOS_INSTRUMENT(nanos_event_value_t val = wd.getId());
     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenStateAndBurst(NANOS_RUNNING, key, val));
     
-    _totRunningWds++;
+    (*_groupTotRunningWds)++;
     _runningPEs.at(_currPe)->setCurrExecutingWd(&wd);
     (dd.getWorkFct())(wd.getData());
     //Check if any task finished
@@ -109,47 +109,88 @@ std::vector<MPIProcessor*>& MPIThread::getRunningPEs() {
     return _runningPEs;
 }
 
-void MPIThread::checkTaskEnd() {
-    if (_markedToDelete!=NULL) {
-        if (_markedToDelete!=myThread->getCurrentWD()) {
-                _markedToDelete->~WorkDescriptor();
-                delete[] (char *)_markedToDelete;
-        } else {
-            //Wait until we finish executing this WD...
-            return;
-        }
-        _markedToDelete=NULL;
+void MPIThread::setGroupLock(Lock* gLock) {
+    _groupLock=gLock;
+}
+
+
+Lock* MPIThread::getSelfLock() {
+    return &_selfLock;
+}
+         
+Atomic<int>* MPIThread::getSelfCounter() {
+    return &_totRunningWds;
+}
+         
+void MPIThread::setGroupCounter(Atomic<int>* gCounter) {
+    _groupTotRunningWds=gCounter;
+}
+
+
+std::vector<MPIThread*>* MPIThread::getSelfThreadList(){
+    return &_threadList;
+}
+
+void MPIThread::setGroupThreadList(std::vector<MPIThread*>* threadList){
+    _groupThreadList=threadList;
+}
+
+bool MPIThread::deleteWd(WD* wd, bool markToDelete) {
+    bool removable=true;
+    //Check if any thread is executing the WD
+    for (std::vector<MPIThread*>::iterator it = _groupThreadList->begin() ; it!=_groupThreadList->end() && removable ; ++it) {
+        removable=removable && (wd!=(*it)->getCurrentWD());
     }
+    //Delete the WD (only if we are not executing it, this should be mostly always)
+    if (removable) {
+        wd->~WorkDescriptor();
+        delete[] (char *)wd;
+    } else if (markToDelete) {
+        _wdMarkedToDelete.push_back(wd);
+    }
+    return removable;
+}
+
+inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){    
+    //Receive the signal (just to remove it from the MPI "queue")
+    int id_func_ompss;
+    nanos::ext::MPIProcessor::nanosMPIRecvTaskend(&id_func_ompss, 1, MPI_INT,finishedPE->getRank(),
+        finishedPE->getCommunicator(),MPI_STATUS_IGNORE);
+    WorkDescriptor* wd=finishedPE->getCurrExecutingWd();
+    //Before finishing wd, switch thread to the right PE
+    //Wait until local cache in the PE is free
+    PE* oldPE=runningOn();
+    setRunningOn(finishedPE);
+    //Finish the wd, finish work and destroy wd
+    wd->finish();
+    Scheduler::finishWork(wd,true);
+    setRunningOn(oldPE);
+    finishedPE->setCurrExecutingWd(NULL);
+    finishedPE->setBusy(false);
+    deleteWd(wd,true);
+    //Restore previous PE
+    (*_groupTotRunningWds)--;
+}
+
+void MPIThread::checkTaskEnd() {
+    for (std::list<WD*>::iterator it=_wdMarkedToDelete.begin(), next ; it!=_wdMarkedToDelete.end(); it=next) {    
+        next = it;
+        ++next;
+        if ( deleteWd(*it,/*WD is already in the list */ false) ) {                
+            _wdMarkedToDelete.erase(it);
+        }
+    }    
     int flag=1;
     MPI_Status status;
     //Receive every task end message and release dependencies for those tasks (only if there are tasks being executed)
-    while (flag!=0 && _totRunningWds!=0) {
+    if (*_groupTotRunningWds!=0 && _groupLock->tryAcquire()){
         MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
                    &status);
         if (flag!=0) {
-            int id_func_ompss;
-            nanos::ext::MPIProcessor::nanosMPIRecvTaskend(&id_func_ompss, 1, MPI_INT,status.MPI_SOURCE,
-                ((MPIProcessor *) myThread->runningOn())->getCommunicator(),MPI_STATUS_IGNORE);
-            
-            WorkDescriptor* wd=_runningPEs.at(status.MPI_SOURCE)->getCurrExecutingWd();
-            PE* oldPE=runningOn();
-            //Before finishing wd, switch thread to the right PE
-            setRunningOn(_runningPEs.at(status.MPI_SOURCE));
-            //Finish the wd, finish work and destroy wd
-            wd->finish();
-            Scheduler::finishWork(wd,true);
-            //Delete the WD (only if we are not executing it, this should be mostly always)
-            if (wd!=myThread->getCurrentWD()) {
-                wd->~WorkDescriptor();
-                delete[] (char *)wd;
-            } else {
-                _markedToDelete=wd;
-            }
-            _runningPEs.at(status.MPI_SOURCE)->setCurrExecutingWd(NULL);
-            _runningPEs.at(status.MPI_SOURCE)->setBusy(false);
-            //Restore previous PE
-            setRunningOn(oldPE);
-            _totRunningWds--;
+            MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
+            //If received something and not mine, stop until whoever is the owner gets it
+            freeCurrExecutingWD(finishedPE);
         }
+        _groupLock->release();
     }
 }
