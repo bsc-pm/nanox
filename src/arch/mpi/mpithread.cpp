@@ -117,6 +117,18 @@ void MPIThread::setGroupLock(Lock* gLock) {
 Lock* MPIThread::getSelfLock() {
     return &_selfLock;
 }
+
+void MPIThread::increaseCopyInCount(){
+    _numPendingComms++;
+}
+
+void MPIThread::resetCopyInCount(){
+    _numPendingComms=0;
+}
+
+int MPIThread::getCopyInCount(){
+    return _numPendingComms;
+}
          
 Atomic<int>* MPIThread::getSelfCounter() {
     return &_totRunningWds;
@@ -183,7 +195,7 @@ void MPIThread::checkTaskEnd() {
     int flag=1;
     MPI_Status status;
     //Receive every task end message and release dependencies for those tasks (only if there are tasks being executed)
-    if (*_groupTotRunningWds!=0 && _groupLock->tryAcquire()){
+    if (*_groupTotRunningWds!=0 && (_groupLock==NULL || _groupLock->tryAcquire())){
         MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
                    &status);
         if (flag!=0) {
@@ -191,6 +203,6 @@ void MPIThread::checkTaskEnd() {
             //If received something and not mine, stop until whoever is the owner gets it
             freeCurrExecutingWD(finishedPE);
         }
-        _groupLock->release();
+        if (_groupLock!=NULL) _groupLock->release();
     }
 }

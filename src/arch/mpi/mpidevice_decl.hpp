@@ -40,7 +40,7 @@ enum {
     TAG_CACHE_ORDER = 1200, TAG_CACHE_DATA_IN,TAG_CACHE_DATA_OUT, 
     TAG_CACHE_ANSWER, TAG_INI_TASK,TAG_END_TASK, TAG_ENV_STRUCT,TAG_CACHE_ANSWER_REALLOC,
     TAG_CACHE_ANSWER_ALLOC, TAG_CACHE_ANSWER_CIN,TAG_CACHE_ANSWER_COUT,TAG_CACHE_ANSWER_FREE,TAG_CACHE_ANSWER_DEV2DEV,TAG_CACHE_ANSWER_CL,
-    TAG_FP_NAME_SYNC, TAG_FP_SIZE_SYNC, TAG_CACHE_DEV2DEV, TAG_EXEC_CONTROL
+    TAG_FP_NAME_SYNC, TAG_FP_SIZE_SYNC, TAG_CACHE_DEV2DEV, TAG_EXEC_CONTROL, TAG_NUM_PENDING_COMMS
 };
 
 //Because of DEV2DEV OPIDs <=0 are RESERVED, and OPIDs > OPID_DEVTODEV too
@@ -70,6 +70,7 @@ namespace nanos
       private:
          static char _executingTask;
          static Directory *_masterDir;
+         static int _numCopiesPerformed;
 
          static void getMemoryLockLimit();
 
@@ -171,7 +172,7 @@ namespace nanos
          
          static void mpiCacheWorker();
          
-         static void taskPreInit(MPI_Comm& comm);
+         static void taskPreInit(MPI_Comm& comm, int pendingCopies);
          
          static void taskPostFinish(MPI_Comm& comm);
          

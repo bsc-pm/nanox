@@ -55,7 +55,8 @@ namespace nanos {
             static bool _inicialized;
             static int _currentTaskParent;      
             static size_t _alignThreshold;          
-            static size_t _alignment;
+            static size_t _alignment;          
+            static size_t _maxWorkers;
             
             
             MPI_Comm _communicator;

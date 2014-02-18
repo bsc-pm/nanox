@@ -40,6 +40,9 @@ namespace ext
          pthread_t   _pth;
          std::vector<MPIProcessor*> _runningPEs;
          int _currPe;
+         //This counter is increases each time we perform an async copyIn
+         //Later it will be transferred to the offloaded node so it can wait for all of them
+         int _numPendingComms;
          WD* _markedToDelete;
          Lock _selfLock;
          Lock* _groupLock;
@@ -64,6 +67,7 @@ namespace ext
              _currPe=0;
              _totRunningWds=0;
              _markedToDelete=NULL;
+             _numPendingComms=0;
          }
 //         MPIThread( WD &w, PE *pe , MPI_Comm communicator, int rank) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true);
 
@@ -99,6 +103,11 @@ namespace ext
          
          void checkTaskEnd();
          
+         void increaseCopyInCount();
+         
+         void resetCopyInCount();
+         
+         int getCopyInCount();
          /**
           * Frees current exrcuting WD of given PE
           * @param finishedPE

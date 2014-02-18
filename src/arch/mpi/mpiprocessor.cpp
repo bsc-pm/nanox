@@ -28,9 +28,10 @@ using namespace nanos;
 using namespace nanos::ext;
 
 System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
-size_t MPIProcessor::_cacheDefaultSize = 10485800;
+size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
 size_t MPIProcessor::_alignThreshold = 128;
 size_t MPIProcessor::_alignment = 4096;
+size_t MPIProcessor::_maxWorkers = 1;
 size_t MPIProcessor::_bufferDefaultSize = 0;
 char* MPIProcessor::_bufferPtr = 0;
 std::string MPIProcessor::_mpiFilename;
@@ -108,6 +109,10 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerConfigOption("mpi-alignment", NEW Config::SizeVar(_alignment), "Defines the alignment (bytes) applied to offloaded variables (copy_in/out) (default value: 4096)");
     config.registerArgOption("mpi-alignment", "mpi-alignment");
     config.registerEnvOption("mpi-alignment", "NX_MPIALIGNMENT");
+        
+    config.registerConfigOption("mpi-workers", NEW Config::SizeVar(_maxWorkers), "Defines the maximum number of worker threads created per alloc (Default: 1) ");
+    config.registerArgOption("mpi-workers", "mpi-max-workers");
+    config.registerEnvOption("mpi-workers", "NX_MPI_MAX_WORKERS");
 }
 
 WorkDescriptor & MPIProcessor::getWorkerWD() const {
@@ -143,7 +148,8 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     cacheOrder order;
     order.opId = OPID_FINISH;
     int nThreads=sys.getNumWorkers();
-    int id = -1; 
+    int id[2];
+    id[0] = -1; 
     //Now sleep the threads which represent the remote processes
     int res=MPI_UNEQUAL;
     MPI_Barrier(MPI_COMM_WORLD);
@@ -162,7 +168,7 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                         if ( (*it)->getOwner() ) 
                         {
                             nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
-                            nanosMPISsend(&id, 1, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
+                            nanosMPISsend(id, 2, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
                             //After sending finalization signals, we are not the owners anymore
                             //This way we prevent finalizing them multiple times if more than one thread uses them
                             (*it)->setOwner(false);
@@ -229,7 +235,7 @@ void MPIProcessor::nanosMPIInit(int *argc, char ***argv, int userRequired, int* 
         MPI_Comm mworld= MPI_COMM_WORLD;
         //It will share a core with last SMP PE
         //THIS PE will not be in the team (uid -1)
-        PE *mpi = NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()), &mworld, CACHETHREADRANK,-1, true, false);
+        PE *mpi = NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()), &mworld, CACHETHREADRANK,-1, false, false);
         MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
         WD *wd = NEW WD(dd);
         NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
@@ -486,7 +492,7 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
     //using more than 1 thread is a performance tweak
     int number_of_threads=(number_of_spawns/mpi_size);
     if (number_of_threads<1) number_of_threads=1;
-    if (number_of_threads>4) number_of_threads=4;
+    if (number_of_threads>_maxWorkers) number_of_threads=_maxWorkers;
     BaseThread* threads[number_of_threads];
     sys.addOffloadPEsToTeam(pes, number_of_spawns, number_of_threads, threads); 
     //Add all the PEs to the thread
@@ -501,18 +507,28 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
             gCounter=mpiThread->getSelfCounter();
             threadList=mpiThread->getSelfThreadList();
         }
+        threadList->push_back(mpiThread);
         mpiThread->addRunningPEs((MPIProcessor**)pes,number_of_spawns);
         //Set the group lock so they all share the same lock
-        mpiThread->setGroupLock(gLock);
         mpiThread->setGroupCounter(gCounter);
         mpiThread->setGroupThreadList(threadList);
+        if (number_of_threads>1) {
+            //Set the group lock so they all share the same lock
+            mpiThread->setGroupLock(gLock);
+        }
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
 int MPIProcessor::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
         MPI_Comm comm) {
-    return nanosMPISend(buf, count, datatype, dest, TAG_INI_TASK, comm);
+    //Taskinit receives an integer as datatype
+    nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread*)myThread;
+    int nCopyIns[2];
+    nCopyIns[0]=*((int*)buf);
+    nCopyIns[1]=mpiThread->getCopyInCount();
+    //Send task init order and pendingComms counter
+    return nanosMPISend(nCopyIns, 2, MPI_INT, dest, TAG_INI_TASK, comm);
 }
 
 int MPIProcessor::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
@@ -674,13 +690,17 @@ void MPIProcessor::nanosSyncDevPointers(int* file_mask, unsigned int* file_nameh
 }
 
 int MPIProcessor::nanosMPIWorker(void (*ompss_mpi_func_ptrs_dev[])()){
+    int tmp_buffer[2];
+    int pendingCopies;
     int ompss_id_func;
     int err;
     MPI_Status status;
     MPI_Comm ompss_parent_comp;
     err= MPI_Comm_get_parent(&ompss_parent_comp);
     while(1){
-       err= nanos::ext::MPIProcessor::nanosMPIRecvTaskinit(&ompss_id_func, 1, MPI_INT, MPI_ANY_SOURCE, ompss_parent_comp, &status);
+       err= nanos::ext::MPIProcessor::nanosMPIRecvTaskinit(tmp_buffer, 2, MPI_INT, MPI_ANY_SOURCE, ompss_parent_comp, &status);
+       ompss_id_func=tmp_buffer[0];
+       pendingCopies=tmp_buffer[1];
        nanos::ext::MPIProcessor::setCurrentTaskParent(status.MPI_SOURCE);
        if (ompss_id_func==-1){
           nanosMPIFinalize(); 
@@ -688,7 +708,8 @@ int MPIProcessor::nanosMPIWorker(void (*ompss_mpi_func_ptrs_dev[])()){
        } else {                     
           void (* function_pointer)()=(void (*)()) ompss_mpi_func_ptrs_dev[ompss_id_func];          
           //Wait until copies have finished before executing the task
-          nanos::MPIDevice::taskPreInit(ompss_parent_comp);
+          //err= nanos::ext::MPIProcessor::nanosMPIRecv(&pendingCopies, 1, MPI_INT, status.MPI_SOURCE, TAG_NUM_PENDING_COMMS, ompss_parent_comp, MPI_STATUS_IGNORE);
+          nanos::MPIDevice::taskPreInit(ompss_parent_comp, pendingCopies);
           function_pointer();       
           nanos::MPIDevice::taskPostFinish(ompss_parent_comp);
        }

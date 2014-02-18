@@ -37,6 +37,7 @@ using namespace nanos;
 MPI_Datatype MPIDevice::cacheStruct;
 Directory* MPIDevice::_masterDir;
 char MPIDevice::_executingTask=0;
+int MPIDevice::_numCopiesPerformed=0;
 
 MPIDevice::MPIDevice(const char *n) : Device(n) {
 }
@@ -128,9 +129,14 @@ bool MPIDevice::copyIn(void *localDst, CopyDescriptor &remoteSrc, size_t size, P
     order.size = size;
     //short ans;
     //MPI_Status status;
+    MPI_Request req;
     //printf("Dir copyin host%p a device %p, size %lu\n",(void*) order.hostAddr,(void*) order.devAddr,order.size);
     nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
-    nanos::ext::MPIProcessor::nanosMPISsend((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator());
+    nanos::ext::MPIProcessor::nanosMPIIsend((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator(), &req);
+    nanos::ext::MPIThread * mpiThread = dynamic_cast<nanos::ext::MPIThread *>(myThread);
+    if (mpiThread) mpiThread->increaseCopyInCount();
+    //Free the request (we no longer care about when it finishes, offload process will take care of that)
+    MPI_Request_free(&req);
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->getRank(), TAG_CACHE_ANSWER_CIN, myPE->_communicator, MPI_STATUS_IGNORE );
     //std::cerr << "Fin copyin\n";
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -225,9 +231,11 @@ void MPIDevice::initMPICacheStruct() {
     }
 }
 
-void MPIDevice::taskPreInit(MPI_Comm& comm){
+void MPIDevice::taskPreInit(MPI_Comm& comm, int pendingCopies){
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_WAIT_FOR_COPIES_EVENT);
-    _executingTask=1;
+    //Wait so all copies have finished (no need to use atomic, sooner or later we'll see the modification)
+    while (pendingCopies<_numCopiesPerformed) {}
+    _numCopiesPerformed=0;
     //int flag=0;
     //MPI_Status status;
     
@@ -268,6 +276,7 @@ void MPIDevice::taskPostFinish(MPI_Comm& comm){
 }
 
 void MPIDevice::mpiCacheWorker() {
+    _numCopiesPerformed=0;
     //myThread = myThread->getNextThread();
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);    
@@ -322,6 +331,7 @@ void MPIDevice::mpiCacheWorker() {
                               ent->increaseVersion();
                            }
                         }
+                        _numCopiesPerformed++;
 
                         //float* arr= (float*) order.devAddr;
                         //printf("Copio valor %f\n",arr[2047]);
