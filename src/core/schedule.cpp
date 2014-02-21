@@ -102,6 +102,44 @@ void Scheduler::submit ( WD &wd, bool force_queue )
 
 }
 
+void Scheduler::submit ( WD ** wds, size_t numElems )
+{
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+   
+   if ( numElems == 0 ) return;
+   
+   BaseThread *mythread = myThread;
+   
+   // create a vector of threads for each wd
+   BaseThread ** threadList = NEW BaseThread*[numElems];
+   for( size_t i = 0; i < numElems; ++i )
+   {
+      WD* wd = wds[i];
+      
+      // If the wd is tied to anyone
+      BaseThread *wd_tiedto = wd->isTiedTo();
+      if ( wd->isTied() && wd_tiedto != mythread ) {
+         if ( wd_tiedto->getTeam() == NULL ) {
+            //wd_tiedto->addNextWD( &wd );
+            // WHAT HERE???
+            fatal( "Uncontrolled batch path");
+         } else {
+            //wd_tiedto->getTeam()->getSchedulePolicy().queue( wd_tiedto, wd );
+            threadList[i] = wd_tiedto;
+         }
+         continue;
+      }
+      // Otherwise, use mythread
+      threadList[i] = mythread;
+   }
+   
+   // Call the scheduling policy
+   mythread->getTeam()->getSchedulePolicy().queue( threadList, wds, numElems );
+   
+   // Release
+   delete[] threadList;
+}
+
 void Scheduler::submitAndWait ( WD &wd )
 {
    debug ( "submitting and waiting task " << wd.getId() );

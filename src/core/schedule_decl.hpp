@@ -49,7 +49,11 @@ namespace nanos
       public:
          static bool inlineWork ( WD *work, bool schedule = false );
 
-         static void submit ( WD &wd, bool force_queue = false );
+         static void submit ( WD &wd, bool force_queue = false  );
+         /*! \brief Submits a set of wds. It only calls the policy's queue()
+          *  method!
+          */
+         static void submit ( WD ** wds, size_t numElems  );
          static void submitAndWait ( WD &wd );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
@@ -232,6 +236,15 @@ namespace nanos
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
+         /*! \brief Batch processing version.
+          *  The default behaviour calls queue() individually.
+          */
+         virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems );
+         
+         /*! \brief Checks if the WD can be batch processed by this policy.
+          *  By default returns always false.
+          */
+         virtual bool isValidForBatch ( const WD * wd ) const { return false; }
          
          /*! \brief Hook function called when a WD is submitted.
           \param wd [in] The WD to be submitted.

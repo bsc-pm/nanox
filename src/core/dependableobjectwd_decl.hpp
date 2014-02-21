@@ -61,6 +61,17 @@ namespace nanos
          /*! \brief Submits WorkDescriptor when dependencies are satisfied
           */
          virtual void dependenciesSatisfied ( );
+         
+         /*! \brief Because of the batch-release mechanism,
+          *  dependenciesSatisfied will never be called, so common code
+          *  between the normal path and the batch path must go here.
+          *  \see dependenciesSatisfied()
+          */
+         virtual void dependenciesSatisfiedNoSubmit ( );
+         
+         /*! \brief Checks if it has only one predecessor.
+          */
+         virtual bool canBeBatchReleased ( ) const;
 
          /*! \brief TODO 
           */
