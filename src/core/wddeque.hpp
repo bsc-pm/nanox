@@ -61,6 +61,35 @@ inline void WDDeque::push_back ( WorkDescriptor *wd )
    }
 }
 
+inline Lock& WDDeque::getLock()
+{
+   return _lock;
+}
+
+inline void WDDeque::push_front( WD** wds, size_t numElems )
+{
+   for( size_t i = 0; i < numElems; ++i )
+   {
+      WD* wd = wds[i];
+      wd->setMyQueue( this );
+      _dq.push_front( wd );
+   }
+   int tasks = sys.getSchedulerStats()._readyTasks += numElems;
+   increaseTasksInQueues(tasks,numElems);
+}
+
+inline void WDDeque::push_back( WD** wds, size_t numElems )
+{
+   for( size_t i = 0; i < numElems; ++i )
+   {
+      WD* wd = wds[i];
+      wd->setMyQueue( this );
+      _dq.push_back( wd );
+   }
+   int tasks = sys.getSchedulerStats()._readyTasks += numElems;
+   increaseTasksInQueues(tasks,numElems);
+}
+
 struct NoConstraints
 {
    static inline bool check ( WD &wd, BaseThread &thread ) { return true; }
@@ -193,20 +222,20 @@ inline bool WDDeque::removeWDWithConstraints( BaseThread *thread, WorkDescriptor
    return false;
 }
 
-inline void WDDeque::increaseTasksInQueues( int tasks )
+inline void WDDeque::increaseTasksInQueues( int tasks, int increment )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
    NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
-   _nelems++;
+   _nelems += increment;
 }
 
-inline void WDDeque::decreaseTasksInQueues( int tasks )
+inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
    NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
-   _nelems--;
+   _nelems -= decrement;
 }
 
 /***********
@@ -352,7 +381,7 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
 template <typename T>
 inline WDPriorityQueue<T>::WDPriorityQueue( bool optimise, bool reverse, PriorityValueFun getter )
    : _dq(), _lock(), _nelems(0), _optimise( optimise ), _reverse( reverse ),
-     _getter( getter )
+     _getter( getter ), _maxPriority( 0 ), _minPriority( 0 )
 {
 }
 
@@ -373,11 +402,13 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor *wd, bool fifo )
 {
    // Find where to insert the wd
    WDPQ::BaseContainer::iterator it;
+   T priority = wd->getPriority();
    
    if ( fifo ) {
       // #637: Insert at the back if possible
-      if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.back()->getPriority() >= wd->getPriority() ) ) )
+      if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.back()->getPriority() >= wd->getPriority() ) ) ){
          it = _dq.end();
+      }
       else
          it = upper_bound ( wd );
    }
@@ -391,6 +422,46 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor *wd, bool fifo )
    }
    
    _dq.insert( it, wd );
+   // If the wd was inserted at the end, it has lower priority than any other
+   if( wd == _dq.back() )
+      _minPriority = priority;
+   // If it was inserted at the start, it has more than the rest
+   if ( wd == _dq.front() )
+      _maxPriority = priority;
+}
+
+template<typename T>
+inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor ** wds, size_t numElems, bool fifo )
+{
+   // Find where to insert the wd
+   WDPQ::BaseContainer::iterator it;
+   WD* first = wds[0];
+   T priority = first->getPriority();
+   
+   if ( fifo ) {
+      // #637: Insert at the back if possible
+      if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.back()->getPriority() >= priority ) ) ){
+         it = _dq.end();
+      }
+      else
+         it = upper_bound ( first );
+   }
+   else {
+      // #637: Insert at the front if possible
+      if ( ( _optimise ) && ( ( _dq.empty() ) || ( _dq.front()->getPriority() < priority ) ) )
+         it = _dq.begin();
+      else {
+         it = lower_bound( first );
+      }
+   }
+   
+   _dq.insert( it, wds, wds + numElems );
+   // If the wd was inserted at the end, it has lower priority than any other
+   if( first == _dq.back() )
+      _minPriority = priority;
+   // If it was inserted at the start, it has more than the rest
+   if ( first == _dq.front() )
+      _maxPriority = priority;
 }
 
 template<typename T>
@@ -465,6 +536,65 @@ inline WorkDescriptor * WDPriorityQueue<T>::pop_front ( BaseThread *thread )
    return popFrontWithConstraints<NoConstraints>(thread);
 }
 
+
+template<typename T>
+inline Lock& WDPriorityQueue<T>::getLock()
+{
+   return _lock;
+}
+
+template<typename T>
+inline void WDPriorityQueue<T>::push_front( WD** wds, size_t numElems )
+{
+   for( size_t i = 0; i < numElems; ++i )
+   {
+      WD* wd = wds[i];
+      wd->setMyQueue( this );
+      insertOrdered( wd, false );
+   }
+   int tasks = sys.getSchedulerStats()._readyTasks += numElems;
+   increaseTasksInQueues(tasks,numElems);
+   fatal_cond( _dq.size() != _nelems, "List size does not match queue size" );
+}
+
+template<typename T>
+inline void WDPriorityQueue<T>::push_back( WD** wds, size_t numElems )
+{
+   fatal_cond( numElems == 0, "No reason to call push_back for 0 elements" );
+   // Get the priority of the first one
+  /* T firstPrio = (*wds)->getPriority();
+   bool samePrio = true;
+   // Check if all of them have the same priority
+   for( size_t i = 1; i < numElems && samePrio; ++i )
+   {
+      samePrio = wds[i]->getPriority() != firstPrio;
+   }
+   // If the have different priorities
+   if ( !samePrio )
+   {*/
+      for( size_t i = 0; i < numElems; ++i )
+      {
+         WD* wd = wds[i];
+         wd->setMyQueue( this );
+         insertOrdered( wd, true );
+      }
+   /*}
+   // Otherwise, insert in the same position
+   else
+   {
+      for( size_t i = 0; i < numElems; ++i )
+      {
+         WD* wd = wds[i];
+         wd->setMyQueue( this );
+      }
+      insertOrdered( wds, numElems, true );
+
+   }*/
+   int tasks = sys.getSchedulerStats()._readyTasks += numElems;
+   increaseTasksInQueues(tasks,numElems);
+   fatal_cond( _dq.size() != _nelems, "List size does not match queue size" );
+}
+
 /*!
  * \brief Retrieves a WD.
  */
@@ -495,6 +625,17 @@ inline WorkDescriptor * WDPriorityQueue<T>::popFrontWithConstraints ( BaseThread
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
                if ( wd.dequeue( &found ) ) {
                   _dq.erase( it );
+                  // Update max and min
+                  if ( _dq.empty() ){
+                     _maxPriority = 0;
+                     _minPriority = 0;
+                  }
+                  // Note that, due to constraints, we might not have extracted
+                  // the first element of the queue, but the last one.
+                  else{
+                     _maxPriority = _dq.front()->getPriority();
+                     _minPriority = _dq.back()->getPriority();
+                  }
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
                }
@@ -534,6 +675,17 @@ inline WorkDescriptor * WDPriorityQueue<T>::popBackWithConstraints ( BaseThread 
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
                if ( wd.dequeue( &found ) ) {
                   _dq.erase( it );
+                  // Update max and min
+                  if ( _dq.empty() ){
+                     _maxPriority = 0;
+                     _minPriority = 0;
+                  }
+                  // Note that, due to constraints, we might not have extracted
+                  // the last element of the queue, but the first one.
+                  else{
+                     _maxPriority = _dq.front()->getPriority();
+                     _minPriority = _dq.back()->getPriority();
+                  }
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
                }
@@ -607,21 +759,35 @@ inline bool WDPriorityQueue<T>::reorderWD( WorkDescriptor *wd )
 }
 
 template<typename T>
-inline void WDPriorityQueue<T>::increaseTasksInQueues( int tasks )
+inline WD::PriorityType WDPriorityQueue<T>::maxPriority() const
 {
-   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
-   NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
-   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
-   _nelems++;
+   return _maxPriority;
 }
 
 template<typename T>
-inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks )
+inline WD::PriorityType WDPriorityQueue<T>::minPriority() const
+{
+   return _minPriority;
+}
+
+template<typename T>
+inline void WDPriorityQueue<T>::increaseTasksInQueues( int tasks, int increment )
 {
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
    NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
-   _nelems--;
+   _nelems += increment;
+   fatal_cond( _dq.size() != _nelems, "List size does not match queue size (increase)" );
+}
+
+template<typename T>
+inline void WDPriorityQueue<T>::decreaseTasksInQueues( int tasks, int decrement )
+{
+   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("num-ready");)
+   NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
+   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
+   _nelems -= decrement;
+   fatal_cond( _dq.size() != _nelems, "List size does not match queue size (decrease)" );
 }
 
 #endif

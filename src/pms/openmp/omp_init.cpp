@@ -259,7 +259,8 @@ namespace nanos
 
          sys.updateActiveWorkers( nthreads );
 
-         ensure( sys.getNumThreads() == nthreads, "Update Number of Threads failed " );
+         // \note There is no guarantee at the end team size has been updated
+         // ensure( myThread->getTeam()->size(), "Update Number of Threads failed " );
       }
 
       /*!

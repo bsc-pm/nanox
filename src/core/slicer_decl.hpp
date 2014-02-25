@@ -152,7 +152,7 @@ namespace nanos
           *  This function calls the specific code for WD submission which is
           *  implemented in the related slicer.
           */ 
-         void submit ();
+         void submit ( bool force_queue = false );
          /*! \brief WD dequeue
           *
           *  This function calls the specific code for WD dequeue which is
