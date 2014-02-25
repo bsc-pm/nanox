@@ -70,8 +70,12 @@ NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim,
    return NANOS_OK;
 }
 
-NANOS_API_DEF(unsigned int,nanos_get_opencl_num_devices, (void)){
+unsigned int nanos_get_opencl_num_devices (void){
     return nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
+}
+
+void nanos_get_opencl_num_devices_( int* numret){
+    *numret=nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
 }
 
 NANOS_API_DEF(void *, nanos_malloc_opencl, ( size_t size ))
