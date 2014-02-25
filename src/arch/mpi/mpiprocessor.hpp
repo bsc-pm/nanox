@@ -22,6 +22,7 @@
 
 #include "mpi.h"
 #include "atomic_decl.hpp"
+#include "mpiprocessor_decl.hpp"
 #include "config.hpp"
 #include "mpidevice.hpp"
 #include "mpithread.hpp"
@@ -29,265 +30,143 @@
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
 
-namespace nanos {
-    namespace ext {
+using namespace nanos;
+using namespace ext;
+    
 
-        class MPIProcessor : public CachedAccelerator<MPIDevice> {
-        private:
-            // config variables
-            static bool _useUserThreads;
-            static size_t _threadsStackSize;
-            static size_t _bufferDefaultSize;
-            static char* _bufferPtr;
-            
-            //MPI Node data
-            static size_t _cacheDefaultSize;
-            static System::CachePolicyType _cachePolicy;
-            //! Save OmpSS-mpi filename
-            static std::string _mpiExecFile;
-            static std::string _mpiLauncherFile;
-            static std::string _mpiFilename;
-            static std::string _mpiHosts;
-            static std::string _mpiHostsFile;      
-            static int _numPrevPEs;
-            static int _numFreeCores;
-            static int _currPE;
-            static bool _inicialized;
-            static int _currentTaskParent;      
-            static size_t _alignThreshold;          
-            static size_t _alignment;          
-            static size_t _maxWorkers;
-            
-            
-            MPI_Comm _communicator;
-            int _rank;
-            bool _owner;
-            bool _shared;
-            Atomic<bool> _busy;
-            WorkDescriptor* _currExecutingWd;
-            int _currExecutingDD;
-            
+System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
+size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
+size_t MPIProcessor::_alignThreshold = 128;
+size_t MPIProcessor::_alignment = 4096;
+size_t MPIProcessor::_maxWorkers = 1;
+size_t MPIProcessor::_bufferDefaultSize = 0;
+char* MPIProcessor::_bufferPtr = 0;
+Lock MPIProcessor::_taskLock;
+int MPIProcessor::_currTaskIdentifier=0;
+std::string MPIProcessor::_mpiExecFile;
+std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/ompss_mpi_launch.sh";
+std::string MPIProcessor::_mpiHosts;
+std::string MPIProcessor::_mpiHostsFile;
+int MPIProcessor::_numPrevPEs=-1;
+int MPIProcessor::_numFreeCores;
+int MPIProcessor::_currPE;
+bool MPIProcessor::_inicialized=false;
+bool MPIProcessor::_useMultiThread=false;
+int MPIProcessor::_currentTaskParent=-1;
 
-            // disable copy constructor and assignment operator
-            MPIProcessor(const MPIProcessor &pe);
-            const MPIProcessor & operator=(const MPIProcessor &pe);
+size_t MPIProcessor::getCacheDefaultSize() {
+    return _cacheDefaultSize;
+}
 
+System::CachePolicyType MPIProcessor::getCachePolicy() {
+    return _cachePolicy;
+}
 
-        public:
-            
-            //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned, bool shared);
+MPI_Comm MPIProcessor::getCommunicator() const {
+    return _communicator;
+}
 
-            virtual ~MPIProcessor() {
-            }
-            
-            static size_t getCacheDefaultSize() {
-                return _cacheDefaultSize;
-            }
+std::string MPIProcessor::getMpiHosts() {
+    return _mpiHosts;
+}
+std::string MPIProcessor::getMpiHostsFile() {
+    return _mpiHostsFile;
+}
 
-            static System::CachePolicyType getCachePolicy() {
-                return _cachePolicy;
-            }
+std::string MPIProcessor::getMpiLauncherFile() {
+    return _mpiLauncherFile;
+}
 
-            MPI_Comm getCommunicator() const {
-                return _communicator;
-            }
+size_t MPIProcessor::getAlignment() {
+    return _alignment;
+}
 
-            static std::string getMpiFilename() {
-                return _mpiFilename;
-            }
+size_t MPIProcessor::getAlignThreshold() {
+    return _alignThreshold;
+}
 
-            static std::string getMpiHosts() {
-                return _mpiHosts;
-            }
-            static std::string getMpiHostsFile() {
-                return _mpiHostsFile;
-            }
+int MPIProcessor::getCurrentTaskParent() {
+    return _currentTaskParent;
+}
 
-            static std::string getMpiLauncherFile() {
-                return _mpiLauncherFile;
-            }
-            
-            static size_t getAlignment() {
-                return _alignment;
-            }
-            
-            static size_t getAlignThreshold() {
-                return _alignThreshold;
-            }
-                         
-            static int getCurrentTaskParent() {
-                return _currentTaskParent;
-            }
+Lock& MPIProcessor::getTaskLock() {
+    return _taskLock;
+}
 
-            static void setCurrentTaskParent(int parentId) {
-                _currentTaskParent = parentId;
-            }
- 
-            int getRank() const {
-                return _rank;
-            }
-            
-            bool getOwner() const {
-                return _owner;
-            }
-            
-            void setOwner(bool owner) {
-                _owner=owner;
-            }
-            
-            bool getShared() const {
-                return _shared;
-            }     
+int MPIProcessor::getCurrTaskIdentifier() {
+    return _currTaskIdentifier;
+}
 
-            WD* getCurrExecutingWd() const {
-                return _currExecutingWd;
-            }
+void MPIProcessor::setCurrTaskIdentifier(int val) {
+    _currTaskIdentifier=val;
+}
 
-            void setCurrExecutingWd(WD* currExecutingWd) {
-                this->_currExecutingWd = currExecutingWd;
-            }
+void MPIProcessor::setCurrentTaskParent(int parentId) {
+    _currentTaskParent = parentId;
+}
 
-            bool isBusy() const {
-                return _busy.value();
-            }
+int MPIProcessor::getRank() const {
+    return _rank;
+}
 
-            void setBusy(bool busy) {
-                _busy = busy;
-            }       
-            
-            //Try to reserve this PE, if the one who reserves it is the same
-            //which already has the PE, return true
-            inline bool testAndSetBusy(int dduid) {
-                if (dduid==_currExecutingDD) return true;
-                Atomic<bool> expected = false;
-                Atomic<bool> value = true;
-                bool ret= _busy.cswap( expected, value );
-                if (ret){                    
-                  _currExecutingDD=dduid;
-                }
-                return ret;
-            }     
-            
-            int getCurrExecutingDD() const {
-                return _currExecutingDD;
-            }
+bool MPIProcessor::getOwner() const {
+    return _owner;
+}
 
-            void setCurrExecutingDD(int currExecutingDD) {
-                this->_currExecutingDD = currExecutingDD;
-            }
-            
-            virtual WD & getWorkerWD() const;
-            virtual WD & getMasterWD() const;
-            virtual BaseThread & createThread(WorkDescriptor &wd);
+void MPIProcessor::setOwner(bool owner) {
+    _owner=owner;
+}
 
-            static void prepareConfig(Config &config);
+bool MPIProcessor::getHasWorkerThread() const {
+    return _hasWorkerThread;
+}
 
-            static void setMpiExename(char* new_name);
+void MPIProcessor::setHasWorkerThread(bool hwt) {
+    _hasWorkerThread=hwt;
+}
 
-            static std::string getMpiExename();
+bool MPIProcessor::getShared() const {
+    return _shared;
+}     
 
-            static void DEEP_Booster_free(MPI_Comm *intercomm, int rank);
+WD* MPIProcessor::getCurrExecutingWd() const {
+    return _currExecutingWd;
+}
 
-            // capability query functions
+void MPIProcessor::setCurrExecutingWd(WD* currExecutingWd) {
+    this->_currExecutingWd = currExecutingWd;
+}
 
-            virtual bool supportsUserLevelThreads() const {
-                return false;
-            }       
-            /**
-             * Nanos MPI override
-             **/                        
-            
-            static int getNextPEId();
-            
-            static void nanosMPIInit(int* argc, char ***argv, int required, int* provided);
-            
-            static void nanosMPIFinalize();
-                        
-            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset);  
-            
-            static int nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
-                    MPI_Comm comm);
+bool MPIProcessor::isBusy() const {
+    return _busy.value();
+}
 
-            static int nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
-                    MPI_Comm comm, MPI_Status *status); 
+void MPIProcessor::setBusy(bool busy) {
+    _busy = busy;
+}       
 
-            static int nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int dest,
-                    MPI_Comm comm);
-
-            static int nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,
-                    MPI_Comm comm, MPI_Status *status);
-
-            static int nanosMPISendDatastruct(void *buf, int count, MPI_Datatype datatype, int dest,
-                    MPI_Comm comm);
-
-            static int nanosMPIRecvDatastruct(void *buf, int count, MPI_Datatype datatype, int source,
-                    MPI_Comm comm, MPI_Status *status);
-
-            static int nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-                    MPI_Comm comm);
-            
-            static int nanosMPISsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-                    MPI_Comm comm);
-            
-            static int nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-             MPI_Comm comm,MPI_Request *req);
-
-            static int nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                    MPI_Comm comm, MPI_Status *status);
-            
-            static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
-                    MPI_Datatype array_of_types[], MPI_Datatype *newtype);
-            
-            static void nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
-                    unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])());
-            
-            static int nanosMPIWorker(void (*ompss_mpi_func_pointers_dev[])());
-            
-            static void mpiOffloadSlaveMain();
-            
-            //Search function pointer and get index
-            static int ompssMpiGetFunctionIndexHost(void* func_pointer);
-            
-        };   
-
-        // Macros to instrument the code and make it cleaner
-        #define NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( \
-              sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ), (x) ); )
-
-        #define NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT       NANOS_INSTRUMENT( \
-              sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-mpi-runtime" ), 0 ); )
-
-
-        typedef enum {
-           NANOS_MPI_NULL_EVENT,                            /* 0 */
-           NANOS_MPI_ALLOC_EVENT,                          /* 1 */
-           NANOS_MPI_FREE_EVENT,                            /* 2 */
-           NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT,                     /* 3 */
-           NANOS_MPI_COPYIN_SYNC_EVENT,                         /* 4 */
-           NANOS_MPI_COPYOUT_SYNC_EVENT,                 /* 5 */
-           NANOS_MPI_COPYDEV2DEV_SYNC_EVENT,                 /* 6 */
-           NANOS_MPI_DEEP_BOOSTER_FREE_EVENT,                     /* 7 */
-           NANOS_MPI_INIT_EVENT,                     /* 8 */
-           NANOS_MPI_FINALIZE_EVENT,                     /* 9 */
-           NANOS_MPI_SEND_EVENT,                     /* 10 */
-           NANOS_MPI_RECV_EVENT,                     /* 11 */
-           NANOS_MPI_SSEND_EVENT,                     /* 12 */
-           NANOS_MPI_COPYLOCAL_SYNC_EVENT,                     /* 13 */
-           NANOS_MPI_REALLOC_EVENT,                     /* 14 */
-           NANOS_MPI_WAIT_FOR_COPIES_EVENT,                     /* 15 */
-           NANOS_MPI_RNODE_COPYIN_EVENT,                     /* 16 */
-           NANOS_MPI_RNODE_COPYOUT_EVENT,                     /* 17 */
-           NANOS_MPI_RNODE_DEV2DEV_IN_EVENT,                     /* 18 */
-           NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT,                     /* 19 */
-           NANOS_MPI_RNODE_ALLOC_EVENT,                     /* 20 */
-           NANOS_MPI_RNODE_REALLOC_EVENT,                     /* 21 */
-           NANOS_MPI_RNODE_FREE_EVENT,                     /* 22 */
-           NANOS_MPI_RNODE_COPYLOCAL_EVENT,                     /* 23 */
-           NANOS_MPI_GENERIC_EVENT                         /* 24 */
-        } in_mpi_runtime_event_value;
-
+//Try to reserve this PE, if the one who reserves it is the same
+//which already has the PE, return true
+bool MPIProcessor::testAndSetBusy(int dduid) {
+    if (dduid==_currExecutingDD) return true;
+    Atomic<bool> expected = false;
+    Atomic<bool> value = true;
+    bool ret= _busy.cswap( expected, value );
+    if (ret){                    
+      _currExecutingDD=dduid;
     }
+    return ret;
+}     
 
+int MPIProcessor::getCurrExecutingDD() const {
+    return _currExecutingDD;
+}
+
+void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
+    this->_currExecutingDD = currExecutingDD;
+}
+
+void MPIProcessor::appendToPendingRequests(MPI_Request& req) {
+    _pendingReqs.push_back(req);
 }
 #endif

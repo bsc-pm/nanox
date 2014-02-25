@@ -5,6 +5,7 @@ mpi_api_sources = \
 
 mpi_sources = \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor_fwd.hpp \
+	$(top_srcdir)/src/arch/mpi/mpiprocessor_decl.hpp \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor.hpp \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor.cpp \
 	$(top_srcdir)/src/arch/mpi/mpidevice_decl.hpp \

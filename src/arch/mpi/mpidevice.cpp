@@ -22,7 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "mpidd.hpp"
-#include "mpiprocessor.hpp"
+#include "mpiprocessor_decl.hpp"
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
@@ -37,7 +37,7 @@ using namespace nanos;
 MPI_Datatype MPIDevice::cacheStruct;
 Directory* MPIDevice::_masterDir;
 char MPIDevice::_executingTask=0;
-int MPIDevice::_numCopiesPerformed=0;
+bool MPIDevice::_createdExtraWorkerThread=false;
 
 MPIDevice::MPIDevice(const char *n) : Device(n) {
 }
@@ -133,10 +133,8 @@ bool MPIDevice::copyIn(void *localDst, CopyDescriptor &remoteSrc, size_t size, P
     //printf("Dir copyin host%p a device %p, size %lu\n",(void*) order.hostAddr,(void*) order.devAddr,order.size);
     nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
     nanos::ext::MPIProcessor::nanosMPIIsend((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator(), &req);
-    nanos::ext::MPIThread * mpiThread = dynamic_cast<nanos::ext::MPIThread *>(myThread);
-    if (mpiThread) mpiThread->increaseCopyInCount();
     //Free the request (we no longer care about when it finishes, offload process will take care of that)
-    MPI_Request_free(&req);
+    //MPI_Request_free(&req);
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->getRank(), TAG_CACHE_ANSWER_CIN, myPE->_communicator, MPI_STATUS_IGNORE );
     //std::cerr << "Fin copyin\n";
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -150,6 +148,12 @@ bool MPIDevice::copyOut(CopyDescriptor &remoteDst, void *localSrc, size_t size, 
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYOUT_SYNC_EVENT);
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
     cacheOrder order;
+    //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
+    if (myPE->getCurrExecutingWd()!=NULL && !myPE->getHasWorkerThread()) {        
+      order.opId = OPID_CREATEAUXTHREAD;
+      nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+      myPE->setHasWorkerThread(true);
+    }
     order.opId = OPID_COPYOUT;
     order.devAddr = (uint64_t) localSrc;
     order.hostAddr = (uint64_t) remoteDst.getTag();    
@@ -194,8 +198,13 @@ bool MPIDevice::copyDevToDev(void * addrDst, CopyDescriptor& cdDst, void * addrS
     MPI_Comm_compare(src->getCommunicator(),dst->getCommunicator(),&res);
     //If both devices are in the same comunicator, they can do a dev2dev communication, otherwise go through host
     if (res == MPI_IDENT){
-        //MPI_Status status;
         cacheOrder order;
+        //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
+        if (src->getCurrExecutingWd()!=NULL && !src->getHasWorkerThread()) {        
+          order.opId = OPID_CREATEAUXTHREAD;
+          nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, src->getRank(), TAG_CACHE_ORDER, src->getCommunicator());
+          src->setHasWorkerThread(true);
+        }
         //Send the destination rank together with DEV2DEV OPID (we'll substract it on remote node)
         order.opId = OPID_DEVTODEV+dst->getRank();
         order.devAddr = (uint64_t) dst;
@@ -210,8 +219,8 @@ bool MPIDevice::copyDevToDev(void * addrDst, CopyDescriptor& cdDst, void * addrS
         nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, dst->getRank(), TAG_CACHE_ORDER, dst->getCommunicator());
         //Wait for ACK from receiver
         //printf("espero ACK\n");
-        short ans;
-        nanos::ext::MPIProcessor::nanosMPIRecv(&ans, 1, MPI_SHORT, dst->getRank(), TAG_CACHE_ANSWER_DEV2DEV, dst->getCommunicator(), MPI_STATUS_IGNORE );
+        //short ans;
+        //nanos::ext::MPIProcessor::nanosMPIRecv(&ans, 1, MPI_SHORT, dst->getRank(), TAG_CACHE_ANSWER_DEV2DEV, dst->getCommunicator(), MPI_STATUS_IGNORE );
     } else {
         copyOut(cdDst,addrSrc,size,peSrc);
         copyIn(addrDst,cdDst,size,peDst);
@@ -233,50 +242,28 @@ void MPIDevice::initMPICacheStruct() {
 
 void MPIDevice::taskPreInit(MPI_Comm& comm, int pendingCopies){
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_WAIT_FOR_COPIES_EVENT);
-    //Wait so all copies have finished (no need to use atomic, sooner or later we'll see the modification)
-    while (pendingCopies<_numCopiesPerformed) {}
-    _numCopiesPerformed=0;
-    //int flag=0;
-    //MPI_Status status;
-    
-    //if we can acquire, it means that there is no copy going on
-    //while (doingCopyIn) { usleep(10000);};
-    //Test if there are no copies pending (flag==0)
-    //MPI_Iprobe( 0, TAG_CACHE_ORDER, comm, &flag, MPI_STATUS_IGNORE  );
-//    while (flag!=0){
-//          //Let the cache thread take the lock and keep working...
-//          usleep(100);
-//          //if we can acquire, it means that there is no copy going on
-//          cacheLock.acquire();
-//          //Test if there are no copies pending (flag==0)
-//          MPI_Iprobe( 0, TAG_CACHE_ORDER, comm, &flag, MPI_STATUS_IGNORE  );
-//          cacheLock.release();
-//    }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
 void MPIDevice::taskPostFinish(MPI_Comm& comm){
     _executingTask=0;
-    //int flag=0;
-    //MPI_Status status;
-    
-    //if we can acquire, it means that there is no copy going on
-    //while (doingCopyIn) { usleep(10000);};
-    //Test if there are no copies pending (flag==0)
-    //MPI_Iprobe( 0, TAG_CACHE_ORDER, comm, &flag, MPI_STATUS_IGNORE  );
-//    while (flag!=0){
-//          //Let the cache thread take the lock and keep working...
-//          usleep(100);
-//          //if we can acquire, it means that there is no copy going on
-//          cacheLock.acquire();
-//          //Test if there are no copies pending (flag==0)
-//          MPI_Iprobe( 0, TAG_CACHE_ORDER, comm, &flag, MPI_STATUS_IGNORE  );
-//          cacheLock.release();
-//    }
+}
+
+static void createWorkerThread(){    
+    //Create extra worker thread
+    MPI_Comm mworld= MPI_COMM_WORLD;
+    int nextId=nanos::ext::MPIProcessor::getNextPEId();
+    if (nextId!=-1){
+        nextId=sys.getBindingId(nextId);
+    }
+    PE *mpi = NEW nanos::ext::MPIProcessor(nextId, &mworld, CACHETHREADRANK,-1, false, false);
+    nanos::ext::MPIDD * dd = NEW nanos::ext::MPIDD((nanos::ext::MPIDD::work_fct) nanos::ext::MPIProcessor::nanosMPIWorker);
+    WD *wd = NEW WD(dd);
+    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
+    mpi->startThread(*wd);
 }
 
 void MPIDevice::mpiCacheWorker() {
-    _numCopiesPerformed=0;
     //myThread = myThread->getNextThread();
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);    
@@ -286,178 +273,61 @@ void MPIDevice::mpiCacheWorker() {
     if (parentcomm != 0 && parentcomm != MPI_COMM_NULL) {
         MPI_Status status;
         //short ans=1;
-        cacheOrder order;      
+        cacheOrder order;  
+        int task_id;    
         int parentRank=0;
+        int firstParent=-1;
         while(1) {
-            //if (!t->isRunning()) break; //{ //std::cerr << "FINISHING MPI THD!" << std::endl; break; }
-            //if (sys.getNetwork()->getNodeNum() == 0  ) //std::cerr <<"ppp poll " << myThread->getId() << std::endl;
-            //MPI_Comm_get_parent(&parentcomm);
-            //TODO: Check if this is faster than sending ack's to the host  
-//            int pendingMessage=0;
-//            } else if (pendingMessage==1) {       
-                MPI_Recv(&order, 1, cacheStruct, MPI_ANY_SOURCE , TAG_CACHE_ORDER, parentcomm, &status);
+                MPI_Probe(MPI_ANY_SOURCE,MPI_ANY_TAG,parentcomm,&status);
                 parentRank=status.MPI_SOURCE;
-        //printf("recv con tag %d, desde %d\n",tag,source);
-                 // MPI_Recv(buf, count, datatype, source, tag, comm, MPI_STATUS_IGNORE );
-    //            if (!(order.opId==OPID_COPYIN || order.opId>=OPID_DEVTODEV || order.opId<=0 )){
-    //                doingCopyIn=false;
-    //            }
-                //TODO: make this operation single-message
-                //and check performance with probe+remake struct datatype+single-message vs dual message
-                switch (order.opId) {
-//                    case OPID_CONTROL:
-//                    {
-//                        char send=_executingTask;
-//                        nanos::ext::MPIProcessor::nanosMPISend(&send, 1, MPI_CHAR, parentRank, TAG_EXEC_CONTROL, parentcomm);
-//                    }
-                    case OPID_FINISH:                        
-                        return;
-                    case OPID_COPYIN:
-                    {    
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);
-                        //std::cerr << "Hago un CopyIn en device\n";
-                        //printf("Dir copyin%p, size %lu\n",(void*) order.devAddr,order.size);
-                        //int incoming_msg_size;
-                        //MPI_Probe(MPI_ANY_SOURCE, 98, parentcomm, MPI_STATUS_IGNORE );
-                        //MPI_Get_count(MPI_STATUS_IGNORE , MPI_BYTE, &incoming_msg_size);
-                        //MPI_Comm_get_parent(&parentcomm);
-                        nanos::ext::MPIProcessor::nanosMPIRecv((void*) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_IN, parentcomm, MPI_STATUS_IGNORE );
-                        DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-                        if (ent != NULL) 
-                        { 
-                           if (ent->getOwner() != NULL) {
-                              ent->getOwner()->invalidate( *_masterDir, (uint64_t) order.devAddr, ent);
-                           } else {
-                              ent->increaseVersion();
-                           }
+                if (status.MPI_TAG==TAG_INI_TASK) {
+                    //If our node is used by more than one parent
+                    //create the worker thread as we may have cache orders from
+                    //one node while executing tasks from the other node
+                    if (firstParent!=parentRank && !_createdExtraWorkerThread) {
+                        if (firstParent==-1) {
+                            firstParent=parentRank;
+                        } else {
+                            createWorkerThread();
+                            _createdExtraWorkerThread=true;                            
                         }
-                        _numCopiesPerformed++;
-
-                        //float* arr= (float*) order.devAddr;
-                        //printf("Copio valor %f\n",arr[2047]);
-
-                        //nanoxRegisterMPICopyIn(order.devAddr, order.hostAddr, order.size, order.opId);
-                        //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_CIN, parentcomm);
-
-                        //std::cerr << "Fin un CopyIn en device\n";
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
                     }
-                    case OPID_COPYOUT:
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYOUT_EVENT);
-                        //printf("Hago un copyOut de device %p\n",(void *) order.devAddr);
-                        DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-                        if (ent != NULL) 
+                    nanos::ext::MPIProcessor::nanosMPIRecvTaskinit(&task_id, 1, MPI_INT, parentRank, parentcomm, MPI_STATUS_IGNORE);
+                    nanos::ext::MPIProcessor::setCurrTaskIdentifier(task_id);
+                    nanos::ext::MPIProcessor::setCurrentTaskParent(status.MPI_SOURCE);
+                    if (_createdExtraWorkerThread) {
+                        //Notify the executer thread
+                        nanos::ext::MPIProcessor::getTaskLock().release();
+                    } else {                       
+                        //Execute the task in current thread
+                        nanos::ext::MPIProcessor::executeTask(task_id);
+                    }
+                } else {
+                    MPI_Recv(&order, 1, cacheStruct, parentRank , TAG_CACHE_ORDER, parentcomm, MPI_STATUS_IGNORE);
+                    switch (order.opId) {
+                        case OPID_CREATEAUXTHREAD: 
                         {
-                           if (ent->getOwner() != NULL )
-                              if ( !ent->isInvalidated() )
-                              {
-                                 std::list<uint64_t> tagsToInvalidate;
-                                 tagsToInvalidate.push_back( ( uint64_t ) order.devAddr );
-                                 _masterDir->synchronizeHost( tagsToInvalidate );
-                              }
+                            //Only create once (multiple requests may come
+                            //since different parents do not query the status of the thread)
+                            //ignore extra ones
+                            if (!_createdExtraWorkerThread) {
+                                createWorkerThread();
+                                _createdExtraWorkerThread=true;
+                            }
                         }
-                        nanos::ext::MPIProcessor::nanosMPISend((void *) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_OUT, parentcomm);
-                        //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_COUT, parentcomm);
-                        //std::cerr << "Fin copyOut en device\n";
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    case OPID_FREE:
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
-                        //std::cerr << "Hago un free en device\n";
-                        //nanoxRegisterMPIFree((void*)order.devAddr, order.size);
-                        std::free((char *) order.devAddr);
-                        //printf("Dir free%p\n",(char*) order.devAddr);    
-    //                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-    //                    if (ent != NULL) 
-    //                    {
-    //                        ent->setInvalidated(true);
-    //                    }
-                        //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER_FREE, parentcomm);
-
-                        //std::cerr << "Fin free en device\n";
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    case OPID_ALLOCATE:           
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
-                        //std::cerr << "Hago un allocate en device\n";
-                        char* ptr;                        
-                        if (order.size<alignThreshold){
-                           ptr = (char*) malloc(order.size);
-                        } else {
-                           posix_memalign((void**)&ptr,alignment,order.size);
+                        case OPID_FINISH:    
+                        {
+                            nanos::ext::MPIProcessor::setCurrTaskIdentifier(-1);   
+                            if (_createdExtraWorkerThread) {
+                               nanos::ext::MPIProcessor::getTaskLock().release();      
+                            } else {							
+                               nanos::ext::MPIProcessor::executeTask(-1);   
+                            }
                         }
-                        order.devAddr = (uint64_t) ptr;
-                        //printf("Dir alloc%p size %lu\n",(void*) order.devAddr,order.size);
-                        //MPI_Comm_get_parent(&parentcomm);
-                        nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_ALLOC, parentcomm);
-                        //std::cerr << "Fin allocate en device\n";
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }    
-                    case OPID_REALLOC:           
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
-                        //std::cerr << "Hago un reallocate en device\n";
-                        std::free((char *) order.devAddr);
-                        char* ptr;                        
-                        if (order.size<alignThreshold){
-                           ptr = (char*) malloc(order.size);
-                        } else {
-                           posix_memalign((void**)&ptr,alignment,order.size);
-                        }
-                        ////printf("Realloc %d, %d\n", order.size,order.old_size);
-                        ////printf("Copio de %p a %p, tam %d\n",(void*)  order.devAddr, ptr, order.old_size);
-                        //printf("Copio valor %p\n",((void*)  order.devAddr));                    
-                        //TODO: CHECK THIS, it's probably wrong
-                        DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
-                        if (ent != NULL) 
-                        { 
-                           if (ent->getOwner() != NULL) 
-                           {
-                              ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
-                           }
-                        }
-                        //memcpy(ptr, (void*)  order.devAddr, order.old_size);
-                        order.devAddr = (uint64_t) ptr;
-                        //MPI_Comm_get_parent(&parentcomm);
-                        nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_REALLOC, parentcomm);
-                        //std::cerr << "Fin reallocate en device\n";
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    case OPID_COPYLOCAL:
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYLOCAL_EVENT);
-                        //std::cerr << "Hago un copylocal en device\n";
-                        memcpy((void*) order.devAddr, (void*) order.hostAddr, order.size);
-                        //nanos::ext::MPIProcessor::nanos_MPI_Send(&ans, 1, MPI_SHORT, 0, TAG_CACHE_ANSWER, parentcomm);
-                        //std::cerr << "Fin un copylocal en device\n";
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    //If not a fixed code, its a dev2dev copy where i act as the source
-                    default:
-                    {
-                        //printf("entro en default %d\n", order.opId);
-                        //Opid >= DEV2DEV (largest OPID) is dev2dev+rank
-                        if (order.opId>=OPID_DEVTODEV){
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT);
-                            //std::cerr << "Hago un dev 2  sender device " << order.opId-OPID_DEVTODEV << "\n";
-                            //Get the rank
-                            int dstRank=order.opId-OPID_DEVTODEV;
-                            //MPI_Comm_get_parent(&parentcomm);
-                            nanos::ext::MPIProcessor::nanosMPISend((void *) order.hostAddr, order.size, MPI_BYTE, dstRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD);
-                            //std::cerr << "Fin dev2dev spource en device\n";
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        //Opid <= 0 (largest OPID) is -rank (in a dev2dev communication)
-                        } else if (order.opId<=0) {
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_IN_EVENT);
+                        case OPID_COPYIN:
+                        {    
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);
+                            nanos::ext::MPIProcessor::nanosMPIRecv((void*) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_IN, parentcomm, MPI_STATUS_IGNORE );
                             DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
                             if (ent != NULL) 
                             { 
@@ -467,23 +337,116 @@ void MPIDevice::mpiCacheWorker() {
                                   ent->increaseVersion();
                                }
                             }
-                            //std::cerr << "Hago un dev 2 recv device " << -order.opId << "\n";
-                            //Do the inverse operation of the host
-                            int srcRank=-order.opId;
-
-                            nanos::ext::MPIProcessor::nanosMPIRecv((void *) order.devAddr, order.size, MPI_BYTE, srcRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD, MPI_STATUS_IGNORE );                        
-                            //Send ACK to host
-                            short ans;
-                            nanos::ext::MPIProcessor::nanosMPISend(&ans, 1, MPI_SHORT, parentRank, TAG_CACHE_ANSWER_DEV2DEV, parentcomm);
-                            //std::cerr << "Fin dev2dev receiver en device\n";
                             NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            break;
                         }
-                        break;
-                  }
-               //}
-            //if ( sys.getNetwork()->getNodeNum() == 0 ) //std::cerr <<"ppp poll complete " << myThread->getId() << std::endl;
-            //if ( sys.getNetwork()->getNodeNum() == 0 ) //std::cerr << "thread change! " << std::endl;
-            //myThread = myThread->getNextThread();
+                        case OPID_COPYOUT:
+                        {
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYOUT_EVENT);
+                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+                            if (ent != NULL) 
+                            {
+                               if (ent->getOwner() != NULL )
+                                  if ( !ent->isInvalidated() )
+                                  {
+                                     std::list<uint64_t> tagsToInvalidate;
+                                     tagsToInvalidate.push_back( ( uint64_t ) order.devAddr );
+                                     _masterDir->synchronizeHost( tagsToInvalidate );
+                                  }
+                            }
+                            nanos::ext::MPIProcessor::nanosMPISend((void *) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_OUT, parentcomm);
+                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            break;
+                        }
+                        case OPID_FREE:
+                        {
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
+                            std::free((char *) order.devAddr);
+                            //printf("Dir free%p\n",(char*) order.devAddr);    
+        //                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+        //                    if (ent != NULL) 
+        //                    {
+        //                        ent->setInvalidated(true);
+        //                    }
+                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            break;
+                        }
+                        case OPID_ALLOCATE:           
+                        {
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
+                            char* ptr;                        
+                            if (order.size<alignThreshold){
+                               ptr = (char*) malloc(order.size);
+                            } else {
+                               posix_memalign((void**)&ptr,alignment,order.size);
+                            }
+                            order.devAddr = (uint64_t) ptr;
+                            nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_ALLOC, parentcomm);
+                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            break;
+                        }    
+                        case OPID_REALLOC:           
+                        {
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
+                            std::free((char *) order.devAddr);
+                            char* ptr;                        
+                            if (order.size<alignThreshold){
+                               ptr = (char*) malloc(order.size);
+                            } else {
+                               posix_memalign((void**)&ptr,alignment,order.size);
+                            }
+                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
+                            if (ent != NULL) 
+                            { 
+                               if (ent->getOwner() != NULL) 
+                               {
+                                  ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
+                               }
+                            }
+                            order.devAddr = (uint64_t) ptr;
+                            nanos::ext::MPIProcessor::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_REALLOC, parentcomm);
+                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            break;
+                        }
+                        case OPID_COPYLOCAL:
+                        {
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYLOCAL_EVENT);
+                            memcpy((void*) order.devAddr, (void*) order.hostAddr, order.size);
+                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            break;
+                        }
+                        //If not a fixed code, its a dev2dev copy where i act as the source
+                        default:
+                        {
+                            //Opid >= DEV2DEV (largest OPID) is dev2dev+rank
+                            if (order.opId>=OPID_DEVTODEV){
+                                NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT);
+                                //Get the rank
+                                int dstRank=order.opId-OPID_DEVTODEV;
+                                //MPI_Comm_get_parent(&parentcomm);
+                                nanos::ext::MPIProcessor::nanosMPISend((void *) order.hostAddr, order.size, MPI_BYTE, dstRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD);
+                                NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            //Opid <= 0 (largest OPID) is -rank (in a dev2dev communication)
+                            } else if (order.opId<=0) {
+                                NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_IN_EVENT);
+                                DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+                                if (ent != NULL) 
+                                { 
+                                   if (ent->getOwner() != NULL) {
+                                      ent->getOwner()->invalidate( *_masterDir, (uint64_t) order.devAddr, ent);
+                                   } else {
+                                      ent->increaseVersion();
+                                   }
+                                }
+                                //Do the inverse operation of the host
+                                int srcRank=-order.opId;
+
+                                nanos::ext::MPIProcessor::nanosMPIRecv((void *) order.devAddr, order.size, MPI_BYTE, srcRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD, MPI_STATUS_IGNORE );                        
+                                NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                            }
+                            break;
+                      }
+                }
            }
         }
     }

@@ -22,28 +22,11 @@
 #include "debug.hpp"
 #include "config.hpp"
 #include "mpithread.hpp"
+#include <stdlib.h>
 #include <iostream>
 #include <fstream>
 using namespace nanos;
 using namespace nanos::ext;
-
-System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
-size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
-size_t MPIProcessor::_alignThreshold = 128;
-size_t MPIProcessor::_alignment = 4096;
-size_t MPIProcessor::_maxWorkers = 1;
-size_t MPIProcessor::_bufferDefaultSize = 0;
-char* MPIProcessor::_bufferPtr = 0;
-std::string MPIProcessor::_mpiFilename;
-std::string MPIProcessor::_mpiExecFile;
-std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/ompss_mpi_launch.sh";
-std::string MPIProcessor::_mpiHosts;
-std::string MPIProcessor::_mpiHostsFile;
-int MPIProcessor::_numPrevPEs=-1;
-int MPIProcessor::_numFreeCores;
-int MPIProcessor::_currPE;
-bool MPIProcessor::_inicialized=false;
-int MPIProcessor::_currentTaskParent=-1;
 
 extern __attribute__((weak)) int ompss_mpi_masks[1U];
 extern __attribute__((weak)) unsigned int ompss_mpi_filenames[1U];
@@ -52,7 +35,7 @@ extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[1U];
 extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[1];
 extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[1])();
 
-MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared) : CachedAccelerator<MPIDevice>(id, &MPI, uid) {
+MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared) : _pendingReqs(), CachedAccelerator<MPIDevice>(id, &MPI, uid) {
     _communicator = *((MPI_Comm *)communicator);
     _rank = rank;
     _owner=owner;
@@ -60,27 +43,28 @@ MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool o
     _currExecutingWd=NULL;
     _busy=false;
     _currExecutingDD=0;
+    _hasWorkerThread=false;
     configureCache(MPIProcessor::getCacheDefaultSize(), MPIProcessor::getCachePolicy());
 }
 
 void MPIProcessor::prepareConfig(Config &config) {
 
-    config.registerConfigOption("mpi-exec", NEW Config::StringVar(_mpiExecFile), "Defines executable path (in child nodes) used in DEEP_Booster_Alloc");
-    config.registerArgOption("mpi-exec", "mpi-exec");
-    config.registerEnvOption("mpi-exec", "NX_MPIEXEC");
+    config.registerConfigOption("offl-exec", NEW Config::StringVar(_mpiExecFile), "Defines executable path (in child nodes) used in DEEP_Booster_Alloc");
+    config.registerArgOption("offl-exec", "offl-exec");
+    config.registerEnvOption("offl-exec", "NX_OFFL_EXEC");
     
-    config.registerConfigOption("mpi-launcher", NEW Config::StringVar(_mpiLauncherFile), "Defines launcher script path (in child nodes) used in DEEP_Booster_Alloc");
-    config.registerArgOption("mpi-launcher", "mpi-launcher");
-    config.registerEnvOption("mpi-launcher", "NX_MPILAUNCHER");
+    config.registerConfigOption("offl-launcher", NEW Config::StringVar(_mpiLauncherFile), "Defines launcher script path (in child nodes) used in DEEP_Booster_Alloc");
+    config.registerArgOption("offl-launcher", "offl-launcher");
+    config.registerEnvOption("offl-launcher", "NX_OFFL_LAUNCHER");
     
 
-    config.registerConfigOption("mpihostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n\nEnvironment variables for the host can be specified separated by comma using hostA:n>env_var1,envar2... or hostA>env_var1,envar2...");
-    config.registerArgOption("mpihostfile", "mpihostfile");
-    config.registerEnvOption("mpihostfile", "NX_MPIHOSTFILE");
+    config.registerConfigOption("offl-hostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n\nEnvironment variables for the host can be specified separated by comma using hostA:n>env_var1,envar2... or hostA>env_var1,envar2...");
+    config.registerArgOption("offl-hostfile", "offl-hostfile");
+    config.registerEnvOption("offl-hostfile", "NX_OFFL_HOSTFILE");
 
-    config.registerConfigOption("mpihosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_MPIHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA>env_vars hostB:2>env_vars hostC:3 hostD:4");
-    config.registerArgOption("mpihosts", "mpihosts");
-    config.registerEnvOption("mpihosts", "NX_MPIHOSTS");
+    config.registerConfigOption("offl-hosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_OFFLHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA>env_vars hostB:2>env_vars hostC:3 hostD:4");
+    config.registerArgOption("offl-hosts", "offl-hosts");
+    config.registerEnvOption("offl-hosts", "NX_OFFL_HOSTS");
 
 
     // Set the cache policy for MPI devices
@@ -88,31 +72,37 @@ void MPIProcessor::prepareConfig(Config &config) {
     cachePolicyCfg->addOption("wt", System::WRITE_THROUGH);
     cachePolicyCfg->addOption("wb", System::WRITE_BACK);
     cachePolicyCfg->addOption("nocache", System::NONE);
-    config.registerConfigOption("mpi-cache-policy", cachePolicyCfg, "Defines the cache policy for MPI architectures: write-through / write-back (wb by default)");
-    config.registerEnvOption("mpi-cache-policy", "NX_MPI_CACHE_POLICY");
-    config.registerArgOption("mpi-cache-policy", "mpi-cache-policy");
+    config.registerConfigOption("offl-cache-policy", cachePolicyCfg, "Defines the cache policy for MPI architectures: write-through / write-back (wb by default)");
+    config.registerEnvOption("offl-cache-policy", "NX_OFFL_CACHE_POLICY");
+    config.registerArgOption("offl-cache-policy", "offl-cache-policy");
 
 
-    config.registerConfigOption("mpi-cache-size", NEW Config::SizeVar(_cacheDefaultSize), "Defines size of the cache for MPI allocated devices");
-    config.registerArgOption("mpi-cache-size", "mpi-cache-size");
-    config.registerEnvOption("mpi-cache-size", "NX_MPICACHESIZE");
+//    config.registerConfigOption("offl-cache-size", NEW Config::SizeVar(_cacheDefaultSize), "Defines maximum possible size of the cache for MPI allocated devices (Default: 144115188075855871)");
+//    config.registerArgOption("offl-cache-size", "offl-cache-size");
+//    config.registerEnvOption("offl-cache-size", "NX_OFFLCACHESIZE");
 
 
-    config.registerConfigOption("mpi-buffer-size", NEW Config::SizeVar(_bufferDefaultSize), "Defines size of the nanox MPI Buffer (MPI_Buffer_Attach/detach)");
-    config.registerArgOption("mpi-buffer-size", "mpi-buffer-size");
-    config.registerEnvOption("mpi-buffer-size", "NX_MPIBUFFERSIZE");
+//    config.registerConfigOption("offl-buffer-size", NEW Config::SizeVar(_bufferDefaultSize), "Defines size of the nanox MPI Buffer (MPI_Buffer_Attach/detach)");
+//    config.registerArgOption("offl-buffer-size", "offl-buffer-size");
+//    config.registerEnvOption("offl-buffer-size", "NX_OFFLBUFFERSIZE");
     
-    config.registerConfigOption("mpi-align-threshold", NEW Config::SizeVar(_alignThreshold), "Defines minimum size (bytes) which determines if offloaded variables (copy_in/out) will be aligned (default value: 128), arrays with size bigger or equal than this value will be aligned when offloaded");
-    config.registerArgOption("mpi-align-threshold", "mpi-align-threshold");
-    config.registerEnvOption("mpi-align-threshold", "NX_MPIALIGNTHRESHOLD");
+    config.registerConfigOption("offl-align-threshold", NEW Config::SizeVar(_alignThreshold), "Defines minimum size (bytes) which determines if offloaded variables (copy_in/out) will be aligned (default value: 128), arrays with size bigger or equal than this value will be aligned when offloaded");
+    config.registerArgOption("offl-align-threshold", "offl-align-threshold");
+    config.registerEnvOption("offl-align-threshold", "NX_OFFL_ALIGNTHRESHOLD");
     
-    config.registerConfigOption("mpi-alignment", NEW Config::SizeVar(_alignment), "Defines the alignment (bytes) applied to offloaded variables (copy_in/out) (default value: 4096)");
-    config.registerArgOption("mpi-alignment", "mpi-alignment");
-    config.registerEnvOption("mpi-alignment", "NX_MPIALIGNMENT");
+    config.registerConfigOption("offl-alignment", NEW Config::SizeVar(_alignment), "Defines the alignment (bytes) applied to offloaded variables (copy_in/out) (default value: 4096)");
+    config.registerArgOption("offl-alignment", "offl-alignment");
+    config.registerEnvOption("offl-alignment", "NX_OFFL_ALIGNMENT");
         
-    config.registerConfigOption("mpi-workers", NEW Config::SizeVar(_maxWorkers), "Defines the maximum number of worker threads created per alloc (Default: 1) ");
-    config.registerArgOption("mpi-workers", "mpi-max-workers");
-    config.registerEnvOption("mpi-workers", "NX_MPI_MAX_WORKERS");
+    config.registerConfigOption("offl-workers", NEW Config::SizeVar(_maxWorkers), "Defines the maximum number of worker threads created per alloc (Default: 1) ");
+    config.registerArgOption("offl-workers", "offl-max-workers");
+    config.registerEnvOption("offl-workers", "NX_OFFL_MAX_WORKERS");
+    
+    config.registerConfigOption("offl-cache-thread", NEW Config::BoolVar(_useMultiThread), "Defines if offload processes will have an extra cache thread,"
+        " this is good for applications which need data from other tasks so they don't have to wait until task in owner node finishes. "
+        "(Default: False, but if this kind of behaviour is detected, the thread will be created anyways)");
+    config.registerArgOption("offl-cache-thread", "offl-cache-thread");
+    config.registerEnvOption("offl-cache-thread", "NX_OFFL_CACHE_THREAD");
 }
 
 WorkDescriptor & MPIProcessor::getWorkerWD() const {
@@ -132,14 +122,62 @@ BaseThread &MPIProcessor::createThread(WorkDescriptor &helper) {
     return th;
 }
 
-void MPIProcessor::setMpiExename(char* new_name) {
-    std::string tmp = std::string(new_name);
-    _mpiFilename = tmp;
+void MPIProcessor::clearAllRequests() {
+    //Wait and clear for all the requests
+    MPI_Waitall(_pendingReqs.size(),&_pendingReqs[0],MPI_STATUSES_IGNORE);
+    _pendingReqs.clear();
 }
 
-std::string MPIProcessor::getMpiExename() {
-    return _mpiFilename;
+
+bool MPIProcessor::executeTask(int taskId) {    
+    if (taskId==-1){
+       nanosMPIFinalize(); 
+       return true;
+    } else {                     
+       void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId]; 
+       //nanos::MPIDevice::taskPreInit();
+       function_pointer();       
+       //nanos::MPIDevice::taskPostFinish();
+    }    
+    return false;
 }
+
+int MPIProcessor::getNextPEId() {
+    if (_numPrevPEs==0)  {
+        return -1;
+    }
+    if (_numPrevPEs==-1){
+        _numPrevPEs=sys.getNumCreatedPEs();
+        _numFreeCores=sys.getCpuCount()-_numPrevPEs;
+        _currPE=0;
+        if (_numFreeCores<=0){
+            _numPrevPEs=0;
+            _numFreeCores=sys.getCpuCount();
+            _currPE=sys.getNumCreatedPEs();
+            return -1;
+        }
+    }
+    return (_currPE++%_numFreeCores)+_numPrevPEs;
+}
+
+
+int MPIProcessor::nanosMPIWorker(){
+	bool finalize=false;
+	//Acquire once
+	nanos::ext::MPIProcessor::getTaskLock().acquire();
+	while(!finalize){
+		//Acquire twice and block until cache thread unlocks
+		nanos::ext::MPIProcessor::getTaskLock().acquire();
+		finalize=executeTask(nanos::ext::MPIProcessor::getCurrTaskIdentifier());
+	}     
+    return 0;
+}
+
+/**
+ * Statics (mostly external API adapters provided to user or used by mercurium) begin here
+ */
+
+
 
 //TODO: only works Rank -1, which means free whole communicator
 //I don't know if freeing only a rank makes sense, maybe we'll remove the API call
@@ -168,7 +206,7 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                         if ( (*it)->getOwner() ) 
                         {
                             nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
-                            nanosMPISsend(id, 2, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
+                            //nanosMPISsend(id, 2, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
                             //After sending finalization signals, we are not the owners anymore
                             //This way we prevent finalizing them multiple times if more than one thread uses them
                             (*it)->setOwner(false);
@@ -191,6 +229,8 @@ void MPIProcessor::nanosMPIInit(int *argc, char ***argv, int userRequired, int* 
     if (_inicialized) return;
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_INIT_EVENT);
     verbose0( "loading MPI support" );
+    //Unless user specifies otherwise, enable blocking mode in MPI
+    if (getenv("I_MPI_WAIT_MODE")==NULL) putenv("I_MPI_WAIT_MODE=1");
 
     if ( !sys.loadPlugin( "pe-mpi" ) )
       fatal0 ( "Couldn't load MPI support" );
@@ -225,22 +265,6 @@ void MPIProcessor::nanosMPIInit(int *argc, char ***argv, int userRequired, int* 
         
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);
-    //If this process was not spawned, we don't need this daemon-thread
-    if (parentcomm != 0 && parentcomm != MPI_COMM_NULL) {
-         //In this case we are child, when nanox spawns us, it fills both args
-        if (argc!=0)
-           setMpiExename((*argv)[(*argc)-2]); //This should not be needed
-        
-        //Initialice MPI PE with a communicator and special rank for the cache thread
-        MPI_Comm mworld= MPI_COMM_WORLD;
-        //It will share a core with last SMP PE
-        //THIS PE will not be in the team (uid -1)
-        PE *mpi = NEW nanos::ext::MPIProcessor(sys.getBindingId(getNextPEId()), &mworld, CACHETHREADRANK,-1, false, false);
-        MPIDD * dd = NEW MPIDD((MPIDD::work_fct) nanos::MPIDevice::mpiCacheWorker);
-        WD *wd = NEW WD(dd);
-        NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-        mpi->startThread(*wd);
-    }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
@@ -303,7 +327,7 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         }
     } else if ( !_mpiHostsFile.empty() ){
         std::ifstream infile(_mpiHostsFile.c_str());
-        fatal_cond0(infile.bad(),"DEEP_Booster alloc error, NX_MPIHOSTFILE file not found");
+        fatal_cond0(infile.bad(),"DEEP_Booster alloc error, NX_OFFLHOSTFILE file not found");
         std::string line;
         while( getline( infile, line , '\n') ){            
             if (offset>0) offset--;
@@ -358,12 +382,7 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         char result[ PATH_MAX ];
         ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );  
         std::string result_tmp(result);
-        //If we have _mpiFilename, we are a child, so we use master's executable name
-        if (!_mpiFilename.empty()){
-            result_tmp=_mpiFilename;
-            count=_mpiFilename.size();
-        }
-        fatal_cond0(count==0,"Couldn't identify executable filename, please specify it manually using NX_MPIEXEC environment variable");  
+        fatal_cond0(count==0,"Couldn't identify executable filename, please specify it manually using NX_OFFL_EXEC environment variable");  
         result_str=result_tmp.substr(0,count);    
     }
     //Number of spawns = max length (one instance per host)
@@ -387,16 +406,23 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
             if (host_counter>=tokens_host.size()) host_counter=0;
             host=tokens_host.at(host_counter);
             host_counter++;
-        } while (host.empty());        
+        } while (host.empty());    
         //If host is a file, give it to Intel, otherwise put the host in the spawn
         std::ifstream hostfile(host.c_str());
-        if (hostfile){
+        bool isfile=hostfile;
+        int number_of_lines_in_file=0;
+        if (isfile){     
+            std::string line;
+            while (std::getline(hostfile, line)) {
+                ++number_of_lines_in_file;
+            }
+            
             MPI_Info_set(info, const_cast<char*> ("hostfile"), const_cast<char*> (host.c_str()));
         } else {            
             MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
         }
         array_of_info[spawn_arrays_length]=info;
-        
+        hostfile.close();
         
         //Fill parameter array (including env vars)
         std::stringstream all_param_tmp(tokens_params.at(host_counter-1));
@@ -429,7 +455,10 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         if (ignorePPH){
             curr_host_instances=host_instances.at(host_counter-1);
         } else {
-            curr_host_instances=process_per_host;            
+            curr_host_instances=process_per_host;
+            if (isfile) {
+                curr_host_instances=number_of_lines_in_file*process_per_host;
+            }
         }
         int remaning_spawns=(number_of_spawns-i);
         n_process[spawn_arrays_length]=(curr_host_instances<remaning_spawns)?curr_host_instances:remaning_spawns;//min(host_instances,remaning_spawns)
@@ -472,7 +501,10 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
     int rank=spawn_start; //Balance spawn order so each process starts with his owned processes
-    int bindingId=sys.getBindingId(getNextPEId()); //All the PEs share the same local bind ID (at the end they'll be executed by the same thread)
+    int bindingId=getNextPEId(); //All the PEs share the same local bind ID (at the end they'll be executed by the same thread)
+    if (bindingId!=-1){ //If no free PE, bind to every core
+        bindingId=sys.getBindingId(bindingId);
+    }
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
     for ( int rankCounter=0; rankCounter<number_of_spawns; rankCounter++ ){  
         //Each process will have access to every remote node, but only one master will sync each child
@@ -481,6 +513,14 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
             pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, true, shared);
             nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
+            //If user defined multithread cache behaviour, send the creation order
+            if (_useMultiThread) {                
+                cacheOrder order;
+                //if PE is busy, this means an extra cache-thread could be usefull, send creation signal
+                order.opId = OPID_CREATEAUXTHREAD;
+                nanos::ext::MPIProcessor::nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_CACHE_ORDER, *intercomm);
+                ((MPIProcessor*)pes[rank])->setHasWorkerThread(true);
+            }
         } else {            
             pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, false, shared);
         }
@@ -522,13 +562,8 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
 
 int MPIProcessor::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
         MPI_Comm comm) {
-    //Taskinit receives an integer as datatype
-    nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread*)myThread;
-    int nCopyIns[2];
-    nCopyIns[0]=*((int*)buf);
-    nCopyIns[1]=mpiThread->getCopyInCount();
     //Send task init order and pendingComms counter
-    return nanosMPISend(nCopyIns, 2, MPI_INT, dest, TAG_INI_TASK, comm);
+    return nanosMPISend(buf, count, datatype, dest, TAG_INI_TASK, comm);
 }
 
 int MPIProcessor::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
@@ -626,21 +661,6 @@ int MPIProcessor::nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int 
     return err;
 }
 
-
-int MPIProcessor::getNextPEId() {
-    if (_numPrevPEs==-1){
-        _numPrevPEs=sys.getNumCreatedPEs();
-        _numFreeCores=sys.getCpuCount()-_numPrevPEs;
-        _currPE=0;
-        if (_numFreeCores<=0){
-            _numPrevPEs=0;
-            _numFreeCores=sys.getCpuCount();
-            _currPE=sys.getNumCreatedPEs();
-        }
-    }
-    return (_currPE++%_numFreeCores)+_numPrevPEs;
-}
-
 /**
  * Synchronizes host and device function pointer arrays to ensure that are in the same order
  * in both files (host and device, which are different architectures, so maybe they were not compiled in the same order)
@@ -689,40 +709,14 @@ void MPIProcessor::nanosSyncDevPointers(int* file_mask, unsigned int* file_nameh
     }
 }
 
-int MPIProcessor::nanosMPIWorker(void (*ompss_mpi_func_ptrs_dev[])()){
-    int tmp_buffer[2];
-    int pendingCopies;
-    int ompss_id_func;
-    int err;
-    MPI_Status status;
-    MPI_Comm ompss_parent_comp;
-    err= MPI_Comm_get_parent(&ompss_parent_comp);
-    while(1){
-       err= nanos::ext::MPIProcessor::nanosMPIRecvTaskinit(tmp_buffer, 2, MPI_INT, MPI_ANY_SOURCE, ompss_parent_comp, &status);
-       ompss_id_func=tmp_buffer[0];
-       pendingCopies=tmp_buffer[1];
-       nanos::ext::MPIProcessor::setCurrentTaskParent(status.MPI_SOURCE);
-       if (ompss_id_func==-1){
-          nanosMPIFinalize(); 
-          return 0;
-       } else {                     
-          void (* function_pointer)()=(void (*)()) ompss_mpi_func_ptrs_dev[ompss_id_func];          
-          //Wait until copies have finished before executing the task
-          //err= nanos::ext::MPIProcessor::nanosMPIRecv(&pendingCopies, 1, MPI_INT, status.MPI_SOURCE, TAG_NUM_PENDING_COMMS, ompss_parent_comp, MPI_STATUS_IGNORE);
-          nanos::MPIDevice::taskPreInit(ompss_parent_comp, pendingCopies);
-          function_pointer();       
-          nanos::MPIDevice::taskPostFinish(ompss_parent_comp);
-       }
-    }
-    return err;
-}
 
 void MPIProcessor::mpiOffloadSlaveMain(){    
     //If we are slave, turn on slave mode (which keeps working until shutdown) and exit
     if (getenv("OMPSS_OFFLOAD_SLAVE")){
        nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
        nanos::ext::MPIProcessor::nanosSyncDevPointers(ompss_mpi_masks, ompss_mpi_filenames, ompss_mpi_file_sizes,ompss_mpi_file_ntasks,ompss_mpi_func_pointers_dev);
-       nanos::ext::MPIProcessor::nanosMPIWorker(ompss_mpi_func_pointers_dev);
+       //Start as worker and cache (same thread)
+       nanos::MPIDevice::mpiCacheWorker();
        exit(0);
     }    
 }

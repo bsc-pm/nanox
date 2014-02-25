@@ -19,7 +19,7 @@
 
 #include "mpi.h"
 #include "nanos-mpi.h"
-#include "mpiprocessor.hpp"
+#include "mpiprocessor_decl.hpp"
 #include "system.hpp"
 #include "mpidd.hpp"
 #include <string.h>
@@ -63,15 +63,6 @@ void deep_booster_alloc_offset (MPI_Comm comm, int number_of_hosts, int process_
 
 void deep_booster_alloc_offset_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm, int* offset) {
         nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts,*process_per_host, intercomm, *offset);
-}
-
-NANOS_API_DEF(nanos_err_t, set_mpi_exename, (char * new_name)) {
-    try {
-        nanos::ext::MPIProcessor::setMpiExename(new_name);
-    } catch (...) {
-        return NANOS_UNKNOWN_ERR;
-    }
-    return NANOS_OK;
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {

@@ -44,7 +44,7 @@
 #endif
 
 #ifdef MPI_DEV
-#include "mpiprocessor.hpp"
+#include "mpiprocessor_decl.hpp"
 #endif
 
 

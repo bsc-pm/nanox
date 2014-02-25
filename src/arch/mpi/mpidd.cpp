@@ -17,7 +17,7 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "mpiprocessor.hpp"
+#include "mpiprocessor_decl.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"

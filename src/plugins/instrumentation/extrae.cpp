@@ -20,7 +20,7 @@
 
 #ifdef MPI_DEV
 #include "mpi.h"
-#include "mpiprocessor.hpp"
+#include "mpiprocessor_decl.hpp"
 #endif
 
 #ifndef EXTRAE_VERSION
@@ -122,7 +122,8 @@ class InstrumentationExtrae: public Instrumentation
         //If OmpSs has compiled MPI tasks, we assume we are in an offload environment
         //if (sys.getOmpssUsesOffload()!=0){ //doesnt seem to be working...
         char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
-        if (offload_trace_on != NULL){
+        if (offload_trace_on != NULL){ 
+           if (getenv("I_MPI_WAIT_MODE")==NULL) putenv("I_MPI_WAIT_MODE=1");
            MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
         } else {
 #endif

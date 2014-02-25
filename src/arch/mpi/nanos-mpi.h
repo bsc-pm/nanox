@@ -60,7 +60,6 @@ extern "C" {
     NANOS_API_DECL(nanos_err_t, nanos_mpi_init_thread, (int* argc, char*** argv, int required, int *provided));
     NANOS_API_DECL(void, nanos_mpi_initf, (void));
     
-    NANOS_API_DECL(nanos_err_t, set_mpi_exename, (char* new_name));
     NANOS_API_DECL(int, nanos_mpi_send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
     NANOS_API_DECL(int, nanos_mpi_recv_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
     NANOS_API_DECL(int, nanos_mpi_send_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));

@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "mpi.h"
-#include "mpiprocessor.hpp"
+#include "mpiprocessor_decl.hpp"
 #include "mpithread.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
@@ -27,6 +27,7 @@
 #include <sched.h>
 #include <unistd.h>
 #include "instrumentation.hpp"
+#include <os.hpp>
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -63,15 +64,17 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
 }
 
 //Switch to next PE (Round robin way of change PEs to query scheduler)
-void MPIThread::switchToNextPE(){
-    int start=_currPe;
-    _currPe=(_currPe+1)%_runningPEs.size();
-    //This is busy does not need to be thread-safe, it's here just
-    //as an optimization
-    while (_runningPEs.at(_currPe)->isBusy() && _currPe!=start ){        
-        _currPe=(_currPe+1)%_runningPEs.size();
+bool MPIThread::switchToNextFreePE(int uuid){
+   int start=_currPe;
+	int currPe=start;
+	bool switchedCorrectly=false;
+	
+    while (!switchedCorrectly && currPe!=start ){        
+        currPe=(currPe+1)%_runningPEs.size();
+		switchedCorrectly=switchToPE(currPe,uuid);
     }
-    if (_currPe!=start) setRunningOn(_runningPEs.at(_currPe));
+		
+	return switchedCorrectly;
 }
 
 //Switch to PE, under request, if we see a task for this group of PEs
@@ -118,18 +121,6 @@ Lock* MPIThread::getSelfLock() {
     return &_selfLock;
 }
 
-void MPIThread::increaseCopyInCount(){
-    _numPendingComms++;
-}
-
-void MPIThread::resetCopyInCount(){
-    _numPendingComms=0;
-}
-
-int MPIThread::getCopyInCount(){
-    return _numPendingComms;
-}
-         
 Atomic<int>* MPIThread::getSelfCounter() {
     return &_totRunningWds;
 }
@@ -169,15 +160,17 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     nanos::ext::MPIProcessor::nanosMPIRecvTaskend(&id_func_ompss, 1, MPI_INT,finishedPE->getRank(),
         finishedPE->getCommunicator(),MPI_STATUS_IGNORE);
     WorkDescriptor* wd=finishedPE->getCurrExecutingWd();
+    finishedPE->setCurrExecutingWd(NULL);
     //Before finishing wd, switch thread to the right PE
     //Wait until local cache in the PE is free
     PE* oldPE=runningOn();
     setRunningOn(finishedPE);
+    //Clear all async requests on this PE (they finished a while ago)
+    finishedPE->clearAllRequests();
     //Finish the wd, finish work and destroy wd
     wd->finish();
     Scheduler::finishWork(wd,true);
     setRunningOn(oldPE);
-    finishedPE->setCurrExecutingWd(NULL);
     finishedPE->setBusy(false);
     deleteWd(wd,true);
     //Restore previous PE
@@ -205,4 +198,23 @@ void MPIThread::checkTaskEnd() {
         }
         if (_groupLock!=NULL) _groupLock->release();
     }
+}
+
+void MPIThread::bind( void )
+{
+   int cpu_id = getCpuId();
+
+   cpu_set_t cpu_set;
+   CPU_ZERO( &cpu_set );
+   CPU_SET( cpu_id, &cpu_set );
+   if (getCpuId()==-1){
+       sys.getCpuMask(&cpu_set);
+   }
+   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
+   OS::bindThread( &cpu_set );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }

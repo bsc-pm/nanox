@@ -17,6 +17,7 @@ shift
 unset OMP_NUM_THREADS 
 if [ "x$MIC_OMP_NUM_THREADS" != "x" ]; then 
 	export OMP_NUM_THREADS=$MIC_OMP_NUM_THREADS
+   unset NX_THREADS
 fi
 unset MIC_OMP_NUM_THREADS
 export ${@} 
@@ -29,6 +30,7 @@ fi
 #After we exported user-defined environment vars, use MIC_OMP_NUM_THREADS again
 if [ "x$MIC_OMP_NUM_THREADS" != "x" ]; then 
 	export OMP_NUM_THREADS=$MIC_OMP_NUM_THREADS
+   unset NX_THREADS
 fi
 export NX_ARGS=$NX_ARGS" --spins=1 --sleep-time=10 --sleeps=50000000"
 export OMPSS_OFFLOAD_SLAVE=1
