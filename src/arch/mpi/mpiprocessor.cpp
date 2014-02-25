@@ -170,7 +170,9 @@ int MPIProcessor::nanosMPIWorker(){
 		nanos::ext::MPIProcessor::getTaskLock().acquire();
 		finalize=executeTask(nanos::ext::MPIProcessor::getCurrTaskIdentifier());
 	}     
-    return 0;
+   //Release the lock so cache thread can finish
+	nanos::ext::MPIProcessor::getTaskLock().release();
+   return 0;
 }
 
 /**

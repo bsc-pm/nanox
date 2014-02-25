@@ -319,10 +319,14 @@ void MPIDevice::mpiCacheWorker() {
                         {
                             nanos::ext::MPIProcessor::setCurrTaskIdentifier(-1);   
                             if (_createdExtraWorkerThread) {
-                               nanos::ext::MPIProcessor::getTaskLock().release();      
+                               nanos::ext::MPIProcessor::getTaskLock().release();   
+                               //Wait until the extra worker thread has finished
+                               nanos::ext::MPIProcessor::getTaskLock().acquire(); 
+                               nanos::ext::MPIProcessor::getTaskLock().release();    
                             } else {							
                                nanos::ext::MPIProcessor::executeTask(-1);   
                             }
+                            return;
                         }
                         case OPID_COPYIN:
                         {    
