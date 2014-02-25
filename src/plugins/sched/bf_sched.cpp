@@ -71,6 +71,36 @@ namespace nanos {
               else tdata._readyQueue->push_back( &wd );
            }
 
+            virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+            {
+               fatal_cond( numElems == 0, "Cannot queue 0 elements.");
+               
+               // First step: check if all threads have the same team
+               ThreadTeam* team = threads[0]->getTeam();
+               
+               for ( size_t i = 1; i < numElems; ++i )
+               {
+                  if ( threads[i]->getTeam() == team )
+                     continue;
+                  
+                  fatal( "Batch submission does not support different teams" );
+               }
+               
+               // If they have the same team, we can insert in batch
+               TeamData &tdata = (TeamData &) *team->getScheduleData();
+               
+               LockBlock lock( tdata._readyQueue->getLock() );
+               
+               if ( _useStack ) return tdata._readyQueue->push_front( wds, numElems );
+               else tdata._readyQueue->push_back( wds, numElems );
+            }
+            
+            /*! This scheduling policy supports all WDs, no restrictions. */
+            bool isValidForBatch ( const WD * wd ) const
+            {
+               return true;
+            }
+
 
             /*!
              * \brief This method performs the main task of the smart priority

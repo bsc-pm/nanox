@@ -41,7 +41,7 @@ namespace nanos
           *  \param accessType kind of access
           *  \param[in,out] status status of the base address
           */
-         CommutationDO *createCommutationDO(BaseDependency const &target, AccessType const &accessType, TrackableObject &status);
+         virtual CommutationDO *createCommutationDO(BaseDependency const &target, AccessType const &accessType, TrackableObject &status);
          NANOS_INSTRUMENT ( nanos_event_key_t   _insKeyDeps[3]; ) /**< Instrumentation key dependences */
 
       protected:         

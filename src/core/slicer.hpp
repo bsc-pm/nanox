@@ -38,10 +38,10 @@ inline Slicer * SlicedWD::getSlicer ( void ) const
    return &_slicer;
 }
 
-inline void SlicedWD::submit ()
+inline void SlicedWD::submit ( bool force_queue )
 {
    if ( _isSliceable ) _slicer.submit(*this);
-   else WD::submit();
+   else WD::submit( force_queue );
 }
 
 inline bool SlicedWD::dequeue ( WorkDescriptor **slice )

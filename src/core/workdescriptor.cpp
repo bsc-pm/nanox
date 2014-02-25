@@ -141,9 +141,9 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    return canRunIn( pe.getDeviceType() , &pe );
 }
 
-void WorkDescriptor::submit( void )
+void WorkDescriptor::submit( bool force_queue )
 {
-   Scheduler::submit(*this);
+   Scheduler::submit(*this, force_queue );
 } 
 
 void WorkDescriptor::finish ()

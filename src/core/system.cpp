@@ -59,9 +59,9 @@ System nanos::sys;
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ),
-      _numPEs( INT_MAX ), _numThreads( 0 ), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
+      _numPEs( INT_MAX ), _numThreads( 0 ), _maxCpus(0), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
-      _untieMaster( true ), _delayedStart( false ), _useYield( true ), _synchronizedStart( true ),
+      _untieMaster( true ), _delayedStart( false ), _useYield( false ), _synchronizedStart( true ),
       _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
@@ -76,7 +76,7 @@ System::System () :
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
 #endif
-      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL)
+      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -87,6 +87,7 @@ System::System () :
 
    OS::getProcessAffinity( &_cpu_set );
 
+   _maxCpus = OS::getMaxProcessors();
    int cpu_count = getCpuCount();
 
    std::vector<int> cpu_affinity;
@@ -401,6 +402,10 @@ void System::config ()
                               "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
    cfg.registerArgOption( "enable-dlb", "enable-dlb" );
 
+   cfg.registerConfigOption( "simulator", NEW Config::FlagOption ( _simulator ),
+                             "Nanos++ will be executed by a simulator (disabled as default)" );
+   cfg.registerArgOption( "simulator", "simulator" );
+
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
@@ -544,11 +549,11 @@ void System::start ()
    {
       case POOL:
          verbose0("Pool model enabled (OmpSs)");
-         _mainTeam = createTeam( _workers.size() );
+         _mainTeam = createTeam( _workers.size(), /*constraints*/ NULL, /*reuse*/ true, /*enter*/ true, /*parallel*/ false );
          break;
       case ONE_THREAD:
          verbose0("One-thread model enabled (OpenMP)");
-         _mainTeam = createTeam(1);
+         _mainTeam = createTeam( 1, /*constraints*/ NULL, /*reuse*/ true, /*enter*/ true, /*parallel*/ true );
          break;
       default:
          fatal("Unknown initial mode!");
@@ -596,7 +601,8 @@ System::~System ()
 
 void System::finish ()
 {
-   /* Instrumentation: First removing RUNNING state from top of the state statck */
+   //! \note Instrumentation: first removing RUNNING state from top of the state statck
+   //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
 
@@ -604,81 +610,83 @@ void System::finish ()
    verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
 
    verbose ( "NANOS++ shutting down.... init" );
-   verbose ( "Wait for main workgroup to complete" );
+
+   //! \note waiting for remaining tasks
    myThread->getCurrentWD()->waitCompletion( true );
 
-   // we need to switch to the main thread here to finish
-   // the execution correctly
+   //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
+   if ( _workers[0]->isSleeping() ) _workers[0]->wakeup();
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
-   ensure(getMyThreadSafe()->getId() == 0, "Main thread not finishing the application!");
+   ensure( getMyThreadSafe()->isMainThread(), "Main thread not finishing the application!");
 
-   verbose ( "Joining threads... phase 1" );
-   // signal stop PEs
-
+   //! \note stopping all threads
+   verbose ( "Joining threads..." );
    for ( unsigned p = 0; p < _pes.size() ; p++ ) {
-      _pes[p]->stopAll();
+      _pes[p]->stopAllThreads();
    }
-
-   verbose ( "Joining threads... phase 2" );
-
-   // shutdown instrumentation
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+   verbose ( "...thread has been joined" );
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
+   //! \note finalizing instrumentation (if active)
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+
+   //! \note stopping and deleting the programming model interface
    _pmInterface->finish();
    delete _pmInterface;
 
-   /* System mem free */
-
+   //! \note deleting pool of locks
    delete[] _lockPool;
 
-   /* deleting master WD */
-   //getMyThreadSafe()->getCurrentWD()->~WorkDescriptor();
+   //! \note deleting main work descriptor
    delete (WorkDescriptor *) (getMyThreadSafe()->getCurrentWD());
 
+   //! \note deleting loaded slicers
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
       delete (Slicer *)  it->second;
    }
 
+   //! \note deleting loaded worksharings
    for ( WorkSharings::const_iterator it = _worksharings.begin(); it !=   _worksharings.end(); it++ ) {
       delete (WorkSharing *)  it->second;
    }
    
-   /* deleting thread team */
+   //! \note  printing thread team statistics and deleting it
    ThreadTeam* team = getMyThreadSafe()->getTeam();
 
    if ( team->getScheduleData() != NULL ) team->getScheduleData()->printStats();
 
-   /* For every thread in the team */
-   while ( team->size() > 0 ) {
-      BaseThread* pThread = team->popThread();
-      pThread->leaveTeam();
-   }
+   myThread->leaveTeam();
+
+   ensure(team->size() == 0, "Trying to finish execution, but team is still not empty");
+
    delete team;
 
-   // join
+   //! \note deleting processing elements (but main pe)
    for ( unsigned p = 1; p < _pes.size() ; p++ ) {
       delete _pes[p];
    }
    
-   /* unload modules */
+   //! \note unload modules
    unloadModules();
 
+   //! \note deleting dependency manager
    delete _dependenciesManager;
 
-   // Deleting last processing element
+   //! \note deleting last processing element
    delete _pes[0];
 
+   //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
 
    verbose ( "NANOS++ shutting down.... end" );
 
-   if ( _summary )
-      executionSummary();
+   //! \note printing execution summary
+   if ( _summary ) executionSummary();
+
 }
 
 /*! \brief Creates a new WD
@@ -1313,6 +1321,8 @@ void System::createWorker( unsigned p )
    _workers.push_back( thread );
    ++_targetThreads;
 
+   CPU_SET( getBindingId( p ), &_cpu_active_set );
+
    //Set up internal data
    WD & threadWD = thread->getThreadWD();
    if ( _pmInterface->getInternalDataSize() > 0 ) {
@@ -1329,7 +1339,7 @@ BaseThread * System::getUnassignedWorker ( void )
 
    for ( unsigned i = 0; i < _workers.size(); i++ ) {
       thread = _workers[i];
-      if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
+      if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
          // skip if the thread is not in the mask
          if ( sys.getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpu_active_set) )
@@ -1338,14 +1348,13 @@ BaseThread * System::getUnassignedWorker ( void )
          // recheck availability with exclusive access
          thread->lock();
 
-         if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
+         if ( thread->hasTeam() || thread->isSleeping()) {
             // we lost it
             thread->unlock();
             continue;
          }
 
          thread->reserve(); // set team flag only
-
          thread->unlock();
 
          return thread;
@@ -1355,30 +1364,47 @@ BaseThread * System::getUnassignedWorker ( void )
    return NULL;
 }
 
-BaseThread * System:: getAssignedWorker ( void )
+BaseThread * System::getInactiveWorker ( void )
+{
+   BaseThread *thread;
+
+   for ( unsigned i = 0; i < _workers.size(); i++ ) {
+      thread = _workers[i];
+      if ( !thread->hasTeam() && thread->isWaiting() ) {
+         // recheck availability with exclusive access
+         thread->lock();
+         if ( thread->hasTeam() || !thread->isWaiting() ) {
+            // we lost it
+            thread->unlock();
+            continue;
+         }
+         thread->reserve(); // set team flag only
+         thread->wakeup();
+         thread->unlock();
+
+         return thread;
+      }
+   }
+   return NULL;
+}
+
+BaseThread * System::getAssignedWorker ( ThreadTeam *team )
 {
    BaseThread *thread;
 
    ThreadList::reverse_iterator rit;
    for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
       thread = *rit;
-      if ( thread->hasTeam() && !thread->isTaggedToSleep() ) {
-
-         // recheck availability with exclusive access
-         thread->lock();
-
-         if ( !thread->hasTeam() || thread->isTaggedToSleep() ) {
-            // we lost it
-            thread->unlock();
-            continue;
-         }
-
-         thread->unlock();
-
+      thread->lock();
+      //! \note Checking thread availabitity.
+      if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
+         //! \note return this thread LOCKED!!!
          return thread;
       }
+      thread->unlock();
    }
 
+   //! \note If no thread has found, return NULL.
    return NULL;
 }
 
@@ -1392,6 +1418,7 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
 {
    int thId = team->addThread( thread, star, creator );
    TeamData *data = NEW TeamData();
+   if ( creator ) data->setCreator( true );
 
    data->setStar(star);
 
@@ -1409,28 +1436,20 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
 
-   // The sleep flag must be set before to avoid race conditions
-   thread->wakeup();  // set sleep flag only
-   thread->reserve(); // set team flag only
-
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
 
 void System::releaseWorker ( BaseThread * thread )
 {
-   ThreadTeam *team = thread->getTeam();
-   unsigned thread_id = thread->getTeamId();
+   ensure( myThread == thread, "Calling release worker from other thread context" );
 
-   //! \todo destroy if too many?
-   debug("Releasing thread " << thread << " from team " << team );
+   //! \todo Destroy if too many?
+   debug("Releasing thread " << thread << " from team " << thread->getTeam() );
 
-   if ( _enable_dlb && thread->getTeamId() != 0 ) {
-      // teamless threads will only sleep if DLB is enabled
-      thread->sleep();
-   } else {
-      thread->leaveTeam();
-      team->removeThread(thread_id);
-   }
+   thread->lock();
+   thread->sleep();
+   thread->unlock();
+
 }
 
 int System::getNumWorkers( DeviceData *arch )
@@ -1443,35 +1462,34 @@ int System::getNumWorkers( DeviceData *arch )
    return n;
 }
 
-ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuseCurrent,
-                                  bool enterCurrent, bool enterOthers, bool starringCurrent, bool starringOthers )
+ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuse, bool enter, bool parallel )
 {
-   if ( nthreads == 0 ) {
-      nthreads = getNumThreads();
-   }
-   
-   SchedulePolicy *sched = 0;
-   if ( !sched ) sched = sys.getDefaultSchedulePolicy();
+   //! \note Getting default scheduler
+   SchedulePolicy *sched = sys.getDefaultSchedulePolicy();
 
-   ScheduleTeamData *stdata = 0;
-   if ( sched->getTeamDataSize() > 0 )
-      stdata = sched->createTeamData();
+   //! \note Getting scheduler team data (if any)
+   ScheduleTeamData *std = ( sched->getTeamDataSize() > 0 )? sched->createTeamData() : NULL;
 
-   // create team
-   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, stdata, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
-                                       reuseCurrent ? myThread->getTeam() : NULL );
+   //! \note create team object
+   ThreadTeam * team = NEW ThreadTeam( nthreads, *sched, std, *_defBarrFactory(), *(_pmInterface->getThreadTeamData()),
+                                       reuse? myThread->getTeam() : NULL );
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
-   // find threads
-   if ( reuseCurrent ) {
-      acquireWorker( team, myThread, enterCurrent, starringCurrent, /* creator */ true );
+   team->setFinalSize(nthreads);
+
+   //! \note Reusing current thread
+   if ( reuse ) {
+      acquireWorker( team, myThread, /* enter */ enter, /* staring */ true, /* creator */ true );
       nthreads--;
    }
 
+   //! \note Getting rest of the members 
    while ( nthreads > 0 ) {
+
       BaseThread *thread = getUnassignedWorker();
 
+      //! \note if loop cannot find more workers, create them
       if ( !thread ) {
          createWorker( _pes.size() );
          _numPEs++;
@@ -1479,16 +1497,15 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
          continue;
       }
 
-      thread->lock();
-      acquireWorker( team, thread, enterOthers, starringOthers, /* creator */ false );
-      thread->signal();
-      thread->unlock();
+      acquireWorker( team, thread, /*enter*/ enter, /* staring */ parallel, /* creator */ false );
+
       nthreads--;
    }
 
    team->init();
 
    return team;
+
 }
 
 void System::endTeam ( ThreadTeam *team )
@@ -1513,31 +1530,45 @@ void System::updateActiveWorkers ( int nthreads )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) &nthreads); )
 
    BaseThread *thread;
+   //! \bug Team variable must be received as a function parameter
    ThreadTeam *team = myThread->getTeam();
 
-   /* Increase _numThreads */
-   while ( nthreads - _numThreads > 0 ) {
+   int num_threads = nthreads - team->getFinalSize();
 
-      thread = getUnassignedWorker();
-      if ( !thread ) {
-         createWorker( _pes.size() );
-         _numPEs++;
-         continue;
-      }
+   while ( !(team->isStable()) ) memoryFence();
 
-      thread->lock();
-      acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-      thread->signal();
-      thread->unlock();
+   if ( num_threads < 0 ) team->setStable(false);
+
+   team->setFinalSize(nthreads);
+
+   //! \bug We need to consider not only numThreads < nthreads but num_threads < availables?
+   while (  _numThreads < nthreads ) {
+      createWorker( _pes.size() );
       _numThreads++;
+      _numPEs++;
    }
 
-   /* Decrease _numThreads */
-   while ( nthreads - _numThreads < 0 ) {
-      thread = getAssignedWorker();
-      thread->sleep();
-      _numThreads--;
+   //! \note If requested threads are more than current increase number of threads
+   while ( num_threads > 0 ) {
+      thread = getUnassignedWorker();
+      if (!thread) thread = getInactiveWorker();
+      if (thread) {
+         acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+         num_threads--;
+      }
    }
+
+   //! \note If requested threads are less than current decrease number of threads
+   while ( num_threads < 0 ) {
+      thread = getAssignedWorker( team );
+      if ( thread ) {
+         thread->sleep();
+         thread->unlock();
+         num_threads++;
+      }
+   }
+
+
 }
 
 // Not thread-safe
@@ -1550,41 +1581,35 @@ inline void System::applyCpuMask()
 
    BaseThread *thread;
    ThreadTeam *team = myThread->getTeam();
+   unsigned int _activePEs = 0;
 
-   for ( unsigned pe_id = 0; pe_id < _pes.size() || _numPEs < (size_t)CPU_COUNT(&_cpu_active_set); pe_id++ ) {
+   for ( unsigned pe_id = 0; pe_id < _pes.size() || _activePEs < (size_t)CPU_COUNT(&_cpu_active_set); pe_id++ ) {
 
       // Create PE & Worker if it does not exist
       if ( pe_id == _pes.size() ) {
          createWorker( pe_id );
+         _numThreads++;
+         _numPEs++;
       }
 
-      bool pe_dirty = false;
       int pe_binding = getBindingId( pe_id );
       if ( CPU_ISSET( pe_binding, &_cpu_active_set) ) {
-
+         _activePEs++;
          // This PE should be running
-         while ( (thread = _pes[pe_id]->getFirstStoppedThread()) != NULL ) {
-            thread->lock();
+         while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-            thread->signal();
-            thread->unlock();
-            _numThreads++;
-            pe_dirty = true;
+            team->increaseFinalSize();
          }
-         if ( pe_dirty ) _numPEs++;
-
       } else {
-
          // This PE should not
-         while ( (thread = _pes[pe_id]->getFirstRunningThread()) != NULL ) {
+         while ( (thread = _pes[pe_id]->getActiveThread()) != NULL ) {
+            thread->lock();
             thread->sleep();
-            _numThreads--;
-            pe_dirty = true;
+            thread->unlock();
+            team->decreaseFinalSize();
          }
-         if ( pe_dirty ) _numPEs--;
       }
    }
-   ensure( _numPEs ==  (size_t)CPU_COUNT(&_cpu_active_set), "applyCpuMask fatal error" );
 }
 
 void System::getCpuMask ( cpu_set_t *mask ) const
@@ -1606,11 +1631,17 @@ void System::addCpuMask ( const cpu_set_t *mask )
 
 inline void System::processCpuMask( void )
 {
+
    // if _bindThreads is enabled, update _bindings adding new elements of _cpu_active_set
    if ( sys.getBinding() ) {
       std::ostringstream oss_cpu_idx;
       oss_cpu_idx << "[";
       for ( int cpu=0; cpu<CPU_SETSIZE; cpu++) {
+         if ( cpu > _maxCpus-1 && !_simulator ) {
+            CPU_CLR( cpu, &_cpu_active_set);
+            debug("Trying to use more cpus than available is not allowed (do you forget --simulator option?)");
+            continue;
+         }
          if ( CPU_ISSET( cpu, &_cpu_active_set ) ) {
 
             if ( std::find( _bindings.begin(), _bindings.end(), cpu ) == _bindings.end() ) {
@@ -1627,7 +1658,7 @@ inline void System::processCpuMask( void )
       }
    }
    else {
-      verbose0( "PID[" << getpid() << "]. Num threads: " << CPU_COUNT( &_cpu_active_set ) );
+      verbose0( "PID[" << getpid() << "]. Changing number of threads: " << (int) myThread->getTeam()->getFinalSize() << " to " << (int) CPU_COUNT( &_cpu_active_set ) );
       if ( _pmInterface->isMalleable() ) {
          sys.updateActiveWorkers( CPU_COUNT( &_cpu_active_set ) );
       }
