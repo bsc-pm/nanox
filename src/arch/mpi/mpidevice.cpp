@@ -314,6 +314,7 @@ void MPIDevice::mpiCacheWorker() {
                                 createWorkerThread();
                                 _createdExtraWorkerThread=true;
                             }
+                            break;
                         }
                         case OPID_FINISH:    
                         {
