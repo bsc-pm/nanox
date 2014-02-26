@@ -504,10 +504,10 @@ AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
       CPPFLAGS="$CPPFLAGS -L$OPENCLBASE/lib64/"
       CFLAGS="$CXXFLAGS -L$OPENCLBASE/lib64/"
       LDFLAGS="$LDFLAGS -L$OPENCLBASE/lib64/"
-      AC_CHECK_LIB([OpenCL],
-                   [clGetPlatformIDs],
-                   [OPENCL_LIB="$OPENCLBASE/lib64/"],
-                   [OPENCL_LIB="$OPENCLBASE/lib/"])
+      AC_SEARCH_LIBS([clGetPlatformIDs],
+                     [OpenCL mali],
+                     [OPENCL_LIB="$OPENCLBASE/lib64/"],
+                     [OPENCL_LIB="$OPENCLBASE/lib/"])
 
       CFLAGS="$CFLAGSBACKUP"
       CPPFLAGS="$CPPFLAGSBACKUP"
@@ -561,10 +561,10 @@ if test x"$opencl_enabled" = x"yes" ; then
 
     AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
     AC_CHECK_HEADER([OpenCL/opencl.h], [opencl_headers="yes"],[])
-    AC_CHECK_LIB([OpenCL],
-                 [clGetPlatformIDs],
-                 [opencl_libs="yes"],
-                 [])
+    AC_SEARCH_LIBS([clGetPlatformIDs],
+                   [OpenCL mali],
+                   [opencl_libs="yes"],
+                   [])
 
     CFLAGS="$CFLAGSBACKUP"
     CPPFLAGS="$CPPFLAGSBACKUP"
