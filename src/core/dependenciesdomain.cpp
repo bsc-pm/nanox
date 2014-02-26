@@ -34,19 +34,19 @@ Lock DependenciesDomain::_lock;
 
 using namespace dependencies_domain_internal;
 
-void DependenciesDomain::increaseTasksInGraph()
+void DependenciesDomain::increaseTasksInGraph( size_t num )
 {
    NANOS_INSTRUMENT(lock();)
-   NANOS_INSTRUMENT(nanos_event_value_t tasks = (nanos_event_value_t)(++_tasksInGraph);)
+   NANOS_INSTRUMENT(nanos_event_value_t tasks = (nanos_event_value_t)(_tasksInGraph += num);)
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("graph-size");)
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    NANOS_INSTRUMENT(unlock();)
 }
 
-void DependenciesDomain::decreaseTasksInGraph()
+void DependenciesDomain::decreaseTasksInGraph( size_t num )
 {
    NANOS_INSTRUMENT(lock();)
-   NANOS_INSTRUMENT(nanos_event_value_t tasks = (nanos_event_value_t)(--_tasksInGraph);)
+   NANOS_INSTRUMENT(nanos_event_value_t tasks = (nanos_event_value_t)(_tasksInGraph-=num);)
    //NANOS_INSTRUMENT(int tasks = --_tasksInGraph;)
    NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("graph-size");)
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)

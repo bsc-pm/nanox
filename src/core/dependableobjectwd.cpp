@@ -32,7 +32,17 @@ using namespace nanos;
 void DOSubmit::dependenciesSatisfied ( )
 {
    DependenciesDomain::decreaseTasksInGraph();
-   getWD()->submit();
+   dependenciesSatisfiedNoSubmit();
+   getWD()->submit( true );
+}
+
+void DOSubmit::dependenciesSatisfiedNoSubmit( )
+{
+}
+
+bool DOSubmit::canBeBatchReleased ( ) const
+{
+   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( getWD() );
 }
 
 unsigned long DOSubmit::getDescription ( )
@@ -72,9 +82,19 @@ void DOWait::init()
    _depsSatisfied = false;
 }
 
-void DOWait::wait ( std::list<uint64_t> const & flushDeps )
+int DOWait::decreasePredecessors ( std::list<uint64_t>const * flushDeps, bool blocking )
 {
-   _syncCond.wait();
+   int retval = DependableObject::decreasePredecessors ( flushDeps, blocking );
+
+   if ( blocking ) {
+      _syncCond.wait();
+      //Directory *d = _waitDomainWD->getDirectory(false);
+      //if ( d != NULL ) {
+      //   d->synchronizeHost( *flushDeps );
+      //}
+   }
+
+   return retval;
 }
 
 void DOWait::dependenciesSatisfied ( )

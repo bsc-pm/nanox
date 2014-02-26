@@ -73,7 +73,8 @@ void WorkGroup::done ()
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
 
    // Waiting for children (just to keep structures)
-   waitCompletion( true );
+   if ( _components != 0 )
+      waitCompletion( true );
 
    // Notifying parent about current WD finalization
    if ( _parent != NULL ) {

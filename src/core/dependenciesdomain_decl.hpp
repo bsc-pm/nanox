@@ -160,9 +160,9 @@ namespace nanos
          /*! \}
           */
 
-         static void increaseTasksInGraph();
+         static void increaseTasksInGraph( size_t num = 1 );
 
-         static void decreaseTasksInGraph();
+         static void decreaseTasksInGraph( size_t num = 1 );
 
         /*! \brief Returns a reference to the instance lock
          */

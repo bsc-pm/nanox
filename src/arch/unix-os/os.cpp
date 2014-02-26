@@ -124,3 +124,13 @@ void OS::bindThread( cpu_set_t *cpu_set )
 {
    sched_setaffinity( 0, sizeof(cpu_set_t), cpu_set );
 }
+
+int OS::getMaxProcessors ( void )
+{
+#ifdef _SC_NPROCESSORS_ONLN
+   return (int) sysconf(_SC_NPROCESSORS_CONF);
+#else
+   return (int) 0;
+#endif
+}
+

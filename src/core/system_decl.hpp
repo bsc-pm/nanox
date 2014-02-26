@@ -90,6 +90,7 @@ namespace nanos
          // configuration variables
          unsigned int         _numPEs;
          int                  _numThreads;
+         int                  _maxCpus;
          int                  _deviceStackSize;
          int                  _bindingStart;
          int                  _bindingStride;
@@ -221,6 +222,7 @@ namespace nanos
          const int                 _lockPoolSize;
          Lock *                    _lockPool;
          ThreadTeam               *_mainTeam;
+         bool                      _simulator;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -501,21 +503,22 @@ namespace nanos
          /*!
           * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
           */
-         BaseThread * getAssignedWorker ( void );
+         BaseThread * getAssignedWorker ( ThreadTeam *team );
 
          /*!
-          * \brief Returns a new created Team with the specified parameters
-          * \param[in] nthreads The team size
-          * \param[in] constraints Not used
-          * \param[in] reuseCurrent Will this thread be a member of the team?
-          * \param[in] enterCurrent Will this thread immediately enter the team?
-          * \param[in] enterOthers Will the other threads immediately enter the team?
-          * \param[in] starringCurrent Is this a star thread?
-          * \param[in] starringOthers Are the others star threads?
+          * \brief Returns, if any, the worker thread is inactive
           */
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
-                                   bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
-
+         BaseThread * getInactiveWorker ( void );
+  
+         /*!
+          * \brief Returns a new team of threads 
+          * \param[in] nthreads Number of threads in the team.
+          * \param[in] constraints This parameter is not used.
+          * \param[in] reuse Reuse current thread as part of the team.
+          * \param[in] parallel Identifies the type of team, parallel code or single executor.
+          */
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
+         
          BaseThread * getWorker( unsigned int n );
 
          void endTeam ( ThreadTeam *team );

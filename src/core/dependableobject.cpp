@@ -20,6 +20,7 @@
 #include "dependableobject.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
+#include <alloca.h>
 
 using namespace nanos;
 
@@ -53,13 +54,65 @@ void DependableObject::finished ( )
       }
 
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
-      for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
 
-         NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
+      // See if it's worth batch releasing.
+      // The idea here is to prevent initialising the vector unless we will
+      // use it.
+      if ( succ.size() > 1 )
+      {
+         // Construct list of successors to be release immediately.
+         // Allocate as many elements as we have in the successor list
+         WD** immediateSucc = (WD**) alloca( sizeof(WD*) * succ.size() );
+         WD** pIS = immediateSucc;
+         
+         for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
+            NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
+            // If this dependable object can't be released in batch
+            if ( !(*it)->canBeBatchReleased() )
+            {
+               (*it)->decreasePredecessors( NULL );
+               continue;
+            }
+            
+            // Release this Dependable Object without triggering submission
+            DependableObject& dSucc = **it;
+            // Decrease predecessors
+            int numPred = --dSucc._numPredecessors;
+            
+            // If after decreasing the predecessors it's not 0, fatal_cond
+            fatal_cond( numPred != 0, "Num predecessors is not 0" );
+            
+            // dependenciesSatisfied code
+            dSucc.dependenciesSatisfiedNoSubmit();
+            
+            // Convert to WD*
+            WD* wd = (WD*) dSucc.getRelatedObject();
+            fatal_cond( wd == NULL, "Cannot cast the related object to WD" );
+            
+            *pIS++ = wd ;
+         }
 
-         (*it)->decreasePredecessors( this );
+         size_t numImmediate = pIS - immediateSucc;
+      
+         // Batch submit and counter decrement
+         if ( numImmediate > 0 ){
+            DependenciesDomain::decreaseTasksInGraph( numImmediate );
+            Scheduler::submit( immediateSucc, numImmediate );
+         }
+      }
+      else 
+      {
+         for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
+            NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
+            (*it)->decreasePredecessors( NULL );
+         }
       }
    }
+}
+
+bool DependableObject::canBeBatchReleased ( ) const
+{
+   return false;
 }
 
 DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjectPredicate &condition )

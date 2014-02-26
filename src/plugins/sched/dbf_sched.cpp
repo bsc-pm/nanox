@@ -185,21 +185,24 @@ namespace nanos {
             *  try to steal tasks from other queues
             *  \warning other queues are checked cyclically: should be random
             */
-            int thid = thread->getTeamId();
             int size = thread->getTeam()->size();
+            int thid = rand() % size;
+            int count = 0;
             wd = NULL;
 
             do {
                thid = ( thid + 1 ) % size;
 
-               BaseThread &victim = thread->getTeam()->getThread(thid);
+               BaseThread *victim = &thread->getTeam()->getThread(thid);
 
-               if ( victim.getTeam() != NULL ) {
-                 ThreadData &tdata = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
+               if ( victim && victim->getTeam() != NULL ) {
+                 ThreadData &tdata = ( ThreadData & ) *victim->getTeamData()->getScheduleData();
                  wd = tdata._readyQueue->pop_back ( thread );
                }
 
-            } while ( wd == NULL && thid != thread->getTeamId() );
+               count++;
+
+            } while ( wd == NULL && count < size );
 
             return wd;
          }

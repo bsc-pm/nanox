@@ -87,7 +87,7 @@ inline int DependableObject::increasePredecessors ( )
      return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( DependableObject *predecessor )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking, DependableObject *predecessor )
 {
    if ( predecessor != NULL && getWD() != NULL ) {
       getWD()->predecessorFinished( predecessor->getWD() );
@@ -96,6 +96,7 @@ inline int DependableObject::decreasePredecessors ( DependableObject *predecesso
    if ( numPred == 0 ) {
       dependenciesSatisfied( );
    }
+
    return numPred;
 }
 

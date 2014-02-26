@@ -111,6 +111,9 @@ namespace nanos
 
          static void getProcessAffinity( cpu_set_t *cpu_set );
          static void bindThread( cpu_set_t *cpu_set );
+
+         static int getMaxProcessors ( void );
+
    };
 
 // inlined functions

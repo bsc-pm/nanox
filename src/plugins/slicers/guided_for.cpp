@@ -39,6 +39,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    for ( i = 0; i < num_threads; i++) {
      if (  work.canRunIn( *((*team)[i].runningOn()) ) )  nli->threads++;
    }
+   ensure(nli->threads > 0, "Slicer has computed an invalid number of threads");
 
    //! in order to submit the work. 
    Scheduler::submit ( work );

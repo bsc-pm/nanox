@@ -256,10 +256,10 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));
 }
 
-void WorkDescriptor::submit( void )
+void WorkDescriptor::submit( bool force_queue )
 {
    _mcontrol.preInit();
-   Scheduler::submit( *this );
+   Scheduler::submit(*this, force_queue );
 } 
 
 void WorkDescriptor::finish ()

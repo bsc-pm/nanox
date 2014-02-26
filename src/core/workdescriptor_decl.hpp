@@ -513,7 +513,7 @@ namespace nanos
          virtual bool dequeue ( WorkDescriptor **slice );
 
          // headers
-         virtual void submit ( void );
+         virtual void submit ( bool force_queue = false );
 
          virtual void finish ();
 
