@@ -240,7 +240,7 @@ void WorkDescriptor::done ()
       NANOS_INSTRUMENT ( if ( !_parent->isReady()) { )
       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + _parent->getId(); )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
-      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( _parent, NANOS_WAIT, id, 0, 0 ); )
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *_parent, NANOS_WAIT, id, 0, 0 ); )
       NANOS_INSTRUMENT ( } )
       _parent = NULL;
    }
