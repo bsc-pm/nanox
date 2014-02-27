@@ -27,6 +27,7 @@
 #include "dataaccess_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"
 #include "basedependency_fwd.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
@@ -110,7 +111,20 @@ namespace nanos
         // FIXME DOC NEEDED FOR THIS FUNCTIONS
          virtual void init ( ) { }
 
+         /*! \brief This method is automatically called when
+          *  decreasePredecessors reduces the number to 0.
+          *  \note As there is a batch-release of dependencies, this method must
+          *  call dependenciesSatisfiedNoSubmit() to avoid code duplication.
+          *  \see decreasePredecessors(), dependenciesSatisfiedNoSubmit()
+          */
          virtual void dependenciesSatisfied ( ) { }
+         
+         /*! \brief Because of the batch-release mechanism,
+          *  dependenciesSatisfied will never be called, so common code
+          *  between the normal path and the batch path must go here.
+          *  \see dependenciesSatisfied()
+          */
+         virtual void dependenciesSatisfiedNoSubmit ( ) { }
 
          virtual bool waits ( );
 
@@ -124,6 +138,11 @@ namespace nanos
           * (const version)
           */
          virtual const void * getRelatedObject ( ) const;
+         
+         /*! \brief Checks if this class supports batch release and, if so, if
+          *  it has only one predecessor.
+          */
+         virtual bool canBeBatchReleased ( ) const;
 
          /*! \brief Instrument predecessor -> successor dependency
           */

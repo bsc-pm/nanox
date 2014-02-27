@@ -33,7 +33,17 @@ using namespace nanos;
 void DOSubmit::dependenciesSatisfied ( )
 {
    DependenciesDomain::decreaseTasksInGraph();
+   dependenciesSatisfiedNoSubmit();
    _submittedWD->submit( true );
+}
+
+void DOSubmit::dependenciesSatisfiedNoSubmit( )
+{
+}
+
+bool DOSubmit::canBeBatchReleased ( ) const
+{
+   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( _submittedWD );
 }
 
 unsigned long DOSubmit::getDescription ( )

@@ -82,9 +82,22 @@ namespace nanos
          WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
+         
+         /*! \brief Returns the lock object, for batch operations. */
+         virtual Lock& getLock() = 0;
+         
+         /*! \brief Pushes back WorkDescriptors, for batch operations.
+          *  \note The lock must be acquired and release externally!
+          */
+         virtual void push_front( WD** wds, size_t numElems ) = 0;
+         
+         /*! \brief Inserts WDs in the front, for batch operations.
+          *  \note The lock must be acquired and release externally!
+          */
+         virtual void push_back( WD** wds, size_t numElems ) = 0;
 
-         static void increaseTasksInQueues( int tasks );
-         static void decreaseTasksInQueues( int tasks );
+         static void increaseTasksInQueues( int tasks, int increment = 1 );
+         static void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
    };
 
@@ -117,6 +130,10 @@ namespace nanos
 
          void push_front ( WorkDescriptor *wd );
          void push_back( WorkDescriptor *wd );
+         
+         Lock& getLock();
+         void push_front( WD** wds, size_t numElems );
+         void push_back( WD** wds, size_t numElems );
 
          template <typename Constraints>
          WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
@@ -130,8 +147,8 @@ namespace nanos
 
          bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
-         void increaseTasksInQueues( int tasks );
-         void decreaseTasksInQueues( int tasks );
+         void increaseTasksInQueues( int tasks, int increment = 1 );
+         void decreaseTasksInQueues( int tasks, int decrement = 1 );
    };
 
    class WDLFQueue : public WDPool
@@ -282,6 +299,9 @@ namespace nanos
          /*! \brief Functor that will be used to get the priority or
           *  deadline */
          PriorityValueFun  _getter;
+         
+         /*! \brief Max and min priorities found at the queue. */
+         WD::PriorityType  _maxPriority, _minPriority;
       
 
       private:
@@ -296,6 +316,7 @@ namespace nanos
           *  \param fifo Insert WDs with the same after the current ones?
           */
          void insertOrdered ( WorkDescriptor *wd, bool fifo = true );
+         void insertOrdered ( WorkDescriptor ** wds, size_t numElems, bool fifo = true );
          
          /*! \brief Performs upper bound reversely or not depending on the settings */
          WDPQ::BaseContainer::iterator upper_bound( const WD *wd );
@@ -317,6 +338,10 @@ namespace nanos
 
          void push_back( WorkDescriptor *wd );
          void push_front( WorkDescriptor *wd );
+         
+         Lock& getLock();
+         void push_front( WD** wds, size_t numElems );
+         void push_back( WD** wds, size_t numElems );
 
          template <typename Constraints>
          WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
@@ -338,9 +363,17 @@ namespace nanos
           * \note This method sets the lock upon entry (using LockBlock).
           */
          bool reorderWD( WorkDescriptor *wd );
+         
+         /*! \brief Returns the highest priority, without blocking.
+          */
+         WD::PriorityType maxPriority() const;
+         
+         /*! \brief Returns the lowest priority, without blocking.
+          */
+         WD::PriorityType minPriority() const;
 
-         void increaseTasksInQueues( int tasks );
-         void decreaseTasksInQueues( int tasks );
+         void increaseTasksInQueues( int tasks, int increment = 1 );
+         void decreaseTasksInQueues( int tasks, int decrement = 1 );
    };
 
 

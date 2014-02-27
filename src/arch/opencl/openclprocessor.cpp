@@ -458,9 +458,11 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
                cl_int errCode;
                const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
                prog = clCreateProgramWithBinary( _ctx, 1, &_dev, &size, &tmp_code, NULL, &errCode );   
-               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ".\n");
+               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ". If this file is not a binary file"
+                       " please use \".cl\" extension\n");
                errCode = clBuildProgram( prog, 1, &_dev, compilerOpts, NULL, NULL );
-               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ".\n");
+               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ". If this file is not a binary file"
+                       " please use \".cl\" extension\n");;
             }
             delete [] ompss_code;
             #ifndef CL_VERSION_1_2
