@@ -45,5 +45,14 @@ inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( sys.getWorkDescriptorI
    }
 }
 
+inline void WorkGroup::clear ( void ) 
+{
+   _parent = NULL;
+}
+
+inline WorkGroup * WorkGroup::getWGParent( void ) const
+{
+   return _parent;
+}
 #endif
 

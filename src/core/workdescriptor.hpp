@@ -338,7 +338,19 @@ inline void WorkDescriptor::releaseCommutativeAccesses()
       *(*_commutativeOwners)[i] = NULL;
 } 
 
-inline void WorkDescriptor::setImplicit( bool b ) { _implicit = b; }
+inline void WorkDescriptor::setImplicit( bool b )
+{
+   //! Set implicit flag to parameter value
+   _implicit = b;
+
+   //! Unset parent to free current Work Descriptor from hierarchy
+   WorkGroup * parent = getWGParent();
+   if ( parent != NULL ) {
+      _parent->exitWork(*this);
+      WorkGroup::clear();
+   }
+}
+
 inline bool WorkDescriptor::isImplicit( void ) { return _implicit; } 
 
 inline char * WorkDescriptor::getDescription ( void ) const  { return _description; }

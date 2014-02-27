@@ -46,13 +46,13 @@ namespace nanos
 
       private:
          void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
 
          /*! \brief WorkGroup copy assignment operator (private)
           */
          const WorkGroup & operator= ( const WorkGroup &wg );
 
       public:
+         void exitWork ( WorkGroup &work );
 
          /*! \brief WorkGroup default constructor
           */
@@ -70,6 +70,8 @@ namespace nanos
          virtual void waitCompletion( bool avoidFlush = false );
          virtual void init();
          virtual void done();
+         virtual void clear();
+         WorkGroup * getWGParent( void ) const;
          int getId() const { return _id; }
 
    };
