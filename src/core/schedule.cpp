@@ -142,6 +142,8 @@ void Scheduler::submit ( WD ** wds, size_t numElems )
 
 void Scheduler::submitAndWait ( WD &wd )
 {
+// FIXME:xteruel
+#if 0
    debug ( "submitting and waiting task " << wd.getId() );
    fatal ( "Scheduler::submitAndWait(): This feature is still not supported" );
 
@@ -154,6 +156,7 @@ void Scheduler::submitAndWait ( WD &wd )
 
    // Wait for WD to be finished
    myWG.waitCompletion();
+#endif
 }
 
 void Scheduler::updateCreateStats ( WD &wd )

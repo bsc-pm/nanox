@@ -38,7 +38,7 @@
 #include "wddeque_fwd.hpp"
 #include "directory_decl.hpp"
 
-#include "dependenciesdomain_fwd.hpp"
+#include "dependenciesdomain_decl.hpp"
 
 namespace nanos
 {
@@ -142,7 +142,7 @@ namespace nanos
 
    /*! \brief This class identifies a single unit of work
     */
-   class WorkDescriptor : public WorkGroup
+   class WorkDescriptor
    {
       public:
 	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
@@ -164,7 +164,13 @@ namespace nanos
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
+         // FIXME:xteruel typedef SingleSyncCond<EqualConditionChecker<int> >  children_sync_cond_t;
 
+         int                           _id;
+         Atomic<int>                   _components;
+         // FIXME:xteruel children_sync_cond_t          _syncCond;
+         SingleSyncCond<EqualConditionChecker<int> >           _componentsSyncCond;
+         WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
          size_t                        _data_size;    /**< WD data size */
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
@@ -179,7 +185,6 @@ namespace nanos
 
          GenericSyncCond              *_syncCond;     /**< FIXME: (#170) documentation needed */
 
-         WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
 
          WDPool                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
 
@@ -223,6 +228,7 @@ namespace nanos
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
+
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
@@ -230,6 +236,9 @@ namespace nanos
          /*! \brief WorkDescriptor default constructor (private) 
           */
          WorkDescriptor ();
+
+         //! \brief Adding current WD as descendant of parent (private method)
+         void addToGroup ( WorkDescriptor &parent );
       public: /* public methods */
 
          /*! \brief WorkDescriptor constructor - 1
@@ -291,6 +300,7 @@ namespace nanos
                  delete[] _copies;
          }
 
+         int getId() const { return _id; }
          /*! \brief Has this WorkDescriptor ever run?
           */
          bool started ( void ) const;
@@ -574,7 +584,8 @@ namespace nanos
           */
          Directory* getDirectory(bool create=false);
 
-         virtual void waitCompletion( bool avoidFlush = false );
+         //! \brief Wait for all children (1st level work descriptors)
+         void waitCompletion( bool avoidFlush = false );
 
          bool isSubmitted( void ) const;
          void submitted( void );
@@ -613,6 +624,18 @@ namespace nanos
          void setCopies(size_t numCopies, CopyData * copies);
 
          char * getDescription ( void ) const;
+
+         //! \brief Removing work from current WorkDescriptor
+         void exitWork ( WorkDescriptor &work );
+
+         //! \brief Adding work to current WorkDescriptor
+         void addWork( WorkDescriptor &work );
+
+         // FIXME:xteruel
+         // void done(); // duplicated
+         // void clear(); //remove
+         // WorkGroup * getWGParent( void ) const; // remove
+
    };
 
    typedef class WorkDescriptor WD;

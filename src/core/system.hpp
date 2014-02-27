@@ -21,6 +21,7 @@
 #define _NANOS_SYSTEM_H
 
 #include "system_decl.hpp"
+#include "dependenciesdomain_decl.hpp"
 #include <vector>
 #include <string>
 #include "schedule.hpp"
@@ -29,6 +30,7 @@
 #include "nanos-int.h"
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
+#include "synchronizedcondition.hpp"
 #include "cache_map.hpp"
 #include <cmath>
 

@@ -19,7 +19,7 @@
 
 #ifndef _NANOS_WORK_GROUP_DECL_H
 #define _NANOS_WORK_GROUP_DECL_H
-
+#if 0
 #include <vector>
 #include "atomic_decl.hpp"
 #include "dependenciesdomain_decl.hpp"
@@ -71,6 +71,6 @@ namespace nanos
    typedef WorkGroup WG;
 
 };
-
+#endif
 #endif
 

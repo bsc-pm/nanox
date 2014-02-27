@@ -19,7 +19,7 @@
 
 #ifndef _NANOS_WORK_GROUP_H
 #define _NANOS_WORK_GROUP_H
-
+#if 0
 #include "workgroup_decl.hpp"
 #include "atomic.hpp"
 #include "schedule.hpp"
@@ -49,5 +49,6 @@ inline WorkGroup * WorkGroup::getWGParent( void ) const
 {
    return _parent;
 }
+#endif
 #endif
 
