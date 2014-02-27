@@ -65,6 +65,8 @@ namespace nanos {
 
          void printMap();
          std::size_t getCapacity() const;
+         uint64_t getBasePointer( uint64_t address, size_t size );
+
    };
 
    class BufferManager

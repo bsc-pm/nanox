@@ -105,6 +105,9 @@ System::System () :
 #ifdef GPU_DEV
       , _gpus( NULL )
 #endif
+#ifdef OpenCL_DEV
+      , _opencls( NULL )
+#endif
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -584,6 +587,27 @@ void System::start ()
    }
 #endif
    
+#ifdef OpenCL_DEV
+   unsigned openclC;
+   //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
+   for ( openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {
+      _opencls = (_opencls == NULL) ? NEW std::vector<nanos::ext::OpenCLProcessor *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLProcessor *) NULL) : _opencls; 
+      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
+      SeparateMemoryAddressSpace *oclmemory = NEW SeparateMemoryAddressSpace( id, ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide());
+      oclmemory->setNodeNumber( 0 );
+      //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
+      //oclmemory->setSpecificData( oclmemspace );
+      _separateAddressSpaces[ id ] = oclmemory;
+      int peid = p++;
+      nanos::ext::OpenCLProcessor *openclPE = NEW nanos::ext::OpenCLProcessor( peid, openclC, peid, id, *oclmemory );
+      (*_opencls)[openclC] = openclPE;
+      _pes.push_back( openclPE );
+      BaseThread *oclThd = &openclPE->startWorker();
+      _workers.push_back( oclThd );
+      //_masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
+   }
+#endif
+   
 // jbueno    // For each plugin create PEs and workers
 // jbueno    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
 // jbueno         it != _archs.end(); ++it )
@@ -922,6 +946,7 @@ void System::finish ()
    if ( _net.getNodeNum() == 0 ) {
       int soft_inv = 0;
       int hard_inv = 0;
+      #ifdef CLUSTER_DEV
       unsigned int max_execd_wds = 0;
       if ( _nodes ) {
          for ( unsigned int idx = 1; idx < _nodes->size(); idx += 1 ) {
@@ -938,6 +963,7 @@ void System::finish ()
          float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
          message("Cluster Balance: " << balance );
       }
+      #endif
 #ifdef GPU_DEV
       if ( _gpus ) {
          soft_inv = 0;
@@ -952,6 +978,22 @@ void System::finish ()
       }
       message("GPUs Soft invalidations: " << soft_inv);
       message("GPUs Hard invalidations: " << hard_inv);
+#endif
+      
+#ifdef OpenCL_DEV
+      if ( _opencls ) {
+         soft_inv = 0;
+         hard_inv = 0;
+         for ( unsigned int idx = 1; idx < _opencls->size(); idx += 1 ) {
+            soft_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
+            hard_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
+            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+         }
+      }
+      message("OpenCLs Soft invalidations: " << soft_inv);
+      message("OpenCLs Hard invalidations: " << hard_inv);
 #endif
    }
 #endif
@@ -1994,14 +2036,6 @@ void System::waitUntilThreadsUnpaused ()
 {
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
-}
-
-bool System::canCopy( memory_space_id_t from, memory_space_id_t to ) const {
-   if ( from == 0 || to == 0 ) {
-      return true;
-   } else {
-      return &(_separateAddressSpaces[ from ]->getCache().getDevice()) == &(_separateAddressSpaces[ to ]->getCache().getDevice());
-   }
 }
 
 unsigned System::reservePE ( bool reserveNode, unsigned node, bool & reserved )

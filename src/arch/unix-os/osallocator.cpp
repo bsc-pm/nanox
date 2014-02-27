@@ -68,13 +68,14 @@ void OSAllocator::print_current_maps(void) const
    int ret = 1;
    int fd;
    pid_t mypid = getpid();
+   size_t wres;
 
    sprintf(filename, "/proc/%d/maps", mypid);
    fd = open(filename, O_RDONLY);
    do{
       ret = read(fd, filename, 256);
-      write(1, filename, ret);
-   } while (ret != 0); 
+      wres=write(1, filename, ret);
+   } while (ret != 0 && wres==0); 
    close(fd);
 }
 
@@ -82,27 +83,27 @@ void OSAllocator::print_parsed_maps() const {
    std::list< OSMemoryMap >::const_iterator it;
    for (it = processMaps.begin(); it != processMaps.end(); it++ )
    {
-      fprintf(stderr, "%16lx-%16lx\n", it->start, it->end );
+      fprintf(stderr, "%16lx-%16lx\n", (unsigned long int)(it->start), (unsigned long int)(it->end) );
    }
 }
 
 void OSAllocator::print_parsed_maps_full() const {
    uintptr_t current = 0;
-   uintptr_t last = 0xfffffffffffff000UL;
+   uintptr_t last = -1UL;
    std::list< OSMemoryMap >::const_iterator it;
    char unit;
    for (it = processMaps.begin(); it != processMaps.end(); it++ )
    {
       if ( current < it->start ) {
          size_t len = computeFreeSpace( current, it->start, unit);
-         fprintf(stderr, "%16lx-%16lx [free %4ld %cb]\n", current, it->start, len, unit );
+         fprintf(stderr, "%16lx-%16lx [free %4lx %cb]\n", (unsigned long int)(current), (unsigned long int)(it->start), (unsigned long int)len, unit );
       }
-      fprintf(stderr, "%16lx-%16lx\n", it->start, it->end );
+      fprintf(stderr, "%16lx-%16lx\n", (unsigned long int)it->start, (unsigned long int)it->end );
       current = it->end;
    }
    if ( last > current ) {
       size_t len = computeFreeSpace( current, last, unit);
-      fprintf(stderr, "%16lx-%16lx [free %4ld %cb]\n", current, last, len, unit );
+      fprintf(stderr, "%16lx-%16lx [free %4lx %cb]\n", (unsigned long int)current, (unsigned long int)last, (unsigned long int)len, unit );
    }
 }
 
@@ -116,7 +117,7 @@ void OSAllocator::readeMaps()
    pid_t mypid = getpid();
    OSMemoryMap currentMap;
    uintptr_t current = 0;
-   uintptr_t last = 0xfffffffffffff000UL;
+   uintptr_t last = -1UL;
 
    str1[0] = '\0';
    str2[0] = '\0';

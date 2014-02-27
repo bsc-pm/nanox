@@ -69,9 +69,9 @@ public:
 
    void free( void* addr );
 
-   bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size );
+   bool copyIn( uint64_t devAddr, uint64_t hostAddr, size_t size, DeviceOps* ops );
 
-   bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size );
+   bool copyOut( uint64_t hostAddr, uint64_t devAddr, size_t size, DeviceOps* ops );
    
    cl_mem getBuffer( void *localSrc, size_t size );
    
@@ -84,7 +84,12 @@ public:
 
    size_t getSize() const { return _devCacheSize; }
    
-   cl_mem toMemoryObjSS( void * addr );
+   cl_mem toMemoryObjSS( const void * addr );
+   
+   SimpleAllocator& getAllocator()
+   {
+       return _devAllocator;
+   }
 
 private:   
    cl_mem _mainBuffer;    

@@ -119,6 +119,9 @@ typedef struct {
 } nanos_reduction_t;
 
 typedef unsigned int memory_space_id_t;
+typedef size_t (*typeSerSizeAdapter)(void* this_);
+typedef void (*typeSerAdapter)(void* this_, void* buff);
+typedef void (*typeSerAssignAdapter)(void* this_, void* buff);
 
 /* This structure is initialized in copydata.hpp. Any change in
  * its contents has to be reflected in CopyData constructor
@@ -143,6 +146,13 @@ typedef struct {
    ptrdiff_t offset;
    uint64_t _hostBaseAddress;
    memory_space_id_t _hostRegionId;
+   /**** Serialize INFO ****/
+   /* Pointer to the function which will return the size of the object*/
+   typeSerSizeAdapter serialize_size_adapter;
+   /* Pointer to the function which will fill the buffer*/
+   typeSerAdapter serialize_adapter;
+   /* Pointer to the function which will do the assignation ONLY VALID IN THE HOST*/
+   typeSerAssignAdapter serialize_assign_adapter;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;

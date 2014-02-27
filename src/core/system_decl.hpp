@@ -47,6 +47,10 @@
 #include "gpuprocessor_fwd.hpp"
 #endif
 
+#ifdef OpenCL_DEV
+#include "openclprocessor_fwd.hpp"
+#endif
+
 #ifdef CLUSTER_DEV
 #include "clusternode_fwd.hpp"
 #endif
@@ -272,6 +276,9 @@ namespace nanos
 #endif
 #ifdef GPU_DEV
          std::vector<ext::GPUProcessor *> *_gpus;
+#endif
+#ifdef OpenCL_DEV
+         std::vector<ext::OpenCLProcessor *> *_opencls;
 #endif
          PE * createPE ( std::string pe_type, int pid, int uid );
 
@@ -684,7 +691,6 @@ namespace nanos
          std::list<GraphEntry *> *getGraphRepList();
          
          NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
-         bool canCopy( memory_space_id_t from, memory_space_id_t to ) const;
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
          
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
