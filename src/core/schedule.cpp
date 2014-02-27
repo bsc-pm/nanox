@@ -483,6 +483,7 @@ void Scheduler::wakeUp ( WD *wd )
          /* atWakeUp must check basic constraints */
          ThreadTeam *myTeam = getMyThreadSafe()->getTeam();
          if ( myTeam ) next = myTeam->getSchedulePolicy().atWakeUp( myThread, *wd );
+         else fatal("Trying to wake up a WD from a thread without team.");
       }
       else {
          // Pause this thread
