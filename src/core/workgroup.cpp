@@ -53,10 +53,6 @@ void WorkGroup::waitCompletion ( bool avoidFlush )
      _syncCond.waitConditionAndSignalers();
 }
 
-void WorkGroup::init ()
-{
-}
-
 void WorkGroup::done ()
 {
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )

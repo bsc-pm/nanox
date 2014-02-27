@@ -61,7 +61,6 @@ namespace nanos
 
          void addWork( WorkGroup &wg );
          virtual void waitCompletion( bool avoidFlush = false );
-         virtual void init();
          virtual void done();
          virtual void clear();
          WorkGroup * getWGParent( void ) const;
