@@ -33,18 +33,11 @@ namespace nanos
    class WorkGroup
    {
       private:
-         typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
+         int                                          _id;
+         Atomic<int>                                  _components;
+         SingleSyncCond<EqualConditionChecker<int> >  _syncCond;
+         WorkGroup                                   *_parent;
 
-      private:
-         WGList         _partOf; // other than parent
-         int            _id;
-         Atomic<int>    _components;
-
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
-
-         WorkGroup     *_parent; // most WG will only have one parent
-
-      private:
          void addToGroup ( WorkGroup &parent );
 
          /*! \brief WorkGroup copy assignment operator (private)

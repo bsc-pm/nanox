@@ -37,12 +37,7 @@ inline WorkGroup::WorkGroup()
 inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
             _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
 {
-   if ( wg._parent != NULL ) { 
-      wg._parent->addWork(*this);
-      for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-         if (*it) (*it)->addWork( *this );
-      }
-   }
+   if ( wg._parent != NULL ) wg._parent->addWork(*this);
 }
 
 inline void WorkGroup::clear ( void ) 

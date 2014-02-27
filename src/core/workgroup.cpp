@@ -35,19 +35,16 @@ void WorkGroup::addWork ( WorkGroup &work )
 
 void WorkGroup::addToGroup ( WorkGroup &parent )
 {
-   if ( _parent == NULL ) 
-      _parent = &parent;
-   else 
-      _partOf.push_back( &parent );
+   if ( _parent == NULL ) _parent = &parent;
+   else fatal("WorkGroup: Trying to add a second parent");
 }
 
 void WorkGroup::exitWork ( WorkGroup &work )
 {
    _syncCond.reference();
    int componentsLeft = --_components;
-   // It seems that _syncCond.check() generates a race condition here
-   if (componentsLeft == 0)
-      _syncCond.signal();
+   //! \note It seems that _syncCond.check() generates a race condition here?
+   if (componentsLeft == 0) _syncCond.signal();
    _syncCond.unreference();
 }
 
@@ -70,19 +67,13 @@ void WorkGroup::done ()
 
    // Notifying parent about current WD finalization
    if ( _parent != NULL ) {
-     _parent->exitWork(*this);
-     _parent = NULL;
-     for ( WGList::iterator it = _partOf.begin(); it != _partOf.end(); it++ ) {
-        if ( *it ) {
-           NANOS_INSTRUMENT ( if ( !((WorkDescriptor *)(*it))->isReady()) { )
-              NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + (*it)->getId(); )
-              NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
-              NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *((WorkDescriptor *)(*it)), NANOS_WAIT, id, 0, 0 ); )
-           NANOS_INSTRUMENT ( } )
-           ( *it )->exitWork( *this );
-        }
-        *it = 0;
-     }
+      _parent->exitWork(*this);
+      NANOS_INSTRUMENT ( if ( !_parent->isReady()) { )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + _parent->getId(); )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( _parent, NANOS_WAIT, id, 0, 0 ); )
+      NANOS_INSTRUMENT ( } )
+      _parent = NULL;
    }
 }
 
