@@ -63,17 +63,17 @@ inline void WorkDescriptor::setMyQueue ( WDPool * myQ ) { _myQueue = myQ; }
 
 inline bool WorkDescriptor::isEnqueued() { return ( _myQueue != NULL ); }
 
-inline WorkDescriptor & WorkDescriptor::tied () { _tie = true; return *this; }
+inline WorkDescriptor & WorkDescriptor::tied () { _flags.to_tie = true; return *this; }
 
-inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &pe ) { _tiedTo = &pe; _tie=false; return *this; }
+inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &pe ) { _tiedTo = &pe; _flags.to_tie=false; return *this; }
 
 inline bool WorkDescriptor::isTied() const { return _tiedTo != NULL; }
 
 inline BaseThread* WorkDescriptor::isTiedTo() const { return _tiedTo; }
 
-inline bool WorkDescriptor::shouldBeTied() const { return _tie; }
+inline bool WorkDescriptor::shouldBeTied() const { return _flags.to_tie; }
 
-inline void WorkDescriptor::untie() { _tiedTo = NULL; _tie = false; }
+inline void WorkDescriptor::untie() { _tiedTo = NULL; _flags.to_tie = false; }
 
 inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
@@ -122,8 +122,8 @@ inline DeviceData & WorkDescriptor::getActiveDevice () const { return *_devices[
 
 inline bool WorkDescriptor::hasActiveDevice() const { return _activeDeviceIdx != _numDevices; }
 
-inline void WorkDescriptor::setActiveDeviceIdx( unsigned int idx ) { _activeDeviceIdx = idx; }
-inline unsigned int WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
+inline void WorkDescriptor::setActiveDeviceIdx( unsigned char idx ) { _activeDeviceIdx = idx; }
+inline unsigned char WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
 
 inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) { 
     union { void* p; intptr_t i; } u = { data };
@@ -262,8 +262,8 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
    return _directory;
 }
 
-inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
-inline void WorkDescriptor::submitted()  { _submitted = true; }
+inline bool WorkDescriptor::isSubmitted() const { return _flags.is_submitted; }
+inline void WorkDescriptor::submitted()  { _flags.is_submitted = true; }
 
 inline bool WorkDescriptor::isConfigured ( void ) const { return _configured; }
 inline void WorkDescriptor::setConfigured ( bool value ) { _configured = value; }

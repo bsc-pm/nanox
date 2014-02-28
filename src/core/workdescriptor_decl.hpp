@@ -148,12 +148,12 @@ namespace nanos
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
-            bool is_final:1;
-            bool is_initialized:1;
-            bool is_started:1;
-            bool is_ready:1;
-            bool reserved4:1;
-            bool reserved5:1;
+            bool is_final:1;         //! Work descriptor will not create more work descriptors
+            bool is_initialized:1;   //! Work descriptor is initialized
+            bool is_started:1;       //! Work descriptor has been already started
+            bool is_ready:1;         //! Work descriptor is ready to execute
+            bool to_tie:1;           //! Work descriptor should to be tied to first thread executing it
+            bool is_submitted:1;     //! Has this WD been submitted to the Scheduler?
             bool reserved6:1;
             bool reserved7:1;
          } WDFlags;
@@ -175,7 +175,6 @@ namespace nanos
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
          WDFlags                       _flags;        /**< WD Flags */
 
-         bool                          _tie;          /**< FIXME: (#170) documentation needed */
          BaseThread                   *_tiedTo;       /**< FIXME: (#170) documentation needed */
 
          State                         _state;        /**< Workdescriptor current state */
@@ -187,9 +186,9 @@ namespace nanos
 
          unsigned                      _depth;        /**< Level (depth) of the task */
 
-         unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
+         unsigned char                 _numDevices;   /**< Number of suported devices for this workdescriptor */
          DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
-         unsigned int                  _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
+         unsigned char                 _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */
          CopyData                     *_copies;       /**< Copy-in / Copy-out data */
@@ -206,7 +205,6 @@ namespace nanos
          DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
          Directory                    *_directory;    /**< Directory to mantain cache coherence */
 
-         bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
          bool                          _configured;  /**< Has this WD been configured to the Scheduler? */
          bool                          _implicit;     /**< is a implicit task (in a team) */
 
@@ -270,7 +268,7 @@ namespace nanos
              void *chunkLower = ( void * ) this;
              void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
 
-             for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
+             for ( unsigned char i = 0; i < _numDevices; i++ ) delete _devices[i];
 
              //! Delete device vector 
              if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
@@ -414,8 +412,8 @@ namespace nanos
 
          bool hasActiveDevice() const;
 
-         void setActiveDeviceIdx( unsigned int idx );
-         unsigned int getActiveDeviceIdx();
+         void setActiveDeviceIdx( unsigned char idx );
+         unsigned char getActiveDeviceIdx();
 
          /*! \brief Sets specific internal data of the programming model
           * \param [in] data Pointer to internal data
