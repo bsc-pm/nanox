@@ -31,10 +31,12 @@ test_max_cpus=1
 using namespace std;
 using namespace nanos;
 
+#define KMAX 128*sizeof(void *)
+
 int main ( int argc, char **argv )
 {
    int error = 0;
-   cout << "Size of WorkDescriptor class: " << sizeof(WD) << endl;
-   if ( sizeof(WD) > 640 ) error = 1;
+   cout << "Size of WorkDescriptor is " << sizeof(WD) << " out of " << KMAX << endl;
+   if ( sizeof(WD) > KMAX ) error = 1;
    return error;
 }
