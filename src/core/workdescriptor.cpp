@@ -230,7 +230,10 @@ void WorkDescriptor::done ()
    // Notifying parent we have finished ( dependence's relationships )
    this->getParent()->workFinished( *this );
 
+//! \bug FIXME: This instrumentation phase has been commented due may cause raises when creating the events
+#if 0
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+#endif
 
    // Waiting for children (just to keep structures)
    if ( _components != 0 ) waitCompletion();
@@ -238,11 +241,13 @@ void WorkDescriptor::done ()
    // Notifying parent about current WD finalization
    if ( _parent != NULL ) {
       _parent->exitWork(*this);
+#if 0
       NANOS_INSTRUMENT ( if ( !_parent->isReady()) { )
       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + _parent->getId(); )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *_parent, NANOS_WAIT, id, 0, 0 ); )
       NANOS_INSTRUMENT ( } )
+#endif
       _parent = NULL;
    }
 }
