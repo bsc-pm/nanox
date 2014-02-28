@@ -55,8 +55,8 @@ inline void WorkDescriptor::setDataAlignment ( size_t data_align ) { _data_align
 
 inline void WorkDescriptor::setTotalSize ( size_t size ) { _totalSize = size; }
 
-inline WorkDescriptor * WorkDescriptor::getParent() { return _parent; }
-inline void WorkDescriptor::setParent ( WorkDescriptor * p ) { /*_parent = p;*/ }
+inline WorkDescriptor * WorkDescriptor::getParent() { return _parent!=NULL?_parent:_forcedParent ; }
+inline void WorkDescriptor::forceParent ( WorkDescriptor * p ) { _forcedParent = p; }
 
 inline WDPool * WorkDescriptor::getMyQueue() { return _myQueue; }
 inline void WorkDescriptor::setMyQueue ( WDPool * myQ ) { _myQueue = myQ; }

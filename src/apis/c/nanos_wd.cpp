@@ -270,6 +270,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       WD wd( (DD*) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment,
              data, const_data->num_copies, copies, NULL, (char *) const_data->description);
       wd.setTranslateArgs( translate_args );
+      wd.forceParent( myThread->getCurrentWD() );
       
       // Set WD's socket
       wd.setSocket( sys.getCurrentSocket() );

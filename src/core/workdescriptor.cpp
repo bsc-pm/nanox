@@ -33,7 +33,7 @@ using namespace nanos;
 /*inline*/ WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
-                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL),
+                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ),  _myQueue ( NULL ), _depth ( 0 ),
@@ -52,7 +52,7 @@ using namespace nanos;
 /*inline*/ WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
-                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL),
+                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( 0 ),
@@ -72,7 +72,7 @@ using namespace nanos;
 
 /*inline*/ WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
-                                 _componentsSyncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL),  
+                                 _componentsSyncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL), _forcedParent(wd._forcedParent),
                                  _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tiedTo ( wd._tiedTo ),
                                  _state ( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( wd._depth ),

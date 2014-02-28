@@ -1252,7 +1252,6 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
 void System::setupWD ( WD &work, WD *parent )
 {
-   work.setParent ( parent );
    work.setDepth( parent->getDepth() +1 );
    
    // Inherit priority

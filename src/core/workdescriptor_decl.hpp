@@ -168,6 +168,7 @@ namespace nanos
          Atomic<int>                   _components;             //! Number of components (children, direct descendants)
          components_sync_cond_t        _componentsSyncCond;     //! Synchronize condition on components
          WorkDescriptor               *_parent;                 //! Parent WD in task hierarchy
+         WorkDescriptor               *_forcedParent;           //! Forced parent, it will be not notified when finishing
          size_t                        _data_size;    /**< WD data size */
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
@@ -349,7 +350,7 @@ namespace nanos
 
          WorkDescriptor * getParent();
 
-         void setParent ( WorkDescriptor * p );
+         void forceParent ( WorkDescriptor * p );
 
          WDPool * getMyQueue();
 
