@@ -140,12 +140,11 @@ namespace nanos
 
     };
 
-   /*! \brief This class identifies a single unit of work
-    */
+   //! \brief This class identifies a single unit of work
    class WorkDescriptor
    {
       public:
-	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
+	      typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
 
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;

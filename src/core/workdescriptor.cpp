@@ -84,6 +84,7 @@ using namespace nanos;
                                  _wakeUpQueue( wd._wakeUpQueue ),
                                  _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData()
                                  {
+                                    if ( wd._parent != NULL ) wd._parent->addWork(*this);
                                     _flags.is_final = false;
                                     _flags.is_ready = false;
                                  }
