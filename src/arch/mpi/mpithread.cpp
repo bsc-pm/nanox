@@ -221,4 +221,6 @@ void MPIThread::bind( void )
 
 void MPIThread::finish() {
     checkTaskEnd();
+    SMPThread::finish();
+    BaseThread::finish();
 }
