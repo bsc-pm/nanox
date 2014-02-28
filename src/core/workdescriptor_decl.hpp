@@ -630,11 +630,6 @@ namespace nanos
          //! \brief Adding work to current WorkDescriptor
          void addWork( WorkDescriptor &work );
 
-         // FIXME:xteruel
-         // void done(); // duplicated
-         // void clear(); //remove
-         // WorkGroup * getWGParent( void ) const; // remove
-
    };
 
    typedef class WorkDescriptor WD;
