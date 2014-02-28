@@ -19,7 +19,6 @@
 /*! \file nanos_sync.cpp
  *  \brief
  */
-#include "workgroup.hpp"
 #include "nanos.h"
 #include "schedule.hpp"
 #include "system.hpp"

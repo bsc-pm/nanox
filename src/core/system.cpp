@@ -849,7 +849,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->setInternalData( chunk + offset_PMD );
    }
 
-   // add to workgroup
+   // add to workdescriptor
    if ( uwg != NULL ) {
       WD * wg = ( WD * )uwg;
       wg->addWork( *wd );
@@ -1028,7 +1028,7 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       wd->setInternalData( chunk + offset_PMD );
    }
 
-   // add to workgroup
+   // add to workdescriptor 
    if ( uwg != NULL ) {
       WD * wg = ( WD * )uwg;
       wg->addWork( *wd );

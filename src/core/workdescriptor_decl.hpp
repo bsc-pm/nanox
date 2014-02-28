@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <utility>
 #include <vector>
-#include "workgroup_decl.hpp"
 #include "dependableobjectwd_decl.hpp"
 #include "copydata_decl.hpp"
 #include "synchronizedcondition_decl.hpp"

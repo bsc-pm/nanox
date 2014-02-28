@@ -25,7 +25,6 @@
 #include <vector>
 #include <climits>
 #include "workdescriptor_decl.hpp"
-#include "workgroup.hpp"
 #include "dependableobjectwd.hpp"
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
