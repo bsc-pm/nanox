@@ -73,7 +73,7 @@ namespace nanos {
             Atomic<bool> _busy;
             WorkDescriptor* _currExecutingWd;
             int _currExecutingDD;
-            std::vector<MPI_Request> _pendingReqs;
+            std::list<MPI_Request> _pendingReqs;
             
 
             // disable copy constructor and assignment operator

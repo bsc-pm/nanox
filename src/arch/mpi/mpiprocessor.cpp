@@ -124,8 +124,11 @@ BaseThread &MPIProcessor::createThread(WorkDescriptor &helper) {
 
 void MPIProcessor::clearAllRequests() {
     //Wait and clear for all the requests
-    MPI_Waitall(_pendingReqs.size(),&_pendingReqs[0],MPI_STATUSES_IGNORE);
-    _pendingReqs.clear();
+    if (!_pendingReqs.empty()) {
+        std::vector<MPI_Request> nodeVector(_pendingReqs.begin(), _pendingReqs.end());
+        MPI_Waitall(_pendingReqs.size(),&nodeVector[0],MPI_STATUSES_IGNORE);
+        _pendingReqs.clear();
+    }
 }
 
 
