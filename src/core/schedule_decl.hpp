@@ -54,7 +54,6 @@ namespace nanos
           *  method!
           */
          static void submit ( WD ** wds, size_t numElems  );
-         static void submitAndWait ( WD &wd );
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );

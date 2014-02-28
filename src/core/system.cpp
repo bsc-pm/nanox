@@ -1294,17 +1294,13 @@ void System::waitOn( size_t numDataAccesses, DataAccess* dataAccesses )
    current->waitOn( numDataAccesses, dataAccesses );
 }
 
-
 void System::inlineWork ( WD &work )
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
    //! \todo choose actual (active) device...
-   if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
-      Scheduler::inlineWork( &work );
-   } else {
-      Scheduler::submitAndWait( work );
-   }
+   if ( Scheduler::checkBasicConstraints( work, *myThread ) ) Scheduler::inlineWork( &work );
+   else fatal ("System: Trying to execute inline a task violating basic constraints");
 }
 
 void System::createWorker( unsigned p )
