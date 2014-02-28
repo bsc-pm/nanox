@@ -52,15 +52,17 @@ namespace nanos {
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
-            static bool _inicialized;
-            static int _currentTaskParent;      
+            static bool _inicialized;  
             static size_t _alignThreshold;          
             static size_t _alignment;          
             static size_t _maxWorkers;
             
             
             static Lock _taskLock;
-            static int _currTaskIdentifier;
+            static Lock _queueLock;
+            static std::list<int> _pendingTasksQueue;
+            static std::list<int> _pendingTaskparentsQueue;   
+            static int _currentTaskParent;
             
             
             MPI_Comm _communicator;
@@ -107,13 +109,17 @@ namespace nanos {
                          
             static int getCurrentTaskParent();
             
+            static int getQueueCurrentTaskParent();
+            
+            static void setCurrentTaskParent(int parent);
+            
             static Lock& getTaskLock();
             
-            static int getCurrTaskIdentifier();
+            static int getQueueCurrTaskIdentifier();
             
-            static void setCurrTaskIdentifier(int val);
+            static void addTaskToQueue(int task_id, int parentId);
 
-            static void setCurrentTaskParent(int parentId);
+            static void removeTaskFromQueue();
  
             int getRank() const;
             

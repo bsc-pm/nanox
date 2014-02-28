@@ -130,16 +130,17 @@ void MPIProcessor::clearAllRequests() {
 
 
 bool MPIProcessor::executeTask(int taskId) {    
-    if (taskId==-1){
+    bool ret=false;
+    if (taskId==TASK_END_PROCESS){
        nanosMPIFinalize(); 
-       return true;
+       ret=true;
     } else {                     
        void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId]; 
        //nanos::MPIDevice::taskPreInit();
        function_pointer();       
        //nanos::MPIDevice::taskPostFinish();
     }    
-    return false;
+    return ret;
 }
 
 int MPIProcessor::getNextPEId() {
@@ -168,7 +169,9 @@ int MPIProcessor::nanosMPIWorker(){
 	while(!finalize){
 		//Acquire twice and block until cache thread unlocks
 		nanos::ext::MPIProcessor::getTaskLock().acquire();
-		finalize=executeTask(nanos::ext::MPIProcessor::getCurrTaskIdentifier());
+      nanos::ext::MPIProcessor::setCurrentTaskParent(getQueueCurrentTaskParent());
+		finalize=executeTask(nanos::ext::MPIProcessor::getQueueCurrTaskIdentifier());
+      nanos::ext::MPIProcessor::removeTaskFromQueue();
 	}     
    //Release the lock so cache thread can finish
 	nanos::ext::MPIProcessor::getTaskLock().release();

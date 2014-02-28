@@ -42,7 +42,9 @@ size_t MPIProcessor::_maxWorkers = 1;
 size_t MPIProcessor::_bufferDefaultSize = 0;
 char* MPIProcessor::_bufferPtr = 0;
 Lock MPIProcessor::_taskLock;
-int MPIProcessor::_currTaskIdentifier=0;
+Lock MPIProcessor::_queueLock;
+std::list<int> MPIProcessor::_pendingTasksQueue;
+std::list<int> MPIProcessor::_pendingTaskparentsQueue;
 std::string MPIProcessor::_mpiExecFile;
 std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/ompss_mpi_launch.sh";
 std::string MPIProcessor::_mpiHosts;
@@ -85,24 +87,39 @@ size_t MPIProcessor::getAlignThreshold() {
     return _alignThreshold;
 }
 
-int MPIProcessor::getCurrentTaskParent() {
-    return _currentTaskParent;
-}
-
 Lock& MPIProcessor::getTaskLock() {
     return _taskLock;
 }
 
-int MPIProcessor::getCurrTaskIdentifier() {
-    return _currTaskIdentifier;
+int MPIProcessor::getQueueCurrTaskIdentifier() {
+    return _pendingTasksQueue.front();
 }
 
-void MPIProcessor::setCurrTaskIdentifier(int val) {
-    _currTaskIdentifier=val;
+int MPIProcessor::getQueueCurrentTaskParent() {
+    return _pendingTaskparentsQueue.front();
 }
 
-void MPIProcessor::setCurrentTaskParent(int parentId) {
-    _currentTaskParent = parentId;
+int MPIProcessor::getCurrentTaskParent() {
+    return _currentTaskParent;
+}
+
+void MPIProcessor::setCurrentTaskParent(int parent) {
+    _currentTaskParent=parent;
+}
+
+
+void MPIProcessor::addTaskToQueue(int task_id, int parentId) {
+    _queueLock.acquire();
+    _pendingTasksQueue.push_back(task_id);
+    _pendingTaskparentsQueue.push_back(parentId);
+    _queueLock.release();
+}
+
+void MPIProcessor::removeTaskFromQueue() {
+    _queueLock.acquire();
+    _pendingTasksQueue.pop_front();
+    _pendingTaskparentsQueue.pop_front();
+    _queueLock.release();
 }
 
 int MPIProcessor::getRank() const {

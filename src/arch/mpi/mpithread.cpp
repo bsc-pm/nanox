@@ -218,3 +218,7 @@ void MPIThread::bind( void )
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
+
+void MPIThread::finish() {
+    checkTaskEnd();
+}

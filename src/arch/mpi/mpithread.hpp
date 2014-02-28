@@ -40,7 +40,6 @@ namespace ext
          pthread_t   _pth;
          std::vector<MPIProcessor*> _runningPEs;
          int _currPe;
-         WD* _markedToDelete;
          Lock _selfLock;
          Lock* _groupLock;
          Atomic<int> _totRunningWds;
@@ -60,12 +59,11 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe ) : _selfLock(), _runningPEs(), SMPThread( w,pe ) {
+         MPIThread( WD &w, PE *pe ) : _threadList() , _selfLock(), _runningPEs(), SMPThread( w,pe ) {
              _currPe=0;
              _totRunningWds=0;
-             _groupTotRunningWds=NULL;
-             _groupThreadList=NULL;
-             _markedToDelete=NULL;
+             _groupTotRunningWds=&_totRunningWds;
+             _groupThreadList=&_threadList;
              _groupLock=NULL;
          }
 //         MPIThread( WD &w, PE *pe , MPI_Comm communicator, int rank) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true);
@@ -103,6 +101,8 @@ namespace ext
          void checkTaskEnd();
          
          void bind();
+         
+         void finish();
          /**
           * Frees current exrcuting WD of given PE
           * @param finishedPE

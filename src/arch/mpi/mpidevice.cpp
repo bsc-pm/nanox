@@ -135,6 +135,7 @@ bool MPIDevice::copyIn(void *localDst, CopyDescriptor &remoteSrc, size_t size, P
     nanos::ext::MPIProcessor::nanosMPIIsend((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator(), &req);
     //Free the request (we no longer care about when it finishes, offload process will take care of that)
     //MPI_Request_free(&req);
+    myPE->appendToPendingRequests(req);
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->getRank(), TAG_CACHE_ANSWER_CIN, myPE->_communicator, MPI_STATUS_IGNORE );
     //std::cerr << "Fin copyin\n";
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -293,13 +294,13 @@ void MPIDevice::mpiCacheWorker() {
                         }
                     }
                     nanos::ext::MPIProcessor::nanosMPIRecvTaskinit(&task_id, 1, MPI_INT, parentRank, parentcomm, MPI_STATUS_IGNORE);
-                    nanos::ext::MPIProcessor::setCurrTaskIdentifier(task_id);
-                    nanos::ext::MPIProcessor::setCurrentTaskParent(status.MPI_SOURCE);
                     if (_createdExtraWorkerThread) {
-                        //Notify the executer thread
+                        //Add task to execution queue
+                        nanos::ext::MPIProcessor::addTaskToQueue(task_id,parentRank);
                         nanos::ext::MPIProcessor::getTaskLock().release();
                     } else {                       
                         //Execute the task in current thread
+                        nanos::ext::MPIProcessor::setCurrentTaskParent(parentRank);
                         nanos::ext::MPIProcessor::executeTask(task_id);
                     }
                 } else {
@@ -318,14 +319,17 @@ void MPIDevice::mpiCacheWorker() {
                         }
                         case OPID_FINISH:    
                         {
-                            nanos::ext::MPIProcessor::setCurrTaskIdentifier(-1);   
                             if (_createdExtraWorkerThread) {
+                               //Add finish task to execution queue
+                               nanos::ext::MPIProcessor::addTaskToQueue(TASK_END_PROCESS,parentRank);   
                                nanos::ext::MPIProcessor::getTaskLock().release();   
                                //Wait until the extra worker thread has finished
                                nanos::ext::MPIProcessor::getTaskLock().acquire(); 
                                nanos::ext::MPIProcessor::getTaskLock().release();    
                             } else {							
-                               nanos::ext::MPIProcessor::executeTask(-1);   
+                               //Execute in current thread
+                               nanos::ext::MPIProcessor::setCurrentTaskParent(parentRank);
+                               nanos::ext::MPIProcessor::executeTask(TASK_END_PROCESS);   
                             }
                             return;
                         }

@@ -57,6 +57,8 @@ enum {
 #define UNKOWN_RANKSRCDST -95
 #define MASK_TASK_NUMBER 989
 
+#define TASK_END_PROCESS -1
+
 
 
 namespace nanos

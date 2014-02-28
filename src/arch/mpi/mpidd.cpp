@@ -61,10 +61,14 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     resul = resul && myPE->testAndSetBusy(uid);
     
     //If our current PE is not the right one for the task, check if the right one is free
-    if (res == MPI_IDENT && !resul){           
+    if ( ( res == MPI_IDENT || _assignedComm==0) && !resul){  
        //Only MPI threads will enter this function
        nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread *) myThread;
-       resul=mpiThread->switchToPE(_assignedRank,uid); 
+       if (_assignedRank==UNKOWN_RANKSRCDST) {
+         resul=mpiThread->switchToNextFreePE(uid);         
+       } else {
+         resul=mpiThread->switchToPE(_assignedRank,uid); 
+       }
 //       if (!free){
 //           mpiThread->switchToNextPE(); 
 //       }
