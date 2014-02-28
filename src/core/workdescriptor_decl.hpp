@@ -164,13 +164,12 @@ namespace nanos
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
-         // FIXME:xteruel typedef SingleSyncCond<EqualConditionChecker<int> >  children_sync_cond_t;
+         typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
 
-         int                           _id;
-         Atomic<int>                   _components;
-         // FIXME:xteruel children_sync_cond_t          _syncCond;
-         SingleSyncCond<EqualConditionChecker<int> >           _componentsSyncCond;
-         WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
+         int                           _id;                     //! Work descriptor identifier
+         Atomic<int>                   _components;             //! Number of components (children, direct descendants)
+         components_sync_cond_t        _componentsSyncCond;     //! Synchronize condition on components
+         WorkDescriptor               *_parent;                 //! Parent WD in task hierarchy
          size_t                        _data_size;    /**< WD data size */
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
