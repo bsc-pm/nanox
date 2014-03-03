@@ -139,7 +139,35 @@ namespace nanos
 
     };
 
-   //! \brief This class identifies a single unit of work
+/*! \brief This class identifies a single unit of work
+ *
+ * A Sliced Work Descriptor is an specific class of WorkDescriptor which potentially can be
+ * divided in smaller WorkDescriptor's
+ *
+ * A SlicedWD (Sliced Work Descriptor) is a specific class which derives from WorkDescriptor. Main
+ * idea behind this class is to offer a mechanism which allow to decompose a WorkDescriptor in a
+ * set of several WorkDescriptors. Initial implementation of this mechanism is related with the
+ * ticket:96.
+ *
+ * A SlicedWD will be always related with:
+ *
+ * - a Slicer, which defines the work descriptor behaviour.
+ * - a SlicerData, which keeps all the data needed for splitting the work.
+ * - Slicer objects are common for all the SlicedWD of an specific type. In fact, the Slicer object
+ *   determines the type of the SlicedWD. In the other hand, SlicerData objects are individual for
+ *   each SlicedWD object.
+ *
+ * This mechanism is implemented as a derived class from WorkDescriptor: the SlicedWD. A SlicedWD
+ * overrides the implementation of submit() and dequeue() methods which have been already defined
+ * in the base class.
+ *
+ * In the base class, submit() method just call Scheduller::submit() method and dequeue() returns
+ * the WD itself (meaning this is the work unit ready to be executed) and a boolean value (true,
+ * meaning that it will be the last execution for this unit of work). Otherwise, derived class
+ * SlicedWD will execute Slicer::submit() and Slicer::dequeue() respectively, giving the slicer
+ * the responsibility of doing specific actions at submission or dequeuing time.
+ *
+ */
    class WorkDescriptor
    {
       public:
@@ -223,6 +251,7 @@ namespace nanos
          char                         *_description; /**< WorkDescriptor description, usually user function name */
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
+         Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
 
 
       private: /* private methods */
@@ -264,7 +293,7 @@ namespace nanos
           * All data will be allocated in a single chunk so only the destructors need to be invoked
           * but not the allocator
           */
-         virtual ~WorkDescriptor()
+         ~WorkDescriptor()
          {
              void *chunkLower = ( void * ) this;
              void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
@@ -488,14 +517,14 @@ namespace nanos
           *
           *  \return true if there are no more slices to manage, false otherwise
           */
-         virtual bool dequeue ( WorkDescriptor **slice );
+         bool dequeue ( WorkDescriptor **slice );
 
          // headers
-         virtual void submit ( bool force_queue = false );
+         void submit ( bool force_queue = false );
 
-         virtual void finish ();
+         void finish ();
 
-         virtual void done ();
+         void done ();
 
          void clear ();
 
@@ -627,6 +656,23 @@ namespace nanos
          //! \brief Adding work to current WorkDescriptor
          void addWork( WorkDescriptor &work );
 
+         //! \brief Get related slicer
+         Slicer * getSlicer ( void ) const;
+
+         //! \brief WD dequeue
+         //!
+         //! This function calls the specific code for WD dequeue which is
+         //! implemented in the related slicer.
+         //!
+         //! \param[in,out] slice : Resulting slice.
+         //! \return  true if the resulting slice is the final slice and false otherwise.
+         bool dequeue ( WorkDescriptor **slice );
+
+         //! \brief Convert SlicedWD to a regular WD (changing the behaviour)
+         //!
+         //! This functions change _isSliceable attribute which is used in
+         //! submit and dequeue slicedWD function.
+         void convertToRegularWD();
    };
 
    typedef class WorkDescriptor WD;

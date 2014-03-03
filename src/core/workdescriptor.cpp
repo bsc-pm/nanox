@@ -141,11 +141,6 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    return canRunIn( pe.getDeviceType() );
 }
 
-void WorkDescriptor::submit( bool force_queue )
-{
-   Scheduler::submit(*this, force_queue );
-} 
-
 void WorkDescriptor::finish ()
 {
    // At that point we are ready to copy data out
