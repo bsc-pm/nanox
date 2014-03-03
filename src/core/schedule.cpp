@@ -25,6 +25,8 @@
 #include "instrumentationmodule_decl.hpp"
 #include "os.hpp"
 #include "dlb.hpp"
+#include "smpthread.hpp"
+#include "nanos-int.h"
 
 using namespace nanos;
 
@@ -713,10 +715,19 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
 
    } else {
-      if (inlineWork(to)) {
-         to->~WorkDescriptor();
-         delete[] (char *)to;
-      }
+
+       bool crashed = false;
+       do{
+           try{
+              crashed = false;
+              if (inlineWork(to)) {
+                  to->~WorkDescriptor();
+                  delete[] (char *)to;
+              }
+           }catch(task_execution_exception_t& e){
+               crashed = true;
+           }
+       }while(crashed);
    }
 }
 

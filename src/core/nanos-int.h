@@ -29,6 +29,18 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+/* Jbellon: task runtime error info */
+#include <signal.h>
+
+/* Task runtime exceptions data type */
+typedef struct
+{
+  int signal;
+  siginfo_t signal_info;
+  ucontext_t context;
+} task_execution_exception_t;
+/* fJbellon */
+
 #define NANOS_API_DECL(Type, Name, Params) \
     extern Type Name##_ Params; \
     extern Type Name Params
