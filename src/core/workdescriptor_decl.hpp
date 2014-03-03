@@ -141,31 +141,28 @@ namespace nanos
 
 /*! \brief This class identifies a single unit of work
  *
- * A Sliced Work Descriptor is an specific class of WorkDescriptor which potentially can be
- * divided in smaller WorkDescriptor's
+ * A slicible WorkDescriptor defines an specific behaviour which potentially can divide a WorkDescriptor
+ * in smaller WorkDescriptor's
  *
- * A SlicedWD (Sliced Work Descriptor) is a specific class which derives from WorkDescriptor. Main
- * idea behind this class is to offer a mechanism which allow to decompose a WorkDescriptor in a
+ * The main idea behind this behaviour is to offer a mechanism which allow to decompose a WorkDescriptor in a
  * set of several WorkDescriptors. Initial implementation of this mechanism is related with the
  * ticket:96.
  *
- * A SlicedWD will be always related with:
+ * A slicible WordDescriptor will be always related with:
  *
  * - a Slicer, which defines the work descriptor behaviour.
  * - a SlicerData, which keeps all the data needed for splitting the work.
- * - Slicer objects are common for all the SlicedWD of an specific type. In fact, the Slicer object
- *   determines the type of the SlicedWD. In the other hand, SlicerData objects are individual for
- *   each SlicedWD object.
+ * - Slicer objects are common for all the slicible WordDescriptor of an specific type. In fact, the Slicer object
+ *   determines the type of the slicible WordDescriptor. In the other hand, SlicerData objects are individual for
+ *   each slicible WordDescriptor object.
  *
- * This mechanism is implemented as a derived class from WorkDescriptor: the SlicedWD. A SlicedWD
- * overrides the implementation of submit() and dequeue() methods which have been already defined
- * in the base class.
+ * A slicible WordDescriptor modifies the behaviour of submit() and dequeue() methods.
  *
- * In the base class, submit() method just call Scheduller::submit() method and dequeue() returns
+ * The common behaviour of a WorkDescriptor submit() method just call Scheduller::submit() method and dequeue() returns
  * the WD itself (meaning this is the work unit ready to be executed) and a boolean value (true,
- * meaning that it will be the last execution for this unit of work). Otherwise, derived class
- * SlicedWD will execute Slicer::submit() and Slicer::dequeue() respectively, giving the slicer
- * the responsibility of doing specific actions at submission or dequeuing time.
+ * meaning that it will be the last execution for this unit of work). Otherwise, slicible WordDescriptor will execute
+ * Slicer::submit() and Slicer::dequeue() respectively, giving the slicer the responsibility of doing specific actions
+ * at submission or dequeuing time.
  *
  */
    class WorkDescriptor
@@ -284,7 +281,7 @@ namespace nanos
           *
           *  This constructor is used only for duplicating purposes
           *
-          *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
+          *  \see WorkDescriptor System::duplicateWD
           */
          WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, char *description = NULL );
 
@@ -659,16 +656,10 @@ namespace nanos
          //! \brief Get related slicer
          Slicer * getSlicer ( void ) const;
 
-         //! \brief WD dequeue
-         //!
-         //! This function calls the specific code for WD dequeue which is
-         //! implemented in the related slicer.
-         //!
-         //! \param[in,out] slice : Resulting slice.
-         //! \return  true if the resulting slice is the final slice and false otherwise.
-         bool dequeue ( WorkDescriptor **slice );
+         //! \brief Set related slicer
+         void setSlicer ( Slicer *slicer );
 
-         //! \brief Convert SlicedWD to a regular WD (changing the behaviour)
+         //! \brief Convert a slicible WD to a regular WD (changing the behaviour)
          //!
          //! This functions change _isSliceable attribute which is used in
          //! submit and dequeue slicedWD function.

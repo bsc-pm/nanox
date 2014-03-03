@@ -94,7 +94,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _directory(NULL), _implicit( wd._implicit ),_translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _wakeUpQueue( wd._wakeUpQueue ),
-                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(NULL)
+                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer)
                                  {
                                     if ( wd._parent != NULL ) wd._parent->addWork(*this);
                                     _flags.is_final = false;
@@ -372,6 +372,11 @@ inline void WorkDescriptor::addToGroup ( WorkDescriptor &parent )
 inline Slicer * WorkDescriptor::getSlicer ( void ) const
 {
    return _slicer;
+}
+
+inline void WorkDescriptor::setSlicer ( Slicer *slicer )
+{
+    _slicer = slicer;
 }
 
 inline void WorkDescriptor::submit ( bool force_queue )
