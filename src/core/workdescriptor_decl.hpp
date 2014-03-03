@@ -349,14 +349,6 @@ namespace nanos
           */
          size_t getDataSize () const;
 
-         /*! \brief Set data size
-          *
-          *  This function set the size of the user's data related with current WD
-          *
-          *  \see getData setData getDataSize
-          */
-         void setDataSize ( size_t data_size );
-
          /*! \brief Get data alignment
           *
           *  This function returns the data alignment of the user's data related with current WD
@@ -365,14 +357,6 @@ namespace nanos
           *  \see getData setData setDatasize
           */
          size_t getDataAlignment () const;
-
-         /*! \brief Set data alignment
-          *
-          *  This function set the data alignment of the user's data related with current WD
-          *
-          *  \see getData setData setDataSize
-          */
-         void setDataAlignment ( size_t data_align) ;
 
          WorkDescriptor * getParent();
 
@@ -405,8 +389,6 @@ namespace nanos
          void * getData () const;
 
          void setTotalSize ( size_t size );
-
-         void setStart ();
 
          bool isIdle () const;
 
@@ -661,8 +643,8 @@ namespace nanos
 
          //! \brief Convert a slicible WD to a regular WD (changing the behaviour)
          //!
-         //! This functions change _isSliceable attribute which is used in
-         //! submit and dequeue slicedWD function.
+         //! This functions change slicible WD attribute which is used in
+         //! submit() and dequeue() when _slicer attribute is specified.
          void convertToRegularWD();
    };
 

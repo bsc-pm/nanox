@@ -46,7 +46,7 @@ void WorkDescriptor::init ()
          _translateArgs( _data, this );
       }
    }
-   setStart();
+   _state = WorkDescriptor::START;
 }
 
 // That function must be called from the thread it will execute it. This is important
