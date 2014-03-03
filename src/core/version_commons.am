@@ -11,7 +11,6 @@ devinclude_HEADERS = \
 	$(top_srcdir)/src/core/schedule_fwd.hpp \
 	$(top_srcdir)/src/core/system_fwd.hpp \
 	$(top_srcdir)/src/core/wddeque_fwd.hpp \
-	$(top_srcdir)/src/core/workgroup_fwd.hpp \
 	$(top_srcdir)/src/core/workdescriptor_fwd.hpp \
 	$(top_srcdir)/src/core/slicer_fwd.hpp \
 	$(top_srcdir)/src/core/instrumentationcontext_fwd.hpp \
@@ -44,8 +43,6 @@ devinclude_HEADERS = \
 	$(top_srcdir)/src/core/system.hpp \
 	$(top_srcdir)/src/core/wddeque_decl.hpp \
 	$(top_srcdir)/src/core/wddeque.hpp \
-	$(top_srcdir)/src/core/workgroup_decl.hpp \
-	$(top_srcdir)/src/core/workgroup.hpp \
 	$(top_srcdir)/src/core/workdescriptor_decl.hpp \
 	$(top_srcdir)/src/core/workdescriptor.hpp \
 	$(top_srcdir)/src/core/worksharing_decl.hpp \
@@ -118,10 +115,6 @@ common_sources=\
 	$(top_srcdir)/src/core/wddeque_fwd.hpp \
 	$(top_srcdir)/src/core/wddeque_decl.hpp \
 	$(top_srcdir)/src/core/wddeque.hpp \
-	$(top_srcdir)/src/core/workgroup_fwd.hpp \
-	$(top_srcdir)/src/core/workgroup_decl.hpp \
-	$(top_srcdir)/src/core/workgroup.hpp \
-	$(top_srcdir)/src/core/workgroup.cpp \
 	$(top_srcdir)/src/core/workdescriptor_fwd.hpp \
 	$(top_srcdir)/src/core/workdescriptor_decl.hpp \
 	$(top_srcdir)/src/core/workdescriptor.hpp \

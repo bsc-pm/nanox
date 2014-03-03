@@ -78,7 +78,7 @@ int main ( int argc, char **argv )
       WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
 
       // Work Group affiliation
-      WG *wg = getMyThreadSafe()->getCurrentWD();
+      WD *wg = getMyThreadSafe()->getCurrentWD();
       wg->addWork( *wd );
 
       // Work submission

@@ -94,7 +94,7 @@ int main ( int argc, char **argv )
    // initialize vector
    for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
 
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
    // increment vector
    for ( i = 0; i < NUM_ITERS; i++ ) {
 #if USE_NANOS

@@ -96,7 +96,7 @@ int main ( int argc, char **argv )
    // Stop scheduler
    sys.stopScheduler();
    sys.waitUntilThreadsPaused();
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
    
    
    nanos_region_dimension_t dimLoop[1] = {{ sizeof( int )*arraySize, 0, sizeof( int )*arraySize }};

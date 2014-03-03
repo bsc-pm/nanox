@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <utility>
 #include <vector>
-#include "workgroup_decl.hpp"
 #include "dependableobjectwd_decl.hpp"
 #include "copydata_decl.hpp"
 #include "synchronizedcondition_decl.hpp"
@@ -38,7 +37,7 @@
 #include "wddeque_fwd.hpp"
 #include "directory_decl.hpp"
 
-#include "dependenciesdomain_fwd.hpp"
+#include "dependenciesdomain_decl.hpp"
 
 namespace nanos
 {
@@ -140,22 +139,21 @@ namespace nanos
 
     };
 
-   /*! \brief This class identifies a single unit of work
-    */
-   class WorkDescriptor : public WorkGroup
+   //! \brief This class identifies a single unit of work
+   class WorkDescriptor
    {
       public:
-	 typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
+	      typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
 
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
-            bool is_final:1;
-            bool is_initialized:1;
-            bool is_started:1;
-            bool is_ready:1;
-            bool reserved4:1;
-            bool reserved5:1;
+            bool is_final:1;         //! Work descriptor will not create more work descriptors
+            bool is_initialized:1;   //! Work descriptor is initialized
+            bool is_started:1;       //! Work descriptor has been already started
+            bool is_ready:1;         //! Work descriptor is ready to execute
+            bool to_tie:1;           //! Work descriptor should to be tied to first thread executing it
+            bool is_submitted:1;     //! Has this WD been submitted to the Scheduler?
             bool reserved6:1;
             bool reserved7:1;
          } WDFlags;
@@ -164,7 +162,13 @@ namespace nanos
       private:
 
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
+         typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
 
+         int                           _id;                     //! Work descriptor identifier
+         Atomic<int>                   _components;             //! Number of components (children, direct descendants)
+         components_sync_cond_t        _componentsSyncCond;     //! Synchronize condition on components
+         WorkDescriptor               *_parent;                 //! Parent WD in task hierarchy
+         WorkDescriptor               *_forcedParent;           //! Forced parent, it will be not notified when finishing
          size_t                        _data_size;    /**< WD data size */
          size_t                        _data_align;   /**< WD data alignment */
          void                         *_data;         /**< WD data */
@@ -172,22 +176,20 @@ namespace nanos
          void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
          WDFlags                       _flags;        /**< WD Flags */
 
-         bool                          _tie;          /**< FIXME: (#170) documentation needed */
          BaseThread                   *_tiedTo;       /**< FIXME: (#170) documentation needed */
 
          State                         _state;        /**< Workdescriptor current state */
 
          GenericSyncCond              *_syncCond;     /**< FIXME: (#170) documentation needed */
 
-         WorkDescriptor               *_parent;       /**< Parent WD (task hierarchy). Cilk sched.: first steal parent, next other tasks */
 
          WDPool                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
 
          unsigned                      _depth;        /**< Level (depth) of the task */
 
-         unsigned                      _numDevices;   /**< Number of suported devices for this workdescriptor */
+         unsigned char                 _numDevices;   /**< Number of suported devices for this workdescriptor */
          DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
-         unsigned int                  _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
+         unsigned char                 _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
 
          size_t                        _numCopies;    /**< Copy-in / Copy-out data */
          CopyData                     *_copies;       /**< Copy-in / Copy-out data */
@@ -204,7 +206,6 @@ namespace nanos
          DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
          Directory                    *_directory;    /**< Directory to mantain cache coherence */
 
-         bool                          _submitted;  /**< Has this WD been submitted to the Scheduler? */
          bool                          _configured;  /**< Has this WD been configured to the Scheduler? */
          bool                          _implicit;     /**< is a implicit task (in a team) */
 
@@ -223,6 +224,7 @@ namespace nanos
 
          InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
 
+
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
@@ -230,6 +232,9 @@ namespace nanos
          /*! \brief WorkDescriptor default constructor (private) 
           */
          WorkDescriptor ();
+
+         //! \brief Adding current WD as descendant of parent (private method)
+         void addToGroup ( WorkDescriptor &parent );
       public: /* public methods */
 
          /*! \brief WorkDescriptor constructor - 1
@@ -264,7 +269,7 @@ namespace nanos
              void *chunkLower = ( void * ) this;
              void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
 
-             for ( unsigned i = 0; i < _numDevices; i++ ) delete _devices[i];
+             for ( unsigned char i = 0; i < _numDevices; i++ ) delete _devices[i];
 
              //! Delete device vector 
              if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
@@ -291,6 +296,7 @@ namespace nanos
                  delete[] _copies;
          }
 
+         int getId() const { return _id; }
          /*! \brief Has this WorkDescriptor ever run?
           */
          bool started ( void ) const;
@@ -344,7 +350,7 @@ namespace nanos
 
          WorkDescriptor * getParent();
 
-         void setParent ( WorkDescriptor * p );
+         void forceParent ( WorkDescriptor * p );
 
          WDPool * getMyQueue();
 
@@ -407,8 +413,8 @@ namespace nanos
 
          bool hasActiveDevice() const;
 
-         void setActiveDeviceIdx( unsigned int idx );
-         unsigned int getActiveDeviceIdx();
+         void setActiveDeviceIdx( unsigned char idx );
+         unsigned char getActiveDeviceIdx();
 
          /*! \brief Sets specific internal data of the programming model
           * \param [in] data Pointer to internal data
@@ -574,7 +580,8 @@ namespace nanos
           */
          Directory* getDirectory(bool create=false);
 
-         virtual void waitCompletion( bool avoidFlush = false );
+         //! \brief Wait for all children (1st level work descriptors)
+         void waitCompletion( bool avoidFlush = false );
 
          bool isSubmitted( void ) const;
          void submitted( void );
@@ -613,6 +620,13 @@ namespace nanos
          void setCopies(size_t numCopies, CopyData * copies);
 
          char * getDescription ( void ) const;
+
+         //! \brief Removing work from current WorkDescriptor
+         void exitWork ( WorkDescriptor &work );
+
+         //! \brief Adding work to current WorkDescriptor
+         void addWork( WorkDescriptor &work );
+
    };
 
    typedef class WorkDescriptor WD;

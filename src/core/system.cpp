@@ -738,7 +738,7 @@ void System::finish ()
  *  </pre>
  */
 void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t data_size, size_t data_align,
-                        void **data, WG *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
+                        void **data, WD *uwg, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
                         size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions,
                         nanos_region_dimension_internal_t **dimensions, nanos_translate_args_t translate_args,
                         const char *description )
@@ -849,9 +849,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->setInternalData( chunk + offset_PMD );
    }
 
-   // add to workgroup
+   // add to workdescriptor
    if ( uwg != NULL ) {
-      WG * wg = ( WG * )uwg;
+      WD * wg = ( WD * )uwg;
       wg->addWork( *wd );
    }
 
@@ -927,7 +927,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
  * \sa createWD, duplicateWD, duplicateSlicedWD
  */
 void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props,
+                        int outline_data_align, void **outline_data, WD *uwg, Slicer *slicer, nanos_wd_props_t *props,
                         nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions,
                         nanos_region_dimension_internal_t **dimensions, const char *description )
 {
@@ -1028,9 +1028,9 @@ void System::createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devi
       wd->setInternalData( chunk + offset_PMD );
    }
 
-   // add to workgroup
+   // add to workdescriptor 
    if ( uwg != NULL ) {
-      WG * wg = ( WG * )uwg;
+      WD * wg = ( WD * )uwg;
       wg->addWork( *wd );
    }
 
@@ -1252,7 +1252,6 @@ void System::duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd)
 
 void System::setupWD ( WD &work, WD *parent )
 {
-   work.setParent ( parent );
    work.setDepth( parent->getDepth() +1 );
    
    // Inherit priority
@@ -1294,17 +1293,13 @@ void System::waitOn( size_t numDataAccesses, DataAccess* dataAccesses )
    current->waitOn( numDataAccesses, dataAccesses );
 }
 
-
 void System::inlineWork ( WD &work )
 {
    SchedulePolicy* policy = getDefaultSchedulePolicy();
    policy->onSystemSubmit( work, SchedulePolicy::SYS_INLINE_WORK );
    //! \todo choose actual (active) device...
-   if ( Scheduler::checkBasicConstraints( work, *myThread ) ) {
-      Scheduler::inlineWork( &work );
-   } else {
-      Scheduler::submitAndWait( work );
-   }
+   if ( Scheduler::checkBasicConstraints( work, *myThread ) ) Scheduler::inlineWork( &work );
+   else fatal ("System: Trying to execute inline a task violating basic constraints");
 }
 
 void System::createWorker( unsigned p )
