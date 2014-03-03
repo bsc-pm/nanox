@@ -220,9 +220,10 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                             (*it)->setOwner(false);
                         }
                 }
-                if (rank==-1){
-                    sys.releaseWorker(bt);
+                if (rank==-1){                    
+                    bt->lock();
                     bt->sleep();
+                    bt->unlock();
                 }
             }
         }

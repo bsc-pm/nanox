@@ -67,8 +67,8 @@ namespace nanos {
             
             MPI_Comm _communicator;
             int _rank;
-            bool _owner;
-            bool _shared;
+            bool _owner; //if we are the owner (process in charge of freeing the remote process)
+            bool _shared; //if more processes also have access to this PE
             bool _hasWorkerThread;
             Atomic<bool> _busy;
             WorkDescriptor* _currExecutingWd;

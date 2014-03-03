@@ -42,7 +42,7 @@ namespace ext
          int _currPe;
          Lock _selfLock;
          Lock* _groupLock;
-         Atomic<int> _totRunningWds;
+         Atomic<int> _selfTotRunningWds;
          Atomic<int>* _groupTotRunningWds;
          std::vector<MPIThread*> _threadList;
          std::vector<MPIThread*>* _groupThreadList;
@@ -61,8 +61,8 @@ namespace ext
          // constructor
          MPIThread( WD &w, PE *pe ) : _threadList() , _selfLock(), _runningPEs(), SMPThread( w,pe ) {
              _currPe=0;
-             _totRunningWds=0;
-             _groupTotRunningWds=&_totRunningWds;
+             _selfTotRunningWds=0;
+             _groupTotRunningWds=&_selfTotRunningWds;
              _groupThreadList=&_threadList;
              _groupLock=NULL;
          }

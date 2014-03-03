@@ -32,6 +32,6 @@ if [ "x$MIC_OMP_NUM_THREADS" != "x" ]; then
 	export OMP_NUM_THREADS=$MIC_OMP_NUM_THREADS
    unset NX_THREADS
 fi
-export NX_ARGS=$NX_ARGS" --spins=1 --sleep-time=10 --sleeps=50000000"
+export NX_ARGS=$NX_ARGS" --spins=4 --sleep-time=10 --sleeps=50000000"
 export OMPSS_OFFLOAD_SLAVE=1
 exec $filename.$CURR_ARCH $ARG1 $ARG2

@@ -33,6 +33,11 @@ using namespace nanos;
 using namespace nanos::ext;
 
 void MPIThread::initializeDependent() {
+    int nspins=sys.getSchedulerConf().getNumSpins();
+    if (nspins<=1) {
+        warning0("--spins argument should be >1 when you are offloading, lower numbers may hang the execution, setting it to 4");
+        sys.getSchedulerConf().setNumSpins(4);
+    }
 }
 
 void MPIThread::runDependent() {
@@ -122,7 +127,7 @@ Lock* MPIThread::getSelfLock() {
 }
 
 Atomic<int>* MPIThread::getSelfCounter() {
-    return &_totRunningWds;
+    return &_selfTotRunningWds;
 }
          
 void MPIThread::setGroupCounter(Atomic<int>* gCounter) {
@@ -221,6 +226,20 @@ void MPIThread::bind( void )
 
 void MPIThread::finish() {
     checkTaskEnd();
+    //If I'm the master thread of the group (group counter == self-counter)
+    if ( _groupTotRunningWds == &_selfTotRunningWds ) {
+        cacheOrder order;
+        order.opId = OPID_FINISH;
+        std::vector<MPIProcessor*>& myPEs = getRunningPEs();
+        for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
+            //Only release if we are the owner of the process (once released, we are not the owner anymore)
+            if ( (*it)->getOwner() ) 
+            {
+                nanos::ext::MPIProcessor::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, (*it)->getCommunicator());
+                (*it)->setOwner(false);
+            }
+        }
+   }
     SMPThread::finish();
     BaseThread::finish();
 }
