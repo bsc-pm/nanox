@@ -17,11 +17,11 @@ class SlicerDynamicFor: public Slicer
       ~SlicerDynamicFor ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slice);
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor** slice);
 };
 
-void SlicerDynamicFor::submit ( SlicedWD &work )
+void SlicerDynamicFor::submit ( WorkDescriptor &work )
 {
    debug0 ( "Using sliced work descriptor: Dynamic For" );
 
@@ -33,7 +33,7 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    Scheduler::submit ( work );
 }
 
-bool SlicerDynamicFor::dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slice)
+bool SlicerDynamicFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor** slice)
 {
    bool retval = false;
 

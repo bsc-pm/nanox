@@ -15,19 +15,19 @@ class SlicerRepeatN: public Slicer
       ~SlicerRepeatN ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) ;
 };
 
-void SlicerRepeatN::submit ( SlicedWD &work )
+void SlicerRepeatN::submit ( WorkDescriptor &work )
 {
    debug0 ( "Using sliced work descriptor: RepeatN" );
    Scheduler::submit ( work );
 }
 
-/* \brief Dequeue a RepeatN SlicedWD
+/* \brief Dequeue a RepeatN WorkDescriptor
  *
- *  This function dequeues a RepeantN SlicedWD returning true if there
+ *  This function dequeues a RepeantN WorkDescriptor returning true if there
  *  will be no more slices to manage (i.e. this is the last chunk to
  *  execute. The received paramenter wd has to be associated with a
  *  SlicerRepeatN.
@@ -37,7 +37,7 @@ void SlicerRepeatN::submit ( SlicedWD &work )
  *
  *  \return true if there are no more slices in the former wd, false otherwise
  */
-bool SlicerRepeatN::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
+bool SlicerRepeatN::dequeue ( WorkDescriptor *wd, WorkDescriptor **slice)
 {
 
    debug0 ( "Dequeueing sliced work: RepeatN start" );
