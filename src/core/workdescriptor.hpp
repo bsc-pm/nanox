@@ -51,7 +51,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
-                                 _directory(NULL), _implicit(false), _translateArgs( translate_args ),
+                                 _directory(NULL), _translateArgs( translate_args ),
                                  _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
                                  _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL)
                                  {
@@ -70,7 +70,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
-                                 _directory(NULL), _implicit(false), _translateArgs( translate_args ),
+                                 _directory(NULL), _translateArgs( translate_args ),
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL)
                                  {
@@ -91,7 +91,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
                                  _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(NULL), _doWait(),
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
-                                 _directory(NULL), _implicit( wd._implicit ),_translateArgs( wd._translateArgs ),
+                                 _directory(NULL), _translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _wakeUpQueue( wd._wakeUpQueue ),
                                  _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer)
@@ -101,6 +101,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                     _flags.is_ready = false;
                                     _flags.to_tie = wd._flags.to_tie;
                                     _flags.is_submitted = false;
+                                    _flags.is_implicit = wd._flags.is_implicit;
                                  }
 
 /* DeviceData inlined functions */
@@ -168,6 +169,7 @@ inline void WorkDescriptor::setReady ()
 }
 
 inline bool WorkDescriptor::isFinal () const { return _flags.is_final; }
+
 inline void WorkDescriptor::setFinal ( bool value ) { _flags.is_final = value; }
 
 inline GenericSyncCond * WorkDescriptor::getSyncCond() { return _syncCond; }
@@ -183,7 +185,8 @@ inline DeviceData & WorkDescriptor::getActiveDevice () const { return *_devices[
 inline bool WorkDescriptor::hasActiveDevice() const { return _activeDeviceIdx != _numDevices; }
 
 inline void WorkDescriptor::setActiveDeviceIdx( unsigned char idx ) { _activeDeviceIdx = idx; }
-inline unsigned char WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
+
+inline unsigned char WorkDescriptor::getActiveDeviceIdx() const { return _activeDeviceIdx; }
 
 inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) { 
     union { void* p; intptr_t i; } u = { data };
@@ -224,9 +227,9 @@ inline void WorkDescriptor::setWakeUpQueue( unsigned int queue )
    _wakeUpQueue = queue;
 }
 
-inline unsigned int WorkDescriptor::getNumDevices ( void ) { return _numDevices; }
+inline unsigned int WorkDescriptor::getNumDevices ( void ) const { return _numDevices; }
 
-inline DeviceData ** WorkDescriptor::getDevices ( void ) { return _devices; }
+inline DeviceData ** WorkDescriptor::getDevices ( void ) const { return _devices; }
 
 inline void WorkDescriptor::clear () { /*_parent = NULL;*/ }
 
@@ -323,8 +326,8 @@ inline Directory* WorkDescriptor::getDirectory(bool create)
 inline bool WorkDescriptor::isSubmitted() const { return _flags.is_submitted; }
 inline void WorkDescriptor::submitted()  { _flags.is_submitted = true; }
 
-inline bool WorkDescriptor::isConfigured ( void ) const { return _configured; }
-inline void WorkDescriptor::setConfigured ( bool value ) { _configured = value; }
+inline bool WorkDescriptor::isConfigured ( void ) const { return _flags.is_configured; }
+inline void WorkDescriptor::setConfigured ( bool value ) { _flags.is_configured = value; }
 
 inline void WorkDescriptor::setPriority( WorkDescriptor::PriorityType priority ) { _priority = priority; }
 inline WorkDescriptor::PriorityType WorkDescriptor::getPriority() const { return _priority; }
@@ -340,7 +343,7 @@ inline void WorkDescriptor::releaseCommutativeAccesses()
 inline void WorkDescriptor::setImplicit( bool b )
 {
    //! Set implicit flag to parameter value
-   _implicit = b;
+   _flags.is_implicit = b;
 
    //! Unset parent to free current Work Descriptor from hierarchy
    if ( _parent != NULL ) {
@@ -349,7 +352,7 @@ inline void WorkDescriptor::setImplicit( bool b )
    }
 }
 
-inline bool WorkDescriptor::isImplicit( void ) { return _implicit; } 
+inline bool WorkDescriptor::isImplicit( void ) { return _flags.is_implicit; } 
 
 inline char * WorkDescriptor::getDescription ( void ) const  { return _description; }
 
