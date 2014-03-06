@@ -78,22 +78,23 @@ void nanos_get_opencl_num_devices_( int* numret){
     *numret=nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
 }
 
-NANOS_API_DEF(void *, nanos_malloc_opencl, ( size_t size ))
+void * nanos_malloc_opencl ( size_t size )
 {
    return nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate(size);
 }
 
-NANOS_API_DEF(intptr_t, nanos_malloc_openclf, ( int size ))
-{
-   return (intptr_t)nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate((size_t)size);
+void nanos_opencl_allocate_fortran_ ( int* size, void** ptr )
+{  
+   *ptr= nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate(*size);
 }
 
-NANOS_API_DEF( void, nanos_free_opencl, ( void * address ) )
+void nanos_free_opencl ( void * address ) 
 {
    nanos::ext::OpenCLProcessor::getSharedMemAllocator().free(address);
-}
+} 
 
-NANOS_API_DEF(void, nanos_free_openclf, ( intptr_t address ))
+void nanos_opencl_deallocate_fortran_ ( void ** address ) 
 {
-   nanos::ext::OpenCLProcessor::getSharedMemAllocator().free((void*)address);
-}
+   nanos::ext::OpenCLProcessor::getSharedMemAllocator().free(*address);
+   *address=0;
+} 
