@@ -39,8 +39,11 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
 }
 
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
+   //std::cerr << "Registering CD with addr " << (void *) cd.getBaseAddress() << std::endl;
+   //std::cerr << cd << std::endl;
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
    reg.id = reg.key->obtainRegionId( cd );
+   //std::cerr << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
    reg_t master_id = cd.getHostRegionId();
    if ( master_id != 0 ) {
       NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
@@ -179,5 +182,8 @@ bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned 
    return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations );
 }
 
+void SeparateAddressSpace::invalidate( global_reg_t const &reg ) {
+   _cache.invalidateObject( reg );
+}
 
 }

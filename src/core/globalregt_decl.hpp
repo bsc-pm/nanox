@@ -42,6 +42,7 @@ struct global_reg_t {
    bool isLocatedIn( memory_space_id_t loc ) const;
    void fillCopyData( CopyData &cd ) const;
    bool isRegistered() const;
+   std::set< memory_space_id_t > const &getLocations() const;
 private:
    uint64_t getFirstAddress(uint64_t baseAddress) const;
 };

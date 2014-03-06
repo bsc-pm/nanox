@@ -367,7 +367,7 @@ std::size_t GPUDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) const {
    return gpu->getMaxMemoryAvailable();
 }
 
-void GPUDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) const {
+void GPUDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
    ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
    SimpleAllocator *allocator = gpuMemData->getAllocator();
    allocator->getFreeChunksList( list );

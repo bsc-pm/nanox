@@ -163,6 +163,7 @@ namespace nanos {
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          AllocatedChunk **selectChunkToInvalidate( std::size_t allocSize );
          AllocatedChunk *invalidate( global_reg_t const &allocatedRegion, WD const &wd );
+         void invalidateObject( global_reg_t const &reg );
          void selectChunksToInvalidate( std::size_t allocSize, std::set< AllocatedChunk ** > &chunksToInvalidate, WD const &wd, unsigned int &otherReferencedChunks );
          void syncRegion( global_reg_t const &r ) ;
          //void syncRegion( std::list< std::pair< global_reg_t, CacheCopy * > > const &regions, WD const &wd ) ;

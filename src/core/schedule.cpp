@@ -123,6 +123,7 @@ void Scheduler::submit ( WD ** wds, size_t numElems )
    for( size_t i = 0; i < numElems; ++i )
    {
       WD* wd = wds[i];
+      wd->_mcontrol.preInit();
       
       // If the wd is tied to anyone
       BaseThread *wd_tiedto = wd->isTiedTo();
@@ -1035,7 +1036,11 @@ void Scheduler::finishWork( WD * wd, bool schedule )
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
-         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule ) );
+         WD *prefetchedWD = thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule );
+         if ( prefetchedWD ) {
+            prefetchedWD->_mcontrol.preInit();
+            thread->addNextWD( prefetchedWD );
+         }
       }
    }
 

@@ -200,7 +200,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
             //std::cerr << "NO NEED TO COPY: I have this region already "  << std::endl;
             ops.getOtherOps().insert( entry->getDeviceOps() );
          } else {
-            std::cerr << "ERROR: version in cache (" << entry->getVersion() << ") > than version requested ("<< version <<")." << std::endl;
+            std::cerr << "ERROR: version in cache (" << entry->getVersion() << ") > than version requested ("<< version <<"). WD id: "<< wd.getId() << " desc: " << (wd.getDescription() ? wd.getDescription() : "n/a") << std::endl;
             key->printRegion( reg );
             std::cerr << std::endl;
          }
@@ -1434,3 +1434,15 @@ bool RegionCache::canInvalidateToFit( std::size_t *sizes, unsigned int numChunks
    return ( allocated_count == numChunks );
 }
 
+
+void RegionCache::invalidateObject( global_reg_t const &reg ) {
+   ConstChunkList results;
+   _chunks.getChunk3( reg.getRealFirstAddress(), reg.getBreadth(), results );
+   for ( ConstChunkList::iterator it = results.begin(); it != results.end(); it++ ) {
+      std::cerr << "Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
+      if ( it->second != NULL ) {
+         delete *(it->second);
+      }
+   }
+   _chunks.removeChunks( reg.getRealFirstAddress(), reg.getBreadth() );
+}

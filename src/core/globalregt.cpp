@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include "globalregt_decl.hpp"
-#include "newregiondirectory_decl.hpp"
+#include "newregiondirectory.hpp"
 #include "regiondict.hpp"
 
 uint64_t global_reg_t::getKeyFirstAddress() const {
@@ -196,4 +196,9 @@ void global_reg_t::fillCopyData( CopyData &cd ) const {
 bool global_reg_t::isRegistered() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    return entry != NULL;
+}
+
+std::set< memory_space_id_t > const &global_reg_t::getLocations() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   return entry->getLocations();
 }

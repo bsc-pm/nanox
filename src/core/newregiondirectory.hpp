@@ -133,7 +133,7 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( int id ) {
 //}
 inline void NewNewDirectoryEntryData::print() const {
    std::cerr << "WL: " << _writeLocation << " V: " << this->getVersion() << " Locs: ";
-   for ( std::set< int >::iterator it = _location.begin(); it != _location.end(); it++ ) {
+   for ( std::set< memory_space_id_t >::iterator it = _location.begin(); it != _location.end(); it++ ) {
       std::cerr << *it << " ";
    }
    std::cerr << std::endl;
@@ -176,6 +176,10 @@ inline int NewNewDirectoryEntryData::getNumLocations() {
 
 inline DeviceOps *NewNewDirectoryEntryData::getOps() {
    return &_ops;
+}
+
+inline std::set< memory_space_id_t > const &NewNewDirectoryEntryData::getLocations() const {
+   return _location;
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {

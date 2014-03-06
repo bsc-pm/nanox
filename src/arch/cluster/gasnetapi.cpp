@@ -383,7 +383,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       //fprintf(stderr, "Copy %d has HostAddr 0x%lx, BaseAddr 0x%p\n", i, newCopies[i].getHostBaseAddress(), newCopies[i].getBaseAddress() );
    }
 
-   //localWD->setId( wdId );
+   localWD->setId( wdId );
    localWD->setRemoteAddr( rmwd );
    {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
@@ -849,7 +849,7 @@ void GASNetAPI::amRequestPut( gasnet_token_t token, void *buff, std::size_t nbyt
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
-   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " to " << dst <<" size " << len << " origAddr " << (void*) origAddr << " destAddr "<< (void*)destAddr<< std::endl; );
+   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " to " << msg->_destination <<" size " << msg->_len << " origAddr " << (void*) msg->_origAddr << " destAddr "<< (void*)msg->_destAddr<< std::endl; );
 
    SendDataPutRequest *req = NEW SendDataPutRequest( getInstance(), msg );
    getInstance()->_net->notifyRequestPut( req );

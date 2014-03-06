@@ -83,6 +83,9 @@ bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &ver
 void MemController::preInit( ) {
    unsigned int index;
    if ( _preinitialized ) return;
+   if ( _VERBOSE_CACHE ) { 
+      std::cerr << " (preinit)INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << std::endl;
+   }
    for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
       //std::cerr << "WD "<< _wd.getId() << " Depth: "<< _wd.getDepth() <<" Creating copy "<< index << std::endl;
       //std::cerr << _wd.getCopies()[ index ];
@@ -105,6 +108,9 @@ void MemController::preInit( ) {
          }
          std::cerr << std::endl;
       }
+   }
+   if ( _VERBOSE_CACHE ) { 
+      std::cerr << " (preinit)END OF INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << std::endl;
    }
    _preinitialized = true;
 }

@@ -32,7 +32,7 @@ namespace nanos
          int _writeLocation;
          //int _invalidated;
          DeviceOps _ops;
-         std::set< int > _location;
+         std::set< memory_space_id_t > _location;
          Lock _setLock;
       public:
          NewNewDirectoryEntryData();
@@ -55,6 +55,7 @@ namespace nanos
          int getFirstLocation();
          int getNumLocations();
          void setOps( DeviceOps *ops );
+         std::set< memory_space_id_t > const &getLocations() const;
          DeviceOps *getOps() ;
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
    };

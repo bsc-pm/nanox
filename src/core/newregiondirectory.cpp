@@ -55,7 +55,7 @@ using namespace nanos;
 std::ostream & nanos::operator<< (std::ostream &o, nanos::NewNewDirectoryEntryData const &ent)
 {
    o << "WL: " << ent._writeLocation << " V: " << ent.getVersion() << " Locs: ";
-   for ( std::set<int>::iterator it = ent._location.begin(); it != ent._location.end(); it++ ) {
+   for ( std::set<memory_space_id_t>::iterator it = ent._location.begin(); it != ent._location.end(); it++ ) {
       o << *it << " ";
    }
    return o;
@@ -371,14 +371,15 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
       SeparateAddressSpaceOutOps outOps( false, false );
       std::set< DeviceOps * > ops;
       std::set< DeviceOps * > myOps;
+      std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
       for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
          //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->second <<") ================="<<std::endl;
          std::list< std::pair< reg_t, reg_t > > missingParts;
          unsigned int version = 0;
-   //double tini = OS::getMonotonicTime();
+         //double tini = OS::getMonotonicTime();
          /*reg_t lol =*/ it->second->registerRegion(1, missingParts, version, true);
-   //double tfini = OS::getMonotonicTime();
-   //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
+         //double tfini = OS::getMonotonicTime();
+         //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
          //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
          //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
          //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
@@ -386,29 +387,56 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
          //std::cerr << "}"<<std::endl;
          for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
             //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
-            global_reg_t reg( mit->first, it->second );
-            if ( !reg.isLocatedIn( 0 ) ) {
-              DeviceOps *thisOps = reg.getDeviceOps();
-              if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                 NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
-                  if ( _VERBOSE_CACHE ) {
-                     std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
-                     if ( entry ) std::cerr << " " << *entry << std::endl;
-                     else std::cerr << " nil " << std::endl; 
+            if ( mit->first == mit->second ) {
+               global_reg_t reg( mit->first, it->second );
+               if ( !reg.isLocatedIn( 0 ) ) {
+                  DeviceOps *thisOps = reg.getDeviceOps();
+                  if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
+                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                     if ( _VERBOSE_CACHE ) {
+                        std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                        if ( entry ) std::cerr << " " << *entry << std::endl;
+                        else std::cerr << " nil " << std::endl; 
+                     }
+                     //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                     outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
+                     outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
+                  } else {
+                     outOps.getOtherOps().insert( thisOps );
                   }
-                 //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                 outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
-                 outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
-              } else {
-                 outOps.getOtherOps().insert( thisOps );
-              }
-              //regEntry->addAccess( 0, regEntry->getVersion() );
+                  //regEntry->addAccess( 0, regEntry->getVersion() );
+               }
+
+               // aggregate the locations, later, we will invalidate the full object from those locations
+               locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end());
+            } else {
+               global_reg_t reg( mit->second, it->second );
+               if ( !reg.isLocatedIn( 0 ) ) {
+                  std::cerr << "FIXME: I should sync region! "; reg.key->printRegion( reg.id );
+               }
             }
          }
+
          //std::cerr << "=============================================================="<<std::endl;
       }
       outOps.issue( *( (WD *) NULL ) );
       while ( !outOps.isDataReady( wd ) ) { myThread->idle(); }
+
+      // invalidate data on devices
+      for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
+         for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
+            if ( *locIt != 0 ) {
+               fprintf(stderr, "inval object %p from mem space %d\n", (void *) it->first, *locIt);
+               sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
+            }
+         }
+      }
+      //clear objects from directory
+      for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
+         delete it->second;
+      }
+      _objects.clear();
+      
    }
 }
 

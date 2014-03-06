@@ -1579,6 +1579,18 @@ bool MemoryMap< _Type >::canPack() const
    return result;
 }
 
+
+template < typename _Type >
+void MemoryMap< _Type >::removeChunks( uint64_t addr, std::size_t len ) {
+   MemoryChunk key( addr, len );
+   typename BaseMap::iterator it_begin, it_end;
+   it_begin = it_end = this->lower_bound( key );
+   while ( it_end != this->end() && key.contains( it_end->first ) ) {
+      it_end++;
+   }
+   this->erase( it_begin, it_end );
+}
+
 }
 
 #endif /* _NANOS_MEMORYMAP_H */

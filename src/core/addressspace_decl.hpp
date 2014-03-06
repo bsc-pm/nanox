@@ -120,6 +120,8 @@ class SeparateAddressSpace {
    ProcessingElement &getPE();
    memory_space_id_t getMemorySpaceId() const;
 
+   void invalidate( global_reg_t const &reg );
+
    unsigned int getSoftInvalidationCount() const;
    unsigned int getHardInvalidationCount() const;
    bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations );

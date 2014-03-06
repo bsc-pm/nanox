@@ -101,6 +101,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void print() const;
       bool canPack() const;
+      void removeChunks( uint64_t addr, std::size_t len );
 };
 
 #if 1
