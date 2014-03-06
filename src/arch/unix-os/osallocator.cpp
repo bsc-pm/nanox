@@ -51,8 +51,8 @@ uintptr_t OSAllocator::lookForAlignedAddress( size_t len ) const {
    return target;
 }
 
-int OSAllocator::tryAlloc( uintptr_t addr, size_t len ) const {
-   void *result = mmap( (void *) addr, len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED, -1, 0 );
+int OSAllocator::tryAlloc( uintptr_t addr, size_t len, int flags ) const {
+   void *result = mmap( (void *) addr, len, flags, MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED, -1, 0 );
    if ( result == MAP_FAILED ) {
       fprintf(stderr, "mmap failed: %s\n", strerror(errno) );
       return -1;
@@ -207,12 +207,20 @@ void OSAllocator::readeMaps()
 }
 
 void *OSAllocator::allocate( size_t len ) {
+   return _allocate( len, false );
+}
+
+void *OSAllocator::allocate_none( size_t len ) {
+   return _allocate( len, true );
+}
+
+void *OSAllocator::_allocate( size_t len, bool none ) {
    uintptr_t targetAddr = 0;
    void *allocatedAddr = NULL;
    readeMaps();
    targetAddr = lookForAlignedAddress( len );
    if ( targetAddr != 0 ) {
-      if ( tryAlloc( targetAddr, len ) ) {
+      if ( tryAlloc( targetAddr, len, none ? PROT_NONE : PROT_READ|PROT_WRITE ) ) {
          std::cerr << "mmap failed to allocate " << len << " size-aligned bytes." << std::endl;
       } else {
          allocatedAddr = (void *) targetAddr;

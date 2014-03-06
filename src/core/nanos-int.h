@@ -298,7 +298,7 @@ typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDO
  /*22*/        NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET,
+typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_XFER_DATA, NANOS_XFER_REQ, NANOS_WD_REMOTE,
                NANOS_AM_WORK, NANOS_AM_WORK_DONE, NANOS_XFER_WAIT_REQ_PUT, NANOS_XFER_FREE_TMP_BUFF } nanos_event_domain_t; /**< Specifies a domain */
 
 typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */

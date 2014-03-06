@@ -414,6 +414,10 @@ void Network::ReceivedWDData::addData( unsigned int wdId, std::size_t size ) {
       if ( _recvWdDataMap.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
       _lock.release();
       //release wd
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, 0, 0 ); )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wdId, 0, 0 );)
       sys.submit( *wd );
       _receivedWDs++;
       //std::cerr <<"["<< gasnet_mynode()<< "] release wd (by data) new seq is " << _recvSeqN.value()   << std::endl;
@@ -432,6 +436,10 @@ void Network::ReceivedWDData::addWD( unsigned int wdId, WorkDescriptor *wd, std:
       if ( _recvWdDataMap.erase( wdId ) != 1) std::cerr <<"Error removing from map: "<<__FUNCTION__<< " @ " << __FILE__<<":"<<__LINE__<< std::endl;
       _lock.release();
       //release wd
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, 0, 0 ); )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wdId, 0, 0 );)
       sys.submit( *wd );
       _receivedWDs++;
    //std::cerr <<"["<< gasnet_mynode()<< "] release wd (by wd) new seq is " << _recvSeqN.value()   << std::endl;

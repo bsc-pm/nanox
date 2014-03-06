@@ -44,3 +44,11 @@ unsigned int MemCacheCopy::getVersion() const {
 void MemCacheCopy::setVersion( unsigned int version ) {
    _version = version;
 }
+
+bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
+   bool result = _reg.isRooted();
+   if ( result ) {
+      loc = _reg.getFirstLocation();
+   }
+   return result;
+}

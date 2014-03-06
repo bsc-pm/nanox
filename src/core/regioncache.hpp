@@ -56,6 +56,10 @@ inline global_reg_t AllocatedChunk::getAllocatedRegion() const {
    return _allocatedRegion;
 }
 
+inline bool AllocatedChunk::isRooted() const {
+   return _rooted;
+}
+
 inline Device const &RegionCache::getDevice() const {
    return _device;
 }

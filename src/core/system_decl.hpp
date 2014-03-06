@@ -727,6 +727,7 @@ namespace nanos
          //It will act as an slave and call exit(0) when we need slave behaviour
          //in offload or cluster version
          void ompss_nanox_main ();         
+         void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
    };
 
    extern System sys;

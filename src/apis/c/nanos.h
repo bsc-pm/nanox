@@ -302,6 +302,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 // Memory management
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int node, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
 NANOS_API_DECL(void, nanos_free0, ( void *p )); 
 

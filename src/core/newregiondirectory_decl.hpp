@@ -33,6 +33,7 @@ namespace nanos
          //int _invalidated;
          DeviceOps _ops;
          std::set< memory_space_id_t > _location;
+         bool _rooted;
          Lock _setLock;
       public:
          NewNewDirectoryEntryData();
@@ -43,11 +44,14 @@ namespace nanos
          int getWriteLocation() const ;
          void setWriteLocation( int id ) ;
          void addAccess( int id, unsigned int version ); 
+         void addRootedAccess( int id, unsigned int version ); 
          bool delAccess( int id ); 
          //void invalidate(); 
          //bool hasBeenInvalidated() const; 
          bool isLocatedIn( int id, unsigned int version );
          bool isLocatedIn( int id );
+         void setRooted();
+         bool isRooted() const;
          //void merge( const NewNewDirectoryEntryData &de ) ;
          void print() const ;
          //bool equal( const NewNewDirectoryEntryData &d ) const ;
@@ -119,6 +123,7 @@ namespace nanos
          static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
          static unsigned int getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion );
          static void addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
+         static void addRootedAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
          //static void addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
          static bool delAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId );
          static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId );

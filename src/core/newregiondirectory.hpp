@@ -24,11 +24,11 @@
 #include "version.hpp"
 
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation( -1 ), _ops(), _location(), _setLock() {
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation( -1 ), _ops(), _location(), _rooted( false ), _setLock() {
 }
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ): Version( de ), _writeLocation( de._writeLocation ),
-   _ops(), _location( de._location ), _setLock() {
+   _ops(), _location( de._location ), _rooted( de._rooted ), _setLock() {
 }
 
 inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
@@ -41,6 +41,7 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
    _location.clear();
    de._setLock.acquire();
    _location.insert( de._location.begin(), de._location.end() );
+   _rooted = de._rooted;
    de._setLock.release();
    _setLock.release();
    return *this;
@@ -75,6 +76,17 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
    } else {
      std::cerr << "FIXME: wrong case" << std::endl;
    }
+   _setLock.release();
+}
+
+inline void NewNewDirectoryEntryData::addRootedAccess( int id, unsigned int version ) {
+   _setLock.acquire();
+   ensure(version == this->getVersion(), "addRootedAccess of already accessed entry." );
+   _location.clear();
+   _writeLocation = id;
+   this->setVersion( version );
+   _location.insert( id );
+   _rooted = true;
    _setLock.release();
 }
 
@@ -180,6 +192,14 @@ inline DeviceOps *NewNewDirectoryEntryData::getOps() {
 
 inline std::set< memory_space_id_t > const &NewNewDirectoryEntryData::getLocations() const {
    return _location;
+}
+
+inline void NewNewDirectoryEntryData::setRooted() {
+   _rooted = true;
+}
+
+inline bool NewNewDirectoryEntryData::isRooted() const{
+   return _rooted;
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {

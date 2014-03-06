@@ -2,6 +2,7 @@
 #include "globalregt_decl.hpp"
 #include "newregiondirectory.hpp"
 #include "regiondict.hpp"
+#include "debug.hpp"
 
 uint64_t global_reg_t::getKeyFirstAddress() const {
    return getFirstAddress( key->getKeyBaseAddress() );
@@ -200,5 +201,28 @@ bool global_reg_t::isRegistered() const {
 
 std::set< memory_space_id_t > const &global_reg_t::getLocations() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
    return entry->getLocations();
+}
+
+void global_reg_t::setRooted() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   entry->setRooted();
+}
+
+bool global_reg_t::isRooted() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   return entry->isRooted();
+}
+void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
+   setRooted();
+   NewNewRegionDirectory::addRootedAccess( key, id, loc, 1 );
+}
+
+unsigned int global_reg_t::getNumLocations() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   return entry->getLocations().size();
 }

@@ -135,6 +135,10 @@ inline std::size_t CopyData::getNumDimensions() const
    return dimension_count;
 }
 
+inline void CopyData::setNumDimensions(std::size_t ndims) {
+   dimension_count = ndims;
+}
+
 inline nanos_region_dimension_internal_t const *CopyData::getDimensions() const
 {
    return dimensions;
@@ -181,10 +185,6 @@ inline memory_space_id_t CopyData::getHostRegionId() const {
 
 inline void CopyData::setHostRegionId( memory_space_id_t id ) {
    _hostRegionId = id;
-}
-
-inline void CopyData::setNumDimensions( std::size_t numDims ) {
-   dimension_count = numDims;
 }
 
 #endif

@@ -69,6 +69,23 @@ NANOS_API_DEF(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *
    return NANOS_OK;
 }
 
+
+NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int node, const char *file, int line ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","cmalloc",NANOS_RUNTIME ) );
+
+   try 
+   {
+      nanos::OSAllocator allocator;
+      *p = allocator.allocate_none( size );
+      sys.registerNodeOwnedMemory(node, *p, size);
+   } catch ( nanos_err_t e ) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
 NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","free",NANOS_RUNTIME ) );

@@ -125,6 +125,7 @@ class SeparateAddressSpace {
    unsigned int getSoftInvalidationCount() const;
    unsigned int getHardInvalidationCount() const;
    bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations );
+   void registerOwnedMemory(global_reg_t reg);
 };
 
 template <class T>

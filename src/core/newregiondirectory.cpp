@@ -249,6 +249,12 @@ void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsign
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
 }
 
+void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
+{
+   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   regEntry->addRootedAccess( memorySpaceId, version );
+}
+
 //void NewNewRegionDirectory::addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
 //{
 //   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
@@ -389,30 +395,38 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
             //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
             if ( mit->first == mit->second ) {
                global_reg_t reg( mit->first, it->second );
-               if ( !reg.isLocatedIn( 0 ) ) {
-                  DeviceOps *thisOps = reg.getDeviceOps();
-                  if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
-                     if ( _VERBOSE_CACHE ) {
-                        std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
-                        if ( entry ) std::cerr << " " << *entry << std::endl;
-                        else std::cerr << " nil " << std::endl; 
+               if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
+                  if ( !reg.isLocatedIn( 0 ) ) {
+                     DeviceOps *thisOps = reg.getDeviceOps();
+                     if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
+                        NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                        if ( _VERBOSE_CACHE ) {
+                           std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                           if ( entry ) std::cerr << " " << *entry << std::endl;
+                           else std::cerr << " nil " << std::endl; 
+                        }
+                        //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                        outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
+                        outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
+                     } else {
+                        outOps.getOtherOps().insert( thisOps );
                      }
-                     //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                     outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
-                     outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
-                  } else {
-                     outOps.getOtherOps().insert( thisOps );
+                     //regEntry->addAccess( 0, regEntry->getVersion() );
                   }
-                  //regEntry->addAccess( 0, regEntry->getVersion() );
-               }
+                  // another mechanism to inval data: else if ( reg.getNumLocations() > 1 ) {
+                  // another mechanism to inval data:    //std::cerr << " have too upgrade host region" << std::endl;
+                  // another mechanism to inval data:    reg.setLocationAndVersion( 0, reg.getVersion()+1 ); //increase version to invalidate the device copy
+                  // another mechanism to inval data: }
 
-               // aggregate the locations, later, we will invalidate the full object from those locations
-               locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end());
+                  // aggregate the locations, later, we will invalidate the full object from those locations
+                  locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end());
+               }
             } else {
                global_reg_t reg( mit->second, it->second );
-               if ( !reg.isLocatedIn( 0 ) ) {
-                  std::cerr << "FIXME: I should sync region! "; reg.key->printRegion( reg.id );
+               if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
+                  if ( !reg.isLocatedIn( 0 ) ) {
+                     std::cerr << "FIXME: I should sync region! "; reg.key->printRegion( reg.id );
+                  }
                }
             }
          }
@@ -436,7 +450,6 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
          delete it->second;
       }
       _objects.clear();
-      
    }
 }
 

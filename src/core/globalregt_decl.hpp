@@ -43,6 +43,10 @@ struct global_reg_t {
    void fillCopyData( CopyData &cd ) const;
    bool isRegistered() const;
    std::set< memory_space_id_t > const &getLocations() const;
+   void setRooted() const;
+   bool isRooted() const;
+   void setOwnedMemory( memory_space_id_t loc ) const;
+   unsigned int getNumLocations() const;
 private:
    uint64_t getFirstAddress(uint64_t baseAddress) const;
 };
