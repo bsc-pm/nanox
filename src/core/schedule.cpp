@@ -45,7 +45,7 @@ void SchedulerConf::config (Config &cfg)
    cfg.registerEnvOption ( "sleep_time", "NX_SLEEP_TIME" );
 }
 
-void Scheduler::submit ( WD &wd )
+void Scheduler::submit ( WD &wd, bool force_queue )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
@@ -67,7 +67,7 @@ void Scheduler::submit ( WD &wd )
    }
 
    /* handle tasks which cannot run in current thread */
-   if ( !wd.canRunIn(*mythread->runningOn()) ) {
+   if ( force_queue || !wd.canRunIn(*mythread->runningOn()) ) {
      /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
       * it in our scheduler system. Global ready task queue will take care about task/thread
       * architecture, while local ready task queue will wait until stealing. */
@@ -102,20 +102,42 @@ void Scheduler::submit ( WD &wd )
 
 }
 
-void Scheduler::submitAndWait ( WD &wd )
+void Scheduler::submit ( WD ** wds, size_t numElems )
 {
-   debug ( "submitting and waiting task " << wd.getId() );
-   fatal ( "Scheduler::submitAndWait(): This feature is still not supported" );
-
-   // Create a new WorkGroup and add WD
-   WG myWG;
-   myWG.addWork( wd );
-
-   // Submit WD
-   submit( wd );
-
-   // Wait for WD to be finished
-   myWG.waitCompletion();
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+   
+   if ( numElems == 0 ) return;
+   
+   BaseThread *mythread = myThread;
+   
+   // create a vector of threads for each wd
+   BaseThread ** threadList = NEW BaseThread*[numElems];
+   for( size_t i = 0; i < numElems; ++i )
+   {
+      WD* wd = wds[i];
+      
+      // If the wd is tied to anyone
+      BaseThread *wd_tiedto = wd->isTiedTo();
+      if ( wd->isTied() && wd_tiedto != mythread ) {
+         if ( wd_tiedto->getTeam() == NULL ) {
+            //wd_tiedto->addNextWD( &wd );
+            // WHAT HERE???
+            fatal( "Uncontrolled batch path");
+         } else {
+            //wd_tiedto->getTeam()->getSchedulePolicy().queue( wd_tiedto, wd );
+            threadList[i] = wd_tiedto;
+         }
+         continue;
+      }
+      // Otherwise, use mythread
+      threadList[i] = mythread;
+   }
+   
+   // Call the scheduling policy
+   mythread->getTeam()->getSchedulePolicy().queue( threadList, wds, numElems );
+   
+   // Release
+   delete[] threadList;
 }
 
 void Scheduler::updateCreateStats ( WD &wd )
@@ -185,7 +207,9 @@ inline void Scheduler::idleLoop ()
 
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
-      if ( thread->isTaggedToSleep() && !behaviour::exiting() ) thread->wait();
+      //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
+      // descriptor in its stack frame
+      if ( thread->isSleeping() && !behaviour::exiting() ) thread->wait();
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -253,7 +277,7 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
          /* If DLB, return resources if needed */
-	dlb_returnCpusIfNeeded();
+           dlb_returnCpusIfNeeded();
 /*         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
             DLB_ReturnClaimedCpus();*/
 
@@ -408,7 +432,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                sys.getSchedulerStats()._idleThreads++;
             } else {
                /* If DLB, return resources if needed */
-		dlb_returnCpusIfNeeded();
+               dlb_returnCpusIfNeeded();
 /*               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
                   DLB_ReturnClaimedCpus();*/
 
@@ -481,6 +505,7 @@ void Scheduler::wakeUp ( WD *wd )
          /* atWakeUp must check basic constraints */
          ThreadTeam *myTeam = getMyThreadSafe()->getTeam();
          if ( myTeam ) next = myTeam->getSchedulePolicy().atWakeUp( myThread, *wd );
+         else fatal("Trying to wake up a WD from a thread without team.");
       }
       else {
          // Pause this thread
@@ -557,7 +582,8 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    /* If WorkDescriptor has been submitted update statistics */
    updateExitStats (*wd);
 
-   if ( schedule && !getMyThreadSafe()->isTaggedToSleep() ) {
+   //! \note getting more work to do (only if not going to sleep)
+   if ( schedule && !getMyThreadSafe()->isSleeping() ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {

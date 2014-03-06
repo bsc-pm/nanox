@@ -25,9 +25,74 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "os.hpp"
-
+#include "synchronizedcondition.hpp"
 
 using namespace nanos;
+
+
+/*inline*/ WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, size_t data_align, void *wdata,
+                                 size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
+                               : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
+                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
+                                 _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
+                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ),
+                                 _state( INIT ), _syncCond( NULL ),  _myQueue ( NULL ), _depth ( 0 ),
+                                 _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
+                                 _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
+                                 _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
+                                 _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
+                                 _directory(NULL), _implicit(false), _translateArgs( translate_args ),
+                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData()
+                                 {
+                                    _flags.is_final = 0;
+                                    _flags.is_submitted = false;
+                                 }
+
+/*inline*/ WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
+                                 size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
+                               : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
+                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
+                                 _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
+                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ),
+                                 _state( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( 0 ),
+                                 _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ),
+                                 _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
+                                 _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
+                                 _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
+                                 _directory(NULL), _implicit(false), _translateArgs( translate_args ),
+                                 _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
+                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData()
+                                 {
+                                    _devices = new DeviceData*[1];
+                                    _devices[0] = device;
+                                    _flags.is_final = 0;
+                                    _flags.is_submitted = false;
+                                 }
+
+/*inline*/ WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
+                               : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
+                                 _componentsSyncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL), _forcedParent(wd._forcedParent),
+                                 _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
+                                 _wdData ( NULL ), _flags(), _tiedTo ( wd._tiedTo ),
+                                 _state ( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( wd._depth ),
+                                 _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
+                                 _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
+                                 _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
+                                 _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(NULL), _doWait(),
+                                 _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
+                                 _directory(NULL), _implicit( wd._implicit ),_translateArgs( wd._translateArgs ),
+                                 _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
+                                 _wakeUpQueue( wd._wakeUpQueue ),
+                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData()
+                                 {
+                                    if ( wd._parent != NULL ) wd._parent->addWork(*this);
+                                    _flags.is_final = false;
+                                    _flags.is_ready = false;
+                                    _flags.to_tie = wd._flags.to_tie;
+                                    _flags.is_submitted = false;
+                                 }
+
 
 void WorkDescriptor::init ()
 {
@@ -69,7 +134,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    if ( getNumCopies() > 0 ) pe->waitInputs( *this );
 
    // Tie WD to current thread
-   if ( _tie ) tieTo( *myThread );
+   if ( _flags.to_tie ) tieTo( *myThread );
 
    // Call Programming Model interface .started() method.
    sys.getPMInterface().wdStarted( *this );
@@ -141,9 +206,9 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    return canRunIn( pe.getDeviceType() );
 }
 
-void WorkDescriptor::submit( void )
+void WorkDescriptor::submit( bool force_queue )
 {
-   Scheduler::submit(*this);
+   Scheduler::submit(*this, force_queue );
 } 
 
 void WorkDescriptor::finish ()
@@ -169,8 +234,26 @@ void WorkDescriptor::done ()
    // Notifying parent we have finished ( dependence's relationships )
    this->getParent()->workFinished( *this );
 
-   // Workgroup specific done ( parent's relationships)
-   WorkGroup::done();
+//! \bug FIXME: This instrumentation phase has been commented due may cause raises when creating the events
+#if 0
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+#endif
+
+   // Waiting for children (just to keep structures)
+   if ( _components != 0 ) waitCompletion();
+
+   // Notifying parent about current WD finalization
+   if ( _parent != NULL ) {
+      _parent->exitWork(*this);
+#if 0
+      NANOS_INSTRUMENT ( if ( !_parent->isReady()) { )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + _parent->getId(); )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *_parent, NANOS_WAIT, id, 0, 0 ); )
+      NANOS_INSTRUMENT ( } )
+#endif
+      _parent = NULL;
+   }
 }
 
 void WorkDescriptor::prepareCopies()
@@ -273,4 +356,20 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
         }
     }
 }
+
+void WorkDescriptor::waitCompletion( bool avoidFlush )
+{
+   _componentsSyncCond.waitConditionAndSignalers();
+   if ( _directory != NULL && !avoidFlush ) _directory->synchronizeHost();
+}
+
+void WorkDescriptor::exitWork ( WorkDescriptor &work )
+{
+   _componentsSyncCond.reference();
+   int componentsLeft = --_components;
+   //! \note It seems that _syncCond.check() generates a race condition here?
+   if (componentsLeft == 0) _componentsSyncCond.signal();
+   _componentsSyncCond.unreference();
+}
+
 

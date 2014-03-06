@@ -19,88 +19,95 @@
 
 /*
 <testinfo>
-test_generator=gens/mixed-generator
+test_generator=gens/core-generator
 </testinfo>
 */
 
 #include "config.hpp"
-#include "nanos.h"
 #include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
+#include <string.h>
+#include <unistd.h>
 
 using namespace std;
 
 using namespace nanos;
 using namespace nanos::ext;
 
-#define USE_NANOS     true
-#define NUM_ITERS     100
-#define VECTOR_SIZE   100
-
-int A[VECTOR_SIZE];
+int a = 1234;
+std::string b( "default" );
+bool c = false;
 
 typedef struct {
-   nanos_loop_info_t loop_info;
-} main__loop_1_data_t;
+   int a;
+   std::string b;
+} hello_world_args;
 
-void main__loop_1 ( void *args );
-
-void main__loop_1 ( void *args )
+void hello_world ( void *args );
+void hello_world ( void *args )
 {
-   int i;
-   main__loop_1_data_t *hargs = (main__loop_1_data_t * ) args;
-
-   for ( i = hargs->loop_info.lower; i < hargs->loop_info.upper; i += hargs->loop_info.step) {
-      A[i]++;
+   hello_world_args *hargs = ( hello_world_args * ) args;
+   if ( hargs->a == 1 && hargs->b != "alex" ) {
+      cerr << "Error, task didn't get the correct arguments" << endl;
+      abort();
+   } else if (hargs->a == 2 && hargs->b != "pepe" ) {
+      cerr << "Error, task didn't get the correct arguments" << endl;
+      abort();
+   } else {
+      cout << "hello_world "
+           << hargs->a << " "
+           << hargs->b
+           << endl;
    }
 }
 
 int main ( int argc, char **argv )
 {
-   int i;
-   bool check = true;
+   cout << "PEs = " << sys.getNumPEs() << endl;
+   cout << "Mode = " << sys.getExecutionMode() << endl;
+   cout << "Verbose = " << sys.getVerbose() << endl;
 
-   main__loop_1_data_t _loop_data;
-   
-   // initialize vector
-      for ( i = 0; i < VECTOR_SIZE; i++ ) A[i] = 0;
+   cout << "Args" << endl;
 
-   // increment vector
-   for ( i = 0; i < NUM_ITERS; i++ ) {
-#if USE_NANOS
-      // loop info initialization
-      _loop_data.loop_info.lower = 0;
-      _loop_data.loop_info.upper = VECTOR_SIZE;
-      _loop_data.loop_info.step = + 1;
+   for ( int i = 0; i < argc; i++ )
+      cout << argv[i] << endl;
 
-      // Work descriptor creation
-      WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
+   cout << "start" << endl;
 
-      // Work Group affiliation
-      WG *wg = getMyThreadSafe()->getCurrentWD();
-      wg->addWork( *wd );
+   const char *str = "alex";
 
-      // Work submission
-      sys.submit( *wd );
- 
-      // barrier (kind of)
-      wg->waitCompletion();
-#else
-      for ( int j = 0; j < VECTOR_SIZE; j++ ) A[j]++;
-#endif
-   }
+   hello_world_args *data = new hello_world_args();
 
-   // check vector
-   for ( i = 0; i < VECTOR_SIZE; i++ ) if ( A[i] != NUM_ITERS ) check = false;
-   
-   if ( check ) {
-      fprintf(stderr, "%s : %s\n", argv[0], "successful");
-      return 0;
-   }
-   else {
-      fprintf(stderr, "%s: %s\n", argv[0], "unsuccessful");
-      return -1;
-   }
+   data->a = 1;
+
+   data->b = str;
+
+   WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), __alignof__(int), data );
+
+   str = "pepe";
+
+   data = new hello_world_args();
+
+   data->a = 2;
+
+   data->b = str;
+
+   WD * wd2 = new WD( new SMPDD( hello_world ), sizeof (hello_world_args ), __alignof(int), data );
+
+   WD *wg = getMyThreadSafe()->getCurrentWD();
+
+   wg->addWork( *wd );
+
+   wg->addWork( *wd2 );
+
+   sys.submit( *wd );
+
+   sys.submit( *wd2 );
+
+   usleep( 500 );
+
+   wg->waitCompletion();
+
+   cout << "end" << endl;
 }
-

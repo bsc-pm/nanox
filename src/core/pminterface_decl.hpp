@@ -42,7 +42,7 @@ namespace nanos
       public:
          /*! \brief PMInterface default constructor
           */
-         PMInterface() {}
+         PMInterface() : _description(), _malleable(true) {}
          /*! \brief PMInterface destructor
           */
          virtual ~PMInterface() {}

@@ -283,7 +283,7 @@ cl_int OpenCLAdapter::unmapBuffer( cl_mem buf,
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT );
    clEnqueueUnmapMemObject( _queue,
                                      buf,
-                                     (void*) offset,
+                                     src,
                                      0,
                                      NULL,
                                      &ev
@@ -458,9 +458,11 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
                cl_int errCode;
                const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
                prog = clCreateProgramWithBinary( _ctx, 1, &_dev, &size, &tmp_code, NULL, &errCode );   
-               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ".\n");
+               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ". If this file is not a binary file"
+                       " please use \".cl\" extension\n");
                errCode = clBuildProgram( prog, 1, &_dev, compilerOpts, NULL, NULL );
-               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ".\n");
+               fatal_cond0(errCode != CL_SUCCESS,"Failed to create program with binary from file " + code_file + ". If this file is not a binary file"
+                       " please use \".cl\" extension\n");;
             }
             delete [] ompss_code;
             #ifndef CL_VERSION_1_2
@@ -477,12 +479,12 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
                    if (sizeret_kernels>=n_kernels*MAX_KERNEL_NAME_LENGTH*sizeof(char))
                        warning0("Maximum kernel name length is 100 characters, you shouldn't use longer names");            
 
-                   //Tokenize with ',' as separator            
+                   //Tokenize with ';' as separator     
                    str=kernel_ids;
                    do
                    {
-                      const char *begin = kernel_ids;
-                      while(*str != ',' && *str) str++;
+                      const char *begin = str;
+                      while( *str != ';' && *str) str++;
                       curr_kernel_hash=gnuHash(begin, str);
                       progCache[curr_kernel_hash]=prog;
                       if (curr_kernel_hash==hash) found=true;

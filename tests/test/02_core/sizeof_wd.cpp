@@ -17,66 +17,26 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP_DECL_H
-#define _NANOS_WORK_GROUP_DECL_H
+/*
+<testinfo>
+test_generator=gens/core-generator
+test_schedule="bf"
+test_max_cpus=1
+</testinfo>
+*/
 
-#include <vector>
-#include "atomic_decl.hpp"
-#include "dependenciesdomain_decl.hpp"
-#include "synchronizedcondition_decl.hpp"
+#include "system.hpp"
+#include <iostream>
 
-namespace nanos
+using namespace std;
+using namespace nanos;
+
+#define KMAX 128*sizeof(void *)
+
+int main ( int argc, char **argv )
 {
-  /* \class WorkGroup
-   *
-   */
-   class WorkGroup
-   {
-      private:
-         typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
-
-      private:
-         WGList         _partOf; // other than parent
-         int            _id;
-         Atomic<int>    _components;
-
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
-
-         WorkGroup     *_parent; // most WG will only have one parent
-
-      private:
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
-
-         /*! \brief WorkGroup copy assignment operator (private)
-          */
-         const WorkGroup & operator= ( const WorkGroup &wg );
-
-      public:
-
-         /*! \brief WorkGroup default constructor
-          */
-         WorkGroup();
-
-         /*! \brief WorkGroup copy constructor
-          */
-         WorkGroup( const WorkGroup &wg );
-
-         /*! \brief WorkGroup destructor 
-          */
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         virtual void waitCompletion( bool avoidFlush = false );
-         virtual void init();
-         virtual void done();
-         int getId() const { return _id; }
-
-   };
-
-   typedef WorkGroup WG;
-
-};
-
-#endif
-
+   int error = 0;
+   cout << "Size of WorkDescriptor is " << sizeof(WD) << " out of " << KMAX << endl;
+   if ( sizeof(WD) > KMAX ) error = 1;
+   return error;
+}

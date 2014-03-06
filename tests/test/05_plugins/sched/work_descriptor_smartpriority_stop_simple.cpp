@@ -144,7 +144,7 @@ int main ( int argc, char **argv )
    // Stop scheduler
    sys.stopScheduler();
    sys.waitUntilThreadsPaused();
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
    WD * wd;
    // loop info initialization
    task_data.loop_info.lower = 0;

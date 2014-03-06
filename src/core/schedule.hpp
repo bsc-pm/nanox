@@ -131,6 +131,14 @@ inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
    return atIdle( thread );
 }
 
+inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+{
+   for( size_t i = 0; i < numElems; ++i )
+   {
+      queue( threads[i], *wds[i] );
+   }
+}
+
 inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )
 {
    _obj.successorFound( predecessor, successor );

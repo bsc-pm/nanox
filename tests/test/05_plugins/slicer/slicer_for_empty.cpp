@@ -85,7 +85,7 @@ void main__loop_1 ( void *args );
       _loop_data.loop_info.upper = lower2 + k_offset; \
       _loop_data.loop_info.step = step2; \
       _loop_data.loop_info.chunk = chunk2; \
-      WG *wg = getMyThreadSafe()->getCurrentWD();\
+      WD *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
       sys.setupWD( *wd, (nanos::WD *) wg );\
       sys.submit( *wd );\

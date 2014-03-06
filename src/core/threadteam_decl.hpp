@@ -59,6 +59,7 @@ namespace nanos
 
          ThreadTeamList               _threads;          /**< Threads that make up the team */
          ThreadTeamIdList             _idList;           /**< List of id usage (reusing old id's) */
+         Atomic<size_t>               _finalSize;
          Atomic<size_t>               _starSize;
          int                          _idleThreads;
          int                          _numTasks;
@@ -73,6 +74,7 @@ namespace nanos
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
          ReductionList                _redList;          /**< Reduction List */
          Lock                         _lock;
+         bool                         _stable; 
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -123,8 +125,10 @@ namespace nanos
           */
          unsigned addThread ( BaseThread *thread, bool star = false, bool creator = false );
          /*! \brief removes a thread from the team pool
+          *  
+          *  \returns Team final size
           */
-         void removeThread ( unsigned id );
+         size_t  removeThread ( unsigned id );
 
          /*! \brief removes and returns the last thread from the team pool
           */
@@ -199,6 +203,17 @@ namespace nanos
         /*! \brief Compute reduction
          */
          void computeVectorReductions ( void );
+
+        /*! \brief Get final size 
+         */
+         size_t getFinalSize ( void ) const;
+        /*! \brief Set final size 
+         */
+         void setFinalSize ( size_t s );
+         void increaseFinalSize ( void );
+         void decreaseFinalSize ( void );
+         void setStable ( bool value ) ;
+         bool isStable ( void ) const;
    };
 
 }

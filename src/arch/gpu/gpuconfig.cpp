@@ -214,23 +214,27 @@ void GPUConfig::apply()
          _transferMode = NANOS_GPU_TRANSFER_ASYNC;
       }
 
-      // Configure some GPU device flags before initializing any CUDA context
-      if ( _transferMode == NANOS_GPU_TRANSFER_PINNED_CUDA
-            || _transferMode == NANOS_GPU_TRANSFER_WC ) {
-         // Cannot trace events, as instrumentation has not been initialized yet
-         //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
-         cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
-         //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-         if ( cudaErr != cudaSuccess )
-            warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( cudaErr ) );
-      }
-      else {
-         // Cannot trace events, as instrumentation has not been initialized yet
-         //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
-         cudaErr = cudaSetDeviceFlags( cudaDeviceScheduleSpin );
-         //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-         if ( cudaErr != cudaSuccess )
-            warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( cudaErr ) );
+      for ( device = 0; device < _numGPUs; device++) {
+         cudaSetDevice(device);
+
+         // Configure some GPU device flags before initializing any CUDA context
+         if ( _transferMode == NANOS_GPU_TRANSFER_PINNED_CUDA
+               || _transferMode == NANOS_GPU_TRANSFER_WC ) {
+            // Cannot trace events, as instrumentation has not been initialized yet
+            //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
+            cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceBlockingSync );
+            //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+            if ( cudaErr != cudaSuccess )
+               warning( "Couldn't set the GPU device flags: " << cudaGetErrorString( cudaErr ) );
+         }
+         else {
+            // Cannot trace events, as instrumentation has not been initialized yet
+            //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT );
+            cudaErr = cudaSetDeviceFlags( cudaDeviceMapHost | cudaDeviceScheduleSpin );
+            //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+            if ( cudaErr != cudaSuccess )
+               warning( "Couldn't set the GPU device flags:" << cudaGetErrorString( cudaErr ) );
+         }
       }
 
       if ( _initCublas || ( sys.getOmpssUsesCublas() != 0 ) ) {
