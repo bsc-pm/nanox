@@ -75,7 +75,7 @@ void SharedMemAllocator::free( void * addr )
    initialize();   
   
    if (_allocatingDevice==NULL){
-      free(addr);
+      std::free(addr);
    } else {
      _lock.acquire();
      _pinnedChunks.erase( addr );

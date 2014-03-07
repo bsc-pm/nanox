@@ -31,7 +31,6 @@ nanox_ins_dbg_SOURCES=  $(nanox_sources)
 nanox_ins_dbg_LDADD=\
 	-ldl \
 	../../core/instrumentation-debug/libnanox.la \
-	@CUDA_RPATH@ \
 	$(END)
 
 endif
