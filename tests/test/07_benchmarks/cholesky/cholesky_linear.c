@@ -76,7 +76,6 @@ int main(int argc, char* argv[])
 
 	const double eps = BLAS_dfpinfo( blas_eps );
 
-
 	if ( argc != 3) {
 		printf( "cholesky size block_size\n" );
 		exit( -1 );
@@ -88,42 +87,31 @@ int main(int argc, char* argv[])
 	double (* const matrix)[n][n] = (double (*)[n][n]) malloc(n * n * sizeof(double));
 	assert(matrix != NULL);
 
-	// Init matrix
-	initialize_matrix(n, ts, matrix);
-
 	// Allocate matrix
 	double (* const original_matrix)[n][n] = (double (*)[n][n]) malloc(n * n * sizeof(double));
 	assert(original_matrix != NULL);
 
-   for (int i = 0; i < n; i++ ) {
-      for (int j = 0; j < n; j++ ) {
-         (*original_matrix)[i][j] = (*matrix)[i][j];
+	// Init matrix
+	initialize_matrix(n, ts, original_matrix);
+
+
+   for (int i = 0; i < n; i += ts ) {
+#pragma omp task in( (*original_matrix)[i;ts][0;n] ) out( (*matrix)[i;ts][0;n] ) firstprivate(n, i, ts)
+      for (int ii = i; ii < i+ts; ii++ ) {
+         for (int j = 0; j < n; j += 1 ) {
+            (*matrix)[ii][j] = (*original_matrix)[ii][j];
+         }
       }
    }
-#if 0
-	const int nt = n / ts;
 
-	// Allocate blocked matrix
-	double *Ah[nt][nt];
+   
 
-	for (int i = 0; i < nt; i++) {
-		for (int j = 0; j < nt; j++) {
-			Ah[i][j] = malloc(ts * ts * sizeof(double));
-			assert(Ah[i][j] != NULL);
-		}
-	}
-
-	printf ("Executing ...\n");
-	convert_to_blocks(ts, nt, n, (double(*)[n]) matrix, Ah);
-#endif
+#pragma omp taskwait noflush
 
 	const float t1 = get_time();
 	cholesky_linear(ts, n, matrix);
 
 	const float t2 = get_time() - t1;
-#if 0
-	convert_to_linear(ts, nt, n, Ah, (double (*)[n]) matrix);
-#endif
 
 	const char uplo = 'L';
 	const int info_factorization = check_factorization( n, original_matrix, matrix, n, uplo, eps);
@@ -140,16 +128,6 @@ int main(int argc, char* argv[])
 	printf( "  time (s):             %f\n", time);
 	printf( "  performance (gflops): %f\n", gflops);
 	printf( "==========================================\n" );
-
-#if 0
-	// Free blocked matrix
-	for (int i = 0; i < nt; i++) {
-		for (int j = 0; j < nt; j++) {
-			assert(Ah[i][j] != NULL);
-			free(Ah[i][j]);
-		}
-	}
-#endif
 
 	free(matrix);
 	return 0;

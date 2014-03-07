@@ -20,6 +20,7 @@
 #include "schedule.hpp"
 #include "processingelement.hpp"
 #include "basethread.hpp"
+#include "smpthread.hpp"
 #include "system.hpp"
 #include "config.hpp"
 #include "instrumentationmodule_decl.hpp"
@@ -842,6 +843,14 @@ void Scheduler::workerClusterLoop ()
       sys.getNetwork()->poll(parent->getId());
       myThread = myThread->getNextThread();
    }
+
+   ext::SMPMultiThread *parentM = dynamic_cast< ext::SMPMultiThread * >( parent );
+   for ( unsigned int i = 0; i < parentM->getNumThreads(); i += 1 ) {
+      myThread = parentM->getThreadVector()[ i ];
+      myThread->leaveTeam();
+      myThread->joined();
+   }
+   myThread = parent;
 }
 #endif
 

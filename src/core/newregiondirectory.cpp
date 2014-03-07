@@ -91,7 +91,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
    std::map< uint64_t, GlobalRegionDictionary * >::const_iterator it = _objects.lower_bound( objectAddr );
    if ( it == _objects.end() || _objects.key_comp()( objectAddr, it->first) ) {
      std::cerr << "Error, CopyData object not registered in the RegionDictionary " << std::endl;
-     sys.printBt();
+     printBt();
      fatal("can not continue");
    }
    return it->second;

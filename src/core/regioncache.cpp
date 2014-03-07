@@ -951,7 +951,7 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
       fatal("Realloc needed.");
    }
    if ( !allocChunkPtr && complain ) {
-      sys.printBt(); std::cerr << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
+      printBt(); std::cerr << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( reg.id ); std::cerr << std::endl;
       ensure(allocChunkPtr != NULL, "Chunk not found!");
    }
    if ( allocChunkPtr && lockChunk ) {

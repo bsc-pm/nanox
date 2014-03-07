@@ -60,11 +60,9 @@ namespace nanos
 
 // This class initializes/finalizes the library
 // All global variables MUST be declared inside
-
    class System
    {
       public:
-         static void printBt();
 
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;

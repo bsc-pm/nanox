@@ -54,8 +54,6 @@
 
 #include "addressspace.hpp"
 
-#include <execinfo.h>
-
 #ifdef OpenCL_DEV
 #include "openclprocessor.hpp"
 #endif
@@ -63,19 +61,6 @@
 using namespace nanos;
 
 System nanos::sys;
-
-void System::printBt() {
-   void* tracePtrs[100];
-   int count = backtrace( tracePtrs, 100 );
-   char** funcNames = backtrace_symbols( tracePtrs, count );
-
-   // Print the stack trace
-   for( int ii = 0; ii < count; ii++ )
-      fprintf(stderr, "%s\n", funcNames[ii] );
-
-   // Free the string pointers
-   free( funcNames );
-}
 
 // default system values go here
 System::System () :
@@ -662,6 +647,7 @@ void System::start ()
    {
       PE * smpRep = createPE ( "smp", p, p );
       _pes.push_back( smpRep );
+      p += 1;
       if ( _net.getNodeNum() == 0 )
       {
          unsigned int nodeC;
@@ -669,13 +655,14 @@ void System::start ()
 
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
-      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-      std::cerr << "Memory space " << id << " is a cluster" << std::endl;
-      SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster, nanos::ext::ClusterInfo::getAllocWide() );
-      nodeMemory->setSpecificData( NEW SimpleAllocator( ( uintptr_t ) nanos::ext::ClusterInfo::getSegmentAddr( nodeC ), nanos::ext::ClusterInfo::getSegmentLen( nodeC ) ) );
-      nodeMemory->setNodeNumber( nodeC );
-      _separateAddressSpaces[ id ] = nodeMemory;
-            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id );
+            memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
+            std::cerr << "Memory space " << id << " is a cluster" << std::endl;
+            SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster, nanos::ext::ClusterInfo::getAllocWide() );
+            nodeMemory->setSpecificData( NEW SimpleAllocator( ( uintptr_t ) nanos::ext::ClusterInfo::getSegmentAddr( nodeC ), nanos::ext::ClusterInfo::getSegmentLen( nodeC ) ) );
+            nodeMemory->setNodeNumber( nodeC );
+            _separateAddressSpaces[ id ] = nodeMemory;
+            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( p, nodeC, id );
+            p += 1;
             CPU_SET( node->getId(), &_cpu_active_set );
             _pes.push_back( node );
             (*_nodes)[ node->getNodeNum() ] = node;

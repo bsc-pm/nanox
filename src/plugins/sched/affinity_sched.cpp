@@ -97,10 +97,12 @@ namespace nanos {
 
                ~TeamData ()
                {
-                  delete[] _readyQueues;
-                  delete[] _readyQueuesAlreadyInit;
-                  delete[] _bufferQueues;
-                  delete[] _createdData;
+                  if (_numNodes > 1 ) {
+                     delete[] _readyQueues;
+                     delete[] _readyQueuesAlreadyInit;
+                     delete[] _bufferQueues;
+                     delete[] _createdData;
+                  }
                   /* TODO add delete for new members */
                }
             };

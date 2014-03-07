@@ -5,6 +5,7 @@
 #include "atomic.hpp"
 #include "memorymap.hpp"
 #include "system_decl.hpp"
+#include "printbt_decl.hpp"
 
 namespace nanos {
 
@@ -113,7 +114,7 @@ RegionNode * ContainerSparse< T >::getRegionNode( reg_t id ) const {
    if ( it == _container.end() || _container.key_comp()(id, it->first) ) {
       //fatal0( "Error, RegionMap::getLeaf does not contain region" );
      RegionNode *leaf = _orig.getRegionNode( id );
-   if ( leaf == NULL ) { std::cerr << "NULL LEAF CHECK by orig: " << std::endl; sys.printBt(); }
+   if ( leaf == NULL ) { std::cerr << "NULL LEAF CHECK by orig: " << std::endl; printBt(); }
       return leaf;
    }
    return it->second.getLeaf();
@@ -121,7 +122,7 @@ RegionNode * ContainerSparse< T >::getRegionNode( reg_t id ) const {
 
 template <class T>
 void ContainerSparse< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
-   if ( leaf == NULL ) { std::cerr << "NULL LEAF INSERT: " << std::endl; sys.printBt(); }
+   if ( leaf == NULL ) { std::cerr << "NULL LEAF INSERT: " << std::endl; printBt(); }
    _container[ leaf->getId() ].setLeaf( leaf );
 }
 
@@ -537,7 +538,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    unsigned int thisRegionVersion = thisEntry != NULL ? thisEntry->getVersion() : ( this->sparse ? 0 : 1 );
 
    RegionNode const *regNode = this->getRegionNode( id );
-   if ( regNode == NULL ) { std::cerr << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id << " sparse? "<< (this->sparse ? 1 : 0)  <<std::endl; sys.printBt();}
+   if ( regNode == NULL ) { std::cerr << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id << " sparse? "<< (this->sparse ? 1 : 0)  <<std::endl; printBt();}
    MemoryMap< std::set< reg_t > >::MemChunkList results[ this->getNumDimensions() ];
    std::map< reg_t, unsigned int > interacts;
    unsigned int skipDimensions = 0;

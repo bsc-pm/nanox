@@ -153,10 +153,9 @@ inline uint64_t CopyData::getAddress() const
 {
    return ( (uint64_t) address ); 
 }
+
 inline uint64_t CopyData::getOffset() const
 {
-   //message0("This is wrong. addr returned is " << (void *) address);
-   //System::printBt();
    return (uint64_t) offset; 
 }
 
@@ -167,7 +166,6 @@ inline std::size_t CopyData::getFitSize() const
 
 inline uint64_t CopyData::getFitAddress() const
 {
-   //std::cerr << __FUNCTION__ << " dimensions are " << dimension_count << std::endl;
    return ( (uint64_t) getBaseAddress() ) + getFitOffsetRecursive( dimension_count - 1 );
 }
 

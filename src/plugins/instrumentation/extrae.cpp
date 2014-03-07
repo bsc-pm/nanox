@@ -160,7 +160,7 @@ class InstrumentationExtrae: public Instrumentation
                      {
                         std::string src_path( str );
                         std::size_t pos = src_path.size() ;
-                        for (unsigned int i = 0; i < 3; i++ ) {
+                        for (unsigned int i = 0; i < 2; i++ ) {
                            pos = src_path.find_last_of('/', pos - 1);
                         }
                         //int pos0 =  src_path.find_last_of('/');
@@ -210,66 +210,40 @@ class InstrumentationExtrae: public Instrumentation
          }
       }
 
-      void getTraceFileName ()
-      {
-         // Check if the trace file exists
-         struct stat buffer;
-         int err1, err2, err3;
-         std::string file_name;
-         _binFileName = ( OS::getArg( 0 ) );
-         size_t found = _binFileName.find_last_of("/\\");
-
-         /* Choose between executable name or user name */
-         std::string trace_base;
-         if ( _traceBaseName.compare("") != 0 ) {
-            trace_base = _traceBaseName;
-         } else {
-            trace_base = _binFileName.substr(found+1);
-         }
-
-         //if ( _skipMerge) trace_base = trace_base + "-local";
-
-         int num = 1;
-         std::string trace_suffix = "_001";
-         bool file_exists = true;
-
-         while ( file_exists ) {
-            // Attempt to get the file attributes
-            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".prv";
-            err1 = stat( file_name.c_str(), &buffer );
-            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".pcf";
-            err2 = stat( file_name.c_str(), &buffer );
-            file_name = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".row";
-            err3 = stat( file_name.c_str(), &buffer );
-
-            if ( err1 == 0 || err2 == 0 || err3 == 0) {
-               // Some of the files exist
-               num++;
-               std::stringstream trace_num;
-               trace_num << "_" << (num < 100 ? "0" : "") << (num < 10 ? "0" : "") << num;
-               trace_suffix =  trace_num.str();
-            } else {
-               std::ofstream trace_file(file_name.c_str(), std::ios::out);
-               if ( !trace_file.fail() ) file_exists = false;
-            }
-         }
-
-         /* New file names */
-         _traceFileName_PRV = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".prv" ;
-         _traceFileName_PCF = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".pcf";
-         _traceFileName_ROW = _traceParaverDirectory + "/" + trace_base + trace_suffix + ".row";
-      }
-
       void initialize ( void )
       {
          /* check environment variable: EXTRAE_ON */
          char *mpi_trace_on = getenv("EXTRAE_ON");
+         char *mpi_trace_dir;
+         char *mpi_trace_final_dir;
+
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL ) {
             mpi_trace_on = NEW char[12];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
+
+         /* check environment variable: EXTRAE_FINAL_DIR */
+         mpi_trace_final_dir = getenv("EXTRAE_FINAL_DIR");
+         /* if EXTRAE_FINAL_DIR not defined, active it */
+         if ( mpi_trace_final_dir == NULL ) {
+            mpi_trace_final_dir = NEW char[3];
+            strcpy(mpi_trace_final_dir, "./");
+         }
+
+         /* check environment variable: EXTRAE_DIR */
+         mpi_trace_dir = getenv("EXTRAE_DIR");
+         /* if EXTRAE_DIR not defined, active it */
+         if ( mpi_trace_dir == NULL ) {
+            mpi_trace_dir = NEW char[3];
+            strcpy(mpi_trace_dir, "./");
+         }
+
+         _traceDirectory = mpi_trace_dir;
+         _traceFinalDirectory = mpi_trace_final_dir;
+         _listOfTraceFileNames = _traceFinalDirectory + "/TRACE.mpits";
+
 
         // Common thread information
         Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
@@ -413,7 +387,6 @@ class InstrumentationExtrae: public Instrumentation
 
          OMPItrace_fini();
 
-         getTraceFileName();
          if ( sys.usingCluster() ) {
             copyFilesToMaster();
          }

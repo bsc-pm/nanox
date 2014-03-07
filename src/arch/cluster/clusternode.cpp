@@ -28,13 +28,13 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-ClusterNode::ClusterNode( int id, memory_space_id_t memId ) : CachedAccelerator( id, &SMP, id,
+ClusterNode::ClusterNode( int id, int nodeId, memory_space_id_t memId ) : CachedAccelerator( id, &SMP, id,
 #ifdef GPU_DEV
    &GPU,
 #else
    NULL,
 #endif
-   memId ), _clusterNode ( id ),
+   memId ), _clusterNode ( nodeId ),
    _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
    ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) {
 }

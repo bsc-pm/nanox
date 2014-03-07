@@ -51,7 +51,7 @@ namespace nanos {
 
          public:
             // constructors
-            ClusterNode( int id, memory_space_id_t memId );
+            ClusterNode( int id, int nodeId, memory_space_id_t memId );
 
             virtual ~ClusterNode();
 

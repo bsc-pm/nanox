@@ -143,6 +143,8 @@ support_sources = \
 	$(top_srcdir)/src/support/functor_decl.hpp \
 	$(top_srcdir)/src/support/requestqueue_decl.hpp \
 	$(top_srcdir)/src/support/requestqueue.hpp \
+	$(top_srcdir)/src/support/printbt_decl.hpp \
+	$(top_srcdir)/src/support/printbt.cpp \
 	$(END) 
 
 debug_sources = \
