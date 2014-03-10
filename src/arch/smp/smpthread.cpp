@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
+#include "dlb.hpp"
 
 
 using namespace nanos;
@@ -142,14 +143,25 @@ void SMPThread::wait()
          team->removeThread( getTeamId() );
          leaveTeam();
       }
+      
+      NANOS_INSTRUMENT( InstrumentState inst(NANOS_STOPPED) );
       pthread_cond_wait( &_condWait, &_mutexWait );
+      
    }
+
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_WAKINGUP) );
 
    pthread_mutex_unlock( &_mutexWait );
 
-   NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+   dlb_checkCpuAvailability();
+
+   if ( isTaggedToSleep() ) wait();
+
+   else{
+      NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+      NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+   }
 }
 
 void SMPThread::signal()

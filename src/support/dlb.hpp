@@ -28,38 +28,65 @@ extern "C" {
    void DLB_UpdateResources( void ) __attribute__(( weak ));
    void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
    int DLB_ReleaseCpu ( int cpu ) __attribute__(( weak )); 
+   int DLB_ReturnClaimedCpu ( int cpu ) __attribute__(( weak )); 
    void DLB_ClaimCpus (int cpus) __attribute__(( weak ));
+   int DLB_CheckCpuAvailability ( int cpu ) __attribute__(( weak ));
 }
 
 namespace nanos {
 
    inline void dlb_returnCpusIfNeeded ( void )
    {
-      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
-         DLB_ReturnClaimedCpus();
+      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() ){
+         if ( getMyThreadSafe()->getId() == 0 ){
+        //    DLB_ReturnClaimedCpus();
+        ;
+         }else{
+            int myCpu=getMyThreadSafe()->getCpuId();
+            DLB_ReturnClaimedCpu(myCpu);
+            //bool released=DLB_ReturnClaimedCpu(myCpu);
+/*            if (released){
+               myThread->sleep();
+            }*/
+         }
+      }
    }
 
    inline void dlb_updateAvailableCpus ( void )
    {
-      if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
-            DLB_ReturnClaimedCpus();
+      if ( sys.dlbEnabled() && DLB_UpdateResources_max ){
+         //If I'm not the master thread I only release my cpu if it has been claimed
+         if ( getMyThreadSafe()->getId() != 0 ) {
+            int myCpu=getMyThreadSafe()->getCpuId();
+            bool released=DLB_ReturnClaimedCpu(myCpu);
+            if (released){
+               myThread->sleep();
+            }
 
-         if ( sys.getPMInterface().isMalleable() ) {
-            int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getNumThreads();
-            if ( needed_resources > sys.getNumThreads())
-               DLB_ClaimCpus(needed_resources - sys.getNumThreads());
-                             
-            if ( needed_resources > 0 )
-               DLB_UpdateResources_max( needed_resources );
-
-         } else {
-            DLB_UpdateResources();
+         //If I'm the master thread I'll return first the Claimed cpus
+         }else{
+//            DLB_ReturnClaimedCpus();
+         
+            if ( sys.getPMInterface().isMalleable() ) {
+               //If ready tasks > num threads I claim my cpus being used by somebodyelse
+               int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getNumThreads();
+               if ( needed_resources > 0){
+                  DLB_ClaimCpus(needed_resources);
+               }
+               //If ready tasks > num threads I check if there are available cpus
+               needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getNumThreads();
+               if ( needed_resources > 0 ){
+                  DLB_UpdateResources_max( needed_resources );
+               }
+            } else {
+               DLB_UpdateResources();
+            }
          }
-
 
       }
 
    }
+
    inline bool dlb_releaseMyCpu( void ){
   
       bool released=0;
@@ -69,6 +96,25 @@ namespace nanos {
          released=DLB_ReleaseCpu(myCpu);
       }
       return released;
+   }
+
+   inline bool dlb_returnMyCpuIfClaimed( void ){
+      bool released=0;
+      int myCpu=getMyThreadSafe()->getCpuId();
+      int me =getMyThreadSafe()->getId();
+      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpu && sys.getPMInterface().isMalleable() && me != 0 && !getMyThreadSafe()->isTaggedToSleep() ){
+         released=DLB_ReturnClaimedCpu(myCpu);
+      }
+      return released;
+      
+   }
+
+   inline void dlb_checkCpuAvailability (){
+      if ( sys.dlbEnabled() && DLB_CheckCpuAvailability ){
+         int cpu=getMyThreadSafe()->getCpuId();
+         while (!DLB_CheckCpuAvailability(cpu))
+            sched_yield();
+      }
    }
 }
 #endif

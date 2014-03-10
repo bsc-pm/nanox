@@ -183,9 +183,15 @@ inline void Scheduler::idleLoop ()
       BaseThread *thread = getMyThreadSafe();
       spins--;
 
+      /* If DLB, perform the adjustment of resources */
+      if ( sys.getPMInterface().isMalleable() )
+         dlb_updateAvailableCpus();
+
       if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
       if ( thread->isTaggedToSleep() && !behaviour::exiting() ) thread->wait();
+
+
 
       WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
@@ -212,9 +218,6 @@ inline void Scheduler::idleLoop ()
       } 
 
       if ( next ) {
-         /* If DLB, perform the adjustment of resources */
-         if ( sys.getPMInterface().isMalleable() )
-	    dlb_updateAvailableCpus();
 
          sys.getSchedulerStats()._idleThreads--;
 
@@ -354,6 +357,11 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins+= nspins; )
          sleeps--;
+
+         /* If DLB, perform the adjustment of resources */
+         if ( sys.getPMInterface().isMalleable() )
+            dlb_updateAvailableCpus();
+
          condition->lock();
          if ( !( condition->check() ) ) {
             WD * next = myThread->getNextWD();
@@ -383,9 +391,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( next ) {
 
-               /* If DLB, perform the adjustment of resources */
-               if ( sys.getPMInterface().isMalleable() )
-                  dlb_updateAvailableCpus();
 
                sys.getSchedulerStats()._idleThreads--;
 
@@ -440,8 +445,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                } else {
                   /* if DLB release thread */
                      if ( dlb_releaseMyCpu()){
-                           thread->sleep();
-                           thread->wait();
+//                           thread->sleep();
+//                           thread->wait();
+                     ;
                      
                   }else{
                      NANOS_INSTRUMENT ( total_sleeps++; )
