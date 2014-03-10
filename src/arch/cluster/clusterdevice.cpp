@@ -144,12 +144,12 @@ void ClusterDevice::_canAllocate( SeparateMemoryAddressSpace const &mem, std::si
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
    allocator->canAllocate( sizes, numChunks, remainingSizes );
 }
-void ClusterDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) const {
+void ClusterDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
    allocator->getFreeChunksList( list );
 }
 
-std::size_t ClusterDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) const {
+std::size_t ClusterDevice::getMemCapacity( SeparateMemoryAddressSpace const &mem ) const {
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
    return allocator->getCapacity();
 }

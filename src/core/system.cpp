@@ -928,8 +928,8 @@ void System::finish ()
    //}
 
 #ifdef CLUSTER_DEV
-   message("Created " << createdWds << " WDs.");
-   message("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
+   message0("Created " << createdWds << " WDs.");
+   message0("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
    if ( _net.getNodeNum() == 0 ) {
       int soft_inv = 0;
       int hard_inv = 0;
@@ -944,8 +944,8 @@ void System::finish ()
             //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
          }
       }
-      message("Cluster Soft invalidations: " << soft_inv);
-      message("Cluster Hard invalidations: " << hard_inv);
+      message0("Cluster Soft invalidations: " << soft_inv);
+      message0("Cluster Hard invalidations: " << hard_inv);
       if ( max_execd_wds > 0 ) {
          float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
          message("Cluster Balance: " << balance );
@@ -963,8 +963,8 @@ void System::finish ()
             //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
          }
       }
-      message("GPUs Soft invalidations: " << soft_inv);
-      message("GPUs Hard invalidations: " << hard_inv);
+      message0("GPUs Soft invalidations: " << soft_inv);
+      message0("GPUs Hard invalidations: " << hard_inv);
 #endif
       
 #ifdef OpenCL_DEV
@@ -979,8 +979,8 @@ void System::finish ()
             //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
          }
       }
-      message("OpenCLs Soft invalidations: " << soft_inv);
-      message("OpenCLs Hard invalidations: " << hard_inv);
+      message0("OpenCLs Soft invalidations: " << soft_inv);
+      message0("OpenCLs Hard invalidations: " << hard_inv);
 #endif
    }
 #endif

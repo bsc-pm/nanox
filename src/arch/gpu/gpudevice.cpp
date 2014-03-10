@@ -361,7 +361,7 @@ bool GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAd
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
    return false;
 }
-std::size_t GPUDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) const {
+std::size_t GPUDevice::getMemCapacity( SeparateMemoryAddressSpace const &mem ) const {
    ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
    ext::GPUProcessor *gpu = gpuMemData->getGPU();
    return gpu->getMaxMemoryAvailable();

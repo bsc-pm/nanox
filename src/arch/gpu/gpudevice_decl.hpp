@@ -174,7 +174,7 @@ namespace nanos
 
 
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr=0 ) const;
-         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace &mem ) const;
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const;
          virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const;
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const;
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
