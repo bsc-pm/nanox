@@ -142,22 +142,6 @@ void Scheduler::submit ( WD ** wds, size_t numElems )
    delete[] threadList;
 }
 
-void Scheduler::submitAndWait ( WD &wd )
-{
-   debug ( "submitting and waiting task " << wd.getId() );
-   fatal ( "Scheduler::submitAndWait(): This feature is still not supported" );
-
-   // Create a new WorkGroup and add WD
-   WG myWG;
-   myWG.addWork( wd );
-
-   // Submit WD
-   submit( wd );
-
-   // Wait for WD to be finished
-   myWG.waitCompletion();
-}
-
 void Scheduler::updateCreateStats ( WD &wd )
 {
    sys.getSchedulerStats()._createdTasks++;

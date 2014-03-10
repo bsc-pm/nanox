@@ -283,7 +283,7 @@ cl_int OpenCLAdapter::unmapBuffer( cl_mem buf,
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT );
    clEnqueueUnmapMemObject( _queue,
                                      buf,
-                                     (void*) offset,
+                                     src,
                                      0,
                                      NULL,
                                      &ev

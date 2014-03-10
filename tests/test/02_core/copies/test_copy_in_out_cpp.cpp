@@ -131,7 +131,7 @@ int main ( int argc, char **argv )
 
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( hello_world_args ), __alignof__( hello_world_args ), data, 2, cd );
 
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
 
    wg->addWork( *wd );
 

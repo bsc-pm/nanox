@@ -56,7 +56,7 @@ void allocate( void *args )
    int num_pes = sys.getNumPEs();
    int id = *((int *) args);
 
-    WG *wg = getMyThreadSafe()->getCurrentWD();
+    WD *wg = getMyThreadSafe()->getCurrentWD();
    //cerr << "   start of thread id: " << id << endl;
 
    Allocator allocator;
@@ -104,7 +104,7 @@ int main ( int argc, char **argv )
    //cout << "Starting test... " << endl;
 
    // Work Group affiliation
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
 
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
    for ( int i = 0; i < num_pes; i++ ) {

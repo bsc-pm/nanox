@@ -17,42 +17,46 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP_H
-#define _NANOS_WORK_GROUP_H
+/*
+<testinfo>
+test_generator=gens/core-generator
+test_schedule="bf"
+test_max_cpus=1
+</testinfo>
+*/
 
-#include "workgroup_decl.hpp"
-#include "atomic.hpp"
-#include "schedule.hpp"
-#include "synchronizedcondition.hpp"
 #include "system.hpp"
-#include "instrumentation.hpp"
-#include "workdescriptor_decl.hpp"
+#include <iostream>
 
+using namespace std;
 using namespace nanos;
 
-inline WorkGroup::WorkGroup()
-       : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
-         _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL) {  }
+#define SIZEOF_WD             128*sizeof(void *)
+#define SIZEOF_DOWAIT          32*sizeof(void *)
+#define SIZEOF_DOSUBMIT        32*sizeof(void *)
+#define SIZEOF_ICONTEXT        32*sizeof(void *)
 
-inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
+int main ( int argc, char **argv )
 {
-   if ( wg._parent != NULL ) { 
-      wg._parent->addWork(*this);
-      for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-         if (*it) (*it)->addWork( *this );
-      }
-   }
-}
+   int error = 0;
 
-inline void WorkGroup::clear ( void ) 
-{
-   _parent = NULL;
-}
+   cout << "Size of WorkDescriptor is " << sizeof(WD) << " out of " << SIZEOF_WD << endl;
+   if ( sizeof(WD) > SIZEOF_WD ) error = 1;
 
-inline WorkGroup * WorkGroup::getWGParent( void ) const
-{
-   return _parent;
-}
-#endif
+   cout << "Size of DOWait is " << sizeof(DOWait) << " out of " << SIZEOF_DOWAIT << endl;
+   if ( sizeof(DOWait) > SIZEOF_DOWAIT ) error = 1;
 
+   cout << "Size of LazyInit<DOWait> is " << sizeof(LazyInit<DOWait>) << " out of " << SIZEOF_DOWAIT << endl;
+   if ( sizeof(LazyInit<DOWait>) > SIZEOF_DOWAIT ) error = 1;
+
+   cout << "Size of DOSubmit is " << sizeof(DOSubmit) << " out of " << SIZEOF_DOSUBMIT << endl;
+   if ( sizeof(DOSubmit) > SIZEOF_DOSUBMIT ) error = 1;
+
+   cout << "Size of LazyInit<DOSubmit> is " << sizeof(LazyInit<DOSubmit>) << " out of " << SIZEOF_DOSUBMIT << endl;
+   if ( sizeof(LazyInit<DOSubmit>) > SIZEOF_DOSUBMIT ) error = 1;
+
+   cout << "Size of InstrumentationContextData is " << sizeof(InstrumentationContextData) << " out of " << SIZEOF_ICONTEXT << endl;
+   if ( sizeof(InstrumentationContextData) > SIZEOF_ICONTEXT ) error = 1;
+
+   return error;
+}

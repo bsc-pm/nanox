@@ -16,11 +16,11 @@ class SlicerReplicate: public Slicer
       ~SlicerReplicate ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) ;
 };
 
-void SlicerReplicate::submit ( SlicedWD &work )
+void SlicerReplicate::submit ( WorkDescriptor &work )
 {
    debug0 ( "Using sliced work descriptor: Replicate" );
 
@@ -57,14 +57,14 @@ void SlicerReplicate::submit ( SlicedWD &work )
 
 }
 
-/* \brief Dequeue a Replicate SlicedWD
+/* \brief Dequeue a Replicate WorkDescriptor
  *
  *  \param [in] wd is the former WorkDescriptor
  *  \param [out] slice is the next portion to execute
  *
  *  \return true if there are no more slices in the former wd, false otherwise
  */
-bool SlicerReplicate::dequeue ( SlicedWD *wd, WorkDescriptor **slice)
+bool SlicerReplicate::dequeue ( WorkDescriptor *wd, WorkDescriptor **slice)
 {
    debug0 ( "Dequeueing sliced work: Replicate start" );
    *slice = wd;

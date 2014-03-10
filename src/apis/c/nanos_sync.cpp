@@ -19,7 +19,6 @@
 /*! \file nanos_sync.cpp
  *  \brief
  */
-#include "workgroup.hpp"
 #include "nanos.h"
 #include "schedule.hpp"
 #include "system.hpp"
@@ -42,11 +41,11 @@ NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoi
 
    NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT( static nanos_event_key_t taskwait  = ID->getEventKey("taskwait"); )
-   NANOS_INSTRUMENT( unsigned wd_id = ((WG *)uwg)->getId( ); )
+   NANOS_INSTRUMENT( unsigned wd_id = ((WD *)uwg)->getId( ); )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &taskwait, (nanos_event_value_t *) &wd_id); )
 
    try {
-      WG *wg = ( WG * )uwg;
+      WD *wg = ( WD * )uwg;
       wg->waitCompletion( avoid_flush );
    } catch ( nanos_err_t e) {
       return e;

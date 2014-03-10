@@ -128,7 +128,7 @@ int main ( int argc, char **argv )
    for ( int testNumber = 0; testNumber < NUM_RUNS; ++testNumber ) {
       A = 0;
    
-      WG *wg = getMyThreadSafe()->getCurrentWD();   
+      WD *wg = getMyThreadSafe()->getCurrentWD();   
       // increment variable
       for ( i = 0; i < NUM_ITERS; i++ ) {
          // Work descriptor creation
