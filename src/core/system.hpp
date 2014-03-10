@@ -502,5 +502,7 @@ inline bool System::haveDependencePendantWrites ( void *addr ) const
    return myThread->getCurrentWD()->getDependenciesDomain().haveDependencePendantWrites ( addr );
 }
 
+inline int System::getTaskMaxRetries() const { return _task_max_retries; }
+
 #endif
 

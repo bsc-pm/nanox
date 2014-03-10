@@ -637,20 +637,58 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
 
-   const bool done = thread->inlineWorkDependent(*wd);
+   bool done = false;
+   bool retry = false;
+   int num_tries = 0;
+   if (wd->isInvalid() || (wd->getParent() &&  wd->getParent()->isInvalid())){
+      wd->setInvalid(true);
+      debug ( "Task " << wd->getId() << " is flagged as invalid.");
+   } else {
+        do {
+         try {
+            done = thread->inlineWorkDependent(*wd);
+         } catch (task_execution_exception_t& e) {
+            // The execution error is catched. The signal has to be unblocked.
+            sigset_t x;
+            sigemptyset(&x);
+            sigaddset(&x, e.signal);
+            pthread_sigmask(SIG_UNBLOCK, &x, NULL);
 
+	    // Global recovery here (if this affects the global execution).
+
+            debug( "Signal: " << strsignal(e.signal) << " while executing task " << myThread->getCurrentWD()->getId());
+            wd->setInvalid(true);
+         }
+         // If we failed (invalid), we should only retry both if we are told to do so (i.e. flagged as recoverable)
+         // and our parent hasn't been invalidated as well. Otherwise, we don't bother about it and finish.
+         // We also shouldn't retry more times than specified by the user (in order to avoid infinite recursion when the error is not recoverable).
+         retry = wd->isRecoverable() && !wd->getParent()->isInvalid() && wd->isInvalid() && num_tries < sys.getTaskMaxRetries();
+         if (retry) {
+	    // Local recovery here (inside recover() function)
+            wd->recover();
+            num_tries++;
+         }
+      } while (retry);
+   }
+  
    // reload thread after running WD due wd may be not tied to thread if
    // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
-   wd->finish();
-
    if ( done ) {
+      wd->finish();
+
       finishWork( wd, schedule );
       /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
-   }
+   } else if (wd->isInvalid()) {
+      finishWork( wd, schedule);
+      // If we are recoverable we gave up trying, so we are marked as done and mark our parent as invalid
+      if(wd->isRecoverable())
+         wd->getParent()->setInvalid(true);
 
+      done = true;
+   }
 
    thread->setCurrentWD( *oldwd );
 
@@ -699,19 +737,10 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
 
    } else {
-
-       bool crashed = false;
-       do{
-           try{
-              crashed = false;
-              if (inlineWork(to)) {
-                  to->~WorkDescriptor();
-                  delete[] (char *)to;
-              }
-           }catch(task_execution_exception_t& e){
-               crashed = true;
-           }
-       }while(crashed);
+      if (inlineWork(to)) {
+         to->~WorkDescriptor();
+         delete[] (char *)to;
+      }
    }
 }
 

@@ -57,6 +57,8 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  {
                                     _flags.is_final = 0;
                                     _flags.is_submitted = false;
+                                    _flags.is_recoverable = false;
+                                    _flags.is_invalid = false;
                                  }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
@@ -78,6 +80,8 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                     _devices[0] = device;
                                     _flags.is_final = 0;
                                     _flags.is_submitted = false;
+                                    _flags.is_recoverable = false;
+                                    _flags.is_invalid = false;
                                  }
 
 inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
@@ -102,6 +106,8 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                     _flags.to_tie = wd._flags.to_tie;
                                     _flags.is_submitted = false;
                                     _flags.is_implicit = wd._flags.is_implicit;
+                                    _flags.is_recoverable = false;
+                                    _flags.is_invalid = false;
                                  }
 
 /* DeviceData inlined functions */
@@ -397,6 +403,21 @@ inline void WorkDescriptor::convertToRegularWD()
 {
    _slicer = NULL;
 }
+
+inline WorkDescriptor* WorkDescriptor::setInvalid(bool flag) {
+   _flags.is_invalid = flag;
+   if(_flags.is_invalid && !_flags.is_recoverable && _parent && !_parent->_flags.is_invalid){
+      return _parent->setInvalid(_flags.is_invalid);
+   } else if (_flags.is_invalid && _flags.is_recoverable){
+      return this;
+   } else {
+      return NULL;
+   }
+}
+
+inline bool WorkDescriptor::isInvalid() const { return _flags.is_invalid; }
+
+inline bool WorkDescriptor::isRecoverable() const { return _flags.is_recoverable; }
 
 #endif
 

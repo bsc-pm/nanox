@@ -31,7 +31,9 @@
 #include "allocator.hpp"
 #include "debug.hpp"
 #include "dlb.hpp"
+#include <assert.h>
 #include <string.h>
+#include <signal.h>
 #include <set>
 #include <climits>
 
@@ -135,6 +137,20 @@ System::System () :
    CPU_ZERO( &_cpu_active_set );
 
    _lockPool = NEW Lock[_lockPoolSize];
+
+   /* Set up the structure to specify task-recovery. */
+   struct sigaction recovery_action;
+   recovery_action.sa_sigaction = &taskExecutionHandler;
+   sigemptyset(&recovery_action.sa_mask);
+   recovery_action.sa_flags = SA_SIGINFO | SA_RESTART; // Important: resume system calls if interrupted by the signal.
+   /* Program synchronous signals to use the default recovery handler.
+    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
+    */
+   assert(sigaction(SIGILL, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGTRAP, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGBUS, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGFPE, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGSEGV, &recovery_action, NULL) == 0);
 
    if ( !_delayedStart ) {
       start();
@@ -400,6 +416,11 @@ void System::config ()
    cfg.registerConfigOption( "simulator", NEW Config::FlagOption ( _simulator ),
                              "Nanos++ will be executed by a simulator (disabled as default)" );
    cfg.registerArgOption( "simulator", "simulator" );
+
+   cfg.registerConfigOption( "task_retries", NEW Config::PositiveVar( _task_max_retries ),
+                             "Defines the number of times a restartable task can be re-executed (default: 1). ");
+   cfg.registerArgOption( "task_retries", "task-retries" );
+   cfg.registerEnvOption( "task_retries", "NX_TASK_RETRIES" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );

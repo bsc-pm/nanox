@@ -40,13 +40,19 @@ void * smp_bootthread ( void *arg )
 {
    SMPThread *self = static_cast<SMPThread *>( arg );
 
-   /* Set up the structure to specify the recovery. */
-     struct sigaction recovery_action;
-     recovery_action.sa_sigaction = &taskExecutionHandler;
-     sigemptyset(&recovery_action.sa_mask);
-     recovery_action.sa_flags = SA_SIGINFO | SA_RESTART; //Important: resume system calls if interrupted by the signal.
-
-     assert(sigaction(SIGFPE, &recovery_action, NULL)==0);
+   /* Set up the structure to specify task-recovery. */
+   struct sigaction recovery_action;
+   recovery_action.sa_sigaction = &taskExecutionHandler;
+   sigemptyset(&recovery_action.sa_mask);
+   recovery_action.sa_flags = SA_SIGINFO | SA_RESTART; // Important: resume system calls if interrupted by the signal.
+   /* Program synchronous signals to use the default recovery handler.
+    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
+    */
+   assert(sigaction(SIGILL, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGTRAP, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGBUS, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGFPE, &recovery_action, NULL) == 0);
+   assert(sigaction(SIGSEGV, &recovery_action, NULL) == 0);
 
    self->run();
 
@@ -258,18 +264,17 @@ taskExecutionHandler(int sig, siginfo_t* si, void* context) throw(task_execution
      sigaddset(&x, sig);
      pthread_sigmask(SIG_UNBLOCK, &x, NULL);
      */
-    task_execution_exception_t ter = { .signal=sig,
-        .signal_info=*si,
-        .context=*(ucontext_t*)context};
+    task_execution_exception_t ter = { sig, *si, *(ucontext_t*) context};
 
     throw ter; //throw value
-    //throw TaskAborted();
     /*
      * Important note:
-     * If the exception is thrown using new, then a pointer to the object will be passed. It must be catched with pointer.
+     * If the exception is thrown using new, then a pointer to the object will be passed. It must be catched with pointer. This is discouraged because it's allocated in the heap (it isn't reliable for out-of-memory SIGSEGVs where the stack is empty). In addition, the user is responsible for memory management in the catch clause.
      * catch(TaskExecutionError* e)
      * If otherwise is thrown without using new, a reference to the object is passed, and must be catched with reference.
      * catch(TaskExecutionError& e)
+     * It can be catched without specifying the reference '&' in the argument. In that case, a copy of the data is performed.
+     * catch(TaskExecutionError e)
      * http://stackoverflow.com/questions/9562053/do-the-default-catch-throw-statements-in-c-pass-by-value-or-reference
      */
   }

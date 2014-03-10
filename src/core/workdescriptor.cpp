@@ -302,4 +302,7 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
-
+void WorkDescriptor::recover ()
+{
+  _state = START;
+}

@@ -180,6 +180,8 @@ namespace nanos
             bool is_submitted:1;     //!< Has this WD been submitted to the Scheduler?
             bool is_configured:1;    //!< Has this WD been configured to the Scheduler?
             bool is_implicit;        //!< Is the WD an implicit task (in a team)?
+            bool is_recoverable:1;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
+            bool is_invalid:1;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
          } WDFlags;
          typedef int PriorityType;
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
@@ -620,6 +622,20 @@ namespace nanos
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
          void convertToRegularWD();
+
+         //! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
+         //! If true (invalid) the flag propagates upwards to the ancestors until 
+         //! no more ancestors exist or a recoverable task is found.
+         WorkDescriptor* setInvalid ( bool flag );
+
+         //! \brief Returns whether a WorkDescriptor is invalid or not.
+         bool isInvalid () const;
+
+         //!brief Returns whether a WorkDescriptor is able to re-execute from the beginning if an error is detected.
+         bool isRecoverable () const;
+	 
+	 //! \brief Perform the necessary actions before re-executing the task.
+	 void recover();
    };
 
    typedef class WorkDescriptor WD;

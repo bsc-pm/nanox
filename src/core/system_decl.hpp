@@ -197,6 +197,9 @@ namespace nanos
          ThreadTeam               *_mainTeam;
          bool                      _simulator;
 
+         //! Specifies the maximum number of times a recoverable task can re-execute (avoids infinite recursion).
+         int                       _task_max_retries;
+
          // disable copy constructor & assignment operation
          System( const System &sys );
          const System & operator= ( const System &sys );
@@ -452,6 +455,11 @@ namespace nanos
           * \brief Returns whether DLB is enabled or not
           */
          bool dlbEnabled() const;
+
+         /*!
+          * \brief Returns the maximum number of times a task can try to recover from an error by re-executing itself.
+          */
+         int getTaskMaxRetries() const;
 
          // team related methods
          /*!
