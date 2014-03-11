@@ -49,7 +49,7 @@ public:
 public:
    void initialize(cl_device_id dev);
 
-   cl_int allocBuffer( size_t size, cl_mem &buf );
+   cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
@@ -116,6 +116,10 @@ public:
        return _preallocateWholeMemory;
    }
    
+   bool getUseHostPtr(){
+       return _useHostPtrs;
+   }
+   
    void setPreallocatedWholeMemory(bool val){
       // _preallocateWholeMemory=val;
    }
@@ -152,10 +156,11 @@ private:
    cl_context _ctx;
    cl_command_queue _queue;
    std::map<void *, cl_mem> _bufCache;
-   const bool _preallocateWholeMemory;
+   bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
    std::vector<cl_event> _pendingEvents;
+   bool _useHostPtrs;
 };
 
 class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>

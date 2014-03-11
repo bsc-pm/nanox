@@ -25,6 +25,7 @@ public:
   static cl_context getContextDevice(cl_device_id dev);
 
   static size_t getDevCacheSize() { return _devCacheSize; }
+  static bool getForceShMem() { return _forceShMem; }
   
     
   static System::CachePolicyType getCachePolicy(void) { return _cachePolicy;}
@@ -66,6 +67,8 @@ private:
 
   // The next free device.
   static Atomic<unsigned> _freeDevice;
+  
+  static bool _forceShMem;
 
   friend class OpenCLPlugin;
 };
