@@ -507,6 +507,19 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
    return kern;    
 }
 
+static void processOpenCLError(cl_int errCode){    
+      std::cerr << "Error code when executing kernel " << errCode << "\n"; 
+      if (errCode==-52){
+          std::cerr << "Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
+      }
+      if (errCode==-5){
+          std::cerr << "Out of resources, make sure that ndrange local size fits in your device\n";
+      }
+      if (errCode==-14){
+          std::cerr << "Check if your input or output data sizes are correctly specified/accessed\n";
+      }
+}
+
 cl_int OpenCLAdapter::execKernel(void* oclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
@@ -533,7 +546,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    {
       // Don't worry about exit code, we are cleaning an error.
       clReleaseKernel( openclKernel );
-      std::cerr << "Error code when executing kernel " << errCode << "\n"; 
+      processOpenCLError(errCode);
       fatal0("Error launching OpenCL kernel");
    }
 
@@ -544,7 +557,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Clean up environment.
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
-      std::cerr << "Error code when waiting for kernel " << errCode << "\n";
+      processOpenCLError(errCode);
       fatal0("Error launching OpenCL kernel");
    }
 
@@ -560,7 +573,8 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Clean up environment.
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
-      fatal0("Error launching OpenCL kernel");
+      processOpenCLError(errCode);
+      fatal0("Error waiting for events after launching OpenCL kernel");
    }
 
    // Free the event.
@@ -570,7 +584,8 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Clean up environment.
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
-      fatal0("Error launching OpenCL kernel");
+      processOpenCLError(errCode);
+      fatal0("Error waiting for events after launching OpenCL kernel");
    }
 
    // Free the kernel.
