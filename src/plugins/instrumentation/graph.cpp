@@ -330,11 +330,11 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                {  // Output dependence
                   _dot_file << _indent << sender << " -> " << receiver << " [style=dotted];\n";
                }
-               else if( e.getValue( ) == 4 )
+               else if( e.getValue( ) == 4 || e.getValue( ) == 7 )
                {  // Output dependence
                   _dot_file << _indent << sender << " -> d" << receiver << ";\n";
                }
-               else if( e.getValue( ) == 5 )
+               else if( e.getValue( ) == 5 || e.getValue( ) == 8 )
                {  // Output dependence
                   _dot_file << _indent << "  d" << sender << " -> " << receiver << ";\n";
                }
