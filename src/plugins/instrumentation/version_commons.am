@@ -32,3 +32,8 @@ graph_sources = \
     $(top_srcdir)/src/plugins/instrumentation/graph_utils.hpp \
 	$(top_srcdir)/src/plugins/instrumentation/graph.cpp \
 	$(END)
+
+new_graph_sources = \
+    $(top_srcdir)/src/plugins/instrumentation/graph_utils_new.hpp \
+    $(top_srcdir)/src/plugins/instrumentation/graph_new.cpp \
+    $(END)
