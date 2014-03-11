@@ -116,13 +116,13 @@ bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, st
 
 
 void OpenCLDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
-    nanos::ext::OpenCLProcessor *pe = (nanos::ext::OpenCLProcessor *)&(mem.getPE());
-    pe->getCacheAllocator().getFreeChunksList(list);
+    nanos::ext::OpenCLProcessor const *pe = (nanos::ext::OpenCLProcessor const *)&(mem.getConstPE());
+    pe->getConstCacheAllocator().getFreeChunksList(list);
 }
 
 std::size_t OpenCLDevice::getMemCapacity( SeparateMemoryAddressSpace const &mem ) const {
-    nanos::ext::OpenCLProcessor *pe = (nanos::ext::OpenCLProcessor *)&(mem.getPE());
-    return pe->getCacheAllocator().getCapacity();
+    nanos::ext::OpenCLProcessor const *pe = (nanos::ext::OpenCLProcessor const *)&(mem.getConstPE());
+    return pe->getConstCacheAllocator().getCapacity();
 }
 
 #endif // _OpenCL_DEVICE

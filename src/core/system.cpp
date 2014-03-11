@@ -928,9 +928,9 @@ void System::finish ()
    //}
 
 #ifdef CLUSTER_DEV
-   message0("Created " << createdWds << " WDs.");
-   message0("Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
    if ( _net.getNodeNum() == 0 ) {
+      message0("Master: Created " << createdWds << " WDs.");
+      message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
       int soft_inv = 0;
       int hard_inv = 0;
       #ifdef CLUSTER_DEV
@@ -948,7 +948,7 @@ void System::finish ()
       message0("Cluster Hard invalidations: " << hard_inv);
       if ( max_execd_wds > 0 ) {
          float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
-         message("Cluster Balance: " << balance );
+         message0("Cluster Balance: " << balance );
       }
       #endif
 #ifdef GPU_DEV

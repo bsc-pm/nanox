@@ -166,6 +166,11 @@ ProcessingElement &SeparateAddressSpace::getPE() {
    return sys.getPEWithMemorySpaceId( id );
 }
 
+ProcessingElement const &SeparateAddressSpace::getConstPE() const {
+   memory_space_id_t id = _cache.getMemorySpaceId();
+   return sys.getPEWithMemorySpaceId( id );
+}
+
 memory_space_id_t SeparateAddressSpace::getMemorySpaceId() const {
    return _cache.getMemorySpaceId();
 }

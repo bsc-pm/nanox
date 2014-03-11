@@ -118,6 +118,7 @@ class SeparateAddressSpace {
 
    RegionCache &getCache();
    ProcessingElement &getPE();
+   ProcessingElement const &getConstPE() const;
    memory_space_id_t getMemorySpaceId() const;
 
    void invalidate( global_reg_t const &reg );

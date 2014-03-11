@@ -91,6 +91,11 @@ public:
        return _devAllocator;
    }
 
+   SimpleAllocator const &getConstAllocator() const
+   {
+       return _devAllocator;
+   }
+
 private:   
    cl_mem _mainBuffer;    
    size_t _devCacheSize;

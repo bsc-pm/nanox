@@ -289,6 +289,9 @@ public:
         return _cache.getAllocator();
     }
     
+    SimpleAllocator const &getConstCacheAllocator() const {
+        return _cache.getConstAllocator();
+    }
 
 private:
    OpenCLAdapter _openclAdapter;
