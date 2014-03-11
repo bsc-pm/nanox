@@ -139,91 +139,91 @@ namespace nanos
 
     };
 
-   //! \brief This class identifies a single unit of work
+/*! \brief This class identifies a single unit of work
+ *
+ * A slicible WorkDescriptor defines an specific behaviour which potentially can divide a WorkDescriptor
+ * in smaller WorkDescriptor's
+ *
+ * The main idea behind this behaviour is to offer a mechanism which allow to decompose a WorkDescriptor in a
+ * set of several WorkDescriptors. Initial implementation of this mechanism is related with the
+ * ticket:96.
+ *
+ * A slicible WordDescriptor will be always related with:
+ *
+ * - a Slicer, which defines the work descriptor behaviour.
+ * - a SlicerData, which keeps all the data needed for splitting the work.
+ * - Slicer objects are common for all the slicible WordDescriptor of an specific type. In fact, the Slicer object
+ *   determines the type of the slicible WordDescriptor. In the other hand, SlicerData objects are individual for
+ *   each slicible WordDescriptor object.
+ *
+ * A slicible WordDescriptor modifies the behaviour of submit() and dequeue() methods.
+ *
+ * The common behaviour of a WorkDescriptor submit() method just call Scheduller::submit() method and dequeue() returns
+ * the WD itself (meaning this is the work unit ready to be executed) and a boolean value (true,
+ * meaning that it will be the last execution for this unit of work). Otherwise, slicible WordDescriptor will execute
+ * Slicer::submit() and Slicer::dequeue() respectively, giving the slicer the responsibility of doing specific actions
+ * at submission or dequeuing time.
+ *
+ */
    class WorkDescriptor
    {
-      public:
+      public: /* types */
 	      typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
-
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
-            bool is_final:1;         //! Work descriptor will not create more work descriptors
-            bool is_initialized:1;   //! Work descriptor is initialized
-            bool is_started:1;       //! Work descriptor has been already started
-            bool is_ready:1;         //! Work descriptor is ready to execute
-            bool to_tie:1;           //! Work descriptor should to be tied to first thread executing it
-            bool is_submitted:1;     //! Has this WD been submitted to the Scheduler?
-            bool reserved6:1;
-            bool reserved7:1;
+            bool is_final:1;         //!< Work descriptor will not create more work descriptors
+            bool is_initialized:1;   //!< Work descriptor is initialized
+            bool is_started:1;       //!< Work descriptor has been already started
+            bool is_ready:1;         //!< Work descriptor is ready to execute
+            bool to_tie:1;           //!< Work descriptor should to be tied to first thread executing it
+            bool is_submitted:1;     //!< Has this WD been submitted to the Scheduler?
+            bool is_configured:1;    //!< Has this WD been configured to the Scheduler?
+            bool is_implicit;        //!< Is the WD an implicit task (in a team)?
          } WDFlags;
-
          typedef int PriorityType;
-      private:
-
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
-
-         int                           _id;                     //! Work descriptor identifier
-         Atomic<int>                   _components;             //! Number of components (children, direct descendants)
-         components_sync_cond_t        _componentsSyncCond;     //! Synchronize condition on components
-         WorkDescriptor               *_parent;                 //! Parent WD in task hierarchy
-         WorkDescriptor               *_forcedParent;           //! Forced parent, it will be not notified when finishing
-         size_t                        _data_size;    /**< WD data size */
-         size_t                        _data_align;   /**< WD data alignment */
-         void                         *_data;         /**< WD data */
-         size_t                        _totalSize;    /**< Chunk total size, when allocating WD + extra data */
-         void                         *_wdData;       /**< Internal WD data. this allows higher layer to associate data to the WD */
-         WDFlags                       _flags;        /**< WD Flags */
-
-         BaseThread                   *_tiedTo;       /**< FIXME: (#170) documentation needed */
-
-         State                         _state;        /**< Workdescriptor current state */
-
-         GenericSyncCond              *_syncCond;     /**< FIXME: (#170) documentation needed */
-
-
-         WDPool                      *_myQueue;      /**< Reference to a queue. Allows dequeuing from third party (e.g. Cilk schedulers */
-
-         unsigned                      _depth;        /**< Level (depth) of the task */
-
-         unsigned char                 _numDevices;   /**< Number of suported devices for this workdescriptor */
-         DeviceData                  **_devices;      /**< Supported devices for this workdescriptor */
-         unsigned char                 _activeDeviceIdx; /**< In _devices, index where we can find the current active DeviceData (if any) */
-
-         size_t                        _numCopies;    /**< Copy-in / Copy-out data */
-         CopyData                     *_copies;       /**< Copy-in / Copy-out data */
-         size_t                        _paramsSize;   /**< Total size of WD's parameters */
-
-         unsigned long                 _versionGroupId;     /**< The way to link different implementations of a task into the same group */
-
-         double                        _executionTime;    /**< WD starting wall-clock time */
-         double                        _estimatedExecTime;  /**< WD estimated execution time */
-
-         DOSubmit                     *_doSubmit;     /**< DependableObject representing this WD in its parent's depsendencies domain */
-         LazyInit<DOWait>              _doWait;       /**< DependableObject used by this task to wait on dependencies */
-
-         DependenciesDomain           *_depsDomain;   /**< Dependences domain. Each WD has one where DependableObjects can be submitted */
-         Directory                    *_directory;    /**< Directory to mantain cache coherence */
-
-         bool                          _configured;  /**< Has this WD been configured to the Scheduler? */
-         bool                          _implicit;     /**< is a implicit task (in a team) */
-
-         nanos_translate_args_t        _translateArgs; /**< Translates the addresses in _data to the ones obtained by get_address(). */
-
-         PriorityType                  _priority;      /**< Task priority */
-
-         CommutativeOwnerMap           *_commutativeOwnerMap; /**< Map from commutative target address to owner pointer */
-         WorkDescriptorPtrList         *_commutativeOwners;   /**< Array of commutative target owners */
-
-         int                           _socket;       /**< The socket this WD was assigned to */
-         unsigned int                  _wakeUpQueue;  /**< Queue to wake up to */
-
-         bool                          _copiesNotInChunk; /**< States whether the buffer of the copies is allocated in the chunk of the WD */
-         char                         *_description; /**< WorkDescriptor description, usually user function name */
-
-         InstrumentationContextData    _instrumentationContextData; /**< Instrumentation Context Data (empty if no instr. enabled) */
-
+      private: /* data members */
+         int                           _id;                     //!< Work descriptor identifier
+         Atomic<int>                   _components;             //!< Number of components (children, direct descendants)
+         components_sync_cond_t        _componentsSyncCond;     //!< Synchronize condition on components
+         WorkDescriptor               *_parent;                 //!< Parent WD in task hierarchy
+         WorkDescriptor               *_forcedParent;           //!< Forced parent, it will be not notified when finishing
+         size_t                        _data_size;              //!< WD data size
+         size_t                        _data_align;             //!< WD data alignment
+         void                         *_data;                   //!< WD data
+         size_t                        _totalSize;              //!< Chunk total size, when allocating WD + extra data
+         void                         *_wdData;                 //!< Internal WD data. Allowing higher layer to associate data to WD
+         WDFlags                       _flags;                  //!< WD Flags
+         BaseThread                   *_tiedTo;                 //!< Thread is tied to base thread
+         State                         _state;                  //!< Workdescriptor current state
+         GenericSyncCond              *_syncCond;               //!< Generic synchronize condition
+         WDPool                       *_myQueue;                //!< Allows dequeuing from third party (e.g. Cilk schedulers)
+         unsigned                      _depth;                  //!< Level (depth) of the task
+         unsigned char                 _numDevices;             //!< Number of suported devices for this workdescriptor
+         DeviceData                  **_devices;                //!< Supported devices for this workdescriptor
+         unsigned char                 _activeDeviceIdx;        //!< In _devices, index where we can find the current active DeviceData (if any)
+         size_t                        _numCopies;              //!< Copy-in / Copy-out data
+         CopyData                     *_copies;                 //!< Copy-in / Copy-out data
+         size_t                        _paramsSize;             //!< Total size of WD's parameters
+         unsigned long                 _versionGroupId;         //!< The way to link different implementations of a task into the same group
+         double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time
+         double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time
+         DOSubmit                     *_doSubmit;               //!< DependableObject representing this WD in its parent's depsendencies domain
+         LazyInit<DOWait>              _doWait;                 //!< DependableObject used by this task to wait on dependencies
+         DependenciesDomain           *_depsDomain;             //!< Dependences domain. Each WD has one where DependableObjects can be submitted
+         Directory                    *_directory;              //!< Directory to mantain cache coherence
+         nanos_translate_args_t        _translateArgs;          //!< Translates the addresses in _data to the ones obtained by get_address()
+         PriorityType                  _priority;               //!< Task priority
+         CommutativeOwnerMap          *_commutativeOwnerMap;    //!< Map from commutative target address to owner pointer
+         WorkDescriptorPtrList        *_commutativeOwners;      //!< Array of commutative target owners
+         int                           _socket;                 //!< FIXME:scheduler data. The socket this WD was assigned to
+         unsigned int                  _wakeUpQueue;            //!< FIXME:scheduler data. Queue to wake up to
+         bool                          _copiesNotInChunk;       //!< States whether the buffer of the copies is allocated in the chunk of the WD
+         char                         *_description;            //!< WorkDescriptor description, usually user function name
+         InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
+         Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -255,7 +255,7 @@ namespace nanos
           *
           *  This constructor is used only for duplicating purposes
           *
-          *  \see WorkDescriptor System::duplicateWD System::duplicateSlicedWD
+          *  \see WorkDescriptor System::duplicateWD
           */
          WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, char *description = NULL );
 
@@ -264,7 +264,7 @@ namespace nanos
           * All data will be allocated in a single chunk so only the destructors need to be invoked
           * but not the allocator
           */
-         virtual ~WorkDescriptor()
+         ~WorkDescriptor()
          {
              void *chunkLower = ( void * ) this;
              void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
@@ -323,14 +323,6 @@ namespace nanos
           */
          size_t getDataSize () const;
 
-         /*! \brief Set data size
-          *
-          *  This function set the size of the user's data related with current WD
-          *
-          *  \see getData setData getDataSize
-          */
-         void setDataSize ( size_t data_size );
-
          /*! \brief Get data alignment
           *
           *  This function returns the data alignment of the user's data related with current WD
@@ -339,14 +331,6 @@ namespace nanos
           *  \see getData setData setDatasize
           */
          size_t getDataAlignment () const;
-
-         /*! \brief Set data alignment
-          *
-          *  This function set the data alignment of the user's data related with current WD
-          *
-          *  \see getData setData setDataSize
-          */
-         void setDataAlignment ( size_t data_align) ;
 
          WorkDescriptor * getParent();
 
@@ -380,8 +364,6 @@ namespace nanos
 
          void setTotalSize ( size_t size );
 
-         void setStart ();
-
          bool isIdle () const;
 
          void setIdle ();
@@ -414,7 +396,7 @@ namespace nanos
          bool hasActiveDevice() const;
 
          void setActiveDeviceIdx( unsigned char idx );
-         unsigned char getActiveDeviceIdx();
+         unsigned char getActiveDeviceIdx() const;
 
          /*! \brief Sets specific internal data of the programming model
           * \param [in] data Pointer to internal data
@@ -459,7 +441,7 @@ namespace nanos
           *  \return WorkDescriptor's number of devices
           *  \see getDevices
           */
-         unsigned getNumDevices ( void );
+         unsigned getNumDevices ( void ) const;
 
          /*! \brief Get devices
           *
@@ -468,7 +450,7 @@ namespace nanos
           *  \return devices vector
           *  \see getNumDevices
           */
-         DeviceData ** getDevices ( void );
+         DeviceData ** getDevices ( void ) const;
 
          /*! \brief Prepare device
           *
@@ -488,14 +470,14 @@ namespace nanos
           *
           *  \return true if there are no more slices to manage, false otherwise
           */
-         virtual bool dequeue ( WorkDescriptor **slice );
+         bool dequeue ( WorkDescriptor **slice );
 
          // headers
-         virtual void submit ( bool force_queue = false );
+         void submit ( bool force_queue = false );
 
-         virtual void finish ();
+         void finish ();
 
-         virtual void done ();
+         void done ();
 
          void clear ();
 
@@ -627,6 +609,17 @@ namespace nanos
          //! \brief Adding work to current WorkDescriptor
          void addWork( WorkDescriptor &work );
 
+         //! \brief Get related slicer
+         Slicer * getSlicer ( void ) const;
+
+         //! \brief Set related slicer
+         void setSlicer ( Slicer *slicer );
+
+         //! \brief Convert a slicible WD to a regular WD (changing the behaviour)
+         //!
+         //! This functions change slicible WD attribute which is used in
+         //! submit() and dequeue() when _slicer attribute is specified.
+         void convertToRegularWD();
    };
 
    typedef class WorkDescriptor WD;

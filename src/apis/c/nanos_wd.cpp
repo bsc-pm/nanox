@@ -126,7 +126,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
       }
       sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment,
                      (void **) data, (WD *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies,
-                     const_data->num_dimensions, dimensions, NULL, const_data->description );
+                     const_data->num_dimensions, dimensions, NULL, const_data->description, NULL );
 
    } catch ( nanos_err_t e) {
       return e;
@@ -171,9 +171,9 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
          return NANOS_OK;
       }
 
-      // FIXME: last parameter is description, which currently is forced
-      sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WD *) uwg,
-                           (Slicer *) slicer, props, dyn_props, num_copies, copies, num_dimensions, dimensions, "" );
+      sys.createWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align,
+                     (void **) outline_data, (WD *) uwg, props, dyn_props, num_copies, copies,
+                     num_dimensions, dimensions, NULL, "", (Slicer *) slicer );
 
    } catch ( nanos_err_t e) {
       return e;
