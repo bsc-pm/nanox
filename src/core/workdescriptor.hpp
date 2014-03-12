@@ -106,7 +106,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                     _flags.to_tie = wd._flags.to_tie;
                                     _flags.is_submitted = false;
                                     _flags.is_implicit = wd._flags.is_implicit;
-                                    _flags.is_recoverable = false;
+                                    _flags.is_recoverable = wd._flags.is_recoverable;
                                     _flags.is_invalid = false;
                                  }
 
@@ -404,18 +404,28 @@ inline void WorkDescriptor::convertToRegularWD()
    _slicer = NULL;
 }
 
-inline WorkDescriptor* WorkDescriptor::setInvalid(bool flag) {
+inline void WorkDescriptor::setInvalid( bool flag ) {
    _flags.is_invalid = flag;
-   if(_flags.is_invalid && !_flags.is_recoverable && _parent && !_parent->_flags.is_invalid){
-      return _parent->setInvalid(_flags.is_invalid);
-   } else if (_flags.is_invalid && _flags.is_recoverable){
-      return this;
+
+   if(_flags.is_invalid) {
+      if(!_flags.is_recoverable){
+         if(_parent != NULL){
+            if(!_parent->_flags.is_invalid)
+               _parent->setInvalid(true);
+         } else { // doesnt have a parent
+            fatal("Uncaught 'task_execution_exception'. An error occured during the execution an there was no recoverable tasks.");
+         }
+      } else { // recoverable
+          debug( "Unwinding to recoverable ancestor: task " << _id);
+      }
    } else {
-      return NULL;
+       debug( "Unwinding to recoverable ancestor: task " << _id);
    }
 }
 
 inline bool WorkDescriptor::isInvalid() const { return _flags.is_invalid; }
+
+inline void WorkDescriptor::setRecoverable( bool flag ) { _flags.is_recoverable = flag; }
 
 inline bool WorkDescriptor::isRecoverable() const { return _flags.is_recoverable; }
 

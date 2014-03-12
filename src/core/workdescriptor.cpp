@@ -305,4 +305,5 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
 void WorkDescriptor::recover ()
 {
   _state = START;
+  _flags.is_invalid = false;
 }

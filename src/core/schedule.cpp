@@ -28,6 +28,8 @@
 #include "smpthread.hpp"
 #include "nanos-int.h"
 
+#include <iostream>
+
 using namespace nanos;
 
 void SchedulerConf::config (Config &cfg)
@@ -640,12 +642,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    bool done = false;
    bool retry = false;
    int num_tries = 0;
-   if (wd->isInvalid() || (wd->getParent() &&  wd->getParent()->isInvalid())){
+   if (wd->isInvalid() || (wd->getParent() != NULL &&  wd->getParent()->isInvalid())){
       wd->setInvalid(true);
       debug ( "Task " << wd->getId() << " is flagged as invalid.");
    } else {
-        do {
+      while (true) {
          try {
+            debug( "Running task " << wd->getId());
             done = thread->inlineWorkDependent(*wd);
          } catch (task_execution_exception_t& e) {
             // The execution error is catched. The signal has to be unblocked.
@@ -655,20 +658,23 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
             pthread_sigmask(SIG_UNBLOCK, &x, NULL);
 
 	    // Global recovery here (if this affects the global execution).
-
             debug( "Signal: " << strsignal(e.signal) << " while executing task " << myThread->getCurrentWD()->getId());
             wd->setInvalid(true);
          }
-         // If we failed (invalid), we should only retry both if we are told to do so (i.e. flagged as recoverable)
-         // and our parent hasn't been invalidated as well. Otherwise, we don't bother about it and finish.
-         // We also shouldn't retry more times than specified by the user (in order to avoid infinite recursion when the error is not recoverable).
-         retry = wd->isRecoverable() && !wd->getParent()->isInvalid() && wd->isInvalid() && num_tries < sys.getTaskMaxRetries();
-         if (retry) {
-	    // Local recovery here (inside recover() function)
-            wd->recover();
-            num_tries++;
-         }
-      } while (retry);
+         // If we failed (invalid), we should only retry when ...
+         retry = wd->isInvalid() // ... our execution failed,
+              && wd->isRecoverable() // the task is told to recover,
+              && (wd->getParent() == NULL || !wd->getParent()->isInvalid()) // if we have parent, he is not already invalid, and
+              && num_tries < sys.getTaskMaxRetries(); // we have not exhausted all our trials
+
+         if (!retry)
+           break;
+
+	 // Local recovery here (inside recover() function)
+         wd->recover();
+         num_tries++;
+
+      }
    }
   
    // reload thread after running WD due wd may be not tied to thread if
@@ -682,10 +688,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
       /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    } else if (wd->isInvalid()) {
-      finishWork( wd, schedule);
-      // If we are recoverable we gave up trying, so we are marked as done and mark our parent as invalid
-      if(wd->isRecoverable())
+      if ( wd->getParent() == NULL ) {
+         fatal0("Execution is invalid: an unrecoverable error was found.");
+      } else if ( wd->isRecoverable() ) {// If we are recoverable we gave up trying, so we are marked as done and mark our parent (if we have one) as invalid
          wd->getParent()->setInvalid(true);
+         debug("Task " << wd->getId() << " ( "<< wd->getDescription() << " ) exhausted all re-executions without success.")
+      }
+      finishWork( wd, schedule);
 
       done = true;
    }

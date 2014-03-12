@@ -73,7 +73,7 @@ System::System () :
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
 #endif
-      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false)
+      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false), _task_max_retries(1)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -885,6 +885,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       if ( props->tied ) wd->tied();
       wd->setPriority( dyn_props->priority );
       wd->setFinal ( dyn_props->flags.is_final );
+      wd->setRecoverable ( dyn_props->flags.is_recover);
    }
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
    

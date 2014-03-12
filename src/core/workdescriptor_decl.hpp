@@ -621,21 +621,24 @@ namespace nanos
          //!
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
-         void convertToRegularWD();
+         void convertToRegularWD( void );
 
          //! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
          //! If true (invalid) the flag propagates upwards to the ancestors until 
          //! no more ancestors exist or a recoverable task is found.
-         WorkDescriptor* setInvalid ( bool flag );
+         void setInvalid ( bool flag );
 
          //! \brief Returns whether a WorkDescriptor is invalid or not.
-         bool isInvalid () const;
+         bool isInvalid ( void ) const;
+
+         //! \brief Marks the WorkDescriptor as recoverable. If the execution of this task is invalid, it will try to re-execute.
+         void setRecoverable( bool flag );
 
          //!brief Returns whether a WorkDescriptor is able to re-execute from the beginning if an error is detected.
-         bool isRecoverable () const;
+         bool isRecoverable ( void ) const;
 	 
 	 //! \brief Perform the necessary actions before re-executing the task.
-	 void recover();
+	 void recover( void );
    };
 
    typedef class WorkDescriptor WD;
