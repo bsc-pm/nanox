@@ -51,10 +51,10 @@ class InstrumentationPrintTrace: public Instrumentation
       {
          // Getting instrumented key's
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
-         char dirStr[10][10] = {"N/A","RaW","WaR","WaW",
-                                "CloseConcurrent","OpenConcurrent",
-                                "CloseCommutative","OpenCommutative",
-                                "CloseGeneral","OpenGeneral","Error"};
+         char dirStr[12][20] = {"N/A" /*00*/, "RaW" /*01*/, "WaR" /*02*/, "WaW" /*03*/,
+                                "CloseConcurrent" /*04*/, "OpenConcurrent" /*05*/,
+                                "CloseCommutative" /*06*/, "OpenCommutative" /*07*/,
+                                "CloseGeneral" /*08*/, "OpenGeneral" /*09*/, "Error" /*10*/, "" /*11*/};
 
          // Use following list of declaration to enable/disable event capture
          nanos_event_key_t create_task      = true ? iD->getEventKey("create-wd-ptr") : 0xFFFFFFFF;
@@ -101,9 +101,9 @@ class InstrumentationPrintTrace: public Instrumentation
                         if ( j < count ) direction = ( int ) ((events[j]).getValue());
                      }
 
-                     if ( direction == 4 )
+                     if ( direction == 4 || direction == 6 || direction == 8 )
                         fprintf(stderr,"NANOS++: (DEP) Adding (%s) dependence %d->(%d) (related data address %p)\n",dirStr[direction],sender_id,receiver_id, address_id );
-                     else if ( direction == 5 )
+                     else if ( direction == 5 || direction == 7 || direction == 9 )
                         fprintf(stderr,"NANOS++: (DEP) Adding (%s) dependence (%d)->%d (related data address %p)\n",dirStr[direction],sender_id,receiver_id, address_id );
                      else
                         fprintf(stderr,"NANOS++: (DEP) Adding (%s) dependence %d->%d (related data address %p)\n",dirStr[direction],sender_id,receiver_id, address_id );
