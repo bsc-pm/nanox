@@ -51,7 +51,10 @@ class InstrumentationPrintTrace: public Instrumentation
       {
          // Getting instrumented key's
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
-         char dirStr[10][10] = {"N/A","RaW","WaR","WaW","toComm","fromComm","others","","",""};
+         char dirStr[10][10] = {"N/A","RaW","WaR","WaW",
+                                "CloseConcurrent","OpenConcurrent",
+                                "CloseCommutative","OpenCommutative",
+                                "CloseGeneral","OpenGeneral","Error"};
 
          // Use following list of declaration to enable/disable event capture
          nanos_event_key_t create_task      = true ? iD->getEventKey("create-wd-ptr") : 0xFFFFFFFF;
