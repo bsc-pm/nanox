@@ -86,6 +86,8 @@ inline bool System::getDelayedStart () const { return _delayedStart; }
 
 inline bool System::useYield() const { return _useYield; }
 
+inline void System::setYield( bool value ) { _useYield = value; }
+
 inline int System::getCreatedTasks() const { return _schedStats._createdTasks.value(); }
 
 inline int System::getTaskNum() const { return _schedStats._totalTasks.value(); }

@@ -495,6 +495,7 @@ class InstrumentationTasksimTracePlugin : public Plugin {
       void init ()
       {
          sys.setInstrumentation( new InstrumentationTasksimTrace() );
+         sys.setYield(true);
       }
 };
 

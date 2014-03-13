@@ -307,9 +307,9 @@ void System::config ()
                              "Disables thread binding" );
    cfg.registerArgOption( "no-binding", "disable-binding" );
 
-   cfg.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false ),
-                             "Do not yield on idle and condition waits" );
-   cfg.registerArgOption( "no-yield", "disable-yield" );
+   cfg.registerConfigOption( "yield-opt", NEW Config::FlagOption( _useYield, true ),
+                             "Thread yield on idle and condition waits" );
+   cfg.registerArgOption( "yield-opt", "enable-yield" );
 
    cfg.registerConfigOption( "verbose", NEW Config::FlagOption( _verboseMode ),
                              "Activates verbose mode" );
