@@ -310,4 +310,7 @@ namespace nanos
 
 }
 
+void taskExecutionHandler(int sig, siginfo_t* si, void* context)
+    throw (task_execution_exception_t);
+
 #endif

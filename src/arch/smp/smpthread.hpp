@@ -97,9 +97,6 @@ namespace ext
 }
 }
 
-void taskExecutionHandler(int sig, siginfo_t* si, void* context)
-    throw (task_execution_exception_t);
-
 void * smp_bootthread ( void *arg );
 
 #endif
