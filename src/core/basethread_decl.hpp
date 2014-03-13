@@ -302,6 +302,8 @@ namespace nanos
          /*! \brief Set Status: Main Thread
           */
          void setMainThread ( bool v = true );
+
+         void setupSignalHandlers();
    };
 
    extern __thread BaseThread *myThread;

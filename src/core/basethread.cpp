@@ -96,6 +96,23 @@ void BaseThread::waitSingleBarrierGuard ()
    getTeam()->waitSingleBarrierGuard( _teamData->currentSingleGuard() );
 }
 
+void BaseThread::setupSignalHandlers()
+{
+   /* Set up the structure to specify task-recovery. */
+   struct sigaction recovery_action;
+   recovery_action.sa_sigaction = &taskExecutionHandler;
+   sigemptyset(&recovery_action.sa_mask);
+   recovery_action.sa_flags = SA_SIGINFO | SA_RESTART; // Important: resume system calls if interrupted by the signal.
+   /* Program synchronous signals to use the default recovery handler.
+    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
+    */
+   ensure(sigaction(SIGILL, &recovery_action, NULL) == 0, "Signal setup (SIGILL) failed");
+   ensure(sigaction(SIGTRAP, &recovery_action, NULL) == 0, "Signal setup (SIGTRAP) failed");
+   ensure(sigaction(SIGBUS, &recovery_action, NULL) == 0, "Signal setup (SIGBUS) failed");
+   ensure(sigaction(SIGFPE, &recovery_action, NULL) == 0, "Signal setup (SIGFPE) failed");
+   ensure(sigaction(SIGSEGV, &recovery_action, NULL) == 0, "Signal setup (SIGSEGV) failed");
+}
+
 /*
  * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
  * In this function this optimization does not work because the task can move from one thread to another

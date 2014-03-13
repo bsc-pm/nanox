@@ -40,19 +40,7 @@ void * smp_bootthread ( void *arg )
 {
    SMPThread *self = static_cast<SMPThread *>( arg );
 
-   /* Set up the structure to specify task-recovery. */
-   struct sigaction recovery_action;
-   recovery_action.sa_sigaction = &taskExecutionHandler;
-   sigemptyset(&recovery_action.sa_mask);
-   recovery_action.sa_flags = SA_SIGINFO | SA_RESTART; // Important: resume system calls if interrupted by the signal.
-   /* Program synchronous signals to use the default recovery handler.
-    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
-    */
-   assert(sigaction(SIGILL, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGTRAP, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGBUS, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGFPE, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGSEGV, &recovery_action, NULL) == 0);
+   self->setupSignalHandlers();
 
    self->run();
 

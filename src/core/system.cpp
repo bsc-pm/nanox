@@ -552,6 +552,8 @@ void System::start ()
    spu->startWorker();
 #endif
 
+   // Setup signal handlers
+   myThread->setupSignalHandlers();
 
    if ( getSynchronizedStart() ) {
       // Wait for the rest of the gang to be ready, but do not yet notify master thread is ready
@@ -1567,5 +1569,7 @@ void System::ompss_nanox_main(){
     #ifdef MPI_DEV
     //This function will already do exit(0) after the slave finishes (when we are on slave)
     nanos::ext::MPIProcessor::mpiOffloadSlaveMain();
-    #endif    
+    #endif
+
+    getMyThreadSafe()->setupSignalHandlers();
 }
