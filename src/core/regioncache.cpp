@@ -1443,7 +1443,10 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
    ConstChunkList results;
    _chunks.getChunk3( reg.getRealFirstAddress(), reg.getBreadth(), results );
    for ( ConstChunkList::iterator it = results.begin(); it != results.end(); it++ ) {
-      std::cerr << "Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
+      //std::cerr << "-----------------------vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv--------------------" << std::endl; 
+      //std::cerr << "Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
+      //printBt();
+      //std::cerr << "-----------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------" << std::endl; 
       if ( it->second != NULL ) {
          delete *(it->second);
       }

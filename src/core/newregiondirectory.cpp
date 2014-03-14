@@ -436,20 +436,24 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
       outOps.issue( *( (WD *) NULL ) );
       while ( !outOps.isDataReady( wd ) ) { myThread->idle(); }
 
-      // invalidate data on devices
-      for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
-         for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
-            if ( *locIt != 0 ) {
-               fprintf(stderr, "inval object %p from mem space %d\n", (void *) it->first, *locIt);
-               sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
+      //std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
+      //printBt();
+      if ( wd.getDepth() == 0 ) {
+         // invalidate data on devices
+         for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
+            for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
+               if ( *locIt != 0 ) {
+                  //std::cerr << "inval object " << it->first << " from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
+                  sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
+               }
             }
          }
+         //clear objects from directory
+         for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
+            delete it->second;
+         }
+         _objects.clear();
       }
-      //clear objects from directory
-      for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
-         delete it->second;
-      }
-      _objects.clear();
    }
 }
 
