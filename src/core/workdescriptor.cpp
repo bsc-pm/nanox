@@ -25,7 +25,7 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "os.hpp"
-
+#include "synchronizedcondition.hpp"
 
 using namespace nanos;
 
@@ -46,7 +46,7 @@ void WorkDescriptor::init ()
          _translateArgs( _data, this );
       }
    }
-   setStart();
+   _state = WorkDescriptor::START;
 }
 
 // That function must be called from the thread it will execute it. This is important
@@ -69,7 +69,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    if ( getNumCopies() > 0 ) pe->waitInputs( *this );
 
    // Tie WD to current thread
-   if ( _tie ) tieTo( *myThread );
+   if ( _flags.to_tie ) tieTo( *myThread );
 
    // Call Programming Model interface .started() method.
    sys.getPMInterface().wdStarted( *this );
@@ -141,11 +141,6 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    return canRunIn( pe.getDeviceType() , &pe );
 }
 
-void WorkDescriptor::submit( bool force_queue )
-{
-   Scheduler::submit(*this, force_queue );
-} 
-
 void WorkDescriptor::finish ()
 {
    // At that point we are ready to copy data out
@@ -169,8 +164,26 @@ void WorkDescriptor::done ()
    // Notifying parent we have finished ( dependence's relationships )
    this->getParent()->workFinished( *this );
 
-   // Workgroup specific done ( parent's relationships)
-   WorkGroup::done();
+//! \bug FIXME: This instrumentation phase has been commented due may cause raises when creating the events
+#if 0
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+#endif
+
+   // Waiting for children (just to keep structures)
+   if ( _components != 0 ) waitCompletion();
+
+   // Notifying parent about current WD finalization
+   if ( _parent != NULL ) {
+      _parent->exitWork(*this);
+#if 0
+      NANOS_INSTRUMENT ( if ( !_parent->isReady()) { )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + _parent->getId(); )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *_parent, NANOS_WAIT, id, 0, 0 ); )
+      NANOS_INSTRUMENT ( } )
+#endif
+      _parent = NULL;
+   }
 }
 
 void WorkDescriptor::prepareCopies()
@@ -273,4 +286,20 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
         }
     }
 }
+
+void WorkDescriptor::waitCompletion( bool avoidFlush )
+{
+   _componentsSyncCond.waitConditionAndSignalers();
+   if ( _directory != NULL && !avoidFlush ) _directory->synchronizeHost();
+}
+
+void WorkDescriptor::exitWork ( WorkDescriptor &work )
+{
+   _componentsSyncCond.reference();
+   int componentsLeft = --_components;
+   //! \note It seems that _syncCond.check() generates a race condition here?
+   if (componentsLeft == 0) _componentsSyncCond.signal();
+   _componentsSyncCond.unreference();
+}
+
 

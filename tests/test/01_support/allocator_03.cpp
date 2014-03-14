@@ -60,7 +60,7 @@ void allocate( void *args )
    //cerr << "   start of thread id: " << id << endl;
 
    Allocator allocator;
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
 
    for ( int  n = 1; n <= TIMES; n++ ) {
       for ( unsigned int i = 0; i < (sizeof( sizes )/sizeof(int)); i++ ) {
@@ -103,7 +103,7 @@ int main ( int argc, char **argv )
    //cout << "Starting test... " << endl;
 
    // Work Group affiliation
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
 
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
    for ( int i = 0; i < num_pes; i++ ) {

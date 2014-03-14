@@ -17,8 +17,8 @@ class SlicerStaticFor: public Slicer
       ~SlicerStaticFor ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) { *slice = wd; return true; }
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) { *slice = wd; return true; }
 };
 
 static void staticLoop ( void *arg )
@@ -69,7 +69,7 @@ static void staticLoop ( void *arg )
    }
 }
 
-void SlicerStaticFor::submit ( SlicedWD &work )
+void SlicerStaticFor::submit ( WorkDescriptor &work )
 {
    debug ( "Submitting sliced task " << &work << ":" << work.getId() );
    
@@ -195,7 +195,7 @@ void SlicerStaticFor::submit ( SlicedWD &work )
    work.tieTo( (*team)[first_valid_thread] );
    if ( mythread == &((*team)[first_valid_thread]) ) {
       if ( Scheduler::inlineWork( &work, false ) ) {
-         work.~SlicedWD();
+         work.~WorkDescriptor();
          delete[] (char *) &work;
       }
    }

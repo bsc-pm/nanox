@@ -25,6 +25,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
+bool OpenCLConfig::_forceShMem = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
 size_t OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
@@ -101,6 +102,12 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerEnvOption( "opencl-max-devices", "NX_OPENCL_MAX_DEVICES" );
    cfg.registerArgOption( "opencl-max-devices", "opencl-max-devices" );
 
+   // Enable/disable OpenCL.
+   cfg.registerConfigOption( "force-opencl-mapped",
+                             NEW Config::FlagOption( _forceShMem ),
+                             "Force the use the use of mapped pointers for every device (Default: GPU -> NO, CPU->YES). Can save copy time on shared memory devices" );
+   cfg.registerEnvOption( "force-opencl-mapped", "NX_FORCE_OPENCL_MAPPED");
+   cfg.registerArgOption( "force-opencl-mapped", "force-opencl-mapped" );
 }
 
 void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices)

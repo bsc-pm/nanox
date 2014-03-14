@@ -51,12 +51,17 @@ class InstrumentationPrintTrace: public Instrumentation
       {
          // Getting instrumented key's
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+         char dirStr[12][20] = {"N/A" /*00*/, "RaW" /*01*/, "WaR" /*02*/, "WaW" /*03*/,
+                                "CloseConcurrent" /*04*/, "OpenConcurrent" /*05*/,
+                                "CloseCommutative" /*06*/, "OpenCommutative" /*07*/,
+                                "CloseGeneral" /*08*/, "OpenGeneral" /*09*/, "Error" /*10*/, "" /*11*/};
 
          // Use following list of declaration to enable/disable event capture
-         nanos_event_key_t create_task      = false ? iD->getEventKey("create-wd-ptr") : 0xFFFFFFFF;
-         nanos_event_key_t funct_location   = false ? iD->getEventKey("user-funct-location") : 0xFFFFFFFF;
-         nanos_event_key_t dependence       = false ? iD->getEventKey("dependence") : 0xFFFFFFFF;
-         nanos_event_key_t dep_address      = false ? iD->getEventKey("dep-address") : 0xFFFFFFFF;
+         nanos_event_key_t create_task      = true ? iD->getEventKey("create-wd-ptr") : 0xFFFFFFFF;
+         nanos_event_key_t funct_location   = true ? iD->getEventKey("user-funct-location") : 0xFFFFFFFF;
+         nanos_event_key_t dependence       = true ? iD->getEventKey("dependence") : 0xFFFFFFFF;
+         nanos_event_key_t dep_direction    = true ? iD->getEventKey("dep-direction") : 0xFFFFFFFF;
+         nanos_event_key_t dep_address      = true ? iD->getEventKey("dep-address") : 0xFFFFFFFF;
          nanos_event_key_t nanos_api        = true ? iD->getEventKey("api") : 0xFFFFFFFF;
          nanos_event_key_t wd_id_event      = true ? iD->getEventKey("wd-id") : 0xFFFFFFFF;
          nanos_event_key_t user_code        = true ? iD->getEventKey("user-code") : 0xFFFFFFFF;
@@ -84,11 +89,25 @@ class InstrumentationPrintTrace: public Instrumentation
                      // Getting dep_address event (usually the following event to dependence)
                      void * address_id = 0;
                      if ( dep_address != 0xFFFFFFFF ) {
-                        while ( (i < count) && ((nanos_event_key_t)(events[i]).getKey() != dep_address) ) i++;
-                        if ( i < count ) address_id = (void *) ((events[i]).getValue());
+                        unsigned int j = i;
+                        while ( (j < count) && ((nanos_event_key_t)(events[j]).getKey() != dep_address) ) j++;
+                        if ( j < count ) address_id = (void *) ((events[j]).getValue());
+                     }
+                     // Getting dep_address event (usually the following event to dependence)
+                     int direction = 0;
+                     if ( dep_direction != 0xFFFFFFFF ) {
+                        unsigned int j = i;
+                        while ( (j < count) && ((nanos_event_key_t)(events[j]).getKey() != dep_direction) ) j++;
+                        if ( j < count ) direction = ( int ) ((events[j]).getValue());
                      }
 
-                     fprintf(stderr,"NANOS++: (DEP) Adding dependence %d->%d (related data address %p)\n",sender_id,receiver_id, address_id );
+                     if ( direction == 4 || direction == 6 || direction == 8 )
+                        fprintf(stderr,"NANOS++: (DEP) Adding (%s) dependence %d->(%d) (related data address %p)\n",dirStr[direction],sender_id,receiver_id, address_id );
+                     else if ( direction == 5 || direction == 7 || direction == 9 )
+                        fprintf(stderr,"NANOS++: (DEP) Adding (%s) dependence (%d)->%d (related data address %p)\n",dirStr[direction],sender_id,receiver_id, address_id );
+                     else
+                        fprintf(stderr,"NANOS++: (DEP) Adding (%s) dependence %d->%d (related data address %p)\n",dirStr[direction],sender_id,receiver_id, address_id );
+
                   }
                   if ( e.getKey() == wd_ready ) {
                      fprintf(stderr,"NANOS++: (WD-STATE) Task %d becomes ready\n", ((WD *) value)->getId() );
@@ -159,4 +178,4 @@ class InstrumentationPrintTracePlugin : public Plugin {
 
 } // namespace nanos
 
-DECLARE_PLUGIN("intrumentation-print_trace",nanos::ext::InstrumentationPrintTracePlugin);
+DECLARE_PLUGIN("instrumentation-print_trace",nanos::ext::InstrumentationPrintTracePlugin);

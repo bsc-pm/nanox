@@ -93,7 +93,7 @@ int main ( int argc, char **argv )
       args[i]->task = 0;
    }
 
-   nanos::WG *wg = nanos::getMyThreadSafe()->getCurrentWD();
+   nanos::WD *wg = nanos::getMyThreadSafe()->getCurrentWD();
 
    // Execution of tasks: for every kind of task, create 100 times the number of GPUs, so that we
    // assume that each GPU will pick at least one task of each type.

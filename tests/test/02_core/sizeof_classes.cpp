@@ -17,66 +17,46 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP_DECL_H
-#define _NANOS_WORK_GROUP_DECL_H
+/*
+<testinfo>
+test_generator=gens/core-generator
+test_schedule="bf"
+test_max_cpus=1
+</testinfo>
+*/
 
-#include <vector>
-#include "atomic_decl.hpp"
-#include "dependenciesdomain_decl.hpp"
-#include "synchronizedcondition_decl.hpp"
+#include "system.hpp"
+#include <iostream>
 
-namespace nanos
+using namespace std;
+using namespace nanos;
+
+#define SIZEOF_WD             128*sizeof(void *)
+#define SIZEOF_DOWAIT          32*sizeof(void *)
+#define SIZEOF_DOSUBMIT        32*sizeof(void *)
+#define SIZEOF_ICONTEXT        32*sizeof(void *)
+
+int main ( int argc, char **argv )
 {
-  /* \class WorkGroup
-   *
-   */
-   class WorkGroup
-   {
-      private:
-         typedef std::vector<WorkGroup *> WGList; // FIXME: vector is not a safe-class here
+   int error = 0;
 
-      private:
-         WGList         _partOf; // other than parent
-         int            _id;
-         Atomic<int>    _components;
+   cout << "Size of WorkDescriptor is " << sizeof(WD) << " out of " << SIZEOF_WD << endl;
+   if ( sizeof(WD) > SIZEOF_WD ) error = 1;
 
-         SingleSyncCond<EqualConditionChecker<int> > _syncCond;
+   cout << "Size of DOWait is " << sizeof(DOWait) << " out of " << SIZEOF_DOWAIT << endl;
+   if ( sizeof(DOWait) > SIZEOF_DOWAIT ) error = 1;
 
-         WorkGroup     *_parent; // most WG will only have one parent
+   cout << "Size of LazyInit<DOWait> is " << sizeof(LazyInit<DOWait>) << " out of " << SIZEOF_DOWAIT << endl;
+   if ( sizeof(LazyInit<DOWait>) > SIZEOF_DOWAIT ) error = 1;
 
-      private:
-         void addToGroup ( WorkGroup &parent );
-         void exitWork ( WorkGroup &work );
+   cout << "Size of DOSubmit is " << sizeof(DOSubmit) << " out of " << SIZEOF_DOSUBMIT << endl;
+   if ( sizeof(DOSubmit) > SIZEOF_DOSUBMIT ) error = 1;
 
-         /*! \brief WorkGroup copy assignment operator (private)
-          */
-         const WorkGroup & operator= ( const WorkGroup &wg );
+   cout << "Size of LazyInit<DOSubmit> is " << sizeof(LazyInit<DOSubmit>) << " out of " << SIZEOF_DOSUBMIT << endl;
+   if ( sizeof(LazyInit<DOSubmit>) > SIZEOF_DOSUBMIT ) error = 1;
 
-      public:
+   cout << "Size of InstrumentationContextData is " << sizeof(InstrumentationContextData) << " out of " << SIZEOF_ICONTEXT << endl;
+   if ( sizeof(InstrumentationContextData) > SIZEOF_ICONTEXT ) error = 1;
 
-         /*! \brief WorkGroup default constructor
-          */
-         WorkGroup();
-
-         /*! \brief WorkGroup copy constructor
-          */
-         WorkGroup( const WorkGroup &wg );
-
-         /*! \brief WorkGroup destructor 
-          */
-         virtual ~WorkGroup();
-
-         void addWork( WorkGroup &wg );
-         virtual void waitCompletion( bool avoidFlush = false );
-         virtual void init();
-         virtual void done();
-         int getId() const { return _id; }
-
-   };
-
-   typedef WorkGroup WG;
-
-};
-
-#endif
-
+   return error;
+}
