@@ -22,6 +22,7 @@
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
 
 #include "memtracker_decl.hpp"
+#include "printbt_decl.hpp"
 #include "new_decl.hpp"
 #include "allocator.hpp"
 #include "config.hpp"
