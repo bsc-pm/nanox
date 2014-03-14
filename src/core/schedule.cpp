@@ -311,6 +311,25 @@ inline void Scheduler::idleLoop ()
       else { thread->idle(); }
    }
 
+   NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
+
+   NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
+
+   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
+   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
+   NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
+   NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_blocks; )
+   NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) total_spins; )
+   NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) total_scheds; )
+   NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
+
+   NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
+   NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
+   NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
+   NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
+
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
+
    sys.getSchedulerStats()._idleThreads--;
    current->setReady();
    current->~WorkDescriptor();
