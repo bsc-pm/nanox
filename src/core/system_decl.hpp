@@ -90,7 +90,6 @@ namespace nanos
          InitialMode          _initialMode;
          bool                 _untieMaster;
          bool                 _delayedStart;
-         bool                 _useYield;
          bool                 _synchronizedStart;
          //! Physical NUMA nodes
          int                  _numSockets;
@@ -336,10 +335,6 @@ namespace nanos
          void setDelayedStart ( bool set);
 
          bool getDelayedStart () const;
-
-         bool useYield() const;
-
-         void setYield( bool value ) ;
 
          int getCreatedTasks() const ;
 
