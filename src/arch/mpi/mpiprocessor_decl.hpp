@@ -183,6 +183,11 @@ namespace nanos {
             * Statics (mostly external API adapters provided to user or used by mercurium) begin here
             */
 
+            /**
+             * Free booster group
+             * @param intercomm Communicator (NULL means free every booster registered)
+             * @param rank rank
+             */
             static void DEEP_Booster_free(MPI_Comm *intercomm, int rank);
             
             static void nanosMPIInit(int* argc, char ***argv, int required, int* provided);
@@ -191,6 +196,9 @@ namespace nanos {
                         
             static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset);  
             
+            /**
+             * Wrappers for MPI functions
+             */
             static int nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
                     MPI_Comm comm);
 
@@ -223,7 +231,10 @@ namespace nanos {
             
             static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
                     MPI_Datatype array_of_types[], MPI_Datatype *newtype);
-            
+                        
+            /**
+             * Specialized functions
+             */
             static void nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
                     unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])());
             

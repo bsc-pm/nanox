@@ -71,12 +71,12 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
 //Switch to next PE (Round robin way of change PEs to query scheduler)
 bool MPIThread::switchToNextFreePE(int uuid){
    int start=_currPe;
-	int currPe=start;
+	int currPe=start+1;
 	bool switchedCorrectly=false;
 	
     while (!switchedCorrectly && currPe!=start ){        
         currPe=(currPe+1)%_runningPEs.size();
-		switchedCorrectly=switchToPE(currPe,uuid);
+		  switchedCorrectly=switchToPE(currPe,uuid);
     }
 		
 	return switchedCorrectly;
@@ -225,21 +225,25 @@ void MPIThread::bind( void )
 }
 
 void MPIThread::finish() {
-    checkTaskEnd();
     //If I'm the master thread of the group (group counter == self-counter)
-    if ( _groupTotRunningWds == &_selfTotRunningWds ) {
-        cacheOrder order;
-        order.opId = OPID_FINISH;
-        std::vector<MPIProcessor*>& myPEs = getRunningPEs();
-        for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
-            //Only release if we are the owner of the process (once released, we are not the owner anymore)
-            if ( (*it)->getOwner() ) 
-            {
-                nanos::ext::MPIProcessor::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, (*it)->getCommunicator());
-                (*it)->setOwner(false);
+    int resul;
+    MPI_Finalized(&resul);
+    if (!resul){
+        checkTaskEnd();
+        if ( _groupTotRunningWds == &_selfTotRunningWds ) {
+            cacheOrder order;
+            order.opId = OPID_FINISH;
+            std::vector<MPIProcessor*>& myPEs = getRunningPEs();
+            for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
+                //Only release if we are the owner of the process (once released, we are not the owner anymore)
+                if ( (*it)->getOwner() ) 
+                {
+                    nanos::ext::MPIProcessor::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, (*it)->getCommunicator());
+                    (*it)->setOwner(false);
+                }
             }
-        }
-   }
+       }
+    }
     SMPThread::finish();
     BaseThread::finish();
 }

@@ -58,7 +58,10 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerEnvOption("offl-launcher", "NX_OFFL_LAUNCHER");
     
 
-    config.registerConfigOption("offl-hostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: One host per line with blank lines and lines beginning with # ignored\nMultiple processes per host can be specified by specifying the host name as follows: hostA:n\nEnvironment variables for the host can be specified separated by comma using hostA:n>env_var1,envar2... or hostA>env_var1,envar2...");
+    config.registerConfigOption("offl-hostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: "
+    "One host per line with blank lines and lines beginning with # ignored\n"
+    "Multiple processes per host can be specified by specifying the host name as follows: hostA:n\n"
+    "Environment variables for the host can be specified separated by comma using hostA:n>env_var1,envar2... or hostA>env_var1,envar2...");
     config.registerArgOption("offl-hostfile", "offl-hostfile");
     config.registerEnvOption("offl-hostfile", "NX_OFFL_HOSTFILE");
 
@@ -72,7 +75,7 @@ void MPIProcessor::prepareConfig(Config &config) {
     cachePolicyCfg->addOption("wt", System::WRITE_THROUGH);
     cachePolicyCfg->addOption("wb", System::WRITE_BACK);
     cachePolicyCfg->addOption("nocache", System::NONE);
-    config.registerConfigOption("offl-cache-policy", cachePolicyCfg, "Defines the cache policy for MPI architectures: write-through / write-back (wb by default)");
+    config.registerConfigOption("offl-cache-policy", cachePolicyCfg, "Defines the cache policy for offload architectures: write-through / write-back (wb by default)");
     config.registerEnvOption("offl-cache-policy", "NX_OFFL_CACHE_POLICY");
     config.registerArgOption("offl-cache-policy", "offl-cache-policy");
 
@@ -98,11 +101,11 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerArgOption("offl-workers", "offl-max-workers");
     config.registerEnvOption("offl-workers", "NX_OFFL_MAX_WORKERS");
     
-    config.registerConfigOption("offl-cache-thread", NEW Config::BoolVar(_useMultiThread), "Defines if offload processes will have an extra cache thread,"
+    config.registerConfigOption("offl-cache-threads", NEW Config::BoolVar(_useMultiThread), "Defines if offload processes will have an extra cache thread,"
         " this is good for applications which need data from other tasks so they don't have to wait until task in owner node finishes. "
         "(Default: False, but if this kind of behaviour is detected, the thread will be created anyways)");
-    config.registerArgOption("offl-cache-thread", "offl-cache-thread");
-    config.registerEnvOption("offl-cache-thread", "NX_OFFL_CACHE_THREAD");
+    config.registerArgOption("offl-cache-threads", "offl-cache-threads");
+    config.registerEnvOption("offl-cache-threads", "NX_OFFL_CACHE_THREADS");
 }
 
 WorkDescriptor & MPIProcessor::getWorkerWD() const {
@@ -186,9 +189,6 @@ int MPIProcessor::nanosMPIWorker(){
  */
 
 
-
-//TODO: only works Rank -1, which means free whole communicator
-//I don't know if freeing only a rank makes sense, maybe we'll remove the API call
 void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_FREE_EVENT);
     cacheOrder order;
@@ -197,35 +197,45 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     int id[2];
     id[0] = -1; 
     //Now sleep the threads which represent the remote processes
-    int res=MPI_UNEQUAL;
-    MPI_Barrier(MPI_COMM_WORLD);
+    int res=MPI_IDENT;
+    bool spawnedWithCommWorld=false;
+    
+    std::vector<nanos::ext::MPIThread*> threadsToDespawn; 
+    //Find threads to de-spawn
     for (int i=0; i< nThreads; ++i){
         BaseThread* bt=sys.getWorker(i);
         nanos::ext::MPIProcessor * myPE = dynamic_cast<nanos::ext::MPIProcessor *>(bt->runningOn());
-        if (myPE && (myPE->getRank()==rank || rank == -1)){           
-            //Releasing workers from the team
+        if (myPE && !bt->isSleeping() && (myPE->getRank()==rank || rank == -1)){
             MPI_Comm threadcomm=myPE->getCommunicator();
-            if (threadcomm!=0) MPI_Comm_compare(threadcomm,*intercomm,&res);
+            if (threadcomm!=0 && intercomm!=NULL) MPI_Comm_compare(threadcomm,*intercomm,&res);
             if (res==MPI_IDENT){ 
-                nanos::ext::MPIThread* mpiThread = (nanos::ext::MPIThread *)bt;
-                std::vector<MPIProcessor*>& myPEs = mpiThread->getRunningPEs();
-                for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
-                        //Only owner will send kill signal to the worker
-                        if ( (*it)->getOwner() ) 
-                        {
-                            nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
-                            //nanosMPISsend(id, 2, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
-                            //After sending finalization signals, we are not the owners anymore
-                            //This way we prevent finalizing them multiple times if more than one thread uses them
-                            (*it)->setOwner(false);
-                        }
-                }
-                if (rank==-1){                    
-                    bt->lock();
-                    bt->sleep();
-                    bt->unlock();
-                }
+                spawnedWithCommWorld= spawnedWithCommWorld || myPE->getShared();
+                threadsToDespawn.push_back((nanos::ext::MPIThread *)bt);
             }
+        }
+    }
+    //Synchronize before killing shared resources
+    if (spawnedWithCommWorld) {
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    for (std::vector<nanos::ext::MPIThread*>::iterator itThread = threadsToDespawn.begin(); itThread!=threadsToDespawn.end() ; ++itThread) {
+        nanos::ext::MPIThread* mpiThread = *itThread;
+        std::vector<MPIProcessor*>& myPEs = mpiThread->getRunningPEs();
+        for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
+                //Only owner will send kill signal to the worker
+                if ( (*it)->getOwner() ) 
+                {
+                    nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
+                    //nanosMPISsend(id, 2, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
+                    //After sending finalization signals, we are not the owners anymore
+                    //This way we prevent finalizing them multiple times if more than one thread uses them
+                    (*it)->setOwner(false);
+                }
+        }
+        if (rank==-1){                    
+            mpiThread->lock();
+            mpiThread->sleep();
+            mpiThread->unlock();
         }
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -295,6 +305,8 @@ void MPIProcessor::nanosMPIFinalize() {
     int resul;
     MPI_Finalized(&resul);
     if (!resul){
+      //Free every node before finalizing
+      DEEP_Booster_free(NULL,-1);
       MPI_Finalize();
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;

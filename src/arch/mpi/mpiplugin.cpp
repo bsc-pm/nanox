@@ -34,7 +34,7 @@ class MPIPlugin : public ArchPlugin
 
       virtual void config ( Config& cfg )
       {
-         cfg.setOptionsSection( "MPI Arch", "MPI specific options" );
+         cfg.setOptionsSection( "Offload Arch", "Offload specific options" );
          MPIProcessor::prepareConfig( cfg );
       }
       
