@@ -415,14 +415,18 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
    return NANOS_OK;                                                                                                                                      
 }   
 
-/*! \brief Get WorkDescriptor's priority
- *
- */
+//! \brief Get WorkDescriptor's priority
 NANOS_API_DEF(int, nanos_get_wd_priority, ( nanos_wd_t wd ))
 {
    //! \note Why this is not instrumented?
-   WD *lwd = ( WD * )wd;
-   return lwd->getPriority();
+   return ((WD*)wd)->getPriority();
+}
+
+//! \brief Set WorkDescriptor's priority
+NANOS_API_DEF(void, nanos_set_wd_priority, ( nanos_wd_t wd, int p ))
+{
+   //! \note Why this is not instrumented?
+   ((WD*)wd)->setPriority( p );
 }
 
 /*! \brief Get number of ready tasks
