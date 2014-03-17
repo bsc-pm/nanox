@@ -85,7 +85,7 @@ public:
 
    size_t getSize() const { return _devCacheSize; }
    
-   cl_mem toMemoryObjSS( void * addr );
+   cl_mem toMemoryObjSS( const void * addr );
 
 private:   
    cl_mem _mainBuffer;    
