@@ -156,6 +156,7 @@ private:
    cl_context _ctx;
    cl_command_queue _queue;
    std::map<void *, cl_mem> _bufCache;
+   std::map<cl_mem, int> _unmapedCache;
    bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
@@ -194,7 +195,7 @@ public:
        return _openclAdapter.createKernel(kernel_name,opencl_code, compiler_opts);
    }
    
-   void setKernelBufferArg(void* openclKernel, int argNum, void* pointer);
+   void setKernelBufferArg(void* openclKernel, int argNum,const void* pointer);
    
    void execKernel(void* openclKernel, 
                         int workDim, 
@@ -202,7 +203,7 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
-   void setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer);
+   void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);
    
    void printStats();
    
