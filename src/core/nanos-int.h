@@ -30,6 +30,7 @@
 #include <stdbool.h>
 
 /* Jbellon: task runtime error info */
+#include <ucontext.h>
 #include <signal.h>
 
 /* Task runtime exceptions data type */
