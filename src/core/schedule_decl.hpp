@@ -280,6 +280,11 @@ namespace nanos
          {
             return false;
          }
+         //! \brief Partial reorder on WD's priority queue
+         virtual bool reorderWD( BaseThread *t, WD * wd )
+         {
+            return true;
+         }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */
