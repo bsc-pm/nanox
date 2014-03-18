@@ -110,10 +110,10 @@ class InstrumentationPrintTrace: public Instrumentation
 
                   }
                   if ( e.getKey() == wd_ready ) {
-                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d becomes ready\n", ((WD *) value)->getId() );
+                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d [%s] becomes ready\n", ((WD*)value)->getId(), ((WD*)value)->getDescription() );
                   }
                   if ( e.getKey() == wd_blocked ) {
-                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d becomes blocked\n", ((WD *) value)->getId() );
+                     fprintf(stderr,"NANOS++: (WD-STATE) Task %d [%s] becomes blocked\n", ((WD*)value)->getId(), ((WD*)value)->getDescription()  );
                   }
                   break;
                case NANOS_BURST_START:

@@ -79,35 +79,48 @@ namespace nanos
    class SchedulerConf
    {
       friend class System;
-
-      private:
-        unsigned int  _numSpins;
-        int  _numSleeps;
-        int  _timeSleep;
-        bool _schedulerEnabled;
-      private:
-        /*! \brief SchedulerConf default constructor (private)
-         */
-        SchedulerConf() : _numSpins(100), _numSleeps(0), _timeSleep(100), _schedulerEnabled(true) {}
-        /*! \brief SchedulerConf copy constructor (private)
-         */
-        SchedulerConf ( SchedulerConf &sc ) : _numSpins( sc._numSpins ), _numSleeps(sc._numSleeps), _timeSleep(sc._timeSleep), _schedulerEnabled( true )  {}
-        /*! \brief SchedulerConf copy assignment operator (private)
-         */
+      private: /* PRIVATE DATA MEMBERS */
+         unsigned int                  _numSpins;          //!< Number of spins before yield
+         unsigned int                  _numChecks;         //!< Number of checks before schedule
+         unsigned int                  _numYields;         //!< Number of yields before block
+         bool                          _useYield;          //!< Yield is allowed
+         bool                          _useBlock;          //!< Block is allowed
+         bool                          _schedulerEnabled;  //!< Scheduler is enabled
+      private: /* PRIVATE METHODS */
+        //! \brief SchedulerConf default constructor (private)
+        SchedulerConf() : _numSpins(1), _numChecks(1), _numYields(1), _useYield(false), _useBlock(false), _schedulerEnabled(true) {}
+        //! \brief SchedulerConf copy constructor (private)
+        SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(), _numYields(), _useYield(), _useBlock(), _schedulerEnabled()
+        {
+           fatal("SchedulerConf: Illegal use of class");
+        }
+        //! \brief SchedulerConf copy assignment operator (private)
         SchedulerConf & operator= ( SchedulerConf &sc );
-
-      public:
-         /*! \brief SchedulerConf destructor 
-          */
+      public: /* PUBLIC METHODS */
+         //! \brief SchedulerConf destructor 
          ~SchedulerConf() {}
 
-         unsigned int getNumSpins () const;
-         void setNumSpins ( const unsigned int num );
-         int getNumSleeps () const;
-         void setNumSleeps ( const unsigned int num );
-         int getTimeSleep () const;
-         void setSchedulerEnabled ( bool value ) ;
+         //! \brief Set if yield is allowed
+         void setUseYield ( const bool value );
+         //! \brief Set if block is allowed
+         void setUseBlock ( const bool value );
+         //! \brief Set if scheduler is enabled
+         void setSchedulerEnabled ( const bool value ) ;
+
+         //! \brief Returns the number of spins before yield
+         unsigned int getNumSpins ( void ) const;
+         //! \brief Returns the number of checks before schedule
+         unsigned int getNumChecks ( void ) const;
+         //! \brief Returns the number of yields before block
+         unsigned int getNumYields ( void ) const;
+         //! \brief Returns if yield is allowed
+         bool getUseYield ( void ) const;
+         //! \brief Returns if block is allowed
+         bool getUseBlock ( void ) const;
+         //! \brief Returns if scheduler is enabled 
          bool getSchedulerEnabled () const;
+
+         //! \brief Configure scheduler runtime options
          void config ( Config &cfg );
    };
    
@@ -266,6 +279,11 @@ namespace nanos
          virtual bool getStealing()
          {
             return false;
+         }
+         //! \brief Partial reorder on WD's priority queue
+         virtual bool reorderWD( BaseThread *t, WD * wd )
+         {
+            return true;
          }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
