@@ -66,12 +66,13 @@ public:
    // responsability.
    cl_int buildProgram( const char *src,
                         const char *compilerOpts,
-                        cl_program &prog );
+                        cl_program &prog,
+                        const std::string& filename );
 
    // As above, but without compiler options.
    cl_int buildProgram( const char *src, cl_program &prog )
    {
-      return buildProgram( src, "", prog );
+      return buildProgram( src, "", prog, "" );
    }
 
    // Low-level program destructor.

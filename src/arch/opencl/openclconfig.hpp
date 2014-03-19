@@ -30,6 +30,8 @@ public:
     
   static System::CachePolicyType getCachePolicy(void) { return _cachePolicy;}
 
+  static bool isSaveKernelEnabled(){ return _saveBinaryKernel; }
+
 private:
   static void prepare( Config &cfg );
   static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
@@ -69,6 +71,9 @@ private:
   static Atomic<unsigned> _freeDevice;
   
   static bool _forceShMem;
+
+  //! If kernels should be saved to a binary file or not
+  static bool _saveBinaryKernel;
 
   friend class OpenCLPlugin;
 };
