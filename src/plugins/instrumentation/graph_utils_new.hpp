@@ -16,7 +16,9 @@ namespace nanos {
         InConcurrent,
         OutConcurrent,
         InCommutative,
-        OutCommutative
+        OutCommutative,
+        InAny,
+        OutAny
     };
     
     enum EdgeKind{
@@ -67,7 +69,7 @@ namespace nanos {
         
         bool is_true_dependency( ) {
             return ( ( _kind == Dependency ) && 
-                     ( ( _dep_type == True ) || ( _dep_type == InConcurrent ) || ( _dep_type == InCommutative ) ) );
+                     ( ( _dep_type == True ) || ( _dep_type == InConcurrent ) || ( _dep_type == InCommutative ) || ( _dep_type == InAny ) ) );
         }
         
         bool is_anti_dependency( ) {
@@ -76,7 +78,7 @@ namespace nanos {
         
         bool is_output_dependency( ) {
             return ( ( _kind == Dependency ) && 
-                     ( ( _dep_type == Output ) || ( _dep_type == OutConcurrent ) || ( _dep_type == OutCommutative ) ) );
+                     ( ( _dep_type == Output ) || ( _dep_type == OutConcurrent ) || ( _dep_type == OutCommutative ) || ( _dep_type == OutAny ) ) );
         }
         
         bool is_concurrent_dep( ) {
@@ -87,6 +89,11 @@ namespace nanos {
         bool is_commutative_dep( ) {
             return ( ( _kind == Dependency ) && 
                      ( ( _dep_type == InCommutative ) || ( _dep_type == OutCommutative ) ) );
+        }
+        
+        bool is_any_dep( ) {
+            return ( ( _kind == Dependency ) && 
+                     ( ( _dep_type == InAny ) || ( _dep_type == OutAny ) ) );
         }
     };
     
