@@ -29,6 +29,11 @@
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 using namespace nanos;
 using namespace ext;
@@ -44,7 +49,7 @@ char* MPIProcessor::_bufferPtr = 0;
 Lock MPIProcessor::_taskLock;
 Lock MPIProcessor::_queueLock;
 std::list<int> MPIProcessor::_pendingTasksQueue;
-std::list<int> MPIProcessor::_pendingTaskparentsQueue;
+std::list<int> MPIProcessor::_pendingTaskParentsQueue;
 std::string MPIProcessor::_mpiExecFile;
 std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/ompss_mpi_launch.sh";
 std::string MPIProcessor::_mpiHosts;
@@ -96,7 +101,7 @@ int MPIProcessor::getQueueCurrTaskIdentifier() {
 }
 
 int MPIProcessor::getQueueCurrentTaskParent() {
-    return _pendingTaskparentsQueue.front();
+    return _pendingTaskParentsQueue.front();
 }
 
 int MPIProcessor::getCurrentTaskParent() {
@@ -107,18 +112,27 @@ void MPIProcessor::setCurrentTaskParent(int parent) {
     _currentTaskParent=parent;
 }
 
+void MPIProcessor::testTaskQueueSizeAndLock() {    
+    _queueLock.acquire();    
+    if (_pendingTasksQueue.size()==0) {
+      _queueLock.release();
+       getTaskLock().acquire();
+    } else {
+      _queueLock.release();
+    }
+}
 
 void MPIProcessor::addTaskToQueue(int task_id, int parentId) {
     _queueLock.acquire();
     _pendingTasksQueue.push_back(task_id);
-    _pendingTaskparentsQueue.push_back(parentId);
+    _pendingTaskParentsQueue.push_back(parentId);
     _queueLock.release();
 }
 
 void MPIProcessor::removeTaskFromQueue() {
     _queueLock.acquire();
     _pendingTasksQueue.pop_front();
-    _pendingTaskparentsQueue.pop_front();
+    _pendingTaskParentsQueue.pop_front();
     _queueLock.release();
 }
 
@@ -186,4 +200,40 @@ void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
 void MPIProcessor::appendToPendingRequests(MPI_Request& req) {
     _pendingReqs.push_back(req);
 }
+
+////////////////////////////////
+//Auxiliar filelock routines////
+////////////////////////////////
+
+/*! Try to get lock. Return its file descriptor or -1 if failed.
+ *
+ *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
+ *  @return File descriptor of lock file, or -1 if failed.
+ */
+static int tryGetLock( char const *lockName )
+{
+    mode_t m = umask( 0 );
+    int fd = open( lockName, O_RDWR|O_CREAT, 0666 );
+    umask( m );
+    if( fd >= 0 && flock( fd, LOCK_EX | LOCK_NB ) < 0 )
+    {
+        close( fd );
+        fd = -1;
+    }
+    return fd;
+}
+
+/*! Release the lock obtained with tryGetLock( lockName ).
+ *
+ *  @param fd File descriptor of lock returned by tryGetLock( lockName ).
+ *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
+ */
+static void releaseLock( int fd, char const *lockName )
+{
+    if( fd < 0 )
+        return;
+    remove( lockName );
+    close( fd );
+}
+
 #endif

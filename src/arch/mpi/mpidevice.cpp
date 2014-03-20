@@ -27,6 +27,7 @@
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
 #include "mpidevice.hpp"
+#include <unistd.h>
 
 
 //TODO: check for errors in communications
@@ -250,7 +251,7 @@ void MPIDevice::taskPostFinish(MPI_Comm& comm){
     _executingTask=0;
 }
 
-static void createWorkerThread(){    
+static void createExtraCacheThread(){    
     //Create extra worker thread
     MPI_Comm mworld= MPI_COMM_WORLD;
     int nextId=nanos::ext::MPIProcessor::getNextPEId();
@@ -258,7 +259,7 @@ static void createWorkerThread(){
         nextId=sys.getBindingId(nextId);
     }
     PE *mpi = NEW nanos::ext::MPIProcessor(nextId, &mworld, CACHETHREADRANK,-1, false, false);
-    nanos::ext::MPIDD * dd = NEW nanos::ext::MPIDD((nanos::ext::MPIDD::work_fct) nanos::ext::MPIProcessor::nanosMPIWorker);
+    nanos::ext::MPIDD * dd = NEW nanos::ext::MPIDD((nanos::ext::MPIDD::work_fct) MPIDevice::mpiCacheWorker);
     WD *wd = NEW WD(dd);
     NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
     mpi->startThread(*wd);
@@ -279,7 +280,17 @@ void MPIDevice::mpiCacheWorker() {
         int parentRank=0;
         int firstParent=-1;
         while(1) {
-                MPI_Probe(MPI_ANY_SOURCE,MPI_ANY_TAG,parentcomm,&status);
+                if (_createdExtraWorkerThread) {
+                    int flag=0;
+                    //When this is not the executer thread, perform async probes
+                    //as performing sync probes will lock MPI implementation (at least @ IMPI)
+                    while (flag==0) {
+                        usleep(50000);
+                        MPI_Iprobe(MPI_ANY_SOURCE,MPI_ANY_TAG,parentcomm,&flag,&status);
+                    }
+                } else {
+                    MPI_Probe(MPI_ANY_SOURCE,MPI_ANY_TAG,parentcomm,&status);
+                }
                 parentRank=status.MPI_SOURCE;
                 if (status.MPI_TAG==TAG_INI_TASK) {
                     //If our node is used by more than one parent
@@ -289,8 +300,10 @@ void MPIDevice::mpiCacheWorker() {
                         if (firstParent==-1) {
                             firstParent=parentRank;
                         } else {
-                            createWorkerThread();
-                            _createdExtraWorkerThread=true;                            
+                            _createdExtraWorkerThread=true;  
+                            createExtraCacheThread();
+                            nanos::ext::MPIProcessor::nanosMPIWorker();
+                            return;
                         }
                     }
                     nanos::ext::MPIProcessor::nanosMPIRecvTaskinit(&task_id, 1, MPI_INT, parentRank, parentcomm, MPI_STATUS_IGNORE);
@@ -312,8 +325,10 @@ void MPIDevice::mpiCacheWorker() {
                             //since different parents do not query the status of the thread)
                             //ignore extra ones
                             if (!_createdExtraWorkerThread) {
-                                createWorkerThread();
-                                _createdExtraWorkerThread=true;
+                                _createdExtraWorkerThread=true;  
+                                createExtraCacheThread();
+                                nanos::ext::MPIProcessor::nanosMPIWorker();
+                                return;
                             }
                             break;
                         }

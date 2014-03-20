@@ -61,7 +61,7 @@ namespace nanos {
             static Lock _taskLock;
             static Lock _queueLock;
             static std::list<int> _pendingTasksQueue;
-            static std::list<int> _pendingTaskparentsQueue;   
+            static std::list<int> _pendingTaskParentsQueue;   
             static int _currentTaskParent;
             
             
@@ -112,6 +112,8 @@ namespace nanos {
             static int getQueueCurrentTaskParent();
             
             static void setCurrentTaskParent(int parent);
+            
+            static void testTaskQueueSizeAndLock();
             
             static Lock& getTaskLock();
             
@@ -224,10 +226,13 @@ namespace nanos {
                     MPI_Comm comm);
             
             static int nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-             MPI_Comm comm,MPI_Request *req);
+                    MPI_Comm comm,MPI_Request *req);
 
             static int nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
                     MPI_Comm comm, MPI_Status *status);
+            
+            static int nanosMPIIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+                     MPI_Comm comm, MPI_Request *req);
             
             static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
                     MPI_Datatype array_of_types[], MPI_Datatype *newtype);
@@ -278,6 +283,8 @@ namespace nanos {
            NANOS_MPI_RNODE_REALLOC_EVENT,                     /* 21 */
            NANOS_MPI_RNODE_FREE_EVENT,                     /* 22 */
            NANOS_MPI_RNODE_COPYLOCAL_EVENT,                     /* 23 */
+           NANOS_MPI_IRECV_EVENT,                     /* 11 */
+           NANOS_MPI_ISEND_EVENT,                     /* 11 */
            NANOS_MPI_GENERIC_EVENT                         /* 24 */
         } in_mpi_runtime_event_value;
 

@@ -583,7 +583,9 @@ namespace nanos {
             registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_REALLOC_EVENT", "MPI remote node cache doing reallocation" );  /* 21 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_FREE_EVENT", "MPI remote node cache doing free of previous allocated chunk" ); /* 22 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_COPYLOCAL_EVENT", "MPI remote node cache doing copy local" );  /* 23 */
-            registerEventValue("in-mpi-runtime", "NANOS_MPI_GENERIC_EVENT", "MPI generic event" );                /* 24 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_IRECV_EVENT", "Async recv" ); /* 24 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_ISEND_EVENT", "Async send" );  /* 25 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_GENERIC_EVENT", "MPI generic event" );                /* 26 */
 
             /* 44 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
             /* 45 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);

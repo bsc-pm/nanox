@@ -73,7 +73,9 @@ namespace ext
          //MPIThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
-         virtual ~MPIThread() { }
+         virtual ~MPIThread() { 
+             finish();
+         }
 
          //void setUseUserThreads( bool value=true ) { _useUserThreads = value; }         
          

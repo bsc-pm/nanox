@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -171,16 +173,16 @@ int MPIProcessor::getNextPEId() {
 int MPIProcessor::nanosMPIWorker(){
 	bool finalize=false;
 	//Acquire once
-	nanos::ext::MPIProcessor::getTaskLock().acquire();
+   getTaskLock().acquire();
 	while(!finalize){
 		//Acquire twice and block until cache thread unlocks
-		nanos::ext::MPIProcessor::getTaskLock().acquire();
-      nanos::ext::MPIProcessor::setCurrentTaskParent(getQueueCurrentTaskParent());
-		finalize=executeTask(nanos::ext::MPIProcessor::getQueueCurrTaskIdentifier());
-      nanos::ext::MPIProcessor::removeTaskFromQueue();
+      testTaskQueueSizeAndLock();
+      setCurrentTaskParent(getQueueCurrentTaskParent());
+		finalize=executeTask(getQueueCurrTaskIdentifier());
+      removeTaskFromQueue();
 	}     
    //Release the lock so cache thread can finish
-	nanos::ext::MPIProcessor::getTaskLock().release();
+	getTaskLock().release();
    return 0;
 }
 
@@ -486,20 +488,9 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         i+=n_process[spawn_arrays_length]; 
         spawn_arrays_length++;
     }   
-    MPI_Comm_spawn_multiple(spawn_arrays_length,array_of_commands, array_of_argv, n_process,
-            array_of_info, 0, comm, intercomm,
-            MPI_ERRCODES_IGNORE); 
-    //Free all args sent
-    for (i=0;i<spawn_arrays_length;i++){  
-        //Free all args which were dynamically copied before
-        for (int e=2;array_of_argv[i][e]!=NULL;e++){
-            delete[] array_of_argv[i][e];
-        }
-        delete[] array_of_argv[i];
-    }
-    //Register spawned processes so nanox can use them
     int res=MPI_UNEQUAL;
-    MPI_Comm_compare(comm,MPI_COMM_WORLD,&res);
+    MPI_Comm_compare(comm,MPI_COMM_WORLD,&res);    
+    //Register spawned processes so nanox can use them
     int number_of_spawns_this_process=number_of_spawns;
     int spawn_start=0;
     bool shared=false;
@@ -516,6 +507,23 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
             number_of_spawns_this_process+=number_of_spawns%mpi_size;
     } else {
         mpi_size=1; //Using MPI_COMM_SELF
+    }
+    int fd=-1;
+    while (!shared && fd==-1) {
+       fd=tryGetLock("./lockSpawn");
+    }
+    MPI_Comm_spawn_multiple(spawn_arrays_length,array_of_commands, array_of_argv, n_process,
+            array_of_info, 0, comm, intercomm, MPI_ERRCODES_IGNORE); 
+    if (!shared) {
+      releaseLock(fd,"./lockSpawn"); 
+    }
+    //Free all args sent
+    for (i=0;i<spawn_arrays_length;i++){  
+        //Free all args which were dynamically copied before
+        for (int e=2;array_of_argv[i][e]!=NULL;e++){
+            delete[] array_of_argv[i][e];
+        }
+        delete[] array_of_argv[i];
     }
     PE* pes[number_of_spawns];
     int uid=sys.getNumCreatedPEs();
@@ -639,7 +647,7 @@ int MPIProcessor::nanosMPISend(void *buf, int count, MPI_Datatype datatype, int 
 
 int MPIProcessor::nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm,MPI_Request *req) {
-    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ISEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
         nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
         dest=myPE->_rank;
@@ -677,6 +685,21 @@ int MPIProcessor::nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int 
     }
     //printf("recv con tag %d, desde %d\n",tag,source);
     int err = MPI_Recv(buf, count, datatype, source, tag, comm, status );
+    //printf("Fin recv con tag %d, desde %d\n",tag,source);
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+    return err;
+}
+
+int MPIProcessor::nanosMPIIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+        MPI_Comm comm, MPI_Request *req) {
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_IRECV_EVENT);
+    if (source==UNKOWN_RANKSRCDST){
+        nanos::ext::MPIProcessor * myPE = ( nanos::ext::MPIProcessor * ) myThread->runningOn();
+        source=myPE->_rank;
+        comm=myPE->_communicator;
+    }
+    //printf("recv con tag %d, desde %d\n",tag,source);
+    int err = MPI_Irecv(buf, count, datatype, source, tag, comm, req );
     //printf("Fin recv con tag %d, desde %d\n",tag,source);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     return err;

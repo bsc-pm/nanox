@@ -60,6 +60,7 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     
     (*_groupTotRunningWds)++;
     _runningPEs.at(_currPe)->setCurrExecutingWd(&wd);
+    
     (dd.getWorkFct())(wd.getData());
     //Check if any task finished
     checkTaskEnd();
@@ -193,10 +194,10 @@ void MPIThread::checkTaskEnd() {
     int flag=1;
     MPI_Status status;
     //Receive every task end message and release dependencies for those tasks (only if there are tasks being executed)
-    if (*_groupTotRunningWds!=0 && (_groupLock==NULL || _groupLock->tryAcquire())){
+    if (*_groupTotRunningWds!=0 && (_groupLock==NULL || _groupLock->tryAcquire())){    
         MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
                    &status);
-        if (flag!=0) {
+        if (flag!=0) {            
             MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
             //If received something and not mine, stop until whoever is the owner gets it
             freeCurrExecutingWD(finishedPE);
@@ -244,6 +245,4 @@ void MPIThread::finish() {
             }
        }
     }
-    SMPThread::finish();
-    BaseThread::finish();
 }

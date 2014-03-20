@@ -63,7 +63,6 @@ extern "C" {
     NANOS_API_DECL(int, nanos_mpi_send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
     NANOS_API_DECL(int, nanos_mpi_recv_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
     NANOS_API_DECL(int, nanos_mpi_send_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_mpi_recv_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
     NANOS_API_DECL(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
     NANOS_API_DECL(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));   
     NANOS_API_DECL(int, nanos_mpi_type_create_struct, ( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[],  
