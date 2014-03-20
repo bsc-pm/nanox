@@ -97,7 +97,7 @@ void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
 
 void OpenCLCache::free(void * addr) {
     //User must free shared memory buffers manually
-    //if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
     _devAllocator.free(addr);
     //cl_mem buf = _bufAddrMappings[addr];    
     //cl_int errCode;

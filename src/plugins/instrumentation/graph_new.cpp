@@ -321,10 +321,15 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             for(std::vector<Edge*>::iterator e = actual_exits.begin(); e != actual_exits.end(); ++e) {
                 std::stringstream sss; sss << current_wd;
                 std::stringstream sst; sst << (*e)->get_target()->get_wd_id();
-                std::stringstream ssct; ssct << get_cluster_id(node_to_cluster, (*e)->get_target()->get_wd_id(), 
-                                                               actual_exits, /*cluster_is_source*/false);
+                std::string arrow_head = "";
+                if((*e)->get_target()->is_commutative() || (*e)->get_target()->is_concurrent())
+                {
+                    std::stringstream ssct; ssct << get_cluster_id(node_to_cluster, (*e)->get_target()->get_wd_id(), 
+                                                                   actual_exits, /*cluster_is_source*/false);
+                    arrow_head = ", lhead=\"cluster_" + ssct.str() + "\"";
+                }
                 result += "  " + sss.str() + " -> " + sst.str() 
-                        + "[ltail=\"cluster_" + ss.str() + "\", lhead=\"" + ssct.str() + "\", style=\"solid\", color=\"black\"];\n";
+                        + "[ltail=\"cluster_" + ss.str() + "\"" + arrow_head + ", style=\"solid\", color=\"black\"];\n";
             }
         }
         
@@ -712,11 +717,10 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     case 7:     dep_type = InCommutative;
                                 sender_wd_id += concurrent_min_id;      // commutative -> wd
                                 break;
-                    // FIXME Case 8 and 9 must have a different behavior
-                    case 8:     dep_type = OutConcurrent;
-                                sender_wd_id += concurrent_min_id;      // wd -> common
+                    case 8:     dep_type = OutAny;
+                                receiver_wd_id += concurrent_min_id;    // wd -> common
                                 break;
-                    case 9:     dep_type = InConcurrent;
+                    case 9:     dep_type = InAny;
                                 sender_wd_id += concurrent_min_id;      // common -> wd
                                 break;
                     default:    { std::cerr << "Unexpected type dependency " << dep_value << "."
