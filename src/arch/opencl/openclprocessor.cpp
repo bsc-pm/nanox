@@ -535,13 +535,13 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
 static void processOpenCLError(cl_int errCode){    
       std::cerr << "Error code when executing kernel " << errCode << "\n"; 
       if (errCode==-52){
-          std::cerr << "Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
+          std::cerr << "HINT: Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
       }
       if (errCode==-5){
-          std::cerr << "Out of resources, make sure that ndrange local size fits in your device\n";
+          std::cerr << "HINT: Out of resources, make sure that ndrange local size fits in your device or that your kernel is not reading/writing outside of the buffer\n";
       }
       if (errCode==-14){
-          std::cerr << "Check if your input or output data sizes are correctly specified/accessed\n";
+          std::cerr << "HINT: Check if your input or output data sizes are correctly specified/accessed\n";
       }
 }
 
