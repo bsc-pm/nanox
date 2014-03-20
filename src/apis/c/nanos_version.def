@@ -2,4 +2,5 @@ master=5026
 worksharing=1000
 deps_api=1001
 copies_api=1002
+task_reduction=1000
 openmp=8

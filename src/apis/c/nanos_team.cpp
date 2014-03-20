@@ -244,6 +244,23 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 
    return NANOS_OK;
 }
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size, size_t align, void (*init)( void *), void (*reducer)( void *, void * ) ) )
+{
+   try {
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_get_thread_storage, ( void *orig, void **tpd ) )
+{
+   try {
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
 /*!
  * \}
  */ 
