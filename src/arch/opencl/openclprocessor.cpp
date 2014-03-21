@@ -373,7 +373,8 @@ cl_int OpenCLAdapter::copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offs
 
 cl_int OpenCLAdapter::buildProgram( const char *src,
                                  const char *compilerOpts,
-                                 cl_program &prog )
+                                 cl_program &prog,
+	                         const std::string& filename )
 {
    cl_int errCode;
 
@@ -400,6 +401,30 @@ cl_int OpenCLAdapter::buildProgram( const char *src,
      fatal(sstm.str());
       // No matter if this call fails, the relevant error code is the first.
       clReleaseProgram( prog );
+   }
+   else if( OpenCLConfig::isSaveKernelEnabled() )
+   {
+      std::string binaryFilename = filename.substr( 0, filename.find(".cl") ) + ".bin";
+      
+      size_t sizeRet;
+      errCode = clGetProgramInfo( prog, CL_PROGRAM_BINARY_SIZES, 0, NULL, &sizeRet );
+      if ( errCode != CL_SUCCESS ) return errCode;
+
+      size_t binarySize;
+      errCode = clGetProgramInfo( prog, CL_PROGRAM_BINARY_SIZES, sizeRet, &binarySize, NULL );
+      if ( errCode != CL_SUCCESS ) return errCode;
+
+      unsigned char* binary = (unsigned char *) alloca (sizeof (unsigned char) * binarySize);
+      fatal_cond( binary == NULL, "Call to alloca failed" );
+      errCode = clGetProgramInfo( prog, CL_PROGRAM_BINARIES, sizeof (unsigned char *), &binary, NULL );
+      if ( errCode != CL_SUCCESS ) return errCode;
+
+       FILE *fp = fopen (binaryFilename.c_str(), "w");
+       if ( fp == NULL ) fatal( "Error opening OpenCL kernel binary file for writing" );
+
+       fatal_cond( fwrite( binary, 1, binarySize, fp ) != binarySize, "Error writing OpenCL kernel binary file" );
+
+       fclose( fp );
    }
    return errCode;
 }
@@ -478,7 +503,7 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
             ompss_code[size]=0;
 
             if (code_file.find(".cl")!=code_file.npos){
-               buildProgram( ompss_code, compilerOpts, prog );
+               buildProgram( ompss_code, compilerOpts, prog, code_file );
             } else {
                cl_int errCode;
                const unsigned char* tmp_code=reinterpret_cast<const unsigned char*>(ompss_code);
@@ -535,13 +560,13 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
 static void processOpenCLError(cl_int errCode){    
       std::cerr << "Error code when executing kernel " << errCode << "\n"; 
       if (errCode==-52){
-          std::cerr << "Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
+          std::cerr << "HINT: Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
       }
       if (errCode==-5){
-          std::cerr << "Out of resources, make sure that ndrange local size fits in your device\n";
+          std::cerr << "HINT: Out of resources, make sure that ndrange local size fits in your device or that your kernel is not reading/writing outside of the buffer\n";
       }
       if (errCode==-14){
-          std::cerr << "Check if your input or output data sizes are correctly specified/accessed\n";
+          std::cerr << "HINT: Check if your input or output data sizes are correctly specified/accessed\n";
       }
 }
 

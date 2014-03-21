@@ -178,7 +178,10 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
+
 NANOS_API_DECL(int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(void, nanos_set_wd_priority, (nanos_wd_t wd, int p));
+
 NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions

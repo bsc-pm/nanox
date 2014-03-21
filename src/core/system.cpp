@@ -58,7 +58,7 @@ System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ),
       _numPEs( INT_MAX ), _numThreads( 0 ), _maxCpus(0), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
-      _untieMaster( true ), _delayedStart( false ), _useYield( false ), _synchronizedStart( true ),
+      _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
       _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
@@ -322,10 +322,6 @@ void System::config ()
    cfg.registerConfigOption( "no-binding", NEW Config::FlagOption( _bindThreads, false ),
                              "Disables thread binding" );
    cfg.registerArgOption( "no-binding", "disable-binding" );
-
-   cfg.registerConfigOption( "no-yield", NEW Config::FlagOption( _useYield, false ),
-                             "Do not yield on idle and condition waits" );
-   cfg.registerArgOption( "no-yield", "disable-yield" );
 
    cfg.registerConfigOption( "verbose", NEW Config::FlagOption( _verboseMode ),
                              "Activates verbose mode" );
