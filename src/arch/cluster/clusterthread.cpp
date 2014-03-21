@@ -253,7 +253,7 @@ void ClusterThread::idle( bool debug )
 }
 
 bool ClusterThread::acceptsWDsGPU() const {
-   return ( ( (int) numRunningWDsGPU() ) < ext::ClusterInfo::getGpuPresend() );
+   return ( ( (int) numRunningWDsGPU() ) < sys.getNetwork()->getGpuPresend() );
 }
 
 
@@ -277,7 +277,7 @@ bool ClusterThread::tryLock() {
 }
 
 bool ClusterThread::acceptsWDsSMP() const {
-   return ( ( (int) numRunningWDsSMP() ) < ext::ClusterInfo::getSmpPresend() );
+   return ( ( (int) numRunningWDsSMP() ) < sys.getNetwork()->getSmpPresend() );
 }
 
 bool ClusterThread::hasAPendingWDToInit() const {

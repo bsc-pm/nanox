@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "gasnetapi_decl.hpp"
+#include "clusterplugin_decl.hpp"
 #include "smpdd.hpp"
 
 #ifdef GPU_DEV
@@ -94,12 +95,14 @@ GASNetAPI *GASNetAPI::getInstance() {
    return _instance;
 }
 
-GASNetAPI::GASNetAPI() : _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _packSegment( 0 ), _pinnedAllocators(), _pinnedAllocatorsLocks(),
-   _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ) {
+GASNetAPI::GASNetAPI( ClusterPlugin &p ) : _plugin( p ), _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _packSegment( 0 ),
+   _pinnedAllocators(), _pinnedAllocatorsLocks(),
+   _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ),
+   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ) {
    _instance = this;
 }
 
-GASNetAPI::~GASNetAPI() {
+GASNetAPI::~GASNetAPI(){
 }
 
 #if 0
@@ -344,7 +347,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       devPtr = &newDeviceSMP;
 
       if (getInstance()->_rwgSMP == NULL) 
-         getInstance()->_rwgSMP = ClusterInfo::getRemoteWorkGroup( 0 );
+         getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkGroup( 0 );
 
       rwg = (WorkGroup *) getInstance()->_rwgSMP;
    }
@@ -355,7 +358,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       devPtr = &newDeviceGPU;
 
       if (getInstance()->_rwgGPU == NULL)
-         getInstance()->_rwgGPU = ClusterInfo::getRemoteWorkGroup( 1 );
+         getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkGroup( 1 );
 
       rwg = (WorkGroup *) getInstance()->_rwgGPU;
    }
@@ -1106,7 +1109,7 @@ void GASNetAPI::initialize ( Network *net )
        pinnedSegmentAddr[ idx ] = seginfoTable[ idx ].addr;
        pinnedSegmentLen[ idx ] = seginfoTable[ idx ].size;
     }
-    ClusterInfo::addPinnedSegments( nodes, pinnedSegmentAddr, pinnedSegmentLen );
+    _plugin.addPinnedSegments( nodes, pinnedSegmentAddr, pinnedSegmentLen );
 
     uintptr_t offset = pinnedSegmentLen[ gasnet_mynode() ] / 2;
     _packSegment = NEW SimpleAllocator( ( ( uintptr_t ) pinnedSegmentAddr[ gasnet_mynode() ] ) + offset , pinnedSegmentLen[ gasnet_mynode() ] / 2 );
@@ -1122,18 +1125,18 @@ void GASNetAPI::initialize ( Network *net )
       _pinnedAllocatorsLocks.reserve( nodes );
       _seqN = NEW Atomic<unsigned int>[nodes];
       
-      _net->mallocSlaves( &segmentAddr[ 1 ], ClusterInfo::getNodeMem() );
+      _net->mallocSlaves( &segmentAddr[ 1 ], _plugin.getNodeMem() );
       segmentAddr[ 0 ] = NULL;
 
       for ( idx = 0; idx < nodes; idx += 1)
       {
-         segmentLen[ idx ] = ( idx == 0 ) ? 0 : ClusterInfo::getNodeMem(); 
+         segmentLen[ idx ] = ( idx == 0 ) ? 0 : _plugin.getNodeMem(); 
          _pinnedAllocators[idx] = NEW SimpleAllocator( ( uintptr_t ) pinnedSegmentAddr[ idx ], pinnedSegmentLen[ idx ] / 2 );
          _pinnedAllocatorsLocks[idx] =  NEW Lock( );
          new (&_seqN[idx]) Atomic<unsigned int >( 0 );
       }
       _thisNodeSegment = _pinnedAllocators[0];
-      ClusterInfo::addSegments( nodes, segmentAddr, segmentLen );
+      this->addSegments( nodes, segmentAddr, segmentLen );
    }
 #else
    if ( _net->getNodeNum() == 0)
@@ -1807,3 +1810,25 @@ void GASNetAPI::freeReceiveMemory( void * addr ) {
 
 GASNetAPI::FreeBufferRequest::FreeBufferRequest(void *addr, WD const *w, Functor *f ) : address( addr ), wd ( w ), functor( f ) {
 }
+
+void GASNetAPI::addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
+   unsigned int idx;
+   _numSegments = numSegments;
+   _segmentAddrList = NEW void *[ numSegments ];
+   _segmentLenList = NEW std::size_t[ numSegments ];
+
+   for ( idx = 0; idx < numSegments; idx += 1)
+   {
+      _segmentAddrList[ idx ] = segmentAddr[ idx ];
+      _segmentLenList[ idx ] = segmentSize[ idx ];
+   }
+}
+
+void * GASNetAPI::getSegmentAddr( unsigned int idx ) {
+   return _segmentAddrList[ idx ];
+}
+
+std::size_t GASNetAPI::getSegmentLen( unsigned int idx ) {
+   return _segmentLenList[ idx ];
+}
+

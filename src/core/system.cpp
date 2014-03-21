@@ -486,7 +486,6 @@ void System::start ()
 #ifdef CLUSTER_DEV
    if ( usingCluster() )
    {
-      nanos::ext::ClusterInfo::setUpCache();
       if ( _net.getNodeNum() == nanos::Network::MASTER_NODE_NUM )
       {
          _pes.reserve ( numPes + ( _net.getNumNodes() - 1 ) );
@@ -656,9 +655,10 @@ void System::start ()
          PE *_peArray[ _net.getNumNodes() - 1];
          for ( nodeC = 1; nodeC < _net.getNumNodes(); nodeC++ ) {
             memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-            std::cerr << "Memory space " << id << " is a cluster" << std::endl;
-            SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster, nanos::ext::ClusterInfo::getAllocWide() );
-            nodeMemory->setSpecificData( NEW SimpleAllocator( ( uintptr_t ) nanos::ext::ClusterInfo::getSegmentAddr( nodeC ), nanos::ext::ClusterInfo::getSegmentLen( nodeC ) ) );
+            std::cerr << "Memory space " << id << " is a cluster, nodeC = " << nodeC << " ( "<< ( uintptr_t ) _net.getSegmentAddr( nodeC ) << ", " << _net.getSegmentLen( nodeC ) <<" )" <<std::endl;
+            //SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster, nanos::ext::ClusterInfo::getAllocWide() );
+            SeparateMemoryAddressSpace *nodeMemory = NEW SeparateMemoryAddressSpace( id, ext::Cluster, true );
+            nodeMemory->setSpecificData( NEW SimpleAllocator( ( uintptr_t ) _net.getSegmentAddr( nodeC ), _net.getSegmentLen( nodeC ) ) );
             nodeMemory->setNodeNumber( nodeC );
             _separateAddressSpaces[ id ] = nodeMemory;
             nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( p, nodeC, id );

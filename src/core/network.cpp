@@ -36,7 +36,12 @@ Lock Network::_nodeLock;
 Atomic<uint64_t> Network::_nodeRCAaddr;
 Atomic<uint64_t> Network::_nodeRCAaddrOther;
 
-Network::Network () : _numNodes( 1 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _masterHostname ( NULL ) {}
+Network::Network () : _numNodes( 1 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _masterHostname ( NULL ),
+_checkForDataInOtherAddressSpaces( false ), _putRequestSequence( NULL ), _recvWdData(), _sentWdData(),
+_deferredWorkReqs(), _deferredWorkReqsLock(), _recvSeqN(0), _waitingPutRequestsLock(), _waitingPutRequests(),
+_receivedUnmatchedPutRequests(), _delayedBySeqNumberPutReqs(), _delayedBySeqNumberPutReqsLock(),
+_forwardedRegions(NULL),_gpuPresend(1), _smpPresend(1) {}
+
 Network::~Network () {}
 
 void Network::setAPI ( NetworkAPI *api )
@@ -791,4 +796,50 @@ void GetRequestStrided::clear() {
 void Network::notifyRegionMetaData( CopyData *cd ) {
    global_reg_t reg;
    sys.getHostMemory().getRegionId( *cd, reg );
+}
+
+void Network::addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize ) {
+   if ( _api != NULL )
+   {
+      _api->addSegments( numSegments, segmentAddr, segmentSize );
+   }
+}
+
+void *Network::getSegmentAddr( unsigned int idx ) {
+   void *addr = NULL;
+   if ( _api != NULL )
+   {
+      addr = _api->getSegmentAddr( idx );
+   }
+   return addr;
+}
+
+std::size_t Network::getSegmentLen( unsigned int idx ) {
+   std::size_t size = 0;
+   if ( _api != NULL )
+   {
+      size = _api->getSegmentLen( idx );
+   }
+   return size;
+}
+
+void Network::setGpuPresend(int p) {
+   _gpuPresend = p;
+}
+void Network::setSmpPresend(int p) {
+   _smpPresend = p;
+}
+
+int Network::getGpuPresend() const {
+   return _gpuPresend;
+}
+
+int Network::getSmpPresend() const {
+   return _smpPresend;
+}
+void Network::setExtraPEsCount(int e) {
+   _extraPEs = e;
+}
+int Network::getExtraPEsCount() const {
+   return _extraPEs;
 }

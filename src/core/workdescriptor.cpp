@@ -260,7 +260,9 @@ void WorkDescriptor::submit( bool force_queue )
 {
    _mcontrol.preInit();
    memory_space_id_t loc = 0;
+   //std::cout << "Submitting wd " << getId() << std::endl;
    if ( _mcontrol.isRooted( loc ) ) {
+      //std::cout << "Im rooted to " << loc << std::endl;
       if ( loc != 0 ) {
          SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( loc );
          this->tieTo( *(mem.getPE().getFirstThread()) );
@@ -353,15 +355,13 @@ void WorkDescriptor::listed()
 void WorkDescriptor::printCopies()
 {
       CopyData *copies = getCopies();
+      std::cerr << "############################################"<< std::endl;
       for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
-         if ( !cd.isPrivate() ) {
-            //message("WD: " << getId() << " DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
-            //DataAccess d( cd.getDataAccess().address, cd.getDataAccess().flags.input ,cd.getDataAccess().flags.output, cd.getDataAccess().flags.can_rename,
-            //   cd.getDataAccess().flags.commutative, cd.getDataAccess().dimension_count, cd.getDataAccess().dimensions);
-            //  Region reg = NewRegionDirectory::build_region( d );
-         }
+         std::cerr << "# Copy "<< i << std::endl << cd << std::endl;
+         if ( i+1 < getNumCopies() ) std::cerr << " --------------- "<< std::endl;
       }
+      std::cerr << "############################################"<< std::endl;
 
 }
 void WorkDescriptor::setNotifyCopyFunc( void (*func)(WD &, BaseThread const&) ) {

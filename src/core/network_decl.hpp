@@ -180,6 +180,9 @@ namespace nanos {
 
 
          RegionsForwarded *_forwardedRegions;
+         int _gpuPresend;
+         int _smpPresend;
+         int _extraPEs;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -261,6 +264,15 @@ namespace nanos {
          void processWaitRequestPut( void *addr, unsigned int seqNumber );
          void processRequestsDelayedBySeqNumber();
          void processSendDataRequest( SendDataRequest *req ) ;
+         void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
+         void * getSegmentAddr( unsigned int idx );
+         std::size_t getSegmentLen( unsigned int idx );
+         void setGpuPresend(int p);
+         void setSmpPresend(int p);
+         int getGpuPresend() const;
+         int getSmpPresend() const;
+         int getExtraPEsCount() const;
+         void setExtraPEsCount( int e) ;
    };
 }
 

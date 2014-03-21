@@ -21,6 +21,7 @@
 #ifndef _GASNETAPI_DECL
 #define _GASNETAPI_DECL
 
+#include "clusterplugin_fwd.hpp"
 #include "networkapi.hpp"
 #include "network_decl.hpp"
 #include "simpleallocator_decl.hpp"
@@ -42,6 +43,7 @@ namespace ext {
          static GASNetAPI *_instance;
          static GASNetAPI *getInstance();
 
+         ClusterPlugin &_plugin;
          Network *_net;
          RemoteWorkGroup *_rwgGPU;
          RemoteWorkGroup *_rwgSMP;
@@ -137,8 +139,12 @@ namespace ext {
          std::size_t _txBytes;
          std::size_t _totalBytes;
 
+         unsigned int _numSegments;
+         void ** _segmentAddrList;
+         std::size_t * _segmentLenList;
+
       public:
-         GASNetAPI();
+         GASNetAPI( ClusterPlugin &p );
          ~GASNetAPI();
          void initialize ( Network *net );
          void finalize ();
@@ -169,6 +175,9 @@ namespace ext {
          void *allocateReceiveMemory( std::size_t len );
          void freeReceiveMemory( void * addr );
          void processSendDataRequest( SendDataRequest *req );
+         void addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize );
+         void * getSegmentAddr( unsigned int idx );
+         std::size_t getSegmentLen( unsigned int idx );
 
       private:
          void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );

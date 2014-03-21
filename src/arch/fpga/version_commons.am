@@ -1,9 +1,0 @@
-devinclude_HEADERS = \
-	$(END) 
-
-fpga_sources = \
-	$(END)
-
-pe_fpga_sources = \
-	$(END)
-

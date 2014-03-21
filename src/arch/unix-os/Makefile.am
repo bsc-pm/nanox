@@ -17,7 +17,76 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
+include ../../common.am
 
-include $(top_srcdir)/src/common.am
+devinclude_HEADERS = \
+	os.hpp \
+	$(END) 
 
+os_sources = \
+	os.hpp \
+	os.cpp \
+	osallocator_decl.hpp \
+	osallocator.cpp \
+	$(END) 
+
+common_libadd = \
+	-lrt \
+	-ldl \
+	$(END)
+
+noinst_LTLIBRARIES =
+
+
+if DEBUG_VERSION
+noinst_LTLIBRARIES += debug/libos.la
+
+nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) 
+
+if BGQ
+debug_libos_la_CPPFLAGS=-DBGQ
+endif
+debug_libos_la_CXXFLAGS=$(nanos_debug_cxxflags)
+debug_libos_la_SOURCES=$(os_sources)
+debug_libos_la_LIBADD=$(common_libadd)
+endif
+
+if INSTRUMENTATION_VERSION
+noinst_LTLIBRARIES += instrumentation/libos.la
+
+nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) 
+
+if BGQ
+instrumentation_libos_la_CPPFLAGS=-DBGQ
+endif
+instrumentation_libos_la_CXXFLAGS=$(nanos_instr_cxxflags)
+instrumentation_libos_la_SOURCES=$(os_sources)
+instrumentation_libos_la_LIBADD=$(common_libadd)
+endif
+
+if INSTRUMENTATION_DEBUG_VERSION
+noinst_LTLIBRARIES += instrumentation-debug/libos.la
+
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
+
+instrumentation_debugdir = $(libdir)
+if BGQ
+instrumentation_debug_libos_la_CPPFLAGS=-DBGQ
+endif
+instrumentation_debug_libos_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+instrumentation_debug_libos_la_SOURCES=$(os_sources)
+instrumentation_debug_libos_la_LIBADD=$(common_libadd)
+endif
+
+if PERFORMANCE_VERSION
+noinst_LTLIBRARIES += performance/libos.la
+
+nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) 
+
+if BGQ
+performance_libos_la_CPPFLAGS=-DBGQ
+endif
+performance_libos_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+performance_libos_la_SOURCES=$(os_sources)
+performance_libos_la_LIBADD=$(common_libadd)
+endif

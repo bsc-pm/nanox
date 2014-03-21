@@ -264,10 +264,12 @@ bool MemController::isRooted( memory_space_id_t &loc ) const {
    bool result = false;
    unsigned int count = 0;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+      //std::cout << "Copy " << index << " addr " << (void *) _wd.getCopies()[index].getBaseAddress() << std::endl;
       if ( _memCacheCopies[ index ].isRooted( loc ) ) {
          count += 1;
          result = true; 
       }
+      //std::cout << "Copy " << index << " addr " << (void *) _wd.getCopies()[index].getBaseAddress() << " count " << count << std::endl;
    }
    ensure(count <= 1, "Invalid count of rooted copies! (> 1).");
    return result;

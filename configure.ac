@@ -12,7 +12,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Enable silent rules if available
@@ -1025,120 +1025,25 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/core/Makefile
-                 src/core/performance/Makefile
-                 src/core/debug/Makefile
-                 src/core/instrumentation/Makefile
-                 src/core/instrumentation-debug/Makefile
 		 src/support/Makefile
-		 src/support/performance/Makefile
-		 src/support/debug/Makefile
-		 src/support/instrumentation/Makefile
-		 src/support/instrumentation-debug/Makefile
 		 src/plugins/Makefile
-		 src/plugins/sched/Makefile
-		 src/plugins/sched/performance/Makefile
-		 src/plugins/sched/debug/Makefile
-		 src/plugins/sched/instrumentation/Makefile
-		 src/plugins/sched/instrumentation-debug/Makefile
-		 src/plugins/throttle/Makefile
-		 src/plugins/throttle/performance/Makefile
-		 src/plugins/throttle/debug/Makefile
-		 src/plugins/throttle/instrumentation/Makefile
-		 src/plugins/throttle/instrumentation-debug/Makefile
-		 src/plugins/barr/Makefile
-		 src/plugins/barr/performance/Makefile
-		 src/plugins/barr/debug/Makefile
-		 src/plugins/barr/instrumentation/Makefile
-		 src/plugins/barr/instrumentation-debug/Makefile
-		 src/plugins/slicers/Makefile
-		 src/plugins/slicers/performance/Makefile
-		 src/plugins/slicers/debug/Makefile
-		 src/plugins/slicers/instrumentation/Makefile
-		 src/plugins/slicers/instrumentation-debug/Makefile
-		 src/plugins/instrumentation/Makefile
-		 src/plugins/instrumentation/performance/Makefile
-		 src/plugins/instrumentation/debug/Makefile
-		 src/plugins/instrumentation/instrumentation/Makefile
-		 src/plugins/instrumentation/instrumentation-debug/Makefile
-		 src/plugins/worksharing/Makefile
-		 src/plugins/worksharing/performance/Makefile
-		 src/plugins/worksharing/debug/Makefile
-		 src/plugins/worksharing/instrumentation/Makefile
-		 src/plugins/worksharing/instrumentation-debug/Makefile
-		 src/plugins/deps/Makefile
-		 src/plugins/deps/performance/Makefile
-		 src/plugins/deps/debug/Makefile
-		 src/plugins/deps/instrumentation/Makefile
-		 src/plugins/deps/instrumentation-debug/Makefile
 		 src/apis/Makefile
-		 src/apis/c/Makefile
-		 src/apis/c/performance/Makefile
-		 src/apis/c/debug/Makefile
-		 src/apis/c/instrumentation/Makefile
-		 src/apis/c/instrumentation-debug/Makefile
 		 src/pms/Makefile
-		 src/pms/openmp/Makefile
-		 src/pms/openmp/performance/Makefile
-		 src/pms/openmp/debug/Makefile
-		 src/pms/openmp/instrumentation/Makefile
-		 src/pms/openmp/instrumentation-debug/Makefile
-		 src/pms/ss/Makefile
-		 src/pms/ss/performance/Makefile
-		 src/pms/ss/debug/Makefile
-		 src/pms/ss/instrumentation/Makefile
-		 src/pms/ss/instrumentation-debug/Makefile
-		 src/pms/chapel/Makefile
-		 src/pms/chapel/performance/Makefile
-		 src/pms/chapel/debug/Makefile
-		 src/pms/chapel/instrumentation/Makefile
-		 src/pms/chapel/instrumentation-debug/Makefile
-                 src/arch/Makefile
+       src/arch/Makefile
 		 src/arch/unix-os/Makefile
-		 src/arch/unix-os/performance/Makefile
-		 src/arch/unix-os/debug/Makefile
-		 src/arch/unix-os/instrumentation/Makefile
-		 src/arch/unix-os/instrumentation-debug/Makefile
 		 src/arch/smp/Makefile
-		 src/arch/smp/performance/Makefile
-		 src/arch/smp/debug/Makefile
-		 src/arch/smp/instrumentation/Makefile
-		 src/arch/smp/instrumentation-debug/Makefile
 		 src/arch/fpga/Makefile
-		 src/arch/fpga/performance/Makefile
-		 src/arch/fpga/debug/Makefile
-		 src/arch/fpga/instrumentation/Makefile
-		 src/arch/fpga/instrumentation-debug/Makefile
 		 src/arch/spu/Makefile
-		 src/arch/spu/performance/Makefile
-		 src/arch/spu/debug/Makefile
-		 src/arch/spu/instrumentation/Makefile
-		 src/arch/spu/instrumentation-debug/Makefile
 		 src/arch/gpu/Makefile
-		 src/arch/gpu/performance/Makefile
-		 src/arch/gpu/debug/Makefile
-		 src/arch/gpu/instrumentation/Makefile
-		 src/arch/gpu/instrumentation-debug/Makefile
 		 src/arch/cluster/Makefile
-		 src/arch/cluster/performance/Makefile
-		 src/arch/cluster/debug/Makefile
-		 src/arch/cluster/instrumentation/Makefile
-		 src/arch/cluster/instrumentation-debug/Makefile
 		 src/arch/opencl/Makefile
-		 src/arch/opencl/performance/Makefile
-		 src/arch/opencl/debug/Makefile
-		 src/arch/opencl/instrumentation/Makefile
-		 src/arch/opencl/instrumentation-debug/Makefile
 		 src/utils/Makefile
-		 src/utils/performance/Makefile
-		 src/utils/instrumentation/Makefile
-		 src/utils/debug/Makefile
-		 src/utils/instrumentation-debug/Makefile
 		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
-                 doc/doxy-nanox
-                 ])
+       doc/doxy-nanox
+       ])
 
 AC_OUTPUT
 

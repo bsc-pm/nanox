@@ -10,6 +10,8 @@ using namespace ext;
 #define DEFAULT_NODE_MEM (0x542000000ULL) 
 #define MAX_NODE_MEM     (0x542000000ULL) 
 
+# if 0
+
 unsigned int ClusterInfo::_numSegments = 0;
 void ** ClusterInfo::_segmentAddrList = NULL;
 std::size_t * ClusterInfo::_segmentLenList = NULL;
@@ -58,8 +60,8 @@ std::size_t ClusterInfo::getPinnedSegmentLen( unsigned int idx ) {
 void ClusterInfo::addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
    unsigned int idx;
    _numSegments = numSegments;
-   _segmentAddrList = new void *[ numSegments ];
-   _segmentLenList = new std::size_t[ numSegments ];
+   _segmentAddrList = NEW void *[ numSegments ];
+   _segmentLenList = NEW std::size_t[ numSegments ];
 
    for ( idx = 0; idx < numSegments; idx += 1)
    {
@@ -136,3 +138,5 @@ RemoteWorkGroup * ClusterInfo::getRemoteWorkGroup( int archId ) {
 bool ClusterInfo::getAllocWide() {
    return _allocWide;
 }
+
+#endif

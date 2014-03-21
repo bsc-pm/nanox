@@ -63,6 +63,9 @@ namespace nanos {
          virtual void *allocateReceiveMemory( std::size_t len ) = 0;
          virtual void freeReceiveMemory( void * addr ) = 0;
          virtual void processSendDataRequest( SendDataRequest *req ) = 0;
+         virtual void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize ) = 0;
+         virtual void * getSegmentAddr( unsigned int idx ) = 0;
+         virtual std::size_t getSegmentLen( unsigned int idx ) = 0;
    };
 }
 

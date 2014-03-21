@@ -703,7 +703,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
 
    _chunks.getOrAddChunk2( targetHostAddr, allocSize, results );
    if ( results.size() != 1 ) {
-      message0( "Got results.size()="<< results.size() << " I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
+      message0( "Got results.size()="<< results.size() << " for addr " << ((void*) targetHostAddr) << " with allocSize " << allocSize <<" I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
       for ( ChunkList::iterator it = results.begin(); it != results.end(); it++ )
          std::cerr << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
       fatal("Realloc needed.");

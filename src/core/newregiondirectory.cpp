@@ -378,6 +378,8 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
       std::set< DeviceOps * > ops;
       std::set< DeviceOps * > myOps;
       std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
+      std::set< uint64_t > objects_to_clear;
+
       for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
          //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->second <<") ================="<<std::endl;
          std::list< std::pair< reg_t, reg_t > > missingParts;
@@ -391,6 +393,9 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
          //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
          //}
          //std::cerr << "}"<<std::endl;
+
+         objects_to_clear.insert( it->first );
+
          for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
             //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
             if ( mit->first == mit->second ) {
@@ -420,6 +425,8 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
 
                   // aggregate the locations, later, we will invalidate the full object from those locations
                   locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end());
+               } else {
+                  objects_to_clear.erase( it->first );
                }
             } else {
                global_reg_t reg( mit->second, it->second );
@@ -427,6 +434,8 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
                   if ( !reg.isLocatedIn( 0 ) ) {
                      std::cerr << "FIXME: I should sync region! "; reg.key->printRegion( reg.id );
                   }
+               } else {
+                  objects_to_clear.erase( it->first );
                }
             }
          }
@@ -449,10 +458,10 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
             }
          }
          //clear objects from directory
-         for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
-            delete it->second;
+         for ( std::set< uint64_t >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+            delete _objects[ *it ];
+            _objects.erase( *it );
          }
-         _objects.clear();
       }
    }
 }

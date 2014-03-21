@@ -35,8 +35,8 @@ ClusterNode::ClusterNode( int id, int nodeId, memory_space_id_t memId ) : Cached
    NULL,
 #endif
    memId ), _clusterNode ( nodeId ),
-   _memSegment( ( uintptr_t ) ClusterInfo::getSegmentAddr( id ),
-   ClusterInfo::getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) {
+   _memSegment( ( uintptr_t ) sys.getNetwork()->getSegmentAddr( id ),
+   sys.getNetwork()->getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) {
 }
 
 ClusterNode::~ClusterNode() {
