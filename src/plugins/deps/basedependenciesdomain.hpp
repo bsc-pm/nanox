@@ -21,6 +21,8 @@
 #define _NANOS_BASE_DEPENDENCIES_DOMAIN
 
 #include "basedependenciesdomain_decl.hpp"
+#include "threadteam.hpp"
+#include "task_reduction.hpp"
 #include "debug.hpp"
 #include "schedule_decl.hpp"
 
@@ -33,6 +35,10 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
    if ( commDO != NULL ) {
       status.setCommDO( NULL );
       status.setLastWriter( *commDO );
+
+      TaskReduction *tr = myThread->getTeam()->getTaskReduction( (const void *) target.getAddress() );
+      if ( tr != NULL ) commDO->setTaskReduction( tr );
+
       commDO->resetReferences();
       //! Finally decrease dummy dependence added in createCommutationDO
       commDO->decreasePredecessors( NULL ); 

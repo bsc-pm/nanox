@@ -25,6 +25,7 @@
 #include "basethread_decl.hpp"
 #include "schedule_decl.hpp"
 #include "barrier_decl.hpp"
+#include "task_reduction_decl.hpp"
 
 
 namespace nanos
@@ -56,6 +57,7 @@ namespace nanos
          typedef std::list<nanos_reduction_t*>     ReductionList;  /**< List of Reduction op's (Bursts) */
          typedef std::map<unsigned, BaseThread *>  ThreadTeamList; /**< List of team members */
          typedef std::map<unsigned, bool>          ThreadTeamIdList; /**< List of team members */
+         typedef std::list<TaskReduction *>        task_reduction_list_t;  //< List of task reductions type
 
          ThreadTeamList               _threads;          /**< Threads that make up the team */
          ThreadTeamIdList             _idList;           /**< List of id usage (reusing old id's) */
@@ -72,6 +74,8 @@ namespace nanos
          int                          _level;            /**< Nesting level of the team */
          int                          _creatorId;        /**< Team Id of the thread that created the team */
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
+         Lock                         _lockTaskReductions; //!< Task reductions lock
+         task_reduction_list_t        _taskReductions;   //< List of task reductions
          ReductionList                _redList;          /**< Reduction List */
          Lock                         _lock;
          bool                         _stable; 
@@ -214,6 +218,9 @@ namespace nanos
          void decreaseFinalSize ( void );
          void setStable ( bool value ) ;
          bool isStable ( void ) const;
+         void registerTaskReduction( void *orig, size_t size, void (*init)( void *), void (*reducer)( void *, void * ) );
+         void * getTaskReductionThreadStorage( void *p_orig, size_t id );
+         TaskReduction * getTaskReduction( const void *p_orig );
    };
 
 }
