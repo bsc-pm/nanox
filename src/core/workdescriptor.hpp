@@ -409,17 +409,14 @@ inline void WorkDescriptor::setInvalid( bool flag ) {
 
    if(_flags.is_invalid) {
       if(!_flags.is_recoverable){
-         if(_parent != NULL){
-            if(!_parent->_flags.is_invalid)
+         if(_parent != NULL && !_parent->_flags.is_invalid)
                _parent->setInvalid(true);
-         } else { // doesnt have a parent
-            fatal("Uncaught 'task_execution_exception'. An error occured during the execution an there was no recoverable tasks.");
-         }
-      } else { // recoverable
+         /* At this time, do not take any action if the task is invalid and it has no parent.
+          * There could be some special cases where it does not imply a fatal error.
+          */
+      } else { // This task is recoverable
           debug( "Unwinding to recoverable ancestor: task " << _id);
       }
-   } else {
-       debug( "Unwinding to recoverable ancestor: task " << _id);
    }
 }
 

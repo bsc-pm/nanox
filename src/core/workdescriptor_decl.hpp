@@ -296,6 +296,14 @@ namespace nanos
 
              if (_copiesNotInChunk)
                  delete[] _copies;
+
+             /* If the root task is invalid at this point
+              * then the execution hasn't finished correctly.
+              * The reason behind this is if an error appears an a recoverable task exists,
+              * the invalidation would not reach this workdescriptor.
+              */
+             if (_flags.is_invalid && _depth == 0)
+               fatal0("Uncaught 'task_execution_exception'. An error occured during the execution an there was no posible recovery (no recoverable task found).");
          }
 
          int getId() const { return _id; }
