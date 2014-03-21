@@ -284,9 +284,9 @@ namespace nanos {
            NANOS_MPI_RNODE_REALLOC_EVENT,                     /* 21 */
            NANOS_MPI_RNODE_FREE_EVENT,                     /* 22 */
            NANOS_MPI_RNODE_COPYLOCAL_EVENT,                     /* 23 */
-           NANOS_MPI_IRECV_EVENT,                     /* 11 */
-           NANOS_MPI_ISEND_EVENT,                     /* 11 */
-           NANOS_MPI_GENERIC_EVENT                         /* 24 */
+           NANOS_MPI_IRECV_EVENT,                     /* 24 */
+           NANOS_MPI_ISEND_EVENT,                     /* 25 */
+           NANOS_MPI_GENERIC_EVENT                         /* 26 */
         } in_mpi_runtime_event_value;
 
     }
