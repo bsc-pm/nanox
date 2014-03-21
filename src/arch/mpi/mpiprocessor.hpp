@@ -59,6 +59,7 @@ int MPIProcessor::_numFreeCores;
 int MPIProcessor::_currPE;
 bool MPIProcessor::_inicialized=false;
 bool MPIProcessor::_useMultiThread=false;
+bool MPIProcessor::_disableSpawnLock=false;
 int MPIProcessor::_currentTaskParent=-1;
 
 size_t MPIProcessor::getCacheDefaultSize() {

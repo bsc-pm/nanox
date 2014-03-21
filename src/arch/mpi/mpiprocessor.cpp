@@ -63,11 +63,11 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerConfigOption("offl-hostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: "
     "One host per line with blank lines and lines beginning with # ignored\n"
     "Multiple processes per host can be specified by specifying the host name as follows: hostA:n\n"
-    "Environment variables for the host can be specified separated by comma using hostA:n>env_var1,envar2... or hostA>env_var1,envar2...");
+    "Environment variables for the host can be specified separated by comma using hostA:n<env_var1,envar2... or hostA<env_var1,envar2...");
     config.registerArgOption("offl-hostfile", "offl-hostfile");
     config.registerEnvOption("offl-hostfile", "NX_OFFL_HOSTFILE");
 
-    config.registerConfigOption("offl-hosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_OFFLHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA>env_vars hostB:2>env_vars hostC:3 hostD:4");
+    config.registerConfigOption("offl-hosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_OFFLHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA<env_vars hostB:2<env_vars hostC:3 hostD:4");
     config.registerArgOption("offl-hosts", "offl-hosts");
     config.registerEnvOption("offl-hosts", "NX_OFFL_HOSTS");
 
@@ -108,6 +108,13 @@ void MPIProcessor::prepareConfig(Config &config) {
         "(Default: False, but if this kind of behaviour is detected, the thread will be created anyways)");
     config.registerArgOption("offl-cache-threads", "offl-cache-threads");
     config.registerEnvOption("offl-cache-threads", "NX_OFFL_CACHE_THREADS");
+    
+    
+    config.registerConfigOption("offl-disable-spawn-lock", NEW Config::BoolVar(_disableSpawnLock), "Disables file lock used to serialize"
+                  "different calls to DEEP_BOOSTER_ALLOC performed by different processes when using MPI_COMM_SELF,"
+                  "if disabled user will be responsible of serializing calls (Default: Lock enabled).");
+    config.registerArgOption("offl-disable-spawn-lock", "offl-disable-spawn-lock");
+    config.registerEnvOption("offl-disable-spawn-lock", "NX_OFFL_DISABLE_SPAWN_LOCK");
 }
 
 WorkDescriptor & MPIProcessor::getWorkerWD() const {
@@ -509,13 +516,13 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         mpi_size=1; //Using MPI_COMM_SELF
     }
     int fd=-1;
-    while (!shared && fd==-1) {
-       fd=tryGetLock("./lockSpawn");
+    while (!_disableSpawnLock && !shared && fd==-1) {
+       fd=tryGetLock("./.ompss_lockSpawn");
     }
     MPI_Comm_spawn_multiple(spawn_arrays_length,array_of_commands, array_of_argv, n_process,
             array_of_info, 0, comm, intercomm, MPI_ERRCODES_IGNORE); 
-    if (!shared) {
-      releaseLock(fd,"./lockSpawn"); 
+    if (!_disableSpawnLock && !shared) {
+       releaseLock(fd,"./.ompss_lockSpawn"); 
     }
     //Free all args sent
     for (i=0;i<spawn_arrays_length;i++){  

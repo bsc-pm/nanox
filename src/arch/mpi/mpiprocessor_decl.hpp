@@ -49,6 +49,7 @@ namespace nanos {
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;    
             static bool _useMultiThread;  
+            static bool _disableSpawnLock;  
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
