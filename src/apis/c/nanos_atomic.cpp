@@ -139,9 +139,11 @@ extern "C"
 {
     // For some reason g++, #include <complex.h> in C++2011 does not include C99 complex.h when in C++98 does
     // We repeat the declarations here so they link with a C99 -lm
-    extern _Complex float cpowf(_Complex float, _Complex float);
-    extern _Complex float cpow(_Complex double, _Complex double);
-    extern _Complex float cpowl(_Complex long double, _Complex long double);
+#pragma GCC diagnostic ignored "-Wredundant-decls"
+    extern _Complex float cpowf(_Complex float, _Complex float) throw();
+    extern _Complex double cpow(_Complex double, _Complex double) throw ();
+    extern _Complex long double cpowl(_Complex long double, _Complex long double) throw ();
+#pragma GCC diagnostic error "-Wredundant-decls"
 }
 #endif
 
