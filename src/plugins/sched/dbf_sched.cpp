@@ -144,6 +144,17 @@ namespace nanos {
 
 
             virtual WD *atIdle ( BaseThread *thread );
+
+            bool reorderWD ( BaseThread *t, WD *wd )
+            {
+              //! \bug FIXME flags of priority must be in queue
+               if ( _usePriority || _useSmartPriority ) {
+                  WDPriorityQueue<> *q = (WDPriorityQueue<> *) wd->getMyQueue();
+                  return q? q->reorderWD( wd ) : true;
+               } else {
+                  return true;
+               }
+            }
       };
 
 

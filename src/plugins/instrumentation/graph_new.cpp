@@ -321,19 +321,25 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             for(std::vector<Edge*>::iterator e = actual_exits.begin(); e != actual_exits.end(); ++e) {
                 std::stringstream sss; sss << current_wd;
                 std::stringstream sst; sst << (*e)->get_target()->get_wd_id();
-                std::stringstream ssct; ssct << get_cluster_id(node_to_cluster, (*e)->get_target()->get_wd_id(), 
-                                                               actual_exits, /*cluster_is_source*/false);
+                std::string arrow_head = "";
+                if((*e)->get_target()->is_commutative() || (*e)->get_target()->is_concurrent())
+                {
+                    std::stringstream ssct; ssct << get_cluster_id(node_to_cluster, (*e)->get_target()->get_wd_id(), 
+                                                                   actual_exits, /*cluster_is_source*/false);
+                    arrow_head = ", lhead=\"cluster_" + ssct.str() + "\"";
+                }
                 result += "  " + sss.str() + " -> " + sst.str() 
-                        + "[ltail=\"cluster_" + ss.str() + "\", lhead=\"" + ssct.str() + "\", style=\"solid\", color=\"black\"];\n";
+                        + "[ltail=\"cluster_" + ss.str() + "\"" + arrow_head + ", style=\"solid\", color=\"black\"];\n";
             }
         }
         
         return result;
     }
     
-    inline void print_full_graph(std::string partial_file_name) {
+    inline std::string print_full_graph(std::string partial_file_name) {
         // Generate the name of the dot file from the name of the binary
-        std::string file_name = partial_file_name + "_full.dot";
+        std::string result = partial_file_name + "_full";
+        std::string file_name = result + ".dot";
         
         // Open the file and start the graph
         std::ofstream dot_file;
@@ -495,7 +501,8 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             dot_file << print_edges_legend();
         dot_file << "}";
         
-        std::cerr << "Task Dependency Graph printed to file '" << file_name << "'" << std::endl;
+        std::cerr << "Task Dependency Graph printed to file '" << file_name << "' in DOT format" << std::endl;
+        return result;
     }
     
 #ifndef NANOS_INSTRUMENTATION_ENABLED
@@ -587,7 +594,13 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         file_name = file_name + "_" + unique_key_name;
         
         // Print the full graph
-        print_full_graph(file_name);
+        std::string full_dot_name = print_full_graph(file_name);
+        
+        // Generate the PDF containing the graph
+        std::string dot_to_pdf_command = "dot -Tpdf " + full_dot_name + ".dot -o " + full_dot_name + ".pdf";
+        if ( system( dot_to_pdf_command.c_str( ) ) != 0 )
+            warning( "Could not create the pdf file." );
+        std::cerr << "Task Dependency Graph printed to file '" << full_dot_name << ".pdf' in PDF format" << std::endl;
         
         // TODO
         // Print the summarized graph
@@ -698,11 +711,17 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     case 5:     dep_type = InConcurrent;                // concurrent -> wd
                                 sender_wd_id += concurrent_min_id;
                                 break;
-                    case 7:     dep_type = OutCommutative;
+                    case 6:     dep_type = OutCommutative;
                                 receiver_wd_id += concurrent_min_id;    // wd -> commutative
                                 break;
-                    case 8:     dep_type = InCommutative;
+                    case 7:     dep_type = InCommutative;
                                 sender_wd_id += concurrent_min_id;      // commutative -> wd
+                                break;
+                    case 8:     dep_type = OutAny;
+                                receiver_wd_id += concurrent_min_id;    // wd -> common
+                                break;
+                    case 9:     dep_type = InAny;
+                                sender_wd_id += concurrent_min_id;      // common -> wd
                                 break;
                     default:    { std::cerr << "Unexpected type dependency " << dep_value << "."
                                             << "Not printing any edge for it in the Task Dependency graph\n"

@@ -329,7 +329,11 @@ inline void WorkDescriptor::submitted()  { _flags.is_submitted = true; }
 inline bool WorkDescriptor::isConfigured ( void ) const { return _flags.is_configured; }
 inline void WorkDescriptor::setConfigured ( bool value ) { _flags.is_configured = value; }
 
-inline void WorkDescriptor::setPriority( WorkDescriptor::PriorityType priority ) { _priority = priority; }
+inline void WorkDescriptor::setPriority( WorkDescriptor::PriorityType priority )
+{
+   _priority = priority;
+   if ( _myQueue ) myThread->getTeam()->getSchedulePolicy().reorderWD( myThread, this );
+}
 inline WorkDescriptor::PriorityType WorkDescriptor::getPriority() const { return _priority; }
 
 inline void WorkDescriptor::releaseCommutativeAccesses()

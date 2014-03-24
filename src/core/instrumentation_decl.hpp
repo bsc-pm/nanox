@@ -507,8 +507,8 @@ namespace nanos {
 
             /* 30 */ registerEventKey("chunk-size","Chunk size", true);
 
-            /* 31 */ registerEventKey("num-sleeps","Number of Sleep operations", true);
-            /* 32 */ registerEventKey("time-sleeps","Time on Sleep (in nsecs)", true);
+            /* 31 */ registerEventKey("num-blocks","Number of blocking operations", true);
+            /* 32 */ registerEventKey("time-blocks","Time on block (in nsecs)", true);
 
             /* 33 */ registerEventKey("num-scheds","Number of scheduler operations", true);
             /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)", true);

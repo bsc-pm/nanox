@@ -331,7 +331,7 @@ if test x$use_bgq = xyes; then
     if test x$use_gnu = xyes; then
         LDFLAGS="$LDFLAGS -dynamic"
     fi
-    if test x$use_xlcu = xyes; then
+    if test x$use_xlc = xyes; then
         LDFLAGS="$LDFLAGS -qnostaticlink"
     fi
 fi

@@ -97,7 +97,7 @@ void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
 
 void OpenCLCache::free(void * addr) {
     //User must free shared memory buffers manually
-    //if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
+    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
     _devAllocator.free(addr);
     //cl_mem buf = _bufAddrMappings[addr];    
     //cl_int errCode;
@@ -200,9 +200,14 @@ bool OpenCLCache::copyInBuffer(void *localSrc,
 }
 
 
-cl_mem OpenCLCache::toMemoryObjSS( void * addr ) { 
+cl_mem OpenCLCache::toMemoryObjSS( const void * addr ) { 
+    void* addr_aux=const_cast<void*>(addr);
     //Creates a buffer from this pointer to the end of the memory (not really correct...)    
-    return _openclAdapter.getBuffer(_mainBuffer,(size_t)addr,-1);
+    cl_mem buf= _openclAdapter.getBuffer(_mainBuffer,(size_t)addr,1);    
+    if ( _openclAdapter.getUseHostPtr() || OpenCLProcessor::getSharedMemAllocator().isSharedMem(  addr_aux, 1)){
+       _openclAdapter.unmapBuffer(buf,addr_aux,0,1);
+    }
+    return buf;
 }
    
 
