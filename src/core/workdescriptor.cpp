@@ -289,6 +289,8 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
+   _depsDomain->finalizeAllReductions();
+
    _componentsSyncCond.waitConditionAndSignalers();
    if ( _directory != NULL && !avoidFlush ) _directory->synchronizeHost();
 }

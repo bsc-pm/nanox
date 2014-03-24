@@ -251,8 +251,26 @@ namespace nanos {
                   return (lastWriter != NULL);
                }
             }
-            
-         
+            void finalizeAllReductions ( void )
+            {
+               DepsMap::iterator it; 
+               for ( it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
+                  TrackableObject& status = *( it->second );
+                  Address::TargetType target = it->first;
+                  CommutationDO *commDO = status.getCommDO();
+                  if ( commDO != NULL ) {
+                     status.setCommDO( NULL );
+                     status.setLastWriter( *commDO );
+
+                     TaskReduction *tr = myThread->getTeam()->getTaskReduction( (const void *) target );
+                     if ( tr != NULL ) commDO->setTaskReduction( tr );
+
+                     commDO->resetReferences();
+                     //! Finally decrease dummy dependence added in createCommutationDO
+                     commDO->decreasePredecessors( NULL ); 
+                  }
+               }
+            }
       };
       
       template void PlainDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, DataAccess* begin, DataAccess* end, SchedulePolicySuccessorFunctor* callback );
