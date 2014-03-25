@@ -53,24 +53,61 @@ void SMPDD::prepareConfig( Config &config )
    config.registerEnvOption ( "smp-stack-size", "NX_SMP_STACK_SIZE" );
 }
 
-void SMPDD::initStack ( void *data )
+void SMPDD::initStack ( WD *wd )
 {
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   _state = ::initContext( _stack, _stackSize, ( void * )&workWrapper,data,( void * )Scheduler::exit, 0 );
-#else
-   _state = ::initContext( _stack, _stackSize, ( void * )getWorkFct(),data,( void * )Scheduler::exit, 0 );
-#endif
+   _state = ::initContext( _stack, _stackSize, (void *)&workWrapper, wd,( void * )Scheduler::exit, 0 );
 }
 
-void SMPDD::workWrapper( void *data )
+void SMPDD::workWrapper( WD &wd)
 {
    SMPDD &dd = ( SMPDD & ) myThread->getCurrentWD()->getActiveDevice();
-
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
-   NANOS_INSTRUMENT ( nanos_event_value_t val = myThread->getCurrentWD()->getId() );
+   NANOS_INSTRUMENT ( nanos_event_value_t val = wd->getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
-   dd.getWorkFct()( data );
+#endif
+
+   bool retry = false;
+   int num_tries = 0;
+   if (wd.isInvalid() || (wd.getParent() != NULL &&  wd.getParent()->isInvalid())){
+       // TODO It is better to skip the work if workdescriptor is flagged as invalid before allocating a new stack for the task
+       wd.setInvalid(true);
+       debug ( "Task " << wd.getId() << " is flagged as invalid.");
+   } else {
+       while (true) {
+           try {
+              // Workdescriptor execution
+              dd.getWorkFct()( wd.getData() );
+
+           } catch (task_execution_exception_t& e) {
+               // The execution error is catched. The signal has to be unblocked.
+               sigset_t x;
+               sigemptyset(&x);
+               sigaddset(&x, e.signal);
+               pthread_sigmask(SIG_UNBLOCK, &x, NULL);
+
+               // Global recovery here (if this affects the global execution).
+               debug( "Signal: " << strsignal(e.signal) << " while executing task " << wd.getId());
+               wd.setInvalid(true);
+           }
+           // If we failed (invalid), we should only retry when ...
+           retry = wd.isInvalid() // ... our execution failed,
+                && wd.isRecoverable() // the task is told to recover,
+                && (wd.getParent() == NULL || !wd.getParent()->isInvalid()) // if we have parent, he is not already invalid, and
+                && num_tries < sys.getTaskMaxRetries(); // we have not exhausted all our trials
+
+           if (!retry)
+               break;
+
+           // Local recovery here (inside recover() function)
+           wd.recover();
+           num_tries++;
+       }
+   }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
+#endif
 }
 
 void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
@@ -84,7 +121,7 @@ void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
         std::swap(_stack,oldDD._stack);
      }
   
-     initStack(wd.getData());
+     initStack(&wd);
    }
 }
 

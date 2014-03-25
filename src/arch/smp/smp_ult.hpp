@@ -22,6 +22,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "workdescriptor.hpp"
 
 extern "C"
 {
@@ -29,7 +30,7 @@ extern "C"
    void switchStacks( void *,void *,void *,void * );
 }
 
-intptr_t * initContext( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+intptr_t * initContext( intptr_t *stack, size_t stackSize, void *workWrapper, WorkDescriptor *wd,
                        void *cleanup, void *cleanupArg );
 
 #ifndef SMP_SUPPORTS_ULT
@@ -37,7 +38,7 @@ intptr_t * initContext( intptr_t *stack, size_t stackSize, void *userFunction, v
 extern "C" {
    inline void switchStacks( void *,void *,void *,void * ) {}
 }
-inline intptr_t * initContext( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+inline intptr_t * initContext( intptr_t *stack, size_t stackSize, (void (*)(WD&))wrapperFunction, void *wd,
                        void *cleanup, void *cleanupArg ) { return 0; }
 #endif
 

@@ -62,13 +62,13 @@ namespace ext
 
          bool hasStack() { return _state != NULL; }
 
-         void initStack( void *data );
+         void initStack( WD *wd );
 
         /* \brief Wrapper called by the instrumented library to
          * be able to instrument the exact moment in which the runtime
          * is left and the user's code starts being executed.
          */
-         static void workWrapper( void *data );
+         static void workWrapper( WD &data );
 
          intptr_t *getState() const { return _state; }
 

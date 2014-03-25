@@ -27,7 +27,7 @@ extern "C"
 }
 
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *workWrapper, WD *wd,
                           void *cleanup, void *cleanupArg )
 {
    intptr_t * state = stack;
@@ -37,9 +37,9 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
    state--;
    *state = ( intptr_t )cleanupArg;
    state --;
-   *state = ( intptr_t )userFunction;
+   *state = ( intptr_t )workWrapper;
    state--;
-   *state = ( intptr_t )userArg;
+   *state = ( intptr_t )wd;
    state--;
    *state = ( intptr_t )startHelper;
    // skip first _state
