@@ -85,7 +85,7 @@ void ThreadTeam::registerTaskReduction( void *p_orig, size_t p_size, void (*p_in
    }
 
    if ( it == _taskReductions.end() ) {
-      _taskReductions.push_front( new TaskReduction( p_orig, p_init, p_reducer, p_size, _finalSize.value() ) );
+      _taskReductions.push_front( new TaskReduction( p_orig, p_init, p_reducer, p_size, _finalSize.value(), myThread->getCurrentWD()->getDepth() ) );
    }
 }
 

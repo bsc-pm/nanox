@@ -27,6 +27,7 @@ class TaskReduction {
       typedef std::vector<char> storage_t;
    private: /* data members */
       void                            *_original;
+      unsigned                         _depth;
       initializer_t                    _initializer;
       reducer_t                        _reducer;
       storage_t                        _storage;
@@ -37,7 +38,7 @@ class TaskReduction {
    private: /* private methods */
       TaskReduction ( const TaskReduction &tr ) {}
    public: /* public methods */
-      TaskReduction ( void *orig, initializer_t init, reducer_t red, size_t size, size_t threads ) : _original(orig), _initializer(init), _reducer(red),
+      TaskReduction ( void *orig, initializer_t init, reducer_t red, size_t size, size_t threads, unsigned depth ) : _original(orig), _depth(depth), _initializer(init), _reducer(red),
                       _storage(size*threads), _size(size), _threads(threads), _min(NULL), _max(NULL)
       {
          _min = & _storage[0];
@@ -51,6 +52,7 @@ class TaskReduction {
       }
       void * have ( const void *ptr, size_t id ) ;
       void finalize ( void );
+      unsigned getDepth(void) const ;
 };
 
 #endif

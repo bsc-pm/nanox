@@ -37,4 +37,9 @@ inline void TaskReduction::finalize ( void )
    _reducer ( _original, &_storage[0] );
 }
 
+inline unsigned TaskReduction::getDepth(void) const 
+{
+   return _depth;
+}
+
 #endif

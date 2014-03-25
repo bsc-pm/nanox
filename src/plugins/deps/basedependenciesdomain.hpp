@@ -37,7 +37,9 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
       status.setLastWriter( *commDO );
 
       TaskReduction *tr = myThread->getTeam()->getTaskReduction( (const void *) target.getAddress() );
-      if ( tr != NULL ) commDO->setTaskReduction( tr );
+      if ( tr != NULL ) {
+         if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() ) commDO->setTaskReduction( tr );
+      }
 
       commDO->resetReferences();
       //! Finally decrease dummy dependence added in createCommutationDO

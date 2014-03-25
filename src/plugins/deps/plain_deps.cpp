@@ -263,7 +263,9 @@ namespace nanos {
                      status.setLastWriter( *commDO );
 
                      TaskReduction *tr = myThread->getTeam()->getTaskReduction( (const void *) target );
-                     if ( tr != NULL ) commDO->setTaskReduction( tr );
+                     if ( tr != NULL ) {
+                        if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() ) commDO->setTaskReduction( tr );
+                     }
 
                      commDO->resetReferences();
                      //! Finally decrease dummy dependence added in createCommutationDO
