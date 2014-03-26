@@ -580,7 +580,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    cl_event ev;
    cl_int errCode, exitStatus;
 
-   
+   debug0( "[opencl] global size: " + toString( *ndrGlobalSize ) + ", local size: " + toString( *ndrLocalSize ) );
    // Exec it.
    errCode = clEnqueueNDRangeKernel( _queue,
                                        openclKernel,
