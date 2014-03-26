@@ -37,12 +37,12 @@ int sizes[] = { 7, 17, 33, 63, 123 };
 int main (int argc, char **argv)
 {
    bool check = true;
-   Allocator allocator;
+   Allocator my_allocator;
 
    for ( int  n = 0; n < TIMES; n++ ) {
       for ( unsigned int i = 0; i < (sizeof( sizes )/sizeof(int)); i++ ) {
 
-         int *ptr = (int *) allocator.allocate( sizes[i] * sizeof(int) );
+         int *ptr = (int *) my_allocator.allocate( sizes[i] * sizeof(int) );
          if ( ptr == NULL ) check = false;
 
          for ( int j = 0; j < sizes[i]; j++ ) ptr[j] = CHECK_VALUE; // INI
