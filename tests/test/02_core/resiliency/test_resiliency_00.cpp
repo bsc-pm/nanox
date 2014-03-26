@@ -19,7 +19,7 @@
 
 /*
  <testinfo>
- test_generator="gens/mixed-generator -a --disable-ut"
+ test_generator="gens/mixed-generator"
  </testinfo>
  */
 
