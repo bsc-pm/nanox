@@ -31,10 +31,12 @@ inline void * TaskReduction::have ( const void *ptr, size_t id )
    else return NULL;
 }
 
-inline void TaskReduction::finalize ( void )
+inline void * TaskReduction::finalize ( void )
 {
+   void * result = _original;
    for ( size_t i=1; i< _threads; i++) _reducer( &_storage[0] ,&_storage[i*_size] );
    _reducer ( _original, &_storage[0] );
+   return result;
 }
 
 inline unsigned TaskReduction::getDepth(void) const 

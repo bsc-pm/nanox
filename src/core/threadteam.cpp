@@ -89,6 +89,19 @@ void ThreadTeam::registerTaskReduction( void *p_orig, size_t p_size, void (*p_in
    }
 }
 
+void ThreadTeam::removeTaskReduction( void *p_orig )
+{
+   LockBlock Lock( _lockTaskReductions );
+
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      if ( (*it)->have( p_orig, 0 ) ) break;
+   }
+
+   if ( it != _taskReductions.end() ) _taskReductions.erase( it );
+}
+
 void * ThreadTeam::getTaskReductionThreadStorage( void *p_orig, size_t id )
 {
    LockBlock Lock( _lockTaskReductions );

@@ -30,7 +30,10 @@ inline void CommutationDO::dependenciesSatisfied ( )
    if ( domain ) {
       domain->removeCommDO ( this, *_target );
    }
-   if ( _taskReduction != NULL ) _taskReduction->finalize();
+   if ( _taskReduction != NULL ) {
+      void *addr = _taskReduction->finalize();
+      myThread->getTeam()->removeTaskReduction( addr );
+   }
    
    finished();
 }

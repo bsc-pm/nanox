@@ -51,7 +51,7 @@ class TaskReduction {
       {
       }
       void * have ( const void *ptr, size_t id ) ;
-      void finalize ( void );
+      void * finalize ( void );
       unsigned getDepth(void) const ;
 };
 
