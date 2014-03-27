@@ -44,14 +44,14 @@ namespace nanos {
 
             void setMaxCutoff( int mi ) { _limit = mi; }
 
-            bool throttle();
+            bool throttleIn();
 
             ~IdleThreadsThrottle() {}
       };
 
       const int IdleThreadsThrottle::_defaultLimit = 0;
 
-      bool IdleThreadsThrottle::throttle()
+      bool IdleThreadsThrottle::throttleIn()
       {
          //checking if the number of idle threads is lower than the allowed minimum
          if ( sys.getIdleNum() <= _limit )  {
