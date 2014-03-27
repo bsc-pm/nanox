@@ -39,8 +39,9 @@ pthread_mutex_t SMPThread::_mutexWait = PTHREAD_MUTEX_INITIALIZER;
 void * smp_bootthread ( void *arg )
 {
    SMPThread *self = static_cast<SMPThread *>( arg );
-
+#ifdef NANOS_RESILIENCY_ENABLED
    self->setupSignalHandlers();
+#endif
 
    self->run();
 
@@ -98,7 +99,7 @@ void SMPThread::runDependent ()
 
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
-   dd.getWorkFct()( work.getData() );
+   dd.execute( work );
 }
 
 void SMPThread::join ()
@@ -202,7 +203,9 @@ bool SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
-   ( dd.getWorkFct() )( wd.getData() );
+
+   dd.execute( wd );
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
    return true;
 }
@@ -235,3 +238,42 @@ void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
       ( void * ) dd.getState(),
       ( void * ) helper );
 }
+
+#ifdef NANOS_RESILIENCY_ENABLED
+
+void SMPThread::setupSignalHandlers ()
+{
+   /* Set up the structure to specify task-recovery. */
+   struct sigaction recovery_action;
+   recovery_action.sa_sigaction = &taskExecutionHandler;
+   sigemptyset(&recovery_action.sa_mask);
+   recovery_action.sa_flags = SA_SIGINFO // Provides context information to the handler.
+                            | SA_RESTART; // Resume system calls interrupted by the signal.
+   /* Program synchronous signals to use the default recovery handler.
+    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
+    */
+   fatal_cond(sigaction(SIGILL, &recovery_action, NULL) != 0, "Signal setup (SIGILL) failed");
+   fatal_cond(sigaction(SIGTRAP, &recovery_action, NULL) != 0, "Signal setup (SIGTRAP) failed");
+   fatal_cond(sigaction(SIGBUS, &recovery_action, NULL) != 0, "Signal setup (SIGBUS) failed");
+   fatal_cond(sigaction(SIGFPE, &recovery_action, NULL) != 0, "Signal setup (SIGFPE) failed");
+   fatal_cond(sigaction(SIGSEGV, &recovery_action, NULL) != 0, "Signal setup (SIGSEGV) failed");
+
+   debug("Resiliency: handling synchronous signals raised in tasks' context.");
+}
+
+void taskExecutionHandler ( int sig, siginfo_t* si, void* context ) throw(task_execution_exception_t)
+{
+   /*
+    * In order to prevent the signal to be raised inside the handler, it is blocked inside it.
+    * Because we are exiting the handler before it returns (via throwing an exception),
+    * we must unblock the signal or it wont be catched again (this is done in at the catch block).
+    *
+    * It also works using SA_NODEFER.
+    *
+    */
+   task_execution_exception_t ter = {sig, *si, *(ucontext_t*) context};
+
+   // Throw exception
+   throw ter;
+}
+#endif

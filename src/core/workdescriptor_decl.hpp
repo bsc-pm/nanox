@@ -644,9 +644,6 @@ namespace nanos
 
          //!brief Returns whether a WorkDescriptor is able to re-execute from the beginning if an error is detected.
          bool isRecoverable ( void ) const;
-	 
-	 //! \brief Perform the necessary actions before re-executing the task.
-	 void recover( void );
    };
 
    typedef class WorkDescriptor WD;

@@ -67,43 +67,7 @@ void SMPDD::workWrapper( WD &wd)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
 #endif
 
-   bool retry = false;
-   int num_tries = 0;
-   if (wd.isInvalid() || (wd.getParent() != NULL &&  wd.getParent()->isInvalid())){
-       // TODO It is better to skip the work if workdescriptor is flagged as invalid before allocating a new stack for the task
-       wd.setInvalid(true);
-       debug ( "Task " << wd.getId() << " is flagged as invalid.");
-   } else {
-       while (true) {
-           try {
-              // Workdescriptor execution
-              dd.getWorkFct()( wd.getData() );
-
-           } catch (task_execution_exception_t& e) {
-               // The execution error is catched. The signal has to be unblocked.
-               sigset_t x;
-               sigemptyset(&x);
-               sigaddset(&x, e.signal);
-               pthread_sigmask(SIG_UNBLOCK, &x, NULL);
-
-               // Global recovery here (if this affects the global execution).
-               debug( "Signal: " << strsignal(e.signal) << " while executing task " << wd.getId());
-               wd.setInvalid(true);
-           }
-           // If we failed (invalid), we should only retry when ...
-           retry = wd.isInvalid() // ... our execution failed,
-                && wd.isRecoverable() // the task is told to recover,
-                && (wd.getParent() == NULL || !wd.getParent()->isInvalid()) // if we have parent, he is not already invalid, and
-                && num_tries < sys.getTaskMaxRetries(); // we have not exhausted all our trials
-
-           if (!retry)
-               break;
-
-           // Local recovery here (inside recover() function)
-           wd.recover();
-           num_tries++;
-       }
-   }
+   dd.execute(wd);
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
@@ -120,7 +84,7 @@ void SMPDD::lazyInit (WD &wd, bool isUserLevelThread, WD *previous)
 
         std::swap(_stack,oldDD._stack);
      }
-  
+
      initStack(&wd);
    }
 }
@@ -131,3 +95,69 @@ SMPDD * SMPDD::copyTo ( void *toAddr )
    return dd;
 }
 
+void SMPDD::execute( WD &wd )
+{
+#ifdef NANOS_RESILIENCY_ENABLED
+   bool retry = false;
+   int num_tries = 0;
+   if (wd.isInvalid() || (wd.getParent() != NULL &&  wd.getParent()->isInvalid())){
+       /*
+        *  TODO Optimization?
+        *  It could be better to skip this work if workdescriptor is flagged as invalid
+        *  before allocating a new stack for the task and, perhaps,
+        *  skip data copies of dependences.
+        */
+       wd.setInvalid(true);
+       debug ( "Task " << wd.getId() << " is flagged as invalid.");
+   } else {
+       while (true) {
+           try {
+              // Call to the user function
+              getWorkFct()( wd.getData() );
+           } catch (task_execution_exception_t& e) {
+               /*
+                * When a signal handler is executing, the delivery of the same signal
+                * is blocked, and it does not become unblocked until the handler returns.
+                * In this case, it will not become unblocked since the handler is exited
+                * through an exception: it should be explicitly unblocked.
+                */
+               sigset_t x;
+               sigemptyset(&x);
+               sigaddset(&x, e.signal);
+               pthread_sigmask(SIG_UNBLOCK, &x, NULL);
+
+               // Global recovery here (if this affects the global execution).
+               debug( "Signal: " << strsignal(e.signal) << " while executing task " << wd.getId());
+               wd.setInvalid(true);
+           }
+           // Only retry when ...
+           retry = wd.isInvalid() // ... the execution failed,
+                && wd.isRecoverable() // and the task is able to recover (pragma),
+                && (wd.getParent() == NULL || !wd.getParent()->isInvalid()) // and there is not an invalid parent.
+                && num_tries < sys.getTaskMaxRetries(); // This last condition avoids unbounded re-execution.
+
+           if (!retry)
+               break;
+
+           // This is exceuted only on re-execution
+           num_tries++;
+           recover(wd);
+       }
+   }
+#else
+   // Workdescriptor execution
+   getWorkFct()( wd.getData() );
+#endif
+}
+
+#ifdef NANOS_RESILIENCY_ENABLED
+void SMPDD::recover( WD & wd ) {
+   // Wait for successors to finish.
+   wd.waitCompletion();
+
+   // Do anything ...
+
+   // Reset invalid state
+   wd.setInvalid(false);
+}
+#endif

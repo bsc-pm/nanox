@@ -48,7 +48,7 @@ fib0(int n);
 
 int cutoff_value = 5;
 
-// Tries to write to an invalid address: SIGSEGV
+// Try to write to an invalid address: SIGSEGV
 void
 fail()
 {
@@ -93,13 +93,9 @@ fib_0(void *ptr)
   if (args->must_fail)
     {
       if (args->executions_so_far < 3)
-        {
-          fail();
-        }
+        fail();
       else
-        {
-          args->must_fail = false;
-        }
+        args->must_fail = false;
     }
 
   *args->x = fib(args->n - 1, args->d + 1);
@@ -122,7 +118,6 @@ fib(int n, int d)
   if (n < 2)
     return n;
 
-  //if ( d < cutoff_value ) {
   nanos::WD *wg = nanos::getMyThreadSafe()->getCurrentWD();
 
 //	#pragma omp task untied shared(x) firstprivate(n,d) recover
@@ -158,20 +153,11 @@ fib(int n, int d)
 
 //      check
   if (wd1->isInvalid() || wd2->isInvalid())
-    {
       errors = true;
-    }
-
+  
   if (wg->getDepth() == 0 && wg->isInvalid())
-    {
-
-    }
-
-  //} else {
-  //x = fib_seq( n-1 );
-  //y = fib_seq( n-2 );
-  //}
-
+      errors = true;
+  
   return x + y;
 }
 

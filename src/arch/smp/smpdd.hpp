@@ -64,9 +64,10 @@ namespace ext
 
          void initStack( WD *wd );
 
-        /* \brief Wrapper called by the instrumented library to
-         * be able to instrument the exact moment in which the runtime
-         * is left and the user's code starts being executed.
+        /*! \brief Wrapper called to be able to instrument the
+         * exact moment in which the runtime is left and the
+         * user's code starts being executed and to be able to
+         * re-execute it (fault tolerance).
          */
          static void workWrapper( WD &data );
 
@@ -81,7 +82,22 @@ namespace ext
          virtual SMPDD *copyTo ( void *toAddr );
 
          virtual SMPDD *clone () const { return NEW SMPDD ( *this); }
-      };
+
+            /*! \brief Encapsulates the user function call.
+             * This avoids code duplication for additional
+             * operations that must be done just before/after
+             * this call (e.g. task re-execution on errors).
+             */
+            void execute ( WD &wd );
+
+#ifdef NANOS_RESILIENCY_ENABLED
+            /*! \brief Restores the workdescriptor to its original state.
+             * Leaving the recovery dependent to the arch allows more
+             * accurate recovery for each kind of device.
+             */
+            void recover ( WD &wd );
+#endif
+   };
 
    inline const SMPDD & SMPDD::operator= ( const SMPDD &dd )
    {

@@ -408,19 +408,20 @@ inline void WorkDescriptor::convertToRegularWD()
    _slicer = NULL;
 }
 
-inline void WorkDescriptor::setInvalid( bool flag ) {
-   _flags.is_invalid = flag;
+inline void WorkDescriptor::setInvalid ( bool flag )
+{
+   if (_flags.is_invalid != flag) {
+      _flags.is_invalid = flag;
 
-   if(_flags.is_invalid) {
-      if(!_flags.is_recoverable){
-         if(_parent != NULL && !_parent->_flags.is_invalid)
-               _parent->setInvalid(true);
-         /* At this time, do not take any action if the task is invalid and it has no parent.
-          * There could be some special cases where it does not imply a fatal error.
-          */
-      } else { // This task is recoverable
-          debug( "Unwinding to recoverable ancestor: task " << _id);
-      }
+      /* If this is not recoverable, propagate invalidation to the parent if possible.
+       * Note: At this time, do not take any action if the task is invalid and it has
+       * no parent. There could be some special cases where it does not imply a fatal
+       * error.
+       */
+      if (_flags.is_invalid && !_flags.is_recoverable && _parent != NULL
+            && !_parent->_flags.is_invalid)
+         _parent->setInvalid(true);
+
    }
 }
 

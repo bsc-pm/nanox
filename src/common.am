@@ -18,9 +18,14 @@ hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@
 hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc
 endif
 
+if RESILIENCY
+ft_cxxflags = -fnon-call-exceptions -DNANOS_RESILIENCY_ENABLED
+ft_fcflags = -fnon-call-exceptions
+endif
+
 if GNU_C
-common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags) -fnon-call-exceptions
-common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC
+common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags) $(ft_cxxflags)
+common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC $(ft_fcflags)
 no_inline_flag= -fno-inline
 endif
 
@@ -29,6 +34,11 @@ common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(
 common_fcflags= -qPIC -DPIC
 no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs
+endif
+
+if INTEL_C
+common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags) $(ft_cxxflags)
+common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC $(ft_fcflags)
 endif
 
 bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL 

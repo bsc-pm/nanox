@@ -901,6 +901,29 @@ AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_s
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
 
+# Task-level resiliency support
+AC_MSG_CHECKING([if task resiliency is disabled.])
+AC_ARG_ENABLE([task_res_disabled],
+  AS_HELP_STRING([--disable-resiliency], [Disables task-level resiliency]),
+  [
+    task_res_disabled=yes
+    AC_MSG_RESULT([yes])
+  ],
+  [
+    AC_MSG_RESULT([no])
+    if test x$use_xlc = xno; then
+      task_res_disabled=no
+      AC_MSG_RESULT([checking if the compiler is compatible... yes])
+    else
+      task_res_disabled=yes
+      AC_MSG_ERROR([checking if the compiler is compatible... no (nanos resiliency is only compatible with GNU and Intel compilers)])
+    fi
+  ]
+)
+
+AM_CONDITIONAL([RESILIENCY], [test "x$task_res_disabled" = "xno"])
+
+
 # Output files
 AC_CONFIG_HEADERS([config.h])
 

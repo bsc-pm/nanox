@@ -91,6 +91,10 @@ namespace ext
           * \brief Unset the flag
           */
          virtual void wakeup();
+
+#ifdef NANOS_RESILIENCY_ENABLED
+         virtual void setupSignalHandlers();
+#endif
    };
 
 
@@ -98,5 +102,7 @@ namespace ext
 }
 
 void * smp_bootthread ( void *arg );
+
+
 
 #endif

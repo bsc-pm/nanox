@@ -138,20 +138,6 @@ System::System () :
 
    _lockPool = NEW Lock[_lockPoolSize];
 
-   /* Set up the structure to specify task-recovery. */
-   struct sigaction recovery_action;
-   recovery_action.sa_sigaction = &taskExecutionHandler;
-   sigemptyset(&recovery_action.sa_mask);
-   recovery_action.sa_flags = SA_SIGINFO | SA_RESTART; // Important: resume system calls if interrupted by the signal.
-   /* Program synchronous signals to use the default recovery handler.
-    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
-    */
-   assert(sigaction(SIGILL, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGTRAP, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGBUS, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGFPE, &recovery_action, NULL) == 0);
-   assert(sigaction(SIGSEGV, &recovery_action, NULL) == 0);
-
    if ( !_delayedStart ) {
       start();
    }
@@ -548,8 +534,10 @@ void System::start ()
    spu->startWorker();
 #endif
 
+#ifdef NANOS_RESILIENCY_ENABLED
    // Setup signal handlers
    myThread->setupSignalHandlers();
+#endif
 
    if ( getSynchronizedStart() ) {
       // Wait for the rest of the gang to be ready, but do not yet notify master thread is ready
@@ -1567,5 +1555,7 @@ void System::ompss_nanox_main(){
     nanos::ext::MPIProcessor::mpiOffloadSlaveMain();
     #endif
 
+#ifdef NANOS_RESILIENCY_ENABLED
     getMyThreadSafe()->setupSignalHandlers();
+#endif
 }

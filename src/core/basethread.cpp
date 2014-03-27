@@ -96,23 +96,6 @@ void BaseThread::waitSingleBarrierGuard ()
    getTeam()->waitSingleBarrierGuard( _teamData->currentSingleGuard() );
 }
 
-void BaseThread::setupSignalHandlers()
-{
-   /* Set up the structure to specify task-recovery. */
-   struct sigaction recovery_action;
-   recovery_action.sa_sigaction = &taskExecutionHandler;
-   sigemptyset(&recovery_action.sa_mask);
-   recovery_action.sa_flags = SA_SIGINFO | SA_RESTART; // Important: resume system calls if interrupted by the signal.
-   /* Program synchronous signals to use the default recovery handler.
-    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
-    */
-   ensure(sigaction(SIGILL, &recovery_action, NULL) == 0, "Signal setup (SIGILL) failed");
-   ensure(sigaction(SIGTRAP, &recovery_action, NULL) == 0, "Signal setup (SIGTRAP) failed");
-   ensure(sigaction(SIGBUS, &recovery_action, NULL) == 0, "Signal setup (SIGBUS) failed");
-   ensure(sigaction(SIGFPE, &recovery_action, NULL) == 0, "Signal setup (SIGFPE) failed");
-   ensure(sigaction(SIGSEGV, &recovery_action, NULL) == 0, "Signal setup (SIGSEGV) failed");
-}
-
 /*
  * G++ optimizes TLS accesses by obtaining only once the address of the TLS variable
  * In this function this optimization does not work because the task can move from one thread to another
@@ -123,34 +106,3 @@ void BaseThread::setupSignalHandlers()
  * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
  */
 BaseThread * nanos::getMyThreadSafe() { return myThread; }
-
-void
-taskExecutionHandler(int sig, siginfo_t* si, void* context) throw(task_execution_exception_t)
-  {
-    /*
-     * In order to prevent the signal to be raised inside the handler, it is blocked inside it.
-     * Because we are exiting the handler before it returns (via throwing an exception),
-     * we must unblock the signal or it wont be catched again.
-     *
-     * It also works using SA_NODEFER.
-     * Note: moved to the catch block instead
-     *
-     sigset_t x;
-     sigemptyset(&x);
-     sigaddset(&x, sig);
-     pthread_sigmask(SIG_UNBLOCK, &x, NULL);
-     */
-    task_execution_exception_t ter = { sig, *si, *(ucontext_t*) context};
-
-    throw ter; //throw value
-    /*
-     * Important note:
-     * If the exception is thrown using new, then a pointer to the object will be passed. It must be catched with pointer. This is discouraged because it's allocated in the heap (it isn't reliable for out-of-memory SIGSEGVs where the stack is empty). In addition, the user is responsible for memory management in the catch clause.
-     * catch(TaskExecutionError* e)
-     * If otherwise is thrown without using new, a reference to the object is passed, and must be catched with reference.
-     * catch(TaskExecutionError& e)
-     * It can be catched without specifying the reference '&' in the argument. In that case, a copy of the data is performed.
-     * catch(TaskExecutionError e)
-     * http://stackoverflow.com/questions/9562053/do-the-default-catch-throw-statements-in-c-pass-by-value-or-reference
-     */
-  }

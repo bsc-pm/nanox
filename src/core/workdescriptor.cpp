@@ -301,9 +301,3 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    if (componentsLeft == 0) _componentsSyncCond.signal();
    _componentsSyncCond.unreference();
 }
-
-void WorkDescriptor::recover ()
-{
-  _state = START;
-  _flags.is_invalid = false;
-}

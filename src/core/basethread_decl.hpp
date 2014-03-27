@@ -303,7 +303,12 @@ namespace nanos
           */
          void setMainThread ( bool v = true );
 
-         void setupSignalHandlers();
+#ifdef NANOS_RESILIENCY_ENABLED
+         /*! \brief Change the action taken by default if some specified signals are received.
+          */
+         virtual void setupSignalHandlers() = 0;
+
+#endif
    };
 
    extern __thread BaseThread *myThread;
@@ -312,7 +317,9 @@ namespace nanos
 
 }
 
+#ifdef NANOS_RESILIENCY_ENABLED
 void taskExecutionHandler(int sig, siginfo_t* si, void* context)
     throw (task_execution_exception_t);
+#endif
 
 #endif
