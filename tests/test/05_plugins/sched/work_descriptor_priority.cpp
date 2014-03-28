@@ -30,6 +30,7 @@ test_schedule="bf --schedule-priority"
 #include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
+#include <unistd.h>
 
 using namespace std;
 
