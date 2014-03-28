@@ -17,7 +17,7 @@ ARG2=$2
 shift
 shift
 
-ARCH_NUM_THREADS=$CURR_ARCH"_OMP_NUM_THREADS"
+ARCH_NUM_THREADS=$UPPER_CURR_ARCH"_OMP_NUM_THREADS"
 LOWER_ARCH_NUM_THREADS=$LOWER_CURR_ARCH"_OMP_NUM_THREADS"
 
 
@@ -88,6 +88,6 @@ unset TMP_NUM_THREADS
 
 #################### END OMP BLOCK
 
-export NX_ARGS=$NX_ARGS" --spins=4 --sleep-time=10 --sleeps=50000000"
+#export NX_ARGS=$NX_ARGS" --spins=4 --sleep-time=10 --sleeps=50000000"
 export OMPSS_OFFLOAD_SLAVE=1
 exec $filename.$CURR_ARCH $ARG1 $ARG2

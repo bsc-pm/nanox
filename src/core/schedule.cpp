@@ -282,6 +282,7 @@ inline void Scheduler::idleLoop ()
          continue;
       }
 
+      thread->idle(); 
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
          dlb_returnCpusIfNeeded();
@@ -308,7 +309,6 @@ inline void Scheduler::idleLoop ()
          }
          spins = init_spins;
       }
-      else { thread->idle(); }
    }
 
    NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
@@ -686,9 +686,9 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    if ( done ) {
       wd->finish();
       finishWork( wd, schedule );
-      /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
-      NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    }
+   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
 
 
    thread->setCurrentWD( *oldwd );

@@ -47,7 +47,9 @@ extern "C" {
     void deep_booster_alloc (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm);
     void deep_booster_alloc_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm);
     void deep_booster_alloc_offset (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset);
-    void deep_booster_alloc_offset_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm, int* offset);    
+    void deep_booster_alloc_offset_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm, int* offset);   
+    void deep_booster_alloc_list(MPI_Comm comm, int number_of_hosts, int* id_host_list, int* process_per_host_list, MPI_Comm *intercomm);
+    void deep_booster_alloc_list_(MPI_Comm* comm, int* number_of_hosts, int* id_host_list, int* process_per_host_list,MPI_Comm *intercomm);
     void deep_booster_free (MPI_Comm *intercomm);
     void deep_booster_free_ (MPI_Comm *intercomm);
     void deep_booster_free_single (MPI_Comm *intercomm, int rank);

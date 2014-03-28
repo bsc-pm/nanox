@@ -49,20 +49,28 @@ void deep_booster_free_single_ (MPI_Comm *intercomm, int* rank) {
 }
 
 void deep_booster_alloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm) {
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, 0);
+    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, 0, NULL ,NULL);
 }
 
 void deep_booster_alloc_(MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm *intercomm) {
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts, *process_per_host, intercomm, 0);
+    nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts, *process_per_host, intercomm, 0, NULL ,NULL);
 }
 
 
 void deep_booster_alloc_offset (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset) {
-        nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, offset);
+        nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, offset, NULL ,NULL);
 }
 
 void deep_booster_alloc_offset_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm, int* offset) {
-        nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts,*process_per_host, intercomm, *offset);
+        nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts,*process_per_host, intercomm, *offset, NULL ,NULL);
+}
+
+void deep_booster_alloc_list(MPI_Comm comm, int number_of_hosts, int* id_host_list, int* process_per_host_list, MPI_Comm *intercomm) {
+    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, 0, intercomm, 0, id_host_list, process_per_host_list);
+}
+
+void deep_booster_alloc_list_(MPI_Comm* comm, int* number_of_hosts, int* id_host_list, int* process_per_host_list,MPI_Comm *intercomm) {
+    nanos::ext::MPIProcessor::DEEPBoosterAlloc(*comm, *number_of_hosts, 0, intercomm, 0, id_host_list, process_per_host_list);
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {

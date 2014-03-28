@@ -196,8 +196,21 @@ namespace nanos {
             static void nanosMPIInit(int* argc, char ***argv, int required, int* provided);
             
             static void nanosMPIFinalize();
-                        
-            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset);  
+            
+            /**
+             * TODO: Split this in sub-functions and refactor to vars follow naming convention....
+             * Function which allocate remote nodes
+             * @param comm Communicator of the masters who will allocate (collective) and access the boosters
+             * @param number_of_hosts Number of hosts (lines in hostfile) to spawn
+             * @param process_per_host Process per host to spawn
+             * @param intercomm Resulting interccomm representing the boosters
+             * @param offset Offset (0 by default, only used in deep_booster_alloc_offset)
+             * @param id_host_list List individually which specifies which hosts will be used (of length number_of_hosts)
+             * @param pph_list Process per host when using id_host_list (of length number_of_hosts)
+             * Process per host will be 0 (aka incompatible) with the "_list" mode
+             * Offset will be 0 (aka incompatible) with the "_list" mode
+             */
+            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset,const int* id_host_list,const int* pph_list);  
             
             /**
              * Wrappers for MPI functions

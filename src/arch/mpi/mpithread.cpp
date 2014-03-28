@@ -33,11 +33,11 @@ using namespace nanos;
 using namespace nanos::ext;
 
 void MPIThread::initializeDependent() {
-    int nspins=sys.getSchedulerConf().getNumSpins();
-    if (nspins<=1) {
-        warning0("--spins argument should be >1 when you are offloading, lower numbers may hang the execution, setting it to 4");
-        sys.getSchedulerConf().setNumSpins(4);
-    }
+//    int nspins=sys.getSchedulerConf().getNumSpins();
+//    if (nspins<=1) {
+//        warning0("--spins argument should be >1 when you are offloading, lower numbers may hang the execution, setting it to 4");
+//        sys.getSchedulerConf().setNumSpins(4);
+//    }
 }
 
 void MPIThread::runDependent() {
@@ -145,10 +145,14 @@ void MPIThread::setGroupThreadList(std::vector<MPIThread*>* threadList){
 }
 
 bool MPIThread::deleteWd(WD* wd, bool markToDelete) {
-    bool removable=true;
-    //Check if any thread is executing the WD
-    for (std::vector<MPIThread*>::iterator it = _groupThreadList->begin() ; it!=_groupThreadList->end() && removable ; ++it) {
-        removable=removable && (wd!=(*it)->getCurrentWD());
+    bool removable=false;
+    if (_groupLock==NULL || _groupLock->tryAcquire()) {
+        removable=true;
+        //Check if any thread is executing the WD
+        for (std::vector<MPIThread*>::iterator it = _groupThreadList->begin() ; it!=_groupThreadList->end() && removable ; ++it) {
+            removable=removable && (wd!=(*it)->getCurrentWD());
+        }
+        if (_groupLock!=NULL) _groupLock->release();
     }
     //Delete the WD (only if we are not executing it, this should be mostly always)
     if (removable) {
@@ -165,8 +169,10 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     int id_func_ompss;
     nanos::ext::MPIProcessor::nanosMPIRecvTaskend(&id_func_ompss, 1, MPI_INT,finishedPE->getRank(),
         finishedPE->getCommunicator(),MPI_STATUS_IGNORE);
-    WorkDescriptor* wd=finishedPE->getCurrExecutingWd();
+    WD* wd=finishedPE->getCurrExecutingWd();
     finishedPE->setCurrExecutingWd(NULL);
+    WD* previousWD = getCurrentWD();
+    setCurrentWD(*wd);
     //Before finishing wd, switch thread to the right PE
     //Wait until local cache in the PE is free
     PE* oldPE=runningOn();
@@ -178,6 +184,7 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     Scheduler::finishWork(wd,true);
     setRunningOn(oldPE);
     finishedPE->setBusy(false);
+    setCurrentWD(*previousWD);
     deleteWd(wd,true);
     //Restore previous PE
     (*_groupTotRunningWds)--;

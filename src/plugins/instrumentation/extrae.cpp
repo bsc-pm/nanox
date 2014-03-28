@@ -225,7 +225,11 @@ class InstrumentationExtrae: public Instrumentation
             Extrae_define_event_type( (extrae_type_t *) &_eventSubState, (char *) "Thread sub-state", &nval, values, val_desc );
          }
 
-         OMPItrace_fini();
+         //If offloading, MPI will finish the trace
+         char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
+         if (offload_trace_on == NULL){ 
+            OMPItrace_fini();
+         }
       }
 
       void disable( void ) { Extrae_shutdown(); }
