@@ -258,9 +258,6 @@ namespace nanos
          data->icvs()->setNumThreads( nthreads );
 
          sys.updateActiveWorkers( nthreads );
-
-         // \note There is no guarantee at the end team size has been updated
-         // ensure( myThread->getTeam()->size(), "Update Number of Threads failed " );
       }
 
       /*!
