@@ -26,7 +26,7 @@ void SlicerReplicate::submit ( WorkDescriptor &work )
 
    nanos_ws_desc_t *wsd_current = *(( nanos_ws_desc_t ** )work.getData());
 
-   int i = myThread->getTeam()->size() - 1;
+   int i = myThread->getTeam()->getFinalSize() - 1;
 
    BaseThread *thread = &(myThread->getTeam()->getThread(i));
    if ( thread == myThread ) {

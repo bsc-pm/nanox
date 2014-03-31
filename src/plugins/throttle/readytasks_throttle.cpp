@@ -42,14 +42,14 @@ namespace nanos {
 
             void setLimit( int mr ) { _limit = mr; }
 
-            bool throttle();
+            bool throttleIn();
 
             ~ReadyTasksThrottle() {}
       };
 
       const int ReadyTasksThrottle::_defaultLimit = 100;
 
-      bool ReadyTasksThrottle::throttle()
+      bool ReadyTasksThrottle::throttleIn()
       {
          //checking if the number of ready tasks is higher than the allowed maximum
          if ( sys.getReadyNum() > _limit )  {

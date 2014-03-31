@@ -16,6 +16,7 @@ test_generator="gens/mixed-generator -a \"--gpus=0\""
 #include <list>
 #include <algorithm>
 #include <iomanip>
+#include <unistd.h>
 
 using namespace std;
 using namespace nanos;

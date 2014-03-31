@@ -34,7 +34,7 @@ extern "C"
 {
    NANOS_API_DEF(int, omp_get_num_threads, ( void ))
    {
-      return myThread->getTeam()->size();
+      return myThread->getTeam()->getFinalSize();
    }
 
    int nanos_omp_get_num_threads ( void ) __attribute__ ((alias ("omp_get_num_threads")));
@@ -79,7 +79,7 @@ extern "C"
 
    NANOS_API_DEF(int, omp_in_parallel, ( void ))
    {
-      return myThread->getTeam()->size() > 1;
+      return myThread->getTeam()->getFinalSize() > 1;
    }
 
    void omp_set_dynamic( int dynamic_threads )

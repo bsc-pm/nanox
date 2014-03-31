@@ -154,7 +154,7 @@ namespace nanos {
             *  try to steal tasks from other queues
             *  \warning other queues are checked cyclically: should be random
             */
-            int size = thread->getTeam()->size();
+            int size = thread->getTeam()->getFinalSize();
             int thid = rand() % size;
             int count = 0;
             wd = NULL;

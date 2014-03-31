@@ -57,7 +57,7 @@ System::System () :
       _numPEs( INT_MAX ), _numThreads( 0 ), _maxCpus(0), _deviceStackSize( 0 ), _bindingStart (0), _bindingStride(1),  _bindThreads( true ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
-      _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enable_dlb( false ), _throttlePolicy ( NULL ),
+      _numSockets( 0 ), _coresPerSocket( 0 ), _numAvailSockets( 0 ), _enableDLB( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), _targetThreads ( 0 ), _pausedThreads( 0 ),
@@ -69,7 +69,7 @@ System::System () :
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-      , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enable_cpuid_event( false )
+      , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enableCpuidEvent( false )
 #endif
       , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false)
 {
@@ -80,7 +80,7 @@ System::System () :
    OS::init();
    config();
 
-   OS::getProcessAffinity( &_cpu_set );
+   OS::getProcessAffinity( &_cpuSet );
 
    _maxCpus = OS::getMaxProcessors();
    int cpu_count = getCpuCount();
@@ -90,7 +90,7 @@ System::System () :
    std::ostringstream oss_cpu_idx;
    oss_cpu_idx << "[";
    for ( int i=0; i<CPU_SETSIZE; i++ ) {
-      if ( CPU_ISSET(i, &_cpu_set) ) {
+      if ( CPU_ISSET(i, &_cpuSet) ) {
          cpu_affinity.push_back(i);
          oss_cpu_idx << i << ", ";
       }
@@ -132,7 +132,7 @@ System::System () :
       i++;
    }
 
-   CPU_ZERO( &_cpu_active_set );
+   CPU_ZERO( &_cpuActiveSet );
 
    _lockPool = NEW Lock[_lockPoolSize];
 
@@ -384,12 +384,12 @@ void System::config ()
                              "Remove events to instrumentation event list" );
    cfg.registerArgOption( "instrument-disable", "instrument-disable" );
 
-   cfg.registerConfigOption( "instrument-cpuid", NEW Config::FlagOption ( _enable_cpuid_event ),
+   cfg.registerConfigOption( "instrument-cpuid", NEW Config::FlagOption ( _enableCpuidEvent ),
                              "Add cpuid event when binding is disabled (expensive)" );
    cfg.registerArgOption( "instrument-cpuid", "instrument-cpuid" );
 #endif
 
-   cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _enable_dlb ),
+   cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _enableDLB ),
                               "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
    cfg.registerArgOption( "enable-dlb", "enable-dlb" );
 
@@ -452,7 +452,7 @@ void System::start ()
    pe->setNUMANode( getNodeOfPE( pe->getId() ) );
    _pes.push_back ( pe );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
-   CPU_SET( getBindingId( 0 ), &_cpu_active_set );
+   CPU_SET( getBindingId( 0 ), &_cpuActiveSet );
 
    WD &mainWD = *myThread->getCurrentWD();
    (void) mainWD.getDirectory(true);
@@ -485,7 +485,7 @@ void System::start ()
       pe->setNUMANode( getNodeOfPE( pe->getId() ) );
       _pes.push_back ( pe );
 
-      CPU_SET( getBindingId( p ), &_cpu_active_set );
+      CPU_SET( getBindingId( p ), &_cpuActiveSet );
    }
    
    // Create threads
@@ -505,7 +505,7 @@ void System::start ()
          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
          _pes.push_back( processor );
          _workers.push_back( &processor->startWorker() );
-         CPU_SET( processor->getId(), &_cpu_active_set );
+         CPU_SET( processor->getId(), &_cpuActiveSet );
          ++p;
       }
    }
@@ -1045,7 +1045,7 @@ void System::createWorker( unsigned p )
    _workers.push_back( thread );
    ++_targetThreads;
 
-   CPU_SET( getBindingId( p ), &_cpu_active_set );
+   CPU_SET( getBindingId( p ), &_cpuActiveSet );
 
    //Set up internal data
    WD & threadWD = thread->getThreadWD();
@@ -1066,7 +1066,7 @@ BaseThread * System::getUnassignedWorker ( void )
       if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
          // skip if the thread is not in the mask
-         if ( sys.getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpu_active_set) )
+         if ( sys.getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpuActiveSet) )
             continue;
 
          // recheck availability with exclusive access
@@ -1251,7 +1251,8 @@ void System::updateActiveWorkers ( int nthreads )
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) &nthreads); )
+   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
    BaseThread *thread;
    //! \bug Team variable must be received as a function parameter
@@ -1300,14 +1301,14 @@ inline void System::applyCpuMask()
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpu_active_set) )
+   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveSet) )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
    BaseThread *thread;
    ThreadTeam *team = myThread->getTeam();
    unsigned int _activePEs = 0;
 
-   for ( unsigned pe_id = 0; pe_id < _pes.size() || _activePEs < (size_t)CPU_COUNT(&_cpu_active_set); pe_id++ ) {
+   for ( unsigned pe_id = 0; pe_id < _pes.size() || _activePEs < (size_t)CPU_COUNT(&_cpuActiveSet); pe_id++ ) {
 
       // Create PE & Worker if it does not exist
       if ( pe_id == _pes.size() ) {
@@ -1317,7 +1318,7 @@ inline void System::applyCpuMask()
       }
 
       int pe_binding = getBindingId( pe_id );
-      if ( CPU_ISSET( pe_binding, &_cpu_active_set) ) {
+      if ( CPU_ISSET( pe_binding, &_cpuActiveSet) ) {
          _activePEs++;
          // This PE should be running
          while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
@@ -1338,35 +1339,35 @@ inline void System::applyCpuMask()
 
 void System::getCpuMask ( cpu_set_t *mask ) const
 {
-   memcpy( mask, &_cpu_active_set, sizeof(cpu_set_t) );
+   memcpy( mask, &_cpuActiveSet, sizeof(cpu_set_t) );
 }
 
 void System::setCpuMask ( const cpu_set_t *mask )
 {
-   memcpy( &_cpu_active_set, mask, sizeof(cpu_set_t) );
+   memcpy( &_cpuActiveSet, mask, sizeof(cpu_set_t) );
    sys.processCpuMask();
 }
 
 void System::addCpuMask ( const cpu_set_t *mask )
 {
-   CPU_OR( &_cpu_active_set, &_cpu_active_set, mask );
+   CPU_OR( &_cpuActiveSet, &_cpuActiveSet, mask );
    sys.processCpuMask();
 }
 
 inline void System::processCpuMask( void )
 {
 
-   // if _bindThreads is enabled, update _bindings adding new elements of _cpu_active_set
+   // if _bindThreads is enabled, update _bindings adding new elements of _cpuActiveSet
    if ( sys.getBinding() ) {
       std::ostringstream oss_cpu_idx;
       oss_cpu_idx << "[";
       for ( int cpu=0; cpu<CPU_SETSIZE; cpu++) {
          if ( cpu > _maxCpus-1 && !_simulator ) {
-            CPU_CLR( cpu, &_cpu_active_set);
+            CPU_CLR( cpu, &_cpuActiveSet);
             debug("Trying to use more cpus than available is not allowed (do you forget --simulator option?)");
             continue;
          }
-         if ( CPU_ISSET( cpu, &_cpu_active_set ) ) {
+         if ( CPU_ISSET( cpu, &_cpuActiveSet ) ) {
 
             if ( std::find( _bindings.begin(), _bindings.end(), cpu ) == _bindings.end() ) {
                _bindings.push_back( cpu );
@@ -1382,9 +1383,9 @@ inline void System::processCpuMask( void )
       }
    }
    else {
-      verbose0( "PID[" << getpid() << "]. Changing number of threads: " << (int) myThread->getTeam()->getFinalSize() << " to " << (int) CPU_COUNT( &_cpu_active_set ) );
+      verbose0( "PID[" << getpid() << "]. Changing number of threads: " << (int) myThread->getTeam()->getFinalSize() << " to " << (int) CPU_COUNT( &_cpuActiveSet ) );
       if ( _pmInterface->isMalleable() ) {
-         sys.updateActiveWorkers( CPU_COUNT( &_cpu_active_set ) );
+         sys.updateActiveWorkers( CPU_COUNT( &_cpuActiveSet ) );
       }
    }
 }
@@ -1438,10 +1439,46 @@ void * System::getHwlocTopology ()
    return _hwlocTopology;
 }
 
+void System::admitCurrentThread ( void )
+{
+   int pe_id = _pes.size();
+
+   //! \note Create a new PE and configure it
+   PE *pe = createPE ( "smp", getBindingId( pe_id ), pe_id );
+   pe->setNUMANode( getNodeOfPE( pe->getId() ) );
+   _pes.push_back ( pe );
+
+   //! \note Create a new Thread object and associate it to the current thread
+   BaseThread *thread = &pe->associateThisThread ( /* untie */ true ) ;
+   _workers.push_back( thread );
+
+   //! \note Update current cpu active set mask
+   CPU_SET( getBindingId( pe_id ), &_cpuActiveSet );
+
+   //! \note Getting Programming Model interface data
+   WD &mainWD = *myThread->getCurrentWD();
+   (void) mainWD.getDirectory(true); // FIXME: this may cause future problems
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      mainWD.setInternalData( data );
+   }
+
+   //! \note Include thread into main thread
+   acquireWorker( _mainTeam, thread, /* enter */ true, /* starring */ false, /* creator */ false );
+}
+
+void System::expelCurrentThread ( void )
+{
+   int pe_id =  myThread->runningOn()->getUId();
+   _pes.erase( _pes.begin() + pe_id );
+   _workers.erase ( _workers.begin() + myThread->getId() );
+}
+
 void System::environmentSummary( void )
 {
    /* Get Specific Mask String (depending on _bindThreads) */
-   cpu_set_t *cpu_set = _bindThreads ? &_cpu_active_set : &_cpu_set;
+   cpu_set_t *cpu_set = _bindThreads ? &_cpuActiveSet : &_cpuSet;
    std::ostringstream mask;
    mask << "[ ";
    for ( int i=0; i<CPU_SETSIZE; i++ ) {
@@ -1486,49 +1523,12 @@ void System::environmentSummary( void )
    message0( "=========================================================" );
 
    // Get start time
-   _summary_start_time = time(NULL);
-}
-
-void System::admitCurrentThread ( void )
-{
-   int pe_id = _pes.size();   
-
-   //! \note Create a new PE and configure it
-   PE *pe = createPE ( "smp", getBindingId( pe_id ), pe_id );
-   pe->setNUMANode( getNodeOfPE( pe->getId() ) );
-   _pes.push_back ( pe );
-
-   //! \note Create a new Thread object and associate it to the current thread
-   BaseThread *thread = &pe->associateThisThread ( /* untie */ true ) ;
-   _workers.push_back( thread );
-
-   //! \note Update current cpu active set mask
-   CPU_SET( getBindingId( pe_id ), &_cpu_active_set );
-
-   //! \note Getting Programming Model interface data
-   WD &mainWD = *myThread->getCurrentWD();
-   (void) mainWD.getDirectory(true); // FIXME: this may cause future problems
-   if ( _pmInterface->getInternalDataSize() > 0 ) {
-      char *data = NEW char[_pmInterface->getInternalDataSize()];
-      _pmInterface->initInternalData( data );
-      mainWD.setInternalData( data );
-   }
-
-   //! \note Include thread into main thread
-   acquireWorker( _mainTeam, thread, /* enter */ true, /* starring */ false, /* creator */ false );
-   
-}
-
-void System::expelCurrentThread ( void )
-{
-   int pe_id =  myThread->runningOn()->getUId();
-   _pes.erase( _pes.begin() + pe_id );
-   _workers.erase ( _workers.begin() + myThread->getId() );
+   _summaryStartTime = time(NULL);
 }
 
 void System::executionSummary( void )
 {
-   time_t seconds = time(NULL) -_summary_start_time;
+   time_t seconds = time(NULL) -_summaryStartTime;
    message0( "============ Nanos++ Final Execution Summary ============" );
    message0( "=== Application ended in " << seconds << " seconds" );
    message0( "=== " << getCreatedTasks() << " tasks have been executed" );
