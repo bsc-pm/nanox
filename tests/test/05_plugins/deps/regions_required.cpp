@@ -86,7 +86,7 @@ void try_to_fail( void *args )
 
 int main ( int argc, char **argv )
 {
-   ptrdiff_t i;
+   unsigned i;
    
    if ( posix_memalign( (void**) &array, sizeof( int [arraySize] ), sizeof(int [arraySize] ) ) != 0)
       return -1;
@@ -109,7 +109,7 @@ int main ( int argc, char **argv )
    for ( i = 0; i < arraySize; i++ )
    {
       nanos_region_dimension_t dimFail[1] = {{ sizeof( int ), (size_t) i, sizeof( int ) }};
-      nanos_data_access_t depsFail[] = {{(void *)&array, {0,1,0,0,0}, 1, dimFail, i} };
+      nanos_data_access_t depsFail[] = {{(void *)&array, {0,1,0,0,0}, 1, dimFail, (ptrdiff_t)i} };
       task_data_t task_data;
       task_data.index = i;
       

@@ -85,7 +85,7 @@ namespace nanos
          bool                 _instrument;
          bool                 _verboseMode;
          bool                 _summary;            /*!< \brief Flag to enable the summary */
-         time_t               _summary_start_time; /*!< \brief Track time to show duration in summary */
+         time_t               _summaryStartTime;   /*!< \brief Track time to show duration in summary */
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
          bool                 _untieMaster;
@@ -99,11 +99,11 @@ namespace nanos
          //! The socket that will be assigned to the next WD
          int                  _currentSocket;
          //! Enable Dynamic Load Balancing library
-         bool                 _enable_dlb;
+         bool                 _enableDLB;
 
 	 // Nanos++ scheduling domain
-         cpu_set_t            _cpu_set;         /*!< \brief system's default cpu_set */
-         cpu_set_t            _cpu_active_set;  /*!< \brief mask of current active cpus */
+         cpu_set_t            _cpuSet;          /*!< \brief system's default cpu_set */
+         cpu_set_t            _cpuActiveSet;    /*!< \brief mask of current active cpus */
 
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>     _numaNodeMap;
@@ -191,7 +191,7 @@ namespace nanos
          std::list<std::string>    _enableEvents;
          std::list<std::string>    _disableEvents;
          std::string               _instrumentDefault;
-         bool                      _enable_cpuid_event;
+         bool                      _enableCpuidEvent;
 #endif
 
          const int                 _lockPoolSize;

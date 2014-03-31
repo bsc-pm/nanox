@@ -554,7 +554,7 @@ namespace nanos {
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 13 */
 
             /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
-            /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");
+            /* 41 */ registerEventKey("set-num-threads","Number of Threads");
             /* 42 */ registerEventKey("cpuid","Thread cpuid");
 
             /* 43 */ registerEventKey("dep-address", "Dependence address", true);

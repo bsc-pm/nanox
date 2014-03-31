@@ -64,7 +64,7 @@ class WorkSharingStaticFor : public WorkSharing {
          }
 
          ThreadTeam *team = myThread->getTeam();
-         int num_threads = team->size();
+         int num_threads = team->getFinalSize();
          int thid = myThread->getTeamId();
          int niters = (((loop_data->upperBound - loop_data->lowerBound) / loop_data->loopStep ) + 1 );
          int adjust = niters % num_threads;
