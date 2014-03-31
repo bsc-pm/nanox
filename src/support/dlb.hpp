@@ -92,7 +92,7 @@ namespace nanos {
       bool released=0;
       int myCpu=getMyThreadSafe()->getCpuId();
       int me =getMyThreadSafe()->getId();
-      if ( sys.dlbEnabled() && DLB_ReleaseCpu && sys.getPMInterface().isMalleable() && me != 0 && !getMyThreadSafe()->isTaggedToSleep() ){
+      if ( sys.dlbEnabled() && DLB_ReleaseCpu && sys.getPMInterface().isMalleable() && me != 0 && !getMyThreadSafe()->isSleeping() ){
          released=DLB_ReleaseCpu(myCpu);
       }
       return released;
@@ -102,7 +102,7 @@ namespace nanos {
       bool released=0;
       int myCpu=getMyThreadSafe()->getCpuId();
       int me =getMyThreadSafe()->getId();
-      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpu && sys.getPMInterface().isMalleable() && me != 0 && !getMyThreadSafe()->isTaggedToSleep() ){
+      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpu && sys.getPMInterface().isMalleable() && me != 0 && !getMyThreadSafe()->isSleeping() ){
          released=DLB_ReturnClaimedCpu(myCpu);
       }
       return released;

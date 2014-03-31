@@ -507,8 +507,8 @@ namespace nanos {
 
             /* 30 */ registerEventKey("chunk-size","Chunk size", true);
 
-            /* 31 */ registerEventKey("num-sleeps","Number of Sleep operations", true);
-            /* 32 */ registerEventKey("time-sleeps","Time on Sleep (in nsecs)", true);
+            /* 31 */ registerEventKey("num-blocks","Number of blocking operations", true);
+            /* 32 */ registerEventKey("time-blocks","Time on block (in nsecs)", true);
 
             /* 33 */ registerEventKey("num-scheds","Number of scheduler operations", true);
             /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)", true);
@@ -554,7 +554,7 @@ namespace nanos {
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 13 */
 
             /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
-            /* 41 */ registerEventKey("set-num-threads","Change Number of Threads");
+            /* 41 */ registerEventKey("set-num-threads","Number of Threads");
             /* 42 */ registerEventKey("cpuid","Thread cpuid");
 
             /* 43 */ registerEventKey("dep-address", "Dependence address", true);

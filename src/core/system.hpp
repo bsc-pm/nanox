@@ -21,6 +21,7 @@
 #define _NANOS_SYSTEM_H
 
 #include "system_decl.hpp"
+#include "dependenciesdomain_decl.hpp"
 #include <vector>
 #include <string>
 #include "schedule.hpp"
@@ -29,6 +30,7 @@
 #include "nanos-int.h"
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
+#include "synchronizedcondition.hpp"
 #include "cache_map.hpp"
 #include <cmath>
 
@@ -50,7 +52,7 @@ inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 
 inline int System::getNumThreads () const { return _numThreads; }
 
-inline int System::getCpuCount () const { return CPU_COUNT( &_cpu_set ) ; };
+inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
 
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
@@ -81,8 +83,6 @@ inline System::InitialMode System::getInitialMode() const { return _initialMode;
 inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 
 inline bool System::getDelayedStart () const { return _delayedStart; }
-
-inline bool System::useYield() const { return _useYield; }
 
 inline int System::getCreatedTasks() const { return _schedStats._createdTasks.value(); }
 
@@ -315,7 +315,7 @@ inline Instrumentation * System::getInstrumentation ( void ) const { return _ins
 inline void System::setInstrumentation ( Instrumentation *instr ) { _instrumentation = instr; }
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-inline bool System::isCpuidEventEnabled ( void ) const { return _enable_cpuid_event; }
+inline bool System::isCpuidEventEnabled ( void ) const { return _enableCpuidEvent; }
 #endif
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
@@ -493,7 +493,7 @@ inline int System::nextThreadId () { return _threadIdSeed++; }
 
 inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
-inline bool System::dlbEnabled() const { return _enable_dlb; }
+inline bool System::dlbEnabled() const { return _enableDLB; }
 
 inline bool System::haveDependencePendantWrites ( void *addr ) const
 {

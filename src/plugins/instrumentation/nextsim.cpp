@@ -28,8 +28,10 @@ const unsigned int FLUSH = 71;
 
 //This is because wd ids start at 1
 // and we want to access the vector starting at 0
-#define WD_INDEX(__id__) (__id__-1)
-#define WD_ID(__index__) (__index__+1)
+//#define WD_INDEX(__id__) (__id__-1)
+//#define WD_ID(__index__) (__index__+1)
+#define WD_INDEX(__id__) (__id__)
+#define WD_ID(__index__) (__index__)
 
 #if defined(NDEBUG)
 #define verify(expr) expr
@@ -107,13 +109,12 @@ public:
             exit(-1);
         }
         trace_writer_ = new sim::trace::ompss::FileTrace<sim::trace::BinaryEventStream>(out_trace);
-        unsigned name_id = 0;
+        unsigned name_id;
         verify(trace_writer_->add_task_name("__main__", name_id) == true);
 
         // Add the work descriptor for the main task
-        sim::trace::ompss::wd_info_t &new_wd = trace_writer_->add_wd_info(0);;
-        new_wd.num_deps = 0;
-        count_vector_.push_back(0); // Name ID is for the main task
+        trace_writer_->add_wd_info(WD_INDEX(1));
+        count_vector_.push_back(name_id); // Name ID is for the main task
     }
 
     inline
@@ -129,15 +130,15 @@ public:
        wd_id = WD_INDEX(wd_id);
        sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
 
-       assert(wd.active == true and wd.phase_stack.empty() == false);
+       assert(wd.active_ == true and wd.phase_stack_.empty() == false);
 
        //closing phase (if existed)
-       if( timestamp > wd.phase_st_time ) {
-          unsigned long long time = timestamp - wd.phase_st_time;
-          verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack.top(), time)) == true);
+       if( timestamp > wd.phase_st_time_ ) {
+          unsigned long long time = timestamp - wd.phase_st_time_;
+          verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack_.top(), time)) == true);
        }
 
-       wd.active = false;
+       wd.active_ = false;
        //wd.phase_stack.pop();
        //assert(wd.phase_stack.empty() == true);
     }
@@ -148,10 +149,10 @@ public:
        assert(wd_id > 0);
        wd_id = WD_INDEX(wd_id);
        sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
-       assert(wd.active == false);
-       wd.active = true;
-       if (wd.phase_stack.empty() == false) { //not start of wd
-          wd.phase_st_time = getns();
+       assert(wd.active_ == false);
+       wd.active_ = true;
+       if (wd.phase_stack_.empty() == false) { //not start of wd
+          wd.phase_st_time_ = getns();
        }
     }
  
@@ -161,17 +162,17 @@ public:
         wd_id = WD_INDEX(wd_id);
         sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
 
-        assert(wd.active == true and wd.phase_stack.empty() == false);
+        assert(wd.active_ == true and wd.phase_stack_.empty() == false);
 
         //close previous phase (if existed)
-        if( timestamp > wd.phase_st_time ) {
-            unsigned long long time = timestamp - wd.phase_st_time;
-            verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack.top(), time)) == true);
+        if( timestamp > wd.phase_st_time_ ) {
+            unsigned long long time = timestamp - wd.phase_st_time_;
+            verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack_.top(), time)) == true);
         }
 
         //start counting this starting one
-        wd.phase_stack.push(phase);
-        wd.phase_st_time = getns();
+        wd.phase_stack_.push(phase);
+        wd.phase_st_time_ = getns();
     }
 
 
@@ -181,12 +182,12 @@ public:
         assert(wd_id > 0);
         wd_id = WD_INDEX(wd_id);
         sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
-        assert(wd.active == true);
-        wd.active = true;
-        assert(wd.phase_stack.empty() == true);
+        assert(wd.active_ == true);
+        wd.active_ = true;
+        assert(wd.phase_stack_.empty() == true);
 
-        wd.phase_stack.push(phase);
-        wd.phase_st_time = getns();
+        wd.phase_stack_.push(phase);
+        wd.phase_st_time_ = getns();
     }
 
 
@@ -195,12 +196,12 @@ public:
     {
         wd_id = WD_INDEX(wd_id);
         sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
-        assert(wd.active == true and wd.phase_stack.empty() == false);
-        assert(wd.phase_stack.top() == phase);
+        assert(wd.active_ == true and wd.phase_stack_.empty() == false);
+        assert(wd.phase_stack_.top() == phase);
         // Closing phase (if existed)
 
-        if( timestamp > wd.phase_st_time ) {
-            unsigned long long time = getns() - wd.phase_st_time;
+        if( timestamp > wd.phase_st_time_ ) {
+            unsigned long long time = getns() - wd.phase_st_time_;
 
             if(name.empty() == false) {
                 unsigned name_id;
@@ -222,9 +223,9 @@ public:
              }
          }
 
-         wd.phase_stack.pop();
-         assert(wd.phase_stack.empty() == false);
-         wd.phase_st_time = getns();
+         wd.phase_stack_.pop();
+         assert(wd.phase_stack_.empty() == false);
+         wd.phase_st_time_ = getns();
     }
 
 
@@ -234,18 +235,18 @@ public:
         wd_id = WD_INDEX(wd_id);
         sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
 
-        assert(wd.active == true and wd.phase_stack.empty() == false);
-        assert(wd.phase_stack.top() == phase);
+        assert(wd.active_ == true and wd.phase_stack_.empty() == false);
+        assert(wd.phase_stack_.top() == phase);
 
         //closing phase (if existed)
-        if( timestamp > wd.phase_st_time ) {
-            unsigned long long time = timestamp - wd.phase_st_time;
-            verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack.top(), time)) == true);
+        if( timestamp > wd.phase_st_time_ ) {
+            unsigned long long time = timestamp - wd.phase_st_time_;
+            verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack_.top(), time)) == true);
         }
 
-        wd.active = false;
-        wd.phase_stack.pop();
-        assert(wd.phase_stack.empty() == true);
+        wd.active_ = false;
+        wd.phase_stack_.pop();
+        assert(wd.phase_stack_.empty() == true);
     }
 
 
@@ -255,13 +256,12 @@ public:
         //new wd in the map
         wd_id = WD_INDEX(wd_id);
         sim::trace::ompss::wd_info_t &new_wd = trace_writer_->add_wd_info(wd_id);
-        new_wd.active = false;
-        new_wd.num_deps = num_deps;
+        new_wd.active_ = false;
 
         for(int i = 0; i < num_deps; i++) {
-            new_wd.deps.push_back(dep[i]);
+            new_wd.deps_.push_back(dep[i]);
         }
-        new_wd.phase_st_time = getns();
+        new_wd.phase_st_time_ = getns();
     }
 
 
@@ -270,27 +270,26 @@ public:
     {
         wd_id = WD_INDEX(wd_id);
         sim::trace::ompss::wd_info_t& wd = trace_writer_->get_wd_info(wd_id);
-        assert(wd.active == true and wd.phase_stack.empty() == false);
+        assert(wd.active_ == true and wd.phase_stack_.empty() == false);
 
         //close current phase (if existed) and re-open it after new event
-        if( timestamp > wd.phase_st_time ) {
-            unsigned long long time = timestamp - wd.phase_st_time;
-            verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack.top(), time)) == true);
+        if( timestamp > wd.phase_st_time_ ) {
+            unsigned long long time = timestamp - wd.phase_st_time_;
+            verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, sim::trace::ompss::PHASE_EVENT, wd.phase_stack_.top(), time)) == true);
         }
         verify(trace_writer_->add_event(sim::trace::ompss::event_t(wd_id, static_cast<sim::trace::ompss::type_t>(type), val1, val2)) == true);
 
-        wd.phase_st_time = getns();
+        wd.phase_st_time_ = getns();
     }
 
 
     inline
-    void add_dep(unsigned int num_deps, nanos_data_access_t* dep)
+    void add_dep(unsigned wd_id, unsigned int num_deps, nanos_data_access_t* dep)
     {
         for(unsigned int i = 0; i < num_deps; i++) {
-            trace_writer_->add_dep(dep[i]);
+            trace_writer_->add_dep({wd_id, dep[i]});
         }
     }
-
 
 };
 
@@ -331,7 +330,7 @@ class InstrumentationTasksimTrace: public Instrumentation
 
    public:
        // constructor
-       InstrumentationTasksimTrace (): Instrumentation( *new InstrumentationContext() ) { }
+       InstrumentationTasksimTrace (): Instrumentation( *new InstrumentationContextDisabled() ) { }
 
       // destructor
       ~InstrumentationTasksimTrace ( ) { }
@@ -346,9 +345,6 @@ class InstrumentationTasksimTrace: public Instrumentation
       {
           wd_events_.fini();
       }
-
-      virtual void threadStart ( BaseThread &thread ) {}
-      virtual void threadFinish ( BaseThread &thread ) {}
 
       virtual void enable() { std::cerr << "Disabling tasksim instrumentation not supported" << std::endl; exit(1); }
       virtual void disable() { std::cerr << "Disabling tasksim instrumentation not supported" << std::endl; exit(1); }
@@ -391,7 +387,7 @@ class InstrumentationTasksimTrace: public Instrumentation
                   //We recognize the point event class through the first key type
                   if ( e.getKey() == create_wd_id ) { //It's a task creation event
                       unsigned int wd_id_num = e.getValue();
-                      wd_events_.add_event(timestamp, which_WD, sim::trace::ompss::CREATE_TASK_EVENT, wd_id_num - 1, 0);
+                      wd_events_.add_event(timestamp, which_WD, sim::trace::ompss::CREATE_TASK_EVENT, wd_id_num, 0);
                       e = events[++i];
                       assert(e.getKey() == wd_ptr);
                       //WD pointer is not used for now, but it may be useful for future extensions
@@ -408,7 +404,7 @@ class InstrumentationTasksimTrace: public Instrumentation
                       e = events[++i];
                       assert(e.getKey() == wd_deps_ptr);
                       wd_events_.add_event(timestamp, which_WD, sim::trace::ompss::WAIT_ON_EVENT, num_deps, 0);
-                      wd_events_.add_dep(num_deps, (nanos_data_access_t*) e.getValue());
+                      wd_events_.add_dep(which_WD, num_deps, (nanos_data_access_t*) e.getValue());
                   } else {
                       //ignore any other point event
                   }
@@ -499,6 +495,7 @@ class InstrumentationTasksimTracePlugin : public Plugin {
       void init ()
       {
          sys.setInstrumentation( new InstrumentationTasksimTrace() );
+         sys.getSchedulerConf().setUseYield(true);
       }
 };
 

@@ -395,7 +395,6 @@ bool multiple_predecessors()
       nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value[j]), 0, sizeof(my_value[j])}};
       nanos_data_access_t data_accesses1[1] = {{&my_value[j], {0,1,0,0,0}, 1, dimensions1, 0}};
       nanos_wd_t wd1 = 0;
-      fprintf(stderr, "Dep #%d, address %p\n", j, &my_value[j] );
 
       const_data1.base.data_alignment = __alignof__(my_args);
       NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof( my_args ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );

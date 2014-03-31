@@ -22,7 +22,6 @@
 namespace nanos
 {
    class Slicer;
-   class SlicedWD;
 };
 
 #endif

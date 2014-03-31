@@ -102,7 +102,7 @@ NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( char **description, nanos
  *  \param dyn_props bundle of dynamic properties (specific for a given work descriptor instance)
  *  \param data_size size of data environment
  *  \param data if *data == 0, a environment of data_size will be allocated, otherwise ignored
- *  \param uwg  if (wg != 0) the WD is added to that WG
+ *  \param uwg  if (wg != 0) the new WD is added to that WD
  *  \param copies  if num_copies > 0, list of nanos_copy_data_t elements that describe copy-in/out operations for the WD
  *  \param dimensions dimensions
  *  \sa nanos::WorkDescriptor
@@ -125,8 +125,8 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_compact, ( nanos_wd_t *uwd, nanos_co
          return NANOS_OK;
       }
       sys.createWD ( (WD **) uwd, const_data->num_devices, const_data->devices, data_size, const_data->data_alignment,
-                     (void **) data, (WG *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies,
-                     const_data->num_dimensions, dimensions, NULL, const_data->description );
+                     (void **) data, (WD *) uwg, &const_data->props, dyn_props, const_data->num_copies, copies,
+                     const_data->num_dimensions, dimensions, NULL, const_data->description, NULL );
 
    } catch ( nanos_err_t e) {
       return e;
@@ -171,9 +171,9 @@ NANOS_API_DEF(nanos_err_t, nanos_create_sliced_wd, ( nanos_wd_t *uwd, size_t num
          return NANOS_OK;
       }
 
-      // FIXME: last parameter is description, which currently is forced
-      sys.createSlicedWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align, outline_data, (WG *) uwg,
-                           (Slicer *) slicer, props, dyn_props, num_copies, copies, num_dimensions, dimensions, "" );
+      sys.createWD ( (WD **) uwd, num_devices, devices, outline_data_size, outline_data_align,
+                     (void **) outline_data, (WD *) uwg, props, dyn_props, num_copies, copies,
+                     num_dimensions, dimensions, NULL, "", (Slicer *) slicer );
 
    } catch ( nanos_err_t e) {
       return e;
@@ -270,6 +270,7 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       WD wd( (DD*) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment,
              data, const_data->num_copies, copies, NULL, (char *) const_data->description);
       wd.setTranslateArgs( translate_args );
+      wd.forceParent( myThread->getCurrentWD() );
       
       // Set WD's socket
       wd.setSocket( sys.getCurrentSocket() );
@@ -414,14 +415,18 @@ NANOS_API_DEF(nanos_err_t, nanos_slicer_get_specific_data, ( nanos_slicer_t slic
    return NANOS_OK;                                                                                                                                      
 }   
 
-/*! \brief Get WorkDescriptor's priority
- *
- */
+//! \brief Get WorkDescriptor's priority
 NANOS_API_DEF(int, nanos_get_wd_priority, ( nanos_wd_t wd ))
 {
    //! \note Why this is not instrumented?
-   WD *lwd = ( WD * )wd;
-   return lwd->getPriority();
+   return ((WD*)wd)->getPriority();
+}
+
+//! \brief Set WorkDescriptor's priority
+NANOS_API_DEF(void, nanos_set_wd_priority, ( nanos_wd_t wd, int p ))
+{
+   //! \note Why this is not instrumented?
+   ((WD*)wd)->setPriority( p );
 }
 
 /*! \brief Get number of ready tasks

@@ -42,14 +42,14 @@ namespace nanos {
 
             void setLimit( unsigned ml ) { _limit = ml; }
 
-            bool throttle();
+            bool throttleIn();
 
             ~TaskDepthThrottle() {}
       };
 
       const unsigned TaskDepthThrottle::_defaultLimit = 4;
 
-      bool TaskDepthThrottle::throttle()
+      bool TaskDepthThrottle::throttleIn()
       {
          //checking the parent level of the next work to be created (check >)
          if ( ( myThread->getCurrentWD() )->getDepth() > _limit )  {

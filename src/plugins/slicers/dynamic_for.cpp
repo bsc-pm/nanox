@@ -17,11 +17,11 @@ class SlicerDynamicFor: public Slicer
       ~SlicerDynamicFor ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slice);
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor** slice);
 };
 
-void SlicerDynamicFor::submit ( SlicedWD &work )
+void SlicerDynamicFor::submit ( WorkDescriptor &work )
 {
    debug0 ( "Using sliced work descriptor: Dynamic For" );
 
@@ -33,14 +33,14 @@ void SlicerDynamicFor::submit ( SlicedWD &work )
    Scheduler::submit ( work );
 }
 
-bool SlicerDynamicFor::dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slice)
+bool SlicerDynamicFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor** slice)
 {
    bool retval = false;
 
    nanos_loop_info_t *nli = ( nanos_loop_info_t * ) wd->getData();
 
    //! Compute next (chunk) lower bound
-   int _upper = nli->lower + nli->chunk * nli->step ;
+   int _upper = nli->lower + nli->chunk * nli->step - nli->step;
 
    //! Computing empty iteration spaces in order to avoid infinite task generation
    bool empty = (( nli->step > 0 ) && (nli->lower > nli->upper )) ? true : false;

@@ -23,10 +23,12 @@
 #include <list>
 #include <set>
 #include <vector>
+#include <stdint.h>
 #include "atomic_decl.hpp"
 #include "dataaccess_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"
 #include "basedependency_fwd.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos
 {
@@ -110,19 +112,20 @@ namespace nanos
         // FIXME DOC NEEDED FOR THIS FUNCTIONS
          virtual void init ( ) { }
 
-         virtual void dependenciesSatisfied ( ) { }
-
-         /*! \brief Waits until the dependencies with the given addresses
-          * are satisfied.
-          * \param flushDeps List of memory addresses.
-          * \note Previously we were passing a list of Dependency pointers,
-          * and used getDepAddress to create the flushDeps list inside this 
-          * function. As the regions code passes regions and does the same,
-          * the list will have to be created before calling this function.
-          * The regions code will call Region::getFirstValue() and the
-          * non region code will use the address + the offset.
+         /*! \brief This method is automatically called when
+          *  decreasePredecessors reduces the number to 0.
+          *  \note As there is a batch-release of dependencies, this method must
+          *  call dependenciesSatisfiedNoSubmit() to avoid code duplication.
+          *  \see decreasePredecessors(), dependenciesSatisfiedNoSubmit()
           */
-         virtual void wait ( std::list<uint64_t>const & flushDeps  ) { }
+         virtual void dependenciesSatisfied ( ) { }
+         
+         /*! \brief Because of the batch-release mechanism,
+          *  dependenciesSatisfied will never be called, so common code
+          *  between the normal path and the batch path must go here.
+          *  \see dependenciesSatisfied()
+          */
+         virtual void dependenciesSatisfiedNoSubmit ( ) { }
 
          virtual bool waits ( );
 
@@ -136,6 +139,11 @@ namespace nanos
           * (const version)
           */
          virtual const void * getRelatedObject ( ) const;
+         
+         /*! \brief Checks if this class supports batch release and, if so, if
+          *  it has only one predecessor.
+          */
+         virtual bool canBeBatchReleased ( ) const;
 
          /*! \brief Instrument predecessor -> successor dependency
           */
@@ -158,9 +166,10 @@ namespace nanos
 
         /*! \brief Decrease the number of predecessors of the DependableObject
          *         if it becomes 0, the dependencies are satisfied and the virtual
-         *         method dependenciesSatisfied is invoked.
+         *         method dependenciesSatisfied is invoked. It can be also a blocking
+         *         call in some cases, if blocking is set to true.
          */
-         int decreasePredecessors ( );
+         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking = false );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */

@@ -330,11 +330,11 @@ class InstrumentationGraphInstrumentation: public Instrumentation
                {  // Output dependence
                   _dot_file << _indent << sender << " -> " << receiver << " [style=dotted];\n";
                }
-               else if( e.getValue( ) == 4 )
+               else if( e.getValue( ) == 4 || e.getValue( ) == 7 )
                {  // Output dependence
                   _dot_file << _indent << sender << " -> d" << receiver << ";\n";
                }
-               else if( e.getValue( ) == 5 )
+               else if( e.getValue( ) == 5 || e.getValue( ) == 8 )
                {  // Output dependence
                   _dot_file << _indent << "  d" << sender << " -> " << receiver << ";\n";
                }
@@ -429,7 +429,7 @@ namespace ext {
 
 class InstrumentationGraphInstrumentationPlugin : public Plugin {
    public:
-      InstrumentationGraphInstrumentationPlugin () : Plugin("Instrumentation which print the trace to std out.",1) {}
+      InstrumentationGraphInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
       ~InstrumentationGraphInstrumentationPlugin () {}
 
       void config( Config &cfg ) {}
@@ -444,4 +444,4 @@ class InstrumentationGraphInstrumentationPlugin : public Plugin {
 
 } // namespace nanos
 
-DECLARE_PLUGIN("intrumentation-print_trace",nanos::ext::InstrumentationGraphInstrumentationPlugin);
+DECLARE_PLUGIN("intrumentation-graph",nanos::ext::InstrumentationGraphInstrumentationPlugin);

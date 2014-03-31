@@ -32,21 +32,10 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
    CommutationDO *commDO = status.getCommDO();
    if ( commDO != NULL ) {
       status.setCommDO( NULL );
-
-      // This ensures that even if commDO's dependencies are satisfied
-      // during this step, lastWriter will be reseted
-      DependableObject *lw = status.getLastWriter();
-      if ( commDO->increasePredecessors() == 0 ) {
-         // We increased the number of predecessors but someone just decreased them to 0
-         // that will execute finished and we need to wait for the lastWriter to be deleted
-         if ( lw == commDO ) {
-            while ( status.getLastWriter() != NULL ) {}
-         }
-      }
-      commDO->addWriteTarget( target );
       status.setLastWriter( *commDO );
       commDO->resetReferences();
-      commDO->decreasePredecessors();
+      //! Finally decrease dummy dependence added in createCommutationDO
+      commDO->decreasePredecessors( NULL ); 
    }
 }
 
@@ -74,11 +63,28 @@ inline void BaseDependenciesDomain::dependOnLastWriter ( DependableObject &depOb
                NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 3); )
             NANOS_INSTRUMENT ( } )
          NANOS_INSTRUMENT ( } else if ( wd_sender && !wd_receiver ) { )
-            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 4); )
+
+            NANOS_INSTRUMENT ( if ( accessType.concurrent ) { );
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 4); )
+            NANOS_INSTRUMENT ( } else if ( accessType.commutative ) {)
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 6); )
+            NANOS_INSTRUMENT ( } else {)
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 8); )
+            NANOS_INSTRUMENT ( })
+
          NANOS_INSTRUMENT ( } else if ( !wd_sender && wd_receiver ) {)
-            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 5); )
+
+            NANOS_INSTRUMENT ( if ( accessType.concurrent ) { );
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 5); )
+            NANOS_INSTRUMENT ( } else if ( accessType.commutative ) {)
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 7); )
+            NANOS_INSTRUMENT ( } else {)
+               NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 9); )
+            NANOS_INSTRUMENT ( })
+
+
          NANOS_INSTRUMENT ( } else {)
-            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 6); )
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 0); )
          NANOS_INSTRUMENT ( })
 
          NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
@@ -107,13 +113,40 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
       // new instrument event: dependence predecessorReader -> depObj
       NANOS_INSTRUMENT ( WorkDescriptor *wd_sender = (WorkDescriptor *) predecessorReader->getRelatedObject(); )
       NANOS_INSTRUMENT ( WorkDescriptor *wd_receiver = (WorkDescriptor *) depObj.getRelatedObject(); )
+      NANOS_INSTRUMENT ( int id_sender = wd_sender ? wd_sender->getId() : predecessorReader->getId(); )
+      NANOS_INSTRUMENT ( int id_receiver = wd_receiver ? wd_receiver->getId() : depObj.getId(); )
+
+      NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
+      NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) id_sender) << 32 ) + id_receiver; )
+
       NANOS_INSTRUMENT ( if ( wd_sender && wd_receiver ) { )
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
-         NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + wd_receiver->getId(); )
          NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 2); )
-         NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
+      NANOS_INSTRUMENT ( } else if ( wd_sender && !wd_receiver ) { )
+
+         NANOS_INSTRUMENT ( if ( accessType.concurrent ) { );
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 4); )
+         NANOS_INSTRUMENT ( } else if ( accessType.commutative ) {)
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 6); )
+         NANOS_INSTRUMENT ( } else {)
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 8); )
+         NANOS_INSTRUMENT ( })
+
+      NANOS_INSTRUMENT ( } else if ( !wd_sender && wd_receiver ) {)
+
+         NANOS_INSTRUMENT ( if ( accessType.concurrent ) { );
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 5); )
+         NANOS_INSTRUMENT ( } else if ( accessType.commutative ) {)
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 7); )
+         NANOS_INSTRUMENT ( } else {)
+            NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 9); )
+         NANOS_INSTRUMENT ( })
+
+      NANOS_INSTRUMENT ( } else {)
+         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 0); )
       NANOS_INSTRUMENT ( } )
+
+      NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
 
       if ( predecessorReader->addSuccessor( depObj ) ) {
          // new dependence predecessorReader -> depObj
@@ -151,11 +184,14 @@ inline void BaseDependenciesDomain::addAsReader( DependableObject &depObj, Track
    status.setReader( depObj );
 }
 
-inline CommutationDO * BaseDependenciesDomain::createCommutationDO( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
+CommutationDO * BaseDependenciesDomain::createCommutationDO( BaseDependency const &target, AccessType const &accessType, TrackableObject &status )
 {
    CommutationDO *commDO = NEW CommutationDO( target, accessType.commutative );
    commDO->setDependenciesDomain( this );
    commDO->setId ( _lastDepObjId++ );
+
+   //! double increase, solved at finalizeReduction
+   commDO->increasePredecessors();
    commDO->increasePredecessors();
    status.setCommDO( commDO );
    commDO->addWriteTarget( target );
@@ -195,7 +231,13 @@ inline CommutationDO * BaseDependenciesDomain::setUpInitialCommutationDependable
       initialCommDO->increasePredecessors();
 
       // add dependencies to all previous reads using a CommutationDO
-      dependOnReaders( *initialCommDO, status, target, NULL, accessType );
+      // creating a virtual access_type used for all the readers
+      AccessType tmp_access_type;
+      tmp_access_type.input = true;
+      tmp_access_type.output = false;
+      tmp_access_type.concurrent = false;
+      tmp_access_type.commutative = false;
+      dependOnReaders( *initialCommDO, status, target, NULL, tmp_access_type );
       {
          SyncLockBlock lock3( status.getReadersLock() );
          status.flushReaders();
@@ -223,7 +265,13 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    NANOS_INSTRUMENT ( if ( wd_sender && commDO ) { )
       NANOS_INSTRUMENT ( nanos_event_value_t Values[3]; )
       NANOS_INSTRUMENT ( Values[0] = ( ((nanos_event_value_t) wd_sender->getId()) << 32 ) + commDO->getId(); )
-      NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 4); )
+      NANOS_INSTRUMENT ( if ( accessType.concurrent ) { );
+         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 4); )
+      NANOS_INSTRUMENT ( } else if ( accessType.commutative ) {)
+         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 6); )
+      NANOS_INSTRUMENT ( } else {)
+         NANOS_INSTRUMENT ( Values[1] = ((nanos_event_value_t) 8); )
+      NANOS_INSTRUMENT ( })
       NANOS_INSTRUMENT ( Values[2] = ((nanos_event_value_t) target.getAddress() ); )
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(3, _insKeyDeps, Values); )
    NANOS_INSTRUMENT ( } )
@@ -237,7 +285,7 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
    if ( initialCommDO != NULL ) {
-      initialCommDO->decreasePredecessors();
+      initialCommDO->decreasePredecessors( NULL );
    }
 }
 

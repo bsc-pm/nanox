@@ -17,11 +17,11 @@ class SlicerGuidedFor: public Slicer
       ~SlicerGuidedFor ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue ( SlicedWD *wd, WorkDescriptor **slice );
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice );
 };
 
-void SlicerGuidedFor::submit ( SlicedWD &work )
+void SlicerGuidedFor::submit ( WorkDescriptor &work )
 {
    debug0 ( "Using sliced work descriptor: Guided For" );
 
@@ -32,19 +32,20 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
 
    //! get team size,
    ThreadTeam *team = myThread->getTeam();
-   int i, num_threads = team->size();
+   int i, num_threads = team->getFinalSize();
 
    //! and determine the number of valid threads
    nli->threads = 0;
    for ( i = 0; i < num_threads; i++) {
      if (  work.canRunIn( *((*team)[i].runningOn()) ) )  nli->threads++;
    }
+   ensure(nli->threads > 0, "Slicer has computed an invalid number of threads");
 
    //! in order to submit the work. 
    Scheduler::submit ( work );
 }
 
-bool SlicerGuidedFor::dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slice)
+bool SlicerGuidedFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor** slice)
 {
    bool retval = false;
 

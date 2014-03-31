@@ -258,8 +258,6 @@ namespace nanos
          data->icvs()->setNumThreads( nthreads );
 
          sys.updateActiveWorkers( nthreads );
-
-         ensure( sys.getNumThreads() == nthreads, "Update Number of Threads failed " );
       }
 
       /*!
