@@ -282,6 +282,8 @@ inline void Scheduler::idleLoop ()
          continue;
       }
 
+      thread->idle();
+
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
          dlb_returnCpusIfNeeded();
@@ -308,7 +310,6 @@ inline void Scheduler::idleLoop ()
          }
          spins = init_spins;
       }
-      else { thread->idle(); }
    }
 
    NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
