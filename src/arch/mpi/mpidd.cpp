@@ -29,10 +29,17 @@ using namespace nanos::ext;
 
 MPIDevice nanos::ext::MPI("MPI");
 Atomic<int> MPIDD::uidGen=1;
+bool MPIDD::_spawnDone=false;
+//MPI_Comm OFFL_COMM_ANY=MPI_COMM_SELF;
 
 MPIDD * MPIDD::copyTo(void *toAddr) {
     MPIDD *dd = new (toAddr) MPIDD(*this);
     return dd;
+}
+
+
+void MPIDD::setSpawnDone(bool spawnDone) {
+   _spawnDone = spawnDone;
 }
 
 bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {    
@@ -40,7 +47,7 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     if (pe==NULL) return true;
     int res=MPI_UNEQUAL;
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
-    if (_assignedComm!=0) MPI_Comm_compare(myPE->getCommunicator(),_assignedComm,&res);
+    if ((uintptr_t)_assignedComm!=0) MPI_Comm_compare(myPE->getCommunicator(),_assignedComm,&res);
     
     //If our remote node is shared and we are not bound to a rank (if we are, we don't care, we have to execute here
     //Query the node to check if it's doing something
@@ -53,7 +60,7 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     
     //If no assigned comm nor rank, it can run on any PE, if only has a unkown rank, match with comm
     //if has both rank and comm, only execute on his PE    
-    bool resul = (_assignedComm == 0 && _assignedRank == UNKOWN_RANKSRCDST) 
+    bool resul = (((uintptr_t)_assignedComm==0 && _assignedRank<(int)((nanos::ext::MPIThread *) myThread)->getRunningPEs().size())) 
             || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
             || (myPE->getRank() == _assignedRank && res == MPI_IDENT);
     
@@ -61,7 +68,9 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     resul = resul && myPE->testAndSetBusy(uid);
     
     //If our current PE is not the right one for the task, check if the right one is free
-    if ( ( res == MPI_IDENT || _assignedComm==0) && !resul){  
+    if ( ( res == MPI_IDENT || 
+            ((uintptr_t)_assignedComm==0 && _assignedRank<(int)((nanos::ext::MPIThread *) myThread)->getRunningPEs().size()))
+            && !resul){  
        //Only MPI threads will enter this function
        nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread *) myThread;
        if (_assignedRank==UNKOWN_RANKSRCDST) {

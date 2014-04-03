@@ -143,7 +143,7 @@ namespace nanos {
             bool isBusy() const;
 
             void setBusy(bool busy);
-            
+                      
             //Try to reserve this PE, if the one who reserves it is the same
             //which already has the PE, return true
             bool testAndSetBusy(int dduid);
@@ -198,19 +198,64 @@ namespace nanos {
             static void nanosMPIFinalize();
             
             /**
-             * TODO: Split this in sub-functions and refactor to vars follow naming convention....
-             * Function which allocate remote nodes
+             * Function which allocates remote nodes
+             * Composed of thee parts
+             * 1- Build host list (aka read host list from file/env var and in a future job manager)
+             * 2- Perform the call to MPI spawn
+             * 3- Build nanox structures and threads
              * @param comm Communicator of the masters who will allocate (collective) and access the boosters
              * @param number_of_hosts Number of hosts (lines in hostfile) to spawn
              * @param process_per_host Process per host to spawn
              * @param intercomm Resulting interccomm representing the boosters
+             * @param strict Boolean which indicates if the call should crash when not enough nodes are avaiable
+             * @param provided [OUT] returns the real number of hosts allocated (only makes sense with strict=false)
              * @param offset Offset (0 by default, only used in deep_booster_alloc_offset)
              * @param id_host_list List individually which specifies which hosts will be used (of length number_of_hosts)
              * @param pph_list Process per host when using id_host_list (of length number_of_hosts)
              * Process per host will be 0 (aka incompatible) with the "_list" mode
              * Offset will be 0 (aka incompatible) with the "_list" mode
              */
-            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset,const int* id_host_list,const int* pph_list);  
+            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm,
+                    bool strict, int* provided,
+                    int offset,const int* pph_list);  
+            
+            /*
+             * Subkernel for DEEPBoosterAlloc
+            */
+            static inline void buildHostLists( 
+                int offset,
+                int requested_host_num,
+                std::vector<std::string>& tokens_params,
+                std::vector<std::string>& tokens_host, 
+                std::vector<int>& host_instances);
+            
+            /*
+             * Subkernel for DEEPBoosterAlloc
+            */
+            static inline void callMPISpawn( 
+                MPI_Comm comm,
+                const int availableHosts,
+                std::vector<std::string>& tokensParams,
+                std::vector<std::string>& tokensHost, 
+                std::vector<int>& hostInstances,
+                const int* pph_list,
+                const int process_per_host,
+                const bool& shared,
+                int& spawnedHosts,
+                int& totalNumberOfSpawns,
+                MPI_Comm* intercomm);
+            
+            
+            /*
+             * Subkernel for DEEPBoosterAlloc
+            */
+            static inline void createNanoxStructures( 
+                MPI_Comm comm,
+                MPI_Comm* intercomm,
+                int spawnedHosts,
+                int totalNumberOfSpawns,
+                bool shared,
+                int mpiSize);
             
             /**
              * Wrappers for MPI functions

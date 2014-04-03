@@ -33,11 +33,6 @@ using namespace nanos;
 using namespace nanos::ext;
 
 void MPIThread::initializeDependent() {
-//    int nspins=sys.getSchedulerConf().getNumSpins();
-//    if (nspins<=1) {
-//        warning0("--spins argument should be >1 when you are offloading, lower numbers may hang the execution, setting it to 4");
-//        sys.getSchedulerConf().setNumSpins(4);
-//    }
 }
 
 void MPIThread::runDependent() {
@@ -71,11 +66,11 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
 
 //Switch to next PE (Round robin way of change PEs to query scheduler)
 bool MPIThread::switchToNextFreePE(int uuid){
-   int start=_currPe;
-	int currPe=start+1;
+   int startPE=_currPe;
+	int currPe=startPE+1;
 	bool switchedCorrectly=false;
 	
-    while (!switchedCorrectly && currPe!=start ){        
+    while (!switchedCorrectly && currPe!=startPE ){        
         currPe=(currPe+1)%_runningPEs.size();
 		  switchedCorrectly=switchToPE(currPe,uuid);
     }
@@ -87,9 +82,10 @@ bool MPIThread::switchToNextFreePE(int uuid){
 //and the PE is not busy, we can run on that PE and execute the task
 bool MPIThread::switchToPE(int rank, int uuid){
     bool ret=false;
-    if (rank>_runningPEs.size()){
-        fatal0("You have assigned a rank in onto clause which was not spawned before"
-                ", check your program");
+    if (rank>=(int)_runningPEs.size()){
+        fatal0("You have assigned a rank (" << rank << ") in onto clause to a node which was not allocated before"
+                ", your communicator has " << _runningPEs.size() << " processes, possible ranks are [," << (_runningPEs.size()-1) << "], check your code"
+                " and make sure that your request finished correctly");
     }
     //In multithread this "test&SetBusy" bust be safe
     if (_runningPEs.at(rank)->testAndSetBusy(uuid)) {

@@ -18,7 +18,7 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
-#include "mpiprocessor.hpp"
+#include "mpiprocessor_decl.hpp"
 #include "mpidd.hpp"
 #include "system.hpp"
 
@@ -73,7 +73,7 @@ class MPIPlugin : public ArchPlugin
 
    virtual PE* createPE( unsigned id, unsigned uid )
    {
-      return NEW MPIProcessor( id , NULL, NULL, uid, true, false);
+      return NEW MPIProcessor( id , NULL, 0, uid, true, false);
    }
 };
 }

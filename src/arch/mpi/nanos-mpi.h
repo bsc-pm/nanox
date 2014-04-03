@@ -40,36 +40,46 @@ extern "C" {
 
     //MPI
     NANOS_API_DECL(void *, nanos_mpi_factory, (void *args));
+    NANOS_API_DECL(void *, nanos_mpi_fortran_factory, (void *args));
     
 #define NANOS_MPI_DESC( args ) { nanos_mpi_factory, &( args ) } 
+#define NANOS_MPI_FORTRAN_DESC( args ) { nanos_mpi_fortran_factory, &( args ) } 
     
     //This functions can may be called by the user (_ are subroutines in fortran...)
     void deep_booster_alloc (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm);
-    void deep_booster_alloc_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm);
+    void deep_booster_alloc_ (MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint* intercomm);
     void deep_booster_alloc_offset (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset);
-    void deep_booster_alloc_offset_ (MPI_Comm* comm, int* number_of_hosts, int* process_per_host, MPI_Comm* intercomm, int* offset);   
-    void deep_booster_alloc_list(MPI_Comm comm, int number_of_hosts, int* id_host_list, int* process_per_host_list, MPI_Comm *intercomm);
-    void deep_booster_alloc_list_(MPI_Comm* comm, int* number_of_hosts, int* id_host_list, int* process_per_host_list,MPI_Comm *intercomm);
+    void deep_booster_alloc_offset_ (MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint* intercomm, int* offset);   
+    void deep_booster_alloc_list(MPI_Comm comm, int number_of_hosts, int* process_per_host_list, MPI_Comm *intercomm);
+    void deep_booster_alloc_list_(MPI_Fint* comm, int* number_of_hosts, int* process_per_host_list,MPI_Fint *intercomm);  
+    
+    void deep_booster_alloc_nonstrict (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int* provided);
+    void deep_booster_alloc_nonstrict_ (MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint* intercomm, int* provided);
+    void deep_booster_alloc_offset_nonstrict (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset, int* provided);
+    void deep_booster_alloc_offset_nonstrict_ (MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint* intercomm, int* offset, int* provided);   
+    void deep_booster_alloc_list_nonstrict (MPI_Comm comm, int number_of_hosts, int* process_per_host_list, MPI_Comm *intercomm, int* provided);
+    void deep_booster_alloc_list_nonstrict_ (MPI_Fint* comm, int* number_of_hosts, int* process_per_host_list,MPI_Fint *intercomm, int* provided);
+    
+    
     void deep_booster_free (MPI_Comm *intercomm);
-    void deep_booster_free_ (MPI_Comm *intercomm);
+    void deep_booster_free_ (MPI_Fint *intercomm);
     void deep_booster_free_single (MPI_Comm *intercomm, int rank);
-    void deep_booster_free_single_ (MPI_Comm *intercomm, int* rank);
+    void deep_booster_free_single_ (MPI_Fint *intercomm, int* rank);
     int nanos_mpi_finalize(void);
     void nanos_mpi_finalizef_(void);
     
-    //Caled by user but no need to do an special interface for fortran
+    //Called by user but no need to do an special interface for fortran
     NANOS_API_DECL(nanos_err_t, nanos_mpi_init, (int* argc, char*** argv));
     NANOS_API_DECL(nanos_err_t, nanos_mpi_init_thread, (int* argc, char*** argv, int required, int *provided));
     NANOS_API_DECL(void, nanos_mpi_initf, (void));
     
-    NANOS_API_DECL(int, nanos_mpi_send_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_mpi_recv_taskinit, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));
-    NANOS_API_DECL(int, nanos_mpi_send_taskend, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
+    NANOS_API_DECL(int, nanos_mpi_send_taskinit, (void *buf, int count, int dest, MPI_Comm comm));
+    NANOS_API_DECL(int, nanos_mpi_send_taskend, (void *buf, int count, int dest, MPI_Comm comm));
     NANOS_API_DECL(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm, MPI_Status *status));   
+    NANOS_API_DECL(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));   
     NANOS_API_DECL(int, nanos_mpi_type_create_struct, ( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[],  
             MPI_Datatype array_of_types[], MPI_Datatype *newtype));
-    NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (const char* type));    
+    NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (int type));    
     NANOS_API_DECL(int, nanos_mpi_get_parent, (MPI_Comm* parent_out));    
     NANOS_API_DECL(int, ompss_mpi_get_function_index_host, (void* func_pointer));
 
@@ -83,31 +93,27 @@ extern "C" {
 ////Mercurium converts some types to their longer type.
 ////For example, shorts are ints, floats are double...
 //
-//enum OmpSsMPIType {
-//    __mpitype_ompss_char = MPI_CHAR,
-//    __mpitype_ompss_wchar_t = MPI_WCHAR,
-//    __mpitype_ompss_signed_short = MPI_INT,
-//    __mpitype_ompss_signed_int = MPI_INT,
-//    __mpitype_ompss_signed_long = MPI_LONG,
-//    __mpitype_ompss_signed_char = MPI_SIGNED_CHAR,
-//    __mpitype_ompss_unsigned_char = MPI_UNSIGNED_CHAR,
-//    __mpitype_ompss_unsigned_short = MPI_UNSIGNED_SHORT,
-//    __mpitype_ompss_unsigned_int = MPI_UNSIGNED,
-//    __mpitype_ompss_unsigned_long = MPI_UNSIGNED_LONG,
-//    __mpitype_ompss_unsigned_long_long = MPI_UNSIGNED_LONG_LONG,
-//    __mpitype_ompss_float = MPI_DOUBLE,
-//    __mpitype_ompss_double = MPI_DOUBLE,
-//    __mpitype_ompss_long_double = MPI_LONG_DOUBLE,
-//    //Intel mpi boolean
-//#ifdef MPI_C_BOOL
-//    __mpitype_ompss_bool = MPI_C_BOOL,
-//#endif
-//    //MPI Standard boolean
-//#ifdef MPI_BOOL
-//    __mpitype_ompss_bool = MPI_BOOL,
-//#endif
-//    __mpitype_ompss_byte = MPI_BYTE
-//};
+
+enum OmpSsMPIType {
+    mpitype_ompss_char = 0,
+    mpitype_ompss_wchar_t = 1,
+    mpitype_ompss_signed_short = 2,
+    mpitype_ompss_signed_int = 3,
+    mpitype_ompss_signed_long = 4,
+    mpitype_ompss_signed_char = 5,
+    mpitype_ompss_unsigned_char = 6,
+    mpitype_ompss_unsigned_short = 7,
+    mpitype_ompss_unsigned_int = 8,
+    mpitype_ompss_float = 9,
+    mpitype_ompss_double = 10,
+    mpitype_ompss_long_double = 11,
+    mpitype_ompss_bool = 12,
+    mpitype_ompss_byte = 13,
+    mpitype_ompss_unsigned_long = 14,
+    mpitype_ompss_unsigned_long_long = 15
+};
+
+
 //#endif
 
 

@@ -38,14 +38,14 @@ namespace ext
 
       private:
          pthread_t   _pth;
+         std::vector<MPIThread*> _threadList;
+         Lock _selfLock;
          std::vector<MPIProcessor*> _runningPEs;
          int _currPe;
-         Lock _selfLock;
+         std::vector<MPIThread*>* _groupThreadList;
          Lock* _groupLock;
          Atomic<int> _selfTotRunningWds;
          Atomic<int>* _groupTotRunningWds;
-         std::vector<MPIThread*> _threadList;
-         std::vector<MPIThread*>* _groupThreadList;
          std::list<WD*> _wdMarkedToDelete;
          
          //size_t      _stackSize;
@@ -59,7 +59,7 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe ) : _threadList() , _selfLock(), _runningPEs(), SMPThread( w,pe ) {
+         MPIThread( WD &w, PE *pe ) : SMPThread( w,pe ), _threadList() , _selfLock(), _runningPEs()  {
              _currPe=0;
              _selfTotRunningWds=0;
              _groupTotRunningWds=&_selfTotRunningWds;

@@ -426,7 +426,7 @@ inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryC
 #endif
 #ifdef MPI_DEV
 extern __attribute__((weak)) char ompss_uses_offload;
-inline char* System::getOmpssUsesOffload(){ printf("olakase %d\n",ompss_uses_offload); return &ompss_uses_offload; }
+inline char* System::getOmpssUsesOffload(){ return &ompss_uses_offload; }
 #endif
 
 

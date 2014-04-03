@@ -26,18 +26,19 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include "mpi.h"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-extern __attribute__((weak)) int ompss_mpi_masks[1U];
-extern __attribute__((weak)) unsigned int ompss_mpi_filenames[1U];
-extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[1U];
-extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[1U];
-extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[1];
-extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[1])();
+extern __attribute__((weak)) int ompss_mpi_masks[99U];
+extern __attribute__((weak)) unsigned int ompss_mpi_filenames[99U];
+extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[99U];
+extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[99U];
+extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[99];
+extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[99])();
 
-MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared) : _pendingReqs(), CachedAccelerator<MPIDevice>(id, &MPI, uid) {
+MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared) : CachedAccelerator<MPIDevice>(id, &MPI, uid), _pendingReqs() {
     _communicator = *((MPI_Comm *)communicator);
     _rank = rank;
     _owner=owner;
@@ -110,11 +111,13 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerEnvOption("offl-cache-threads", "NX_OFFL_CACHE_THREADS");
     
     
+    #ifndef OMPI_MPI_H
     config.registerConfigOption("offl-disable-spawn-lock", NEW Config::BoolVar(_disableSpawnLock), "Disables file lock used to serialize"
                   "different calls to DEEP_BOOSTER_ALLOC performed by different processes when using MPI_COMM_SELF,"
                   "if disabled user will be responsible of serializing calls (Default: Lock enabled).");
     config.registerArgOption("offl-disable-spawn-lock", "offl-disable-spawn-lock");
     config.registerEnvOption("offl-disable-spawn-lock", "NX_OFFL_DISABLE_SPAWN_LOCK");
+    #endif
 }
 
 WorkDescriptor & MPIProcessor::getWorkerWD() const {
@@ -203,8 +206,6 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     cacheOrder order;
     order.opId = OPID_FINISH;
     int nThreads=sys.getNumWorkers();
-    int id[2];
-    id[0] = -1; 
     //Now sleep the threads which represent the remote processes
     int res=MPI_IDENT;
     bool spawnedWithCommWorld=false;
@@ -235,7 +236,6 @@ void MPIProcessor::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                 if ( (*it)->getOwner() ) 
                 {
                     nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
-                    //nanosMPISsend(id, 2, MPI_INT, (*it)->getRank(), TAG_INI_TASK, *intercomm);
                     //After sending finalization signals, we are not the owners anymore
                     //This way we prevent finalizing them multiple times if more than one thread uses them
                     (*it)->setOwner(false);
@@ -258,7 +258,7 @@ void MPIProcessor::nanosMPIInit(int *argc, char ***argv, int userRequired, int* 
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_INIT_EVENT);
     verbose0( "loading MPI support" );
     //Unless user specifies otherwise, enable blocking mode in MPI
-    if (getenv("I_MPI_WAIT_MODE")==NULL) putenv("I_MPI_WAIT_MODE=1");
+    if (getenv("I_MPI_WAIT_MODE")==NULL) putenv(const_cast<char*> ("I_MPI_WAIT_MODE=1"));
 
     if ( !sys.loadPlugin( "pe-mpi" ) )
       fatal0 ( "Couldn't load MPI support" );
@@ -321,6 +321,46 @@ void MPIProcessor::nanosMPIFinalize() {
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
+void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, bool strict, int* provided, int offset, const int* pph_list) {  
+    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
+    //IF nanos MPI not initialized, do it
+    if (!_inicialized)
+        nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
+    
+    std::vector<std::string> tokensParams;
+    std::vector<std::string> tokensHost;   
+    std::vector<int> hostInstances;      
+    int totalNumberOfSpawns=0; 
+    int spawnedHosts=0;
+    
+    //Read hostlist
+    buildHostLists(offset, number_of_hosts,tokensParams,tokensHost,hostInstances);
+    
+    int availableHosts=tokensHost.size();    
+    if (availableHosts > number_of_hosts) availableHosts=number_of_hosts;    
+    //Check strict restrictions and react to them (return or set the right number of nodes)
+    if (strict && number_of_hosts > availableHosts) 
+    {
+        if (provided!=NULL) *provided=0;
+        *intercomm=MPI_COMM_NULL;
+        return;
+    }
+    
+    //Register spawned processes so nanox can use them
+    int mpiSize;
+    MPI_Comm_size(comm,&mpiSize);  
+    bool shared=(mpiSize>1);
+    
+    callMPISpawn(comm, availableHosts, tokensParams, tokensHost, hostInstances, pph_list,
+            process_per_host, shared,/* outputs*/ spawnedHosts, totalNumberOfSpawns, intercomm);
+    if (provided!=NULL) *provided=totalNumberOfSpawns;
+    
+    createNanoxStructures(comm, intercomm, spawnedHosts, totalNumberOfSpawns, shared, mpiSize );
+    
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+}
+
+
 static inline void trim(std::string& params){
     //Trim params
     size_t pos = params.find_last_not_of(" \t");
@@ -329,34 +369,15 @@ static inline void trim(std::string& params){
     if( std::string::npos != pos ) params = params.substr( pos );
 }
 
-void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset,const int* id_host_list,const int* pph_list) {  
-    NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
-    //IF nanos MPI not initialized, do it
-    if (!_inicialized)
-        nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
-    
-    //Setup modes to obtain the process per host (use user value, use file value (when user value == 0 or neg) or use host+pphLists)
-    bool pphFromHostfile=process_per_host<=0;
-    bool useIdHostList=id_host_list!=NULL;
-    if (pphFromHostfile){
-        process_per_host=1;
-    }
-    int total_number_of_spawns=number_of_hosts*process_per_host;
-    //Calculate number of spawns when we are on list mode
-    if (useIdHostList) {
-        total_number_of_spawns=0;
-        if (pph_list!=NULL) {
-            for (int i=0; i<number_of_hosts; i++){
-                total_number_of_spawns+=pph_list[i];
-            }
-        } else {
-            total_number_of_spawns=number_of_hosts;
-        }
-    }
-    std::list<std::string> tmp_storage;
-    std::vector<std::string> tokens_params;
-    std::vector<std::string> tokens_host;   
-    std::vector<int> host_instances;     
+void MPIProcessor::buildHostLists( 
+    int offset,
+    int requestedHostNum,
+    std::vector<std::string>& tokensParams,
+    std::vector<std::string>& tokensHost, 
+    std::vector<int>& hostInstances) 
+{
+    /** Build current host list */
+    std::list<std::string> tmpStorage;
     //In case a host has no parameters, we'll fill our structure with this one
     std::string params="ompssnoparam";
     //Store single-line env value or hostfile into vector, separated by ';' or '\n'
@@ -365,7 +386,7 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         std::string line;
         while( getline( hostInput, line , ';') ){            
             if (offset>0) offset--;
-            else tmp_storage.push_back(line);
+            else tmpStorage.push_back(line);
         }
     } else if ( !_mpiHostsFile.empty() ){
         std::ifstream infile(_mpiHostsFile.c_str());
@@ -373,49 +394,75 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         std::string line;
         while( getline( infile, line , '\n') ){            
             if (offset>0) offset--;
-            else tmp_storage.push_back(line);
+            else tmpStorage.push_back(line);
         }
         infile.close();
     }
     
-    while( !tmp_storage.empty() )
+    while( !tmpStorage.empty() && (int)tokensHost.size() < requestedHostNum )
     {
-        std::string line=tmp_storage.front();
-        tmp_storage.pop_front();
+        std::string line=tmpStorage.front();
+        tmpStorage.pop_front();
         //If not commented add it to hosts
         if (!line.empty() && line.find("#")!=0){
-            size_t pos_sep=line.find(":");
-            size_t pos_end=line.find("<");
-            if (pos_end==line.npos) {
-                pos_end=line.size();
+            size_t posSep=line.find(":");
+            size_t posEnd=line.find("<");
+            if (posEnd==line.npos) {
+                posEnd=line.size();
             } else {
-                params=line.substr(pos_end+1,line.size());                
+                params=line.substr(posEnd+1,line.size());                
                 trim(params);
             }
-            if (pos_sep!=line.npos){
-                std::string real_host=line.substr(0,pos_sep);
-                int number=atoi(line.substr(pos_sep+1,pos_end).c_str());            
-                trim(real_host);
-                host_instances.push_back(number);
-                tokens_host.push_back(real_host); 
-                tokens_params.push_back(params);
+            if (posSep!=line.npos){
+                std::string realHost=line.substr(0,posSep);
+                int number=atoi(line.substr(posSep+1,posEnd).c_str());            
+                trim(realHost);
+                //Hosts with 0 instances in the file are ignored
+                if (!realHost.empty() && number!=0) {
+                    hostInstances.push_back(number);
+                    tokensHost.push_back(realHost); 
+                    tokensParams.push_back(params);
+                }
             } else {
-                std::string real_host=line.substr(0,pos_end);           
-                trim(real_host);  
-                host_instances.push_back(1);                
-                tokens_host.push_back(real_host); 
-                tokens_params.push_back(params);
+                std::string realHost=line.substr(0,posEnd);           
+                trim(realHost);  
+                if (!realHost.empty()) {
+                    hostInstances.push_back(1);                
+                    tokensHost.push_back(realHost); 
+                    tokensParams.push_back(params);
+                }
             }
         }
     }
-    
+    bool emptyHosts=tokensHost.empty();
     //If there are no hosts, that means user "wants" to spawn in localhost
-    if (tokens_host.empty()){
-        tokens_host.push_back("localhost");
-        tokens_params.push_back(params);
-        host_instances.push_back(1);              
+    while (emptyHosts && (int)tokensHost.size() < requestedHostNum ){
+        tokensHost.push_back("localhost");
+        tokensParams.push_back(params);
+        hostInstances.push_back(1);              
+    }    
+    if (emptyHosts) {
+        warning0("No hostfile or list was providen using NX_OFFL_HOSTFILE or NX_OFFL_HOSTS environment variables."
+        " Deep_booster_alloc allocation will be performed in localhost (not recommended except for debugging)");
     }
-    
+}
+
+
+void MPIProcessor::callMPISpawn( 
+    MPI_Comm comm,
+    const int availableHosts,
+    std::vector<std::string>& tokensParams,
+    std::vector<std::string>& tokensHost, 
+    std::vector<int>& hostInstances,
+    const int* pph_list,
+    const int process_per_host,
+    const bool& shared,
+    int& spawnedHosts,
+    int& totalNumberOfSpawns,
+    MPI_Comm* intercomm) 
+{
+    bool pphFromHostfile=process_per_host<=0;
+    bool usePPHList=pph_list!=NULL;    
     // Spawn the remote process using previously parsed parameters  
     std::string result_str;
     if ( !_mpiExecFile.empty() ){   
@@ -427,143 +474,120 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         fatal_cond0(count==0,"Couldn't identify executable filename, please specify it manually using NX_OFFL_EXEC environment variable");  
         result_str=result_tmp.substr(0,count);    
     }
+    
+    /** Build spawn structures */
     //Number of spawns = max length (one instance per host)
-    char *array_of_commands[total_number_of_spawns];
-    char **array_of_argv[total_number_of_spawns];
-    MPI_Info  array_of_info[total_number_of_spawns];
-    int n_process[total_number_of_spawns];
-    unsigned int host_counter=0;
+    char *arrOfCommands[availableHosts];
+    char **arrOfArgv[availableHosts];
+    MPI_Info arrOfInfo[availableHosts];
+    int nProcess[availableHosts];
     
     //This the real length of previously declared arrays, it will be equal to number_of_spawns when 
     //hostfile/line only has one instance per host (aka no host:nInstances)
-    int spawn_arrays_length=0;
-    int i=0;
-    
-    int curr_list_iterator=-1;
-    //Build comm_spawn structures, iterate as many times as needed to spawn number_of_spawns instances of processes
-    while( i<total_number_of_spawns ){
+    unsigned int hostCounter=-1;
+    while( spawnedHosts< availableHosts ) {
         //Fill host
         MPI_Info info;
         MPI_Info_create(&info);
         std::string host;
-        //Pick next host (either RR on the hostfile on using user-providen lists)
-        if (useIdHostList) {
-            ++curr_list_iterator;
-            if (curr_list_iterator>=number_of_hosts){
-                fatal0("Out of bounds when iterating the list, check that your process per host list has no negative values, "
-                        " otherwise ask for support to OmpSs group");
-            }
-            if (id_host_list[curr_list_iterator]>=tokens_host.size()){
-                fatal0("Failure in deep_booster_alloc, you specified a list of node ids in which one of the ids "
-                         " is bigger than the provided number of hosts in the hostfile/env variable, ids start from 0");
-            }
-            host=tokens_host.at(id_host_list[curr_list_iterator]);   
-            host_counter=id_host_list[curr_list_iterator];
-        } else {
-            do {
-                if (host_counter>=tokens_host.size()) host_counter=0;
-                host=tokens_host.at(host_counter);
-                host_counter++;
-            } while (host.empty());           
-        }
-        //If host is a file, give it to Intel, otherwise put the host in the spawn
-        std::ifstream hostfile(host.c_str());
-        bool isfile=hostfile;
-        int number_of_lines_in_file=0;
-        if (isfile){     
-            std::string line;
-            while (std::getline(hostfile, line)) {
-                ++number_of_lines_in_file;
-            }
-            
-            MPI_Info_set(info, const_cast<char*> ("hostfile"), const_cast<char*> (host.c_str()));
-        } else {            
-            MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
-        }
-        array_of_info[spawn_arrays_length]=info;
-        hostfile.close();
-        
-        //Fill parameter array (including env vars)
-        std::stringstream all_param_tmp(tokens_params.at(host_counter-1));
-        std::string tmp_param;            
-        int params_size=3;
-        while (getline(all_param_tmp, tmp_param, ',')) {
-            params_size++;
-        }
-        std::stringstream all_param(tokens_params.at(host_counter-1));
-        char **argvv=new char*[params_size];
-        //Fill the params
-        argvv[0]= const_cast<char*> (result_str.c_str());
-        argvv[1]= const_cast<char*> ("empty");  
-        int param_counter=2;
-        while (getline(all_param, tmp_param, ',')) {            
-            //Trim current param
-            trim(params);
-            char* arg_copy=new char[tmp_param.size()+1];
-            strcpy(arg_copy,tmp_param.c_str());
-            argvv[param_counter++]=arg_copy;
-        }
-        argvv[params_size-1]=NULL;              
-        array_of_argv[spawn_arrays_length]=argvv;     
-        
-        array_of_commands[spawn_arrays_length]=const_cast<char*> (_mpiLauncherFile.c_str());      
-        
-        //Set number of instances this host can handle
-        //If user specified PPH <= 0, we'll use number of processes per node in hostfile
-        int curr_host_instances;
-        if (useIdHostList) {
-            curr_host_instances= (pph_list!=NULL) ? pph_list[curr_list_iterator] : 1;
+        //Pick next host
+        hostCounter++;        
+        //Set number of instances this host can handle (depends if user specified, hostList specified or list specified)
+        int currHostInstances;
+        if (usePPHList) {
+            currHostInstances=pph_list[hostCounter];
         } else if (pphFromHostfile){
-            curr_host_instances=host_instances.at(host_counter-1);
+            currHostInstances=hostInstances.at(hostCounter);
         } else {
-            curr_host_instances=process_per_host;
-            if (isfile) {
-                curr_host_instances=number_of_lines_in_file*process_per_host;
-            }        
+            currHostInstances=process_per_host;
         }
-        int remaning_spawns=(total_number_of_spawns-i);
-        n_process[spawn_arrays_length]=(curr_host_instances<remaning_spawns)?curr_host_instances:remaning_spawns;//min(host_instances,remaning_spawns)
-        i+=n_process[spawn_arrays_length]; 
-        spawn_arrays_length++;
-    }   
-    int res=MPI_UNEQUAL;
-    MPI_Comm_compare(comm,MPI_COMM_WORLD,&res);    
-    //Register spawned processes so nanox can use them
-    int number_of_spawns_this_process=total_number_of_spawns;
-    int spawn_start=0;
-    bool shared=false;
-    //If MPI_COMM_WORLD, split total spawns between nodes in order to balance syncs
-    int mpi_size;
-    if (res!=MPI_UNEQUAL){
-        int rank;
-        shared=true;
-        MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
-        MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-        number_of_spawns_this_process=total_number_of_spawns/mpi_size;
-        spawn_start=rank*number_of_spawns_this_process;
-        if (rank==mpi_size-1) //Last process syncs the remaining processes
-            number_of_spawns_this_process+=total_number_of_spawns%mpi_size;
-    } else {
-        mpi_size=1; //Using MPI_COMM_SELF
-    }
+        if (currHostInstances!=0) {
+            host=tokensHost.at(hostCounter);
+            //If host is a file, give it to Intel, otherwise put the host in the spawn
+            std::ifstream hostfile(host.c_str());
+            bool isfile=hostfile;
+            if (isfile){     
+                std::string line;
+                int number_of_lines_in_file=0;
+                while (std::getline(hostfile, line)) {
+                    ++number_of_lines_in_file;
+                }
+
+                MPI_Info_set(info, const_cast<char*> ("hostfile"), const_cast<char*> (host.c_str()));
+                currHostInstances=number_of_lines_in_file*currHostInstances;
+            } else {            
+                MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
+            }
+            arrOfInfo[spawnedHosts]=info;
+            hostfile.close();
+
+            //Fill parameter array (including env vars)
+            std::stringstream allParamTmp(tokensParams.at(hostCounter));
+            std::string tmpParam;            
+            int paramsSize=3;
+            while (getline(allParamTmp, tmpParam, ',')) {
+                paramsSize++;
+            }
+            std::stringstream all_param(tokensParams.at(hostCounter));
+            char **argvv=new char*[paramsSize];
+            //Fill the params
+            argvv[0]= const_cast<char*> (result_str.c_str());
+            argvv[1]= const_cast<char*> ("empty");  
+            int paramCounter=2;
+            while (getline(all_param, tmpParam, ',')) {            
+                //Trim current param
+                trim(tmpParam);
+                char* arg_copy=new char[tmpParam.size()+1];
+                strcpy(arg_copy,tmpParam.c_str());
+                argvv[paramCounter++]=arg_copy;
+            }
+            argvv[paramsSize-1]=NULL;              
+            arrOfArgv[spawnedHosts]=argvv;     
+            arrOfCommands[spawnedHosts]=const_cast<char*> (_mpiLauncherFile.c_str());
+            nProcess[spawnedHosts]=currHostInstances;
+            totalNumberOfSpawns+=currHostInstances;
+            ++spawnedHosts;
+        }
+    }           
+    #ifdef OMPI_MPI_H
     int fd=-1;
     while (!_disableSpawnLock && !shared && fd==-1) {
        fd=tryGetLock("./.ompss_lockSpawn");
     }
-    MPI_Comm_spawn_multiple(spawn_arrays_length,array_of_commands, array_of_argv, n_process,
-            array_of_info, 0, comm, intercomm, MPI_ERRCODES_IGNORE); 
+    #endif
+    MPI_Comm_spawn_multiple(availableHosts,arrOfCommands, arrOfArgv, nProcess,
+            arrOfInfo, 0, comm, intercomm, MPI_ERRCODES_IGNORE); 
+    #ifdef OMPI_MPI_H
     if (!_disableSpawnLock && !shared) {
        releaseLock(fd,"./.ompss_lockSpawn"); 
     }
+    #endif
+    
     //Free all args sent
-    for (i=0;i<spawn_arrays_length;i++){  
+    for (int i=0;i<spawnedHosts;i++){  
         //Free all args which were dynamically copied before
-        for (int e=2;array_of_argv[i][e]!=NULL;e++){
-            delete[] array_of_argv[i][e];
+        for (int e=2;arrOfArgv[i][e]!=NULL;e++){
+            delete[] arrOfArgv[i][e];
         }
-        delete[] array_of_argv[i];
+        delete[] arrOfArgv[i];
+    }    
+}
+
+
+void MPIProcessor::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, int spawnedHosts, int totalNumberOfSpawns, bool shared, int mpiSize){    
+    int spawn_start=0;
+    int numberOfSpawnsThisProcess=totalNumberOfSpawns;
+    //If shared (more than one parent for this group), split total spawns between nodes in order to balance syncs
+    if (shared){
+        int rank;
+        MPI_Comm_rank(comm,&rank);
+        numberOfSpawnsThisProcess=totalNumberOfSpawns/mpiSize;
+        spawn_start=rank*numberOfSpawnsThisProcess;
+        if (rank==mpiSize-1) //Last process syncs the remaining processes
+            numberOfSpawnsThisProcess+=totalNumberOfSpawns%mpiSize;        
     }
-    PE* pes[total_number_of_spawns];
+    
+    PE* pes[totalNumberOfSpawns];
     int uid=sys.getNumCreatedPEs();
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
@@ -573,10 +597,10 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         bindingId=sys.getBindingId(bindingId);
     }
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
-    for ( int rankCounter=0; rankCounter<total_number_of_spawns; rankCounter++ ){  
+    for ( int rankCounter=0; rankCounter<totalNumberOfSpawns; rankCounter++ ){  
         //Each process will have access to every remote node, but only one master will sync each child
         //this way we balance syncs with childs
-        if (rank>=spawn_start && rank<spawn_start+number_of_spawns_this_process) {
+        if (rank>=spawn_start && rank<spawn_start+numberOfSpawnsThisProcess) {
             pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, true, shared);
             nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
@@ -591,23 +615,23 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
         } else {            
             pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, false, shared);
         }
-        rank=(rank+1)%total_number_of_spawns;
+        rank=(rank+1)%totalNumberOfSpawns;
     }
     //Each node will have nSpawns/nNodes running, with a Maximum of 4
     //We supose that if 8 hosts spawns 16 nodes, each one will usually run 2
     //HINT: This does not mean that some remote nodes wont be accesible
     //using more than 1 thread is a performance tweak
-    int number_of_threads=(total_number_of_spawns/mpi_size);
-    if (number_of_threads<1) number_of_threads=1;
-    if (number_of_threads>_maxWorkers) number_of_threads=_maxWorkers;
-    BaseThread* threads[number_of_threads];
-    sys.addOffloadPEsToTeam(pes, total_number_of_spawns, number_of_threads, threads); 
+    int numberOfThreads=(totalNumberOfSpawns/mpiSize);
+    if (numberOfThreads<1) numberOfThreads=1;
+    if (numberOfThreads>(int)_maxWorkers) numberOfThreads=_maxWorkers;
+    BaseThread* threads[numberOfThreads];
+    sys.addOffloadPEsToTeam(pes, totalNumberOfSpawns, numberOfThreads, threads); 
     //Add all the PEs to the thread
     Lock* gLock=NULL;
-    Atomic<int>* gCounter;
-    std::vector<MPIThread*>* threadList;
-    for ( i=0; i<number_of_threads; i++ ){ 
-        MPIThread* mpiThread=(MPIThread*) threads[i];
+    Atomic<int>* gCounter=NULL;
+    std::vector<MPIThread*>* threadList=NULL;
+    for ( spawnedHosts=0; spawnedHosts<numberOfThreads; spawnedHosts++ ){ 
+        MPIThread* mpiThread=(MPIThread*) threads[spawnedHosts];
         //Get the lock of one of the threads
         if (gLock==NULL) {
             gLock=mpiThread->getSelfLock();
@@ -615,16 +639,16 @@ void MPIProcessor::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int proc
             threadList=mpiThread->getSelfThreadList();
         }
         threadList->push_back(mpiThread);
-        mpiThread->addRunningPEs((MPIProcessor**)pes,total_number_of_spawns);
+        mpiThread->addRunningPEs((MPIProcessor**)pes,totalNumberOfSpawns);
         //Set the group lock so they all share the same lock
         mpiThread->setGroupCounter(gCounter);
         mpiThread->setGroupThreadList(threadList);
-        if (number_of_threads>1) {
+        if (numberOfThreads>1) {
             //Set the group lock so they all share the same lock
             mpiThread->setGroupLock(gLock);
         }
     }
-    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+    nanos::ext::MPIDD::setSpawnDone(true);
 }
 
 int MPIProcessor::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,

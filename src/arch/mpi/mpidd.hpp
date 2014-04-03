@@ -25,6 +25,7 @@
 #include "mpidevice.hpp"
 #include "workdescriptor.hpp"
 #include "config.hpp"
+#include "mpiprocessor_decl.hpp"
 
 namespace nanos {
 namespace ext
@@ -44,14 +45,22 @@ namespace ext
          int _assignedRank;
          size_t uid;
          static Atomic<int> uidGen;
+         static bool _spawnDone;
 
       public:
        
          // constructors
-          MPIDD( work_fct w ) : DD( &MPI ),_work( w ), _assignedComm(MPI_COMM_WORLD),_assignedRank( CACHETHREADRANK ) {}
+         MPIDD( work_fct w ) : DD( &MPI ),_work( w ), _assignedComm(MPI_COMM_WORLD),_assignedRank( CACHETHREADRANK ) {}
 
          MPIDD( work_fct w , MPI_Comm assignedComm, int assignedRank) : DD( &MPI ),_work( w ), _assignedComm(assignedComm) , _assignedRank(assignedRank) {
-             if (_assignedRank==CACHETHREADRANK) fatal0("Error, rank value (-1) reserved for nanox");
+             //if (_assignedRank==CACHETHREADRANK) fatal0("Error, rank value (-1) reserved for nanox");
+             if (_assignedComm==MPI_COMM_NULL) fatal0("Error, you are trying to use a (MPI_COMM_NULL) commnicator, make sure that your deep_booster_alloc"
+                     " call could allocate/had enough hosts to allocate the requested amount of nodes, if you application can work with"
+                     " any number of nodes, you can use deep_booster_alloc_nostrict(...,int provided) call which returns in provided the number of hosts which were allocated");
+//             if ((uintptr_t)_assignedComm==0) fatal0("Passed NULL/0 communicator in onto clause, make sure you initialize your communicator with deep_booster_alloc before using"
+//                     "it on onto clauses");
+             if (!_spawnDone) fatal0("Tried to Offload (onto clause/mpi device) code before any remote node allocation was performed."
+                     " Please, allocate remote nodes using deep_booster_alloc API call (check OmpSs docs) before trying to offload or check if your call failed");
              uid=uidGen++;
          }
 
@@ -69,7 +78,8 @@ namespace ext
          work_fct getWorkFct() const { return _work; }
          MPI_Comm getAssignedComm() const { return _assignedComm; }
          int getAssignedRank() const { return _assignedRank; }
-         
+         static void setSpawnDone(bool _spawnDone);
+
          
 
 
