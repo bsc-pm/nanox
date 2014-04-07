@@ -29,9 +29,6 @@
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -44,12 +41,6 @@ size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;
 size_t MPIProcessor::_alignThreshold = 128;
 size_t MPIProcessor::_alignment = 4096;
 size_t MPIProcessor::_maxWorkers = 1;
-size_t MPIProcessor::_bufferDefaultSize = 0;
-char* MPIProcessor::_bufferPtr = 0;
-Lock MPIProcessor::_taskLock;
-Lock MPIProcessor::_queueLock;
-std::list<int> MPIProcessor::_pendingTasksQueue;
-std::list<int> MPIProcessor::_pendingTaskParentsQueue;
 std::string MPIProcessor::_mpiExecFile;
 std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/ompss_mpi_launch.sh";
 std::string MPIProcessor::_mpiHosts;
@@ -57,10 +48,8 @@ std::string MPIProcessor::_mpiHostsFile;
 int MPIProcessor::_numPrevPEs=-1;
 int MPIProcessor::_numFreeCores;
 int MPIProcessor::_currPE;
-bool MPIProcessor::_inicialized=false;
 bool MPIProcessor::_useMultiThread=false;
 bool MPIProcessor::_disableSpawnLock=false;
-int MPIProcessor::_currentTaskParent=-1;
 
 size_t MPIProcessor::getCacheDefaultSize() {
     return _cacheDefaultSize;
@@ -70,15 +59,29 @@ System::CachePolicyType MPIProcessor::getCachePolicy() {
     return _cachePolicy;
 }
 
-MPI_Comm MPIProcessor::getCommunicator() const {
-    return _communicator;
-}
-
 std::string MPIProcessor::getMpiHosts() {
     return _mpiHosts;
 }
+
 std::string MPIProcessor::getMpiHostsFile() {
     return _mpiHostsFile;
+}
+
+std::string MPIProcessor::getMpiExecFile() {
+    return _mpiExecFile;
+}
+
+
+bool MPIProcessor::isDisableSpawnLock() {
+    return _disableSpawnLock;
+}
+
+size_t MPIProcessor::getMaxWorkers() {
+    return _maxWorkers;
+}
+
+bool MPIProcessor::isUseMultiThread() {
+    return _useMultiThread;
 }
 
 std::string MPIProcessor::getMpiLauncherFile() {
@@ -93,48 +96,12 @@ size_t MPIProcessor::getAlignThreshold() {
     return _alignThreshold;
 }
 
-Lock& MPIProcessor::getTaskLock() {
-    return _taskLock;
+MPI_Comm MPIProcessor::getCommunicator() const {
+    return _communicator;
 }
 
-int MPIProcessor::getQueueCurrTaskIdentifier() {
-    return _pendingTasksQueue.front();
-}
-
-int MPIProcessor::getQueueCurrentTaskParent() {
-    return _pendingTaskParentsQueue.front();
-}
-
-int MPIProcessor::getCurrentTaskParent() {
-    return _currentTaskParent;
-}
-
-void MPIProcessor::setCurrentTaskParent(int parent) {
-    _currentTaskParent=parent;
-}
-
-void MPIProcessor::testTaskQueueSizeAndLock() {    
-    _queueLock.acquire();    
-    if (_pendingTasksQueue.size()==0) {
-      _queueLock.release();
-       getTaskLock().acquire();
-    } else {
-      _queueLock.release();
-    }
-}
-
-void MPIProcessor::addTaskToQueue(int task_id, int parentId) {
-    _queueLock.acquire();
-    _pendingTasksQueue.push_back(task_id);
-    _pendingTaskParentsQueue.push_back(parentId);
-    _queueLock.release();
-}
-
-void MPIProcessor::removeTaskFromQueue() {
-    _queueLock.acquire();
-    _pendingTasksQueue.pop_front();
-    _pendingTaskParentsQueue.pop_front();
-    _queueLock.release();
+MPI_Comm MPIProcessor::getCommOfParents() const {
+    return _commOfParents;
 }
 
 int MPIProcessor::getRank() const {
@@ -200,41 +167,6 @@ void MPIProcessor::setCurrExecutingDD(int currExecutingDD) {
 
 void MPIProcessor::appendToPendingRequests(MPI_Request& req) {
     _pendingReqs.push_back(req);
-}
-
-////////////////////////////////
-//Auxiliar filelock routines////
-////////////////////////////////
-
-/*! Try to get lock. Return its file descriptor or -1 if failed.
- *
- *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
- *  @return File descriptor of lock file, or -1 if failed.
- */
-static int tryGetLock( char const *lockName )
-{
-    mode_t m = umask( 0 );
-    int fd = open( lockName, O_RDWR|O_CREAT, 0666 );
-    umask( m );
-    if( fd >= 0 && flock( fd, LOCK_EX | LOCK_NB ) < 0 )
-    {
-        close( fd );
-        fd = -1;
-    }
-    return fd;
-}
-
-/*! Release the lock obtained with tryGetLock( lockName ).
- *
- *  @param fd File descriptor of lock returned by tryGetLock( lockName ).
- *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
- */
-static void releaseLock( int fd, char const *lockName )
-{
-    if( fd < 0 )
-        return;
-    remove( lockName );
-    close( fd );
 }
 
 #endif

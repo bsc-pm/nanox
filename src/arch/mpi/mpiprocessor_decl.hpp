@@ -28,6 +28,7 @@
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
+#include "mpiremotenode_decl.hpp"
 
 namespace nanos {
     namespace ext {
@@ -37,8 +38,6 @@ namespace nanos {
             // config variables
             static bool _useUserThreads;
             static size_t _threadsStackSize;
-            static size_t _bufferDefaultSize;
-            static char* _bufferPtr;
             
             //MPI Node data
             static size_t _cacheDefaultSize;
@@ -53,18 +52,9 @@ namespace nanos {
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
-            static bool _inicialized;  
             static size_t _alignThreshold;          
             static size_t _alignment;          
             static size_t _maxWorkers;
-            
-            
-            static Lock _taskLock;
-            static Lock _queueLock;
-            static std::list<int> _pendingTasksQueue;
-            static std::list<int> _pendingTaskParentsQueue;   
-            static int _currentTaskParent;
-            
             
             MPI_Comm _communicator;
             int _rank;
@@ -75,6 +65,7 @@ namespace nanos {
             WorkDescriptor* _currExecutingWd;
             int _currExecutingDD;
             std::list<MPI_Request> _pendingReqs;
+            MPI_Comm _commOfParents;
             
 
             // disable copy constructor and assignment operator
@@ -85,44 +76,41 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned, bool shared);
+            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents);
 
             ~MPIProcessor() {                
-            }
-            
+            }            
+
+            /* Nanox NX_OFFL  Configuration options*/
             static size_t getCacheDefaultSize();
 
             static System::CachePolicyType getCachePolicy();
-
-            MPI_Comm getCommunicator() const;
-
-            static std::string getMpiFilename();
-
             static std::string getMpiHosts();
             
             static std::string getMpiHostsFile();
+            
+            static std::string getMpiExecFile();
 
             static std::string getMpiLauncherFile();
             
             static size_t getAlignment();
             
-            static size_t getAlignThreshold();
-                         
-            static int getCurrentTaskParent();
-            
-            static int getQueueCurrentTaskParent();
-            
-            static void setCurrentTaskParent(int parent);
-            
-            static void testTaskQueueSizeAndLock();
-            
-            static Lock& getTaskLock();
-            
-            static int getQueueCurrTaskIdentifier();
-            
-            static void addTaskToQueue(int task_id, int parentId);
+            static size_t getAlignThreshold();            
 
-            static void removeTaskFromQueue();
+            static bool isDisableSpawnLock();
+
+            static size_t getMaxWorkers();
+
+            static bool isUseMultiThread();
+            /* End config options*/           
+            
+            static int getNextPEId();    
+            
+            
+
+            MPI_Comm getCommunicator() const;
+            
+            MPI_Comm getCommOfParents() const;     
  
             int getRank() const;
             
@@ -167,146 +155,6 @@ namespace nanos {
             bool supportsUserLevelThreads() const {
                 return false;
             }       
-            
-            
-            
-            static bool executeTask(int taskId);
-            
-            /**
-             * This routine implements a worker thread which will execute
-             * tasks whenever notified by the cache thread
-             * @return 0
-             */
-            static int nanosMPIWorker();        
-            
-            static int getNextPEId();    
-            
-            
-            /**
-            * Statics (mostly external API adapters provided to user or used by mercurium) begin here
-            */
-
-            /**
-             * Free booster group
-             * @param intercomm Communicator (NULL means free every booster registered)
-             * @param rank rank
-             */
-            static void DEEP_Booster_free(MPI_Comm *intercomm, int rank);
-            
-            static void nanosMPIInit(int* argc, char ***argv, int required, int* provided);
-            
-            static void nanosMPIFinalize();
-            
-            /**
-             * Function which allocates remote nodes
-             * Composed of thee parts
-             * 1- Build host list (aka read host list from file/env var and in a future job manager)
-             * 2- Perform the call to MPI spawn
-             * 3- Build nanox structures and threads
-             * @param comm Communicator of the masters who will allocate (collective) and access the boosters
-             * @param number_of_hosts Number of hosts (lines in hostfile) to spawn
-             * @param process_per_host Process per host to spawn
-             * @param intercomm Resulting interccomm representing the boosters
-             * @param strict Boolean which indicates if the call should crash when not enough nodes are avaiable
-             * @param provided [OUT] returns the real number of hosts allocated (only makes sense with strict=false)
-             * @param offset Offset (0 by default, only used in deep_booster_alloc_offset)
-             * @param id_host_list List individually which specifies which hosts will be used (of length number_of_hosts)
-             * @param pph_list Process per host when using id_host_list (of length number_of_hosts)
-             * Process per host will be 0 (aka incompatible) with the "_list" mode
-             * Offset will be 0 (aka incompatible) with the "_list" mode
-             */
-            static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm,
-                    bool strict, int* provided,
-                    int offset,const int* pph_list);  
-            
-            /*
-             * Subkernel for DEEPBoosterAlloc
-            */
-            static inline void buildHostLists( 
-                int offset,
-                int requested_host_num,
-                std::vector<std::string>& tokens_params,
-                std::vector<std::string>& tokens_host, 
-                std::vector<int>& host_instances);
-            
-            /*
-             * Subkernel for DEEPBoosterAlloc
-            */
-            static inline void callMPISpawn( 
-                MPI_Comm comm,
-                const int availableHosts,
-                std::vector<std::string>& tokensParams,
-                std::vector<std::string>& tokensHost, 
-                std::vector<int>& hostInstances,
-                const int* pph_list,
-                const int process_per_host,
-                const bool& shared,
-                int& spawnedHosts,
-                int& totalNumberOfSpawns,
-                MPI_Comm* intercomm);
-            
-            
-            /*
-             * Subkernel for DEEPBoosterAlloc
-            */
-            static inline void createNanoxStructures( 
-                MPI_Comm comm,
-                MPI_Comm* intercomm,
-                int spawnedHosts,
-                int totalNumberOfSpawns,
-                bool shared,
-                int mpiSize);
-            
-            /**
-             * Wrappers for MPI functions
-             */
-            static int nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
-                    MPI_Comm comm);
-
-            static int nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
-                    MPI_Comm comm, MPI_Status *status); 
-
-            static int nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int dest,
-                    MPI_Comm comm);
-
-            static int nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,
-                    MPI_Comm comm, MPI_Status *status);
-
-            static int nanosMPISendDatastruct(void *buf, int count, MPI_Datatype datatype, int dest,
-                    MPI_Comm comm);
-
-            static int nanosMPIRecvDatastruct(void *buf, int count, MPI_Datatype datatype, int source,
-                    MPI_Comm comm, MPI_Status *status);
-
-            static int nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-                    MPI_Comm comm);
-            
-            static int nanosMPISsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-                    MPI_Comm comm);
-            
-            static int nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
-                    MPI_Comm comm,MPI_Request *req);
-
-            static int nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                    MPI_Comm comm, MPI_Status *status);
-            
-            static int nanosMPIIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
-                     MPI_Comm comm, MPI_Request *req);
-            
-            static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
-                    MPI_Datatype array_of_types[], MPI_Datatype *newtype);
-                        
-            /**
-             * Specialized functions
-             */
-            static void nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
-                    unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])());
-            
-            static void mpiOffloadSlaveMain();
-            
-            //Search function pointer and get index
-            static int ompssMpiGetFunctionIndexHost(void* func_pointer);
-            
         };   
 
         // Macros to instrument the code and make it cleaner

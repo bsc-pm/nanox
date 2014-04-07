@@ -19,7 +19,7 @@
 
 #include "mpi.h"
 #include "nanos-mpi.h"
-#include "mpiprocessor_decl.hpp"
+#include "mpiremotenode_decl.hpp"
 #include "system.hpp"
 #include "mpidd.hpp"
 #include <string.h>
@@ -41,93 +41,93 @@ NANOS_API_DEF(void *, nanos_mpi_fortran_factory, (void *args)) {
 }
 
 void deep_booster_free (MPI_Comm *intercomm) {
-    nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, -1);
+    nanos::ext::MPIRemoteNode::DEEP_Booster_free(intercomm, -1);
 }
 
 void deep_booster_free_ (MPI_Fint *intercomm) {
-    MPI_Comm f_comm=MPI_Comm_f2c(*intercomm);
-    nanos::ext::MPIProcessor::DEEP_Booster_free(&f_comm, -1);
+    MPI_Comm c_comm=MPI_Comm_f2c(*intercomm);
+    nanos::ext::MPIRemoteNode::DEEP_Booster_free(&c_comm, -1);
 }
 
 void deep_booster_free_single (MPI_Comm *intercomm, int rank) {
-    nanos::ext::MPIProcessor::DEEP_Booster_free(intercomm, rank);
+    nanos::ext::MPIRemoteNode::DEEP_Booster_free(intercomm, rank);
 }
 
 void deep_booster_free_single_ (MPI_Fint *intercomm, int* rank) {
-    MPI_Comm f_comm=MPI_Comm_f2c(*intercomm);
-    nanos::ext::MPIProcessor::DEEP_Booster_free(&f_comm, *rank);
+    MPI_Comm c_comm=MPI_Comm_f2c(*intercomm);
+    nanos::ext::MPIRemoteNode::DEEP_Booster_free(&c_comm, *rank);
 }
 
 void deep_booster_alloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm) {
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, true, NULL, 0, NULL);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, true, NULL, 0, NULL);
 }
 
 void deep_booster_alloc_(MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint *intercomm) {
     MPI_Comm c_comm=MPI_Comm_f2c(*comm);
     MPI_Comm dummy_intercomm;
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(c_comm, *number_of_hosts, *process_per_host, &dummy_intercomm, true, NULL, 0, NULL); 
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(c_comm, *number_of_hosts, *process_per_host, &dummy_intercomm, true, NULL, 0, NULL); 
     MPI_Fint f_intercomm=MPI_Comm_c2f(dummy_intercomm);
     *intercomm=f_intercomm;
 }
 
 
 void deep_booster_alloc_offset (MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset) {
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, true, NULL, offset, NULL);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, true, NULL, offset, NULL);
 }
 
 void deep_booster_alloc_offset_ (MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint* intercomm, int* offset) {
     MPI_Comm c_comm=MPI_Comm_f2c(*comm);
     MPI_Comm dummy_intercomm;
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(c_comm, *number_of_hosts,*process_per_host, &dummy_intercomm, true, NULL, *offset, NULL);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(c_comm, *number_of_hosts,*process_per_host, &dummy_intercomm, true, NULL, *offset, NULL);
     MPI_Fint f_intercomm=MPI_Comm_c2f(dummy_intercomm);
     *intercomm=f_intercomm;
 }
 
 void deep_booster_alloc_list(MPI_Comm comm, int number_of_hosts, int* process_per_host_list, MPI_Comm *intercomm) {
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, 0, intercomm, true, NULL, 0, process_per_host_list);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(comm, number_of_hosts, 0, intercomm, true, NULL, 0, process_per_host_list);
 }
 
 void deep_booster_alloc_list_(MPI_Fint* comm, int* number_of_hosts, int* process_per_host_list,MPI_Fint *intercomm) {
     MPI_Comm c_comm=MPI_Comm_f2c(*comm);
     MPI_Comm dummy_intercomm;
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(c_comm, *number_of_hosts, 0, &dummy_intercomm, true, NULL, 0, process_per_host_list);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(c_comm, *number_of_hosts, 0, &dummy_intercomm, true, NULL, 0, process_per_host_list);
     MPI_Fint f_intercomm=MPI_Comm_c2f(dummy_intercomm);
     *intercomm=f_intercomm;
 }
 
 void deep_booster_alloc_nonstrict(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int* provided) {
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, false, provided, 0, NULL);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, false, provided, 0, NULL);
 }
 
 void deep_booster_alloc_nonstrict_(MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint *intercomm, int* provided) {
     MPI_Comm c_comm=MPI_Comm_f2c(*comm);
     MPI_Comm dummy_intercomm;
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(c_comm, *number_of_hosts, *process_per_host, &dummy_intercomm, false, provided, 0, NULL); 
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(c_comm, *number_of_hosts, *process_per_host, &dummy_intercomm, false, provided, 0, NULL); 
     MPI_Fint f_intercomm=MPI_Comm_c2f(dummy_intercomm);
     *intercomm=f_intercomm;
 }
 
 
 void deep_booster_alloc_offset_nonstrict(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, int offset, int* provided) {
-        nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, false, provided, offset, NULL);
+        nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(comm, number_of_hosts, process_per_host, intercomm, false, provided, offset, NULL);
 }
 
 void deep_booster_alloc_offset_nonstrict_(MPI_Fint* comm, int* number_of_hosts, int* process_per_host, MPI_Fint* intercomm, int* offset, int* provided) {
     MPI_Comm c_comm=MPI_Comm_f2c(*comm);
     MPI_Comm dummy_intercomm;
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(c_comm, *number_of_hosts,*process_per_host, &dummy_intercomm, false, provided, *offset, NULL);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(c_comm, *number_of_hosts,*process_per_host, &dummy_intercomm, false, provided, *offset, NULL);
     MPI_Fint f_intercomm=MPI_Comm_c2f(dummy_intercomm);
     *intercomm=f_intercomm;
 }
 
 void deep_booster_alloc_list_nonstrict(MPI_Comm comm, int number_of_hosts, int* process_per_host_list, MPI_Comm *intercomm, int* provided) {
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(comm, number_of_hosts, 0, intercomm, false, provided, 0, process_per_host_list);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(comm, number_of_hosts, 0, intercomm, false, provided, 0, process_per_host_list);
 }
 
 void deep_booster_alloc_list_nonstrict_(MPI_Fint* comm, int* number_of_hosts, int* process_per_host_list,MPI_Fint *intercomm, int* provided) {
     MPI_Comm c_comm=MPI_Comm_f2c(*comm);
     MPI_Comm dummy_intercomm;
-    nanos::ext::MPIProcessor::DEEPBoosterAlloc(c_comm, *number_of_hosts, 0, &dummy_intercomm, false, provided, 0, process_per_host_list);
+    nanos::ext::MPIRemoteNode::DEEPBoosterAlloc(c_comm, *number_of_hosts, 0, &dummy_intercomm, false, provided, 0, process_per_host_list);
     MPI_Fint f_intercomm=MPI_Comm_c2f(dummy_intercomm);
     *intercomm=f_intercomm;
 }
@@ -135,7 +135,7 @@ void deep_booster_alloc_list_nonstrict_(MPI_Fint* comm, int* number_of_hosts, in
 
 NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {
     try {
-        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv, MPI_THREAD_MULTIPLE, 0);
+        nanos::ext::MPIRemoteNode::nanosMPIInit(argc, argv, MPI_THREAD_MULTIPLE, 0);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }
@@ -146,7 +146,7 @@ NANOS_API_DEF(nanos_err_t, nanos_mpi_init, (int* argc, char ***argv)) {
 
 NANOS_API_DEF(nanos_err_t, nanos_mpi_init_thread, (int* argc, char ***argv, int required, int *provided)) {
     try {
-        nanos::ext::MPIProcessor::nanosMPIInit(argc, argv, required, provided);
+        nanos::ext::MPIRemoteNode::nanosMPIInit(argc, argv, required, provided);
     } catch (...) {
         return NANOS_UNKNOWN_ERR;
     }
@@ -155,35 +155,35 @@ NANOS_API_DEF(nanos_err_t, nanos_mpi_init_thread, (int* argc, char ***argv, int 
 }
 
 NANOS_API_DEF(void, nanos_mpi_initf, (void)) {
-    nanos::ext::MPIProcessor::nanosMPIInit(0, 0,MPI_THREAD_MULTIPLE,0);
+    nanos::ext::MPIRemoteNode::nanosMPIInit(0, 0,MPI_THREAD_MULTIPLE,0);
 }
 
 int nanos_mpi_finalize (void) {
-    nanos::ext::MPIProcessor::nanosMPIFinalize();
+    nanos::ext::MPIRemoteNode::nanosMPIFinalize();
     return NANOS_OK;
 }
 
 void nanos_mpi_finalizef_ (void) {
-    nanos::ext::MPIProcessor::nanosMPIFinalize();
+    nanos::ext::MPIRemoteNode::nanosMPIFinalize();
 }
 
 NANOS_API_DEF(int, nanos_mpi_send_taskinit, (void *buf, int count, int dest, MPI_Comm comm)) {
-        return nanos::ext::MPIProcessor::nanosMPISendTaskinit(buf,count,MPI_INT,dest,comm);
+        return nanos::ext::MPIRemoteNode::nanosMPISendTaskinit(buf,count,MPI_INT,dest,comm);
 }
 
 NANOS_API_DEF(int, nanos_mpi_send_taskend, (void *buf, int count, int dest, MPI_Comm comm)){
-        return nanos::ext::MPIProcessor::nanosMPISendTaskend(buf,count,MPI_INT,dest,comm);
+        return nanos::ext::MPIRemoteNode::nanosMPISendTaskend(buf,count,MPI_INT,dest,comm);
 }
 NANOS_API_DEF(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm)){
-        return nanos::ext::MPIProcessor::nanosMPISendDatastruct(buf,count,datatype,dest,comm);
+        return nanos::ext::MPIRemoteNode::nanosMPISendDatastruct(buf,count,datatype,dest,comm);
 }
 NANOS_API_DEF(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm)){
-        return nanos::ext::MPIProcessor::nanosMPIRecvDatastruct(buf,count,datatype,dest,comm,MPI_STATUS_IGNORE);
+        return nanos::ext::MPIRemoteNode::nanosMPIRecvDatastruct(buf,count,datatype,dest,comm,MPI_STATUS_IGNORE);
 }
 
 NANOS_API_DEF(int, nanos_mpi_type_create_struct, ( int count, int array_of_blocklengths[],  
         MPI_Aint array_of_displacements[], MPI_Datatype array_of_types[], MPI_Datatype *newtype)){
-    return nanos::ext::MPIProcessor::nanosMPITypeCreateStruct(count,array_of_blocklengths,array_of_displacements, array_of_types,newtype);
+    return nanos::ext::MPIRemoteNode::nanosMPITypeCreateStruct(count,array_of_blocklengths,array_of_displacements, array_of_types,newtype);
 }
 
 
@@ -249,5 +249,5 @@ NANOS_API_DEF(int, nanos_mpi_get_parent, (MPI_Comm* parent_out)){
 }
 
 NANOS_API_DEF(int, ompss_mpi_get_function_index_host, (void* func_pointer)){
-    return nanos::ext::MPIProcessor::ompssMpiGetFunctionIndexHost(func_pointer);
+    return nanos::ext::MPIRemoteNode::ompssMpiGetFunctionIndexHost(func_pointer);
 }

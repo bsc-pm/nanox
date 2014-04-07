@@ -163,7 +163,7 @@ bool MPIThread::deleteWd(WD* wd, bool markToDelete) {
 inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){    
     //Receive the signal (just to remove it from the MPI "queue")
     int id_func_ompss;
-    nanos::ext::MPIProcessor::nanosMPIRecvTaskend(&id_func_ompss, 1, MPI_INT,finishedPE->getRank(),
+    nanos::ext::MPIRemoteNode::nanosMPIRecvTaskend(&id_func_ompss, 1, MPI_INT,finishedPE->getRank(),
         finishedPE->getCommunicator(),MPI_STATUS_IGNORE);
     WD* wd=finishedPE->getCurrExecutingWd();
     finishedPE->setCurrExecutingWd(NULL);
@@ -242,7 +242,7 @@ void MPIThread::finish() {
                 //Only release if we are the owner of the process (once released, we are not the owner anymore)
                 if ( (*it)->getOwner() ) 
                 {
-                    nanos::ext::MPIProcessor::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, (*it)->getCommunicator());
+                    nanos::ext::MPIRemoteNode::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, (*it)->getCommunicator());
                     (*it)->setOwner(false);
                 }
             }

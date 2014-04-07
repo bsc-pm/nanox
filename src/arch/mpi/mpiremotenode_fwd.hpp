@@ -17,15 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_MPI_PROCESSOR_FWD
-#define _NANOS_MPI_PROCESSOR_FWD
-
-#include "mpiremotenode_fwd.hpp"
+#ifndef _NANOS_MPI_REMOTE_NODE_FWD
+#define _NANOS_MPI_REMOTE_NODE_FWD
 
 namespace nanos {
 namespace ext
 {
-   class MPIProcessor;
+   class MPIRemoteNode;
 }
 }
 

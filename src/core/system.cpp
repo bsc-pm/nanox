@@ -1560,6 +1560,6 @@ void System::executionSummary( void )
 void System::ompss_nanox_main(){
     #ifdef MPI_DEV
     //This function will already do exit(0) after the slave finishes (when we are on slave)
-    nanos::ext::MPIProcessor::mpiOffloadSlaveMain();
+    nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
     #endif    
 }

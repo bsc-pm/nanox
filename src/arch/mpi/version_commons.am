@@ -8,6 +8,10 @@ mpi_sources = \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor_decl.hpp \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor.hpp \
 	$(top_srcdir)/src/arch/mpi/mpiprocessor.cpp \
+	$(top_srcdir)/src/arch/mpi/mpiremotenode_fwd.hpp \
+	$(top_srcdir)/src/arch/mpi/mpiremotenode_decl.hpp \
+	$(top_srcdir)/src/arch/mpi/mpiremotenode.hpp \
+	$(top_srcdir)/src/arch/mpi/mpiremotenode.cpp \
 	$(top_srcdir)/src/arch/mpi/mpidevice_decl.hpp \
 	$(top_srcdir)/src/arch/mpi/mpidevice.hpp \
 	$(top_srcdir)/src/arch/mpi/mpidevice.cpp \

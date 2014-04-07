@@ -87,13 +87,6 @@ extern "C" {
 }
 #endif
 
-////Protected code only needed by mercurium compilation phases, workaround for use-define-after-preprocess "bug"
-//#ifdef _MERCURIUM_MPI_
-//
-////Mercurium converts some types to their longer type.
-////For example, shorts are ints, floats are double...
-//
-
 enum OmpSsMPIType {
     mpitype_ompss_char = 0,
     mpitype_ompss_wchar_t = 1,
@@ -112,9 +105,5 @@ enum OmpSsMPIType {
     mpitype_ompss_unsigned_long = 14,
     mpitype_ompss_unsigned_long_long = 15
 };
-
-
-//#endif
-
 
 #endif

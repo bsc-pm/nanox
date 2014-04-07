@@ -172,7 +172,7 @@ namespace nanos
           */
          static void initMPICacheStruct();
          
-         static void mpiCacheWorker();
+         static void remoteNodeCacheWorker();
          
          static void taskPreInit(MPI_Comm& comm, int pendingCopies);
          
