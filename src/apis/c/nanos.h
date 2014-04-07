@@ -127,7 +127,7 @@
  *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
  */
 
-#include <unistd.h>
+#include <stddef.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 

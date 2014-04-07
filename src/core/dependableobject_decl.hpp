@@ -23,6 +23,7 @@
 #include <list>
 #include <set>
 #include <vector>
+#include <stdint.h>
 #include "atomic_decl.hpp"
 #include "dataaccess_decl.hpp"
 #include "dependenciesdomain_fwd.hpp"

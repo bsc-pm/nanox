@@ -24,8 +24,6 @@
 //
 //! \defgroup core Nanos++ Core
 
-#include <stdio.h>
-#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
