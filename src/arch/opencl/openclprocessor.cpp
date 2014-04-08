@@ -117,8 +117,11 @@ void OpenCLAdapter::freeSharedMemBuffer( void* addr )
 
 void OpenCLAdapter::freeAddr( void* addr )
 {
-    freeBuffer(_bufCache.find(addr)->second);
-    _bufCache.erase(_bufCache.find(addr)); 
+    //Protecting against nanox cache freeing already user-freed shared memory address
+    if (_bufCache.count(addr)>0) {
+        freeBuffer(_bufCache.find(addr)->second);
+        _bufCache.erase(_bufCache.find(addr)); 
+    }
 }
 
 
