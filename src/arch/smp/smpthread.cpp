@@ -1,21 +1,22 @@
-/*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
-/*                                                                                   */
-/*      This file is part of the NANOS++ library.                                    */
-/*                                                                                   */
-/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/**************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                    */
+/*      Copyright 2009 Barcelona Supercomputing Center                    */
+/*                                                                        */
+/*      This file is part of the NANOS++ library.                         */
+/*                                                                        */
+/*      NANOS++ is free software: you can redistribute it and/or modify   */
 /*      it under the terms of the GNU Lesser General Public License as published by  */
-/*      the Free Software Foundation, either version 3 of the License, or            */
-/*      (at your option) any later version.                                          */
-/*                                                                                   */
-/*      NANOS++ is distributed in the hope that it will be useful,                   */
-/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
-/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
-/*      GNU Lesser General Public License for more details.                          */
-/*                                                                                   */
-/*      You should have received a copy of the GNU Lesser General Public License     */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
-/*************************************************************************************/
+/*      the Free Software Foundation, either version 3 of the License, or  */
+/*      (at your option) any later version.                               */
+/*                                                                        */
+/*      NANOS++ is distributed in the hope that it will be useful,        */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of    */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the     */
+/*      GNU Lesser General Public License for more details.               */
+/*                                                                        */
+/*      You should have received a copy of the GNU Lesser General Public License  */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.  */
+/**************************************************************************/
 
 #include "os.hpp"
 #include "smpprocessor.hpp"
@@ -29,7 +30,7 @@
 #include <assert.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
-#include "nanos-int.h"
+#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -105,7 +106,7 @@ void SMPThread::runDependent ()
 void SMPThread::join ()
 {
    if ( pthread_join( _pth, NULL ) ) fatal("Thread cannot be joined");
-   joined(); 
+   joined();
 }
 
 void SMPThread::bind( void )
@@ -249,6 +250,8 @@ void SMPThread::setupSignalHandlers ()
    sigemptyset(&recovery_action.sa_mask);
    recovery_action.sa_flags = SA_SIGINFO // Provides context information to the handler.
                             | SA_RESTART; // Resume system calls interrupted by the signal.
+
+   debug("Resiliency: handling synchronous signals raised in tasks' context.");
    /* Program synchronous signals to use the default recovery handler.
     * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
     */
@@ -258,22 +261,18 @@ void SMPThread::setupSignalHandlers ()
    fatal_cond(sigaction(SIGFPE, &recovery_action, NULL) != 0, "Signal setup (SIGFPE) failed");
    fatal_cond(sigaction(SIGSEGV, &recovery_action, NULL) != 0, "Signal setup (SIGSEGV) failed");
 
-   debug("Resiliency: handling synchronous signals raised in tasks' context.");
 }
 
-void taskExecutionHandler ( int sig, siginfo_t* si, void* context ) throw(task_execution_exception_t)
+void taskExecutionHandler ( int sig, siginfo_t* si, void* context ) throw(TaskExecutionException)
 {
    /*
-    * In order to prevent the signal to be raised inside the handler, it is blocked inside it.
-    * Because we are exiting the handler before it returns (via throwing an exception),
-    * we must unblock the signal or it wont be catched again (this is done in at the catch block).
+    * In order to prevent the signal to be raised inside the handler,
+    * the kernel blocks it until the handler returns.
     *
-    * It also works using SA_NODEFER.
-    *
+    * As we are exiting the handler before return (throwing an exception),
+    * we must unblock the signal or that signal will not be available to catch
+    * in the future (this is done in at the catch clause).
     */
-   task_execution_exception_t ter = {sig, *si, *(ucontext_t*) context};
-
-   // Throw exception
-   throw ter;
+   throw TaskExecutionException(*si, *(ucontext_t*)context);
 }
 #endif
