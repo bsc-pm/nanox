@@ -19,7 +19,7 @@
 
 /*
  <testinfo>
- test_generator='gens/core-generator -a --task-retries=4'
+ test_generator='gens/resiliency-generator -a --task-retries=4'
  </testinfo>
  */
 

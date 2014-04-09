@@ -29,6 +29,7 @@ test_generator="gens/mixed-generator -a \"--gpus=0\""
 #include "smpprocessor.hpp"
 #include "system.hpp"
 #include <string.h>
+#include <unistd.h>
 
 using namespace std;
 

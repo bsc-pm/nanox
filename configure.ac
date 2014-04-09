@@ -902,26 +902,27 @@ AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
 
 # Task-level resiliency support
-AC_MSG_CHECKING([if task resiliency is disabled.])
-AC_ARG_ENABLE([task_res_disabled],
+AC_MSG_CHECKING([if task resiliency is enabled])
+AC_ARG_ENABLE([resiliency],
   AS_HELP_STRING([--disable-resiliency], [Disables task-level resiliency]),
   [
-    task_res_disabled=yes
-    AC_MSG_RESULT([yes])
+    resiliency=no
+    AC_MSG_RESULT([no])
   ],
   [
-    AC_MSG_RESULT([no])
+    AC_MSG_RESULT([yes])
     if test x$use_xlc = xno; then
-      task_res_disabled=no
+      resiliency=yes
       AC_MSG_RESULT([checking if the compiler is compatible... yes])
     else
-      task_res_disabled=yes
+      resiliency=no
       AC_MSG_ERROR([checking if the compiler is compatible... no (nanos resiliency is only compatible with GNU and Intel compilers)])
     fi
   ]
 )
 
-AM_CONDITIONAL([RESILIENCY], [test "x$task_res_disabled" = "xno"])
+AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
+AC_SUBST([resiliency])
 
 
 # Output files
