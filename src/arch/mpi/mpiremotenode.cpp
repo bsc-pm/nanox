@@ -166,6 +166,172 @@ void MPIRemoteNode::nanosMPIFinalize() {
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
+#define N_FREE_SLOTS 10
+void MPIRemoteNode::unifiedMemoryMallocHost(size_t size, MPI_Comm communicator) {    
+//    int comm_size;
+//    MPI_Comm_remote_size(communicator,&comm_size);
+//    void* proposedAddr;
+//    bool sucessMalloc=false;
+//    while (!sucessMalloc) {
+//        proposedAddr=getFreeVirtualAddr(size);
+//        sucessMalloc=mmapOfAddr(proposedAddr);
+//    }
+//    //Fast mode: Try sending one random address and hope its free in every node
+//    cacheOrder newOrder;
+//    newOrder.opId=OPID_UNIFIED_MEM_REQ;
+//    newOrder.size=size;    
+//    newOrder.hostAddr=(uint16_t)proposedAddr;    
+//    for (int i=0; i<comm_size ; i++) {
+//       nanos::ext::MPIRemoteNode::nanosMPISend(&newOrder, 1, nanos::MPIDevice::cacheStruct, i, TAG_CACHE_ORDER, communicator);
+//    }    
+//    int totalValids;
+//    nanos::ext::MPIRemoteNode::nanosMPIRecv(&totalValids, 1, MPI_INT, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
+//    if (totalValids!=comm_size) {
+//        //Fast mode failed, enter safe mode
+//        munmapOfAddr(proposedAddr);
+//        uint64_t finalPtr;
+//        uint64_t freeSpaces[N_FREE_SLOTS*2];
+//        getFreeSpacesArr(freeSpaces,N_FREE_SLOTS*2);
+//        MPI_Status status;
+//        ptrArr[i]=freeSpaces;
+//        arrLength[i]=N_FREE_SLOTS;
+//        sizeArr[i]=freeSpaces+arrLength[i];
+//        //Gather from everyone in the communicator
+//        //MPI_Gather could be an option, but this is not a performance critical routine
+//        //and would limit the sizes to a fixed size
+//        for (int i=0; i<comm_size; ++i) {
+//           MPI_Probe(parentRank, TAG_UNIFIED_MEM, parentcomm, &status);
+            //TODO: FREE THIS MALLOCS
+//           localArr= (uint64_t*) malloc(status.count*sizeof(uint64_t));
+//           ptrArr[i]=localArr;
+//           arrLength[i]=status.count/2;
+//           sizeArr[i]=localArr+arrLength[i];
+//           nanos::ext::MPIRemoteNode::nanosMPIRecv(&localArr, status.count, MPI_LONG, i, TAG_UNIFIED_MEM, communicator);
+//        }
+//        //Now intersect all the free spaces we got...       
+//        std::map<uint64_t,char> blackList;
+//        bool sucess=false;
+//        while (!sucess) {
+//            finalPtr=getFreeChunk(comm_size+1, ptrArr, sizeArr, arrLength, order.size, blackList);
+//            bool sucess=mmapOfAddr(finalPtr);
+//            if (sucess) {
+//                for (int i=0; i<comm_size ; i++) {
+//                   nanos::ext::MPIRemoteNode::nanosMPISend(&finalPtr, 1, MPI_LONG, i, TAG_UNIFIED_MEM, communicator);
+//                }
+//                int totalValids;
+//                nanos::ext::MPIRemoteNode::nanosMPIRecv(&totalValids, 1, MPI_INT, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
+//                if (totalValids!=comm_size) {
+//                    munmapOfAddr(finalPtr);
+//                    sucess=false;
+//                }
+//            } 
+//            if (!sucess) blackList.insert(std::make_pair<uint64_t,char>(finalPtr,1)); 
+//        }
+//    }
+}
+
+void MPIRemoteNode::unifiedMemoryMallocRemote(cacheOrder& order, int parentRank, MPI_Comm parentcomm) {
+//    int comm_size;
+//    int localPositives=0;
+//    int totalPositives=0;
+//    MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
+//    bool hostProposalIsFree=true;
+//    hostProposalIsFree=mmapOfAddr(order.hostAddr);
+//    localPositives+=(int) hostProposalIsFree;
+//    MPI_Allreduce(&localPositives, &totalPositives, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+//    if (rank==0) {
+//        nanos::ext::MPIRemoteNode::nanosMPISend(&totalPositives, 1, MPI_INT, parentRank, TAG_UNIFIED_MEM, parentcomm);
+//    }
+//    if (totalPositives!=localPositives) {
+//        //Some node failed doing malloc, entre safe mode
+//        munmapOfAddr(order.hostAddr);
+//        unifiedMemoryMallocRemoteSafe(order,parentRank,parentcomm);
+//    }
+}
+
+
+void MPIRemoteNode::unifiedMemoryMallocRemoteSafe(cacheOrder& order, int parentRank, MPI_Comm parentcomm) {
+//    uint64_t freeSpaces[N_FREE_SLOTS*2];
+//    int comm_size;
+//    int localPositives=0;
+//    int totalPositives=-1;
+//    //Send my array of free memory slots to the master
+//    MPI_Comm_size(MPI_COMM_WORLD,&comm_size);
+//    uint64_t finalPtr;
+//    getFreeSpacesArr(freeSpaces,N_FREE_SLOTS*2);
+//    nanos::ext::MPIRemoteNode::nanosMPISend(freespaces, sizeof(freeSpaces), MPI_LONG, parentRank, TAG_UNIFIED_MEM, parentcomm);       
+//    //Keep receiving addresses from the master until every node could malloc a common address
+//    while (totalPositives!=localPositives) {
+//        totalPositives=0;
+//        localPositives=0;
+//        //Wait for the answer of the proposed/valid pointer
+//        nanos::ext::MPIRemoteNode::nanosMPIRecv(&finalPtr, 1, MPI_LONG, 0, TAG_UNIFIED_MEM, communicator, MPI_STATUS_IGNORE);
+//
+//        bool hostProposalIsFree=true;
+//        hostProposalIsFree=mmapOfAddr(finalPtr);
+//        localPositives+=(int) hostProposalIsFree;
+//        MPI_Allreduce(&localPositives, &totalPositives, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+//        if (rank==0) {
+//            nanos::ext::MPIRemoteNode::nanosMPISend(&totalPositives, 1, MPI_INT, parentRank, TAG_UNIFIED_MEM, parentcomm);
+//        }
+//        if (totalPositives!=localPositives) munmapOfAddr(finalPtr);
+//    }
+}
+
+uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t* ptrArr[arraysLength],
+         uint64_t* sizeArr[arraysLength],int* arrLength[arraysLength], size_t chunkSize, std::map<uint64_t,char>& blackList ) {
+//    uint64_t result=0;
+//    //TODO: Improve this implementation (brute force w/ many stop conditions + binary search right now)
+//    //For every free chunk in each node, check if it's available in every other node
+//    for (int masterSpaceNum=0; masterSpaceNum<arraysLength && resul!=0; ++masterSpaceNum) {
+//        uint64_t* masterPtrArr=ptrArr[masterSpaceNum];
+//        uint64_t* masterSizeArr=sizeArr[masterSpaceNum];
+//        int masterArrLength=arrLength[masterSpaceNum];
+//        for (int i=masterArrLength; i>=0 && resul!=0 ; --i) {
+//            uint64_t masterPtr=masterPtrArr[i];
+//            uint64_t masterSize=masterSizeArr[i];
+//            if (masterSize>=chunkSize && blackList.count(masterPtr)==0) {
+//                //Check if this pointer has free space
+//                bool isAvaiableInAllSpaces=true;
+//                for (int slaveSpaceNum=0; slaveSpaceNum<arraysLength && isAvaiableInAllSpaces; ++slaveSpaceNum) {
+//                    bool spaceHasFreeChunk=false;
+//                    uint64_t* slavePtrArr=ptrArr[slaveSpaceNum];
+//                    uint64_t* slaveSizeArr=sizeArr[slaveSpaceNum];
+//                    unsigned last=(unsigned)arrLength[slaveSpaceNum];
+//                    unsigned min=0;
+//                    unsigned mid=(min+last)/2;
+//                    while (min <= last) {
+//                        uint64_t slavePtr=slavePtrArr[mid];
+//                        uint64_t slaveSize=slaveSizeArr[mid];
+//                        
+//                        if ( masterPtr>=slavePtr && masterPtr<=slavePtr+slaveSize)
+//                        {
+//                            //If there is space, mark it as free and stop, if not, just stop and discard this masterPtrv because the space
+//                            //around it is not enough
+//                            spaceHasFreeChunk= spaceHasFreeChunk || (masterPtr>=slavePtr && 
+//                                    masterPtr+chunkSize <= slavePtr+slaveSize && blackList.count(slavePtr)==0);
+//                            break;
+//                        } else if ( slavePtr < masterPtr ) {
+//                            first = mid+1;
+//                        } else {
+//                            last = mid-1;
+//                        }
+//                        mid= (first+last)>>1;
+//                    }
+//                    isAvaiableInAllSpaces= isAvaiableInAllSpaces && spaceHasFreeChunk;
+//                }
+//                if (isAvaiableInAllSpaces) {
+//                    resul=masterPtr;
+//                }
+//            }
+//        }
+//    }
+//    if (resul==0) {
+//        fatal0("Couldn't find any free virtual address common to all nodes when trying to allocate unified memory space");
+//    }
+//    return result;
+    return 0;
+}
 
 
 void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
@@ -179,6 +345,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     
     unsigned int numThreadsWithThisComm=0;
     std::vector<nanos::ext::MPIThread*> threadsToDespawn; 
+    std::vector<MPI_Comm> communicatorsToFree; 
     //Find threads and nodes to de-spawn
     for (int i=0; i< nThreads; ++i){
         BaseThread* bt=sys.getWorker(i);
@@ -191,6 +358,9 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                 if (myPE->getRank()==rank || rank == -1) {
                   sharedSpawn= sharedSpawn || myPE->getShared();
                   threadsToDespawn.push_back((nanos::ext::MPIThread *)bt);
+                  //intercomm NULL (all communicators) and single rank is not supported (and it mostly makes no sense...)
+                  //but it will work, except mpi comm free will have to be done by the user after he frees all ranks
+                  if (intercomm==NULL && rank == -1) communicatorsToFree.push_back(threadcomm);
                 }
             }
         }
@@ -207,14 +377,14 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
         nanos::ext::MPIThread* mpiThread = *itThread;
         std::vector<MPIProcessor*>& myPEs = mpiThread->getRunningPEs();
         for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
-                //Only owner will send kill signal to the worker
-                if ( (*it)->getOwner() ) 
-                {
-                    nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
-                    //After sending finalization signals, we are not the owners anymore
-                    //This way we prevent finalizing them multiple times if more than one thread uses them
-                    (*it)->setOwner(false);
-                }
+            //Only owner will send kill signal to the worker
+            if ( (*it)->getOwner() ) 
+            {
+                nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
+                //After sending finalization signals, we are not the owners anymore
+                //This way we prevent finalizing them multiple times if more than one thread uses them
+                (*it)->setOwner(false);
+            }
         }
         if (rank==-1){                    
             mpiThread->lock();
@@ -223,9 +393,14 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
         }
     }
     //If we despawned all the threads which used this communicator, free the communicator
-    if (threadsToDespawn.size()>=numThreadsWithThisComm) {        
-        //This is a collective, I have no idea about how to use it with the sons and the master
-       // MPI_Comm_free(intercomm);
+    //If intercomm is null, do not do it, after all, it should be the final free
+    if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {        
+       MPI_Comm_free(intercomm);
+    } else if (communicatorsToFree.size()>0) {
+        for (std::vector<MPI_Comm>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
+           MPI_Comm commToFree=*it;
+           MPI_Comm_free(&commToFree);            
+        }
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
@@ -464,15 +639,17 @@ void MPIRemoteNode::callMPISpawn(
     }           
     #ifndef OPEN_MPI
     int fd=-1;
+    //std::string lockname=NANOX_PREFIX"/bin/nanox-pfm";
+    std::string lockname="./.ompssOffloadLock";
     while (!nanos::ext::MPIProcessor::isDisableSpawnLock() && !shared && fd==-1) {
-       fd=tryGetLock("./.ompss_lockSpawn");
+       fd=tryGetLock(const_cast<char*> (lockname.c_str()));
     }
     #endif
     MPI_Comm_spawn_multiple(availableHosts,arrOfCommands, arrOfArgv, nProcess,
             arrOfInfo, 0, comm, intercomm, MPI_ERRCODES_IGNORE); 
     #ifndef OPEN_MPI
     if (!nanos::ext::MPIProcessor::isDisableSpawnLock() && !shared) {
-       releaseLock(fd,"./.ompss_lockSpawn"); 
+       releaseLock(fd,const_cast<char*> (lockname.c_str())); 
     }
     #endif
     

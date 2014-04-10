@@ -304,6 +304,7 @@ inline void Scheduler::idleLoop ()
             NANOS_INSTRUMENT ( total_yields++; )
             NANOS_INSTRUMENT ( unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
             thread->yield();
+            usleep(50000);
             NANOS_INSTRUMENT ( unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
             NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
             if ( use_block ) yields--;
@@ -496,6 +497,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   NANOS_INSTRUMENT ( total_yields++; )
                   NANOS_INSTRUMENT ( unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                   thread->yield();
+                  usleep(10000);
                   NANOS_INSTRUMENT ( unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                   NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
                   if ( use_block ) yields--;

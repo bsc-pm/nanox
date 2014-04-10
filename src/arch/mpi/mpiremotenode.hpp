@@ -104,13 +104,15 @@ void MPIRemoteNode::removeTaskFromQueue() {
  */
 static int tryGetLock( char const *lockName )
 {
-    mode_t m = umask( 0 );
-    int fd = open( lockName, O_RDWR|O_CREAT, 0666 );
-    umask( m );
-    if( fd >= 0 && flock( fd, LOCK_EX | LOCK_NB ) < 0 )
-    {
+    int fd = open( lockName, O_RDWR|O_CREAT, 0666 );   
+    struct flock lock;
+    lock.l_type    = F_WRLCK;   /* Test for any lock on any part of file. */
+    lock.l_start   = 0;
+    lock.l_whence  = SEEK_SET;
+    lock.l_len     = 0;        
+    if ( fcntl(fd, F_SETLKW, &lock) < 0)  {  /* Overwrites lock structure with preventors. */
+        fd=-1;        
         close( fd );
-        fd = -1;
     }
     return fd;
 }
@@ -124,7 +126,13 @@ static void releaseLock( int fd, char const *lockName )
 {
     if( fd < 0 )
         return;
-    remove( lockName );
+    struct flock lock;
+    lock.l_type    = F_WRLCK;   /* Test for any lock on any part of file. */
+    lock.l_start   = 0;
+    lock.l_whence  = SEEK_SET;
+    lock.l_len     = 0;        
+    fcntl(fd, F_SETLKW, &lock);  /* Overwrites lock structure with preventors. */
+    //remove( lockName );
     close( fd );
 }
 #endif

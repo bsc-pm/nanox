@@ -348,6 +348,11 @@ void MPIDevice::remoteNodeCacheWorker() {
                             }
                             return;
                         }
+                        case OPID_UNIFIED_MEM_REQ:
+                        {
+                            nanos::ext::MPIRemoteNode::unifiedMemoryMallocRemote(order, parentRank, parentcomm);
+                            break;
+                        }
                         case OPID_COPYIN:
                         {    
                             NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);

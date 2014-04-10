@@ -97,7 +97,46 @@ namespace nanos {
             static void nanosMPIInit(int* argc, char ***argv, int required, int* provided);
             
             static void nanosMPIFinalize();
+            
+            /**
+             * API called by the user which starts a malloc of unified mem address between hosts
+             * and everyone in this communicator
+             * @param size
+             * @param communicator
+             */
+            static void unifiedMemoryMallocHost(size_t size, MPI_Comm communicator);
+            
+            /**
+             * Remote part for unifiedMemoryMallocHost which tries to make a best-effort and fast
+             * alloc
+             * @param order
+             * @param parentRank
+             * @param parentComm
+             */
+            static void unifiedMemoryMallocRemote(cacheOrder& order, int parentRank, MPI_Comm parentComm);
 
+            /**
+             * Remote part for unifiedMemoryMallocHost which makes sure we find a shared memory address
+             * @param order
+             * @param parentRank
+             * @param parentComm
+             */
+            static void unifiedMemoryMallocRemoteSafe(cacheOrder& order, int parentRank, MPI_Comm parentComm);
+            
+            /**
+             * Intersect memory spaces and get a chunk of chunkSize
+             * @param arraysLength Length of the arrays (num mem spaces)
+             * @param ptrArr array of free spaces (ordered)
+             * @param sizeArr array of free size after each ptrArr
+             * @param arrLength array of lengths of the spaces and spaces
+             * @param chunkSize size of the free space to search
+             * @param blackList pointers which should not be considered (failed before)
+             * @return 
+             */
+            static uint64_t getFreeChunk(int arraysLength, uint64_t* ptrArr[arraysLength],
+                             uint64_t* sizeArr[arraysLength],int* arrLength[arraysLength], size_t chunkSize, std::map<uint64_t,char>& blackList );
+
+            
             /**
              * Free booster group
              * @param intercomm Communicator (NULL means free every booster registered)
