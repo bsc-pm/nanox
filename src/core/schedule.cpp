@@ -449,6 +449,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    while ( !condition->check() && thread->isRunning() ) {
 
       checks--;
+      
+      dlb_returnMyCpuIfClaimed();
+
       if ( checks == 0 ) {
          checks = init_checks;
 
@@ -752,13 +755,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *oldwd );
 
-/*   if ( &(thread->getThreadWD()) == thread->getCurrentWD()){
-       DLB: 
+//   if ( &(thread->getThreadWD()) == thread->getCurrentWD()){
+      /* DLB: 
          If slave, check if I must release my cpu
-         if so do not get next WD and go to sleep
+         if so do not get next WD and go to sleep*/
       
-      dlb_returnMyCpuIfClaimed();
-   }*/
+//      dlb_returnMyCpuIfClaimed();
+//   }
 
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
@@ -920,10 +923,10 @@ void Scheduler::exit ( void )
       If slave, check if I must release my cpu
       if so do not get next WD and go to sleep
    */
-   if (!dlb_returnMyCpuIfClaimed()){
+//   if (!dlb_returnMyCpuIfClaimed()){
       /* get next WorkDescriptor (if any) */
-      next =  thread->getNextWD();
-   }
+//      next =  thread->getNextWD();
+//   }
 
    finishWork( oldwd, ( next == NULL ) );
 

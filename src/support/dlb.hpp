@@ -75,8 +75,16 @@ namespace nanos {
       if ( sys.dlbEnabled() && DLB_UpdateResources && getMyThreadSafe()->getId() == 0){
          
             if ( sys.getPMInterface().isMalleable() ) {
-               //If ready tasks > num threads I claim my cpus being used by somebodyelse
+               NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+               NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key  = ID->getEventKey("concurrent-tasks"); )
+               
+               //If ready tasks > num threads I claim my cpus being used by somebodyels
                int ready_tasks= myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs();
+
+               NANOS_INSTRUMENT ( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
+               NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
+
                int needed_resources = ready_tasks - myThread->getTeam()->getFinalSize();
 
                if ( needed_resources > 0){

@@ -561,6 +561,7 @@ namespace nanos {
 
             /* 44 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
             /* 45 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+            /* 46 */ registerEventKey("concurrent-tasks", "Number of concurrent tasks in the ready queue", false);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
