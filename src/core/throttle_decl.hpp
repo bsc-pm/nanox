@@ -39,7 +39,7 @@ namespace nanos
           */
          virtual ~ThrottlePolicy() {}
 
-         virtual bool throttleIn( void )  { return true; }
+         virtual bool throttleIn( void )  = 0 ;
          virtual void throttleOut( void ) { /* empty function */ }
    };
 }

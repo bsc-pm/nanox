@@ -43,14 +43,14 @@ namespace nanos {
 
             void setCreateTask( bool ct ) { _createTasks = ct; }
 
-            bool throttle();
+            bool throttleIn();
 
             ~DummyThrottle() {};
       };
 
-      const bool DummyThrottle::_default = false;
+      const bool DummyThrottle::_default = true;
 
-      bool DummyThrottle::throttle()
+      bool DummyThrottle::throttleIn()
       {
          return _createTasks;
       }
