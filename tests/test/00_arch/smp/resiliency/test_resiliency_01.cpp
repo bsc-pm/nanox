@@ -19,7 +19,7 @@
 
 /*
  <testinfo>
- test_generator='gens/resiliency-generator -a \'--pes=1\''
+ test_generator='gens/resiliency-generator'
  </testinfo>
  */
 
@@ -70,11 +70,6 @@ void fail ( bool flag )
 
 void dig_0 ( void *ptr )
 {
-   nanos::WD *this_wd = nanos::getMyThreadSafe()->getCurrentWD();
-   if (this_wd->getParent() != NULL)
-      message(
-            "In dig0: Executing task " << this_wd->getId() << ". Parent: "<<this_wd->getParent()->getId());
-
    arg_dig_t * args = (arg_dig_t *) ptr;
    args->executions_so_far++;
 
@@ -134,7 +129,6 @@ int main ( int argc, char **argv )
    if (argc > 1)
       cutoff_value = atoi(argv[1]);
    nanos::WD* this_wd = getMyThreadSafe()->getCurrentWD();
-   cout << "I'm task " << this_wd->getId() << endl;
    this_wd->setRecoverable(true);
    dig(0);
    this_wd->setInvalid(false);

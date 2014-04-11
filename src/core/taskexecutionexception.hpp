@@ -22,7 +22,7 @@
 #define _NANOS_TASKEXECUTIONEXCEPTION
 
 #include "taskexecutionexception_decl.hpp"
-#include "xtring.hpp"
+#include "xstring.hpp"
 
 #define TEE_ERR_MSG(id) "Signal raised during the execution of task "+toString<int>(id)+".\n"
 
