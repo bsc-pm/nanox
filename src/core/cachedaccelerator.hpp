@@ -22,88 +22,22 @@
 
 #include "cachedaccelerator_decl.hpp"
 #include "accelerator_decl.hpp"
-#include "cache.hpp"
+#include "regioncache.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
-
-template <class Device>
-void CachedAccelerator<Device>::configureCache( size_t cacheSize, System::CachePolicyType cachePolicy )
-{
-   if ( _cache == NULL )
-      _cache = NEW DeviceCache<Device>( cacheSize, NULL, this );
-
-   switch ( cachePolicy ) {
-      case System::NONE:
-         _cachePolicy = NEW NoCache( *_cache );
-         break;
-      case System::WRITE_THROUGH:
-         _cachePolicy = NEW WriteThroughPolicy( *_cache );
-         break;
-      case System::WRITE_BACK:
-         _cachePolicy = NEW WriteBackPolicy( *_cache );
-         break;
-      default:
-         // We should not get here with the System::DEFAULT value
-         fatal0( "Unknown cache policy" );
-         break;
-   }
-
-   _cache->setPolicy( _cachePolicy );
+inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch, int uid,
+   const Device *subArch, memory_space_id_t addressSpace ) :
+   Accelerator( newId, arch, uid, subArch ), _addressSpaceId( addressSpace ) {
 }
 
-template <class Device>
-inline void CachedAccelerator<Device>::registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache->registerCacheAccess( dir, tag, size, input, output );
+inline CachedAccelerator::~CachedAccelerator() {
 }
 
-template <class Device>
-inline void CachedAccelerator<Device>::unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output )
+inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
 {
-   _cache->unregisterCacheAccess( dir, tag, size, output );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output )
-{
-   _cache->registerPrivateAccess( dir, tag, size, input, output );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size )
-{
-   _cache->unregisterPrivateAccess( dir, tag, size );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::synchronize( CopyDescriptor &cd )
-{
-   _cache->synchronize( cd );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::synchronize( std::list<CopyDescriptor> &cds )
-{
-   _cache->synchronize( cds );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::waitInputDependent( uint64_t tag )
-{
-   _cache->waitInput( tag );
-}
-
-template <class Device>
-inline void* CachedAccelerator<Device>::getAddressDependent( uint64_t tag )
-{
-   return _cache->getAddress( tag );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::copyToDependent( void *dst, uint64_t tag, size_t size )
-{
-   _cache->copyTo( dst, tag, size );
+   while ( !wd._mcontrol.isDataReady( wd ) ) { myThread->idle(); } 
 }
 
 #endif

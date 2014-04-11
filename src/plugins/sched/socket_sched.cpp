@@ -25,6 +25,8 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
+#include <iostream>
+#include <iterator>
 #ifdef HWLOC
 #include <hwloc.h>
 #endif
@@ -211,7 +213,7 @@ namespace nanos {
                   BaseThread *worker = sys.getWorker( i );
 #ifdef GPU_DEV
                   //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
-                  if ( nanos::ext::GPU == worker->runningOn()->getDeviceType() )
+                  if ( &nanos::ext::GPU == worker->runningOn()->getDeviceType() )
                   {
                      int node = worker->runningOn()->getNUMANode();
                      // Convert to virtual

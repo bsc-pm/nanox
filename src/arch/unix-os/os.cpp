@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+extern char **environ;
 #ifdef BGQ
 #include <spi/include/kernel/location.h>
 #include <spi/include/kernel/process.h>

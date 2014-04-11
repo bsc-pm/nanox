@@ -22,6 +22,7 @@
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
 
 #include "memtracker_decl.hpp"
+#include "printbt_decl.hpp"
 #include "new_decl.hpp"
 #include "allocator.hpp"
 #include "config.hpp"
@@ -116,6 +117,7 @@ namespace nanos {
             message0("Trying to free invalid pointer " << p << " at " << file << ":" << line);
          } else {
             message0("Trying to free invalid pointer " << p);
+            printBt();
          }    
          throw std::bad_alloc();
       } else {

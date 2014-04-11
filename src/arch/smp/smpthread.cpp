@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
+#include "clusterdevice_decl.hpp"
 
 
 using namespace nanos;
@@ -125,6 +126,27 @@ void SMPThread::yield()
       warning("sched_yield call returned an error");
 }
 
+void SMPThread::idle( bool debug )
+{
+   sys.getNetwork()->poll(0);
+
+   if ( !_pendingRequests.empty() ) {
+      std::set<void *>::iterator it = _pendingRequests.begin();
+      while ( it != _pendingRequests.end() ) {
+         GetRequest *req = (GetRequest *) (*it);
+         if ( req->isCompleted() ) {
+           std::set<void *>::iterator toBeDeletedIt = it;
+           it++;
+           _pendingRequests.erase(toBeDeletedIt);
+           req->clear();
+           delete req;
+         } else {
+            it++;
+         }
+      }
+   }
+}
+
 void SMPThread::wait()
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
@@ -212,6 +234,9 @@ bool SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
+
+   //if ( sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "Starting wd " << wd.getId() << std::endl;
+
    ( dd.getWorkFct() )( wd.getData() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
    return true;

@@ -35,9 +35,11 @@
 #include "basethread_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "wddeque_fwd.hpp"
-#include "directory_decl.hpp"
+#include "regioncache_decl.hpp"
+#include "memcontroller_decl.hpp"
 
 #include "dependenciesdomain_decl.hpp"
+#include "simpleallocator_decl.hpp"
 
 namespace nanos
 {
@@ -70,12 +72,25 @@ namespace nanos
 
          /*! \brief Device equals operator
           */
+         //bool operator== ( const Device &arch ) { return ( 0 == std::strcmp( arch._name , _name ) ); }
          bool operator== ( const Device &arch ) { return arch._name == _name; }
 
          /*! \brief Get device name
           */
          const char * getName ( void ) const { return _name; }
 
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr = 0 ) const { return (void *) 0xdeadbeef; }
+         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {  std::cerr << "wrong memFree" <<std::endl; }
+         virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const { std::cerr << "wrong canAllocate" <<std::endl; }
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const { std::cerr << "wrong getMemCapacity" <<std::endl; return 0; }
+
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyDevToDev" <<std::endl; return false; }
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) { std::cerr << "wrong copyIn" <<std::endl; }
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) { std::cerr << "wrong copyOut" <<std::endl; }
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyDevToDev" <<std::endl; return false; }
+         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const { std::cerr << "wrong _getFreeMemoryChunksList()" <<std::endl; }
    };
 
   /*! \brief This class holds the specific data for a given device
@@ -134,6 +149,7 @@ namespace nanos
          /*! \brief FIXME: (#170) documentation needed 
           */
          virtual DeviceData *copyTo ( void *addr ) = 0;
+         const char * getName ( void ) const { return _architecture->getName(); }
 
          virtual DeviceData *clone () const = 0;
 
@@ -197,6 +213,7 @@ namespace nanos
          void                         *_wdData;                 //!< Internal WD data. Allowing higher layer to associate data to WD
          WDFlags                       _flags;                  //!< WD Flags
          BaseThread                   *_tiedTo;                 //!< Thread is tied to base thread
+         memory_space_id_t             _tiedToLocation;         //!< Thread is tied to a memory location
          State                         _state;                  //!< Workdescriptor current state
          GenericSyncCond              *_syncCond;               //!< Generic synchronize condition
          WDPool                       *_myQueue;                //!< Allows dequeuing from third party (e.g. Cilk schedulers)
@@ -212,8 +229,7 @@ namespace nanos
          double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time
          DOSubmit                     *_doSubmit;               //!< DependableObject representing this WD in its parent's depsendencies domain
          LazyInit<DOWait>              _doWait;                 //!< DependableObject used by this task to wait on dependencies
-         DependenciesDomain           *_depsDomain;             //!< Dependences domain. Each WD has one where DependableObjects can be submitted
-         Directory                    *_directory;              //!< Directory to mantain cache coherence
+         DependenciesDomain           *_depsDomain;             //!< Dependences domain. Each WD has one where DependableObjects can be submitted            //!< Directory to mantain cache coherence
          nanos_translate_args_t        _translateArgs;          //!< Translates the addresses in _data to the ones obtained by get_address()
          PriorityType                  _priority;               //!< Task priority
          CommutativeOwnerMap          *_commutativeOwnerMap;    //!< Map from commutative target address to owner pointer
@@ -224,7 +240,13 @@ namespace nanos
          char                         *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
-
+         //Atomic< std::list<GraphEntry *> * > _myGraphRepList;
+         //bool _listed;
+         void                        (*_notifyCopy)( WD &wd, BaseThread const &thread);
+         BaseThread const             *_notifyThread;
+         void                         *_remoteAddr;
+      public:
+         MemController                 _mcontrol;
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
           */
@@ -236,7 +258,6 @@ namespace nanos
          //! \brief Adding current WD as descendant of parent (private method)
          void addToGroup ( WorkDescriptor &parent );
       public: /* public methods */
-
          /*! \brief WorkDescriptor constructor - 1
           */
          WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
@@ -264,7 +285,7 @@ namespace nanos
           * All data will be allocated in a single chunk so only the destructors need to be invoked
           * but not the allocator
           */
-         ~WorkDescriptor()
+         virtual ~WorkDescriptor()
          {
              void *chunkLower = ( void * ) this;
              void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
@@ -278,9 +299,6 @@ namespace nanos
 
              //! Delete Dependence Domain
              delete _depsDomain;
-
-             //! Delete Directory
-             delete _directory;
 
              //! Delete internal data (if any)
              union { char* p; intptr_t i; } u = { (char*)_wdData };
@@ -300,12 +318,14 @@ namespace nanos
          /*! \brief Has this WorkDescriptor ever run?
           */
          bool started ( void ) const;
+         bool initialized ( void ) const;
 
          /*! \brief Prepare WorkDescriptor to run
           *
           *  This function is useful to perform lazy initialization in the workdescriptor
           */
          void init ();
+         void initWithPE ( ProcessingElement &pe );
 
          /*! \brief Last operations just before WD execution
           *
@@ -313,6 +333,8 @@ namespace nanos
           *  before the execution of the WD.
           */
          void start ( ULTFlag isUserLevelThread, WorkDescriptor *previous = NULL );
+         void preStart ( ULTFlag isUserLevelThread, WorkDescriptor *previous = NULL );
+         bool isInputDataReady();
 
          /*! \brief Get data size
           *
@@ -350,13 +372,21 @@ namespace nanos
 
          WorkDescriptor & tieTo ( BaseThread &pe );
 
+         WorkDescriptor & tieToLocation ( memory_space_id_t loc );
+
          bool isTied() const;
 
+         bool isTiedLocation() const;
+
          BaseThread * isTiedTo() const;
+
+         memory_space_id_t isTiedToLocation() const;
          
          bool shouldBeTied() const;
 
          void untie();
+
+         void untieLocation();
 
          void setData ( void *wdata );
 
@@ -384,7 +414,7 @@ namespace nanos
 
          void setDepth ( int l );
 
-         unsigned getDepth();
+         unsigned getDepth() const;
 
          /* device related methods */
          bool canRunIn ( const Device &device ) const;
@@ -408,6 +438,8 @@ namespace nanos
          void * getInternalData () const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
+
+         nanos_translate_args_t getTranslateArgs() const;
 
          /*! \brief Returns the socket that this WD was assigned to.
           * 
@@ -556,23 +588,29 @@ namespace nanos
           */
          void prepareCopies();
 
-         /*! \brief Get the WorkDescriptor's directory.
-          *  if create is true and directory is not initialized returns NULL,
-          *  otherwise it is created (if necessary) and a pointer to it is returned.
-          */
-         Directory* getDirectory(bool create=false);
-
          //! \brief Wait for all children (1st level work descriptors)
          void waitCompletion( bool avoidFlush = false );
 
          bool isSubmitted( void ) const;
          void submitted( void );
+         bool canBeBlocked( void );
+
+         void notifyOutlinedCompletion();
+
+         void predecessorFinished( WorkDescriptor *predecessorWd );
+         
+         void wgdone();
+         void listed();
+         void printCopies();
 
          bool isConfigured ( void ) const;
          void setConfigured ( bool value=true );
 
          void setPriority( PriorityType priority );
          PriorityType getPriority() const;
+         void setNotifyCopyFunc( void (*func)(WD &, BaseThread const &) );
+
+         void notifyCopy();
 
          /*! \brief Store addresses of commutative targets in hash and in child WorkDescriptor.
           *  Called when a task is submitted.
@@ -604,7 +642,7 @@ namespace nanos
          char * getDescription ( void ) const;
 
          //! \brief Removing work from current WorkDescriptor
-         void exitWork ( WorkDescriptor &work );
+         virtual void exitWork ( WorkDescriptor &work );
 
          //! \brief Adding work to current WorkDescriptor
          void addWork( WorkDescriptor &work );
@@ -620,6 +658,13 @@ namespace nanos
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
          void convertToRegularWD();
+
+         bool resourceCheck( BaseThread const &thd, bool considerInvalidations ) const;
+
+         void setId( unsigned int id );
+
+         void setRemoteAddr( void *addr );
+         void *getRemoteAddr() const;
    };
 
    typedef class WorkDescriptor WD;

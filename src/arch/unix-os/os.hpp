@@ -99,6 +99,7 @@ namespace nanos
 
          static const char * getArg (int i) { return _argv[i]; }
          static long getArgc() { return _argc; }
+         static char **getArgv() { return _argv; }
 
          static double getMonotonicTime ();
          static double getMonotonicTimeUs ();

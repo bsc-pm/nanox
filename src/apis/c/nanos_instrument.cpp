@@ -73,7 +73,13 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_register_value, ( nanos_event_value_
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    try
    {
-      *event_value = sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value,  description, abort_when_registered);
+      if ( strncmp( "user-funct-name", key, 15 ) == 0 ) {
+         nanos_event_value_t use_this_val = ( nanos_event_value_t ) ( event_value );
+         sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value, use_this_val, description, abort_when_registered);
+         *event_value = use_this_val;
+      } else {
+         *event_value = sys.getInstrumentation()->getInstrumentationDictionary()->registerEventValue(key, value,  description, abort_when_registered);
+      }
    } catch ( nanos_err_t err) {
       return err;
    }

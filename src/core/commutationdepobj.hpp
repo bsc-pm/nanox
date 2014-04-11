@@ -19,7 +19,9 @@
 
 #ifndef _NANOS_COMMUTATIONDEPOBJ
 #define _NANOS_COMMUTATIONDEPOBJ
+
 #include "commutationdepobj_decl.hpp"
+
 
 using namespace nanos;
 
