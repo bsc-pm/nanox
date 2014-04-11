@@ -75,7 +75,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    
    BaseThread *mythread = myThread;
    ThreadTeam *team = mythread->getTeam();
-   int i, num_threads = team->size();
+   int i, num_threads = team->getFinalSize();
    WorkDescriptor *slice = NULL;
    nanos_loop_info_t *loop_info;
 

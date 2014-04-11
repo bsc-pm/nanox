@@ -202,8 +202,10 @@ namespace nanos
          virtual void finish () { if ( _status.has_team ) leaveTeam(); };
          void run();
          void stop();
-         void sleep();
-         void wakeup();
+         virtual void sleep();
+         virtual void wakeup();
+         virtual void block() {};
+         virtual void unblock() {};
          
          void pause ();
          void unpause ();

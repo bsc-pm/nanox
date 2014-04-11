@@ -203,6 +203,20 @@ void SMPThread::wakeup()
    pthread_mutex_unlock( &_mutexWait );
 }
 
+void SMPThread::block()
+{
+   pthread_mutex_lock( &_completionMutex );
+   pthread_cond_wait( &_completionWait, &_completionMutex );
+   pthread_mutex_unlock( &_completionMutex );
+}
+
+void SMPThread::unblock()
+{
+   pthread_mutex_lock( &_completionMutex );
+   pthread_cond_signal( &_completionWait );
+   pthread_mutex_unlock( &_completionMutex );
+}
+
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 {

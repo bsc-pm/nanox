@@ -27,6 +27,7 @@ test_exec_fail=yes
 #include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <nanos.h>
 
 #define FIRST 10

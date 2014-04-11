@@ -24,10 +24,9 @@
 //
 //! \defgroup core Nanos++ Core
 
-#include <stdio.h>
-#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define NANOS_API_DECL(Type, Name, Params) \
     extern Type Name##_ Params; \

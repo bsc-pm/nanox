@@ -43,6 +43,9 @@ namespace ext
 
          pthread_cond_t          _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
          static pthread_mutex_t  _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
+        
+         pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
+         pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
 
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
@@ -107,6 +110,14 @@ namespace ext
           * \brief Unset the flag
           */
          virtual void wakeup();
+
+         /*!
+          * \brief Waits on a condition.
+          */
+         virtual void block();
+         
+         /*! \brief Signals the thread to stop waiting. */
+         virtual void unblock();
    };
 
    class SMPMultiThread : public SMPThread

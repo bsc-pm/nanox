@@ -225,6 +225,7 @@ inline void Scheduler::idleLoop ()
    WD *current = myThread->getCurrentWD();
    current->setIdle();
    sys.getSchedulerStats()._idleThreads++;
+
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
       spins--;
@@ -300,6 +301,9 @@ inline void Scheduler::idleLoop ()
          continue;
       }
 
+      thread->idle();
+      if ( sys.getNetwork()->getNodeNum() > 0 ) { sys.getNetwork()->poll(0); }
+
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
          dlb_returnCpusIfNeeded();
@@ -309,11 +313,24 @@ inline void Scheduler::idleLoop ()
 #endif
          if ( yields == 0 || !use_yield ) {
             if ( use_block ) {
+               WD * currentWD = thread->getCurrentWD();
+               // If it's not tied to the current thread, tie it until the thread is resumed
+               bool tiedTemporally = false;
+               if ( currentWD->isTiedTo() == NULL )
+               {
+                  currentWD->tieTo( *thread );
+                  tiedTemporally = true;
+               }
+               
                NANOS_INSTRUMENT ( total_blocks++; )
                NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-               // thread->block(); FIXME:xteruel
+               thread->block(); //FIXME:xteruel
                NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+                     
+               // Having reached this point, if we temporally tied the wd to the thread, undo it
+               if ( tiedTemporally )
+                  currentWD->untie();
             }
             yields = init_yields;
          } else if ( use_yield ) {
@@ -325,10 +342,6 @@ inline void Scheduler::idleLoop ()
             if ( use_block ) yields--;
          }
          spins = init_spins;
-      }
-      else {
-         thread->idle();
-         if ( sys.getNetwork()->getNodeNum() > 0 ) { sys.getNetwork()->poll(0); }
       }
    }
    sys.getSchedulerStats()._idleThreads--;
@@ -368,6 +381,18 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
+   NANOS_INSTRUMENT ( unsigned long total_spins = 0; ) /* Number of spins by idle phase*/
+   NANOS_INSTRUMENT ( unsigned long total_yields = 0; ) /* Number of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long total_blocks = 0; ) /* Number of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long total_scheds= 0; ) /* Number of schedulers by idle phase */
+   NANOS_INSTRUMENT ( unsigned long time_blocks = 0; ) /* Time of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long time_yields = 0; ) /* Time of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of sched by idle phase */
+
+   if (condition->check()) {
+       return;
+   }
+
    const int init_spins = sys.getSchedulerConf().getNumSpins();
    const int init_checks = sys.getSchedulerConf().getNumChecks();
    const int init_yields = sys.getSchedulerConf().getNumYields();
@@ -378,14 +403,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    unsigned int checks = init_checks; 
    unsigned int spins = init_spins;
    unsigned int yields = init_yields;
-
-   NANOS_INSTRUMENT ( unsigned long total_spins = 0; ) /* Number of spins by idle phase*/
-   NANOS_INSTRUMENT ( unsigned long total_yields = 0; ) /* Number of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_blocks = 0; ) /* Number of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_scheds= 0; ) /* Number of schedulers by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_blocks = 0; ) /* Time of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_yields = 0; ) /* Time of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of sched by idle phase */
 
    WD * current = myThread->getCurrentWD();
 
@@ -482,11 +499,43 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 #endif
                if ( yields == 0 || !use_yield ) {
                   if ( use_block ) {
-                     NANOS_INSTRUMENT ( total_blocks++; )
-                     NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                     // thread->block(); FIXME:xteruel
-                     NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                     NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+                     condition->lock();
+                     if ( !condition->check() ) {
+                        WD * currentWD = thread->getCurrentWD();
+                        // If it's not tied to the current thread, tie it until the thread is resumed
+                        bool tiedTemporally = false;
+                        if ( currentWD->isTiedTo() == NULL )
+                        {
+                           currentWD->tieTo( *thread );
+                           tiedTemporally = true;
+                        }
+                        
+                        // Unblock other threads so that they can work
+                        for ( int t = 0; t < sys.getNumWorkers(); ++t )
+                        {
+                           BaseThread * worker = sys.getWorker( t );
+                           if ( worker == thread ) continue;
+                           // wake up, Neo
+                           worker->unblock();
+                        }
+                        
+                        currentWD->setBlocked();   // Very important
+                        condition->addWaiter( currentWD );
+                        condition->unlock(); // FIXME: may cause race condition
+                        
+                        NANOS_INSTRUMENT ( total_blocks++; )
+                        NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                        thread->block(); //FIXME:xteruel
+                        NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                        NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+                        
+                        // Having reached this point, if we temporally tied the wd to the thread, undo it
+                        if ( tiedTemporally )
+                           currentWD->untie();
+                     }
+                     else {
+                        condition->unlock();                        
+                     }
                   }
                   yields = init_yields;
                } else if ( use_yield ) {
@@ -542,6 +591,15 @@ void Scheduler::wakeUp ( WD *wd )
       /* Setting ready wd */
       wd->setReady();
       WD *next = NULL;
+      
+      BaseThread * tiedTo = wd->isTiedTo();
+      if ( tiedTo != NULL && sys.getSchedulerConf().getUseBlock() ) {
+         // If the thread is blocked, we must not re-submit it's task
+         tiedTo->unblock();
+         // Note: this will probably break nesting.
+         return;
+      }
+      
       if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
          // The thread is not paused, mark it as so
          myThread->unpause();

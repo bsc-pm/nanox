@@ -1,6 +1,7 @@
 #ifndef REGIONCACHE_HPP
 #define REGIONCACHE_HPP
 
+#include <stdio.h>
 #include "regioncache_decl.hpp"
 #include "processingelement_decl.hpp"
 

@@ -153,17 +153,10 @@ void OpenCLAdapter::freeSharedMemBuffer( void* addr )
 
 void OpenCLAdapter::freeAddr(void* addr )
 {
-    uint64_t address=(uint64_t)addr;
-    size_t size=_sizeCache[address];
-    freeBuffer(_bufCache.find(std::make_pair(address,size))->second);
-    _bufCache.erase(_bufCache.find(std::make_pair(address,size))); 
-    //Remove sub-buffers which are part of this buffer
-    for (BufferCache::iterator i = _bufCache.begin(); i != _bufCache.end(); ++i) {
-        uint64_t iter_addr=i->first.first;
-        if (iter_addr>address && iter_addr < address+size){
-            freeBuffer(i->second);
-            _bufCache.erase(i); 
-        }
+    //Protecting against nanox cache freeing already user-freed shared memory address
+    if (_bufCache.count(addr)>0) {
+        freeBuffer(_bufCache.find(addr)->second);
+        _bufCache.erase(_bufCache.find(addr)); 
     }
 }
 
@@ -792,7 +785,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
    cl_event ev;
    cl_int errCode, exitStatus;
 
-   
+   debug0( "[opencl] global size: " + toString( *ndrGlobalSize ) + ", local size: " + toString( *ndrLocalSize ) );
    // Exec it.
    errCode = clEnqueueNDRangeKernel( _queue,
                                        openclKernel,

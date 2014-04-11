@@ -86,7 +86,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    BaseThread *mythread = myThread;
 
    ThreadTeam *team = mythread->getTeam();
-   int i, num_threads = team->size();
+   int i, num_threads = team->getFinalSize();
 
    /* Determine which threads are compatible with the work descriptor:
     *   - number of valid threads
