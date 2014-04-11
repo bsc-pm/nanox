@@ -28,6 +28,7 @@
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
 #include "wddeque_decl.hpp"
+#include "taskexecutionexception_decl.hpp"
 
 namespace nanos
 {
@@ -319,7 +320,7 @@ namespace nanos
 
 #ifdef NANOS_RESILIENCY_ENABLED
 void taskExecutionHandler(int sig, siginfo_t* si, void* context)
-    throw (task_execution_exception_t);
+    throw (TaskExecutionException);
 #endif
 
 #endif

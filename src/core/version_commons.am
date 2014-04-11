@@ -28,8 +28,8 @@ devinclude_HEADERS = \
 	$(top_srcdir)/src/core/nanos-int.h \
 	$(top_srcdir)/src/core/barrier_decl.hpp \
 	$(top_srcdir)/src/core/barrier.hpp \
-   $(top_srcdir)/src/core/cachedaccelerator_decl.hpp \
-   $(top_srcdir)/src/core/cachedaccelerator.hpp \
+	$(top_srcdir)/src/core/cachedaccelerator_decl.hpp \
+	$(top_srcdir)/src/core/cachedaccelerator.hpp \
 	$(top_srcdir)/src/core/threadteam_decl.hpp \
 	$(top_srcdir)/src/core/threadteam.hpp \
 	$(top_srcdir)/src/core/basethread_decl.hpp\
@@ -79,6 +79,8 @@ devinclude_HEADERS = \
 	$(top_srcdir)/src/core/address_decl.hpp \
 	$(top_srcdir)/src/core/address.hpp \
 	$(top_srcdir)/src/core/basedependency_decl.hpp \
+	$(top_srcdir)/src/core/taskexecutionexception_decl.hpp \
+	$(top_srcdir)/src/core/taskexecutionexception.hpp \
 	$(END)
 
 common_sources=\
@@ -170,6 +172,9 @@ common_sources=\
 	$(top_srcdir)/src/core/address.hpp \
 	$(top_srcdir)/src/core/basedependency_fwd.hpp \
 	$(top_srcdir)/src/core/basedependency_decl.hpp \
+	$(top_srcdir)/src/core/taskexecutionexception_decl.hpp \
+	$(top_srcdir)/src/core/taskexecutionexception.hpp \
+	$(top_srcdir)/src/core/taskexecutionexception.cpp \
 	$(END)
 
 instr_sources = \

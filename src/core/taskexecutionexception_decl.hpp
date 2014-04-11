@@ -18,32 +18,69 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.  */
 /**************************************************************************/
 
-#ifndef TASKEXECUTIONEXCEPTION_DECL_HPP_
-#define TASKEXECUTIONEXCEPTION_DECL_HPP_
+#ifndef _NANOS_TASKEXECUTIONEXCEPTION_DECL
+#define _NANOS_TASKEXECUTIONEXCEPTION_DECL
 
+#include "workdescriptor_decl.hpp"
 #include <exception>
-#include <siginfo.h>
+#include <signal.h>
 #include <ucontext.h>
+
 namespace nanos {
 
-   class TaskExecutionException: public std::exception
+   /*!
+    * \class TaskExecutionException
+    * \brief Contains usefull information about a runtime error generated in a task execution.
+    */
+   class TaskExecutionException: public std::runtime_error
    {
       private:
-         const siginfo_t info;
-         const ucontext_t context;
+         const WD* task;/*!< Pointer to the affected task */
+         const siginfo_t signal_info;/*!< Detailed description after the member */
+         const ucontext_t task_context;/*!< Detailed description after the member */
 
       public:
-         TaskExecutionException ( siginfo_t& info, ucontext_t& context);
+         /*!
+          * Constructor for class TaskExecutionException
+          * \param task a pointer to the task where the error appeared
+          * \param info information about the signal raised
+          * \param context contains the state of execution when the error appeared
+          */
+        TaskExecutionException ( WD const *task, siginfo_t const &info,
+                                  ucontext_t const &context ) throw ();
 
-         virtual const char* what() const;
+         /*!
+          * Copy constructor for class TaskExecutionException
+          */
+         TaskExecutionException ( TaskExecutionException const &tee ) throw ();
 
-         const int getSignal() const;
+         /*!
+          * Destructor for class TaskExecutionException
+          */
+         virtual ~TaskExecutionException ( ) throw ();
 
-         const siginfo_t getSignalInfo() const;
+         /*!
+          * Returns some information about the error in text format.
+          */
+         virtual const char* what ( ) const throw ();
 
-         const ucontext_t getExceptionContext() const;
+         /*!
+          * \return the raised signal number
+          */
+         int getSignal ( );
 
+         /*!
+          * \return the structure containing the signal information.
+          * \see siginfo_t
+          */
+         const siginfo_t getSignalInfo ( ) const;
+
+         /*!
+          * \return the structure conteining the execution status when the error appeared
+          * \see ucontext_t
+          */
+         const ucontext_t getExceptionContext ( ) const;
    };
 }
 
-#endif /* TASKEXECUTIONEXCEPTION_DECL_HPP_ */
+#endif /* _NANOS_TASKEXECUTIONEXCEPTION_DECL */

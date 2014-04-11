@@ -273,6 +273,6 @@ void taskExecutionHandler ( int sig, siginfo_t* si, void* context ) throw(TaskEx
     * we must unblock the signal or that signal will not be available to catch
     * in the future (this is done in at the catch clause).
     */
-   throw TaskExecutionException(*si, *(ucontext_t*)context);
+   throw TaskExecutionException(getMyThreadSafe()->getCurrentWD(), *si, *(ucontext_t*)context);
 }
 #endif

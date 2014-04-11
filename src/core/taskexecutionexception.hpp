@@ -18,33 +18,53 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.  */
 /**************************************************************************/
 
-#ifndef TASKEXECUTIONEXCEPTION_HPP_
-#define TASKEXECUTIONEXCEPTION_HPP_
+#ifndef _NANOS_TASKEXECUTIONEXCEPTION
+#define _NANOS_TASKEXECUTIONEXCEPTION
 
 #include "taskexecutionexception_decl.hpp"
-#include <stringstream>
+#include "xtring.hpp"
 
-using namespace nanos;
+#define TEE_ERR_MSG(id) "Signal raised during the execution of task "+toString<int>(id)+".\n"
 
-inline TaskExecutionException::TaskExecutionException ( siginfo_t& info,
-                                                        ucontext_t& context ) :
-      info(info), context(context)
-{
+namespace nanos {
+   TaskExecutionException::TaskExecutionException (
+         WD const *task_wd, siginfo_t const &info,
+         ucontext_t const &context ) throw () :
+         runtime_error(TEE_ERR_MSG(task_wd->getId())), task(task_wd), signal_info(
+               info), task_context(context)
+   {
+   }
+
+   TaskExecutionException::TaskExecutionException (
+         TaskExecutionException const &tee ) throw () :
+         runtime_error(TEE_ERR_MSG(tee.task->getId())), task(tee.task), signal_info(
+               tee.signal_info), task_context(tee.task_context)
+   {
+   }
+
+   inline TaskExecutionException::~TaskExecutionException ( ) throw ()
+   {
+      /*
+       * Note that this destructor does not delete the WorkDescriptor object pointed by 'task'.
+       * This is because that object's life does not finish at this point and,
+       * thus, it will be accessed later.
+       */
+   }
+
+   inline int TaskExecutionException::getSignal ( )
+   {
+      return signal_info.si_signo;
+   }
+
+   inline const siginfo_t TaskExecutionException::getSignalInfo ( ) const
+   {
+      return signal_info;
+   }
+
+   inline const ucontext_t TaskExecutionException::getExceptionContext ( ) const
+   {
+      return task_context;
+   }
 }
 
-inline const int TaskExecutionException::getSignal ( ) const
-{
-   return info.si_signo;
-}
-
-inline const siginfo_t TaskExecutionException::getSignalInfo ( ) const
-{
-   return info;
-}
-
-inline const ucontext_t TaskExecutionException::getExceptionContext ( ) const
-{
-   return context;
-}
-
-#endif /* TASKEXECUTIONEXCEPTION_HPP_ */
+#endif /* _NANOS_TASKEXECUTIONEXCEPTION */

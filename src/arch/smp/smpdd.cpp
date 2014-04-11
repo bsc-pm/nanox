@@ -25,6 +25,7 @@
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 #include "taskexecutionexception.hpp"
+#include <string>
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -80,13 +81,13 @@ void SMPDD::workWrapper ( WD &wd )
 void SMPDD::lazyInit ( WD &wd, bool isUserLevelThread, WD *previous )
 {
    if (isUserLevelThread) {
-      if ( previous == NULL )
-      _stack = NEW
-      intptr_t[_stackSize];
+      if (previous == NULL)
+         _stack = NEW
+         intptr_t[_stackSize];
       else {
          SMPDD &oldDD = (SMPDD &) previous->getActiveDevice();
 
-         std::swap(_stack,oldDD._stack);
+         std::swap(_stack, oldDD._stack);
       }
 
       initStack(&wd);
@@ -130,22 +131,26 @@ void SMPDD::execute ( WD &wd ) throw ()
             sigaddset(&sigs, e.getSignal());
             pthread_sigmask(SIG_UNBLOCK, &sigs, NULL);
 
-            // Global recovery here (if this affects the global execution).
-            debug( e.what() );
-            wd.setInvalid(true);
+            if(!wd.setInvalid(true)) { // If the error isn't recoverable (i.e., no recoverable ancestor exists)
+               message(e.what());
+               // Unrecoverable error: terminate execution
+               std::terminate();
+            } else { // The error is recoverable. However, print a message for debugging purposes (do not make the error silent).
+               debug( e.what() );
+            }
          } catch (std::exception& e) {
-            message("Uncaught exception " << typeid(e).name()
-                  << " . Thrown in task "
-                  << wd.getId()
-                  << ". " << std::endl
-                  << e.what());
-            // Unexpected behavior: terminate execution
+            std::string s = "Uncaught exception ";
+            s += typeid(e).name();
+            s += ". Thrown in task ";
+            s += wd.getId();
+            s += ". \n";
+            s += e.what();
+            message(s);
+            // Unexpected error: terminate execution
             std::terminate();
          } catch (...) {
-            message("Uncaught exception (unknown type). Thrown in task "
-                  << wd.getId()
-                  << ". " << std::endl;
-            // Unexpected behavior: terminate execution
+            message("Uncaught exception (unknown type). Thrown in task " << wd.getId() << ". ");
+            // Unexpected error: terminate execution
             std::terminate();
          }
          // Only retry when ...

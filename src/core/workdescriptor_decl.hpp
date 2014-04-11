@@ -631,10 +631,13 @@ namespace nanos
          //! submit() and dequeue() when _slicer attribute is specified.
          void convertToRegularWD( void );
 
-         //! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
-         //! If true (invalid) the flag propagates upwards to the ancestors until 
-         //! no more ancestors exist or a recoverable task is found.
-         void setInvalid ( bool flag );
+         /*! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
+             If invalid (flag = true) it propagates upwards to the ancestors until
+             no more ancestors exist or a recoverable task is found.
+             \param A flag that indicates whether this task is being invalidated or not.
+             \return A boolean value that indicates if either the task itself is recoverable or a recoverable ancestor was found.
+         */
+         bool setInvalid ( bool flag );
 
          //! \brief Returns whether a WorkDescriptor is invalid or not.
          bool isInvalid ( void ) const;

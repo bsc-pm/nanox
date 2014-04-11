@@ -17,139 +17,141 @@
 /*      You should have received a copy of the GNU Lesser General Public License  */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.  */
 /**************************************************************************/
+#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
 
-const char* TaskExecutionException::what ( ) const
+const char* TaskExecutionException::what ( ) const throw ()
 {
-   std::stringstream ss
-   << "Signal raised. ";
+   std::string s(runtime_error::what());
 
-   char* sig_desc;
-   if (info.si_signo >= 0 && info.si_signo < NSIG && (sig_desc =
-         _sys_siglist[info.si_signo]) != NULL) {
-      switch (info.si_signo) {
+   const char* sig_desc;
+   if (signal_info.si_signo >= 0 && signal_info.si_signo < NSIG && (sig_desc =
+         _sys_siglist[signal_info.si_signo]) != NULL) {
+
+      s += sig_desc;
+      switch (signal_info.si_signo) {
+         // Check {glibc_include_path}/bits/{siginfo.h, signum.h}
          case SIGILL:
-            ss << "SIGILL: ";
-            switch (info.si_code) {
+            switch (signal_info.si_code) {
                case ILL_ILLOPC:
-                  ss << "Illegal opcode.";
+                  s += " Illegal opcode.";
                   break;
                case ILL_ILLOPN:
-                  ss << "Illegal operand.";
+                  s += " Illegal operand.";
                   break;
                case ILL_ILLADR:
-                  ss << "Illegal addressing mode.";
+                  s += " Illegal addressing mode.";
                   break;
                case ILL_ILLTRP:
-                  ss << "Illegal trap.";
+                  s += " Illegal trap.";
                   break;
                case ILL_PRVOPC:
-                  ss << "Privileged opcode.";
+                  s += " Privileged opcode.";
                   break;
                case ILL_PRVREG:
-                  ss << "Privileged register.";
+                  s += " Privileged register.";
                   break;
                case ILL_COPROC:
-                  ss << "Coprocessor error.";
+                  s += " Coprocessor error.";
                   break;
                case ILL_BADSTK:
-                  ss << "Internal stack error.";
+                  s += " Internal stack error.";
                   break;
             }
 
             break;
          case SIGFPE:
-            ss << "SIGFPE: ";
-            switch (info.si_code) {
+            switch (signal_info.si_code) {
 
                case FPE_INTDIV:
-                  ss << "Integer divide by zero.";
+                  s += " Integer divide by zero.";
                   break;
                case FPE_INTOVF:
-                  ss << "Integer overflow.";
+                  s += " Integer overflow.";
                   break;
                case FPE_FLTDIV:
-                  ss << "Floating-point divide by zero.";
+                  s += " Floating-point divide by zero.";
                   break;
                case FPE_FLTOVF:
-                  ss << "Floating-point overflow.";
+                  s += " Floating-point overflow.";
                   break;
                case FPE_FLTUND:
-                  ss << "Floating-point underflow.";
+                  s += " Floating-point underflow.";
                   break;
                case FPE_FLTRES:
-                  ss << "Floating-poing inexact result.";
+                  s += " Floating-poing inexact result.";
                   break;
                case FPE_FLTINV:
-                  ss << "Invalid floating-point operation.";
+                  s += " Invalid floating-point operation.";
                   break;
                case FPE_FLTSUB:
-                  ss << "Subscript out of range.";
+                  s += " Subscript out of range.";
                   break;
             }
             break;
          case SIGSEGV:
-            ss << "SIGSEGV: ";
-            switch (info.si_code) {
+            switch (signal_info.si_code) {
 
                case SEGV_MAPERR:
-                  ss << "Address not mapped to object.";
+                  s += " Address not mapped to object.";
                   break;
                case SEGV_ACCERR:
-                  ss << "Invalid permissions for mapped object.";
+                  s += " Invalid permissions for mapped object.";
                   break;
             }
             break;
          case SIGBUS:
-            ss << "SIGBUS: ";
-            switch (info.si_code) {
+            switch (signal_info.si_code) {
 
                case BUS_ADRALN:
-                  ss << "Invalid address alignment.";
+                  s += " Invalid address alignment.";
                   break;
                case BUS_ADRERR:
-                  ss << "Nonexisting physical address.";
+                  s += " Nonexisting physical address.";
                   break;
                case BUS_OBJERR:
-                  ss << "Object-specific hardware error.";
+                  s += " Object-specific hardware error.";
                   break;
-               case BUS_MCEERR_AR: //(since Linux 2.6.32)
-                  code =
-                        "Hardware memory error consumed on a machine check; action required.";
+#ifdef BUS_MCEERR_AR
+                  case BUS_MCEERR_AR: //(since Linux 2.6.32)
+                  s += " Hardware memory error consumed on a machine check; action required.";
                   break;
-               case BUS_MCEERR_AO: //(since Linux 2.6.32)
-                  code =
-                        "Hardware memory error detected in process but not consumed; action optional.";
+#endif
+#ifdef BUS_MCEERR_AO
+                  case BUS_MCEERR_AO: //(since Linux 2.6.32)
+                  s += " Hardware memory error detected in process but not consumed; action optional.";
                   break;
+#endif
             }
             break;
          case SIGTRAP:
-            ss << "SIGTRAP: ";
-            switch (info.si_code) {
+            switch (signal_info.si_code) {
 
                case TRAP_BRKPT:
-                  ss << "Process breakpoint.";
+                  s += " Process breakpoint.";
                   break;
                case TRAP_TRACE:
-                  ss << "Process trace trap.";
+                  s += " Process trace trap.";
                   break;
             }
             break;
-         default:
+
+            //default:
             /*
              * note #1: since this exception is going to be thrown by the signal handler
              * only synchronous signals information will be printed, as the remaining
              * are unsupported by -fnon-call-exceptions
              */
-            ss << "Unsupported signal (" << info.si_signo << ")";
       }
    } else {
       /*
        * See note #1
        */
-      ss << "Unsupported signal (" << info.si_signo << ")";
+      s += " Unsupported signal (";
+      s += signal_info.si_signo;
+      s += " )";
    }
 
-   return ss.c_str();
+   return s.c_str();
 }
