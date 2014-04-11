@@ -911,15 +911,14 @@ AC_ARG_ENABLE([resiliency],
   ],
   [
     AC_MSG_RESULT([yes])
-    if test x$use_xlc = xno; then
-      resiliency=yes
-      AC_MSG_RESULT([checking if the compiler is compatible... yes])
-    else
-      resiliency=no
-      AC_MSG_ERROR([checking if the compiler is compatible... no (nanos resiliency is only compatible with GNU and Intel compilers)])
+    AX_CHECK_COMPILE_FLAG(-fnon-call-exceptions,[resiliency=yes],[resiliency=no],[-Werror])
+    if test "x$resiliency" = "xno";
+    then
+        AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])
     fi
   ]
 )
+
 
 AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
 AC_SUBST([resiliency])
