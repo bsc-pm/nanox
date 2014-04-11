@@ -286,10 +286,10 @@ namespace nanos
             return true;
          }
 
-         virtual int fixme_getNumConcurrentWDs( void )
-         {
-            return 0;
-         }
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         virtual int getPotentiallyParallelWDs( void );
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */

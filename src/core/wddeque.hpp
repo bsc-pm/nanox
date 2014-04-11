@@ -238,7 +238,7 @@ inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
    _nelems -= decrement;
 }
 
-inline int WDDeque::fixme_getNumConcurrentWDs( void )
+inline int WDDeque::getPotentiallyParallelWDs( void )
 {
    int num_wds = 0;
    WDDeque::BaseContainer::iterator it;
@@ -479,10 +479,10 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor ** wds, size_t num
 }
 
 template<typename T>
-inline int WDPriorityQueue<T>::fixme_getNumConcurrentWDs( void )
+inline int WDPriorityQueue<T>::getPotentiallyParallelWDs( void )
 {
    int num_wds = 0;
-   WDDeque::BaseContainer::iterator it;
+   WDPQ::BaseContainer::iterator it;
    LockBlock lock( _lock );
    for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
       WD &wd = *(WD *)*it;

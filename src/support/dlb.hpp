@@ -80,7 +80,7 @@ namespace nanos {
                NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key  = ID->getEventKey("concurrent-tasks"); )
                
                //If ready tasks > num threads I claim my cpus being used by somebodyels
-               int ready_tasks= myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs();
+               int ready_tasks= myThread->getTeam()->getSchedulePolicy().getPotentiallyParallelWDs();
 
                NANOS_INSTRUMENT ( nanos_event_value_t ready_tasks_value = (nanos_event_value_t) ready_tasks )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
