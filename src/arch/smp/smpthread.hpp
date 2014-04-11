@@ -89,6 +89,16 @@ namespace ext
           * \brief Unset the flag
           */
          virtual void wakeup();
+
+         /*!
+          * \brief Set the flag
+          */
+         virtual void sleep();
+
+         /*!
+          * \brief Signal the thread to be woken up
+          */
+         virtual void signal();
    };
 
 

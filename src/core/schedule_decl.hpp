@@ -285,6 +285,11 @@ namespace nanos
          {
             return true;
          }
+
+         virtual int fixme_getNumConcurrentWDs( void )
+         {
+            return 0;
+         }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */

@@ -211,17 +211,47 @@ inline void Scheduler::idleLoop ()
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
       spins--;
-
-      /* If DLB, perform the adjustment of resources */
-      if ( sys.getPMInterface().isMalleable() )
-         dlb_updateAvailableCpus();
-
-      if ( !thread->isRunning() && !behaviour::exiting() ) break;
+      
+      dlb_returnMyCpuIfClaimed();
 
       //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
       // descriptor in its stack frame
-      if ( thread->isSleeping() && !behaviour::exiting() ) thread->wait();
+      if ( thread->isSleeping() && !behaviour::exiting() ) {
+         NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
+
+         NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
+         NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
+         NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
+         NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_blocks; )
+         NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) total_spins; )
+         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) total_scheds; )
+         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
+
+         NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
+         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
+         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
+         NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
+
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
+
+         thread->wait();
+
+         NANOS_INSTRUMENT (total_spins = 0; )
+         NANOS_INSTRUMENT (total_blocks = 0; )
+         NANOS_INSTRUMENT (total_yields = 0; )
+         NANOS_INSTRUMENT (total_scheds = 0; )
+
+         NANOS_INSTRUMENT (time_yields = 0; )
+         NANOS_INSTRUMENT (time_blocks = 0; )
+         NANOS_INSTRUMENT (time_scheds = 0; )
+
+         spins = init_spins;
+
+      }//thread going to sleep, thread waiking up
+
+      if ( !thread->isRunning() && !behaviour::exiting() ) break;
 
 
       WD * next = myThread->getNextWD();
@@ -249,7 +279,6 @@ inline void Scheduler::idleLoop ()
       } 
 
       if ( next ) {
-
          sys.getSchedulerStats()._idleThreads--;
 
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
@@ -293,18 +322,21 @@ inline void Scheduler::idleLoop ()
 
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
-         dlb_returnCpusIfNeeded();
-#if 0
-         if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
-            DLB_ReturnClaimedCpus();
-#endif
-         if ( yields == 0 || !use_yield ) {
+         /* DLB: 
+           The master will return cpus 
+           claimed by another process
+         */
+         dlb_returnClaimedCpus();
+         if ( sys.getPMInterface().isMalleable() )
+            dlb_updateAvailableCpus();
 
-            /* if DLB release thread */
-            if ( dlb_releaseMyCpu()){
-               thread->sleep();
-               thread->wait();
-            }
+         /* DLB 
+            If I'm a slave I'll release my cpu because there is no work for me here
+            and go to sleep
+         */
+         dlb_releaseMyCpu();
+
+         if ( yields == 0 || !use_yield ) {
 
             if ( use_block ) {
                NANOS_INSTRUMENT ( total_blocks++; )
@@ -314,6 +346,7 @@ inline void Scheduler::idleLoop ()
                NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
             }
             yields = init_yields;
+
          } else if ( use_yield ) {
             NANOS_INSTRUMENT ( total_yields++; )
             NANOS_INSTRUMENT ( unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
@@ -419,10 +452,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       if ( checks == 0 ) {
          checks = init_checks;
 
-         /* If DLB, perform the adjustment of resources */
-         if ( sys.getPMInterface().isMalleable() )
-            dlb_updateAvailableCpus();
-
          condition->lock();
          if ( !( condition->check() ) ) {
             //! Init of schedule phase
@@ -499,20 +528,25 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             if ( spins == 0 ) {
                NANOS_INSTRUMENT ( total_spins+= init_spins; )
-               /* If DLB, return resources if needed */
-               dlb_returnCpusIfNeeded();
-#if 0
-               if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
-                  DLB_ReturnClaimedCpus();
-#endif
+               /* DLB: 
+                 The master will return cpus 
+                 claimed by another process
+               */
+               dlb_returnClaimedCpus();
+               if ( sys.getPMInterface().isMalleable() )
+                  dlb_updateAvailableCpus();
+
+               /* DLB 
+                  If I'm a slave I'll release my cpu because there is no work for me here
+                  and go to sleep
+               */
+               if ( dlb_releaseMyCpu()){
+                  thread->wait();
+               }
+
                if ( yields == 0 || !use_yield ) {
 
-                  /* if DLB release thread */
-                  if ( dlb_releaseMyCpu()){
-                        thread->sleep();
-                        thread->wait();
-                  }
-                  
+
                   if ( use_block ) {
                      NANOS_INSTRUMENT ( total_blocks++; )
                      NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
@@ -718,6 +752,14 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *oldwd );
 
+/*   if ( &(thread->getThreadWD()) == thread->getCurrentWD()){
+       DLB: 
+         If slave, check if I must release my cpu
+         if so do not get next WD and go to sleep
+      
+      dlb_returnMyCpuIfClaimed();
+   }*/
+
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
    #if 0
@@ -728,6 +770,14 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
    
+   /* If DLB, perform the adjustment of resources 
+         If master: Return claimed cpus
+         claim cpus and update_resources 
+   */
+   dlb_returnClaimedCpus();
+   if ( sys.getPMInterface().isMalleable() )
+      dlb_updateAvailableCpus();
+
   return done;
 }
 
@@ -855,10 +905,25 @@ void Scheduler::exit ( void )
 
    WD *oldwd = thread->getCurrentWD();
 
-   /* get next WorkDescriptor (if any) */
-   WD *next =  thread->getNextWD();
-
    oldwd->finish();
+
+   /* If DLB, perform the adjustment of resources 
+         If master: Return claimed cpus
+         claim cpus and update_resources 
+   */
+   dlb_returnClaimedCpus();
+   if ( sys.getPMInterface().isMalleable() )
+      dlb_updateAvailableCpus();
+
+   WD *next = NULL;
+   /* DLB: 
+      If slave, check if I must release my cpu
+      if so do not get next WD and go to sleep
+   */
+   if (!dlb_returnMyCpuIfClaimed()){
+      /* get next WorkDescriptor (if any) */
+      next =  thread->getNextWD();
+   }
 
    finishWork( oldwd, ( next == NULL ) );
 

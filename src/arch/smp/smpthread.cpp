@@ -158,7 +158,6 @@ void SMPThread::wait()
       //! \note Then we call base thread wakeup, which just mark thread as active
       lock();
       BaseThread::resume();
-      BaseThread::wakeup();
       unlock();
    } else {
       unlock();
@@ -185,11 +184,23 @@ void SMPThread::wakeup()
    // protected, when called, with the thread common lock: lock() & unlock() functions.
 
    //! \note If thread is not marked as waiting, just ignore wakeup
-   if ( !isSleeping() || !isWaiting() ) return;
+   //if ( !isSleeping() || !isWaiting() ) return;
 
    pthread_mutex_lock( &_mutexWait );
-   pthread_cond_signal( &_condWait );
+   BaseThread::wakeup();
    pthread_mutex_unlock( &_mutexWait );
+}
+
+void SMPThread::sleep()
+{
+   pthread_mutex_lock( &_mutexWait );
+   BaseThread::sleep();
+   pthread_mutex_unlock( &_mutexWait );
+}
+
+void SMPThread::signal()
+{
+   pthread_cond_signal( &_condWait );
 }
 
 // This is executed in between switching stacks

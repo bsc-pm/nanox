@@ -238,6 +238,20 @@ inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
    _nelems -= decrement;
 }
 
+inline int WDDeque::fixme_getNumConcurrentWDs( void )
+{
+   int num_wds = 0;
+   WDDeque::BaseContainer::iterator it;
+   LockBlock lock( _lock );
+   for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+      WD &wd = *(WD *)*it;
+      if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() )
+         num_wds++;
+   }
+
+   return num_wds;
+}
+
 /***********
  * WDDeque *
  ***********/
@@ -462,6 +476,21 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor ** wds, size_t num
    // If it was inserted at the start, it has more than the rest
    if ( first == _dq.front() )
       _maxPriority = priority;
+}
+
+template<typename T>
+inline int WDPriorityQueue<T>::fixme_getNumConcurrentWDs( void )
+{
+   int num_wds = 0;
+   WDDeque::BaseContainer::iterator it;
+   LockBlock lock( _lock );
+   for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+      WD &wd = *(WD *)*it;
+      if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() )
+         num_wds++;
+   }
+
+   return num_wds;
 }
 
 template<typename T>

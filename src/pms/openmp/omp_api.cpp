@@ -224,8 +224,8 @@ extern "C"
    NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
    {
       dlb_updateAvailableCpus();
+
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-/*** Marta ***/
       if ( threads_requested <= 0 ) {
          threads_requested = data->icvs()->getNumThreads();
       }

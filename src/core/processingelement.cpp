@@ -131,6 +131,7 @@ void ProcessingElement::stopAllThreads ()
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
       if ( thread->isWaiting() ) thread->wakeup();
       thread->stop();
+      thread->signal();
    }
 
    //! \note joining threads

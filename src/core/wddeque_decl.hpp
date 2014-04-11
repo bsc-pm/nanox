@@ -149,6 +149,8 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         int fixme_getNumConcurrentWDs( void );
    };
 
    class WDLFQueue : public WDPool
@@ -374,6 +376,8 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         int fixme_getNumConcurrentWDs( void );
    };
 
 

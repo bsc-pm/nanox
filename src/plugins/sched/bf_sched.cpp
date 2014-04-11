@@ -188,6 +188,18 @@ namespace nanos {
                   return true;
                }
             }
+
+            int fixme_getNumConcurrentWDs( void )
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               if ( _usePriority || _useSmartPriority ) {
+                  WDPriorityQueue<> &qu = (WDPriorityQueue<> &) *(tdata._readyQueue);
+                  return qu.fixme_getNumConcurrentWDs();
+               } else {
+                  WDDeque &qu = (WDDeque &) *(tdata._readyQueue);
+                  return qu.fixme_getNumConcurrentWDs();
+               }
+            }
       };
 
       bool BreadthFirst::_useStack = false;

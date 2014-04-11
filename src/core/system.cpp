@@ -865,8 +865,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    
    /* DLB */
    // In case the master have been busy crating tasks 
-   // every 10 tasks created I'll check available cpus
-   if(_atomicWDSeed.value()%10==0)dlb_updateAvailableCpus();
+   // every 10 tasks created I'll check if I must return claimed cpus
+   // or there are available cpus idle
+   if(_atomicWDSeed.value()%10==0){
+      dlb_returnClaimedCpus();
+      dlb_updateAvailableCpus();
+   }
 }
 
 /*! \brief Duplicates the whole structure for a given WD
@@ -1122,7 +1126,7 @@ BaseThread * System::getAssignedWorker ( ThreadTeam *team )
       thread->lock();
       //! \note Checking thread availabitity.
       if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
-         //! \note return this thread LOCKED!!!
+         thread->unlock();
          return thread;
       }
       thread->unlock();
@@ -1160,6 +1164,8 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
 
+   if ( thread->isWaiting() ) thread->signal();
+
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
 
@@ -1170,9 +1176,7 @@ void System::releaseWorker ( BaseThread * thread )
    //! \todo Destroy if too many?
    debug("Releasing thread " << thread << " from team " << thread->getTeam() );
 
-   thread->lock();
    thread->sleep();
-   thread->unlock();
 
 }
 
@@ -1236,7 +1240,10 @@ void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
 
-   dlb_returnCpusIfNeeded();
+   /* For OpenMP applications
+      At the end of the parallel return the claimed cpus
+   */
+   dlb_returnClaimedCpus();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
@@ -1288,7 +1295,6 @@ void System::updateActiveWorkers ( int nthreads )
       thread = getAssignedWorker( team );
       if ( thread ) {
          thread->sleep();
-         thread->unlock();
          num_threads++;
       }
    }
@@ -1328,9 +1334,7 @@ inline void System::applyCpuMask()
       } else {
          // This PE should not
          while ( (thread = _pes[pe_id]->getActiveThread()) != NULL ) {
-            thread->lock();
             thread->sleep();
-            thread->unlock();
             team->decreaseFinalSize();
          }
       }
