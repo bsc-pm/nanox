@@ -25,7 +25,6 @@
 #include <vector>
 #include <climits>
 #include "workdescriptor_decl.hpp"
-#include "workgroup.hpp"
 #include "dependableobjectwd.hpp"
 #include "copydata.hpp"
 #include "synchronizedcondition_decl.hpp"
@@ -36,74 +35,87 @@
 #include "dependenciesdomain.hpp"
 #include "allocator_decl.hpp"
 #include "system.hpp"
+#include "slicer_decl.hpp"
 
 using namespace nanos;
 
 inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
-                               : WorkGroup(), _data_size ( data_size ), _data_align( data_align ), _data ( wdata ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
-                                 _state( INIT ), _syncCond( NULL ),  _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
+                               : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
+                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
+                                 _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
+                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
+                                 _state( INIT ), _syncCond( NULL ),  _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
-                                 _doSubmit(), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
-                                 _submitted( false ), _implicit(false), _translateArgs( translate_args ),
-                                 _notifyCopy( NULL ), _notifyThread( NULL ),
+                                 _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
+                                 _translateArgs( translate_args ),
                                  _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
-                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData(),
-                                 _mcontrol( *this )
-                                 { 
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
+                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
+                                 {
                                     _flags.is_final = 0;
+                                    _flags.is_submitted = false;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
                                        }
                                     }
-}
+                                 }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
                                  size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
-                               : WorkGroup(), _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tie ( false ), _tiedTo ( NULL ),
-                                 _state( INIT ), _syncCond( NULL ), _parent ( NULL ), _myQueue ( NULL ), _depth ( 0 ),
+                               : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
+                                 _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
+                                 _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
+                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
+                                 _state( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
-                                 _submitted( false ), _implicit(false), _translateArgs( translate_args ),
-                                 _notifyCopy( NULL ), _notifyThread( NULL ),
-                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData(),
-                                 _mcontrol( *this )
+                                 _translateArgs( translate_args ),
+                                 _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
+                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
+                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
-                                    _devices = new DeviceData*[1];
-                                    _devices[0] = device;
+                                     _devices = new DeviceData*[1];
+                                     _devices[0] = device;
                                     _flags.is_final = 0;
+                                    _flags.is_submitted = false;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
                                        }
                                     }
-}
+                                 }
 
 inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
-                               : WorkGroup( wd ), _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tie ( wd._tie ), _tiedTo ( wd._tiedTo ),
-                                 _state ( INIT ), _syncCond( NULL ), _parent ( wd._parent ), _myQueue ( NULL ), _depth ( wd._depth ),
+                               : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
+                                 _componentsSyncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL), _forcedParent(wd._forcedParent),
+                                 _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
+                                 _wdData ( NULL ), _flags(), _tiedTo ( wd._tiedTo ), _tiedToLocation( wd._tiedToLocation ),
+                                 _state ( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( wd._depth ),
                                  _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
                                  _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
                                  _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
                                  _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(NULL), _doWait(),
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
-                                 _submitted( false ), _implicit( wd._implicit ), _translateArgs( wd._translateArgs ),
-                                 _notifyCopy( NULL ), _notifyThread( NULL ),
-                                 _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( wd._wakeUpQueue ), 
-                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(),
-                                 _mcontrol( *this )
+                                 _translateArgs( wd._translateArgs ),
+                                 _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
+                                 _wakeUpQueue( wd._wakeUpQueue ),
+                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer),
+                                 _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
+                                    if ( wd._parent != NULL ) wd._parent->addWork(*this);
                                     _flags.is_final = false;
                                     _flags.is_ready = false;
+                                    _flags.to_tie = wd._flags.to_tie;
+                                    _flags.is_submitted = false;
+                                    _flags.is_implicit = wd._flags.is_implicit;
+
+                                    _mcontrol.preInit();
                                  }
 
 /* DeviceData inlined functions */
@@ -116,38 +128,42 @@ inline bool WorkDescriptor::started ( void ) const { return (( _state != INIT ) 
 inline bool WorkDescriptor::initialized ( void ) const { return ( _state != INIT ) ; }
 
 inline size_t WorkDescriptor::getDataSize () const { return _data_size; }
-inline void WorkDescriptor::setDataSize ( size_t data_size ) { _data_size = data_size; }
 
 inline size_t WorkDescriptor::getDataAlignment () const { return _data_align; }
-inline void WorkDescriptor::setDataAlignment ( size_t data_align ) { _data_align = data_align; }
 
 inline void WorkDescriptor::setTotalSize ( size_t size ) { _totalSize = size; }
 
-inline WorkDescriptor * WorkDescriptor::getParent() { return _parent; }
-inline void WorkDescriptor::setParent ( WorkDescriptor * p ) { _parent = p; }
+inline WorkDescriptor * WorkDescriptor::getParent() { return _parent!=NULL?_parent:_forcedParent ; }
+inline void WorkDescriptor::forceParent ( WorkDescriptor * p ) { _forcedParent = p; }
 
 inline WDPool * WorkDescriptor::getMyQueue() { return _myQueue; }
 inline void WorkDescriptor::setMyQueue ( WDPool * myQ ) { _myQueue = myQ; }
 
 inline bool WorkDescriptor::isEnqueued() { return ( _myQueue != NULL ); }
 
-inline WorkDescriptor & WorkDescriptor::tied () { _tie = true; return *this; }
+inline WorkDescriptor & WorkDescriptor::tied () { _flags.to_tie = true; return *this; }
 
-inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &pe ) { _tiedTo = &pe; _tie=false; return *this; }
+inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &pe ) { _tiedTo = &pe; _flags.to_tie=false; return *this; }
+
+inline WorkDescriptor & WorkDescriptor::tieToLocation ( memory_space_id_t loc ) { _tiedToLocation = loc; _flags.to_tie=false; return *this; }
 
 inline bool WorkDescriptor::isTied() const { return _tiedTo != NULL; }
 
+inline bool WorkDescriptor::isTiedLocation() const { return _tiedToLocation != ( (memory_space_id_t) -1); }
+
 inline BaseThread* WorkDescriptor::isTiedTo() const { return _tiedTo; }
 
-inline bool WorkDescriptor::shouldBeTied() const { return _tie; }
+inline memory_space_id_t WorkDescriptor::isTiedToLocation() const { return _tiedToLocation; }
 
-inline void WorkDescriptor::untie() { _tiedTo = NULL; _tie = false; }
+inline bool WorkDescriptor::shouldBeTied() const { return _flags.to_tie; }
+
+inline void WorkDescriptor::untie() { _tiedTo = NULL; _flags.to_tie = false; }
+
+inline void WorkDescriptor::untieLocation() { _tiedToLocation = ( (memory_space_id_t) -1 ); _flags.to_tie = false; }
 
 inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
 inline void * WorkDescriptor::getData () const { return _data; }
-
-inline void WorkDescriptor::setStart () { _state = WorkDescriptor::START; }
 
 inline bool WorkDescriptor::isIdle () const { return _state == WorkDescriptor::IDLE; }
 inline void WorkDescriptor::setIdle () { _state = WorkDescriptor::IDLE; }
@@ -176,6 +192,7 @@ inline void WorkDescriptor::setReady ()
 }
 
 inline bool WorkDescriptor::isFinal () const { return _flags.is_final; }
+
 inline void WorkDescriptor::setFinal ( bool value ) { _flags.is_final = value; }
 
 inline GenericSyncCond * WorkDescriptor::getSyncCond() { return _syncCond; }
@@ -190,8 +207,9 @@ inline DeviceData & WorkDescriptor::getActiveDevice () const { return *_devices[
 
 inline bool WorkDescriptor::hasActiveDevice() const { return _activeDeviceIdx != _numDevices; }
 
-inline void WorkDescriptor::setActiveDeviceIdx( unsigned int idx ) { _activeDeviceIdx = idx; }
-inline unsigned int WorkDescriptor::getActiveDeviceIdx() { return _activeDeviceIdx; }
+inline void WorkDescriptor::setActiveDeviceIdx( unsigned char idx ) { _activeDeviceIdx = idx; }
+
+inline unsigned char WorkDescriptor::getActiveDeviceIdx() const { return _activeDeviceIdx; }
 
 inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) { 
     union { void* p; intptr_t i; } u = { data };
@@ -212,7 +230,9 @@ inline void * WorkDescriptor::getInternalData () const {
 
 inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
 
-inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() { return _translateArgs; }
+inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() const { return _translateArgs; }
+
+//inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() { return _translateArgs; }
 inline int WorkDescriptor::getSocket() const
 {
    return _socket;
@@ -233,13 +253,11 @@ inline void WorkDescriptor::setWakeUpQueue( unsigned int queue )
    _wakeUpQueue = queue;
 }
 
-inline unsigned int WorkDescriptor::getNumDevices ( void ) { return _numDevices; }
+inline unsigned int WorkDescriptor::getNumDevices ( void ) const { return _numDevices; }
 
-inline DeviceData ** WorkDescriptor::getDevices ( void ) { return _devices; }
+inline DeviceData ** WorkDescriptor::getDevices ( void ) const { return _devices; }
 
-inline bool WorkDescriptor::dequeue ( WorkDescriptor **slice ) { *slice = this; return true; }
-
-inline void WorkDescriptor::clear () { _parent = NULL; }
+inline void WorkDescriptor::clear () { /*_parent = NULL;*/ }
 
 inline size_t WorkDescriptor::getNumCopies() const { return _numCopies; }
 
@@ -325,21 +343,20 @@ inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
    return *_depsDomain;
 }
 
+
 inline InstrumentationContextData * WorkDescriptor::getInstrumentationContextData( void ) { return &_instrumentationContextData; }
 
-inline void WorkDescriptor::waitCompletion( bool avoidFlush )
+inline bool WorkDescriptor::isSubmitted() const { return _flags.is_submitted; }
+inline void WorkDescriptor::submitted()  { _flags.is_submitted = true; }
+
+inline bool WorkDescriptor::isConfigured ( void ) const { return _flags.is_configured; }
+inline void WorkDescriptor::setConfigured ( bool value ) { _flags.is_configured = value; }
+
+inline void WorkDescriptor::setPriority( WorkDescriptor::PriorityType priority )
 {
-   this->WorkGroup::waitCompletion();
-   sys.getHostMemory().synchronize( !avoidFlush, *this );
+   _priority = priority;
+   if ( _myQueue ) myThread->getTeam()->getSchedulePolicy().reorderWD( myThread, this );
 }
-
-inline bool WorkDescriptor::isSubmitted() const { return _submitted; }
-inline void WorkDescriptor::submitted()  { _submitted = true; }
-
-inline bool WorkDescriptor::isConfigured ( void ) const { return _configured; }
-inline void WorkDescriptor::setConfigured ( bool value ) { _configured = value; }
-
-inline void WorkDescriptor::setPriority( WorkDescriptor::PriorityType priority ) { _priority = priority; }
 inline WorkDescriptor::PriorityType WorkDescriptor::getPriority() const { return _priority; }
 
 inline void WorkDescriptor::releaseCommutativeAccesses()
@@ -350,10 +367,69 @@ inline void WorkDescriptor::releaseCommutativeAccesses()
       *(*_commutativeOwners)[i] = NULL;
 } 
 
-inline void WorkDescriptor::setImplicit( bool b ) { _implicit = b; }
-inline bool WorkDescriptor::isImplicit( void ) { return _implicit; } 
+inline void WorkDescriptor::setImplicit( bool b )
+{
+   //! Set implicit flag to parameter value
+   _flags.is_implicit = b;
+
+   //! Unset parent to free current Work Descriptor from hierarchy
+   if ( _parent != NULL ) {
+      _parent->exitWork(*this);
+      _parent = NULL;
+   }
+}
+
+inline bool WorkDescriptor::isImplicit( void ) { return _flags.is_implicit; } 
 
 inline char * WorkDescriptor::getDescription ( void ) const  { return _description; }
+
+inline void WorkDescriptor::addWork ( WorkDescriptor &work )
+{
+   _components++;
+   work.addToGroup( *this );
+}
+
+inline void WorkDescriptor::addToGroup ( WorkDescriptor &parent )
+{
+   if ( _parent == NULL ) _parent = &parent;
+   else fatal("WorkDescriptor: Trying to add a second parent");
+}
+
+inline Slicer * WorkDescriptor::getSlicer ( void ) const
+{
+   return _slicer;
+}
+
+inline void WorkDescriptor::setSlicer ( Slicer *slicer )
+{
+    _slicer = slicer;
+}
+
+inline bool WorkDescriptor::dequeue ( WorkDescriptor **slice )
+{
+   if ( _slicer ) return _slicer->dequeue( this, slice );
+   else {
+      *slice = this;
+      return true;
+   }
+}
+
+inline void WorkDescriptor::convertToRegularWD()
+{
+   _slicer = NULL;
+}
+
+inline void WorkDescriptor::setId( unsigned int id ) {
+   _id = id;
+}
+
+inline void WorkDescriptor::setRemoteAddr( void *addr ) {
+   _remoteAddr = addr;
+}
+
+inline void *WorkDescriptor::getRemoteAddr() const {
+   return _remoteAddr;
+}
 
 #endif
 

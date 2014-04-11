@@ -23,8 +23,8 @@ class SlicerCompoundWD: public Slicer
       ~SlicerCompoundWD ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue ( SlicedWD *wd, WorkDescriptor **slice ) ;
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice ) ;
       void *getSpecificData() const;
       static void executeWDs ( nanos_compound_wd_data_t *data );
 };
@@ -39,7 +39,7 @@ class SlicerCompoundWD: public Slicer
    int SlicerCompoundWD::_readyTasksPerThread = 0;
    int SlicerCompoundWD::_depthOfTask = 0;
 
-void SlicerCompoundWD::submit ( SlicedWD &work )
+void SlicerCompoundWD::submit ( WorkDescriptor &work )
 {
    debug ( "Using sliced work descriptor: CompoundWD" );
 
@@ -50,6 +50,8 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
    for ( int i = 0; i < data->nsect; i++) {
       slice = (WorkDescriptor*)data->lwd[i];
       sys.setupWD(*slice, &work);
+
+      slice->_mcontrol.preInit();
    }
 
    Scheduler::submit ( work );
@@ -66,7 +68,7 @@ void SlicerCompoundWD::submit ( SlicedWD &work )
  *
  *  \return true if there are no more slices in the former wd, false otherwise
  */
-bool SlicerCompoundWD::dequeue ( SlicedWD *wd, WorkDescriptor **slice )
+bool SlicerCompoundWD::dequeue ( WorkDescriptor *wd, WorkDescriptor **slice )
 {
    /* Get commont data */
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();

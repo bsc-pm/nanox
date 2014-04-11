@@ -30,8 +30,6 @@ nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) 
 
-instrumentation_debugdir=$(libdir)
-
 ##### OpenMP ######################################
 common_includes += -I $(top_builddir)/src/apis/c
 

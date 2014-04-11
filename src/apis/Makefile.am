@@ -102,7 +102,6 @@ instrumentation_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentat
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_debugdir = $(libdir)
 instrumentation_debug_LTLIBRARIES=instrumentation-debug/libnanox-c.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)

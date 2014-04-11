@@ -7,6 +7,7 @@
  #define _VERBOSE_CACHE 1
 #else
  #define _VERBOSE_CACHE 0
+ //#define _VERBOSE_CACHE ( sys.getNetwork()->getNodeNum() == 0 )
 #endif
 
 namespace nanos {
@@ -131,15 +132,26 @@ void MemController::initialize( ProcessingElement &pe ) {
 
 bool MemController::allocateInputMemory() {
    ensure( _inOps != NULL, "NULL ops." );
-   return _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
+   bool result = _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
+   if ( result ) {
+      for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
+         if ( _memCacheCopies[idx]._reg.key->getKeepAtOrigin() ) {
+            //std::cerr << "WD " << _wd.getId() << " rooting to memory space " << _memorySpaceId << std::endl;
+            _memCacheCopies[idx]._reg.setRooted();
+         }
+      }
+   }
+   return result;
 }
 
 void MemController::copyDataIn() {
+   ensure( _preinitialized == true, "MemController not initialized!");
+   ensure( _initialized == true, "MemController not initialized!");
   
    if ( _VERBOSE_CACHE ) {
       //if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::cerr << "### copyDataIn wd " << _wd.getId() << " running on " << _memorySpaceId << " ops: "<< (void *) _inOps << std::endl;
-         for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+         for ( unsigned int index = 0; index < _wd.getNumCopies(); index += 1 ) {
          NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
          std::cerr << "## "; _memCacheCopies[ index ]._reg.key->printRegion( _memCacheCopies[ index ]._reg.id ) ;
          if ( d ) std::cerr << " " << *d << std::endl; 
@@ -165,6 +177,8 @@ void MemController::copyDataIn() {
 }
 
 void MemController::copyDataOut( ) {
+   ensure( _preinitialized == true, "MemController not initialized!");
+   ensure( _initialized == true, "MemController not initialized!");
 
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       if ( _wd.getCopies()[index].isOutput() ) {
@@ -192,6 +206,8 @@ void MemController::copyDataOut( ) {
 }
 
 uint64_t MemController::getAddress( unsigned int index ) const {
+   ensure( _preinitialized == true, "MemController not initialized!");
+   ensure( _initialized == true, "MemController not initialized!");
    uint64_t addr = 0;
    //std::cerr << " _getAddress, reg: " << index << " key: " << (void *)_memCacheCopies[ index ]._reg.key << " id: " << _memCacheCopies[ index ]._reg.id << std::endl;
    if ( _memorySpaceId == 0 ) {
@@ -213,14 +229,18 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
 }
  
 bool MemController::isDataReady( WD const &wd ) {
-   if ( !_inputDataReady ) {
-      _inputDataReady = _inOps->isDataReady( wd );
-      if ( _inputDataReady ) {
-         if ( _VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
-         _inOps->releaseLockedSourceChunks();
+   ensure( _preinitialized == true, "MemController not initialized!");
+   if ( _initialized ) {
+      if ( !_inputDataReady ) {
+         _inputDataReady = _inOps->isDataReady( wd );
+         if ( _inputDataReady ) {
+            if ( _VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
+            _inOps->releaseLockedSourceChunks();
+         }
       }
-   }
-   return _inputDataReady;
+      return _inputDataReady;
+   } 
+   return false;
 }
 
 bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const {

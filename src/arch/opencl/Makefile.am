@@ -77,7 +77,6 @@ noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
 instrumentation_LTLIBRARIES =
 instrumentation_debug_LTLIBRARIES =
-instrumentation_debugdir = $(libdir)
 performance_LTLIBRARIES =
 
 #TODO: Fix instrumentation and debug makefiles so they are named opencl instead of opencl and they can use headers in this folder

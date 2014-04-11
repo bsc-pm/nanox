@@ -2,6 +2,7 @@
 #define CLUSTERPLUGIN_DECL_H
 
 #include "plugin.hpp"
+#include "system_decl.hpp"
 #include "gasnetapi_decl.hpp"
 
 namespace nanos {
@@ -41,7 +42,7 @@ class ClusterPlugin : public Plugin
       int getSmpPresend();
       void setUpCache();
       System::CachePolicyType getCachePolicy ( void );
-      RemoteWorkGroup * getRemoteWorkGroup( int archId );
+      RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
       bool getAllocWide();
 };
 

@@ -27,9 +27,9 @@ cluster_sources = \
 		clusternode.cpp \
 		clusterthread_decl.hpp \
 		clusterthread.cpp \
-		remoteworkgroup_decl.hpp \
-		remoteworkgroup_fwd.hpp \
-		remoteworkgroup.cpp \
+		remoteworkdescriptor_decl.hpp \
+		remoteworkdescriptor_fwd.hpp \
+		remoteworkdescriptor.cpp \
 		$(END)
 
 pe_cluster_sources = \
@@ -162,7 +162,6 @@ noinst_LTLIBRARIES += instrumentation-debug/libcluster.la
 #nanos_instrdebug_cxxflags=$(common_includes) $(cluster_common_instrdebug_cxxflags)
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
 
-instrumentation_debugdir = $(libdir)
 instrumentation_debug_libcluster_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
 instrumentation_debug_libcluster_la_SOURCES=$(cluster_sources)
 

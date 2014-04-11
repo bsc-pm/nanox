@@ -46,7 +46,11 @@ void OpenCLCache::initialize() {
     
     //If device is not a CPU (aka shared memory, allocate the whole memory)
     if (_openclAdapter.getPreallocatesWholeMemory()){
-        if (_openclAdapter.allocBuffer(_devCacheSize, _mainBuffer) != CL_SUCCESS)
+#if 0 /* master version */
+        if (_openclAdapter.allocBuffer(_devCacheSize,NULL, _mainBuffer) != CL_SUCCESS)
+#else
+        if (_openclAdapter.allocBuffer(_devCacheSize,_mainBuffer) != CL_SUCCESS)
+#endif
             fatal0("Not enough memory available on device to allocate requested memory size");
     } else {
         _mainBuffer=NULL;

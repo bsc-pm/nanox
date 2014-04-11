@@ -35,7 +35,6 @@ nanox_dbg_SOURCES=  $(nanox_sources)
 nanox_dbg_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/debug/libnanox.la \
-	@CUDA_RPATH@ \
 	$(END)
 
 endif
@@ -51,7 +50,6 @@ nanox_ins_SOURCES=  $(nanox_sources)
 nanox_ins_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/instrumentation/libnanox.la \
-	@CUDA_RPATH@ \
 	$(END)
 
 endif
@@ -67,7 +65,6 @@ nanox_ins_dbg_SOURCES=  $(nanox_sources)
 nanox_ins_dbg_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/instrumentation-debug/libnanox.la \
-	@CUDA_RPATH@ \
 	$(END)
 
 endif
@@ -83,7 +80,6 @@ nanox_pfm_SOURCES=  $(nanox_sources)
 nanox_pfm_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/performance/libnanox.la \
-	@CUDA_RPATH@ \
 	$(END)
 
 endif

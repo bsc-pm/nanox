@@ -17,12 +17,21 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _REMOTEWORKGROUP_FWD
-#define _REMOTEWORKGROUP_FWD
+#ifndef _REMOTEWORKDESCRIPTOR_DECL
+#define _REMOTEWORKDESCRIPTOR_DECL
 
+#include "workdescriptor_decl.hpp"
 namespace nanos
 {
-   class RemoteWorkGroup;
+   class RemoteWorkDescriptor : public WorkDescriptor
+   {
+      private:
+         unsigned int _remoteId;
+      public:
+         RemoteWorkDescriptor(unsigned int rId);
+         virtual void exitWork( WorkDescriptor &work );
+   };
+
 };
 
-#endif /* _REMOTEWORKGROUP_FWD */
+#endif /* _REMOTEWORKDESCRIPTOR_DECL */

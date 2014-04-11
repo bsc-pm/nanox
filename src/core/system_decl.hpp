@@ -106,7 +106,6 @@ namespace nanos
          InitialMode          _initialMode;
          bool                 _untieMaster;
          bool                 _delayedStart;
-         bool                 _useYield;
          bool                 _synchronizedStart;
          //! Physical NUMA nodes
          int                  _numSockets;
@@ -278,6 +277,7 @@ namespace nanos
 #ifdef OpenCL_DEV
          std::vector<ext::OpenCLProcessor *> *_opencls;
 #endif
+         bool                      _createLocalTasks;
          PE * createPE ( std::string pe_type, int pid, int uid );
 
          //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
@@ -305,17 +305,12 @@ namespace nanos
          void inlineWork ( WD &work );
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
-                        size_t data_size, size_t data_align, void ** data, WG *uwg,
+                        size_t data_size, size_t data_align, void ** data, WD *uwg,
                         nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies,
                         size_t num_dimensions, nanos_region_dimension_internal_t **dimensions,
-                        nanos_translate_args_t translate_args, const char *description );
-
-         void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
-                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions, const char *description );
+                        nanos_translate_args_t translate_args, const char *description, Slicer *slicer );
 
          void duplicateWD ( WD **uwd, WD *wd );
-         void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
 
         /* \brief prepares a WD to be scheduled/executed.
          * \param work WD to be set up
@@ -382,8 +377,6 @@ namespace nanos
          void setDelayedStart ( bool set);
 
          bool getDelayedStart () const;
-
-         bool useYield() const;
 
          int getCreatedTasks() const ;
 
@@ -682,11 +675,11 @@ namespace nanos
          unsigned int getNewSeparateMemoryAddressSpaceId() { return _separateMemorySpacesCount++; }
          unsigned int getSeparateMemoryAddressSpacesCount() { return _separateMemorySpacesCount - 1; }
 
-      private:
-         std::list< std::list<GraphEntry *> * > _graphRepLists;
-         Lock _graphRepListsLock;
+      //private:
+         //std::list< std::list<GraphEntry *> * > _graphRepLists;
+         //Lock _graphRepListsLock;
       public:
-         std::list<GraphEntry *> *getGraphRepList();
+         //std::list<GraphEntry *> *getGraphRepList();
          
          NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
@@ -726,6 +719,8 @@ namespace nanos
          //in offload or cluster version
          void ompss_nanox_main ();         
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
+         void stickToProducer(void *addr, std::size_t len);
+         void setCreateLocalTasks(bool value);
    };
 
    extern System sys;

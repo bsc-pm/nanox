@@ -25,7 +25,8 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "os.hpp"
-
+#include "synchronizedcondition.hpp"
+#include "printbt_decl.hpp"
 
 using namespace nanos;
 
@@ -37,30 +38,10 @@ void WorkDescriptor::init ()
 
    /* Initializing instrumentation context */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
-  
-   //message("init wd " << getId() );
-   //if ( getNewDirectory() == NULL )
-   //   initNewDirectory();
-   //getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
 
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() );
 
    if ( getNumCopies() > 0 ) {
-      
-      //CopyData *copies = getCopies();
-      //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
-      //   CopyData & cd = copies[i];
-      //   if ( !cd.isPrivate() ) {
-      //      //message("[n:" << sys.getNetwork()->getNodeNum() << "] WD "<< getId() << " init DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
-      //      //DataAccess d( cd.getDataAccess()->address, cd.getDataAccess()->flags.input ,cd.getDataAccess()->flags.output, cd.getDataAccess()->flags.can_rename,
-      //      //   cd.getDataAccess()->flags.commutative, cd.getDataAccess()->dimension_count, cd.getDataAccess()->dimensions);
-      //      //  Region reg = NewRegionDirectory::build_region( d );
-      //      //  message("region is " << reg);
-      //      //  getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
-      //   }
-      //}
-      
-      _notifyThread = myThread;
       pe->copyDataIn( *this );
       //this->notifyCopy();
 
@@ -68,7 +49,7 @@ void WorkDescriptor::init ()
          _translateArgs( _data, this );
       }
    }
-   setStart();
+   _state = WorkDescriptor::START;
 }
 
 void WorkDescriptor::initWithPE ( ProcessingElement &pe )
@@ -106,7 +87,7 @@ void WorkDescriptor::initWithPE ( ProcessingElement &pe )
          _translateArgs( _data, this );
       }
    }
-   setStart();
+   _state = WorkDescriptor::START;
 }
 
 
@@ -138,7 +119,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    if ( getNumCopies() > 0 ) pe->waitInputs( *this );
 
    // Tie WD to current thread
-   if ( _tie ) tieTo( *myThread );
+   if ( _flags.to_tie ) tieTo( *myThread );
 
    // Call Programming Model interface .started() method.
    sys.getPMInterface().wdStarted( *this );
@@ -175,7 +156,7 @@ bool WorkDescriptor::isInputDataReady() {
 
    if ( result ) {
       // Tie WD to current thread
-      if ( _tie ) tieTo( *myThread );
+      if ( _flags.to_tie ) tieTo( *myThread );
 
       // Call Programming Model interface .started() method.
       sys.getPMInterface().wdStarted( *this );
@@ -259,25 +240,29 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 void WorkDescriptor::submit( bool force_queue )
 {
    _mcontrol.preInit();
-   memory_space_id_t loc = 0;
-   //std::cout << "Submitting wd " << getId() << std::endl;
-   if ( _mcontrol.isRooted( loc ) ) {
-      //std::cout << "Im rooted to " << loc << std::endl;
-      if ( loc != 0 ) {
-         SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( loc );
-         this->tieTo( *(mem.getPE().getFirstThread()) );
+
+   if ( _slicer ) {
+      _slicer->submit(*this);
+   } else {
+      memory_space_id_t loc = 0;
+      if ( _mcontrol.isRooted( loc ) ) {
+         //std::cerr << " rooting " << this->getId()  << " to " << loc << std::endl;
+         this->tieToLocation( loc );
+         //if ( loc != 0 ) {
+         //   SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( loc );
+         //   this->tieTo( *(mem.getPE().getFirstThread()) );
+         //}
       }
+      Scheduler::submit(*this, force_queue );
    }
-   Scheduler::submit(*this, force_queue );
 } 
 
 void WorkDescriptor::finish ()
 {
-   //ProcessingElement *pe = myThread->runningOn();
-   /* FIXME: removed during merge from master */ //waitCompletion( true );
+   // At that point we are ready to copy data out
    if ( getNumCopies() > 0 )
       _mcontrol.copyDataOut();
-   
+
    // Getting execution time
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
 }
@@ -293,11 +278,26 @@ void WorkDescriptor::done ()
    // Notifying parent we have finished ( dependence's relationships )
    this->getParent()->workFinished( *this );
 
-   /* FIXME: removed during merge from master */ this->wgdone();
+//! \bug FIXME: This instrumentation phase has been commented due may cause raises when creating the events
+#if 0
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+#endif
 
-   // Workgroup specific done ( parent's relationships)
-   WorkGroup::done();
+   // Waiting for children (just to keep structures)
+   if ( _components != 0 ) waitCompletion();
 
+   // Notifying parent about current WD finalization
+   if ( _parent != NULL ) {
+      _parent->exitWork(*this);
+#if 0
+      NANOS_INSTRUMENT ( if ( !_parent->isReady()) { )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) getId()) << 32 ) + _parent->getId(); )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WAIT, id, 0, 0 );)
+      NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *_parent, NANOS_WAIT, id, 0, 0 ); )
+      NANOS_INSTRUMENT ( } )
+#endif
+      _parent = NULL;
+   }
 }
 
 void WorkDescriptor::prepareCopies()
@@ -347,10 +347,10 @@ void WorkDescriptor::wgdone()
    //}
 }
 
-void WorkDescriptor::listed()
-{
-   _listed = true;
-}
+//void WorkDescriptor::listed()
+//{
+//   _listed = true;
+//}
 
 void WorkDescriptor::printCopies()
 {
@@ -455,6 +455,23 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
             _copies[i].dimensions = NULL;
         }
     }
+
+   new ( &_mcontrol ) MemController( *this );
+}
+
+void WorkDescriptor::waitCompletion( bool avoidFlush )
+{
+   _componentsSyncCond.waitConditionAndSignalers();
+   sys.getHostMemory().synchronize( !avoidFlush, *this );
+}
+
+void WorkDescriptor::exitWork ( WorkDescriptor &work )
+{
+   _componentsSyncCond.reference();
+   int componentsLeft = --_components;
+   //! \note It seems that _syncCond.check() generates a race condition here?
+   if (componentsLeft == 0) _componentsSyncCond.signal();
+   _componentsSyncCond.unreference();
 }
 
 bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalidations ) const {
@@ -480,3 +497,4 @@ bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalida
 //   while ( ! _myGraphRepList.cswap( myList, NULL ) );
 //   return myList;
 //}
+

@@ -48,6 +48,7 @@
  #define _VERBOSE_CACHE 1
 #else
  #define _VERBOSE_CACHE 0
+ //#define _VERBOSE_CACHE ( sys.getNetwork()->getNodeNum() == 0 )
 #endif
 
 using namespace nanos;
@@ -68,15 +69,22 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
    _lock.acquire();
    std::map< uint64_t, GlobalRegionDictionary * >::iterator it = _objects.lower_bound( objectAddr );
    if ( it == _objects.end() || _objects.key_comp()( objectAddr, it->first) ) {
-     it = _objects.insert( it, std::map< uint64_t, GlobalRegionDictionary * >::value_type( objectAddr, NEW GlobalRegionDictionary( cd ) ) );
-     NewNewDirectoryEntryData *entry = getDirectoryEntry( *(it->second), 1 );
-     if ( entry == NULL ) {
-       entry = NEW NewNewDirectoryEntryData();
-       entry->addAccess( 0, 1 );
-       it->second->setRegionData( 1, entry );
-     }
-     
-     //(void) entry;
+      it = _objects.insert( it, std::map< uint64_t, GlobalRegionDictionary * >::value_type( objectAddr, NEW GlobalRegionDictionary( cd ) ) );
+      NewNewDirectoryEntryData *entry = getDirectoryEntry( *(it->second), 1 );
+      if ( entry == NULL ) {
+         entry = NEW NewNewDirectoryEntryData();
+         entry->addAccess( 0, 1 );
+         it->second->setRegionData( 1, entry );
+      }
+
+      //if ( sys.getNetwork()->getNodeNum() == 0 ) {
+      //   std::cerr  << " REGISTERING NEW DICTIONARY FOR OBJ ADDR " << (void *) cd.getBaseAddress() << " DICT IS " << (void *) it->second << std::endl;
+      //}
+      //(void) entry;
+   } else {
+      //if ( sys.getNetwork()->getNodeNum() == 0 ) {
+      //   std::cerr  << " >>>>>> NOT <<<<< REGISTERING NEW DICTIONARY FOR OBJ ADDR " << (void *) cd.getBaseAddress() << " USING " << (void *) it->second << std::endl;
+      //}
    }
    _lock.release();
    return it->second;
@@ -374,7 +382,7 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
       //std::cerr << "SYNC DIR" << std::endl;
       //int c = 0;
       //print();
-      SeparateAddressSpaceOutOps outOps( false, false );
+      SeparateAddressSpaceOutOps outOps( true, false );
       std::set< DeviceOps * > ops;
       std::set< DeviceOps * > myOps;
       std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
@@ -382,6 +390,11 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
 
       for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
          //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->second <<") ================="<<std::endl;
+         //if ( it->second->getKeepAtOrigin() ) {
+         //   std::cerr << "Object " << it->second << " Keep " << std::endl;
+         //}
+         if ( it->second->getKeepAtOrigin() ) continue;
+
          std::list< std::pair< reg_t, reg_t > > missingParts;
          unsigned int version = 0;
          //double tini = OS::getMonotonicTime();
@@ -424,9 +437,9 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
                   // another mechanism to inval data: }
 
                   // aggregate the locations, later, we will invalidate the full object from those locations
-                  locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end());
+                  locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
                } else {
-                  objects_to_clear.erase( it->first );
+                  objects_to_clear.erase( it->first ); //FIXME: objects may be added later
                }
             } else {
                global_reg_t reg( mit->second, it->second );
@@ -452,13 +465,14 @@ void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
          for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
             for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
                if ( *locIt != 0 ) {
-                  //std::cerr << "inval object " << it->first << " from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
+                  //std::cerr << "inval object " << it->first << " (addr " << (void*) it->first->getKeyBaseAddress() << ") from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
                   sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
                }
             }
          }
          //clear objects from directory
          for ( std::set< uint64_t >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+            //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
             delete _objects[ *it ];
             _objects.erase( *it );
          }

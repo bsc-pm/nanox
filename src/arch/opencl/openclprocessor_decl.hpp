@@ -50,7 +50,11 @@ public:
 public:
    void initialize(cl_device_id dev);
 
+#if 0 /* master version */
+   cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
+#else
    cl_int allocBuffer( size_t size, cl_mem &buf );
+#endif
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
@@ -69,12 +73,13 @@ public:
    // responsability.
    cl_int buildProgram( const char *src,
                         const char *compilerOpts,
-                        cl_program &prog );
+                        cl_program &prog,
+                        const std::string& filename );
 
    // As above, but without compiler options.
    cl_int buildProgram( const char *src, cl_program &prog )
    {
-      return buildProgram( src, "", prog );
+      return buildProgram( src, "", prog, "" );
    }
 
    // Low-level program destructor.
@@ -119,6 +124,10 @@ public:
        return _preallocateWholeMemory;
    }
    
+   bool getUseHostPtr(){
+       return _useHostPtrs;
+   }
+   
    void setPreallocatedWholeMemory(bool val){
       //_preallocateWholeMemory=val;
    }
@@ -160,6 +169,7 @@ private:
 
    ProgramCache _progCache;
    std::vector<cl_event> _pendingEvents;
+   bool _useHostPtrs;
 };
 
 class OpenCLProcessor : public CachedAccelerator

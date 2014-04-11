@@ -36,7 +36,6 @@ devinclude_HEADERS = \
 	schedule_fwd.hpp \
 	system_fwd.hpp \
 	wddeque_fwd.hpp \
-	workgroup_fwd.hpp \
 	workdescriptor_fwd.hpp \
 	slicer_fwd.hpp \
 	instrumentationcontext_fwd.hpp \
@@ -69,8 +68,6 @@ devinclude_HEADERS = \
 	system.hpp \
 	wddeque_decl.hpp \
 	wddeque.hpp \
-	workgroup_decl.hpp \
-	workgroup.hpp \
 	workdescriptor_decl.hpp \
 	workdescriptor.hpp \
 	worksharing_decl.hpp \
@@ -139,10 +136,6 @@ common_sources=\
 	wddeque_fwd.hpp \
 	wddeque_decl.hpp \
 	wddeque.hpp \
-	workgroup_fwd.hpp \
-	workgroup_decl.hpp \
-	workgroup.hpp \
-	workgroup.cpp \
 	workdescriptor_fwd.hpp \
 	workdescriptor_decl.hpp \
 	workdescriptor.hpp \
@@ -244,7 +237,6 @@ instr_sources = \
 debug_LTLIBRARIES=
 instrumentation_LTLIBRARIES=
 instrumentation_debug_LTLIBRARIES=
-instrumentation_debugdir=$(libdir)
 performance_LTLIBRARIES=
 
 if DEBUG_VERSION

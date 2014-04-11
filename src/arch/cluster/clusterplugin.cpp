@@ -21,7 +21,7 @@
 #include "system.hpp"
 #include "gasnetapi_decl.hpp"
 #include "clusterplugin_decl.hpp"
-#include "remoteworkgroup_decl.hpp"
+#include "remoteworkdescriptor_decl.hpp"
 
 
 #define DEFAULT_NODE_MEM (0x542000000ULL) 
@@ -125,8 +125,8 @@ System::CachePolicyType ClusterPlugin::getCachePolicy ( void ) {
    return _cachePolicy;
 }
 
-RemoteWorkGroup * ClusterPlugin::getRemoteWorkGroup( int archId ) {
-   return NEW RemoteWorkGroup( archId );
+RemoteWorkDescriptor * ClusterPlugin::getRemoteWorkDescriptor( int archId ) {
+   return NEW RemoteWorkDescriptor( archId );
 }
 
 bool ClusterPlugin::getAllocWide() {

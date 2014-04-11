@@ -90,7 +90,6 @@ noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
 instrumentation_LTLIBRARIES =
 instrumentation_debug_LTLIBRARIES =
-instrumentation_debugdir = $(libdir)
 performance_LTLIBRARIES =
 
 if DEBUG_VERSION

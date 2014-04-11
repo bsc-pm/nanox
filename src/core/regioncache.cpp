@@ -62,7 +62,8 @@ AllocatedChunk::AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t host
 }
 
 AllocatedChunk::~AllocatedChunk() {
-      delete _newRegions;
+   //std::cerr << "Im being released! "<< (void *) this << std::endl;
+   delete _newRegions;
 }
 
 void AllocatedChunk::clearNewRegions( global_reg_t const &reg ) {
@@ -128,7 +129,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
    if ( thisEntryOps->addCacheOp( /* debug: */ &wd, 1 ) ) {
       opEmitted = true;
 
-      //std::cerr << "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[ " << __FUNCTION__ << " " << (void*) this << " reg " << reg << " set rversion "<< version << " ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"<< std::endl;
+      //std::cerr << "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[ " << __FUNCTION__ << " " << (void*) this << " reg " << reg << " set rversion "<< version << " ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] This chunk key: " << (void *) _newRegions->getGlobalDirectoryKey()<< std::endl;
       // lock / free needed for multithreading on the same cache.
       _newRegions->registerRegion( reg, components, currentVersion );
       NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
@@ -722,6 +723,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
             // I have not been able to allocate a chunk, just return NULL;
          }
       } else {
+         //std::cerr << " CHUNK 1 AND NOT NULL! asekd for "<< (void *)targetHostAddr << " with size " << (unsigned int) allocSize << " got addr " << (void *) results.front().first->getAddress() << " with size " << (unsigned int) results.front().first->getLength() << " entry is " << (void *) *(results.front().second)<< std::endl;
          if ( results.front().first->getAddress() <= targetHostAddr ) {
             if ( results.front().first->getLength() + results.front().first->getAddress() >= (targetHostAddr + allocSize) ) {
                allocChunkPtr = *(results.front().second);
@@ -1243,6 +1245,9 @@ unsigned int RegionCache::getVersion( global_reg_t const &reg ) {
 }
 
 void RegionCache::releaseRegion( global_reg_t const &reg, WD const &wd ) {
+   //std::cerr << "Release region for wd " << wd.getId() << ": " << std::endl;
+   //reg.key->printRegion(reg.id);
+   //std::cerr << std::endl;
    AllocatedChunk *chunk = _getAllocatedChunk( reg, true, false );
    chunk->removeReference();
    //chunk->unlock();
@@ -1274,6 +1279,11 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
          if ( memCopies[ idx ]._chunk == NULL ) {
             memCopies[ idx ]._chunk = tryGetAddress( memCopies[ idx ]._reg, wd );
             if ( memCopies[ idx ]._chunk != NULL ) {
+               //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
+               //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
+               //std::cerr << std::endl;
+   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false );
+               //std::cerr << "--1--> chunk is " << (void *) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk<< std::endl;
                memCopies[ idx ]._chunk->unlock();
             }
          }
@@ -1284,6 +1294,11 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
             if ( memCopies[ idx ]._chunk == NULL ) {
                result = false;
             } else {
+               //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
+               //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
+               //std::cerr << std::endl;
+   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false );
+               //std::cerr << "--2--> chunk is " << (void*) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk << std::endl;
                memCopies[ idx ]._chunk->unlock();
             }
          }
@@ -1322,6 +1337,7 @@ void RegionCache::setRegionVersion( global_reg_t const &hostMem, unsigned int ve
 
 void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd ) {
    _lock.acquire();
+//reg.key->printRegion( reg.id ); std::cerr << std::endl;
    //AllocatedChunk *chunk = getAllocatedChunk( reg );
    std::set< reg_t > notPresentParts;
    //      std::cerr << "locations:  ";
@@ -1445,9 +1461,10 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
    for ( ConstChunkList::iterator it = results.begin(); it != results.end(); it++ ) {
       //std::cerr << "-----------------------vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv--------------------" << std::endl; 
       //std::cerr << "Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
-      //printBt();
+      ////printBt();
       //std::cerr << "-----------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------" << std::endl; 
       if ( it->second != NULL ) {
+         _device.memFree( (*(it->second))->getAddress(), sys.getSeparateMemory( _memorySpaceId ) );
          delete *(it->second);
       }
    }

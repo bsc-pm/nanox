@@ -17,11 +17,11 @@ class SlicerGuidedFor: public Slicer
       ~SlicerGuidedFor ( ) { }
 
       // headers (implemented below)
-      void submit ( SlicedWD & work ) ;
-      bool dequeue ( SlicedWD *wd, WorkDescriptor **slice );
+      void submit ( WorkDescriptor & work ) ;
+      bool dequeue ( WorkDescriptor *wd, WorkDescriptor **slice );
 };
 
-void SlicerGuidedFor::submit ( SlicedWD &work )
+void SlicerGuidedFor::submit ( WorkDescriptor &work )
 {
    debug0 ( "Using sliced work descriptor: Guided For" );
 
@@ -45,7 +45,7 @@ void SlicerGuidedFor::submit ( SlicedWD &work )
    Scheduler::submit ( work );
 }
 
-bool SlicerGuidedFor::dequeue(nanos::SlicedWD* wd, nanos::WorkDescriptor** slice)
+bool SlicerGuidedFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor** slice)
 {
    bool retval = false;
 

@@ -33,27 +33,5 @@ inline void *Slicer::getSpecificData ( ) const
    return NULL;
 }
 
-inline Slicer * SlicedWD::getSlicer ( void ) const
-{
-   return &_slicer;
-}
-
-inline void SlicedWD::submit ( bool force_queue )
-{
-   if ( _isSliceable ) _slicer.submit(*this);
-   else WD::submit( force_queue );
-}
-
-inline bool SlicedWD::dequeue ( WorkDescriptor **slice )
-{
-   if ( _isSliceable ) return _slicer.dequeue( this, slice );
-   else return WD::dequeue (slice);
-}
-
-inline void SlicedWD::convertToRegularWD()
-{
-   _isSliceable=false;
-}
-
 #endif
 

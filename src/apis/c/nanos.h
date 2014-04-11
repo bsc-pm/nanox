@@ -178,7 +178,10 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
+
 NANOS_API_DECL(int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(void, nanos_set_wd_priority, (nanos_wd_t wd, int p));
+
 NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions
@@ -303,6 +306,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int node, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ));
 NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
 NANOS_API_DECL(void, nanos_free0, ( void *p )); 
 
@@ -328,6 +332,7 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
 NANOS_API_DECL(nanos_err_t, nanos_get_node_num, ( unsigned int *num ));
 NANOS_API_DECL(int, nanos_get_num_nodes, ( ));
+NANOS_API_DECL(nanos_err_t, nanos_set_create_local_tasks, ( bool value ));
 
 #ifdef _MF03
     typedef void*  nanos_string_t;

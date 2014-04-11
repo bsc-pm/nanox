@@ -34,8 +34,8 @@ inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input
    dimension_count = numDimensions;
    dimensions = dims;
    offset = off;
-   _hostBaseAddress = hostBaseAddress;
-   _hostRegionId = hostRegionId;
+   host_base_address = hostBaseAddress;
+   host_region_id = hostRegionId;
 }
 
 inline CopyData::CopyData ( const CopyData &cd )
@@ -47,8 +47,8 @@ inline CopyData::CopyData ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
-   _hostBaseAddress = cd._hostBaseAddress;
-   _hostRegionId = cd._hostRegionId;
+   host_base_address = cd.host_base_address;
+   host_region_id = cd.host_region_id;
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
@@ -61,8 +61,8 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
-   _hostBaseAddress = cd._hostBaseAddress;
-   _hostRegionId = cd._hostRegionId;
+   host_base_address = cd.host_base_address;
+   host_region_id = cd.host_region_id;
    return *this;
 }
 
@@ -170,19 +170,19 @@ inline uint64_t CopyData::getFitAddress() const
 }
 
 inline uint64_t CopyData::getHostBaseAddress() const {
-   return _hostBaseAddress;
+   return host_base_address;
 }
 
 inline void CopyData::setHostBaseAddress( uint64_t addr ) {
-   _hostBaseAddress = addr;
+   host_base_address = addr;
 }
 
 inline memory_space_id_t CopyData::getHostRegionId() const {
-   return _hostRegionId;
+   return host_region_id;
 }
 
 inline void CopyData::setHostRegionId( memory_space_id_t id ) {
-   _hostRegionId = id;
+   host_region_id = id;
 }
 
 #endif

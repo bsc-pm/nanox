@@ -124,7 +124,6 @@ instrumentation_libnanox_pe_smp_numa_la_SOURCES=$(pe_smp_sources)
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_debugdir = $(libdir)
 noinst_LTLIBRARIES += instrumentation-debug/libsmp.la
 instrumentation_debug_LTLIBRARIES = instrumentation-debug/libnanox-pe-smp.la
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-pe-smp-numa.la

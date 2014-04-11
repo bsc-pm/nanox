@@ -21,6 +21,7 @@
 #define _NANOS_SYSTEM_H
 
 #include "system_decl.hpp"
+#include "dependenciesdomain_decl.hpp"
 #include <vector>
 #include <string>
 #include "schedule_decl.hpp"
@@ -29,6 +30,7 @@
 #include "nanos-int.h"
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
+#include "synchronizedcondition.hpp"
 #include "regioncache.hpp"
 #include <cmath>
 
@@ -81,8 +83,6 @@ inline System::InitialMode System::getInitialMode() const { return _initialMode;
 inline void System::setDelayedStart ( bool set) { _delayedStart = set; }
 
 inline bool System::getDelayedStart () const { return _delayedStart; }
-
-inline bool System::useYield() const { return _useYield; }
 
 inline int System::getCreatedTasks() const { return _schedStats._createdTasks.value(); }
 

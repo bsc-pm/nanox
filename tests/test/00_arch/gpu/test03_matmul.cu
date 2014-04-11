@@ -93,7 +93,7 @@ int main ( int argc, char **argv )
    }
 
    // Task creation
-   nanos::WG *wg = nanos::getMyThreadSafe()->getCurrentWD();
+   nanos::WD *wg = nanos::getMyThreadSafe()->getCurrentWD();
 
    for ( i = 0; i < nb; i++ ) {
       for ( j = 0; j < nb; j++ ) {

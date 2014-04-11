@@ -22,7 +22,6 @@
 
 #include "config.hpp"
 #include "simpleallocator_decl.hpp"
-#include "clusterinfo_decl.hpp"
 #include "clusterdevice_decl.hpp"
 #include "smpdd.hpp"
 #ifdef GPU_DEV

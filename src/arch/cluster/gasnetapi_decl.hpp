@@ -25,9 +25,8 @@
 #include "networkapi.hpp"
 #include "network_decl.hpp"
 #include "simpleallocator_decl.hpp"
-#include "clusterinfo_decl.hpp"
 #include "requestqueue_decl.hpp"
-#include "remoteworkgroup_fwd.hpp"
+#include "remoteworkdescriptor_fwd.hpp"
 #include <vector>
 
 extern "C" {
@@ -45,8 +44,8 @@ namespace ext {
 
          ClusterPlugin &_plugin;
          Network *_net;
-         RemoteWorkGroup *_rwgGPU;
-         RemoteWorkGroup *_rwgSMP;
+         RemoteWorkDescriptor *_rwgGPU;
+         RemoteWorkDescriptor *_rwgSMP;
 #ifndef GASNET_SEGMENT_EVERYTHING
          SimpleAllocator *_thisNodeSegment;
 #endif

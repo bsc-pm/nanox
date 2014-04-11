@@ -29,7 +29,6 @@
 
 #include "system.hpp"
 #include "os.hpp"
-#include "clusterinfo_decl.hpp"
 #include "clusterdevice_decl.hpp"
 #include "instrumentation.hpp"
 #include "osallocator_decl.hpp"
@@ -297,7 +296,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    std::size_t expectedData = (std::size_t) MERGE_ARG( expectedDataHi, expectedDataLo );
    gasnet_node_t src_node;
    unsigned int i;
-   WorkGroup *rwg;
+   WorkDescriptor *rwg;
 
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
@@ -347,9 +346,9 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       devPtr = &newDeviceSMP;
 
       if (getInstance()->_rwgSMP == NULL) 
-         getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkGroup( 0 );
+         getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
 
-      rwg = (WorkGroup *) getInstance()->_rwgSMP;
+      rwg = (WorkDescriptor *) getInstance()->_rwgSMP;
    }
 #ifdef GPU_DEV
    else if (arch == 1)
@@ -358,9 +357,9 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       devPtr = &newDeviceGPU;
 
       if (getInstance()->_rwgGPU == NULL)
-         getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkGroup( 1 );
+         getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
 
-      rwg = (WorkGroup *) getInstance()->_rwgGPU;
+      rwg = (WorkDescriptor *) getInstance()->_rwgGPU;
    }
 #endif
    else
@@ -369,7 +368,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       fprintf(stderr, "Unsupported architecture\n");
    }
 
-   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WG *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate, NULL );
+   sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WD *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate, NULL, NULL );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << " from " << src_node << " wid "<< wdId << " wdAddr "<< (void *) localWD << std::endl; );
    std::memcpy(data, work_data, dataSize);
@@ -1024,7 +1023,7 @@ void GASNetAPI::amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nb
 
 void GASNetAPI::amRegionMetadata(gasnet_token_t token, void *arg, std::size_t argSize ) {
    CopyData *cd = (CopyData *) arg;
-   cd->setDimensions( (nanos_region_dimension_internal_t *) ( ((char*)arg) + argSize ) );
+   cd->setDimensions( (nanos_region_dimension_internal_t *) ( ((char*)arg) + sizeof(CopyData) ) );
    getInstance()->_net->notifyRegionMetaData( cd );
 }
 

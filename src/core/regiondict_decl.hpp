@@ -69,6 +69,7 @@ typedef unsigned int reg_t;
       Lock                       _lock;
       Lock                       _invalidationsLock;
       std::map< reg_t, reg_t >   _masterIdToLocalId;
+      bool                       _keepAtOrigin;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
@@ -88,6 +89,8 @@ typedef unsigned int reg_t;
       void invalUnlock();
       void addMasterRegionId( reg_t masterId, reg_t localId );
       reg_t getLocalRegionIdFromMasterRegionId( reg_t masterId ) const;
+      void setKeepAtOrigin( bool value );
+      bool getKeepAtOrigin() const;
    };
 
    template < template <class> class > class RegionDictionary;

@@ -69,7 +69,6 @@ noinst_LTLIBRARIES += instrumentation-debug/libos.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
 
-instrumentation_debugdir = $(libdir)
 if BGQ
 instrumentation_debug_libos_la_CPPFLAGS=-DBGQ
 endif

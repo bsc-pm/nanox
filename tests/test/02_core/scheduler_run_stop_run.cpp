@@ -62,7 +62,7 @@ int main ( int argc, char **argv )
 
    A = 0;
 
-   WG *wg = getMyThreadSafe()->getCurrentWD(); 
+   WD *wg = getMyThreadSafe()->getCurrentWD(); 
    for ( i = 0; i < NUM_ITERS; i++ ) {
       
       // If we're done processing half of the dataset

@@ -105,7 +105,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    ProcessingElement *pe = this->runningOn();
    if (dd.getWorkFct() == NULL ) return;
 
-   wd.getGE()->setNode( ( ( ClusterNode * ) pe )->getClusterNodeNum() );
+   //wd.getGE()->setNode( ( ( ClusterNode * ) pe )->getClusterNodeNum() );
 
    unsigned int totalDimensions = 0;
    for (i = 0; i < wd.getNumCopies(); i += 1) {

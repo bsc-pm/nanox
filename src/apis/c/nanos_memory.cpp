@@ -86,6 +86,20 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int 
    return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","stick_to_producer",NANOS_RUNTIME ) );
+
+   try 
+   {
+      sys.stickToProducer(p, size);
+   } catch ( nanos_err_t e ) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
 NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","free",NANOS_RUNTIME ) );

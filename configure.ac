@@ -253,7 +253,7 @@ if test x$use_bgq = xyes; then
     if test x$use_gnu = xyes; then
         LDFLAGS="$LDFLAGS -dynamic"
     fi
-    if test x$use_xlcu = xyes; then
+    if test x$use_xlc = xyes; then
         LDFLAGS="$LDFLAGS -qnostaticlink"
     fi
 fi
@@ -572,6 +572,7 @@ fi
 if test x$gpu_valid = xyes; then
 	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
 	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
+        LDFLAGS="$LDFLAGS $CUDA_RPATH"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
@@ -785,7 +786,7 @@ AC_ARG_ENABLE([instrumentation-debug],
 )
 
 AM_CONDITIONAL([INSTRUMENTATION_DEBUG_VERSION], [test x$instrumentation_debug_disabled = xno])
-AC_SUBST([instrdebugdir],['${libdir}/instrumentation-debug'])
+AC_SUBST([instrumentation_debugdir],['${libdir}/instrumentation-debug'])
 
 # Enable instrumentation version
 instrumentation_disabled="no"

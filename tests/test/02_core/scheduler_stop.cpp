@@ -64,7 +64,7 @@ int main ( int argc, char **argv )
    for ( int testNumber = 0; testNumber < NUM_RUNS; ++testNumber ) {
       A = 0;
    
-      WG *wg = getMyThreadSafe()->getCurrentWD();   
+      WD *wg = getMyThreadSafe()->getCurrentWD();   
       // Stop scheduler
       sys.stopScheduler();
       // increment variable

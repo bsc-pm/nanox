@@ -17,21 +17,46 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _REMOTEWORKGROUP_DECL
-#define _REMOTEWORKGROUP_DECL
+/*
+<testinfo>
+test_generator=gens/core-generator
+test_schedule="bf"
+test_max_cpus=1
+</testinfo>
+*/
 
-#include "workgroup_decl.hpp"
-namespace nanos
+#include "system.hpp"
+#include <iostream>
+
+using namespace std;
+using namespace nanos;
+
+#define SIZEOF_WD             128*sizeof(void *)
+#define SIZEOF_DOWAIT          32*sizeof(void *)
+#define SIZEOF_DOSUBMIT        32*sizeof(void *)
+#define SIZEOF_ICONTEXT        32*sizeof(void *)
+
+int main ( int argc, char **argv )
 {
-   class RemoteWorkGroup : public WorkGroup
-   {
-      private:
-         unsigned int _remoteId;
-      public:
-         RemoteWorkGroup(unsigned int rId);
-         virtual void exitWork( WorkGroup &work );
-   };
+   int error = 0;
 
-};
+   cout << "Size of WorkDescriptor is " << sizeof(WD) << " out of " << SIZEOF_WD << endl;
+   if ( sizeof(WD) > SIZEOF_WD ) error = 1;
 
-#endif /* _REMOTEWORKGROUP_DECL */
+   cout << "Size of DOWait is " << sizeof(DOWait) << " out of " << SIZEOF_DOWAIT << endl;
+   if ( sizeof(DOWait) > SIZEOF_DOWAIT ) error = 1;
+
+   cout << "Size of LazyInit<DOWait> is " << sizeof(LazyInit<DOWait>) << " out of " << SIZEOF_DOWAIT << endl;
+   if ( sizeof(LazyInit<DOWait>) > SIZEOF_DOWAIT ) error = 1;
+
+   cout << "Size of DOSubmit is " << sizeof(DOSubmit) << " out of " << SIZEOF_DOSUBMIT << endl;
+   if ( sizeof(DOSubmit) > SIZEOF_DOSUBMIT ) error = 1;
+
+   cout << "Size of LazyInit<DOSubmit> is " << sizeof(LazyInit<DOSubmit>) << " out of " << SIZEOF_DOSUBMIT << endl;
+   if ( sizeof(LazyInit<DOSubmit>) > SIZEOF_DOSUBMIT ) error = 1;
+
+   cout << "Size of InstrumentationContextData is " << sizeof(InstrumentationContextData) << " out of " << SIZEOF_ICONTEXT << endl;
+   if ( sizeof(InstrumentationContextData) > SIZEOF_ICONTEXT ) error = 1;
+
+   return error;
+}

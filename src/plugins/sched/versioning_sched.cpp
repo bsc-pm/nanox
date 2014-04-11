@@ -360,7 +360,11 @@ namespace ext
                         WDBestRecordData &data = _wdExecBest[key];
 
                         message( "    Best version found for groupId " << key.first << ", paramSize " << key.second << ":");
-                        message( "    versionId: " << data._versionId << ", PE: " << data._pe->getDeviceType()->getName() << ", time: " << data._elapsedTime );
+                        if ( data._pe != NULL ) {
+                           message( "    versionId: " << data._versionId << ", PE: " << data._pe->getDeviceType()->getName() << ", time: " << data._elapsedTime );
+                        } else {
+                           message( "    versionId: " << data._versionId << ", PE: null, time: " << data._elapsedTime );
+                        }
                      }
 
                      message( "GENERAL STATISTICS" );

@@ -31,6 +31,7 @@ bool OpenCLConfig::_disableOCLdev2dev = false;
 size_t OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
+//System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
 extern __attribute__((weak)) char ompss_uses_opencl;
 
@@ -80,7 +81,7 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerEnvOption( "disable-opencl", "NX_DISABLEOPENCL" );
    cfg.registerArgOption( "disable-opencl", "disable-opencl" );
 
-   // Select the size of the device cache.
+    // Select the size of the device cache.
    cfg.registerConfigOption( "opencl-cache",
                              NEW Config::SizeVar( _devCacheSize ),
                              "Defines the amount of the cache "

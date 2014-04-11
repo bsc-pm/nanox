@@ -144,8 +144,8 @@ typedef struct {
    nanos_region_dimension_internal_t const *dimensions;
 #endif
    ptrdiff_t offset;
-   uint64_t _hostBaseAddress;
-   memory_space_id_t _hostRegionId;
+   uint64_t host_base_address;
+   memory_space_id_t host_region_id;
    /**** Serialize INFO ****/
    /* Pointer to the function which will return the size of the object*/
    typeSerSizeAdapter serialize_size_adapter;

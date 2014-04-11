@@ -80,12 +80,13 @@ void main__loop_1 ( void *args );
       _loop_data.offset = -k_offset; \
       sys.loadPlugin( "slicer-" + std::string(get_slicer) ); \
       Slicer *slicer = sys.getSlicer ( get_slicer ); \
-      WD * wd = new SlicedWD( *slicer, new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t),( void * ) &_loop_data, 0, NULL, NULL );\
+      WD * wd = new WorkDescriptor( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t),( void * ) &_loop_data, 0, NULL, NULL );\
+      wd->setSlicer(slicer);\
       _loop_data.loop_info.lower = upper2 + k_offset; \
       _loop_data.loop_info.upper = lower2 + k_offset; \
       _loop_data.loop_info.step = step2; \
       _loop_data.loop_info.chunk = chunk2; \
-      WG *wg = getMyThreadSafe()->getCurrentWD();\
+      WD *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
       sys.setupWD( *wd, (nanos::WD *) wg );\
       sys.submit( *wd );\

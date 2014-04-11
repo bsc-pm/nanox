@@ -17,38 +17,12 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_WORK_GROUP_H
-#define _NANOS_WORK_GROUP_H
+#ifndef _REMOTEWORKDESCRIPTOR_FWD
+#define _REMOTEWORKDESCRIPTOR_FWD
 
-#include "workgroup_decl.hpp"
-#include "schedule_decl.hpp"
-#include "synchronizedcondition.hpp"
-#include "instrumentation.hpp"
-#include "workdescriptor_decl.hpp"
-#include "system.hpp"
-
-using namespace nanos;
-
-inline WorkGroup::WorkGroup()
-       : _id( sys.getWorkDescriptorId() ), _syncCount(0), _ge(NEW GraphEntry(_id) ), _geNext( NEW GraphEntry(_id) ),
-         _components( 0 ), _syncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL)
+namespace nanos
 {
-   _ge->setIsWait();
-   _ge->setCount(0);
-   _geNext->setIsWait();
-   _geNext->setCount(1);
-}
+   class RemoteWorkDescriptor;
+};
 
-inline WorkGroup::WorkGroup( const WorkGroup &wg ) : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
-            _syncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL)  
-{
-   if ( wg._parent != NULL ) { 
-      wg._parent->addWork(*this);
-      for ( WGList::const_iterator it = wg._partOf.begin(); it < wg._partOf.end(); it++ ) {
-         if (*it) (*it)->addWork( *this );
-      }
-   }
-}
-
-#endif
-
+#endif /* _REMOTEWORKDESCRIPTOR_FWD */

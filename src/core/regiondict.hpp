@@ -10,7 +10,7 @@
 namespace nanos {
 
 template <class T>
-ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container( MAX_REG_ID, RegionVectorEntry() ), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), sparse( false ) {
+ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container( MAX_REG_ID, RegionVectorEntry() ), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), sparse( false ) {
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx += 1 ) {
       _dimensionSizes[ idx ] = cd.getDimensions()[ idx ].size;
    }
@@ -102,6 +102,16 @@ reg_t ContainerDense< T >::getLocalRegionIdFromMasterRegionId( reg_t masterId ) 
       result = it->second;
    }
    return result;
+}
+
+template <class T>
+void ContainerDense< T >::setKeepAtOrigin( bool value ) {
+   _keepAtOrigin = value;
+}
+
+template <class T>
+bool ContainerDense< T >::getKeepAtOrigin() const {
+   return _keepAtOrigin;
 }
 
 template <class T>
