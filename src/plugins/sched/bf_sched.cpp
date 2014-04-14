@@ -189,15 +189,15 @@ namespace nanos {
                }
             }
 
-            int fixme_getNumConcurrentWDs( void )
+            int getPotentiallyParallelWDs( void )
             {
                TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
                if ( _usePriority || _useSmartPriority ) {
-                  WDPriorityQueue<> &qu = (WDPriorityQueue<> &) *(tdata._readyQueue);
-                  return qu.fixme_getNumConcurrentWDs();
+                  WDPriorityQueue<> &q = (WDPriorityQueue<> &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
                } else {
-                  WDDeque &qu = (WDDeque &) *(tdata._readyQueue);
-                  return qu.fixme_getNumConcurrentWDs();
+                  WDDeque &q = (WDDeque &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
                }
             }
       };

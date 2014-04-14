@@ -150,7 +150,10 @@ namespace nanos
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
-         int fixme_getNumConcurrentWDs( void );
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
    };
 
    class WDLFQueue : public WDPool
@@ -377,7 +380,10 @@ namespace nanos
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
 
-         int fixme_getNumConcurrentWDs( void );
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
    };
 
 
