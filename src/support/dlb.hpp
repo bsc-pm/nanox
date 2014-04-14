@@ -59,7 +59,6 @@ namespace nanos {
          released=DLB_ReturnClaimedCpu(myCpu);
          if (released){
             myThread->sleep();
-            myThread->getTeam()->decreaseFinalSize();
          }
       }
       return released;
@@ -116,7 +115,6 @@ namespace nanos {
          released=DLB_ReleaseCpu(myCpu);
          if (released){
             myThread->sleep();
-            myThread->getTeam()->decreaseFinalSize();
          }
       }
       return released;

@@ -1335,7 +1335,6 @@ inline void System::applyCpuMask()
          // This PE should not
          while ( (thread = _pes[pe_id]->getActiveThread()) != NULL ) {
             thread->sleep();
-            team->decreaseFinalSize();
          }
       }
    }
