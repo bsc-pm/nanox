@@ -20,15 +20,12 @@
 #ifndef _NANOS_OS
 #define _NANOS_OS
 
-#include <config.h>
 #include <string>
 #include <vector>
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
 #include <time.h>
-#include <sched.h>
-#include <pthread.h>
 #include "nanos-int.h"
 
 namespace nanos
@@ -88,7 +85,6 @@ namespace nanos
          static InitList   *_initList;
          static InitList   *_postInitList;
          static ModuleList *_moduleList;
-         static cpu_set_t  _processMask;
       public:         
 
          static void init ();
@@ -108,15 +104,13 @@ namespace nanos
          static double getMonotonicTime ();
          static double getMonotonicTimeUs ();
          static double getMonotonicTimeResolution ();
-
-         static int nanosleep ( unsigned long long nanoseconds );
          
          static const InitList & getInitializationFunctions ( ) { return *_initList;}
          static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
          static const ModuleList & getRequestedModules () { return *_moduleList; }
 
          static void getProcessAffinity( cpu_set_t *cpu_set );
-         static void bindThread( pthread_t pth, cpu_set_t *cpu_set );
+         static void bindThread( cpu_set_t *cpu_set );
 
          static int getMaxProcessors ( void );
 
@@ -164,6 +158,7 @@ namespace nanos
 
       return res;
    }
+
 };
 
 

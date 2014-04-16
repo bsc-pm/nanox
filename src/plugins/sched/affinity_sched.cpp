@@ -21,7 +21,6 @@
 #include "wddeque.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
-#include "os.hpp"
 #include "memtracker.hpp"
 #include "clusterthread_decl.hpp"
 #include "regioncache.hpp"
@@ -1036,7 +1035,10 @@ namespace nanos {
          }
 
          if ( wd == NULL ) {
-            OS::nanosleep( 100 );
+            struct timespec req, rem;
+            req.tv_sec = 0;
+            req.tv_nsec = 100;
+            nanosleep( &req, &rem );
          } /*else {
             if ( !wd->resourceCheck( *thread, false ) ) {
                std::cerr << "Running wd " << wd->getId() << " will trigger an invalidation."<< std::endl;
@@ -1159,7 +1161,10 @@ namespace nanos {
             }
          }
          if ( wd == NULL ) {
-            OS::nanosleep( 100 );
+            struct timespec req, rem;
+            req.tv_sec = 0;
+            req.tv_nsec = 100;
+            nanosleep( &req, &rem );
          } /*else {
             if ( !wd->resourceCheck( *thread, false ) ) {
                std::cerr << "Running wd " << wd->getId() << " will trigger an invalidation."<< std::endl;

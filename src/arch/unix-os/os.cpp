@@ -21,14 +21,12 @@
 #include "compatibility.hpp"
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 
-#ifdef IS_BGQ_MACHINE
+extern char **environ;
+#ifdef BGQ
 #include <spi/include/kernel/location.h>
 #include <spi/include/kernel/process.h>
 #endif
-
-extern char **environ;
 
 using namespace nanos;
 
@@ -71,31 +69,6 @@ void OS::init ()
    _moduleList = NEW ModuleList(&__start_nanos_modules,&__stop_nanos_modules);
    _initList = NEW InitList(&__start_nanos_init, &__stop_nanos_init);
    _postInitList = NEW InitList(&__start_nanos_post_init, &__stop_nanos_post_init);
-
-   CPU_ZERO( &_processMask );
-#ifdef IS_BGQ_MACHINE
-   uint32_t myT = Kernel_MyTcoord();
-   uint64_t mask = Kernel_ThreadMask( myT );
-   uint64_t x, t;
-
-   x = mask;
-   /* 64-bit reversing to mantain compatibility with cpu_set_t */
-   x = (x << 32) | (x >> 32);
-   x = (x & 0x0001FFFF0001FFFFLL) << 15 |
-      (x & 0xFFFE0000FFFE0000LL) >> 17;
-   t = (x ^ (x >> 10)) & 0x003F801F003F801FLL;
-   x = (t | (t << 10)) ^ x;
-   t = (x ^ (x >> 4)) & 0x0E0384210E038421LL;
-   x = (t | (t << 4)) ^ x;
-   t = (x ^ (x >> 2)) & 0x2248884222488842LL;
-   x = (t | (t << 2)) ^ x;
-   /***/
-   mask = x;
-
-   memcpy( &_processMask, &mask, sizeof(uint64_t) );
-#else
-   sched_getaffinity( 0, sizeof(cpu_set_t), &_processMask );
-#endif
 }
 
 void * OS::loadDL( const std::string &dir, const std::string &name )
@@ -122,12 +95,34 @@ void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
 
 void OS::getProcessAffinity( cpu_set_t *cpu_set )
 {
-   memcpy( cpu_set, &_processMask, sizeof(cpu_set_t) );
+#ifdef BGQ
+   uint32_t myT = Kernel_MyTcoord();
+   uint64_t mask = Kernel_ThreadMask( myT );
+   uint64_t x, t;
+
+   x = mask;
+   /* 64-bit reversing to mantain compatibility with cpu_set_t */
+   x = (x << 32) | (x >> 32);
+   x = (x & 0x0001FFFF0001FFFFLL) << 15 |
+      (x & 0xFFFE0000FFFE0000LL) >> 17;
+   t = (x ^ (x >> 10)) & 0x003F801F003F801FLL;
+   x = (t | (t << 10)) ^ x;
+   t = (x ^ (x >> 4)) & 0x0E0384210E038421LL;
+   x = (t | (t << 4)) ^ x;
+   t = (x ^ (x >> 2)) & 0x2248884222488842LL;
+   x = (t | (t << 2)) ^ x;
+   /***/
+   mask = x;
+
+   memcpy( cpu_set, &mask, sizeof(uint64_t) );
+#else
+   sched_getaffinity( 0, sizeof(cpu_set_t), cpu_set );
+#endif
 }
 
-void OS::bindThread( pthread_t pth, cpu_set_t *cpu_set )
+void OS::bindThread( cpu_set_t *cpu_set )
 {
-   pthread_setaffinity_np( pth, sizeof(cpu_set_t), cpu_set );
+   sched_setaffinity( 0, sizeof(cpu_set_t), cpu_set );
 }
 
 int OS::getMaxProcessors ( void )
@@ -139,26 +134,3 @@ int OS::getMaxProcessors ( void )
 #endif
 }
 
-int OS::nanosleep ( unsigned long long nanoseconds )
-{
-#ifdef IS_BGQ_MACHINE
-   /* BG/Q has an Extended Thread Model where you are allowed to bind pthreads to
-    * physical threads that were not originally allocated to that process.
-    * In this mode, these particular pthreads have some restrictions, like for
-    * example setting and handling the itimer.
-    * For this reason we must ensure that this function is being called from a thread
-    * originally allocated within the initial affinity mask.
-    * */
-   cpu_set_t cpu_set;
-   CPU_ZERO( &cpu_set );
-   sched_getaffinity( 0, sizeof(cpu_set_t), &cpu_set );
-   CPU_AND( &cpu_set, &cpu_set, &_processMask );
-   if ( CPU_COUNT( &cpu_set ) == 0 )
-      return 0;
-#endif
-
-   struct timespec req, rem;
-   req.tv_sec = (time_t) ( nanoseconds / 1000000000ULL );
-   req.tv_nsec = (long) ( nanoseconds % 1000000000ULL );
-   return ::nanosleep( &req, &rem );
-}

@@ -112,7 +112,7 @@ void SMPThread::bind( void )
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   OS::bindThread( _pth, &cpu_set );
+   OS::bindThread( &cpu_set );
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
