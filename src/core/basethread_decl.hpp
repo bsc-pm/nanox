@@ -207,8 +207,6 @@ namespace nanos
          virtual void wait();
          virtual void resume();
 
-         virtual void signal() {};
-
          // set/get methods
          void setCurrentWD ( WD &current );
 

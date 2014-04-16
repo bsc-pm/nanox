@@ -133,11 +133,11 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
-   lock();
-   pthread_mutex_lock( &_mutexWait );
-
    ThreadTeam *team = getTeam();
 
+   /* Put WD's from local to global queue, leave team, and set flag
+    * Only thread lock is needed */
+   lock();
    if ( hasNextWD() ) {
       WD *next = getNextWD();
       next->untie();
@@ -146,26 +146,27 @@ void SMPThread::wait()
    fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
 
    if ( team != NULL ) leaveTeam();
+   BaseThread::wait();
+   unlock();
 
-   if ( isSleeping() ) {
-      BaseThread::wait();
-
+   /* We need a scope for the instrumentation state */
+   {
       NANOS_INSTRUMENT( InstrumentState inst(NANOS_STOPPED) );
-     
-      unlock();
-      pthread_cond_wait( &_condWait, &_mutexWait );
 
-      //! \note Then we call base thread wakeup, which just mark thread as active
-      lock();
-      BaseThread::resume();
-      unlock();
-   } else {
-      unlock();
+      /* Wait on condition loop */
+      pthread_mutex_lock( &_mutexWait );
+      while ( isSleeping() ) {
+         pthread_cond_wait( &_condWait, &_mutexWait );
+      }
+      pthread_mutex_unlock( &_mutexWait );
    }
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_WAKINGUP) );
 
-   pthread_mutex_unlock( &_mutexWait );
+   /* Set waiting status flag */
+   lock();
+   BaseThread::resume();
+   unlock();
 
    dlb_checkCpuAvailability();
 
@@ -180,14 +181,9 @@ void SMPThread::wait()
 
 void SMPThread::wakeup()
 {
-   //! \note This function has to be in free race condition environment or externally
-   // protected, when called, with the thread common lock: lock() & unlock() functions.
-
-   //! \note If thread is not marked as waiting, just ignore wakeup
-   //if ( !isSleeping() || !isWaiting() ) return;
-
    pthread_mutex_lock( &_mutexWait );
    BaseThread::wakeup();
+   pthread_cond_signal( &_condWait );
    pthread_mutex_unlock( &_mutexWait );
 }
 
@@ -196,11 +192,6 @@ void SMPThread::sleep()
    pthread_mutex_lock( &_mutexWait );
    BaseThread::sleep();
    pthread_mutex_unlock( &_mutexWait );
-}
-
-void SMPThread::signal()
-{
-   pthread_cond_signal( &_condWait );
 }
 
 // This is executed in between switching stacks

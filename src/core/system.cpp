@@ -1164,8 +1164,6 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    if ( enter ) thread->enterTeam( data );
    else thread->setNextTeamData( data );
 
-   if ( thread->isWaiting() ) thread->signal();
-
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
 
@@ -1286,6 +1284,7 @@ void System::updateActiveWorkers ( int nthreads )
       if (!thread) thread = getInactiveWorker();
       if (thread) {
          acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+         thread->wakeup();
          num_threads--;
       }
    }
@@ -1329,6 +1328,7 @@ inline void System::applyCpuMask()
          // This PE should be running
          while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+            thread->wakeup();
             team->increaseFinalSize();
          }
       } else {
