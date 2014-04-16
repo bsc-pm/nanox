@@ -214,6 +214,8 @@ if test x$use_bgq = xyes; then
     if test x$BGQ_FC = xno; then
         AC_MSG_ERROR([No BG/Q Fortran cross-compiler can be found. Please update your PATH.])
     fi
+
+    AC_DEFINE([IS_BGQ_MACHINE], [1], [Defined if this machine is a BGQ machine])
 fi
 
 # Check for programs
@@ -261,7 +263,6 @@ fi
 AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
 AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
 AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
-AM_CONDITIONAL([BGQ], [test x$use_bgq = xyes])
 
 # Check for libraries
 
