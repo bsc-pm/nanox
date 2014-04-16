@@ -21,6 +21,7 @@
 #include "compatibility.hpp"
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #ifdef IS_BGQ_MACHINE
 #include <spi/include/kernel/location.h>
