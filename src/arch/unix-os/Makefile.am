@@ -43,9 +43,6 @@ noinst_LTLIBRARIES += debug/libos.la
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) 
 
-if BGQ
-debug_libos_la_CPPFLAGS=-DBGQ
-endif
 debug_libos_la_CXXFLAGS=$(nanos_debug_cxxflags)
 debug_libos_la_SOURCES=$(os_sources)
 debug_libos_la_LIBADD=$(common_libadd)
@@ -56,9 +53,6 @@ noinst_LTLIBRARIES += instrumentation/libos.la
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) 
 
-if BGQ
-instrumentation_libos_la_CPPFLAGS=-DBGQ
-endif
 instrumentation_libos_la_CXXFLAGS=$(nanos_instr_cxxflags)
 instrumentation_libos_la_SOURCES=$(os_sources)
 instrumentation_libos_la_LIBADD=$(common_libadd)
@@ -69,9 +63,6 @@ noinst_LTLIBRARIES += instrumentation-debug/libos.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
 
-if BGQ
-instrumentation_debug_libos_la_CPPFLAGS=-DBGQ
-endif
 instrumentation_debug_libos_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
 instrumentation_debug_libos_la_SOURCES=$(os_sources)
 instrumentation_debug_libos_la_LIBADD=$(common_libadd)
@@ -82,9 +73,6 @@ noinst_LTLIBRARIES += performance/libos.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) 
 
-if BGQ
-performance_libos_la_CPPFLAGS=-DBGQ
-endif
 performance_libos_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 performance_libos_la_SOURCES=$(os_sources)
 performance_libos_la_LIBADD=$(common_libadd)
