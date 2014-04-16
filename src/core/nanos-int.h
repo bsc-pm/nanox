@@ -26,6 +26,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define NANOS_API_DECL(Type, Name, Params) \
     extern Type Name##_ Params; \
@@ -116,6 +117,11 @@ typedef struct {
    void (*cleanup)(void *);
 } nanos_reduction_t;
 
+typedef unsigned int memory_space_id_t;
+typedef size_t (*typeSerSizeAdapter)(void* this_);
+typedef void (*typeSerAdapter)(void* this_, void* buff);
+typedef void (*typeSerAssignAdapter)(void* this_, void* buff);
+
 /* This structure is initialized in copydata.hpp. Any change in
  * its contents has to be reflected in CopyData constructor
  */
@@ -137,6 +143,15 @@ typedef struct {
    nanos_region_dimension_internal_t const *dimensions;
 #endif
    ptrdiff_t offset;
+   uint64_t host_base_address;
+   memory_space_id_t host_region_id;
+   /**** Serialize INFO ****/
+   /* Pointer to the function which will return the size of the object*/
+   typeSerSizeAdapter serialize_size_adapter;
+   /* Pointer to the function which will fill the buffer*/
+   typeSerAdapter serialize_adapter;
+   /* Pointer to the function which will do the assignation ONLY VALID IN THE HOST*/
+   typeSerAssignAdapter serialize_assign_adapter;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;
@@ -283,8 +298,8 @@ typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDO
                NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET
-} nanos_event_domain_t; /**< Specifies a domain */
+typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_XFER_DATA, NANOS_XFER_REQ, NANOS_WD_REMOTE,
+               NANOS_AM_WORK, NANOS_AM_WORK_DONE, NANOS_XFER_WAIT_REQ_PUT, NANOS_XFER_FREE_TMP_BUFF } nanos_event_domain_t; /**< Specifies a domain */
 
 typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
   

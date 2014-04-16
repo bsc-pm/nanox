@@ -29,6 +29,7 @@
 namespace nanos {
 namespace ext
 {
+   class SMPMultiThread;
 
    class SMPThread : public BaseThread
    {
@@ -42,6 +43,9 @@ namespace ext
 
          pthread_cond_t          _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
          static pthread_mutex_t  _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
+        
+         pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
+         pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
 
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
@@ -49,7 +53,8 @@ namespace ext
         
       public:
          // constructor
-         SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+         SMPThread( WD &w, PE *pe, SMPMultiThread *parent=NULL ) :
+               BaseThread( w, pe, parent ), _pth(pthread_self()), _stackSize(0), _useUserThreads(true) {}
 
          // named parameter idiom
          SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
@@ -67,6 +72,8 @@ namespace ext
          virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent( WD &work );
+         virtual void preOutlineWorkDependent( WD &work ) {fatal( "SMPThread does not support preOutlineWorkDependent()" ); } ;
+         virtual void outlineWorkDependent( WD &work ) {fatal( "SMPThread does not support outlineWorkDependent()" ); } ;
          virtual void switchTo( WD *work, SchedulerHelper *helper );
          virtual void exitTo( WD *work, SchedulerHelper *helper );
 
@@ -79,6 +86,21 @@ namespace ext
          /** \brief SMP specific yield implementation
          */
          virtual void yield();
+
+         virtual void idle( bool debug = false );
+
+         virtual void switchToNextThread() {
+            fatal( "SMPThread does not support switchToNextThread()" );
+         }
+         virtual BaseThread *getNextThread()
+         {
+            return this;
+         }
+         virtual bool isCluster() { return false; }
+
+         //virtual int checkStateDependent( int numPe ) {
+         //   fatal( "SMPThread does not support checkStateDependent()" );
+         //}
 
          /*!
           * \brief Blocks the thread if it still has enabled the sleep flag
@@ -94,9 +116,58 @@ namespace ext
           * \brief Set the flag
           */
          virtual void sleep();
+
+         /*!
+          * \brief Waits on a condition.
+          */
+         virtual void block();
+         
+         /*! \brief Signals the thread to stop waiting. */
+         virtual void unblock();
    };
 
+   class SMPMultiThread : public SMPThread
+   {
+      friend class SMPProcessor;
 
+      private:
+         std::vector< BaseThread * > _threads;
+         unsigned int _current;
+         unsigned int _totalThreads;
+
+         // disable copy constructor and assignment operator
+         SMPMultiThread( const SMPThread &th );
+         const SMPMultiThread & operator= ( const SMPMultiThread &th );
+
+      public:
+         // constructor
+         SMPMultiThread( WD &w, PE *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
+            setCurrentWD( w );
+            _threads.reserve( representingPEsCount );
+            for ( unsigned int i = 0; i < representingPEsCount; i++ )
+            {
+               _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
+            }
+         }
+
+         // destructor
+         virtual ~SMPMultiThread() { }
+
+         std::vector< BaseThread * >& getThreadVector() { return _threads; }
+
+         virtual BaseThread * getNextThread()
+         {
+            if ( _totalThreads == 0 )
+               return this;
+            _current = ( _current == ( _totalThreads - 1 ) ) ? 0 : _current + 1;
+            return _threads[ _current ];
+         }
+
+         unsigned int getNumThreads() const
+         {
+            return _totalThreads;
+         }
+   };
 }
 }
 

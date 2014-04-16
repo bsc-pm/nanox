@@ -73,4 +73,3 @@ inline bool DependenciesDomain::haveDependencePendantWrites ( void *addr )
 }
 
 #endif
-

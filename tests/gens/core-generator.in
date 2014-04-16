@@ -26,6 +26,7 @@ common_includes="
         -I\$SRC/support \
         -I\$SRC/core \
         -I\$SRC/arch/smp \
+        -I\$SRC/arch/cluster \
         -I\$SRC/arch/spu"
 
 compile_versions="@COMPILE_VERSIONS@"

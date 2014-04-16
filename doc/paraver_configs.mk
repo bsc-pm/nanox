@@ -320,4 +320,5 @@ paraver_config_files = \
      paraver_configs/general/sanity_checks/flushing.cfg\
      paraver_configs/general/sanity_checks/2dh_cycperus.cfg\
      paraver_configs/general/sanity_checks/Equivalent_CPUs.cfg\
+     paraver_configs/cluster/network_transfers_and_bw.cfg\
      $(END)

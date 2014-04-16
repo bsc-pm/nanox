@@ -19,6 +19,7 @@
 
 #include "gputhread.hpp"
 #include "gpuprocessor.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
@@ -98,6 +99,7 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
+   message("I've prefetched " << _prefetchedWDs << " WDs and I have executed " << _executedWDs );
 
    if ( GPUConfig::isCUBLASInitDefined() ) {
 #ifdef NANOS_GPU_USE_CUDA32
@@ -121,7 +123,7 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
       // Erase the wait input list and synchronize it with cache
       myGPU.getInTransferList()->clearMemoryTransfers();
-      myGPU.freeInputPinnedMemory();
+      myGPU.getGPUMemory().freeInputPinnedMemory();
    }
 
    // Check if someone is waiting for our data
@@ -132,8 +134,12 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
 
    GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
 
+   _executedWDs++;
+
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
+   cudaError_t err = cudaGetLastError( );
+	if (err != cudaSuccess) printf("Error at kernel: %s\n", cudaGetErrorString(err));
 
    if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish
@@ -164,6 +170,11 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
          // Get next task in order to prefetch data to device memory
          WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
          if ( next != NULL ) {
+            next->_mcontrol.initialize( *(this->runningOn()) );
+            bool result;
+            do {
+               result = next->_mcontrol.allocateInputMemory();
+            } while( result == false );
             next->init();
             addNextWD( next );
             last = next;
@@ -177,7 +188,7 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT );
       cudaStreamSynchronize( myGPU.getGPUProcessorInfo()->getOutTransferStream() );
       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-      myGPU.freeOutputPinnedMemory();
+      myGPU.getGPUMemory().freeOutputPinnedMemory();
    }
 
    if ( GPUConfig::isOverlappingOutputsDefined() || GPUConfig::isOverlappingInputsDefined() ) {
@@ -203,11 +214,27 @@ void GPUThread::yield()
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
-void GPUThread::idle()
+void GPUThread::idle( bool debug )
 {
    cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
+   sys.getNetwork()->poll(0);
+   if ( !_pendingRequests.empty() ) {
+      std::set<void *>::iterator it = _pendingRequests.begin();
+      while ( it != _pendingRequests.end() ) {
+         GetRequest *req = (GetRequest *) (*it);
+         if ( req->isCompleted() ) {
+           std::set<void *>::iterator toBeDeletedIt = it;
+           it++;
+           _pendingRequests.erase(toBeDeletedIt);
+           req->clear();
+           delete req;
+         } else {
+            it++;
+         }
+      }
+   }
 }
 
 

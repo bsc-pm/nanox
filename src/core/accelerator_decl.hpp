@@ -25,6 +25,7 @@
 #include "processingelement_decl.hpp"
 #include "functors_decl.hpp"
 #include "atomic_decl.hpp"
+#include "copydescriptor_decl.hpp"
 
 namespace nanos
 {
@@ -48,31 +49,18 @@ namespace nanos
       public:
         /*! \brief Accelerator constructor - from 'newId' and 'arch'
          */
-         Accelerator ( int newId, const Device *arch, int uniqueId ) : ProcessingElement( newId, arch, uniqueId ) {}
+         Accelerator ( int newId, const Device *arch, int uniqueId, const Device *subArch );
         /*! \brief Accelerator destructor
          */
          virtual ~Accelerator() {}
 
          virtual bool hasSeparatedMemorySpace() const { return true; }
-         virtual unsigned int getMemorySpaceId() const {return 0; }
 
-         virtual void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
 
-         virtual void waitInputDependent( uint64_t tag ) = 0;
-
-         virtual void registerCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterCacheAccessDependent( Directory &dir, uint64_t tag, size_t size, bool output ) = 0;
-         virtual void registerPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size, bool input, bool output ) = 0;
-         virtual void unregisterPrivateAccessDependent( Directory &dir, uint64_t tag, size_t size ) = 0;
-
-         virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
-         virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
-
-         virtual void* getAddressDependent( uint64_t tag ) = 0;
-         virtual void copyToDependent( void *dst, uint64_t tag, size_t size ) = 0;
+         virtual void waitInputsDependent( WorkDescriptor &wd ) = 0;
    };
 
 };

@@ -56,7 +56,6 @@
 #include "atomic_decl.hpp"
 #include "dependableobject_decl.hpp"
 #include "trackableobject_decl.hpp"
-//#include "regionstatus_decl.hpp"
 #include "dataaccess_decl.hpp"
 #include "schedule_fwd.hpp"
 #include "basedependency_decl.hpp"
@@ -65,7 +64,7 @@
 namespace nanos
 {
    using namespace dependencies_domain_internal;
-
+   
   /*! \class DependenciesDomain
    *  Interface class of plugins used for dependencies domain.
    *  \brief Each domain is an independent context in which dependencies between DependableObject are managed
@@ -177,7 +176,7 @@ namespace nanos
          */
          static void lock ( );
 
-        /*! \brief Release object's lock
+        /*! \brief Release the static lock
          */
          static void unlock ( );
 

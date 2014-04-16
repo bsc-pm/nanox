@@ -26,6 +26,7 @@
 #include "system.hpp"
 #include "os.hpp"
 #include "synchronizedcondition.hpp"
+#include "printbt_decl.hpp"
 
 using namespace nanos;
 
@@ -42,11 +43,60 @@ void WorkDescriptor::init ()
 
    if ( getNumCopies() > 0 ) {
       pe->copyDataIn( *this );
+      //this->notifyCopy();
+
       if ( _translateArgs != NULL ) {
          _translateArgs( _data, this );
       }
    }
    _state = WorkDescriptor::START;
+}
+
+void WorkDescriptor::initWithPE ( ProcessingElement &pe )
+{
+   if ( _state != INIT ) return;
+
+   /* Initializing instrumentation context */
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdCreate( this ) );
+  
+   //message("init wd " << getId() );
+   //if ( getNewDirectory() == NULL )
+   //   initNewDirectory();
+   //getNewDirectory()->setParent( ( getParent() != NULL ) ? getParent()->getNewDirectory() : NULL );   
+
+   if ( getNumCopies() > 0 ) {
+      
+      //CopyData *copies = getCopies();
+      //for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
+      //   CopyData & cd = copies[i];
+      //   if ( !cd.isPrivate() ) {
+      //      //message("[n:" << sys.getNetwork()->getNodeNum() << "] WD "<< getId() << " init DA["<< i << "]: addr is " << (void *) cd.getDataAccess()->address );
+      //      //DataAccess d( cd.getDataAccess()->address, cd.getDataAccess()->flags.input ,cd.getDataAccess()->flags.output, cd.getDataAccess()->flags.can_rename,
+      //      //   cd.getDataAccess()->flags.commutative, cd.getDataAccess()->dimension_count, cd.getDataAccess()->dimensions);
+      //      //  Region reg = NewRegionDirectory::build_region( d );
+      //      //  message("region is " << reg);
+      //      //  getNewDirectory()->registerAccess( reg, cd.isInput(), cd.isOutput(), pe->getMemorySpaceId() );
+      //   }
+      //}
+      
+      _notifyThread = pe.getFirstThread();
+      pe.copyDataIn( *this );
+      //this->notifyCopy();
+
+      if ( _translateArgs != NULL ) {
+         _translateArgs( _data, this );
+      }
+   }
+   _state = WorkDescriptor::START;
+}
+
+
+void WorkDescriptor::notifyCopy()
+{
+   if ( _notifyCopy != NULL ) {
+      //std::cerr << " WD " << getId() << " GONNA CALL THIS SHIT IF POSSIBLE: " << (void *)_notifyCopy << " ARG IS THD "<< _notifyThread->getId() << std::endl;
+      _notifyCopy( *this, *_notifyThread );
+   }
 }
 
 // That function must be called from the thread it will execute it. This is important
@@ -60,7 +110,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
 
    // If there are no active device, choose a compatible one
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( pe->getDeviceType() );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
@@ -77,6 +127,46 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    // Setting state to ready
    _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
 }
+
+
+void WorkDescriptor::preStart (ULTFlag isUserLevelThread, WorkDescriptor *previous)
+{
+   ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
+
+   ProcessingElement *pe = myThread->runningOn();
+
+   // If there are no active device, choose a compatible one
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
+
+   // Initializing devices
+   _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
+
+}
+
+bool WorkDescriptor::isInputDataReady() {
+   ProcessingElement *pe = myThread->runningOn();
+   bool result = false;
+
+   // Test if copies have completed
+   if ( getNumCopies() > 0 ) {
+      result = pe->testInputs( *this );
+   } else {
+      result = true;
+   }
+
+   if ( result ) {
+      // Tie WD to current thread
+      if ( _flags.to_tie ) tieTo( *myThread );
+
+      // Call Programming Model interface .started() method.
+      sys.getPMInterface().wdStarted( *this );
+
+      // Setting state to ready
+      setReady();
+   }
+   return result;
+}
+
 
 void WorkDescriptor::prepareDevice ()
 {
@@ -137,17 +227,41 @@ bool WorkDescriptor::canRunIn( const Device &device ) const
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
+   bool result;
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
-   return canRunIn( pe.getDeviceType() );
+
+   if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType() );
+   else result = canRunIn( *pe.getDeviceType() ) ;
+
+   return result;
+   //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));
 }
+
+void WorkDescriptor::submit( bool force_queue )
+{
+   _mcontrol.preInit();
+
+   if ( _slicer ) {
+      _slicer->submit(*this);
+   } else {
+      memory_space_id_t loc = 0;
+      if ( _mcontrol.isRooted( loc ) ) {
+         //std::cerr << " rooting " << this->getId()  << " to " << loc << std::endl;
+         this->tieToLocation( loc );
+         //if ( loc != 0 ) {
+         //   SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( loc );
+         //   this->tieTo( *(mem.getPE().getFirstThread()) );
+         //}
+      }
+      Scheduler::submit(*this, force_queue );
+   }
+} 
 
 void WorkDescriptor::finish ()
 {
    // At that point we are ready to copy data out
-   if ( getNumCopies() > 0 ) {
-      ProcessingElement *pe = myThread->runningOn();
-      pe->copyDataOut( *this );
-   }
+   if ( getNumCopies() > 0 )
+      _mcontrol.copyDataOut();
 
    // Getting execution time
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
@@ -197,6 +311,62 @@ void WorkDescriptor::prepareCopies()
    }
 }
 
+void WorkDescriptor::notifyOutlinedCompletion()
+{
+   ensure( isTied(), "Outlined WD completed, but it is untied!");
+   _tiedTo->notifyOutlinedCompletionDependent( this );
+}
+void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
+{
+   //if ( predecessorWd != NULL )
+   //{
+   //   setMyGraphRepList( predecessorWd->getMyGraphRepList() );
+   //}
+   //
+   //if ( _myGraphRepList == NULL ) {
+   //   _myGraphRepList = sys.getGraphRepList();
+   //   if ( predecessorWd != NULL ) {
+   //      _myGraphRepList.value()->push_back( predecessorWd->getGE() );
+   //      predecessorWd->listed();
+   //   }
+   //}
+   //_myGraphRepList.value()->push_back( getGE() );
+   //if (predecessorWd != NULL) predecessorWd->listed();
+
+   _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
+}
+
+void WorkDescriptor::wgdone()
+{
+   //if (!_listed)
+   //{
+   //   if ( _myGraphRepList == NULL ) {
+   //      _myGraphRepList = sys.getGraphRepList();
+   //   }
+   //   _myGraphRepList.value()->push_back( this->getParent()->getGENext() );
+   //}
+}
+
+//void WorkDescriptor::listed()
+//{
+//   _listed = true;
+//}
+
+void WorkDescriptor::printCopies()
+{
+      CopyData *copies = getCopies();
+      std::cerr << "############################################"<< std::endl;
+      for ( unsigned int i = 0; i < getNumCopies(); i++ ) {
+         CopyData & cd = copies[i];
+         std::cerr << "# Copy "<< i << std::endl << cd << std::endl;
+         if ( i+1 < getNumCopies() ) std::cerr << " --------------- "<< std::endl;
+      }
+      std::cerr << "############################################"<< std::endl;
+
+}
+void WorkDescriptor::setNotifyCopyFunc( void (*func)(WD &, BaseThread const&) ) {
+   _notifyCopy = func;
+}
 void WorkDescriptor::initCommutativeAccesses( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
 {
    size_t numCommutative = 0;
@@ -285,12 +455,14 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
             _copies[i].dimensions = NULL;
         }
     }
+
+   new ( &_mcontrol ) MemController( *this );
 }
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    _componentsSyncCond.waitConditionAndSignalers();
-   if ( _directory != NULL && !avoidFlush ) _directory->synchronizeHost();
+   sys.getHostMemory().synchronize( !avoidFlush, *this );
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )
@@ -302,4 +474,27 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
+bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalidations ) const {
+   return _mcontrol.canAllocateMemory( thd.runningOn()->getMemorySpaceId(), considerInvalidations );
+}
+
+//void WorkDescriptor::initMyGraphRepListNoPred( ) {
+//   _myGraphRepList = sys.getGraphRepList();
+//   _myGraphRepList.value()->push_back( this->getParent()->getGE() );
+//   _myGraphRepList.value()->push_back( getGE() );
+//}
+
+//void WorkDescriptor::setMyGraphRepList( std::list<GraphEntry *> *myList ) {
+//   _myGraphRepList = myList;
+//}
+
+//std::list<GraphEntry *> *WorkDescriptor::getMyGraphRepList(  )
+//{
+//   std::list<GraphEntry *> *myList = NULL;
+//   do {
+//      myList = _myGraphRepList.value();
+//   }
+//   while ( ! _myGraphRepList.cswap( myList, NULL ) );
+//   return myList;
+//}
 

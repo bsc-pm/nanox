@@ -102,8 +102,8 @@ namespace nanos
       return next;
    }
 
-   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
-      _id( sys.nextThreadId() ), _maxPrefetch( 1 ), _status( ), _pe( creator ), _mlock( ),
+   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
+      _id( sys.nextThreadId() ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
       _threadWD( wd ), _currentWD( NULL), _nextWDs( ),
       _teamData( NULL ), _nextTeamData( NULL ),
       _name( "Thread" ), _description( "" ), _allocator( ) { }
@@ -167,6 +167,8 @@ namespace nanos
 
    inline bool BaseThread::hasNextWD () const { return !_nextWDs.empty(); }
  
+   inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
+
    // team related methods
    inline void BaseThread::reserve() { _status.has_team = true; }
  
@@ -260,7 +262,7 @@ namespace nanos
         _description.append("-");
  
         /* adding device type */
-        _description.append( _pe->getDeviceType().getName() );
+        _description.append( /*_pe->getDeviceType()->getName()*/"" );
         _description.append("-");
  
         /* adding global id */

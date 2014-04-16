@@ -38,8 +38,12 @@ inline void Allocator::Arena::deallocate ( void *object )
    unsigned long offset = ((char *) object - _arena);
    unsigned long index = offset / _objectSize;
 
+   //if (sys.getNetwork()->getNodeNum() == 0 && _objectSize > 32768) std::cerr << "Free object size " << _objectSize << " : " << (void *) _objectSize << " addr range is " << (void *) object << ":" << ((void *) (((char*)object)+_objectSize)) << " this is arena " << (void*) this << std::endl;
    _free = true;
    _bitmap[index]._bit = true;
+
+   //if (sys.getNetwork()->getNodeNum() == 0 && _objectSize > 32768) std::cerr << "memset from " << (void *) &_arena[index*_objectSize] << " to " << (void*) (&_arena[index*_objectSize+_objectSize]) << std::endl;
+   //memset( &_arena[index*_objectSize], 0, _objectSize );
 }
 
 inline Allocator::Arena * Allocator::Arena::getNext ( void ) const
@@ -110,6 +114,7 @@ inline void * Allocator::allocate ( size_t size, const char* file, int line )
    }
 
    ptr->_arena = arena;
+   //if (sys.getNetwork()->getNodeNum() == 0 && realSize > 32768) std::cerr << "Allocate object size " << realSize << " : " << (void *) realSize << " addr range is " << (void *) ptr << ":" << ((void *) (((char*)ptr)+realSize)) << " this is arena " << (void *) arena << std::endl;
 
    return  ((char *) ptr ) + _headerSize;
 }

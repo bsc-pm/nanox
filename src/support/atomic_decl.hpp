@@ -23,6 +23,7 @@
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
+#include <cstddef>
 
 /* TODO: move to configure
 #include <ext/atomicity.h>
@@ -39,7 +40,12 @@ namespace nanos
 
 namespace nanos
 {
+   class BaseThread;
+}
 
+
+namespace nanos
+{
    template<typename T>
    class Atomic
    {
@@ -88,7 +94,7 @@ namespace nanos
          bool operator!= ( const Atomic<T> &val );
 
          bool operator< (const Atomic<T> &val );
-         bool operator> ( const Atomic<T> &val );
+         bool operator> ( const Atomic<T> &val ) const;
          bool operator<= ( const Atomic<T> &val );
          bool operator>= ( const Atomic<T> &val );
 

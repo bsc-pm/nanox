@@ -29,23 +29,17 @@ inline const DOSubmit & DOSubmit::operator= ( const DOSubmit &dos )
 {
    if ( this == &dos ) return *this; 
    DependableObject::operator= (dos);
-   _submittedWD = dos._submittedWD;
    return *this;
-}
-
-inline void DOSubmit::setWD( WorkDescriptor *wd )
-{
-   _submittedWD = wd;
 }
 
 inline void * DOSubmit::getRelatedObject ( )
 {
-   return (void *) _submittedWD;
+   return (void *) getWD();
 }
 
 inline const void * DOSubmit::getRelatedObject ( ) const
 {
-   return (void *) _submittedWD;
+   return (void *) getWD();
 }
 
 inline const DOWait & DOWait::operator= ( const DOWait &dow )
@@ -56,19 +50,14 @@ inline const DOWait & DOWait::operator= ( const DOWait &dow )
    return *this;
 }
 
-inline void DOWait::setWD( WorkDescriptor *wd )
-{
-   _waitDomainWD = wd;
-}
-
 inline void * DOWait::getRelatedObject ( )
 {
-   return (void *) _waitDomainWD;
+   return (void *) getWD();
 }
 
 inline const void * DOWait::getRelatedObject ( ) const
 {
-   return (void *) _waitDomainWD;
+   return (void *) getWD();
 }
 
 #endif

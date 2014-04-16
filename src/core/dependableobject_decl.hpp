@@ -86,19 +86,23 @@ namespace nanos
          TargetVector             _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
          volatile bool            _submitted;
+         WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
 
       public:
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
             :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted(false) {}
+               _readObjects(), _objectLock(), _submitted(false), _wd( NULL ) {}
+         DependableObject ( WorkDescriptor *wd ) 
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted(false), _wd( wd ) {}
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false) {}
+              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false), _wd( depObj._wd ) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -169,7 +173,7 @@ namespace nanos
          *         method dependenciesSatisfied is invoked. It can be also a blocking
          *         call in some cases, if blocking is set to true.
          */
-         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking = false );
+         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking = false, DependableObject *predecessor = NULL );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */
@@ -211,6 +215,7 @@ namespace nanos
          */
          void addReadTarget ( BaseDependency const &readObj );
          
+         
         /*! \brief Get the list of read objects.
          *  \sa TrackableObject
          */
@@ -247,7 +252,9 @@ namespace nanos
             return it
          */
          DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition );
-         
+
+         void setWD( WorkDescriptor *wd );
+         WorkDescriptor * getWD( void ) const;
    };
 
 };

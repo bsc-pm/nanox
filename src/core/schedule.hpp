@@ -1,4 +1,4 @@
-
+/*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -34,9 +34,9 @@
 
 using namespace nanos;
 
-inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread &thread )
+inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread )
 {
-   return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread ) && wd.tryAcquireCommutativeAccesses();
+   return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread ) && ( !wd.isTiedLocation() || wd.isTiedToLocation() == thread.runningOn()->getMemorySpaceId() ) && wd.tryAcquireCommutativeAccesses();
 }
 
 inline void SchedulerConf::setUseYield ( const bool value )
@@ -140,6 +140,11 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
 {
    return atIdle( thread );
+}
+
+inline void SchedulePolicy::atSupport    ( BaseThread *thread )
+{
+   return;
 }
 
 inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t numElems )

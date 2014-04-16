@@ -972,7 +972,7 @@ void cilksort_par(ELM *low, ELM *tmp, long size)
       NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 #endif // !SERIAL_VERSION
 
-#ifdef SERIAL_VERSON
+#ifdef SERIAL_VERSION
       cilkmerge_par(A, A + quarter - 1, B, B + quarter - 1, tmpA );
       cilkmerge_par(C, C + quarter - 1, D, low + size - 1, tmpC);
 #else
