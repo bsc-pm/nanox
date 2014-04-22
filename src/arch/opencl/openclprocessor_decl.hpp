@@ -55,8 +55,8 @@ public:
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
 
-   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
-   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
+   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter);
+   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter);
    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
    cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
@@ -172,7 +172,7 @@ private:
 class OpenCLProcessor : public CachedAccelerator
 {
 public:        
-   OpenCLProcessor( int id , int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem );
+   OpenCLProcessor( int id , int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.

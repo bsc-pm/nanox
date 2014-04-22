@@ -117,7 +117,7 @@ public:
       //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
       //oclmemory->setSpecificData( oclmemspace );
       sys.addSeparateMemory(mid,oclmemory);
-      nanos::ext::OpenCLProcessor *openclPE = NEW nanos::ext::OpenCLProcessor( getBinding(id), uid, mid, *oclmemory );
+      nanos::ext::OpenCLProcessor *openclPE = NEW nanos::ext::OpenCLProcessor( getBinding(id), id, uid, mid, *oclmemory );
       
       openclPE->setNUMANode( sys.getNodeOfPE( openclPE->getId() ) ); 
       return openclPE;

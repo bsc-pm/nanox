@@ -103,21 +103,16 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
         size_t size, DeviceOps *ops) {
     //If shared memory, no need to copy
     cl_int errCode;
-    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) hostAddr, size))
-    {
-        _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)hostAddr,size);  
-    } else {
-        cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);    
+    cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);    
 
-        errCode = _openclAdapter.writeBuffer(buf,
-                  (void*) hostAddr,
-                  0,
-                  size);
-       // ops->completeOp();
-        if (errCode != CL_SUCCESS){
-            fatal("Buffer writing failed.");
-        }
-        _bytesIn += ( unsigned int ) size;
+    errCode = _openclAdapter.writeBuffer(buf,
+              (void*) hostAddr,
+              0,
+              size,
+              &_bytesIn);
+   // ops->completeOp();
+    if (errCode != CL_SUCCESS){
+        fatal("Buffer writing failed.");
     }
     return true;
 }
@@ -134,14 +129,13 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
     errCode = _openclAdapter.readBuffer(buf,
                 ((void*)hostAddr),
                 0,
-                size);
+                size,
+                &_bytesOut);
    // ops->completeOp();
 
     if (errCode != CL_SUCCESS && devAddr!=0) {        
         fatal("Buffer reading failed.");
     }    
-
-    _bytesOut += ( unsigned int ) size;
     return true;
 }
 
@@ -162,7 +156,7 @@ bool OpenCLCache::copyInBuffer(void *localSrc,
         fatal("Buffer copy dev2dev failed.");
     }    
     
-    _bytesDevice += ( unsigned int ) size;
+    _bytesDevice += size;
 
     return true;
 }

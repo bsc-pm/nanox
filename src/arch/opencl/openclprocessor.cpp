@@ -228,7 +228,8 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
 cl_int OpenCLAdapter::readBuffer(cl_mem buf,
         void *dst,
         size_t offset,
-        size_t size) {
+        size_t size,
+        Atomic<size_t>* globalSizeCounter) {
     cl_int ret;
     if (_useHostPtrs || OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) ((uint64_t)dst+offset), size)) {
         ret = mapBuffer(buf, dst, offset, size);
@@ -247,6 +248,7 @@ cl_int OpenCLAdapter::readBuffer(cl_mem buf,
                 NULL,
                 &ev
                 );
+        *globalSizeCounter+=size;
         NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
         if (ret != CL_SUCCESS)
@@ -302,7 +304,8 @@ cl_int OpenCLAdapter::mapBuffer( cl_mem buf,
 cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                 void *src,
                                 size_t offset,
-                                size_t size )
+                                size_t size,
+                                Atomic<size_t>* globalSizeCounter)
 {
    cl_int ret;
    if (_useHostPtrs || OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) ((uint64_t)src+offset), size)) {
@@ -321,7 +324,8 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                           NULL,
                                           &ev
                                         );
-       _pendingEvents.push_back(ev);
+        *globalSizeCounter += size;
+        _pendingEvents.push_back(ev);
         NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    }
    return ret;
@@ -920,11 +924,11 @@ void  OpenCLAdapter::waitForEvents(){
 
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
-OpenCLProcessor::OpenCLProcessor( int id, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem ) :
+OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem ) :
    CachedAccelerator( id, &OpenCLDev, uid , NULL, memId ),
    _openclAdapter(),
    _cache( _openclAdapter ),
-   _devId ( id ) { }
+   _devId ( devId ) { }
 
 
 //TODO: Configure cache awareness
