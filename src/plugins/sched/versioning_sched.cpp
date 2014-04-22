@@ -21,7 +21,9 @@
 #include "wddeque.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
+#include "os.hpp"
 #include "config.hpp"
+#include "hashmap.hpp"
 
 #include <math.h>
 #include <limits>
@@ -359,7 +361,11 @@ namespace ext
                         WDBestRecordData &data = _wdExecBest[key];
 
                         message( "    Best version found for groupId " << key.first << ", paramSize " << key.second << ":");
-                        message( "    versionId: " << data._versionId << ", PE: " << data._pe->getDeviceType().getName() << ", time: " << data._elapsedTime );
+                        if ( data._pe != NULL ) {
+                           message( "    versionId: " << data._versionId << ", PE: " << data._pe->getDeviceType()->getName() << ", time: " << data._elapsedTime );
+                        } else {
+                           message( "    versionId: " << data._versionId << ", PE: null, time: " << data._elapsedTime );
+                        }
                      }
 
                      message( "GENERAL STATISTICS" );
@@ -378,7 +384,7 @@ namespace ext
                                  message( "    PE: " << "Device not present" << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
                               }
                            } else {
-                              message( "    PE: " << record._pe->getDeviceType().getName() << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
+                              message( "    PE: " << record._pe->getDeviceType()->getName() << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
                            }
                         }
                      }
@@ -555,7 +561,7 @@ namespace ext
                   time = tdata._executionMap[w]->_estimatedBusyTime;
 
                   for ( i = 0; i < data.size(); i++ ) {
-                     if ( data[i]._pe && &thread->runningOn()->getDeviceType() == &data[i]._pe->getDeviceType() ) {
+                     if ( data[i]._pe && thread->runningOn()->getDeviceType() == data[i]._pe->getDeviceType() ) {
                         if ( ( time + data[i]._elapsedTime ) < earliestTime ) {
 
                            NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_FINDEARLIESTEW_BETTERTIME );
@@ -774,6 +780,7 @@ namespace ext
                   unsigned int i;
                   for ( i = 0; i < numVersions; i++ ) {
                      if ( devices[i]->isCompatible( pe->getDeviceType(), pe ) ) {
+                        data[i]._numAssigned++;
                         tdata._statsLock.release();
 
                         NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_SELECTWD_FIRSTCANRUN );
@@ -854,7 +861,7 @@ namespace ext
 
                            // If this PE can run the task, run it
                            if ( next->getDevices()[i]->isCompatible( pe->getDeviceType(), pe ) ) {
-                              //record._numAssigned++;
+                              record._numAssigned++;
                               memoryFence();
                               tdata._statsLock.release();
                               return setDevice( thread, next, i );
@@ -950,10 +957,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATIDLE_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
@@ -1032,10 +1036,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATPREFETCH_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
@@ -1141,10 +1142,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATBEFEX_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 

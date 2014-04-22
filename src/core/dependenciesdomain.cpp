@@ -25,7 +25,8 @@
 #include "instrumentation.hpp"
 #include "dataaccess.hpp"
 
-using namespace nanos;
+
+namespace nanos {
 
 Atomic<int> DependenciesDomain::_atomicSeed( 0 );
 Atomic<int> DependenciesDomain::_tasksInGraph( 0 );
@@ -51,4 +52,4 @@ void DependenciesDomain::decreaseTasksInGraph( size_t num )
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, (nanos_event_value_t *) &tasks );)
    NANOS_INSTRUMENT(unlock();)
 }
-
+} // namespace nanos

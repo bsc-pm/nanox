@@ -8,6 +8,7 @@ common_includes= \
 	-I$(top_srcdir)/src/arch/smp \
 	-I$(top_srcdir)/src/arch/spu \
 	-I$(top_srcdir)/src/arch/gpu \
+	-I$(top_srcdir)/src/arch/cluster \
 	-I$(top_srcdir)/src/arch/opencl \
 	-I$(top_srcdir)/src/arch/mpi \
 	$(END)

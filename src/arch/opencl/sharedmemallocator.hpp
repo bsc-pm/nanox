@@ -56,6 +56,10 @@ namespace nanos {
          void* getBasePointer( void * address, size_t size );
 
          void printSharedMemMemoryMap();
+         
+         bool initialized(){
+             return _init;
+         }
    };
 
 }

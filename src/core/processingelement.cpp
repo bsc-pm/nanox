@@ -25,72 +25,92 @@
 #include "copydata.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
-#include "directory.hpp"
 
 using namespace nanos;
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
-   Directory *dir = work.getParent()->getDirectory(true);
-   if ( dir != NULL ) {
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         if ( !cd.isPrivate() ) {
-              dir->registerAccess( cd.getAddress(), cd.getSize(), cd.isInput(), cd.isOutput() );
-         }
-      }
-   }
+   //work._ccontrol.copyDataIn( NULL );
+   work._mcontrol.copyDataIn();
 }
 
 void ProcessingElement::copyDataOut( WorkDescriptor &work )
 {
-   Directory *dir = work.getParent()->getDirectory(false);
-   if ( dir != NULL ) {
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         if ( !cd.isPrivate() ) {
-            dir->unRegisterAccess( cd.getAddress(), cd.isOutput(), work.getDirectory(false) );
-            if ( cd.isOutput() ) {
-               Directory *sons = work.getDirectory(false);
-               if ( sons!=NULL ) {
-                  dir->updateCurrentDirectory( cd.getAddress(), *sons );
-               }
-            }
-         }
-      }
-   }
 }
 
 void ProcessingElement::waitInputs( WorkDescriptor &work )
 {
-   Directory *dir = work.getParent()->getDirectory(false);
-   if ( dir != NULL ) {
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         if ( !cd.isPrivate() && cd.isInput() ) {
-              dir->waitInput( cd.getAddress(), cd.isOutput() );
-         }
-      }
+   BaseThread * thread = getMyThreadSafe();
+   //while ( !work._ccontrol.dataIsReady() ) { 
+   while ( !work._mcontrol.isDataReady( work ) ) { 
+      thread->idle();
+      thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
    }
+   //if( sys.getNetwork()->getNodeNum() == 0 && work._mcontrol.getMaxAffinityScore() > 0) {
+   //   std::cerr << "WD " << work.getId() << " affinity score " << work._mcontrol.getAffinityScore() << " (max "<< work._mcontrol.getMaxAffinityScore() <<") and has transferred " << work._mcontrol.getAmountOfTransferredData() << " total wd data " << work._mcontrol.getTotalAmountOfData() << " dev: ";
+   //   if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) == work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " as expected " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) > work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " less than expected data transferred " <<  ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) - work._mcontrol.getAffinityScore() << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) < work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " more than expected data transferred " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   }
+   //}
 }
 
-BaseThread& ProcessingElement::startWorker ( )
+bool ProcessingElement::testInputs( WorkDescriptor &work ) {
+   bool result = work._mcontrol.isDataReady( work );
+   //if( sys.getNetwork()->getNodeNum() == 0 && work._mcontrol.getMaxAffinityScore() > 0) {
+   //   std::cerr << "WD " << work.getId() << " affinity score " << work._mcontrol.getAffinityScore() << " (max "<< work._mcontrol.getMaxAffinityScore() <<") and has transferred " << work._mcontrol.getAmountOfTransferredData() << " total wd data " << work._mcontrol.getTotalAmountOfData() << " dev: ";
+   //   if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) == work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " as expected " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) > work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " less than expected data transferred " <<  ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) - work._mcontrol.getAffinityScore() << std::endl;
+   //   } else if ( ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) < work._mcontrol.getAffinityScore() ) {
+   //      std::cerr << " more than expected data transferred " << work._mcontrol.getAffinityScore() - ( work._mcontrol.getTotalAmountOfData() - work._mcontrol.getAmountOfTransferredData() ) << std::endl;
+   //   }
+   //}
+   return result;
+}
+
+BaseThread& ProcessingElement::startWorker ( ext::SMPMultiThread *parent )
 {
    WD & worker = getWorkerWD();
 
+   if ( parent == NULL ) {
    NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
+   }
 
-   return startThread( worker );
+   return startThread( worker, parent );
 }
 
-BaseThread & ProcessingElement::startThread ( WD &work )
+BaseThread& ProcessingElement::startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs )
 {
-   BaseThread &thread = createThread( work );
+   WD & worker = getMultiWorkerWD();
+
+   //NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   //NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+   //NANOS_INSTRUMENT (icd->setStartingWD(true) );
+
+   return startMultiThread( worker, numPEs, repPEs );
+}
+
+BaseThread & ProcessingElement::startThread ( WD &work, ext::SMPMultiThread *parent )
+{
+   BaseThread &thread = createThread( work, parent );
+
+   thread.start();
+
+   _threads.push_back( &thread );
+
+   return thread;
+}
+
+BaseThread & ProcessingElement::startMultiThread ( WD &work, unsigned int numPEs, PE **repPEs )
+{
+   BaseThread &thread = createMultiThread( work, numPEs, repPEs );
 
    thread.start();
 
@@ -130,6 +150,7 @@ void ProcessingElement::stopAllThreads ()
       thread = *it;
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
       if ( thread->isWaiting() ) thread->wakeup();
+      if ( sys.getSchedulerConf().getUseBlock() ) thread->unblock();
       thread->stop();
    }
 
@@ -141,17 +162,8 @@ void ProcessingElement::stopAllThreads ()
    }
 }
 
-void* ProcessingElement::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
-{
-   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
-   return actualTag;
-}
-
-void ProcessingElement::copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
-{
-   void *actualTag = (void *) ( sharing == NANOS_PRIVATE ? (char *)wd.getData() + (unsigned long)tag : (void *)tag );
-   // FIXME: should this be done by using the local copeir of the device?
-   memcpy( dst, actualTag, size );
+Device const *ProcessingElement::getCacheDeviceType() const {
+   return NULL;
 }
 
 BaseThread* ProcessingElement::getFirstRunningThread_FIXME()

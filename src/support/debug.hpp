@@ -65,6 +65,11 @@ namespace nanos
 #define message0(msg) \
    std::cerr << "MSG: [?] " << msg << std::endl;
 
+#define messageMaster(msg) \
+   do { if (sys.getNetwork()->getNodeNum() == 0) { std::cerr << "MSG: m:[" << getMyThreadSafe()->getId() << "] " << msg << std::endl; } } while (0)
+#define message0Master(msg) \
+   do { if (sys.getNetwork()->getNodeNum() == 0) { std::cerr << "MSG: m:[?] " << msg << std::endl; } } while (0)
+
 #ifdef NANOS_DEBUG_ENABLED
 #define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId());
 #define ensure0(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__, #cond, msg );

@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
-#include "copydescriptor_decl.hpp"
+#include "copydescriptor.hpp"
 
 namespace nanos
 {
@@ -52,14 +52,22 @@ namespace nanos
          */
          static void * allocate( size_t size, ProcessingElement *pe, uint64_t tag = 0 )
          {
-            return NEW char[size]; 
+#ifdef CLUSTER_DEV
+            char * addr = (char *)0xdeadbeef;
+#else
+            char *addr = NEW char[size];
+#endif
+            return addr; 
          }
 
         /* \brief free address
          */
          static void free( void *address, ProcessingElement *pe )
          {
+#ifdef CLUSTER_DEV
+#else
             delete[] (char *) address;
+#endif
          }
 
         /* \brief Reallocate and copy from address.
@@ -74,7 +82,10 @@ namespace nanos
          */
          static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
          {
+#ifdef CLUSTER_DEV
+#else
             memcpy( localDst, (void *)remoteSrc.getTag(), size );
+#endif
             return true;
          }
 
@@ -83,7 +94,10 @@ namespace nanos
          */
          static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
          {
+#ifdef CLUSTER_DEV
+#else
             memcpy( (void *)remoteDst.getTag(), localSrc, size );
+#endif
             return true;
          }
 
@@ -91,7 +105,11 @@ namespace nanos
          */
          static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
          {
+#ifdef CLUSTER_DEV
             memcpy( dst, src, size );
+#else
+            memcpy( dst, src, size );
+#endif
          }
 
          static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe)

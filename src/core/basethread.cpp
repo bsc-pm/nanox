@@ -43,7 +43,7 @@ void BaseThread::run ()
 void BaseThread::addNextWD ( WD *next )
 {
    if ( next != NULL ) {
-      debug("Add next WD as: " << next << ":??" << " @ thread " << _id );
+      debug("Add next WD as: " << next << ":"<< next->getId() << " @ thread " << _id );
       _nextWDs.push_back( next );
    }
 }
@@ -54,6 +54,10 @@ WD * BaseThread::getNextWD ()
    WD * next = _nextWDs.pop_front( this );
    if ( next ) next->setReady();
    return next;
+}
+
+WDDeque &BaseThread::getNextWDQueue() {
+   return _nextWDs;
 }
 
 void BaseThread::associate ()
@@ -105,5 +109,11 @@ void BaseThread::waitSingleBarrierGuard ()
  * reuse of the address (inside the iteration) so we're not forcing to go through TLS for each myThread access
  * It's important that the compiler doesn't inline it or the optimazer will cause the same wrong behavior anyway.
  */
-BaseThread * nanos::getMyThreadSafe() { return myThread; }
+BaseThread * nanos::getMyThreadSafe()
+{
+   return myThread;
+}
 
+void BaseThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
+   fatal0( "::notifyOutlinedCompletionDependent() not available for this thread type." );
+}

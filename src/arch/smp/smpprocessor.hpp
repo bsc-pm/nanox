@@ -41,7 +41,7 @@ namespace ext
 
 #ifdef SMP_NUMA
 
-   class SMPProcessor : public nanos::CachedAccelerator<SMPDevice>
+   class SMPProcessor : public nanos::CachedAccelerator
 #else
    class SMPProcessor : public PE
 #endif
@@ -62,18 +62,15 @@ namespace ext
 
       public:
          // constructors
-#ifdef SMP_NUMA
-         SMPProcessor( int id, int uid ) :
-            CachedAccelerator<SMPDevice>( id, &SMP, uid ) {}
-#else
-         SMPProcessor( int id, int uid ) : PE( id, &SMP, uid ) {}
-#endif
+         SMPProcessor( int id, int uid );
 
          virtual ~SMPProcessor() {}
 
+         virtual WD & getMultiWorkerWD () const;
          virtual WD & getWorkerWD () const;
          virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
+         virtual BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent=NULL );
+         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs );
 
          static void prepareConfig ( Config &config );
          // capability query functions
@@ -82,6 +79,11 @@ namespace ext
 #else
          virtual bool supportsUserLevelThreads () const { return false; }
 #endif
+         virtual bool isGPU () const { return false; }
+         //virtual void* getAddressDependent( uint64_t tag );
+         //virtual void* waitInputsDependent( WorkDescriptor &work );
+         //virtual void* newGetAddressDependent( CopyData const &cd );
+         //virtual bool supportsDirectTransfersWith(ProcessingElement const & pe) const;
    };
 
 }

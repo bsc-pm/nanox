@@ -5,6 +5,8 @@ devinclude_HEADERS = \
 os_sources = \
 	$(top_srcdir)/src/arch/unix-os/os.hpp \
 	$(top_srcdir)/src/arch/unix-os/os.cpp \
+	$(top_srcdir)/src/arch/unix-os/osallocator_decl.hpp \
+	$(top_srcdir)/src/arch/unix-os/osallocator.cpp \
 	$(END) 
 
 common_libadd = \

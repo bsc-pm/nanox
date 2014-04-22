@@ -31,7 +31,6 @@ void DependableObject::finished ( )
 
       // This step guarantees that any Object that wants to add depObj as a successor has done it
       // before we continue or, alternatively, won't do it.
-      //DependableObject::RegionContainer const &outs = depObj.getWrittenRegions();
       TargetVector const &outs = depObj.getWrittenTargets();
       DependenciesDomain *domain = depObj.getDependenciesDomain();
       if ( domain != 0 && outs.size() > 0 ) {

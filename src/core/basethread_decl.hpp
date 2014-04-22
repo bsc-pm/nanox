@@ -27,6 +27,7 @@
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
+#include <set>
 #include "wddeque_decl.hpp"
 
 namespace nanos
@@ -107,6 +108,10 @@ namespace nanos
          bool isCreator ( void ) const;
    };
 
+   namespace ext {
+   class SMPMultiThread;
+   };
+
    class BaseThread
    {
       friend class Scheduler;
@@ -127,6 +132,7 @@ namespace nanos
          unsigned short          _id;            /**< Thread identifier */
          unsigned short          _maxPrefetch;   /**< Maximum number of tasks that the thread can be running simultaneously */
          volatile StatusFlags    _status;        /**< BaseThread status flags */
+         ext::SMPMultiThread    *_parent;
          // Relationships:
          ProcessingElement      *_pe;            /**< Threads are binded to a PE for its life-time */
          // Thread synchro:
@@ -153,6 +159,8 @@ namespace nanos
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual bool inlineWorkDependent (WD &work) = 0;
+         virtual void outlineWorkDependent (WD &work) = 0;
+         virtual void preOutlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
@@ -171,9 +179,11 @@ namespace nanos
          */
          const BaseThread & operator= ( const BaseThread & );
       public:
+         std::set<void *> _pendingRequests;
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator = NULL );
+         BaseThread ( WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
+
         /*! \brief BaseThread destructor
          */
          virtual ~BaseThread()
@@ -200,7 +210,7 @@ namespace nanos
          void pause ();
          void unpause ();
 
-         virtual void idle() {};
+         virtual void idle( bool debug = false ) {};
          virtual void yield() {};
 
          virtual void join() = 0;
@@ -223,6 +233,9 @@ namespace nanos
          void addNextWD ( WD *next );
          WD * getNextWD ();
          bool hasNextWD () const;
+
+         ext::SMPMultiThread *getParent() ;
+         virtual BaseThread *getNextThread() = 0;
 
          // team related methods
          void reserve();
@@ -296,6 +309,11 @@ namespace nanos
          /*! \brief Get BaseThread description
           */
          const std::string &getDescription ( void );
+
+         virtual void switchToNextThread() = 0;
+         virtual void notifyOutlinedCompletionDependent( WD *completedWD );
+         virtual bool isCluster() = 0;
+         WDDeque &getNextWDQueue();
 
          /*! \brief Get Status: Main Thread
           */

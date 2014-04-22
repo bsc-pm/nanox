@@ -41,6 +41,7 @@ size_t GPUConfig::_maxGPUMemory = 0;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
 void * GPUConfig::_gpusProperties = NULL;
+bool GPUConfig::_allocWide = false;
 
 void GPUConfig::prepare( Config& config )
 {
@@ -116,6 +117,11 @@ void GPUConfig::prepare( Config& config )
                                 "Enable or disable CUBLAS initialization (disabled by default)" );
    config.registerEnvOption( "gpu-cublas-init", "NX_GPUCUBLASINIT" );
    config.registerArgOption( "gpu-cublas-init", "gpu-cublas-init" );
+
+   config.registerConfigOption( "gpu-alloc-wide", NEW Config::FlagOption( _allocWide ),
+                                "Alloc full objects in the cache." );
+   config.registerEnvOption( "gpu-alloc-wide", "NX_GPUALLOCWIDE" );
+   config.registerArgOption( "gpu-alloc-wide", "gpu-alloc-wide" );
 }
 
 void GPUConfig::apply()
@@ -190,21 +196,22 @@ void GPUConfig::apply()
          _numGPUs = deviceCount;
       }
 
-      // Check if the use of caches has been disabled
-      if ( sys.isCacheEnabled() ) {
-         // Check if the cache policy for GPUs has been defined
-         if ( _cachePolicy == System::DEFAULT ) {
-            // The user has not defined a specific cache policy for GPUs,
-            // check if he has defined a global cache policy
-            _cachePolicy = sys.getCachePolicy();
-            if ( _cachePolicy == System::DEFAULT ) {
-               // There is no global cache policy specified, assign it the default value (write-back)
-               _cachePolicy = System::WRITE_BACK;
-            }
-         }
-      } else {
+      //// Check if the use of caches has been disabled
+      //if ( sys.isCacheEnabled() ) {
+      //   // Check if the cache policy for GPUs has been defined
+      //   if ( _cachePolicy == System::DEFAULT ) {
+      //      // The user has not defined a specific cache policy for GPUs,
+      //      // check if he has defined a global cache policy
+      //      _cachePolicy = sys.getCachePolicy();
+      //      if ( _cachePolicy == System::DEFAULT ) {
+      //         // There is no global cache policy specified, assign it the default value (write-back)
+      //         _cachePolicy = System::WRITE_BACK;
+      //      }
+      //   }
+      //} else {
+      //   _cachePolicy = System::NONE;
+      //}
          _cachePolicy = System::NONE;
-      }
 
       // Check overlappings
       _overlapInputs = _overlap ? true : _overlapInputs;
@@ -291,6 +298,10 @@ void GPUConfig::getGPUsProperties( int device, void * deviceProps )
 {
    void * props = &( ( cudaDeviceProp * ) _gpusProperties)[device];
    memcpy( deviceProps, props, sizeof( cudaDeviceProp ) );
+}
+
+bool GPUConfig::getAllocWide() {
+   return _allocWide;
 }
 
 }

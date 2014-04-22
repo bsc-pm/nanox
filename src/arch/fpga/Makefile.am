@@ -17,8 +17,27 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
 include $(top_srcdir)/src/common.am
 
+devinclude_HEADERS = \
+	$(END) 
+
+fpga_sources = \
+	$(END)
+
+pe_fpga_sources = \
+	$(END)
+
+
+if DEBUG_VERSION
+endif
+
+if INSTRUMENTATION_VERSION
+endif
+
+if INSTRUMENTATION_DEBUG_VERSION
+endif
+
+if PERFORMANCE_VERSION
+endif
 

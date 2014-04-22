@@ -210,10 +210,12 @@
 #include "allocator_decl.hpp"
 #include "basethread_fwd.hpp"
 
+
 #define NANOX_INSTRUMENTATION_PARTNER_MYSELF 0xFFFFFFFF
 
 namespace nanos {
 
+//   extern __thread BaseThread *myThread;
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    class InstrumentationValueDescriptor
    {
@@ -430,6 +432,9 @@ namespace nanos {
             registerEventValue("api","set_final","nanos_set_final()");
             registerEventValue("api","dependence_release_all","nanos_dependence_release_all()");
             registerEventValue("api","set_translate_function","nanos_set_translate_function()");
+            registerEventValue("api","memalign","nanos_memalign()");
+            registerEventValue("api","cmalloc","nanos_cmalloc()");
+            registerEventValue("api","stick_to_producer","nanos_stick_to_producer()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
 
@@ -558,8 +563,13 @@ namespace nanos {
             /* 42 */ registerEventKey("cpuid","Thread cpuid");
 
             /* 43 */ registerEventKey("dep-address", "Dependence address", true);
+            /* 44 */ registerEventKey("copy-data-in","WD id that is copying data in");
+            /* 45 */ registerEventKey("cache-copy-data-in","WD id that is copying data in");
+            /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data in");
+            /* 47 */ registerEventKey("sched-affinity-constraint","Constraint used by affinity scheduler");
+
                      
-            /* 44 */ registerEventKey("in-mpi-runtime","Inside MPI runtime", true);
+            /* 48*/ registerEventKey("in-mpi-runtime","Inside MPI runtime", true);
             registerEventValue("in-mpi-runtime", "NANOS_MPI_ALLOC_EVENT", "malloc()" );                                     /* 1 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_FREE_EVENT", "free()" );                                         /* 2 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT", "deep_booster_alloc(...)" );                            /* 3 */
@@ -587,8 +597,8 @@ namespace nanos {
             registerEventValue("in-mpi-runtime", "NANOS_MPI_ISEND_EVENT", "Async send" );  /* 25 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_GENERIC_EVENT", "MPI generic event" );                /* 26 */
 
-            /* 44 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
-            /* 45 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+            /* 49 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 50 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
@@ -861,8 +871,7 @@ namespace nanos {
             public:
                /*! \brief PtP event constructor
                 */
-               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key,  nanos_event_value_t value, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF )
-                   : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , key, value, domain, id, partner ) { }
+               PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key,  nanos_event_value_t value, unsigned int partner = NANOX_INSTRUMENTATION_PARTNER_MYSELF );
                friend class Instrumentation;
          };
 #ifndef NANOS_INSTRUMENTATION_ENABLED

@@ -28,6 +28,7 @@
 #include "dataaccess.hpp"
 #include "basedependency_decl.hpp"
 #include "functors.hpp"
+#include "workdescriptor_decl.hpp"
 
 using namespace nanos;
 
@@ -47,6 +48,7 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _domain = depObj._domain;
    _outputObjects = depObj._outputObjects;
    _submitted = depObj._submitted;
+   _wd = depObj._wd;
    return *this;
 }
 
@@ -82,11 +84,14 @@ inline unsigned int DependableObject::getId () const
 
 inline int DependableObject::increasePredecessors ( )
 {
-	  return _numPredecessors++;
+     return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking, DependableObject *predecessor )
 {
+   if ( predecessor != NULL && getWD() != NULL ) {
+      getWD()->predecessorFinished( predecessor->getWD() );
+   }
    int  numPred = --_numPredecessors; 
    if ( numPred == 0 ) {
       dependenciesSatisfied( );
@@ -165,6 +170,16 @@ inline void DependableObject::submitted()
 inline Lock& DependableObject::getLock()
 {
    return _objectLock;
+}
+
+inline void DependableObject::setWD( WorkDescriptor *wd )
+{
+   _wd = wd;
+}
+
+inline WorkDescriptor * DependableObject::getWD( void ) const
+{
+   return _wd;
 }
 
 #endif

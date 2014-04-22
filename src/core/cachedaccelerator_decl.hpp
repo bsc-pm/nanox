@@ -21,18 +21,17 @@
 #define _NANOS_CACHED_ACCELERATOR_DECL
 
 #include "accelerator_decl.hpp"
-#include "cache_decl.hpp"
 #include "system_decl.hpp"
+#include "copydescriptor_decl.hpp"
+#include "regioncache_decl.hpp"
 
 namespace nanos
 {
 
-   template <class Device>
    class CachedAccelerator : public Accelerator
    {
       private:
-        DeviceCache<Device> * _cache;
-        CachePolicy         * _cachePolicy;
+        memory_space_id_t _addressSpaceId;
 
         /*! \brief CachedAccelerator default constructor (private)
          */
@@ -46,44 +45,14 @@ namespace nanos
       public:
         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
          */
-         CachedAccelerator ( int newId, const Device *arch, int uniqueId, System::CachePolicyType policy, int cacheSize = 0 ) :
-            Accelerator( newId, arch, uniqueId ), _cache( NEW DeviceCache<Device>( cacheSize, NULL, this ) )
-         {
-            configureCache( cacheSize, policy );
-         }
-
-         /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
-          *
-          *  Function 'configureCache()' needs to be called at some point in order to initialize it.
-          */
-          CachedAccelerator ( int newId, const Device *arch, int uniqueId ) :
-             Accelerator( newId, arch, uniqueId ), _cache( NULL ) {}
+         CachedAccelerator( int newId, const Device *arch, int uniqueId, const Device *subArch = NULL,
+            memory_space_id_t addressSpace = (memory_space_id_t) -1 );
 
         /*! \brief CachedAccelerator destructor
          */
-         virtual ~CachedAccelerator() { delete _cache; }
+         virtual ~CachedAccelerator();
 
-         unsigned int getMemorySpaceId() const { return _cache->getId(); }
-
-         void configureCache( size_t cacheSize, System::CachePolicyType cachePolicy );
-
-         void registerCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-
-         void unregisterCacheAccessDependent( Directory& dir, uint64_t tag, size_t size, bool output );
-         
-         void registerPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size, bool input, bool output );
-         
-         void unregisterPrivateAccessDependent( Directory& dir, uint64_t tag, size_t size );
-         
-         void synchronize( CopyDescriptor &cd );
-         
-         void synchronize( std::list<CopyDescriptor> &cds );
-         
-         void waitInputDependent( uint64_t tag );
-         
-         void* getAddressDependent( uint64_t tag );
-         
-         void copyToDependent( void *dst, uint64_t tag, size_t size );
+         void waitInputsDependent( WorkDescriptor &wd );
    };
 
 };

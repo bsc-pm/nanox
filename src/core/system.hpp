@@ -24,14 +24,14 @@
 #include "dependenciesdomain_decl.hpp"
 #include <vector>
 #include <string>
-#include "schedule.hpp"
+#include "schedule_decl.hpp"
 #include "threadteam.hpp"
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
 #include "synchronizedcondition.hpp"
-#include "cache_map.hpp"
+#include "regioncache.hpp"
 #include <cmath>
 
 
@@ -392,6 +392,13 @@ inline DependenciesManager * System::getDependenciesManager ( ) const
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
+inline Network * System::getNetwork( void ) { return &_net; }
+inline bool System::usingCluster( void ) const { return _usingCluster; }
+inline bool System::useNode2Node( void ) const { return _usingNode2Node; }
+inline bool System::usePacking( void ) const { return _usingPacking; }
+inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }
+inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
+
 inline void System::setPMInterface(PMInterface *pm)
 {
    ensure0(!_pmInterface,"PM interface already in place!");
@@ -399,12 +406,6 @@ inline void System::setPMInterface(PMInterface *pm)
 }
 
 inline PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
-
-inline bool System::isCacheEnabled() { return _useCaches; }
-
-inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
-
-inline CacheMap& System::getCacheMap() { return _cacheMap; }
 
 inline size_t System::registerArchitecture( ArchPlugin * plugin )
 {
@@ -467,6 +468,23 @@ inline Plugin * System::loadAndGetPlugin ( const char *name )
 inline Plugin * System::loadAndGetPlugin ( const std::string & name )
 {
    return _pluginManager.loadAndGetPlugin(name, false);
+}
+
+inline int System::getWgId() { return _atomicSeedWg++; }
+inline unsigned int System::getMemorySpaceId() { return _atomicSeedMemorySpace++; }
+inline unsigned int System::getRootMemorySpaceId() { return 0; }
+inline unsigned int System::getNumMemorySpaces() { return _atomicSeedMemorySpace.value(); }
+
+inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id ) {
+   bool found = false;
+   PE *target = NULL;
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end() && !found; it++ ) {
+      if ( (*it)->getMemorySpaceId() == id ) {
+         target = *it;
+         found = true;
+      }
+   }
+   return *target;
 }
 
 inline void System::setValidPlugin ( const std::string &module,  const std::string &plugin )
