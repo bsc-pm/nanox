@@ -94,25 +94,33 @@ public:
    {
 //      /* As we now how many devices we have and how many helper threads we
 //       * need, reserve a PE for them */
-//      for ( unsigned i = 0; i < OpenCLConfig::getOpenCLDevicesCount(); ++i )
-//      {
-//         // As we don't have NUMA info, don't request an specific node
-//         bool numa = false;
-//         // TODO: if HWLOC is available, use it.
-//         int node = sys.getNumSockets() - 1;
-//         bool reserved;
-//         unsigned pe = sys.reservePE( numa, node, reserved );
-//         
-//         // Now add this node to the binding list
-//         addBinding( pe );
-//      }
+      for ( unsigned i = 0; i < OpenCLConfig::getOpenCLDevicesCount(); ++i )
+      {
+         // As we don't have NUMA info, don't request an specific node
+         bool numa = false;
+         // TODO: if HWLOC is available, use it.
+         int node = sys.getNumSockets() - 1;
+         bool reserved;
+         unsigned pe = sys.reservePE( numa, node, reserved );
+         
+         // Now add this node to the binding list
+         addBinding( pe );
+      }
    }
 
    virtual PE* createPE( unsigned id, unsigned uid )
    {
-      //PE * pe = NEW OpenCLProcessor( getBinding( id ) , id, uid );
       //pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
-      return NULL;
+      memory_space_id_t mid = sys.getNewSeparateMemoryAddressSpaceId();
+      SeparateMemoryAddressSpace *oclmemory = NEW SeparateMemoryAddressSpace( mid, ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide());
+      oclmemory->setNodeNumber( 0 );
+      //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
+      //oclmemory->setSpecificData( oclmemspace );
+      sys.addSeparateMemory(mid,oclmemory);
+      nanos::ext::OpenCLProcessor *openclPE = NEW nanos::ext::OpenCLProcessor( getBinding(id), uid, mid, *oclmemory );
+      
+      openclPE->setNUMANode( sys.getNodeOfPE( openclPE->getId() ) ); 
+      return openclPE;
    }
 };
 

@@ -159,12 +159,10 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
     else {
         if (_devTy.find("CPU") != std::string::npos)
             devTy |= CL_DEVICE_TYPE_CPU;
-        else if (_devTy.find("CPU") != std::string::npos)
+        if (_devTy.find("GPU") != std::string::npos)
             devTy |= CL_DEVICE_TYPE_GPU;
-        else if (_devTy.find("ACCELERATOR") != std::string::npos)
+        if (_devTy.find("ACCELERATOR") != std::string::npos)
             devTy |= CL_DEVICE_TYPE_ACCELERATOR;
-        else
-            fatal0("Unable to parse device type");
     }
 
     // Read all devices.

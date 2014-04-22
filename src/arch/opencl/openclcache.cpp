@@ -93,9 +93,9 @@ void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
 }
 
 void OpenCLCache::free(void * addr) {
+    _devAllocator.free(addr);
     if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
     _openclAdapter.freeAddr(addr);
-    _devAllocator.free(addr);
 }
 
 bool OpenCLCache::copyIn(uint64_t devAddr,
@@ -128,24 +128,20 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
         size_t size,
         DeviceOps *ops) {
     //If shared memory, no need to copy
-    if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) hostAddr, size)){        
-        _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);
-    } else {
-        cl_int errCode;
+    cl_int errCode;
 
-        cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);
-        errCode = _openclAdapter.readBuffer(buf,
-                    ((void*)hostAddr),
-                    0,
-                    size);
-       // ops->completeOp();
+    cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);
+    errCode = _openclAdapter.readBuffer(buf,
+                ((void*)hostAddr),
+                0,
+                size);
+   // ops->completeOp();
 
-        if (errCode != CL_SUCCESS && devAddr!=0) {        
-            fatal("Buffer reading failed.");
-        }    
+    if (errCode != CL_SUCCESS && devAddr!=0) {        
+        fatal("Buffer reading failed.");
+    }    
 
-        _bytesOut += ( unsigned int ) size;
-    }
+    _bytesOut += ( unsigned int ) size;
     return true;
 }
 

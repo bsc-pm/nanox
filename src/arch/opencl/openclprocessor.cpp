@@ -230,7 +230,7 @@ cl_int OpenCLAdapter::readBuffer(cl_mem buf,
         size_t offset,
         size_t size) {
     cl_int ret;
-    if (_useHostPtrs) {
+    if (_useHostPtrs || OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) ((uint64_t)dst+offset), size)) {
         ret = mapBuffer(buf, dst, offset, size);
     } else {
         cl_int exitStatus;
@@ -305,7 +305,7 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                 size_t size )
 {
    cl_int ret;
-   if (_useHostPtrs) {
+   if (_useHostPtrs || OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) ((uint64_t)src+offset), size)) {
        ret=unmapBuffer(buf,src,offset,size);
    } else {
        cl_event ev;
@@ -342,7 +342,7 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
 
     errCode = clEnqueueUnmapMemObject(_queue,
             buf,
-            (void*) offset,
+            src,
             0,
             NULL,
             &ev
@@ -920,11 +920,11 @@ void  OpenCLAdapter::waitForEvents(){
 
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
-OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem ) :
+OpenCLProcessor::OpenCLProcessor( int id, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem ) :
    CachedAccelerator( id, &OpenCLDev, uid , NULL, memId ),
    _openclAdapter(),
    _cache( _openclAdapter ),
-   _devId ( devId ) { }
+   _devId ( id ) { }
 
 
 //TODO: Configure cache awareness
