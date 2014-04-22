@@ -546,8 +546,51 @@ void System::start ()
       pe = _pes[ ths % numPes ];
       _workers.push_back( &pe->startWorker() );
    }
+   
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
+      {
+         PE * processor = (*it)->createPE( archPE, p );
+         fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
+         _pes.push_back( processor );
+         _workers.push_back( &processor->startWorker() );
+         CPU_SET( processor->getId(), &_cpuActiveSet );
+         ++p;
+      }
+   }
+
+   // Set up internal data for each worker
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+
+      WD & threadWD = (*it)->getThreadWD();
+      if ( _pmInterface->getInternalDataSize() > 0 ) {
+         char *data = NEW char[_pmInterface->getInternalDataSize()];
+         _pmInterface->initInternalData( data );
+         threadWD.setInternalData( data );
+      }
+      _pmInterface->setupWD( threadWD );
+   }
+      
 //<<<<<<< HEAD
 
+   
+// jbueno    // For each plugin (NOT OCL) create PEs and workers
+// jbueno    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+// jbueno         it != _archs.end(); ++it )
+// jbueno    {
+// jbueno       for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
+// jbueno       {
+// jbueno          PE * processor = (*it)->createPE( archPE );
+// jbueno          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
+// jbueno          _pes.push_back( processor );
+// jbueno          _workers.push_back( &processor->startWorker() );
+// jbueno          ++p;
+// jbueno       }
+// jbueno    }
+//=======
+   
 #ifdef GPU_DEV
    int gpuC;
    //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
@@ -570,70 +613,26 @@ void System::start ()
    }
 #endif
    
-#ifdef OpenCL_DEV
-   unsigned openclC;
-   //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
-   for ( openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {
-      _opencls = (_opencls == NULL) ? NEW std::vector<nanos::ext::OpenCLProcessor *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLProcessor *) NULL) : _opencls; 
-      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-      SeparateMemoryAddressSpace *oclmemory = NEW SeparateMemoryAddressSpace( id, ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide());
-      oclmemory->setNodeNumber( 0 );
-      //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
-      //oclmemory->setSpecificData( oclmemspace );
-      _separateAddressSpaces[ id ] = oclmemory;
-      int peid = p++;
-      nanos::ext::OpenCLProcessor *openclPE = NEW nanos::ext::OpenCLProcessor( peid, openclC, peid, id, *oclmemory );
-      (*_opencls)[openclC] = openclPE;
-      _pes.push_back( openclPE );
-      BaseThread *oclThd = &openclPE->startWorker();
-      _workers.push_back( oclThd );
-      //_masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
-   }
-#endif
-   
-// jbueno    // For each plugin create PEs and workers
-// jbueno    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-// jbueno         it != _archs.end(); ++it )
-// jbueno    {
-// jbueno       for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
-// jbueno       {
-// jbueno          PE * processor = (*it)->createPE( archPE );
-// jbueno          fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
-// jbueno          _pes.push_back( processor );
-// jbueno          _workers.push_back( &processor->startWorker() );
-// jbueno          ++p;
-// jbueno       }
-// jbueno    }
-//=======
-//   
-//   // For each plugin create PEs and workers
-//   //! \bug  FIXME (#855)
-//   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-//        it != _archs.end(); ++it )
-//   {
-//      for ( unsigned archPE = 0; archPE < (*it)->getNumPEs(); ++archPE )
-//      {
-//         PE * processor = (*it)->createPE( archPE, p );
-//         fatal_cond0( processor == NULL, "ArchPlugin::createPE returned NULL" );
-//         _pes.push_back( processor );
-//         _workers.push_back( &processor->startWorker() );
-//         CPU_SET( processor->getId(), &_cpu_active_set );
-//         ++p;
-//      }
+//#ifdef OpenCL_DEV
+//   unsigned openclC;
+//   //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
+//   for ( openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {
+//      _opencls = (_opencls == NULL) ? NEW std::vector<nanos::ext::OpenCLProcessor *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLProcessor *) NULL) : _opencls; 
+//      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
+//      SeparateMemoryAddressSpace *oclmemory = NEW SeparateMemoryAddressSpace( id, ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide());
+//      oclmemory->setNodeNumber( 0 );
+//      //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
+//      //oclmemory->setSpecificData( oclmemspace );
+//      _separateAddressSpaces[ id ] = oclmemory;
+//      int peid = p++;
+//      nanos::ext::OpenCLProcessor *openclPE = NEW nanos::ext::OpenCLProcessor( peid, openclC, peid, id, *oclmemory );
+//      (*_opencls)[openclC] = openclPE;
+//      _pes.push_back( openclPE );
+//      BaseThread *oclThd = &openclPE->startWorker();
+//      _workers.push_back( oclThd );
+//      //_masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
 //   }
-//
-//   // Set up internal data for each worker
-//   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
-//
-//      WD & threadWD = (*it)->getThreadWD();
-//      if ( _pmInterface->getInternalDataSize() > 0 ) {
-//         char *data = NEW char[_pmInterface->getInternalDataSize()];
-//         _pmInterface->initInternalData( data );
-//         threadWD.setInternalData( data );
-//      }
-//      _pmInterface->setupWD( threadWD );
-//   }
-//>>>>>>> master
+//#endif
       
 #ifdef SPU_DEV
    PE *spu = NEW nanos::ext::SPUProcessor(100, (nanos::ext::SMPProcessor &) *_pes[0]);

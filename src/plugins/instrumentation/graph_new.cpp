@@ -336,6 +336,44 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         return result;
     }
     
+    inline bool has_virtual_sync_parent(Node* n)
+    {
+        std::vector<Edge*> entries = n->get_entries();
+        for(std::vector<Edge*>::iterator it = entries.begin(); it != entries.end(); ++it)
+            if((*it)->get_source()->is_concurrent() || (*it)->get_source()->is_commutative())
+                return true;
+            return false;
+    }
+    
+    inline Node* get_virtual_sync_parent(Node* n)
+    {
+        std::vector<Edge*> entries = n->get_entries();
+        for(std::vector<Edge*>::iterator it = entries.begin(); it != entries.end(); ++it)
+            if((*it)->get_source()->is_concurrent() || (*it)->get_source()->is_commutative())
+                return (*it)->get_source();
+            fatal("No concurrent|commutative parent found for a node that is meant to have a virtual synchronization node as parent.\n");
+        return NULL;
+    }
+    
+    inline bool has_virtual_sync_child(Node* n)
+    {
+        std::vector<Edge*> exits = n->get_exits();
+        for(std::vector<Edge*>::iterator it = exits.begin(); it != exits.end(); ++it)
+            if((*it)->get_target()->is_concurrent() || (*it)->get_target()->is_commutative())
+                return true;
+            return false;
+    }
+    
+    inline Node* get_virtual_sync_child(Node* n)
+    {
+        std::vector<Edge*> exits = n->get_exits();
+        for(std::vector<Edge*>::iterator it = exits.begin(); it != exits.end(); ++it)
+            if((*it)->get_target()->is_concurrent() || (*it)->get_target()->is_commutative())
+                return (*it)->get_target();
+            fatal("No concurrent|commutative child found for a node that is meant to have a virtual synchronization node as child.\n");
+        return NULL;
+    }
+    
     inline std::string print_full_graph(std::string partial_file_name) {
         // Generate the name of the dot file from the name of the binary
         std::string result = partial_file_name + "_full";
@@ -371,8 +409,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 
                 std::vector<Edge*> entries = (*it)->get_entries();
                 std::vector<Edge*> exits = (*it)->get_exits();
-                if((entries.size() == 1) && (entries[0]->is_concurrent_dep() || entries[0]->is_commutative_dep()) && 
-                   (exits.size() == 1) && (exits[0]->is_concurrent_dep() || exits[0]->is_commutative_dep()))
+                if(has_virtual_sync_parent(*it) && has_virtual_sync_child(*it))
                 {
                     /* This happens when we treat either T1 or T2, whichever is the first in _graph_nodes:
                      *       C
@@ -381,20 +418,22 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                      *     \   /        -> And the edges may be collapsed in one only entry edge and one only exit edge
                      *       C
                      */
-                    std::vector<Edge*> edges_to_clustered_tasks = entries[0]->get_source()->get_exits();
+                    Node* virtual_sync_parent = get_virtual_sync_parent(*it);
+                    std::vector<Edge*> edges_to_clustered_tasks = virtual_sync_parent->get_exits();
                     dot_file << print_clustered_subgraph((*it)->get_wd_id(), /*cluster_is_source*/ false, 
-                                                          /*cluster_is_concurrent*/ entries[0]->is_concurrent_dep(),
+                                                         /*cluster_is_concurrent*/ virtual_sync_parent->is_concurrent(),
                                                           edges_to_clustered_tasks, node_to_cluster, exits);
-                } else if((exits.size() == 1) && (exits[0]->is_concurrent_dep() || exits[0]->is_commutative_dep())) {
+                } else if(has_virtual_sync_child(*it)) {
                     /* This happens when:
                      *    ...               -> Tasks may have some entry, but it is not a concurrent|commutative node
                      * T1     T2            -> T1 and T2 do not have any previous dependency
                      *   \   /                 so the first case of the IfElseStatement never occurs
                      *     C
                      */
-                    std::vector<Edge*> edges_from_clustered_tasks = exits[0]->get_target()->get_entries();
+                    Node* virtual_sync_child = get_virtual_sync_child(*it);
+                    std::vector<Edge*> edges_from_clustered_tasks = virtual_sync_child->get_entries();
                     dot_file << print_clustered_subgraph((*it)->get_wd_id(), /*cluster_is_source*/ true, 
-                                                          /*cluster_is_concurrent*/ exits[0]->is_concurrent_dep(),
+                                                         /*cluster_is_concurrent*/ virtual_sync_child->is_concurrent(),
                                                           edges_from_clustered_tasks, node_to_cluster, exits);
                 } else {
                     // Print the node and its nested nodes
@@ -456,35 +495,26 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                                      *   \   /
                                      *     C
                                      */
-                                    std::stringstream ssc;
-                                    if(node_to_cluster.find((*edge)->get_target()->get_wd_id()) != node_to_cluster.end()) {
-                                        // Get the identifier of the cluster that has already been printed
-                                        ssc << node_to_cluster[(*edge)->get_target()->get_wd_id()];
-                                    } else {
-                                        // Otherwise, we assign a cluster id for the new cluster that will be created, so we can link it now
+                                    if(node_to_cluster.find((*edge)->get_target()->get_wd_id()) == node_to_cluster.end()) {
+                                        // Assign a cluster id for the new cluster that will be created
                                         int current_cluster_id;
                                         lock.acquire();
                                         current_cluster_id = cluster_id++;
                                         lock.release();
                                         for(std::vector<Edge*>::iterator e = exits.begin(); e != exits.end(); ++e) {
-                                            if(((*e)->get_target()->get_exits().size() == 1) && 
-                                                ((*e)->get_target()->get_exits()[0]->get_target()->is_concurrent() || 
-                                                  (*e)->get_target()->get_exits()[0]->get_target()->is_commutative())) 
+                                            if(has_virtual_sync_child((*e)->get_target())) 
                                             {
                                                 node_to_cluster[(*e)->get_target()->get_wd_id()] = current_cluster_id;
                                             }
                                         }
-                                        ssc << current_cluster_id;
                                     }
                                     // Print the node in the dot file
                                     std::stringstream sss; sss << (*it)->get_wd_id();
                                     std::stringstream sst; sst << (*edge)->get_target()->get_wd_id();
-                                    dot_file << "  " << sss.str() + " -> " + sst.str() + "[lhead=\"cluster_" + ssc.str() + "\", style=\"solid\", color=\"black\"];\n";
+                                    dot_file << "  " << sss.str() + " -> " + sst.str() + "[style=\"solid\", color=\"black\"];\n";
                                     // The rest of nodes in the same cluster must not be connected
                                     for(std::vector<Edge*>::iterator e = exits.begin(); e != exits.end(); ++e) {
-                                        if(((*e)->get_target()->get_exits().size() == 1) && 
-                                            ((*e)->get_target()->get_exits()[0]->get_target()->is_commutative() || 
-                                              (*e)->get_target()->get_exits()[0]->get_target()->is_concurrent()))
+                                        if(has_virtual_sync_child((*e)->get_target()))
                                         {
                                             nodes_in_same_cluster_to_avoid.insert((*e)->get_target());
                                         }

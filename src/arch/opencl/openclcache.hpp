@@ -104,9 +104,9 @@ private:
 
    OpenCLAdapter &_openclAdapter;
   
-   Atomic<unsigned int>    _bytesIn;
-   Atomic<unsigned int>    _bytesOut;
-   Atomic<unsigned int>    _bytesDevice;
+   Atomic<size_t>    _bytesIn;
+   Atomic<size_t>    _bytesOut;
+   Atomic<size_t>    _bytesDevice;
 };
 
 } // End namespace ext.

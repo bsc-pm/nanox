@@ -21,6 +21,7 @@
 #include "wddeque.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
+#include "os.hpp"
 #include "config.hpp"
 #include "hashmap.hpp"
 
@@ -957,10 +958,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATIDLE_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
@@ -1039,10 +1037,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATPREFETCH_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
@@ -1148,10 +1143,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATBEFEX_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
