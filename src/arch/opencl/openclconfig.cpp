@@ -29,6 +29,7 @@ bool OpenCLConfig::_forceDisableOpenCL = false;
 bool OpenCLConfig::_allocWide = true;
 bool OpenCLConfig::_disableOCLdev2dev = false;
 size_t OpenCLConfig::_devCacheSize = 0;
+bool OpenCLConfig::_forceShMem = false;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
 //System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
@@ -107,121 +108,125 @@ void OpenCLConfig::prepare( Config &cfg )
                                 "Disable OpenCL dev to dev." );
    cfg.registerEnvOption( "opencl-disable-devtodev", "NX_OPENCL_DISABLE_DEVTODEV" );
    cfg.registerArgOption( "opencl-disable-devtodev", "opencl-disable-devtodev" );
+   
+   cfg.registerConfigOption( "force-opencl-mapped",
+                             NEW Config::FlagOption( _forceShMem ),
+                             "Force the use the use of mapped pointers for every device (Default: GPU -> NO, CPU->YES). Can save copy time on shared memory devices" );
+   cfg.registerEnvOption( "force-opencl-mapped", "NX_FORCE_OPENCL_MAPPED");
+   cfg.registerArgOption( "force-opencl-mapped", "force-opencl-mapped" );
 }
 
-void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices)
-{
-    _devicesPtr=&_devices;
+void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices) {
+    _devicesPtr = &_devices;
     //Auto-enable CUDA if it was not done before
-   if (!_enableOpenCL) {
-       //ompss_uses_opencl pointer will be null (is extern) if the compiler did not fill it
-      _enableOpenCL=((&ompss_uses_opencl)!=0);
-   }
-   if( _forceDisableOpenCL || !_enableOpenCL ) 
-     return;
+    if (!_enableOpenCL) {
+        //ompss_uses_opencl pointer will be null (is extern) if the compiler did not fill it
+        _enableOpenCL = ((&ompss_uses_opencl) != 0);
+    }
+    if (_forceDisableOpenCL || !_enableOpenCL)
+        return;
 
-   cl_int errCode;
+    cl_int errCode;
 
-   // Get the number of available platforms.
-   cl_uint numPlats;
-   if( clGetPlatformIDs( 0, NULL, &numPlats ) != CL_SUCCESS )
-      fatal0( "Cannot detect the number of available OpenCL platforms" );
+    // Get the number of available platforms.
+    cl_uint numPlats;
+    if (clGetPlatformIDs(0, NULL, &numPlats) != CL_SUCCESS)
+        fatal0("Cannot detect the number of available OpenCL platforms");
 
-   if ( numPlats == 0 )
-      fatal0( "No OpenCL platform available" );
+    if (numPlats == 0)
+        fatal0("No OpenCL platform available");
 
-   // Read all platforms.
-   cl_platform_id *plats = new cl_platform_id[numPlats];
-   if( clGetPlatformIDs( numPlats, plats, NULL ) != CL_SUCCESS )
-      fatal0( "Cannot load OpenCL platforms" );
+    // Read all platforms.
+    cl_platform_id *plats = new cl_platform_id[numPlats];
+    if (clGetPlatformIDs(numPlats, plats, NULL) != CL_SUCCESS)
+        fatal0("Cannot load OpenCL platforms");
 
-   // Is platform available?
-   if( !numPlats )
-      fatal0( "No OpenCL platform available" );
+    // Is platform available?
+    if (!numPlats)
+        fatal0("No OpenCL platform available");
 
-   std::vector<cl_platform_id> _plats;
-   // Save platforms.
-   _plats.assign(plats, plats + numPlats);
-   delete [] plats;
+    std::vector<cl_platform_id> _plats;
+    // Save platforms.
+    _plats.assign(plats, plats + numPlats);
+    delete [] plats;
 
-   cl_device_type devTy;
+    cl_device_type devTy=0;
 
-   // Parse the requested device type.
-   if( _devTy == "" || _devTy == "ALL" )
-      devTy = CL_DEVICE_TYPE_ALL;
-   else if( _devTy == "CPU" )
-      devTy = CL_DEVICE_TYPE_CPU;
-   else if( _devTy == "GPU" )
-      devTy = CL_DEVICE_TYPE_GPU;
-   else if( _devTy == "ACCELERATOR" )
-      devTy = CL_DEVICE_TYPE_ACCELERATOR;
-   else
-      fatal0( "Unable to parse device type" );
+    std::transform(_devTy.begin(), _devTy.end(), _devTy.begin(), ::toupper);
+    // Parse the requested device type.
+    if (_devTy == "" || _devTy.find("ALL") != std::string::npos)
+        devTy = CL_DEVICE_TYPE_ALL;
+    else {
+        if (_devTy.find("CPU") != std::string::npos)
+            devTy |= CL_DEVICE_TYPE_CPU;
+        else if (_devTy.find("CPU") != std::string::npos)
+            devTy |= CL_DEVICE_TYPE_GPU;
+        else if (_devTy.find("ACCELERATOR") != std::string::npos)
+            devTy |= CL_DEVICE_TYPE_ACCELERATOR;
+        else
+            fatal0("Unable to parse device type");
+    }
 
-   // Read all devices.
-   for( std::vector<cl_platform_id>::iterator i = _plats.begin(),
-                                              e = _plats.end();
-                                              i != e;
-                                              ++i ) {
-      #ifndef NANOS_DISABLE_ALLOCATOR
-         char buffer[200];
-         clGetPlatformInfo(*i, CL_PLATFORM_VENDOR, 200, buffer, NULL);
-         if (std::string(buffer)=="Intel(R) Corporation" || std::string(buffer)=="ARM"){
+    // Read all devices.
+    for (std::vector<cl_platform_id>::iterator i = _plats.begin(),
+            e = _plats.end();
+            i != e;
+            ++i) {
+#ifndef NANOS_DISABLE_ALLOCATOR
+        char buffer[200];
+        clGetPlatformInfo(*i, CL_PLATFORM_VENDOR, 200, buffer, NULL);
+        if (std::string(buffer) == "Intel(R) Corporation" || std::string(buffer) == "ARM") {
             debug0("Intel or ARM OpenCL don't work correctly when using nanox allocator, "
                     "please configure and reinstall nanox with --disable-allocator in case you want to use it, skipping Intel OpenCL devices");
             continue;
-         }
-      #endif
-      // Get the number of available devices.
-      cl_uint numDevices;
-      errCode = clGetDeviceIDs( *i, devTy, 0, NULL, &numDevices );
+        }
+#endif
+        // Get the number of available devices.
+        cl_uint numDevices;
+        errCode = clGetDeviceIDs(*i, devTy, 0, NULL, &numDevices);
 
-      if( errCode != CL_SUCCESS )
-         continue;
+        if (errCode != CL_SUCCESS)
+            continue;
 
-      // Read all matching devices.
-      cl_device_id *devs = new cl_device_id[numDevices];
-      errCode = clGetDeviceIDs( *i, devTy, numDevices, devs, NULL );
-      if( errCode != CL_SUCCESS )
-         continue;
+        // Read all matching devices.
+        cl_device_id *devs = new cl_device_id[numDevices];
+        errCode = clGetDeviceIDs(*i, devTy, numDevices, devs, NULL);
+        if (errCode != CL_SUCCESS)
+            continue;
 
-      int devicesToUse=0;   
-      cl_device_id *avaiableDevs = new cl_device_id[numDevices];
-      // Get all avaiable devices
-      for( cl_device_id *j = devs, *f = devs + numDevices; j != f; ++j )
-      {
-         cl_bool available;
+        int devicesToUse = 0;
+        cl_device_id *avaiableDevs = new cl_device_id[numDevices];
+        // Get all avaiable devices
+        for (cl_device_id *j = devs, *f = devs + numDevices; j != f; ++j) {
+            cl_bool available;
 
-         errCode = clGetDeviceInfo( *j,
-                                      CL_DEVICE_AVAILABLE,
-                                      sizeof( cl_bool ),
-                                      &available,
-                                      NULL );
-         if( errCode != CL_SUCCESS )
-           continue;
+            errCode = clGetDeviceInfo(*j,
+                    CL_DEVICE_AVAILABLE,
+                    sizeof ( cl_bool),
+                    &available,
+                    NULL);
+            if (errCode != CL_SUCCESS)
+                continue;
 
-         if( available && _devices.size()+devicesToUse<_devNum){
-             avaiableDevs[devicesToUse++]=*j;
-         }
-      }
-      
-      cl_context_properties props[] =
-      {  CL_CONTEXT_PLATFORM,
-         reinterpret_cast<cl_context_properties>(*i),
-         0
-      };
+            if (available && _devices.size() + devicesToUse < _devNum) {
+                avaiableDevs[devicesToUse++] = *j;
+            }
+        }
 
-      //Cant instrument here
-      //NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_CONTEXT_EVENT );
-      cl_context ctx = clCreateContext( props, devicesToUse, avaiableDevs, NULL, NULL, &errCode );
-      //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-      // Put all available devices inside the vector.
-      for( cl_device_id *j = avaiableDevs, *f = avaiableDevs + devicesToUse; j != f; ++j )
-      {
-          _devices.insert(std::make_pair( *j , ctx) );
-      }
-	  _currNumDevices=_devices.size();
+        cl_context_properties props[] ={CL_CONTEXT_PLATFORM,
+            reinterpret_cast<cl_context_properties> (*i),
+            0};
 
-      delete [] devs;
-   }
+        //Cant instrument here
+        //NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_CONTEXT_EVENT );
+        cl_context ctx = clCreateContext(props, devicesToUse, avaiableDevs, NULL, NULL, &errCode);
+        //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+        // Put all available devices inside the vector.
+        for (cl_device_id *j = avaiableDevs, *f = avaiableDevs + devicesToUse; j != f; ++j) {
+            _devices.insert(std::make_pair(*j, ctx));
+        }
+        _currNumDevices = _devices.size();
+
+        delete [] devs;
+    }
 }

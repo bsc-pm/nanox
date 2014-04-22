@@ -50,11 +50,7 @@ public:
 public:
    void initialize(cl_device_id dev);
 
-#if 0 /* master version */
    cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
-#else
-   cl_int allocBuffer( size_t size, cl_mem &buf );
-#endif
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
@@ -164,8 +160,9 @@ private:
    cl_context _ctx;
    cl_command_queue _queue;
    BufferCache _bufCache;
+   std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
-   const bool _preallocateWholeMemory;
+   bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
    std::vector<cl_event> _pendingEvents;
