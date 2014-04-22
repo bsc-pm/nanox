@@ -272,8 +272,21 @@ inline int WDDeque::getPotentiallyParallelWDs( void )
    LockBlock lock( _lock );
    for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
       WD &wd = *(WD *)*it;
-      if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() )
+
+      if ( wd.getSlicer() ) {
+         nanos_loop_info_t *loop_info;
+         loop_info = ( nanos_loop_info_t * ) wd.getData();
+         int _chunk = loop_info->chunk;
+         int _lower = loop_info->lower;
+         int _upper = loop_info->upper;
+         int _step  = loop_info->step;
+         int _niters = (((_upper - _lower) / _step ) + 1 );
+
+         num_wds += (_niters + _chunk - 1) / _chunk;
+      }
+      else if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() ) {
          num_wds++;
+      }
    }
 
    return num_wds;
@@ -529,8 +542,21 @@ inline int WDPriorityQueue<T>::getPotentiallyParallelWDs( void )
    LockBlock lock( _lock );
    for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
       WD &wd = *(WD *)*it;
-      if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() )
+
+      if ( wd.getSlicer() ) {
+         nanos_loop_info_t *loop_info;
+         loop_info = ( nanos_loop_info_t * ) wd.getData();
+         int _chunk = loop_info->chunk;
+         int _lower = loop_info->lower;
+         int _upper = loop_info->upper;
+         int _step  = loop_info->step;
+         int _niters = (((_upper - _lower) / _step ) + 1 );
+
+         num_wds += (_niters + _chunk - 1) / _chunk;
+      }
+      else if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() ) {
          num_wds++;
+      }
    }
 
    return num_wds;
