@@ -50,17 +50,13 @@ public:
 public:
    void initialize(cl_device_id dev);
 
-#if 0 /* master version */
    cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
-#else
-   cl_int allocBuffer( size_t size, cl_mem &buf );
-#endif
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
 
-   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
-   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
+   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter);
+   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter);
    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
    cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
@@ -164,8 +160,9 @@ private:
    cl_context _ctx;
    cl_command_queue _queue;
    BufferCache _bufCache;
+   std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
-   const bool _preallocateWholeMemory;
+   bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
    std::vector<cl_event> _pendingEvents;

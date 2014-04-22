@@ -26,6 +26,7 @@ public:
   static bool getAllocWide();
   static bool getDisableDev2Dev() { return _disableOCLdev2dev; }
   static size_t getDevCacheSize() { return _devCacheSize; }
+  static bool getForceShMem() { return _forceShMem; } 
   
 private:
   static void prepare( Config &cfg );
@@ -45,6 +46,7 @@ private:
 
   // The portion of the cache to be allocated on the device.
   static size_t _devCacheSize;
+  static bool _forceShMem;
   
   //Maximum number of devices to be used by nanox
   static unsigned int _devNum;

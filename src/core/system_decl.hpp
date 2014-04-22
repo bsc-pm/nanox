@@ -679,6 +679,12 @@ namespace nanos
             //std::cerr << "Requested object " << _separateAddressSpaces[ id ] <<std::endl;
             return *(_separateAddressSpaces[ id ]); 
          }
+         
+         void addSeparateMemory( memory_space_id_t id, SeparateMemoryAddressSpace* memory) { 
+            //std::cerr << "Requested object " << _separateAddressSpaces[ id ] <<std::endl;
+            _separateAddressSpaces[ id ]=memory; 
+         }
+         
          unsigned int getNewSeparateMemoryAddressSpaceId() { return _separateMemorySpacesCount++; }
          unsigned int getSeparateMemoryAddressSpacesCount() { return _separateMemorySpacesCount - 1; }
 
