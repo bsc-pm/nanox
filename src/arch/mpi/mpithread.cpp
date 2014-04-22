@@ -209,6 +209,22 @@ void MPIThread::checkTaskEnd() {
     }
 }
 
+void MPIThread::block()
+{
+    if (*_groupTotRunningWds==0) {
+        pthread_mutex_lock( &_completionMutex );
+        pthread_cond_wait( &_completionWait, &_completionMutex );
+        pthread_mutex_unlock( &_completionMutex );
+    }
+}
+
+void MPIThread::unblock()
+{
+   pthread_mutex_lock( &_completionMutex );
+   pthread_cond_signal( &_completionWait );
+   pthread_mutex_unlock( &_completionMutex );
+}
+
 void MPIThread::bind( void )
 {
    int cpu_id = getCpuId();

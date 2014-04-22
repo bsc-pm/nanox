@@ -36,7 +36,9 @@ namespace ext
 
          friend class MPIProcessor;
 
-      private:
+      private:        
+         pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
+         pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
          pthread_t   _pth;
          std::vector<MPIThread*> _threadList;
          Lock _selfLock;
@@ -83,6 +85,10 @@ namespace ext
          void initializeDependent( void );
          
          void idle();
+         
+         virtual void block();
+         
+         virtual void unblock();
 
          void addRunningPEs( MPIProcessor** pe, int nPes);
          
