@@ -28,6 +28,10 @@
 
 namespace nanos
 {
+   namespace ext {
+   class SMPMultiThread;
+   };
+
    class ProcessingElement
    {
       private:
@@ -36,28 +40,33 @@ namespace nanos
          //! Unique ID
          int                                  _uid;
          const Device *                       _device;
+         const Device *                       _subDevice;
+         const Device *                       _deviceNo;
+         const Device *                       _subDeviceNo;
          ThreadList                           _threads;
+         unsigned int                         _memorySpaceId;
          int                                  _numaNode;
 
       private:
-         /*! \brief ProcessinElement default constructor
+         /*! \brief ProcessingElement default constructor
           */
          ProcessingElement ();
-         /*! \brief ProcessinElement copy constructor (private)
+         /*! \brief ProcessingElement copy constructor (private)
           */
          ProcessingElement ( const ProcessingElement &pe );
-         /*! \brief ProcessinElement copy assignment operator (private)
+         /*! \brief ProcessingElement copy assignment operator (private)
           */
          const ProcessingElement & operator= ( const ProcessingElement &pe );
       protected:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
+         virtual WorkDescriptor & getMultiWorkerWD () const = 0;
       public:
-         /*! \brief ProcessinElement constructor
+         /*! \brief ProcessingElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch, int uniqueId ) : _id ( newId ), _uid( uniqueId ), _device ( arch ), _numaNode( 0 ) {}
+         ProcessingElement ( int newId, const Device *arch, int uniqueId,  const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _uid( uniqueId ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
 
-         /*! \brief ProcessinElement destructor
+         /*! \brief ProcessingElement destructor
           */
          virtual ~ProcessingElement();
 
@@ -73,30 +82,50 @@ namespace nanos
          //! \brief Sets the socket this thread is running on.
          void setNUMANode( int node );
 
-         const Device & getDeviceType () const;
+         const Device * getDeviceType () const;
+         const Device * getSubDeviceType () const;
+         virtual const Device * getCacheDeviceType () const;
 
-         BaseThread & startThread ( WorkDescriptor &wd );
-         virtual BaseThread & createThread ( WorkDescriptor &wd ) = 0;
+         BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
+         BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
+         virtual BaseThread & createThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL ) = 0;
+         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs ) = 0;
+
          BaseThread & associateThisThread ( bool untieMain=true );
 
-         BaseThread & startWorker ( );
+         BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
+         BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
+         
+         void disableDevice( int num )
+{
+ if ( num == 0 ) { _deviceNo = _device; _device = NULL; } 
+ if ( num == 1 ) { _subDeviceNo = _subDevice; _subDevice = NULL; } 
+}
+         void enableDevice( int num )
+{
+ if ( num == 0 ) { _device = _deviceNo; _deviceNo = NULL; } 
+ if ( num == 1 ) { _subDevice = _subDeviceNo; _subDeviceNo = NULL; } 
+}
+
+         void stopAll();
          void stopAllThreads();
 
          /* capabilitiy query functions */
          virtual bool supportsUserLevelThreads() const = 0;
          virtual bool hasSeparatedMemorySpace() const { return false; }
-         virtual unsigned int getMemorySpaceId() const { return 0; }
-
-         virtual void waitInputDependent( uint64_t tag ) {}
+         unsigned int getMemorySpaceId() const { return _memorySpaceId; }
+         virtual unsigned int getMyNodeNumber() const { return 0; }
 
          /* Memory space suport */
-         virtual void copyDataIn( WorkDescriptor& wd );
+         void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
+         //virtual bool dataCanBlockUs( WorkDescriptor& wd );
 
          virtual void waitInputs( WorkDescriptor& wd );
+         bool testInputs( WorkDescriptor& wd );
 
-         virtual void* getAddress( WorkDescriptor& wd, uint64_t tag, nanos_sharing_t sharing );
-         virtual void copyTo( WorkDescriptor& wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size );
+         virtual bool isGPU() const = 0;
+         BaseThread *getFirstThread() const { return _threads[0]; }
 
          /*!
           * \brief Returns the first thread of the PE that has team and is not tagged to sleep

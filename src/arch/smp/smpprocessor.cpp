@@ -31,6 +31,12 @@ size_t SMPProcessor::_threadsStackSize = 0;
 System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
+#ifdef SMP_NUMA
+SMPProcessor::SMPProcessor( int id, int uid ) : CachedAccelerator<SMPDevice>( id, &SMP, uid, 0 ) {}
+#else
+SMPProcessor::SMPProcessor( int id, int uid ) : PE( id, &SMP, uid, NULL, sys.getRootMemorySpaceId() ) {}
+#endif
+
 void SMPProcessor::prepareConfig ( Config &config )
 {
    config.registerConfigOption( "user-threads", NEW Config::FlagOption( _useUserThreads, false), "Disable use of user threads to implement workdescriptor" );
@@ -83,6 +89,17 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
    return *wd;
 }
 
+WorkDescriptor & SMPProcessor::getMultiWorkerWD () const
+{
+#ifdef CLUSTER_DEV
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerClusterLoop );
+#else
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )NULL); //this is an error if we are not runnig with cluster
+#endif
+   WD *wd = NEW WD( dd );
+   return *wd;
+}
+
 WorkDescriptor & SMPProcessor::getMasterWD () const
 {
    SMPDD  *dd = NEW SMPDD();
@@ -94,7 +111,7 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
    return *wd;
 }
 
-BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
+BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
    ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPThread( helper,this );
@@ -103,3 +120,31 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper )
    return th;
 }
 
+BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned int numPEs, PE **repPEs )
+{
+   ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
+   SMPThread &th = *NEW SMPMultiThread( helper, this, numPEs, repPEs );
+   th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);
+
+   return th;
+}
+
+//void* SMPProcessor::getAddressDependent( uint64_t tag )
+//{
+//#ifdef CLUSTER_DEV
+//   void * res;
+//   res = (void *) tag;
+//   fprintf(stderr, "WHAT DO NOW?!\n");
+//   return res;
+//#else
+// return _cache.getAddress( tag );
+//#endif
+//}
+//void* SMPProcessor::newGetAddressDependent( CopyData const &cd )
+//{
+// (void) cd;
+// return (void*) 0xdeadebef;
+//}
+//bool SMPProcessor::supportsDirectTransfersWith(ProcessingElement const &pe ) const {
+//   return false;
+//}

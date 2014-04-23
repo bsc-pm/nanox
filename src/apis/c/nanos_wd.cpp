@@ -556,4 +556,15 @@ NANOS_API_DEF(nanos_err_t, nanos_set_final, ( bool value ))
     return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_set_create_local_tasks, ( bool value ))
+{
+    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_create_local_tasks",NANOS_RUNTIME) );
+    try {
+       sys.setCreateLocalTasks( value );
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+
 //! \}

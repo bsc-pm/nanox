@@ -19,6 +19,7 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
+test_exec_fail=yes
 </testinfo>
 */
 

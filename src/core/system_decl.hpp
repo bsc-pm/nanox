@@ -31,15 +31,28 @@
 #include "nanos-int.h"
 #include "dataaccess_fwd.hpp"
 #include "instrumentation_decl.hpp"
-#include "directory_decl.hpp"
+#include "network_decl.hpp"
 #include "pminterface_decl.hpp"
-#include "cache_map_decl.hpp"
 #include "plugin_decl.hpp"
 #include "archplugin_decl.hpp"
 #include "barrier_decl.hpp"
+#include "accelerator_decl.hpp"
+#include "location.hpp"
+#include "addressspace_decl.hpp"
+
+#include "newregiondirectory_decl.hpp"
 
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
+#include "gpuprocessor_fwd.hpp"
+#endif
+
+#ifdef OpenCL_DEV
+#include "openclprocessor_fwd.hpp"
+#endif
+
+#ifdef CLUSTER_DEV
+#include "clusternode_fwd.hpp"
 #endif
 
 namespace nanos
@@ -47,15 +60,18 @@ namespace nanos
 
 // This class initializes/finalizes the library
 // All global variables MUST be declared inside
-
    class System
    {
       public:
+
          // constants
          typedef enum { DEDICATED, SHARED } ExecutionMode;
          typedef enum { POOL, ONE_THREAD } InitialMode;
          typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
+
+         typedef void (*Init) ();
+         typedef std::vector<Accelerator *> AList;
 
       private:
          // types
@@ -122,6 +138,9 @@ namespace nanos
          std::string          _defDepsManager;
 
          std::string          _defArch;
+         std::string          _defDeviceName;
+
+         const Device              *_defDevice;
 
          /*! factories for scheduling, pes and barriers objects */
          peFactory            _hostFactory;
@@ -151,6 +170,13 @@ namespace nanos
 
          Slicers              _slicers; /**< set of global slicers */
 
+         /*! Cluster: system Network object */
+         Network              _net;
+         bool                 _usingCluster;
+         bool                 _usingNode2Node;
+         bool                 _usingPacking;
+         std::string          _conduit;
+
          WorkSharings         _worksharings; /**< set of global worksharings */
 
          Instrumentation     *_instrumentation; /**< Instrumentation object used in current execution */
@@ -165,12 +191,15 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         //! Enable or disable the use of caches
-         bool                 _useCaches;
-         //! General cache policy (if not specifically redefined for a certain architecture)
-         CachePolicyType      _cachePolicy;
-         //! CacheMap register
-         CacheMap             _cacheMap;
+         NewNewRegionDirectory _masterRegionDirectory;
+         
+         WD *slaveParentWD;
+         BaseThread *_masterGpuThd;
+
+         unsigned int _separateMemorySpacesCount;
+         std::vector< SeparateMemoryAddressSpace * > _separateAddressSpaces;
+         HostMemoryAddressSpace                      _hostMemory;
+         //LocationDirectory _locations;
          
          //! CPU id binding list
          Bindings             _bindings;
@@ -239,6 +268,19 @@ namespace nanos
          void loadHwloc();
          void unloadHwloc();
          
+         Atomic<int> _atomicSeedWg;
+         Atomic<int> _atomicSeedMemorySpace;
+         Atomic<unsigned int> _affinityFailureCount;
+#ifdef CLUSTER_DEV
+         std::vector<ext::ClusterNode *> *_nodes;
+#endif
+#ifdef GPU_DEV
+         std::vector<ext::GPUProcessor *> *_gpus;
+#endif
+#ifdef OpenCL_DEV
+         std::vector<ext::OpenCLProcessor *> *_opencls;
+#endif
+         bool                      _createLocalTasks;
          PE * createPE ( std::string pe_type, int pid, int uid );
 
          //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
@@ -513,6 +555,7 @@ namespace nanos
          const std::string & getDefaultInstrumentation() const;
 
          const std::string & getDefaultArch() const;
+         
          void setDefaultArch( const std::string &arch );
 
          void setHostFactory ( peFactory factory );
@@ -590,11 +633,18 @@ namespace nanos
           */
          DependenciesManager * getDependenciesManager ( ) const;
 
+         Network * getNetwork( void );
+         bool usingCluster( void ) const;
+         bool usingNewCache( void ) const;
+         bool useNode2Node( void ) const;
+         bool usePacking( void ) const;
+         const std::string & getNetworkConduit() const;
+
+         void stopFirstThread( void );
+
          void setPMInterface (PMInterface *_pm);
          PMInterface & getPMInterface ( void ) const;
          bool isCacheEnabled();
-         CachePolicyType getCachePolicy();
-         CacheMap& getCacheMap();
          
          /**! \brief Register an architecture plugin.
           *   \param plugin A pointer to the plugin.
@@ -610,12 +660,43 @@ namespace nanos
 #endif
 
          void threadReady ();
+         
+         void setSlaveParentWD( WD * wd ){ slaveParentWD = wd ; };
+         WD* getSlaveParentWD( ){ return slaveParentWD ; };
 
          void registerPlugin ( const char *name, Plugin &plugin );
          bool loadPlugin ( const char *name );
          bool loadPlugin ( const std::string &name );
          Plugin * loadAndGetPlugin ( const char *name );
          Plugin * loadAndGetPlugin ( const std::string &name );
+         int getWgId();
+         unsigned int getMemorySpaceId();
+         unsigned int getRootMemorySpaceId();
+         unsigned int getNumMemorySpaces();
+
+         HostMemoryAddressSpace &getHostMemory() { return _hostMemory; }
+          
+         SeparateMemoryAddressSpace &getSeparateMemory( memory_space_id_t id ) { 
+            //std::cerr << "Requested object " << _separateAddressSpaces[ id ] <<std::endl;
+            return *(_separateAddressSpaces[ id ]); 
+         }
+         
+         void addSeparateMemory( memory_space_id_t id, SeparateMemoryAddressSpace* memory) { 
+            //std::cerr << "Requested object " << _separateAddressSpaces[ id ] <<std::endl;
+            _separateAddressSpaces[ id ]=memory; 
+         }
+         
+         unsigned int getNewSeparateMemoryAddressSpaceId() { return _separateMemorySpacesCount++; }
+         unsigned int getSeparateMemoryAddressSpacesCount() { return _separateMemorySpacesCount - 1; }
+
+      //private:
+         //std::list< std::list<GraphEntry *> * > _graphRepLists;
+         //Lock _graphRepListsLock;
+      public:
+         //std::list<GraphEntry *> *getGraphRepList();
+         
+         NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
+         ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
          
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
          
@@ -639,6 +720,8 @@ namespace nanos
           *  \return {True/False} depending if there are pendant writes
           */
          bool haveDependencePendantWrites ( void *addr ) const;
+         void increaseAffinityFailureCount() { _affinityFailureCount++; }
+         unsigned int getAffinityFailureCount() { return _affinityFailureCount.value(); }
 
          /*! \brief Active current thread (i.e. pthread ) and include it into the main team
           */
@@ -649,6 +732,9 @@ namespace nanos
          //It will act as an slave and call exit(0) when we need slave behaviour
          //in offload or cluster version
          void ompss_nanox_main ();         
+         void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
+         void stickToProducer(void *addr, std::size_t len);
+         void setCreateLocalTasks(bool value);
    };
 
    extern System sys;

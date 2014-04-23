@@ -14,6 +14,8 @@
 #include <alloca.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <unistd.h>
+
 #include "os.hpp"
 #include "errno.h"
 #include <unistd.h>
@@ -44,6 +46,7 @@
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
+   void nanos_extrae_instrumentation_barrier( void );
    unsigned int nanos_extrae_node_id();
    unsigned int nanos_extrae_num_nodes();
    void         nanos_ompitrace_instrumentation_barrier();
@@ -81,23 +84,166 @@ class InstrumentationExtrae: public Instrumentation
       void incrementMaxThreads( void ) {}
 #else
    private:
+      std::string                                    _listOfTraceFileNames;
+      std::string                                    _traceDirectory;        /*<< Extrae directory: EXTRAE_DIR */
+      std::string                                    _traceFinalDirectory;   /*<< Extrae final directory: EXTRAE_FINAL_DIR */
+      std::string                                    _traceParaverDirectory; /*<< Paraver output files directory */
+      std::string                                    _traceFileName_PRV;     /*<< Paraver: file.prv */
+      std::string                                    _traceFileName_PCF;     /*<< Paraver: file.pcf */
+      std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
+      std::string                                    _binFileName;           /*<< Binnary file name */
       int                                            _maxThreads;
    public:
+      static std::string                             _traceBaseName;
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
       // destructor
       ~InstrumentationExtrae ( ) { }
 
+      void secureCopy(const char *orig, std::string dest)
+      {
+         pid_t pid;
+         int status, options = 0;
+
+         std::cerr << "secure copy " << orig << " to " << dest << std::endl;
+
+         pid = vfork();
+         if ( pid == (pid_t) 0 ) {
+            int execret = execl ( "/usr/bin/scp", "scp", orig, dest.c_str(), (char *) NULL); 
+            if ( execret == -1 )
+            {
+               std::cerr << "Error calling /usr/bin/scp " << orig << " " << dest.c_str() << std::endl;
+               exit(-1);
+            }
+         } else {
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+            } else {
+               waitpid( pid, &status, options);
+            }
+         }
+      }
+
+      void copyFilesToMaster()
+      {
+         /* Removig Temporary trace files */
+         char str[255];
+         std::fstream p_file;
+
+         for ( unsigned int j = 0; j < sys.getNetwork()->getNumNodes(); j++ )
+         {
+            if ( j == sys.getNetwork()->getNodeNum() )
+            {
+               p_file.open(_listOfTraceFileNames.c_str());
+               //size_t found = _traceFinalDirectory.find_last_of("/");
+               std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
+
+               if (p_file.is_open())
+               {
+                  unsigned int thread = 0;
+                  while (!p_file.eof() )
+                  {
+                     p_file.getline (str, 255);
+                     if ( strlen(str) > 0 )
+                     {
+                        std::string src_path( str );
+                        std::size_t pos = src_path.size() ;
+                        for (unsigned int i = 0; i < 2; i++ ) {
+                           pos = src_path.find_last_of('/', pos - 1);
+                        }
+                        //int pos0 =  src_path.find_last_of('/');
+                        //int pos1 =  src_path.find_first_of(' ');
+                        //std::cerr << "len is " << pos1-pos0 << " pos0: " << pos0 << " total size is " << src_path.size()<< "src_path is " << src_path<< std::endl;
+                        //std::string name( src_path.substr( pos0, pos1-pos0 ) );
+
+                        for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+                        // jbueno: cluster workaround until we get the new extrae
+                        //if ( sys.getNetwork()->getNodeNum() > 0 ) {
+                        //   str[ strlen(str) - 12 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                        //   str[ strlen(str) - 13 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
+                        //   str[ strlen(str) - 14 ] = '0';
+                        //   str[ strlen(str) - 15 ] = '0';
+                        //   str[ strlen(str) - 16 ] = '0';
+                        //   str[ strlen(str) - 17 ] = '0';
+                        //}
+                        //std::cerr << "NAME: " << name << std::endl;
+                        secureCopy(str, dst + ":" + src_path.substr( 0, pos + 1 ) /* + name */ );
+
+                        //Copy the symbol file
+                        if ( thread == 0 ) {
+                           char sym_file_name[256];
+                           std::size_t dot_pos = src_path.find(".mpit");
+                           std::string myName = src_path.substr( src_path.find_last_of('/') + 1, dot_pos - src_path.find_last_of('/') );
+                           sprintf( sym_file_name, "%s/set-0/%ssym", _traceDirectory.c_str(), myName.c_str() );
+                           secureCopy(sym_file_name, dst + ":" + src_path.substr( 0, pos + 1 ) );
+                        }
+
+                        thread += 1;
+                     }
+                  }
+                  p_file.close();
+               }
+               else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
+
+               // copy pcf file too
+               //{
+               //   size_t found = _traceFinalDirectory.find_last_of("/");
+               //   size_t found_pcf = _traceFileName_PCF.find_last_of("/");
+               //   char number[16];
+               //   sprintf(number, "%08d", sys.getNetwork()->getNodeNum() );
+               //   secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1) + number + "." + _traceFileName_PCF.substr(found_pcf+1));
+               //}
+            }
+            nanos_extrae_instrumentation_barrier();
+         }
+      }
+
       void initialize ( void )
       {
          /* check environment variable: EXTRAE_ON */
          char *mpi_trace_on = getenv("EXTRAE_ON");
+         char *mpi_trace_dir;
+         char *mpi_trace_final_dir;
+
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL ) {
             mpi_trace_on = NEW char[12];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
+
+         /* check environment variable: EXTRAE_FINAL_DIR */
+         mpi_trace_final_dir = getenv("EXTRAE_FINAL_DIR");
+         /* if EXTRAE_FINAL_DIR not defined, active it */
+         if ( mpi_trace_final_dir == NULL ) {
+            mpi_trace_final_dir = NEW char[3];
+            strcpy(mpi_trace_final_dir, "./");
+         }
+
+         /* check environment variable: EXTRAE_DIR */
+         mpi_trace_dir = getenv("EXTRAE_DIR");
+         /* if EXTRAE_DIR not defined, active it */
+         if ( mpi_trace_dir == NULL ) {
+            mpi_trace_dir = NEW char[3];
+            strcpy(mpi_trace_dir, "./");
+         }
+
+         _traceDirectory = mpi_trace_dir;
+         _traceFinalDirectory = mpi_trace_final_dir;
+         _listOfTraceFileNames = _traceFinalDirectory + "/TRACE.mpits";
+
 
         // Common thread information
         Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
@@ -127,6 +273,42 @@ class InstrumentationExtrae: public Instrumentation
 
         /* Keep current number of threads */
         _maxThreads = sys.getNumThreads();
+      }
+      void doLs(std::string dest)
+      {
+         pid_t pid;
+         int status, options = 0;
+
+         std::cerr << "list directory " << dest << std::endl;
+
+         pid = vfork();
+         if ( pid == (pid_t) 0 ) {
+            dup2(2, 1);
+            int execret = execl ( "/bin/ls", "ls", dest.c_str(), (char *) NULL); 
+            if ( execret == -1 )
+            {
+               std::cerr << "Error calling /bin/ls " << dest.c_str() << std::endl;
+               exit(-1);
+            }
+         } else {
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+            } else {
+               waitpid( pid, &status, options);
+            }
+         }
       }
 
       void finalize ( void )
@@ -204,6 +386,10 @@ class InstrumentationExtrae: public Instrumentation
          }
 
          OMPItrace_fini();
+
+         if ( sys.usingCluster() ) {
+            copyFilesToMaster();
+         }
       }
 
       void disable( void ) { Extrae_shutdown(); }
@@ -358,6 +544,10 @@ class InstrumentationExtrae: public Instrumentation
 
 #endif
 };
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+std::string InstrumentationExtrae::_traceBaseName = std::string("");
+#endif
 
 namespace ext {
 

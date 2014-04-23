@@ -21,6 +21,8 @@
 #define _NANOS_COPY_DESCRIPTOR_DECL
 
 #include "compatibility.hpp"
+#include "regioncache_decl.hpp"
+#include "functor_decl.hpp"
 
 #include <stdint.h>
 
@@ -32,14 +34,16 @@ namespace nanos {
          uint64_t _tag;
          unsigned int _dirVersion;
       public:
+         DeviceOps *_ops;
+         Functor *_functor;
         /*! \brief Default constructor
          */
-         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0 ): _tag(tag), _dirVersion(dirVersion) {}
+         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0 ): _tag(tag), _dirVersion(dirVersion), _ops (NULL), _functor( NULL ){}
 
         /*! \brief Copy constructor
          *  \param Another CopyDescriptor
          */
-         CopyDescriptor( const CopyDescriptor &cd ): _tag( cd._tag ), _dirVersion( cd._dirVersion ) {}
+         CopyDescriptor( const CopyDescriptor &cd ): _tag( cd._tag ), _dirVersion( cd._dirVersion ), _ops( cd._ops ) , _functor( cd._functor ) {}
 
         /* \brief Destructor
          */
@@ -52,6 +56,7 @@ namespace nanos {
             if ( this == &cd ) return *this;
             this->_tag = cd._tag;
             this->_dirVersion = cd._dirVersion;
+            this->_ops = cd._ops;
             return *this;
          }
 

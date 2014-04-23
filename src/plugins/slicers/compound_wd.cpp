@@ -50,6 +50,8 @@ void SlicerCompoundWD::submit ( WorkDescriptor &work )
    for ( int i = 0; i < data->nsect; i++) {
       slice = (WorkDescriptor*)data->lwd[i];
       sys.setupWD(*slice, &work);
+
+      slice->_mcontrol.preInit();
    }
 
    Scheduler::submit ( work );

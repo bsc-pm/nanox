@@ -30,6 +30,7 @@
 #include <assert.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
+#include "clusterdevice_decl.hpp"
 #include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
@@ -117,7 +118,7 @@ void SMPThread::bind( void )
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   OS::bindThread( &cpu_set );
+   OS::bindThread( _pth, &cpu_set );
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
@@ -129,6 +130,27 @@ void SMPThread::yield()
 {
    if (sched_yield() != 0)
       warning("sched_yield call returned an error");
+}
+
+void SMPThread::idle( bool debug )
+{
+   sys.getNetwork()->poll(0);
+
+   if ( !_pendingRequests.empty() ) {
+      std::set<void *>::iterator it = _pendingRequests.begin();
+      while ( it != _pendingRequests.end() ) {
+         GetRequest *req = (GetRequest *) (*it);
+         if ( req->isCompleted() ) {
+           std::set<void *>::iterator toBeDeletedIt = it;
+           it++;
+           _pendingRequests.erase(toBeDeletedIt);
+           req->clear();
+           delete req;
+         } else {
+            it++;
+         }
+      }
+   }
 }
 
 void SMPThread::wait()
@@ -219,6 +241,8 @@ bool SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
 
+   //if ( sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "Starting wd " << wd.getId() << std::endl;
+   
    dd.execute( wd );
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
