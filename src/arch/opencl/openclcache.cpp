@@ -1,4 +1,4 @@
-
+free
 /*************************************************************************************/
 /*      Copyright 2013 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -93,8 +93,8 @@ void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
 }
 
 void OpenCLCache::free(void * addr) {
-    _devAllocator.free(addr);
     if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
+    _devAllocator.free(addr);
     _openclAdapter.freeAddr(addr);
 }
 
