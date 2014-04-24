@@ -591,27 +591,28 @@ void System::start ()
 // jbueno    }
 //=======
    
-#ifdef GPU_DEV
-   int gpuC;
-   //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
-   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
-      _gpus = (_gpus == NULL) ? NEW std::vector<nanos::ext::GPUProcessor *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUProcessor *) NULL) : _gpus; 
-      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-      SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU, nanos::ext::GPUConfig::getAllocWide());
-      gpuMemory->setNodeNumber( 0 );
-      ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
-      gpuMemory->setSpecificData( gpuMemSpace );
-      std::cerr << "Memory space " << id << " is a gpu" << std::endl;
-      _separateAddressSpaces[ id ] = gpuMemory;
-      int peid = p++;
-      nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( peid, gpuC, peid, id, *gpuMemSpace );
-      (*_gpus)[gpuC] = gpuPE;
-      _pes.push_back( gpuPE );
-      BaseThread *gpuThd = &gpuPE->startWorker();
-      _workers.push_back( gpuThd );
-      _masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
-   }
-#endif
+//FIXME: jbueno (from fsainz), _gpus and _masterGpuThd are structures used for clustering, review them
+//#ifdef GPU_DEV
+//   int gpuC;
+//   //for ( gpuC = 0; gpuC < ( ( usingCluster() && sys.getNetwork()->getNodeNum() == 0 && sys.getNetwork()->getNumNodes() > 1 ) ? 0 : nanos::ext::GPUConfig::getGPUCount() ); gpuC++ ) {
+//   for ( gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
+//      _gpus = (_gpus == NULL) ? NEW std::vector<nanos::ext::GPUProcessor *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUProcessor *) NULL) : _gpus; 
+//      memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
+//      SeparateMemoryAddressSpace *gpuMemory = NEW SeparateMemoryAddressSpace( id, ext::GPU, nanos::ext::GPUConfig::getAllocWide());
+//      gpuMemory->setNodeNumber( 0 );
+//      ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
+//      gpuMemory->setSpecificData( gpuMemSpace );
+//      std::cerr << "Memory space " << id << " is a gpu" << std::endl;
+//      _separateAddressSpaces[ id ] = gpuMemory;
+//      int peid = p++;
+//      nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( peid, gpuC, peid, id, *gpuMemSpace );
+//      (*_gpus)[gpuC] = gpuPE;
+//      _pes.push_back( gpuPE );
+//      BaseThread *gpuThd = &gpuPE->startWorker();
+//      _workers.push_back( gpuThd );
+//      _masterGpuThd = ( _masterGpuThd == NULL ) ? gpuThd : _masterGpuThd;
+//   }
+//#endif
    
 //#ifdef OpenCL_DEV
 //   unsigned openclC;

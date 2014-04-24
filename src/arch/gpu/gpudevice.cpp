@@ -312,6 +312,18 @@ void * GPUDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, uin
    return address;
 }
 
+void GPUDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const
+{
+   // Check there are no pending copies to execute before we free the memory (and if there are, execute them)
+   
+   ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
+   gpuMemData->getGPU()->getOutTransferList()->checkAddressForMemoryTransfer( (void*) addr );
+   SimpleAllocator *allocator = gpuMemData->getAllocator();
+   allocator->lock();
+   allocator->free( (void*)addr );
+   allocator->unlock();
+}
+
 void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const {
    CopyDescriptor cd( hostAddr ); cd._ops = ops;
    ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
