@@ -28,7 +28,7 @@
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 #include "clusterdevice_decl.hpp"
-#include "dlb.hpp"
+#include "resourcemanager.hpp"
 
 
 using namespace nanos;
@@ -191,7 +191,9 @@ void SMPThread::wait()
    BaseThread::resume();
    unlock();
 
-   dlb_checkCpuAvailability();
+   /* Whether the thread should wait for the cpu to be free before doing some work */
+   ResourceManager::waitForCpuAvailability();
+   //dlb_checkCpuAvailability();
 
    if ( isSleeping() ) wait();
 
