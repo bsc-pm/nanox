@@ -103,7 +103,7 @@ void SMPThread::runDependent ()
 void SMPThread::join ()
 {
    if ( pthread_join( _pth, NULL ) ) fatal("Thread cannot be joined");
-   joined(); 
+   joined();
 }
 
 void SMPThread::bind( void )
@@ -193,7 +193,6 @@ void SMPThread::wait()
 
    /* Whether the thread should wait for the cpu to be free before doing some work */
    ResourceManager::waitForCpuAvailability();
-   //dlb_checkCpuAvailability();
 
    if ( isSleeping() ) wait();
 

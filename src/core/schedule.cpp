@@ -231,7 +231,6 @@ inline void Scheduler::idleLoop ()
       spins--;
       
       ResourceManager::returnMyCpuIfClaimed();
-      //dlb_returnMyCpuIfClaimed();
 
       //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
       // descriptor in its stack frame
@@ -344,24 +343,13 @@ inline void Scheduler::idleLoop ()
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
 
+         /* DLB:
+           The master will return cpus
+           claimed by another process
+         */
          ResourceManager::returnClaimedCpus();
-         // Only when isMalleable?
-         ResourceManager::acquireResourcesIfNeeded();
-
-         ///* DLB: 
-         //  The master will return cpus 
-         //  claimed by another process
-         //*/
-         //dlb_returnClaimedCpus();
-         //if ( sys.getPMInterface().isMalleable() )
-         //   dlb_updateAvailableCpus();
-
-
-         ///* DLB 
-         //   If I'm a slave I'll release my cpu because there is no work for me here
-         //   and go to sleep
-         //*/
-         ////dlb_releaseMyCpu();
+         if ( sys.getPMInterface().isMalleable() )
+            ResourceManager::acquireResourcesIfNeeded();
 
          if ( yields == 0 || !use_yield ) {
 
@@ -474,7 +462,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       checks--;
       
       ResourceManager::returnMyCpuIfClaimed();
-      //dlb_returnMyCpuIfClaimed();
 
       if ( checks == 0 ) {
          checks = init_checks;
@@ -556,25 +543,13 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             if ( spins == 0 ) {
                NANOS_INSTRUMENT ( total_spins+= init_spins; )
 
+               /* DLB:
+                 The master will return cpus
+                 claimed by another process
+               */
                ResourceManager::returnClaimedCpus();
-               // Only when isMalleable?
-               ResourceManager::acquireResourcesIfNeeded();
-
-               ///* DLB: 
-               //  The master will return cpus 
-               //  claimed by another process
-               //*/
-               //dlb_returnClaimedCpus();
-               //if ( sys.getPMInterface().isMalleable() )
-               //   dlb_updateAvailableCpus();
-
-               ///* DLB 
-               //   If I'm a slave I'll release my cpu because there is no work for me here
-               //   and go to sleep
-               //*/
-               //if ( dlb_releaseMyCpu()){
-               //thread->wait();
-               //}
+               if ( sys.getPMInterface().isMalleable() )
+                  ResourceManager::acquireResourcesIfNeeded();
 
                if ( yields == 0 || !use_yield ) {
 
@@ -1283,16 +1258,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
    
-   /* If DLB, perform the adjustment of resources 
+   /* If DLB, perform the adjustment of resources
          If master: Return claimed cpus
          claim cpus and update_resources 
    */
-   //dlb_returnClaimedCpus();
-   //if ( sys.getPMInterface().isMalleable() )
-      //dlb_updateAvailableCpus();
    ResourceManager::returnClaimedCpus();
-   // Only when isMalleable?
-   ResourceManager::acquireResourcesIfNeeded();
+   if ( sys.getPMInterface().isMalleable() )
+      ResourceManager::acquireResourcesIfNeeded();
 
   return done;
 }
@@ -1440,12 +1412,9 @@ void Scheduler::exit ( void )
          If master: Return claimed cpus
          claim cpus and update_resources 
    */
-   //dlb_returnClaimedCpus();
-   //if ( sys.getPMInterface().isMalleable() )
-      //dlb_updateAvailableCpus();
    ResourceManager::returnClaimedCpus();
-   // Only when isMalleable?
-   ResourceManager::acquireResourcesIfNeeded();
+   if ( sys.getPMInterface().isMalleable() )
+      ResourceManager::acquireResourcesIfNeeded();
 
    WD *next = NULL;
    /* DLB: 

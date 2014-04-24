@@ -1187,8 +1187,6 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // every 10 tasks created I'll check if I must return claimed cpus
    // or there are available cpus idle
    if(_atomicWDSeed.value()%10==0){
-      //dlb_returnClaimedCpus();
-      //dlb_updateAvailableCpus();
       ResourceManager::returnClaimedCpus();
       ResourceManager::acquireResourcesIfNeeded();
    }
@@ -1619,7 +1617,6 @@ void System::endTeam ( ThreadTeam *team )
    /* For OpenMP applications
       At the end of the parallel return the claimed cpus
    */
-   //dlb_returnClaimedCpus();
    ResourceManager::returnClaimedCpus();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
