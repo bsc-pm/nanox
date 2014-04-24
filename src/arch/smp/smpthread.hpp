@@ -41,8 +41,8 @@ namespace ext
          size_t      _stackSize;
          bool        _useUserThreads;
 
-         pthread_cond_t          _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
-         static pthread_mutex_t  _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
+         pthread_cond_t    _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
+         pthread_mutex_t   _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
         
          pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
          pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
@@ -54,7 +54,19 @@ namespace ext
       public:
          // constructor
          SMPThread( WD &w, PE *pe, SMPMultiThread *parent=NULL ) :
-               BaseThread( w, pe, parent ), _pth(pthread_self()), _stackSize(0), _useUserThreads(true) {}
+               BaseThread( w, pe, parent ), _stackSize(0), _useUserThreads(true)
+               {
+                  // Master initialization
+                  if (!parent) {
+                     _pth = pthread_self();
+
+                     if ( pthread_cond_init( &_condWait, NULL ) < 0 )
+                        fatal( "couldn't create pthread condition wait" );
+
+                     if ( pthread_mutex_init( &_mutexWait, NULL ) < 0 )
+                        fatal( "couldn't create pthread mutex wait" );
+                  }
+               }
 
          // named parameter idiom
          SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }

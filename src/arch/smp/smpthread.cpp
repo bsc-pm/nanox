@@ -34,8 +34,6 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-pthread_mutex_t SMPThread::_mutexWait = PTHREAD_MUTEX_INITIALIZER;
-
 void * smp_bootthread ( void *arg )
 {
    SMPThread *self = static_cast<SMPThread *>( arg );
@@ -81,6 +79,9 @@ void SMPThread::start ()
 
    if ( pthread_cond_init( &_condWait, NULL ) < 0 )
       fatal( "couldn't create pthread condition wait" );
+
+   if ( pthread_mutex_init( &_mutexWait, NULL ) < 0 )
+      fatal( "couldn't create pthread mutex wait" );
 }
 
 void SMPThread::finish ()
