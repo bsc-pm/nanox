@@ -146,8 +146,7 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
    } else {
       //If there is a buffer which covers this buffer (same base address but bigger), return it
       baseAddress=allocator.getBasePointer(devAddr, size);     
-       std::cout <<  "base pointer was " << baseAddress << " de " << devAddr <<  "y " << size << "\n";
-      
+     
    }
    
    if (baseAddress==devAddr && size<_sizeCache[baseAddress]){
@@ -180,7 +179,6 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr+baseAddress,size)]=buf;
-       std::cout << "add buffer" << devAddr+baseAddress << "y " << size << "\n";
        _sizeCache[devAddr+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
        if (errCode != CL_SUCCESS) {      
@@ -190,7 +188,6 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
        //Buf is a pointer, so this should be safe
        return buf;
    } else {       
-       std::cout << "error buffer" << devAddr << "y " << size << "\n";
        fatal0("Error in OpenCL cache, tried to get a buffer which was not allocated before");
    }
 }
@@ -347,7 +344,6 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
         return CL_SUCCESS;
     }
     cl_int errCode;
-    cl_event ev;
 
     NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT(ext::NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT);
 
@@ -356,7 +352,7 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
             src,
             0,
             NULL,
-            &ev
+            NULL
             );
 
     //This is a dirty trick to fake OpenCL driver which only accepts unmaps of previously mapped values
@@ -369,16 +365,10 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
                 src,
                 0,
                 NULL,
-                &ev
+                NULL
                 );
     }
-
-    errCode = clWaitForEvents(1, &ev);
-    if (errCode != CL_SUCCESS) {
-        fatal0("Error waiting for events");
-    }
     
-    //_pendingEvents.push_back(ev);
     NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
     _unmapedCache.insert(std::make_pair<cl_mem, int>(buf, 0));
