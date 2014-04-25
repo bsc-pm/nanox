@@ -45,7 +45,7 @@ namespace ResourceManager {
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key  = ID->getEventKey("concurrent-tasks"); )
 
-      if ( sys.getPMInterface().isMalleable() ) {
+      if ( sys.getPMInterface().isMalleable() && myThread->getTeam()!=NULL ) {
          /* OmpSs*/
 
          int ready_tasks= myThread->getTeam()->getSchedulePolicy().getPotentiallyParallelWDs();

@@ -150,7 +150,6 @@ void ProcessingElement::stopAllThreads ()
       thread = *it;
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
       thread->stop();
-      if ( sys.getSchedulerConf().getUseBlock() ) thread->unblock();
       if ( thread->isWaiting() ) thread->wakeup();
    }
 

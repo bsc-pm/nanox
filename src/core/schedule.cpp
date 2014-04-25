@@ -652,13 +652,13 @@ void Scheduler::wakeUp ( WD *wd )
       wd->setReady();
       WD *next = NULL;
       
-      BaseThread * tiedTo = wd->isTiedTo();
+/*      BaseThread * tiedTo = wd->isTiedTo();
       if ( tiedTo != NULL && sys.getSchedulerConf().getUseBlock() ) {
          // If the thread is blocked, we must not re-submit it's task
          tiedTo->unblock();
          // Note: this will probably break nesting.
          return;
-      }
+      }*/
       
       if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
          // The thread is not paused, mark it as so
