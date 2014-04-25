@@ -1,4 +1,3 @@
-
 /*************************************************************************************/
 /*      Copyright 2013 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -67,16 +66,11 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
         return (void*)(tag);
     } else {
         _devAllocator.lock();
-        void* addr;
-        if (_openclAdapter.getUseHostPtr()) {
-            addr=(void*) tag;
-        } else {
-            addr=(void*) _devAllocator.allocate(size);
-        }
+        void* addr=(void*) _devAllocator.allocate(size);
         _devAllocator.unlock();
         if (addr==NULL) return NULL;
         //Create the buffer
-        cl_mem buf=_openclAdapter.createBuffer(_mainBuffer,(size_t)addr,size);
+        cl_mem buf=_openclAdapter.createBuffer(_mainBuffer,(size_t)addr,size,(void*)tag);
         if (buf==NULL){
             return NULL;
         }
@@ -93,8 +87,8 @@ void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
 }
 
 void OpenCLCache::free(void * addr) {
-    _devAllocator.free(addr);
     if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) addr, 1)) return;
+    _devAllocator.free(addr);
     _openclAdapter.freeAddr(addr);
 }
 

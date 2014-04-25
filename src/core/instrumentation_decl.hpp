@@ -680,20 +680,34 @@ namespace nanos {
 
 //! \class Instrumentation
 //! \brief Instrumentation main class is the core of the insrumentation behaviour.
-/*! \description This class implements several type of methods: methods to create events, methods to raise event, WorkDescriptor context swhich methods and finally, specific Instrumentation methods which are actually defined into each derived class (plugins). Specific Instrumentation methods are (ideally) the ones that have to be implemented in each derived Instrumentation class.
+/*! \description This class implements several methods: methods to create events, methods to raise event, WorkDescriptor context swhitch methods. Instrumentation plugins will be derived classes of this class. These plugins must implement (at least) a subset of these methods will determine their specific behaviour. This is called the instrumentation plugin interface:
  *
- *  They are:
+ * \subsubsection instrumentation_api Instrumentation API
  *
  *  - initialize(): this method is executed at runtime startup and can be used to create buffers, auxiliary structures, initialize values (e.g. time stamp), etc.
  *  - finalize(): this method is executed at runtime shutdown and can be used to dump remaining data into a file or standard output, post-process trace information, delete buffers and auxiliary structures, etc.
  *  - addEventList(): this method is executed each time the runtime raises an event. It receives a list of events (EventList) and the specific instrumentation class has to deal with each event in this list in order to generate (or not) a valid output.
+ *  - disable(): this method disables instrumentation until enable method is call again. Disable method will inform plugin to stop instrumenting but runtime's core will continue generating events, so it is suposed that the plugin will ignore or keep them to stay in a consistent state.
+ *  - enable(): this method enables again the instrumentation, previously disabled by disable method.
+ *  - threadStart(): this method is executed each time a new thread starts.
+ *  - threadFinish(): this method is executed each time a new thread finishes.
+ *  - addResumeTask(): this method is executed each time a task is resumed in the current thread
+ *  - addSuspendTask(): this method is executed each time a task is suspended in the current thread
+ *  - incrementMaxThreads() this method is executed each time we increase the number of threads
  *
- *  The Instrumentation object implementation is based in the concept of plugins which allow that several implementations based on its interface can be used without having to modify the runtime library. As we can see in the class diagram we have a generic class which defines all the instrumentation interface and several specific classes which defines the specific output format. But specific Instrumentation programmers can also overload other base methods in order to get an specific behavior when the plugin is invoked. Derived classes have to define (at least) the three previously mentioned virtual methods:
+ *  The Instrumentation object implementation is based in the concept of plugins which allow that several implementations based on its interface can be used without having to modify the runtime library. As we can see in the class diagram we have a generic class which defines all the instrumentation interface and several specific classes which defines the specific output format. But specific Instrumentation programmers can also overload other base methods in order to get an specific behavior when the plugin is invoked. Derived classes have to define (at least) the previously mentioned virtual methods:
  *
  *  \code
  *  void initialize( void );
  *  void finalize( void );
  *  void addEventList(  unsigned int count, Event *events );
+ *  void enable( void );
+ *  void disable ( void );
+ *  void threadStart ( BaseThread &thread ) = 0;
+ *  void threadFinish ( BaseThread &thread ) = 0;
+ *  void addResumeTask( WorkDescriptor &w ) = 0 ;
+ *  void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
+ *  void incrementMaxThreads( void ) {}
  *  \endcode
  *
  *  Instrumentation also specify as virtual functions some generic services which can be used at runtime code. These services are grouped in:

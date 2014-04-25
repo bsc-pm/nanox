@@ -99,7 +99,6 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
-   message("I've prefetched " << _prefetchedWDs << " WDs and I have executed " << _executedWDs );
 
    if ( GPUConfig::isCUBLASInitDefined() ) {
 #ifdef NANOS_GPU_USE_CUDA32
@@ -134,12 +133,8 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
 
    GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
 
-   _executedWDs++;
-
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
-   cudaError_t err = cudaGetLastError( );
-	if (err != cudaSuccess) printf("Error at kernel: %s\n", cudaGetErrorString(err));
 
    if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish

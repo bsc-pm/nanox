@@ -20,6 +20,8 @@
 #include "plugin.hpp"
 #include "archplugin.hpp"
 #include "gpuconfig.hpp"
+#include "gpudd.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "gpuprocessor.hpp"
 #include "system_decl.hpp"
 #include <fstream>
@@ -141,13 +143,22 @@ class GPUPlugin : public ArchPlugin
          //jbueno: disabled PE* pe = NEW GPUProcessor( getBinding( id ) , id );
          //jbueno: disabled pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
          //jbueno: disabled return pe;
-         return NULL;
-//=======
-//         verbose( "Calling getBinding for id " << id << ", result: " << getBinding( id ) );
-//         PE* pe = NEW GPUProcessor( getBinding( id ) , id, uid );
-//         pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
-//         return pe;
-//>>>>>>> master
+         //return NULL;
+//=======         
+        //pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
+        memory_space_id_t mid = sys.getNewSeparateMemoryAddressSpaceId();
+        SeparateMemoryAddressSpace *gpumemory = NEW SeparateMemoryAddressSpace( mid, nanos::ext::GPU, nanos::ext::GPUConfig::getAllocWide());
+        gpumemory->setNodeNumber( 0 );
+        //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
+        //oclmemory->setSpecificData( oclmemspace );
+        sys.addSeparateMemory(mid,gpumemory);
+        
+        ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
+        gpumemory->setSpecificData( gpuMemSpace );
+        nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( getBinding(id), id, uid, mid, *gpuMemSpace );
+
+        gpuPE->setNUMANode( sys.getNodeOfPE( gpuPE->getId() ) ); 
+        return gpuPE;
       }
 
 //      virtual void boot() {
