@@ -106,7 +106,7 @@ void MPIThread::addRunningPEs( MPIProcessor** pe, int nPes){
     _currPe=0;
 }
 
-void MPIThread::idle() {
+void MPIThread::idle( bool debug ) {
     checkTaskEnd();
 }
 
@@ -236,7 +236,7 @@ void MPIThread::bind( void )
        sys.getCpuMask(&cpu_set);
    }
    verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   OS::bindThread( &cpu_set );
+   OS::bindThread( pthread_self(), &cpu_set ); 
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )

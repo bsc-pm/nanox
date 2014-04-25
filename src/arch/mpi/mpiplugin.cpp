@@ -74,7 +74,7 @@ class MPIPlugin : public ArchPlugin
    virtual PE* createPE( unsigned id, unsigned uid )
    {
       //Not used
-      return NEW MPIProcessor( id , NULL, 0, uid, true, false, NULL);
+      return NEW MPIProcessor( id , NULL, 0, uid, true, false, NULL, 0);
    }
 };
 }

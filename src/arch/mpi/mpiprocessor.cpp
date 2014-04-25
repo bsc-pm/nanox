@@ -31,7 +31,8 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared, MPI_Comm communicatorOfParents) : CachedAccelerator<MPIDevice>(id, &MPI, uid), _pendingReqs() {
+//MPIProcessor::MPIProcessor(int id, void* communicator, int rank,  memory_space_id_t memId ) : CachedAccelerator( id, &MPI , NULL, &MPI, 0, RegionCache::ALLOC_FIT, memId ) {
+MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared, MPI_Comm communicatorOfParents, memory_space_id_t memId ) : CachedAccelerator(id, &MPI, uid, 0, memId ), _pendingReqs() {
     _communicator = *((MPI_Comm *)communicator);
     _commOfParents=communicatorOfParents;
     _rank = rank;
@@ -41,7 +42,6 @@ MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool o
     _busy=false;
     _currExecutingDD=0;
     _hasWorkerThread=false;
-    configureCache(MPIProcessor::getCacheDefaultSize(), MPIProcessor::getCachePolicy());
 }
 
 void MPIProcessor::prepareConfig(Config &config) {
@@ -68,13 +68,13 @@ void MPIProcessor::prepareConfig(Config &config) {
 
 
     // Set the cache policy for MPI devices
-    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig(_cachePolicy);
-    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH);
-    cachePolicyCfg->addOption("wb", System::WRITE_BACK);
-    cachePolicyCfg->addOption("nocache", System::NONE);
-    config.registerConfigOption("offl-cache-policy", cachePolicyCfg, "Defines the cache policy for offload architectures: write-through / write-back (wb by default)");
-    config.registerEnvOption("offl-cache-policy", "NX_OFFL_CACHE_POLICY");
-    config.registerArgOption("offl-cache-policy", "offl-cache-policy");
+//    System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig(_cachePolicy);
+//    cachePolicyCfg->addOption("wt", System::WRITE_THROUGH);
+//    cachePolicyCfg->addOption("wb", System::WRITE_BACK);
+//    cachePolicyCfg->addOption("nocache", System::NONE);
+//    config.registerConfigOption("offl-cache-policy", cachePolicyCfg, "Defines the cache policy for offload architectures: write-through / write-back (wb by default)");
+//    config.registerEnvOption("offl-cache-policy", "NX_OFFL_CACHE_POLICY");
+//    config.registerArgOption("offl-cache-policy", "offl-cache-policy");
 
 
 //    config.registerConfigOption("offl-cache-size", NEW Config::SizeVar(_cacheDefaultSize), "Defines maximum possible size of the cache for MPI allocated devices (Default: 144115188075855871)");
@@ -105,7 +105,12 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerEnvOption("offl-cache-threads", "NX_OFFL_CACHE_THREADS");
     
     
-    #ifndef OMPI_MPI_H
+    config.registerConfigOption( "offl-alloc-wide", NEW Config::FlagOption( _allocWide ),
+                                "Alloc full objects in the cache." );
+    config.registerEnvOption( "offl-alloc-wide", "NX_OFFL_ENABLE_ALLOCWIDE" );
+    config.registerArgOption( "offl-alloc-wide", "offl-enable-alloc-wide" );
+    
+    #ifndef OPEN_MPI
     config.registerConfigOption("offl-disable-spawn-lock", NEW Config::BoolVar(_disableSpawnLock), "Disables file lock used to serialize"
                   "different calls to DEEP_BOOSTER_ALLOC performed by different processes when using MPI_COMM_SELF,"
                   "if disabled user will be responsible of serializing calls (Default: Lock enabled).");
@@ -125,10 +130,10 @@ WorkDescriptor & MPIProcessor::getMasterWD() const {
     return *wd;
 }
 
-BaseThread &MPIProcessor::createThread(WorkDescriptor &helper) {
-    MPIThread &th = *NEW MPIThread(helper, this);
-
-    return th;
+BaseThread &MPIProcessor::createThread(WorkDescriptor &helper, SMPMultiThread *parent ) {
+     MPIThread &th = *NEW MPIThread(helper, this, parent);
+ 
+     return th;
 }
 
 void MPIProcessor::clearAllRequests() {

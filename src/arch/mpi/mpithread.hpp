@@ -39,7 +39,6 @@ namespace ext
       private:        
          pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
          pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
-         pthread_t   _pth;
          std::vector<MPIThread*> _threadList;
          Lock _selfLock;
          std::vector<MPIProcessor*> _runningPEs;
@@ -61,7 +60,7 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe ) : SMPThread( w,pe ), _threadList() , _selfLock(), _runningPEs()  {
+         MPIThread( WD &w, PE *pe, SMPMultiThread *parent) : SMPThread( w,pe ,parent), _threadList() , _selfLock(), _runningPEs()  {
              _currPe=0;
              _selfTotRunningWds=0;
              _groupTotRunningWds=&_selfTotRunningWds;
@@ -84,7 +83,7 @@ namespace ext
          virtual void runDependent ( void );
          void initializeDependent( void );
          
-         void idle();
+         void idle( bool debug = false );
          
          virtual void block();
          

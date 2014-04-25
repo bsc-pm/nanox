@@ -33,7 +33,7 @@
 namespace nanos {
     namespace ext {
 
-        class MPIProcessor : public CachedAccelerator<MPIDevice> {
+        class MPIProcessor : public CachedAccelerator {
         private:
             // config variables
             static bool _useUserThreads;
@@ -47,8 +47,11 @@ namespace nanos {
             static std::string _mpiLauncherFile;
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;    
-            static bool _useMultiThread;  
+            static bool _useMultiThread;
+            static bool _allocWide;
+            #ifndef OPEN_MPI
             static bool _disableSpawnLock;  
+            #endif
             static int _numPrevPEs;
             static int _numFreeCores;
             static int _currPE;
@@ -76,7 +79,7 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents);
+            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents, memory_space_id_t memId );
 
             ~MPIProcessor() {                
             }            
@@ -97,7 +100,12 @@ namespace nanos {
             
             static size_t getAlignThreshold();            
 
+
+            #ifndef OPEN_MPI
             static bool isDisableSpawnLock();
+            #endif
+                        
+            static bool getAllocWide();
 
             static size_t getMaxWorkers();
 
@@ -147,14 +155,25 @@ namespace nanos {
             
             WD & getWorkerWD() const;
             WD & getMasterWD() const;
-            BaseThread & createThread(WorkDescriptor &wd);
             static void prepareConfig(Config &config);
 
             // capability query functions
+            virtual WD & getMultiWorkerWD () const
+            {
+               fatal( "getMultiWorkerWD: GPUProcessor is not allowed to create MultiThreads" );
+            }
+            BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent );
+            
+            virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
+            {
+               fatal( "ClusterNode is not allowed to create MultiThreads" );
+            }
 
             bool supportsUserLevelThreads() const {
                 return false;
             }       
+            
+            bool isGPU () const { return true; }
         };   
 
         // Macros to instrument the code and make it cleaner

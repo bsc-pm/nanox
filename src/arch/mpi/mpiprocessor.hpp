@@ -49,7 +49,14 @@ int MPIProcessor::_numPrevPEs=-1;
 int MPIProcessor::_numFreeCores;
 int MPIProcessor::_currPE;
 bool MPIProcessor::_useMultiThread=false;
+bool MPIProcessor::_allocWide=false;
+#ifndef OPEN_MPI
 bool MPIProcessor::_disableSpawnLock=false;
+
+bool MPIProcessor::isDisableSpawnLock() {
+    return _disableSpawnLock;
+}
+#endif
 
 size_t MPIProcessor::getCacheDefaultSize() {
     return _cacheDefaultSize;
@@ -72,8 +79,8 @@ std::string MPIProcessor::getMpiExecFile() {
 }
 
 
-bool MPIProcessor::isDisableSpawnLock() {
-    return _disableSpawnLock;
+bool MPIProcessor::getAllocWide() {
+    return _allocWide;
 }
 
 size_t MPIProcessor::getMaxWorkers() {

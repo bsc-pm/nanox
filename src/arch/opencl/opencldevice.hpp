@@ -66,13 +66,6 @@ void OpenCLDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len
    nanos::ProcessingElement * pe = &(mem.getPE());
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
    {
-      // Current thread is not the device owner: instead of doing the copy, add
-      // it to the pending transfer list.
-//      if( myThread->runningOn() != pe )
-//         return proc->asyncCopyIn( localDst, remoteSrc, size );
-//
-//      // We can do a synchronous copy.
-//      else
         proc->copyIn( devAddr, hostAddr, len, ops );
    }
 }
@@ -82,13 +75,6 @@ void OpenCLDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t le
    nanos::ProcessingElement * pe = &(mem.getPE());
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
    {
-      // Current thread is not the device owner: instead of doing the copy, add
-      // it to the pending transfer list.
-//      if( myThread->runningOn() != pe )
-//         return proc->asyncCopyOut( remoteDst, localSrc, size );
-//
-//      // We can do a synchronous copy.
-//      else
         proc->copyOut( hostAddr, devAddr, len, ops );
    }
 }

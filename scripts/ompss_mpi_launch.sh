@@ -51,8 +51,10 @@ unset TMP_NUM_THREADS
 
 #################### END OMP BLOCK
 
-
-export ${@} 
+second="="
+first=${@}
+first=${first//EQUAL/$second}
+export "${@}" 
 if [ "x$TASKSET" != "x" ]; then 
 	taskset -cp $TASKSET $$ > /dev/null 2>&1
 elif [ "x$NX_BINDING_START" == "x" ]; then

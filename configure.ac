@@ -1115,10 +1115,6 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/cluster/Makefile
 		 src/arch/opencl/Makefile
 		 src/arch/mpi/Makefile
-		 src/arch/mpi/performance/Makefile
-		 src/arch/mpi/debug/Makefile
-		 src/arch/mpi/instrumentation/Makefile
-		 src/arch/mpi/instrumentation-debug/Makefile
 		 src/utils/Makefile
 		 scripts/Makefile
 		 tests/Makefile

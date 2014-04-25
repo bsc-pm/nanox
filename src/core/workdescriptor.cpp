@@ -229,7 +229,12 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
    bool result;
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
-   return canRunIn( pe.getDeviceType() , &pe );
+
+   if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
+   else result = canRunIn( *pe.getDeviceType(), &pe ) ;
+
+   return result;   
+   //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));
 }
 
 void WorkDescriptor::submit( bool force_queue )

@@ -208,9 +208,6 @@ namespace nanos
          void *               _hwlocTopology;
          //! Path to a hwloc topology xml
          std::string          _topologyPath;
-         
-         //! Main cache directory
-         Directory* _mainDirectory;
 
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -425,8 +422,6 @@ namespace nanos
          int getCoresPerSocket() const;
 
          void setCoresPerSocket ( int coresPerSocket );
-         
-         Directory* getMainDirectory() const;
          
          /**
           * \brief Returns a CPU Id that the given architecture should use

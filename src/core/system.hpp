@@ -125,8 +125,6 @@ inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = cur
 inline int System::getCoresPerSocket() const { return _coresPerSocket; }
 inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
-inline Directory* System::getMainDirectory() const { return _mainDirectory; }
-
 inline int System::getBindingId ( int pe ) const
 {
    return _bindings[ pe % _bindings.size() ];
