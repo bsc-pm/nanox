@@ -129,11 +129,11 @@ void GPUConfig::apply()
    //Auto-enable CUDA if it was not done before
    if ( !_enableCUDA ) {
        //ompss_uses_cuda pointer will be null (it's extern) if the compiler did not fill it
-      _enableCUDA = ( sys.getOmpssUsesCuda() != 0 );
+      _enableCUDA = ( sys.getOmpssUsesCuda() != NULL );
    }
 
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
-      bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != 0 );
+      bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != NULL );
 
       if ( mercuriumHasTasks ) {
          message0( " CUDA tasks were compiled and CUDA was disabled, execution"
@@ -255,7 +255,7 @@ void GPUConfig::apply()
       }
       
       if ( _numGPUs == 0 ) {
-         bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != 0 );
+         bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != NULL );
          if ( mercuriumHasTasks ) {
             message0( " CUDA tasks were compiled and no CUDA devices were found, execution"
                     " could have unexpected behavior and can even hang" );

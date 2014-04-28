@@ -121,7 +121,7 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
     //Auto-enable CUDA if it was not done before
     if (!_enableOpenCL) {
         //ompss_uses_opencl pointer will be null (is extern) if the compiler did not fill it
-        _enableOpenCL = ((&ompss_uses_opencl) != 0);
+        _enableOpenCL = ((&ompss_uses_opencl) != NULL);
     }
     if (_forceDisableOpenCL || !_enableOpenCL)
         return;
@@ -223,8 +223,18 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
         for (cl_device_id *j = avaiableDevs, *f = avaiableDevs + devicesToUse; j != f; ++j) {
             _devices.insert(std::make_pair(*j, ctx));
         }
-        _currNumDevices = _devices.size();
 
         delete [] devs;
+    }   
+    _currNumDevices = _devices.size();
+    
+    if ( _currNumDevices == 0 ) {
+       bool mercuriumHasTasks = ((&ompss_uses_opencl) != NULL);
+       if ( mercuriumHasTasks ) {
+          message0( " OpenCL tasks were compiled and no OpenCL devices were found, execution"
+                  " could have unexpected behavior and can even hang" );
+       } else {
+           message0( " OpenCL plugin was enabled and no OpenCL devices were found " );
+       }
     }
 }
