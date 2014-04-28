@@ -44,7 +44,7 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
    
    _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
-   
+   _useHostPtrs=false;
    // Create the context.
    _ctx = nanos::ext::OpenCLConfig::getContextDevice(_dev);   
    
