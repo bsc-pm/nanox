@@ -66,16 +66,11 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
         return (void*)(tag);
     } else {
         _devAllocator.lock();
-        void* addr;
-        if (_openclAdapter.getUseHostPtr()) {
-            addr=(void*) tag;
-        } else {
-            addr=(void*) _devAllocator.allocate(size);
-        }
+        void* addr=(void*) _devAllocator.allocate(size);
         _devAllocator.unlock();
         if (addr==NULL) return NULL;
         //Create the buffer
-        cl_mem buf=_openclAdapter.createBuffer(_mainBuffer,(size_t)addr,size);
+        cl_mem buf=_openclAdapter.createBuffer(_mainBuffer,(size_t)addr,size,(void*)tag);
         if (buf==NULL){
             return NULL;
         }

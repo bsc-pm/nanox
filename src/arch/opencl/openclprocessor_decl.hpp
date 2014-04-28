@@ -50,6 +50,13 @@ public:
 public:
    void initialize(cl_device_id dev);
 
+   /**
+    * Allocs OpenCL buffer
+    * @param size size of the buffer
+    * @param host_ptr hostPtr (only used in CPU/mappedMem devices)
+    * @param buf buffer object
+    * @return return code of OpenCL call
+    */
    cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
@@ -61,7 +68,7 @@ public:
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
    cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
    size_t getSizeFromCache(size_t addr);
-   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size);   
+   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size, void* hostPtr);   
    void freeAddr(void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
    
