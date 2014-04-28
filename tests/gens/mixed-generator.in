@@ -19,15 +19,16 @@ PLUGINS_debug=@PLUGINS_DEBUG@
 PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
 PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
 
-common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$BUILD/apis/c"
-
-common_includes+=" 
-        -I\$SRC/arch/unix-os \
-        -I\$SRC/support \
-        -I\$SRC/core \
-        -I\$SRC/arch/smp \
-        -I\$SRC/arch/cluster \
-        -I\$SRC/arch/spu"
+common_includes="
+	-I\$SRC/apis/c \
+	-I\$BUILD/apis/c \
+	-I\$SRC/arch/unix-os \
+	-I\$SRC/support \
+	-I\$SRC/core \
+	-I\$SRC/arch/smp \
+	-I\$SRC/arch/gpu \
+	-I\$SRC/arch/spu \
+	-I\$SRC/arch/cluster"
 
 compile_versions="@COMPILE_VERSIONS@"
 

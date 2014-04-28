@@ -60,8 +60,8 @@ NANOS_API_DEF(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *
 
    try 
    {
-      nanos::OSAllocator allocator;
-      *p = allocator.allocate ( size );
+      nanos::OSAllocator tmp_allocator;
+      *p = tmp_allocator.allocate ( size );
    } catch ( nanos_err_t e ) {
       return e;
    }
@@ -76,8 +76,8 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int 
 
    try 
    {
-      nanos::OSAllocator allocator;
-      *p = allocator.allocate_none( size );
+      nanos::OSAllocator tmp_allocator;
+      *p = tmp_allocator.allocate_none( size );
       sys.registerNodeOwnedMemory(node, *p, size);
    } catch ( nanos_err_t e ) {
       return e;
