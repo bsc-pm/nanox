@@ -943,7 +943,7 @@ struct WorkerBehaviour
         Scheduler::switchTo(next);
       }
       else {
-        if ( Scheduler::inlineWork ( next /*jb merge , true*/ ) ) {
+        if ( Scheduler::inlineWork ( next /*jb merge */, true ) ) {
           next->~WorkDescriptor();
           delete[] (char *)next;
         }

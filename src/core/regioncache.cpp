@@ -1105,7 +1105,8 @@ void RegionCache::CopyIn::doNoStrided( global_reg_t const &reg, int dataLocation
       getParent()._copyIn( reg, devAddr, hostAddr, size, ops, f, wd, fake );
    } else {
       //If copydev2dev unsucesfull (not supported/implemented), do a copy through host
-      if (!getParent()._copyDevToDev( reg, dataLocation, devAddr, hostAddr, size, ops, f, wd, fake )) {
+      if ( ( sys.getSeparateMemory( dataLocation).getPE().getCacheDeviceType() != &getParent()._device ) ||
+            !getParent()._copyDevToDev( reg, dataLocation, devAddr, hostAddr, size, ops, f, wd, fake )) {
          getParent()._syncAndCopyIn( reg, dataLocation, devAddr, hostAddr, size, ops, f, wd, fake );
       }
    }
@@ -1116,7 +1117,8 @@ void RegionCache::CopyIn::doStrided( global_reg_t const &reg, int dataLocation, 
       getParent()._copyInStrided1D( reg, devAddr, hostAddr, size, count, ld, ops, f, wd, fake );
    } else {
        //If copydev2dev unsucesfull (not supported/implemented), do a copy through host
-      if ( !getParent()._copyDevToDevStrided1D( reg, dataLocation, devAddr, hostAddr, size, count, ld, ops, f, wd, fake ) ) {       
+      if ( ( sys.getSeparateMemory( dataLocation).getPE().getCacheDeviceType() != &getParent()._device ) ||
+            !getParent()._copyDevToDevStrided1D( reg, dataLocation, devAddr, hostAddr, size, count, ld, ops, f, wd, fake ) ) {       
          getParent()._syncAndCopyInStrided1D( reg, dataLocation, devAddr, hostAddr, size, count, ld, ops, f, wd, fake );
       }
    }
