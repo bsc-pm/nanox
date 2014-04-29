@@ -23,22 +23,12 @@ extern "C" {
 
    unsigned int nanos_extrae_get_max_threads ( void )
    {
-#ifdef GPU_DEV
 #ifdef CLUSTER_DEV
-      /* GPU_DEV & CLUSTER_DEV */
-      return sys.getMaxThreads() + nanos::ext::GPUConfig::getGPUCount() + sys.getNetwork()->getExtraPEsCount();
-#else
-      /* GPU_DEV & no CLUSTER_DEV */
-      return sys.getMaxThreads() + nanos::ext::GPUConfig::getGPUCount();
-#endif
-#else
-#ifdef CLUSTER_DEV
-      /* no GPU_DEV & CLUSTER_DEV */
+      /* CLUSTER_DEV */
       return sys.getMaxThreads() + sys.getNetwork()->getExtraPEsCount();
 #else
-      /* no GPU_DEV & no CLUSTER_DEV */
+      /* no CLUSTER_DEV */
       return sys.getMaxThreads();
-#endif
 #endif
    }
 
