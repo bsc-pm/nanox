@@ -27,6 +27,7 @@ common_includes="
         -I\$SRC/core \
         -I\$SRC/arch/smp \
         -I\$SRC/arch/gpu \
+        -I\$SRC/arch/opencl \
         -I\$SRC/arch/spu \
         -I\$SRC/arch/cluster"
 

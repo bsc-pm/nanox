@@ -44,7 +44,7 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
    
    _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
-   _useHostPtrs=false;
+
    // Create the context.
    _ctx = nanos::ext::OpenCLConfig::getContextDevice(_dev);   
    
@@ -367,6 +367,9 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
                 NULL,
                 NULL
                 );
+         if (errCode != CL_SUCCESS) {
+             fatal0("Errror unmapping buffer");
+         }
     }
     
     NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
