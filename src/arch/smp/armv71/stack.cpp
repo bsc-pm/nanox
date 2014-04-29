@@ -27,9 +27,8 @@ extern "C"
    void startHelper ();
 }
 
-
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *workWrapper, WD *wd,
-                          void *cleanup, void *cleanupArg )
+intptr_t * initContext( intptr_t *stack, size_t stackSize, void *workWrapper, WorkDescriptor *wd,
+                       void *cleanup, void *cleanupArg )
 {
    intptr_t * state = stack;
    state += stackSize - 1;

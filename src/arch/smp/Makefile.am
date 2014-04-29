@@ -34,7 +34,7 @@ EXTRA_DIST= \
 	armv71/stack_asm.s \
 	tile64/stack.cpp \
 	tile64/stack_asm.s \
-   smp_ult.hpp \
+	smp_ult.hpp \
 	$(END)
 
 devinclude_HEADERS = \
@@ -84,7 +84,7 @@ noinst_LTLIBRARIES += debug/libsmp.la
 debug_LTLIBRARIES = debug/libnanox-pe-smp.la
 debug_LTLIBRARIES += debug/libnanox-pe-smp-numa.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(smp_ult_flags) -DLOL
+nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(smp_ult_flags)
 
 debug_libsmp_la_CXXFLAGS=$(nanos_debug_cxxflags)
 debug_libsmp_la_CCASFLAGS=$(nanos_debug_cxxflags)

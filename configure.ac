@@ -297,7 +297,12 @@ AC_SUBST([SMP_ARCH])
 AC_CHECK_SIZEOF([size_t])
 
 #AC_MSG_CHECKING([for architecture])
-smp_ult=yes
+AC_ARG_ENABLE([ult],
+  AS_HELP_STRING([--disable-ult], [Disables user level threads]),
+  [smp_ult=no],
+  [smp_ult=yes]
+)
+
 case $host in
   i?86-*-linux*)
     OS=unix-os
@@ -1083,6 +1088,7 @@ echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
 echo "Host arch:" $SMP_ARCH
+echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
 if test x$cluster_enabled = xyes ; then
    echo "With cluster/gasnet conduits:" $CONDUITS
