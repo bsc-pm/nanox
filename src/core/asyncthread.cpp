@@ -265,6 +265,13 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
 
    } else {
       GenericEvent * lastEvt = NULL;
+
+      // Approach with less events: better for older GPUs, but calls to Cache's synchronize are a bit delayed
+      GenericEvent * evt = this->createPreRunEvent( &work );
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt->setDescription( evt->getDescription() + " copy inputs: " );
+#endif
+
       CopyData *copies = work.getCopies();
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
@@ -272,9 +279,11 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
          CopyDescriptor * cpdesc = cd.getCopyDescriptor();
          uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
 
-         GenericEvent * evt = this->createPreRunEvent( &work );
+         // Approach with more events: older GPUs run slower, but calls to Cache's synchronize are more accurate
+         //GenericEvent * evt = this->createPreRunEvent( &work );
 #ifdef NANOS_GENERICEVENT_DEBUG
-         evt->setDescription( evt->getDescription() + " copy input " + toString<uint64_t>( tag ) );
+         evt->setDescription( evt->getDescription() + " " + toString<uint64_t>( tag ) );
+         //evt->setDescription( evt->getDescription() + " copy input " + toString<uint64_t>( tag ) );
 #endif
          evt->setCreated();
 
@@ -290,7 +299,7 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
             runningOn()->registerCacheAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag );
          }
 
-         evt->setPending();
+         //evt->setPending();
 
          if ( cpdesc->_copying || cpdesc->_flushing ) {
             Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, *( cd.getCopyDescriptor() ) );
@@ -300,7 +309,7 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
 #endif
          }
 
-         addEvent( evt );
+         //addEvent( evt );
 
          lastEvt = evt;
       }
@@ -317,6 +326,9 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
         lastEvt->setDescription( lastEvt->getDescription() + " action:AsyncThread::runWD" );
 #endif
       }
+
+      evt->setPending();
+      addEvent( evt );
    }
 
    ASYNC_THREAD_CLOSE_EVENT;
@@ -364,6 +376,12 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 
    } else {
       GenericEvent * lastEvt = NULL;
+      // Approach with less events: better for older GPUs, but calls to Cache's synchronize are a bit delayed
+      GenericEvent * evt = this->createPostRunEvent( &work );
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt->setDescription( evt->getDescription() + " copy outputs " );
+#endif
+
       CopyData *copies = work.getCopies();
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
@@ -371,9 +389,11 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
          CopyDescriptor * cpdesc = cd.getCopyDescriptor();
          uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
 
-         GenericEvent * evt = this->createPostRunEvent( &work );
+         // Approach with more events: older GPUs run slower, but calls to Cache's synchronize are more accurate
+         //GenericEvent * evt = this->createPostRunEvent( &work );
 #ifdef NANOS_GENERICEVENT_DEBUG
-         evt->setDescription( evt->getDescription() + " copy output" );
+         evt->setDescription( evt->getDescription() + " " + toString<uint64_t>( tag ) );
+         //evt->setDescription( evt->getDescription() + " copy output" );
 #endif
          evt->setCreated();
 
@@ -397,7 +417,7 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
             }
          }
 
-         evt->setPending();
+         //evt->setPending();
 
          if ( cpdesc->_copying || cpdesc->_flushing ) {
             Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, *( cd.getCopyDescriptor() ) );
@@ -407,7 +427,7 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 #endif
          }
 
-         addEvent( evt );
+         //addEvent( evt );
 
          lastEvt = evt;
       }
@@ -420,6 +440,9 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
          lastEvt->setDescription( lastEvt->getDescription() + " action:Scheduler::finishWork" );
 #endif
       }
+
+      evt->setPending();
+      addEvent( evt );
    }
 
    ASYNC_THREAD_CLOSE_EVENT;
