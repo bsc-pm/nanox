@@ -137,6 +137,11 @@ inline uint64_t CopyData::getAddress() const
    return ( (uint64_t) address ); 
 }
 
+inline void CopyData::initCopyDescriptor()
+{
+   cpDesc = ( void * ) new CopyDescriptor( 0, 0, false, false );
+}
+
 inline CopyDescriptor * CopyData::getCopyDescriptor()
 {
    if ( cpDesc == NULL ) 

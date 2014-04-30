@@ -101,6 +101,10 @@ namespace nanos
          
          uint64_t getAddress() const ;
 
+         /*! \brief initializes the CopyData's CopyDescriptor
+          */
+         void initCopyDescriptor();
+
          /*! \brief  returns the CopyData's CopyDescriptor
           */
          CopyDescriptor * getCopyDescriptor();

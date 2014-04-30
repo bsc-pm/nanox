@@ -268,6 +268,7 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
       CopyData *copies = work.getCopies();
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
+         cd.initCopyDescriptor();
          CopyDescriptor * cpdesc = cd.getCopyDescriptor();
          uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
 
@@ -366,6 +367,7 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
       CopyData *copies = work.getCopies();
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
+         cd.initCopyDescriptor();
          CopyDescriptor * cpdesc = cd.getCopyDescriptor();
          uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
 
