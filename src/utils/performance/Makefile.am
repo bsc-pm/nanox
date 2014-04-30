@@ -31,7 +31,6 @@ nanox_pfm_SOURCES=  $(nanox_sources)
 nanox_pfm_LDADD=\
 	-ldl \
 	../../core/performance/libnanox.la \
-	@CUDA_RPATH@ \
 	$(END)
 
 endif

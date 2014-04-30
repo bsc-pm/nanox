@@ -78,6 +78,7 @@ namespace nanos
          // configuration variables
          unsigned int         _numPEs;
          int                  _numThreads;
+         int                  _maxCpus;
          int                  _deviceStackSize;
          int                  _bindingStart;
          int                  _bindingStride;
@@ -86,12 +87,11 @@ namespace nanos
          bool                 _instrument;
          bool                 _verboseMode;
          bool                 _summary;            /*!< \brief Flag to enable the summary */
-         time_t               _summary_start_time; /*!< \brief Track time to show duration in summary */
+         time_t               _summaryStartTime;   /*!< \brief Track time to show duration in summary */
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
          bool                 _untieMaster;
          bool                 _delayedStart;
-         bool                 _useYield;
          bool                 _synchronizedStart;
          //! Physical NUMA nodes
          int                  _numSockets;
@@ -101,11 +101,11 @@ namespace nanos
          //! The socket that will be assigned to the next WD
          int                  _currentSocket;
          //! Enable Dynamic Load Balancing library
-         bool                 _enable_dlb;
+         bool                 _enableDLB;
 
 	 // Nanos++ scheduling domain
-         cpu_set_t            _cpu_set;         /*!< \brief system's default cpu_set */
-         cpu_set_t            _cpu_active_set;  /*!< \brief mask of current active cpus */
+         cpu_set_t            _cpuSet;          /*!< \brief system's default cpu_set */
+         cpu_set_t            _cpuActiveSet;    /*!< \brief mask of current active cpus */
 
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>     _numaNodeMap;
@@ -193,12 +193,13 @@ namespace nanos
          std::list<std::string>    _enableEvents;
          std::list<std::string>    _disableEvents;
          std::string               _instrumentDefault;
-         bool                      _enable_cpuid_event;
+         bool                      _enableCpuidEvent;
 #endif
 
          const int                 _lockPoolSize;
          Lock *                    _lockPool;
          ThreadTeam               *_mainTeam;
+         bool                      _simulator;
 
          // disable copy constructor & assignment operation
          System( const System &sys );
@@ -267,17 +268,12 @@ namespace nanos
          void inlineWork ( WD &work );
 
          void createWD (WD **uwd, size_t num_devices, nanos_device_t *devices,
-                        size_t data_size, size_t data_align, void ** data, WG *uwg,
+                        size_t data_size, size_t data_align, void ** data, WD *uwg,
                         nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props, size_t num_copies, nanos_copy_data_t **copies,
                         size_t num_dimensions, nanos_region_dimension_internal_t **dimensions,
-                        nanos_translate_args_t translate_args, const char *description );
-
-         void createSlicedWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, size_t outline_data_size,
-                        int outline_data_align, void **outline_data, WG *uwg, Slicer *slicer, nanos_wd_props_t *props, nanos_wd_dyn_props_t *dyn_props,
-                        size_t num_copies, nanos_copy_data_t **copies, size_t num_dimensions, nanos_region_dimension_internal_t **dimensions, const char *description );
+                        nanos_translate_args_t translate_args, const char *description, Slicer *slicer );
 
          void duplicateWD ( WD **uwd, WD *wd );
-         void duplicateSlicedWD ( SlicedWD **uwd, SlicedWD *wd );
 
         /* \brief prepares a WD to be scheduled/executed.
          * \param work WD to be set up
@@ -346,8 +342,6 @@ namespace nanos
          void setDelayedStart ( bool set);
 
          bool getDelayedStart () const;
-
-         bool useYield() const;
 
          int getCreatedTasks() const ;
 
@@ -472,21 +466,22 @@ namespace nanos
          /*!
           * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
           */
-         BaseThread * getAssignedWorker ( void );
+         BaseThread * getAssignedWorker ( ThreadTeam *team );
 
          /*!
-          * \brief Returns a new created Team with the specified parameters
-          * \param[in] nthreads The team size
-          * \param[in] constraints Not used
-          * \param[in] reuseCurrent Will this thread be a member of the team?
-          * \param[in] enterCurrent Will this thread immediately enter the team?
-          * \param[in] enterOthers Will the other threads immediately enter the team?
-          * \param[in] starringCurrent Is this a star thread?
-          * \param[in] starringOthers Are the others star threads?
+          * \brief Returns, if any, the worker thread is inactive
           */
-         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuseCurrent=true,
-                                   bool enterCurrent=true, bool enterOthers=true, bool starringCurrent = true, bool starringOthers=false );
-
+         BaseThread * getInactiveWorker ( void );
+  
+         /*!
+          * \brief Returns a new team of threads 
+          * \param[in] nthreads Number of threads in the team.
+          * \param[in] constraints This parameter is not used.
+          * \param[in] reuse Reuse current thread as part of the team.
+          * \param[in] parallel Identifies the type of team, parallel code or single executor.
+          */
+         ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
+         
          BaseThread * getWorker( unsigned int n );
 
          void endTeam ( ThreadTeam *team );

@@ -1,4 +1,5 @@
 #include "nanos.h"
+#include "os.hpp"
 #include "omp_init.hpp"
 #include "nanos_omp.h"
 #include "omp_wd_data.hpp"
@@ -14,6 +15,11 @@ namespace nanos
 
 using namespace nanos;
 using namespace nanos::OpenMP;
+
+NANOS_API_DEF ( int, nanos_omp_get_max_processors, (void ) )
+{
+   return nanos::OS::getMaxProcessors();
+}
 
 NANOS_API_DEF(nanos_err_t, nanos_omp_set_implicit, ( nanos_wd_t uwd ))
 {

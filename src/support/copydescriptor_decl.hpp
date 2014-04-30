@@ -27,29 +27,24 @@
 namespace nanos {
 
    /*! \breif Class representing a copy used to synchronize the device with the cache */
-   class CopyDescriptor : public nanos_copy_descriptor_internal_t
-   {
+   class CopyDescriptor {
+      public:
+         uint64_t     _tag;
+         unsigned int _dirVersion;
+         bool         _copying;
+         bool         _flushing;
+
       public:
         /*! \brief Default constructor
          */
-         CopyDescriptor( uint64_t t, unsigned int dv = 0, bool copy = false, bool flush = false )
-         {
-            tag = t;
-            dirVersion = dv;
-            copying = copy;
-            flushing = flush;
-         }
+         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0, bool copy = false, bool flush = false ) :
+               _tag( tag ), _dirVersion( dirVersion ), _copying( copy ), _flushing( flush ) {}
 
         /*! \brief Copy constructor
          *  \param Another CopyDescriptor
          */
-         CopyDescriptor( const CopyDescriptor &cd )
-         {
-            tag = cd.tag;
-            dirVersion = cd.dirVersion;
-            copying = cd.copying;
-            flushing = cd.flushing;
-         }
+         CopyDescriptor( const CopyDescriptor &cd ) : _tag( cd._tag ), _dirVersion( cd._dirVersion ),
+               _copying( cd._copying ), _flushing( cd._flushing ) {}
 
         /* \brief Destructor
          */
@@ -60,10 +55,10 @@ namespace nanos {
          CopyDescriptor& operator=( const CopyDescriptor &cd )
          {
             if ( this == &cd ) return *this;
-            this->tag = cd.tag;
-            this->dirVersion = cd.dirVersion;
-            this->copying = cd.copying;
-            this->flushing = cd.flushing;
+            this->_tag = cd._tag;
+            this->_dirVersion = cd._dirVersion;
+            this->_copying = cd._copying;
+            this->_flushing = cd._flushing;
             return *this;
          }
 

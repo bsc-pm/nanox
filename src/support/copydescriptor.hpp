@@ -26,22 +26,22 @@ using namespace nanos;
 
 inline uint64_t CopyDescriptor::getTag() const
 {
-   return tag;
+   return _tag;
 }
 
 inline unsigned int CopyDescriptor::getDirectoryVersion() const
 {
-   return dirVersion;
+   return _dirVersion;
 }
 
 inline bool CopyDescriptor::isCopying () const
 {
-   return copying;
+   return _copying;
 }
 
 inline bool CopyDescriptor::isFlushing () const
 {
-   return flushing;
+   return _flushing;
 }
 
 #endif

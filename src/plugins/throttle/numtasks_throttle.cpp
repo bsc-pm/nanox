@@ -43,14 +43,14 @@ namespace nanos {
 
             void setLimit( int mc ) { _limit = mc; }
 
-            bool throttle();
+            bool throttleIn();
 
             ~NumTasksThrottle() {}
       };
 
       const int NumTasksThrottle::_defaultLimit = 500;
 
-      bool NumTasksThrottle::throttle()
+      bool NumTasksThrottle::throttleIn()
       {
          if ( sys.getTaskNum() > _limit*sys.getNumWorkers() ) {
             return false;

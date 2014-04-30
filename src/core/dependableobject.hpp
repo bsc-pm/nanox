@@ -87,11 +87,11 @@ inline int DependableObject::increasePredecessors ( )
 	  return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( DependableObject * finishedPred )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred, bool blocking )
 {
    int  numPred = --_numPredecessors; 
 
-   if( finishedPred != NULL ) {
+   if ( finishedPred != NULL ) {
       //remove the predecessor from the list!
       _predLock.acquire();
       DependableObjectVector::iterator it = _predecessors.find( finishedPred );

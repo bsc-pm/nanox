@@ -63,6 +63,13 @@ namespace nanos
          inline void dependOnReaders( DependableObject &depObj, CONTAINER_T &statusContainer, BaseDependency const &target,
                                       SchedulePolicySuccessorFunctor* callback, AccessType const &accessType );
          
+         //! \brief Create a CommutationDO object.
+         //! \param[in] target
+         //! \param[in] accessType
+         //! \param[in] status trackable object
+         //! \returns a CommutationDO object
+         virtual CommutationDO *createCommutationDO(BaseDependency const &target, AccessType const &accessType, TrackableObject &status);
+
          /*! \brief Adds a commutative access of a DependableObject to the domains dependency system.
           *  \param target accessed base address/region
           *  \param accessType kind of access

@@ -25,10 +25,12 @@ using namespace nanos;
 using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
+bool OpenCLConfig::_forceShMem = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
 size_t OpenCLConfig::_devCacheSize = 0;
 unsigned int OpenCLConfig::_devNum = INT_MAX;
 unsigned int OpenCLConfig::_currNumDevices = 0;
+bool OpenCLConfig::_saveBinaryKernel = false;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
 extern __attribute__((weak)) char ompss_uses_opencl;
@@ -101,6 +103,18 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerEnvOption( "opencl-max-devices", "NX_OPENCL_MAX_DEVICES" );
    cfg.registerArgOption( "opencl-max-devices", "opencl-max-devices" );
 
+   // Enable/disable OpenCL.
+   cfg.registerConfigOption( "force-opencl-mapped",
+                             NEW Config::FlagOption( _forceShMem ),
+                             "Force the use the use of mapped pointers for every device (Default: GPU -> NO, CPU->YES). Can save copy time on shared memory devices" );
+   cfg.registerEnvOption( "force-opencl-mapped", "NX_FORCE_OPENCL_MAPPED");
+   cfg.registerArgOption( "force-opencl-mapped", "force-opencl-mapped" );
+   
+   // Enable/disable binary kernel generation
+   cfg.registerConfigOption( "opencl-save-kernel",
+                             NEW Config::FlagOption( _saveBinaryKernel ),
+                             "Save a binary version of the kernel" );
+   cfg.registerArgOption( "opencl-save-kernel", "opencl-save-kernel" );
 }
 
 void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices)

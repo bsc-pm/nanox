@@ -42,6 +42,10 @@ namespace nanos
 
    inline void TeamData::setStar ( bool v ) { _star = v; }
 
+   inline void TeamData::setCreator ( bool value ) { _creator = value; }
+
+   inline bool TeamData::isCreator ( void ) const { return _creator; }
+
    inline nanos_ws_desc_t *TeamData::getTeamWorkSharingDescriptor( BaseThread *thread, bool *b )
    {
       nanos_ws_desc_t *next = NULL, *myNext = NULL;
@@ -100,41 +104,45 @@ namespace nanos
    }
 
    inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
-      _id( sys.nextThreadId() ), _name( "Thread" ), _description( "" ), _pe( creator ), _threadWD( wd ),
-      _maxPrefetch( 1 ), _nextWDs(), _started( false ), _mustStop( false ),
-      _mustSleep( false ), _paused( false ), _canGetWork( true ), _currentWD( NULL ), _hasTeam( false ),
-      _teamData( NULL ), _nextTeamData( NULL ), _allocator() { }
+      _id( sys.nextThreadId() ), _maxPrefetch( 1 ), _status( ), _pe( creator ), _mlock( ),
+      _threadWD( wd ), _currentWD( NULL ), _nextWDs( ), _canGetWork( true ),
+      _teamData( NULL ), _nextTeamData( NULL ),
+      _name( "Thread" ), _description( "" ), _allocator( ) { }
+
+   inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
+
+   inline void BaseThread::setMainThread ( bool v ) { _status.is_main_thread = v; }
+
+   inline void BaseThread::joined ( void ) { _status.has_joined = true; }
 
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  
    inline void BaseThread::unlock () { _mlock--; }
  
-   inline void BaseThread::stop() { _mustStop = true; }
+   inline void BaseThread::stop() { _status.must_stop = true; }
 
-   inline void BaseThread::sleep() { _mustSleep = true; }
+   inline void BaseThread::sleep() { _status.must_sleep = true; }
 
-   inline void BaseThread::wakeup() { _mustSleep = false; }
+   inline void BaseThread::wakeup() { _status.must_sleep = false; }
    
    inline void BaseThread::pause ()
    {
       // If the thread was already paused, do nothing
-      if ( _paused ){
-         return;
-      }
+      if ( _status.is_paused ) return;
+
       // Otherwise, notify this change
-      _paused = true;
+      _status.is_paused = true;
       sys.pausedThread();
    }
    
    inline void BaseThread::unpause ()
    {
       // If the thread was already unpaused, do nothing
-      if ( !_paused ){
-         return;
-      }
+      if ( !_status.is_paused ) return;
+
       // Otherwise, notify this change
-      _paused = false;
+      _status.is_paused = false;
       sys.unpausedThread();
    }
  
@@ -145,37 +153,44 @@ namespace nanos
  
    inline WD & BaseThread::getThreadWD () const { return _threadWD; }
  
-   inline int BaseThread::getMaxPrefetch () const { return _maxPrefetch; }
+   inline int BaseThread::getMaxPrefetch () const { return ( int ) _maxPrefetch; }
 
-   inline void BaseThread::setMaxPrefetch ( int max ) { _maxPrefetch = max; }
+   inline void BaseThread::setMaxPrefetch ( int max ) { _maxPrefetch = (unsigned short) max; }
 
    inline bool BaseThread::canPrefetch () const { return _nextWDs.size() < _maxPrefetch; }
 
-   inline bool BaseThread::hasNextWD () { return !_nextWDs.empty(); }
+   inline bool BaseThread::hasNextWD () const { return !_nextWDs.empty(); }
  
    // team related methods
-   inline void BaseThread::reserve() { _hasTeam = true; }
+   inline void BaseThread::reserve() { _status.has_team = true; }
  
    inline void BaseThread::enterTeam( TeamData *data )
    { 
+      lock();
       if ( data != NULL ) _teamData = data;
       else _teamData = _nextTeamData;
-      _hasTeam = true;
+      _status.has_team = true;
+      unlock();
    }
  
-   inline bool BaseThread::hasTeam() const { return _hasTeam; }
+   inline bool BaseThread::hasTeam() const { return _status.has_team; }
  
    inline void BaseThread::leaveTeam()
    {
+      ensure( this == myThread, "thread is not leaving team by itself" );
       if ( _teamData ) 
       {
          TeamData *td = _teamData;
+         debug( "removing thread " << this << " with id " << toString<int>(getTeamId()) << " from " << _teamData->getTeam() );
+
+         size_t final_size = td->getTeam()->removeThread( getTeamId() );
+         if ( final_size == td->getTeam()->getFinalSize() ) td->getTeam()->setStable(true);
          _teamData = _teamData->getParentTeamData();
-         _hasTeam = _teamData != NULL;
+         _status.has_team = _teamData != NULL;
          delete td;
       }
    }
- 
+
    inline ThreadTeam * BaseThread::getTeam() const { return _teamData ? _teamData->getTeam() : NULL; }
  
    inline TeamData * BaseThread::getTeamData() const { return _teamData; }
@@ -193,25 +208,33 @@ namespace nanos
    //! Returns the id of the thread inside its current team 
    inline int BaseThread::getTeamId() const { return _teamData->getId(); }
  
-   inline bool BaseThread::isStarted () const { return _started; }
+   inline bool BaseThread::isStarted () const { return _status.has_started; }
  
-   inline bool BaseThread::isRunning () const { return _started && !_mustStop; }
+   inline bool BaseThread::isRunning () const { return _status.has_started && !_status.must_stop; }
 
-   inline bool BaseThread::isTaggedToSleep () const { return _mustSleep; }
-   
-   inline bool BaseThread::isPaused () const { return _paused; }
+   inline bool BaseThread::isSleeping () const { return _status.must_sleep; }
 
    inline bool BaseThread::canGetWork () { return _canGetWork; }
 
    inline void BaseThread::enableGettingWork () { _canGetWork = true; }
 
    inline void BaseThread::disableGettingWork () { _canGetWork = false; }
+
+   inline bool BaseThread::isTeamCreator () const { return _teamData->isCreator(); } 
+
+   inline void BaseThread::wait ( void ) { _status.is_waiting = true; }
+
+   inline void BaseThread::resume ( void ) {_status.is_waiting = false; }
+
+   inline bool BaseThread::isWaiting () const { return _status.is_waiting; }
+
+   inline bool BaseThread::isPaused () const { return _status.is_paused; }
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
  
    inline int BaseThread::getId() const { return _id; }
  
-   inline int BaseThread::getCpuId() { return runningOn()->getId(); }
+   inline int BaseThread::getCpuId() const { return _pe->getId(); }
  
    inline bool BaseThread::isStarring ( const ThreadTeam *t ) const
    {
@@ -220,28 +243,14 @@ namespace nanos
       return false;
    }
 
-   inline void BaseThread::setStar ( bool v )
-   {
-      if ( _teamData ) _teamData->setStar ( v );
-   }
+   inline void BaseThread::setStar ( bool v ) { if ( _teamData ) _teamData->setStar ( v ); }
 
    inline Allocator & BaseThread::getAllocator() { return _allocator; }
-   /*! \brief Rename the basethread
-   */
-   inline void BaseThread::rename ( const char *name )
-   {
-     _name = name;
-   }
+
+   inline void BaseThread::rename ( const char *name ) { _name = name; }
  
-   /*! \brief Get BaseThread name
-   */
-   inline const std::string & BaseThread::getName ( void ) const
-   {
-      return _name;
-   }
+   inline const std::string & BaseThread::getName ( void ) const { return _name; }
  
-   /*! \brief Get BaseThread description
-   */
    inline const std::string & BaseThread::getDescription ( void ) 
    {
      if ( _description.empty() ) {

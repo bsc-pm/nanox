@@ -33,10 +33,7 @@ inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input
    dimension_count = numDimensions;
    dimensions = dims;
    offset = off;
-   cpDesc.tag = addr;
-   cpDesc.dirVersion = 0;
-   cpDesc.copying = false;
-   cpDesc.flushing = false;
+   cpDesc = ( void * ) new CopyDescriptor( addr, 0, false, false );
 }
 
 inline CopyData::CopyData ( const CopyData &cd )
@@ -48,7 +45,7 @@ inline CopyData::CopyData ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
-   cpDesc = cd.cpDesc;
+   cpDesc = ( void * ) new CopyDescriptor( *( ( CopyDescriptor * ) ( cd.cpDesc ) ) );
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
@@ -61,7 +58,7 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
-   cpDesc = cd.cpDesc;
+   cpDesc = ( void * ) new CopyDescriptor( *( ( CopyDescriptor * ) ( cd.cpDesc ) ) );
    return *this;
 }
 
@@ -140,21 +137,24 @@ inline uint64_t CopyData::getAddress() const
    return ( (uint64_t) address ); 
 }
 
-inline CopyDescriptor CopyData::getCopyDescriptor() const
+inline CopyDescriptor * CopyData::getCopyDescriptor()
 {
-   return CopyDescriptor( ( CopyDescriptor & ) cpDesc );
+   if ( cpDesc == NULL ) 
+      cpDesc = ( void * ) new CopyDescriptor( 0, 0, false, false );
+
+   return ( CopyDescriptor * ) cpDesc;
 }
 
-inline void CopyData::setCopyDescriptor( CopyDescriptor cpd )
+inline void CopyData::setCopyDescriptor( CopyDescriptor * cpd )
 {
-   cpDesc = cpd;
-
-#if 0
-   cpDesc.tag = cpd.tag;
-   cpDesc.dirVersion = cpd.dirVersion;
-   cpDesc.copying = cpd.copying;
-   cpDesc.flushing = cpd.flushing;
-#endif
+   if ( cpDesc == NULL ) {
+      cpDesc = new CopyDescriptor( *cpd );
+   } else {
+      ( ( CopyDescriptor * ) cpDesc )->_tag = cpd->_tag;
+      ( ( CopyDescriptor * ) cpDesc )->_dirVersion = cpd->_dirVersion;
+      ( ( CopyDescriptor * ) cpDesc )->_copying = cpd->_copying;
+      ( ( CopyDescriptor * ) cpDesc )->_flushing = cpd->_flushing;
+   }
 }
 
 #endif

@@ -130,7 +130,7 @@
  *
  */
 
-#include <unistd.h>
+#include <stddef.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 
@@ -181,7 +181,10 @@ NANOS_API_DECL(char *, nanos_get_mode, ( void ));
 // Functions related to WD
 NANOS_API_DECL(nanos_wd_t, nanos_current_wd, (void));
 NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
+
 NANOS_API_DECL(int, nanos_get_wd_priority, (nanos_wd_t wd));
+NANOS_API_DECL(void, nanos_set_wd_priority, (nanos_wd_t wd, int p));
+
 NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
 
 // Finder functions
@@ -242,8 +245,8 @@ NANOS_API_DECL(nanos_err_t, nanos_release_sync_init, ( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_memory_fence, (void));
 
-NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads, ( int *n ) );
-NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads, ( int *n, nanos_thread_t *list_of_threads ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads_FIXME, ( int *n ) );
+NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads_FIXME, ( int *n, nanos_thread_t *list_of_threads ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
 NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) );

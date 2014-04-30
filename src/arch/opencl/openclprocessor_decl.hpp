@@ -49,7 +49,7 @@ public:
 public:
    void initialize(cl_device_id dev);
 
-   cl_int allocBuffer( size_t size, cl_mem &buf );
+   cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
@@ -66,12 +66,13 @@ public:
    // responsability.
    cl_int buildProgram( const char *src,
                         const char *compilerOpts,
-                        cl_program &prog );
+                        cl_program &prog,
+                        const std::string& filename );
 
    // As above, but without compiler options.
    cl_int buildProgram( const char *src, cl_program &prog )
    {
-      return buildProgram( src, "", prog );
+      return buildProgram( src, "", prog, "" );
    }
 
    // Low-level program destructor.
@@ -116,6 +117,10 @@ public:
        return _preallocateWholeMemory;
    }
    
+   bool getUseHostPtr(){
+       return _useHostPtrs;
+   }
+   
    void setPreallocatedWholeMemory(bool val){
       // _preallocateWholeMemory=val;
    }
@@ -152,10 +157,12 @@ private:
    cl_context _ctx;
    cl_command_queue _queue;
    std::map<void *, cl_mem> _bufCache;
-   const bool _preallocateWholeMemory;
+   std::map<cl_mem, int> _unmapedCache;
+   bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
    std::vector<cl_event> _pendingEvents;
+   bool _useHostPtrs;
 };
 
 class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
@@ -189,7 +196,7 @@ public:
        return _openclAdapter.createKernel(kernel_name,opencl_code, compiler_opts);
    }
    
-   void setKernelBufferArg(void* openclKernel, int argNum, void* pointer);
+   void setKernelBufferArg(void* openclKernel, int argNum,const void* pointer);
    
    void execKernel(void* openclKernel, 
                         int workDim, 
@@ -197,7 +204,7 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
-   void setKernelArg(void* opencl_kernel, int arg_num, size_t size, void* pointer);
+   void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);
    
    void printStats();
    

@@ -26,6 +26,7 @@ test_generator=gens/api-generator
 #include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <nanos.h>
 
 #define FIRST 10

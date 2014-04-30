@@ -20,12 +20,10 @@
 #define __NANOS_INT_H
 
 //! \file nanos_c_api_macros.h
-//! \brief 
+//! \brief
 //
 //! \defgroup core Nanos++ Core
 
-#include <stdio.h>
-#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -118,16 +116,6 @@ typedef struct {
    void (*cleanup)(void *);
 } nanos_reduction_t;
 
-/* This structure is inherited from CopyDescriptor in copydescriptor_decl.hpp.
- * Any change in its contents has to be reflected in CopyDescriptor class
- */
-typedef struct {
-   uint64_t tag;
-   unsigned int dirVersion;
-   bool copying;
-   bool flushing;
-} nanos_copy_descriptor_internal_t;
-
 /* This structure is initialized in copydata.hpp. Any change in
  * its contents has to be reflected in CopyData constructor
  */
@@ -149,7 +137,7 @@ typedef struct {
    nanos_region_dimension_internal_t const *dimensions;
 #endif
    ptrdiff_t offset;
-   nanos_copy_descriptor_internal_t cpDesc;
+   void * /*nanos_copy_descriptor_internal_t*/ cpDesc;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;
@@ -158,18 +146,15 @@ typedef nanos_region_dimension_internal_t nanos_region_dimension_t;
 #ifndef _NANOS_INTERNAL
 
 typedef nanos_data_access_internal_t nanos_data_access_t;
-typedef nanos_copy_descriptor_internal_t nanos_copy_descriptor_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
 
 #else
 
 namespace nanos {
    class DataAccess;
-   class CopyDescriptor;
    class CopyData;
 }
 typedef nanos::DataAccess nanos_data_access_t;
-typedef nanos::CopyDescriptor nanos_copy_descriptor_t;
 typedef nanos::CopyData nanos_copy_data_t;
 
 #endif
@@ -301,7 +286,7 @@ typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE
 } nanos_event_domain_t; /**< Specifies a domain */
 
 typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
-  
+
 typedef struct {
    nanos_event_type_t   type;
    nanos_event_key_t    key;

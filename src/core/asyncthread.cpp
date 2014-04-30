@@ -268,12 +268,13 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
       CopyData *copies = work.getCopies();
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
+         CopyDescriptor * cpdesc = cd.getCopyDescriptor();
          uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
 
          GenericEvent * evt = this->createPreRunEvent( &work );
-   #ifdef NANOS_GENERICEVENT_DEBUG
+#ifdef NANOS_GENERICEVENT_DEBUG
          evt->setDescription( evt->getDescription() + " copy input " + toString<uint64_t>( tag ) );
-   #endif
+#endif
          evt->setCreated();
 
          if ( cd.isInput() ) {
@@ -290,10 +291,8 @@ void AsyncThread::copyDataIn( WorkDescriptor& work )
 
          evt->setPending();
 
-         CopyDescriptor cpdesc = cd.getCopyDescriptor();
-
-         if ( cpdesc.copying || cpdesc.flushing ) {
-            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
+         if ( cpdesc->_copying || cpdesc->_flushing ) {
+            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, *( cd.getCopyDescriptor() ) );
             evt->addNextAction( action );
 #ifdef NANOS_GENERICEVENT_DEBUG
             evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
@@ -367,6 +366,7 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
       CopyData *copies = work.getCopies();
       for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
          CopyData & cd = copies[i];
+         CopyDescriptor * cpdesc = cd.getCopyDescriptor();
          uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
 
          GenericEvent * evt = this->createPostRunEvent( &work );
@@ -397,10 +397,8 @@ void AsyncThread::copyDataOut( WorkDescriptor& work )
 
          evt->setPending();
 
-         CopyDescriptor cpdesc = cd.getCopyDescriptor();
-
-         if ( cpdesc.copying || cpdesc.flushing ) {
-            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, cd.getCopyDescriptor() );
+         if ( cpdesc->_copying || cpdesc->_flushing ) {
+            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, *( cd.getCopyDescriptor() ) );
             evt->addNextAction( action );
 #ifdef NANOS_GENERICEVENT_DEBUG
             evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );

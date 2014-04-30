@@ -107,7 +107,7 @@ int main ( int argc, char **argv )
                       CopyData( (uint64_t)data->b, NANOS_SHARED, true, true, 1, &dims[1], 0 ) };
    WD * wd = new WD( new SMPDD( hello_world ), sizeof( args_t ), __alignof__(args_t), data, 2, cd );
 
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
 
    wg->addWork( *wd );
 

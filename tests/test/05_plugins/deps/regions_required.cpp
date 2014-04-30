@@ -96,7 +96,7 @@ int main ( int argc, char **argv )
    // Stop scheduler
    sys.stopScheduler();
    sys.waitUntilThreadsPaused();
-   WG *wg = getMyThreadSafe()->getCurrentWD();
+   WD *wg = getMyThreadSafe()->getCurrentWD();
    
    
    nanos_region_dimension_t dimLoop[1] = {{ sizeof( int )*arraySize, 0, sizeof( int )*arraySize }};
@@ -106,10 +106,10 @@ int main ( int argc, char **argv )
    wg->addWork( *wd );
    sys.submitWithDependencies( *wd, 1, (nanos::DataAccess*)&depsLoop );
    
-   for ( i = 0; i < arraySize; i++ )
+   for ( i = 0; i < (ptrdiff_t)arraySize; i++ )
    {
-      nanos_region_dimension_t dimFail[1] = {{ sizeof( int ), i, sizeof( int ) }};
-      nanos_data_access_t depsFail[] = {{(void *)&array, {0,1,0,0,0}, 1, dimFail, i} };
+      nanos_region_dimension_t dimFail[1] = {{ sizeof( int ), (size_t) i, sizeof( int ) }};
+      nanos_data_access_t depsFail[] = {{(void *)&array, {0,1,0,0,0}, 1, dimFail, (ptrdiff_t)i} };
       task_data_t task_data;
       task_data.index = i;
       

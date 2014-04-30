@@ -69,8 +69,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
    if ( ce != NULL ) version = ce->getVersion()+1;
    DirectoryEntry *de = dir.getEntry( tag, version );
 
-   cpdata.cpDesc.tag = tag;
-   cpdata.cpDesc.dirVersion = version;
+   CopyDescriptor * cpdsc = cpdata.getCopyDescriptor();
+   cpdsc->_tag = tag;
+   cpdsc->_dirVersion = version;
 
    if ( de == NULL ) { // Memory access not registered in the directory
       bool inserted;
@@ -92,11 +93,11 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
          ce->setAllocSize( size );
          if (input) {
             CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-            ce->addTransfer( cd.dirVersion, INPUT, false );
+            ce->addTransfer( cd._dirVersion, INPUT, false );
             if ( _cache.copyDataToCache( cd, size ) ) {
-               ce->finishTransfer( cd.dirVersion, INPUT, false );
+               ce->finishTransfer( cd._dirVersion, INPUT, false );
             }
-            cpdata.setCopyDescriptor( cd );
+            cpdata.setCopyDescriptor( &cd );
          }
       } else {        // wait for address
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), NANOS_CACHE_EVENT_REGISTER_CACHE_ACCESS_94 ); )
@@ -133,25 +134,25 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                }
                if ( input ) {
                   CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                  ce->addTransfer( cd.dirVersion, INPUT, false );
+                  ce->addTransfer( cd._dirVersion, INPUT, false );
                   CacheEntry * ownerCE = owner->getEntry( tag );
                   // TODO: For asynchronous transfers, reference to the owner will never be decreased
                   ownerCE->addReference();
                   if ( _cache.copyData( ce->getAddress(), cd, ownerCE->getAddress(), size, *owner ) ) {
-                     ce->finishTransfer( cd.dirVersion, INPUT, false );
+                     ce->finishTransfer( cd._dirVersion, INPUT, false );
                      ownerCE->deleteReference();
-                     cd.copying = false;
+                     cd._copying = false;
                   }
-                  cpdata.setCopyDescriptor( cd );
+                  cpdata.setCopyDescriptor( &cd );
                }
             } else if ( input ) {
                CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-               ce->addTransfer( cd.dirVersion, INPUT, false );
+               ce->addTransfer( cd._dirVersion, INPUT, false );
                if ( _cache.copyDataToCache( cd, size ) ) {
-                  ce->finishTransfer( cd.dirVersion, INPUT, false );
-                  cd.copying = false;
+                  ce->finishTransfer( cd._dirVersion, INPUT, false );
+                  cd._copying = false;
                }
-               cpdata.setCopyDescriptor( cd );
+               cpdata.setCopyDescriptor( &cd );
             }
 #endif
 
@@ -164,7 +165,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
                }
-               cpdata.setCopyDescriptor( cd );
+               cpdata.setCopyDescriptor( &cd );
             }
 #endif
 
@@ -221,12 +222,12 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
 
                      // Copy in
                      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->addTransfer( cd.dirVersion, INPUT, false );
+                     ce->addTransfer( cd._dirVersion, INPUT, false );
                      if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->finishTransfer( cd.dirVersion, INPUT, false );
-                        cd.copying = false;
+                        ce->finishTransfer( cd._dirVersion, INPUT, false );
+                        cd._copying = false;
                      }
-                     cpdata.setCopyDescriptor( cd );
+                     cpdata.setCopyDescriptor( &cd );
                   }
                   ce->setResizing(false);
                }
@@ -270,12 +271,12 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                      NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "cache-wait" ), 0 ); )
                      // Copy in
                      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->addTransfer( cd.dirVersion, INPUT, false );
+                     ce->addTransfer( cd._dirVersion, INPUT, false );
                      if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->finishTransfer( cd.dirVersion, INPUT, false );
-                        cd.copying = false;
+                        ce->finishTransfer( cd._dirVersion, INPUT, false );
+                        cd._copying = false;
                      }
-                     cpdata.setCopyDescriptor( cd );
+                     cpdata.setCopyDescriptor( &cd );
                   } else { 
                      Cache *owner = de->getOwner();
                      ensure( &_cache != owner, "Trying to invalidate myself" );
@@ -291,12 +292,12 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
 
                      // Copy in
                      CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                     ce->addTransfer( cd.dirVersion, INPUT, false );
+                     ce->addTransfer( cd._dirVersion, INPUT, false );
                      if ( _cache.copyDataToCache( cd, size ) ) {
-                        ce->finishTransfer( cd.dirVersion, INPUT, false );
-                        cd.copying = false;
+                        ce->finishTransfer( cd._dirVersion, INPUT, false );
+                        cd._copying = false;
                      }
-                     cpdata.setCopyDescriptor( cd );
+                     cpdata.setCopyDescriptor( &cd );
                   }
                }
                ce->setResizing(false);
@@ -330,7 +331,7 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                if ( _cache.copyDataToCache( cd, size ) ) {
                   ce->setCopying(false);
                }
-               cpdata.setCopyDescriptor( cd );
+               cpdata.setCopyDescriptor( &cd );
 #else
 
                if ( owner != NULL ) {
@@ -343,25 +344,25 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, CopyData &cpdata, 
                   }
 
                   CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                  ce->addTransfer( cd.dirVersion, INPUT, false );
+                  ce->addTransfer( cd._dirVersion, INPUT, false );
                   CacheEntry * ownerCE = owner->getEntry( tag );
                   // TODO: For asynchronous transfers, reference to the owner will never be decreased
                   ownerCE->addReference();
                   if ( _cache.copyData( ce->getAddress(), cd, ownerCE->getAddress(), size, *owner ) ) {
-                     ce->finishTransfer( cd.dirVersion, INPUT, false );
+                     ce->finishTransfer( cd._dirVersion, INPUT, false );
                      ownerCE->deleteReference();
-                     cd.copying = false;
+                     cd._copying = false;
                   }
-                  cpdata.setCopyDescriptor( cd );
+                  cpdata.setCopyDescriptor( &cd );
 
                } else {
                   CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-                  ce->addTransfer( cd.dirVersion, INPUT, false );
+                  ce->addTransfer( cd._dirVersion, INPUT, false );
                   if ( _cache.copyDataToCache( cd, size ) ) {
-                     ce->finishTransfer( cd.dirVersion, INPUT, false );
-                     cd.copying = false;
+                     ce->finishTransfer( cd._dirVersion, INPUT, false );
+                     cd._copying = false;
                   }
-                  cpdata.setCopyDescriptor( cd );
+                  cpdata.setCopyDescriptor( &cd );
                }
 #endif
             } else {
@@ -396,12 +397,12 @@ inline void CachePolicy::registerPrivateAccess( Directory& dir, CopyData &cpdata
    ce.setAllocSize( size );
    if ( input ) {
       CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
-      ce.addTransfer( cd.dirVersion, INPUT, false );
+      ce.addTransfer( cd._dirVersion, INPUT, false );
       if ( _cache.copyDataToCache( cd, size ) ) {
-         ce.finishTransfer( cd.dirVersion, INPUT, false );
-         cd.copying = false;
+         ce.finishTransfer( cd._dirVersion, INPUT, false );
+         cd._copying = false;
       }
-      cpdata.setCopyDescriptor( cd );
+      cpdata.setCopyDescriptor( &cd );
    }
 }
 
@@ -413,14 +414,14 @@ inline void CachePolicy::unregisterPrivateAccess( Directory &dir, CopyData &cpda
    // FIXME: to use this output it needs to be synchronized now or somewhere in case it is asynchronous
    if ( ce->isDirty() ) {
       CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ false, /* flushing */ true );
-      ce->addTransfer( cd.dirVersion, OUTPUT, true );
+      ce->addTransfer( cd._dirVersion, OUTPUT, true );
       ce->deleteReference();
       if ( _cache.copyBackFromCache( cd, size ) ) {
-         ce->finishTransfer( cd.dirVersion, OUTPUT, true );
-         cd.flushing = false;
+         ce->finishTransfer( cd._dirVersion, OUTPUT, true );
+         cd._flushing = false;
          _cache.deleteEntry( tag, size );
       }
-      cpdata.setCopyDescriptor( cd );
+      cpdata.setCopyDescriptor( &cd );
    } else {
       ce->deleteReference();
    }
@@ -445,8 +446,8 @@ inline void NoCache::registerCacheAccess( Directory& dir, CopyData &cpdata, uint
    if ( input ) {
       CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ true, /* flushing */ false );
       _cache.copyDataToCache( cd, size );
-      cd.copying = false;
-      cpdata.setCopyDescriptor( cd );
+      cd._copying = false;
+      cpdata.setCopyDescriptor( &cd );
    }
 
 }
@@ -457,8 +458,8 @@ inline void NoCache::unregisterCacheAccess( Directory& dir, CopyData &cpdata, ui
    if ( output ) {
       CopyDescriptor cd = CopyDescriptor( tag, 0, /* copying */ false, /* flushing */ true  );
       _cache.copyBackFromCache( cd, size );
-      cd.flushing = false;
-      cpdata.setCopyDescriptor( cd );
+      cd._flushing = false;
+      cpdata.setCopyDescriptor( &cd );
    }
 
    _cache.deleteReference( tag );
@@ -487,15 +488,15 @@ inline void WriteThroughPolicy::unregisterCacheAccess( Directory& dir, CopyData 
    if ( output ) {
       ensure( de != NULL, "Directory has been corrupted" );
       CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
-      ce->addTransfer( cd.dirVersion, OUTPUT, true );
+      ce->addTransfer( cd._dirVersion, OUTPUT, true );
       if ( _cache.copyBackFromCache( cd, cpdata.getSize() ) ) {
-         ce->finishTransfer( cd.dirVersion, OUTPUT, true );
-         cd.flushing = false;
+         ce->finishTransfer( cd._dirVersion, OUTPUT, true );
+         cd._flushing = false;
          if ( !ce->isFlushing() ) {
             de->setOwner( NULL );
          }
       }
-      cpdata.setCopyDescriptor( cd );
+      cpdata.setCopyDescriptor( &cd );
    }
 
    ce->deleteReference();
@@ -511,7 +512,7 @@ inline void WriteBackPolicy::unregisterCacheAccess( Directory &dir, CopyData &cp
 {
    CacheEntry * ce = _cache.getEntry( tag );
    CopyDescriptor cd = CopyDescriptor( tag, ce->getVersion(), /* copying */ false, /* flushing */ false );
-   cpdata.setCopyDescriptor( cd );
+   cpdata.setCopyDescriptor( &cd );
    ce->deleteReference();
 }
 
@@ -578,15 +579,15 @@ inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
             // someone flushed it between setting to invalidated and setting to flushing, do nothing
          } else {
             // This CE is the owner
-            cd.tag = ce->getTag();
-            cd.dirVersion = de->getVersion();
-            cd.copying = false;
-            cd.flushing = true;
-            ce->addTransfer( cd.dirVersion, OUTPUT, true );
+            cd._tag = ce->getTag();
+            cd._dirVersion = de->getVersion();
+            cd._copying = false;
+            cd._flushing = true;
+            ce->addTransfer( cd._dirVersion, OUTPUT, true );
 
             if ( copyBackFromCache( cd, ce->getSize() ) ) {
-               ce->finishTransfer( cd.dirVersion, OUTPUT, true );
-               cd.flushing = false;
+               ce->finishTransfer( cd._dirVersion, OUTPUT, true );
+               cd._flushing = false;
                if ( !ce->isFlushing() ) {
                   de->setOwner( NULL );
                }
@@ -605,7 +606,7 @@ inline void DeviceCache<_T>::freeSpaceToFit( Directory &dir, size_t size )
       {
 
          myThread->disableGettingWork();
-         while ( cd.tag != 0 && ce->isTransferPending( cd.dirVersion, OUTPUT, true ) ) {
+         while ( cd._tag != 0 && ce->isTransferPending( cd._dirVersion, OUTPUT, true ) ) {
             _T::syncTransfer( ce->getTag(), _pe );
             //myThread->idle();
             myThread->processTransfers();
@@ -781,21 +782,21 @@ inline void DeviceCache<_T>::unregisterPrivateAccess( Directory &dir, CopyData &
 template <class _T>
 inline void DeviceCache<_T>::synchronizeInternal( SyncData &sd, CopyDescriptor &cd )
 {
-   if ( cd.copying && cd.flushing ) {
+   if ( cd._copying && cd._flushing ) {
       return;
    }
 
    CacheEntry *ce = sd._this->_cache.find( cd.getTag() );
    ensure( ce != NULL, "Cache has been corrupted" );
 
-   if ( cd.flushing ) {
+   if ( cd._flushing ) {
       Directory* dir = ce->getFlushTo();
       ensure( dir != NULL, "CopyBack sync lost its directory");
       DirectoryEntry *de = dir->getEntry( cd.getTag() );
       //ensure ( !ce->isCopying(), "User program is incorrect" );
       ensure( de != NULL, "Directory has been corrupted" );
 
-      ce->finishTransfer( cd.dirVersion, OUTPUT, true );
+      ce->finishTransfer( cd._dirVersion, OUTPUT, true );
 
       // Make sure we are synchronizing the newest version
       if ( de->getOwner() == sd._this && ce->getVersion() == cd.getDirectoryVersion()) {
@@ -803,8 +804,8 @@ inline void DeviceCache<_T>::synchronizeInternal( SyncData &sd, CopyDescriptor &
       }
    }
 
-   if ( cd.copying ) {
-      ce->finishTransfer( cd.dirVersion, INPUT, false );
+   if ( cd._copying ) {
+      ce->finishTransfer( cd._dirVersion, INPUT, false );
    }
 }
 
@@ -871,10 +872,10 @@ inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, D
          // someone flushed it between setting to invalidated and setting to flushing, do nothing
       } else {
          CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
-         ce->addTransfer( cd.dirVersion, OUTPUT, true );
+         ce->addTransfer( cd._dirVersion, OUTPUT, true );
          if ( copyBackFromCache( cd, ce->getSize() ) ) {
-            ce->finishTransfer( cd.dirVersion, OUTPUT, true );
-            cd.flushing = false;
+            ce->finishTransfer( cd._dirVersion, OUTPUT, true );
+            cd._flushing = false;
             if ( !ce->isFlushing() ) {
                de->setOwner( NULL );
             }
@@ -893,10 +894,10 @@ inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, s
          // someone flushed it between setting to invalidated and setting to flushing, do nothing
       } else {
          CopyDescriptor cd = CopyDescriptor( tag, de->getVersion(), /* copying */ false, /* flushing */ true );
-         ce->addTransfer( cd.dirVersion, OUTPUT, true );
+         ce->addTransfer( cd._dirVersion, OUTPUT, true );
          if ( copyBackFromCache( cd, size ) ) {
-            ce->finishTransfer( cd.dirVersion, OUTPUT, true );
-            cd.flushing = false;
+            ce->finishTransfer( cd._dirVersion, OUTPUT, true );
+            cd._flushing = false;
             if ( !ce->isFlushing() ) {
                de->setOwner( NULL );
             }

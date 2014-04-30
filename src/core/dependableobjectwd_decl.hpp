@@ -47,7 +47,7 @@ namespace nanos
          /*! \brief DOSubmit copy constructor
           *  \param dos another DOSubmit
           */
-         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos), _submittedWD( dos._submittedWD ) { }
+         DOSubmit ( const DOSubmit &dos ) : DependableObject( dos ), _submittedWD( dos._submittedWD ) { }
 
          /*! \brief DOSubmit assignment operator, can be self-assigned.
           *  \param dos another DOSubmit
@@ -61,6 +61,17 @@ namespace nanos
          /*! \brief Submits WorkDescriptor when dependencies are satisfied
           */
          virtual void dependenciesSatisfied ( );
+         
+         /*! \brief Because of the batch-release mechanism,
+          *  dependenciesSatisfied will never be called, so common code
+          *  between the normal path and the batch path must go here.
+          *  \see dependenciesSatisfied()
+          */
+         virtual void dependenciesSatisfiedNoSubmit ( );
+         
+         /*! \brief Checks if it has only one predecessor.
+          */
+         virtual bool canBeBatchReleased ( ) const;
 
          /*! \brief TODO 
           */
@@ -119,10 +130,6 @@ namespace nanos
           */
          virtual void init ( );
 
-         /*! \brief Wait method blocks execution untill dependencies are satisfied
-          */
-         virtual void wait ( std::list<uint64_t> const & flushDeps  );
-
          /*! \brief whether the DO gets blocked and no more dependencies can
           *  be submitted until it is satisfied.
           */
@@ -131,6 +138,10 @@ namespace nanos
          /*! \brief Unblock method when dependencies are satisfied
           */
          virtual void dependenciesSatisfied ( );
+
+         /*! \brief
+          */
+         int decreasePredecessors ( std::list<uint64_t>const * flushDeps,  DependableObject * finishedPred, bool blocking = false );
 
          /*! \brief TODO
           */

@@ -23,6 +23,8 @@
 #include "system.hpp"
 #include "allocator_decl.hpp"
 
+#include <stdio.h>
+
 using namespace nanos;
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED

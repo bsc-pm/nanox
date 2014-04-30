@@ -39,40 +39,51 @@ inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread &thread )
    return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread ) && wd.tryAcquireCommutativeAccesses();
 }
 
-inline unsigned int SchedulerConf::getNumSpins () const
+inline void SchedulerConf::setUseYield ( const bool value )
 {
-   return _numSpins;
+   _useYield = value;
 }
 
-inline void SchedulerConf::setNumSpins ( const unsigned int num )
+inline void SchedulerConf::setUseBlock ( const bool value )
 {
-   _numSpins = num;
-}
-   
-inline int SchedulerConf::getNumSleeps () const
-{
-   return _numSleeps;
+   _useBlock = value;
 }
 
-inline void SchedulerConf::setNumSleeps ( const unsigned int num )
-{
-   _numSleeps = num;
-}
-
-inline int SchedulerConf::getTimeSleep () const
-{
-   return _timeSleep;
-}
-
-inline void SchedulerConf::setSchedulerEnabled ( bool value )
+inline void SchedulerConf::setSchedulerEnabled ( const bool value )
 {
    _schedulerEnabled = value;
 }
 
-inline bool SchedulerConf::getSchedulerEnabled () const
+inline unsigned int SchedulerConf::getNumSpins ( void ) const
+{
+   return _numSpins;
+}
+
+inline unsigned int SchedulerConf::getNumChecks ( void ) const
+{
+   return _numChecks;
+}
+
+inline unsigned int SchedulerConf::getNumYields ( void ) const
+{
+   return _numYields;
+}
+
+inline bool SchedulerConf::getUseYield ( void ) const
+{
+   return _useYield;
+}
+
+inline bool SchedulerConf::getUseBlock ( void ) const
+{
+   return _useBlock;
+}
+
+inline bool SchedulerConf::getSchedulerEnabled ( void ) const
 {
    return _schedulerEnabled;
 }
+
 inline const std::string & SchedulePolicy::getName () const
 {
    return _name;
@@ -134,6 +145,14 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
 {
    return atIdle( thread );
+}
+
+inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t numElems )
+{
+   for( size_t i = 0; i < numElems; ++i )
+   {
+      queue( threads[i], *wds[i] );
+   }
 }
 
 inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )

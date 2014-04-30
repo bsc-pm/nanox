@@ -52,7 +52,10 @@ namespace nanos
 
         /*! \brief CopyData destructor
          */
-         ~CopyData () {}
+         ~CopyData ()
+         {
+            delete( ( CopyDescriptor * ) cpDesc );
+         }
          
         /*! \brief Obtain the CopyData's address address
          */
@@ -100,11 +103,11 @@ namespace nanos
 
          /*! \brief  returns the CopyData's CopyDescriptor
           */
-         CopyDescriptor getCopyDescriptor() const;
+         CopyDescriptor * getCopyDescriptor();
 
          /*! \brief sets the CopyData's CopyDescriptor as cpDesc
           */
-         void setCopyDescriptor( CopyDescriptor cpDesc );
+         void setCopyDescriptor( CopyDescriptor * cpDesc );
    };
 }
 

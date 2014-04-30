@@ -227,7 +227,7 @@ inline void Directory::waitInput( uint64_t tag, bool output )
 
       while ( de->getOwner() != NULL ) {
          if ( spins == 0 ) {
-            if ( sys.useYield() ) thread->yield();
+            if ( sys.getSchedulerConf().getUseYield() ) thread->yield();
             spins = nspins; 
          }
          else spins--;
@@ -263,7 +263,7 @@ inline void Directory::synchronizeHost()
          c->syncTransfer( de->getTag() );
          while ( de->getOwner() != NULL ) {
             if ( spins == 0 ) {
-               if ( sys.useYield() ) thread->yield();
+               if ( sys.getSchedulerConf().getUseYield() ) thread->yield();
                spins = nspins; 
             }
             else spins--;
@@ -301,7 +301,7 @@ inline void Directory::synchronizeHost( std::list<uint64_t> syncTags )
          c->syncTransfer( de->getTag() );
          while ( de->getOwner() != NULL ) {
             if ( spins == 0 ) {
-               if ( sys.useYield() ) thread->yield();
+               if ( sys.getSchedulerConf().getUseYield() ) thread->yield();
                spins = nspins; 
             }
             else spins--;
