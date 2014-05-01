@@ -39,12 +39,12 @@ class TaskReduction {
       TaskReduction ( const TaskReduction &tr ) {}
    public: /* public methods */
       TaskReduction ( void *orig, initializer_t init, reducer_t red, size_t size, size_t threads, unsigned depth ) : _original(orig), _depth(depth), _initializer(init), _reducer(red),
-                      _storage(size*threads), _size(size), _threads(threads), _min(NULL), _max(NULL)
+                      _storage((size<<8/*padding*/)*threads), _size(size<<8/*padding*/), _threads(threads), _min(NULL), _max(NULL)
       {
          _min = & _storage[0];
-         _max = & _storage[size*threads];
+         _max = & _storage[_size*threads];
          size_t i;
-         for ( i=0; i<threads; i++) _initializer( &_storage[i*size] );
+         for ( i=0; i<threads; i++) _initializer( &_storage[i*_size] );
       }
 
      ~TaskReduction ( )
