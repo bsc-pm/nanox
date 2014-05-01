@@ -38,6 +38,7 @@
 #include "directory_decl.hpp"
 
 #include "dependenciesdomain_decl.hpp"
+#include "task_reduction_decl.hpp"
 
 namespace nanos
 {
@@ -184,6 +185,7 @@ namespace nanos
          typedef int PriorityType;
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
+         typedef std::list<TaskReduction *>        task_reduction_list_t;  //< List of task reductions type
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
          Atomic<int>                   _components;             //!< Number of components (children, direct descendants)
@@ -224,6 +226,7 @@ namespace nanos
          char                         *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
+         task_reduction_list_t        _taskReductions;   //< List of task reductions
 
       private: /* private methods */
          /*! \brief WorkDescriptor copy assignment operator (private)
@@ -620,6 +623,11 @@ namespace nanos
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
          void convertToRegularWD();
+
+         void registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *), void (*p_reducer)( void *, void * ) );
+         void removeTaskReduction( void *p_orig );
+         void * getTaskReductionThreadStorage( void *p_orig, size_t id );
+         TaskReduction * getTaskReduction( const void *p_orig );
    };
 
    typedef class WorkDescriptor WD;

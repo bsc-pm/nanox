@@ -304,4 +304,49 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
+void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *), void (*p_reducer)( void *, void * ) )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      if ( (*it)->have( p_orig, 0 ) ) break;
+   }
+
+   if ( it == _taskReductions.end() ) {
+      _taskReductions.push_front( new TaskReduction( p_orig, p_init, p_reducer, p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+   }
+}
+
+void WorkDescriptor::removeTaskReduction( void *p_orig )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      if ( (*it)->have( p_orig, 0 ) ) break;
+   }
+
+   if ( it != _taskReductions.end() ) _taskReductions.erase( it );
+}
+
+void * WorkDescriptor::getTaskReductionThreadStorage( void *p_orig, size_t id )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      void *ptr = (*it)->have( p_orig, id );
+      if ( ptr != NULL ) return ptr;
+   }
+   return NULL;
+}
+
+TaskReduction * WorkDescriptor::getTaskReduction( const void *p_orig )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      void *ptr = (*it)->have( p_orig, 0 );
+      if ( ptr != NULL ) return (*it);
+   }
+   return NULL;
+}
 
