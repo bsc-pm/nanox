@@ -102,6 +102,9 @@ namespace ext
 
          virtual void switchToNextThread();
 
+      virtual void setupSignalHandlers();
+
+
       bool acceptsWDsSMP() const;
       bool acceptsWDsGPU() const;
 

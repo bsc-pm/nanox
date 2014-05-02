@@ -289,15 +289,15 @@ void SMPThread::setupSignalHandlers ()
    recovery_action.sa_flags = SA_SIGINFO // Provides context information to the handler.
                             | SA_RESTART; // Resume system calls interrupted by the signal.
 
-   debug("Resiliency: handling synchronous signals raised in tasks' context.");
+   debug0("Resiliency: handling synchronous signals raised in tasks' context.");
    /* Program synchronous signals to use the default recovery handler.
     * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
     */
-   fatal_cond(sigaction(SIGILL, &recovery_action, NULL) != 0, "Signal setup (SIGILL) failed");
-   fatal_cond(sigaction(SIGTRAP, &recovery_action, NULL) != 0, "Signal setup (SIGTRAP) failed");
-   fatal_cond(sigaction(SIGBUS, &recovery_action, NULL) != 0, "Signal setup (SIGBUS) failed");
-   fatal_cond(sigaction(SIGFPE, &recovery_action, NULL) != 0, "Signal setup (SIGFPE) failed");
-   fatal_cond(sigaction(SIGSEGV, &recovery_action, NULL) != 0, "Signal setup (SIGSEGV) failed");
+   fatal_cond0(sigaction(SIGILL, &recovery_action, NULL) != 0, "Signal setup (SIGILL) failed");
+   fatal_cond0(sigaction(SIGTRAP, &recovery_action, NULL) != 0, "Signal setup (SIGTRAP) failed");
+   fatal_cond0(sigaction(SIGBUS, &recovery_action, NULL) != 0, "Signal setup (SIGBUS) failed");
+   fatal_cond0(sigaction(SIGFPE, &recovery_action, NULL) != 0, "Signal setup (SIGFPE) failed");
+   fatal_cond0(sigaction(SIGSEGV, &recovery_action, NULL) != 0, "Signal setup (SIGSEGV) failed");
 
 }
 
