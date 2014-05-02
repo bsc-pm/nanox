@@ -539,9 +539,9 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    };
 
    LocalFunction local( *this );
-   RegionDictionary::RegionList subParts;
-   RegionDictionary::RegionList superParts;
-   RegionDictionary::RegionList missingParts;
+   typename RegionDictionary::RegionList subParts;
+   typename RegionDictionary::RegionList superParts;
+   typename RegionDictionary::RegionList missingParts;
    reg_t backgroundRegion = 0;
 
    Version *thisEntry = this->getRegionData( id );
@@ -693,7 +693,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    unsigned int bgVersion;
    reg_t highestVersionSuperRegion = 0;
 
-   for ( RegionDictionary::RegionList::iterator it = superParts.begin(); it != superParts.end(); it++ ) {
+   for ( typename RegionDictionary::RegionList::iterator it = superParts.begin(); it != superParts.end(); it++ ) {
       //if (this->sparse)std::cerr << "super region of reg " << id<< ": " << *it<<std::endl;
       unsigned int itVersion = ( this->getRegionData( *it ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( *it )->getVersion() );
       if ( itVersion > version ) {
@@ -714,13 +714,14 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    // version will be the maximum computed version (needs to be returned)
    bgVersion = version;
 
-   for ( RegionDictionary<Sparsity>::RegionList::iterator it = subParts.begin(); it != subParts.end(); it++ ) {
+   for ( typename RegionDictionary<Sparsity>::RegionList::iterator it = subParts.begin(); it != subParts.end(); it++ ) {
       unsigned int itVersion = ( this->getRegionData( *it ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( *it )->getVersion() );
       //std::cerr << (void *)this <<" processing part "<< *it << " bgVersion " << bgVersion << " this version " << itVersion << " thisEnrty "<< this->getRegionData( *it ) << std::endl;
       if ( ( itVersion > bgVersion && !giveSubFragmentsWithSameVersion ) || ( itVersion >= bgVersion && giveSubFragmentsWithSameVersion ) ) {
          //bool intersect = false;
          bool subpart = false;
-         for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
+         for ( typename RegionDictionary::RegionList::const_iterator cit = missingParts.begin();
+               cit != missingParts.end(); cit++ ) {
             if ( this->checkIntersect( *it, *cit ) ) {
                reg_t intersectReg = computeTestIntersect( *it, *cit );
                if ( intersectReg == *it )
@@ -743,7 +744,8 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 
    finalParts.push_back( std::make_pair( id, backgroundRegion ) );
    //if (this->sparse) std::cerr << "starting with " << id << "," << backgroundRegion << std::endl;
-   for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
+   for ( typename RegionDictionary::RegionList::const_iterator cit = missingParts.begin();
+         cit != missingParts.end(); cit++ ) {
       //if (this->sparse)std::cerr << /*myThread->getId() <<*/ "BG rgion is " << backgroundRegion<< ", Add sub region " << *cit << " resulting set: { ";
       local.addSubRegion( finalParts, *cit ); //FIXME: handle case when "finalParts" is empty
       //for (std::list< std::pair< reg_t, reg_t > >::const_iterator cpit = finalParts.begin(); cpit != finalParts.end(); cpit++ ) {
@@ -751,7 +753,8 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
       //}
       //if (this->sparse)std::cerr <<" }"<< std::endl;
    }
-   for ( RegionDictionary::RegionList::const_iterator cit = missingParts.begin(); cit != missingParts.end(); cit++ ) {
+   for ( typename RegionDictionary::RegionList::const_iterator cit = missingParts.begin();
+         cit != missingParts.end(); cit++ ) {
       //if (this->sparse)std::cerr << /*myThread->getId() <<*/ " final parts region is " << *cit << std::endl;
       finalParts.push_back( std::make_pair( *cit, *cit ) );
    }
