@@ -495,7 +495,7 @@ namespace nanos
          int nextThreadId ();
 
          /*!
-          * \brief Returns whether DLB is enabled or not
+          * \brief Returns whether DLB is enabled
           */
          bool dlbEnabled() const;
 

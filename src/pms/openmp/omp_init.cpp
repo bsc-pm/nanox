@@ -207,8 +207,6 @@ namespace nanos
          _malleable = true;
          sys.setInitialMode( System::POOL );
          sys.setUntieMaster(true);
-
-         if ( sys.dlbEnabled() ) sys.setUntieMaster(false);
       }
 
       /*! \brief Get the size of OmpSsData */

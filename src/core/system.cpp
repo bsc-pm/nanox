@@ -757,6 +757,8 @@ void System::start ()
 
    if ( _summary )
       environmentSummary();
+
+   ResourceManager::init();
 }
 
 //extern "C" {

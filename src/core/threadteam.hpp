@@ -253,7 +253,7 @@ inline size_t ThreadTeam::getFinalSize ( void ) const { return _finalSize.value(
 inline void ThreadTeam::setFinalSize ( size_t s ) { _finalSize = Atomic<size_t>(s);}
 
 inline void ThreadTeam::increaseFinalSize ( void ) { _finalSize++; }
-inline void ThreadTeam::decreaseFinalSize ( void ) { _finalSize--; ensure(_finalSize>0, "Team size < 0") }
+inline void ThreadTeam::decreaseFinalSize ( void ) { _finalSize--; /*ensure(_finalSize>0, "Team size < 0")*/ }
 
 inline void ThreadTeam::setStable ( bool value )  { _stable = value;}
 inline bool ThreadTeam::isStable ( void ) const { return _stable; }

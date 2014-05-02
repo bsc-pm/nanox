@@ -89,6 +89,7 @@ devinclude_HEADERS = \
 
 support_sources = \
 	resourcemanager.hpp\
+	resourcemanager.cpp\
 	new_decl.hpp\
 	new.cpp\
 	allocator_fwd.hpp\
