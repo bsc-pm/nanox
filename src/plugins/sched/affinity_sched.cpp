@@ -501,7 +501,9 @@ namespace nanos {
          public:
             static bool _noSteal;
             static bool _noMaster;
+#ifdef CLUSTER_DEV
             static bool _noSupport;
+#endif
             static bool _noInvalAware;
             static bool _affinityInout;
             // constructor
@@ -688,11 +690,13 @@ namespace nanos {
 
             WD *fetchWD ( BaseThread *thread, WD *current );  
             virtual void atSupport ( BaseThread *thread );
+#ifdef CLUSTER_DEV
             void pickWDtoInitialize ( BaseThread *thread );  
+#endif
 
       };
 
-#if 1
+#ifdef CLUSTER_DEV
       inline void CacheSchedPolicy::pickWDtoInitialize( BaseThread *thread )
       {
          WorkDescriptor * wd = NULL;
@@ -1306,14 +1310,18 @@ namespace nanos {
 
       void CacheSchedPolicy::atSupport ( BaseThread *thread ) {
          //tryGetLocationData( thread );
+#ifdef CLUSTER_DEV
          if ( !_noSupport ) {
             pickWDtoInitialize( thread );
          }
+#endif
       }
 
       bool CacheSchedPolicy::_noSteal = false;
       bool CacheSchedPolicy::_noMaster = false;
+#ifdef CLUSTER_DEV
       bool CacheSchedPolicy::_noSupport = false;
+#endif
       bool CacheSchedPolicy::_noInvalAware = false;
       bool CacheSchedPolicy::_affinityInout = false;
 
@@ -1331,8 +1339,10 @@ namespace nanos {
                cfg.registerConfigOption ( "affinity-no-master", NEW Config::FlagOption( CacheSchedPolicy::_noMaster ), "Do not execute tasks on master node");
                cfg.registerArgOption( "affinity-no-master", "affinity-no-master" );
 
+#ifdef CLUSTER_DEV
                cfg.registerConfigOption ( "affinity-no-support", NEW Config::FlagOption( CacheSchedPolicy::_noSupport ), "Do not execute tasks on master node");
                cfg.registerArgOption( "affinity-no-support", "affinity-no-support" );
+#endif
 
                cfg.registerConfigOption ( "affinity-no-inval-aware", NEW Config::FlagOption( CacheSchedPolicy::_noInvalAware ), "Do not execute tasks on master node");
                cfg.registerArgOption( "affinity-no-inval-aware", "affinity-no-inval-aware" );
