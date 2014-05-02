@@ -1408,8 +1408,10 @@ bool RegionCache::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCo
       /* compute if missing chunks can be allocated in the device memory */
       _device._canAllocate( sys.getSeparateMemory( _memorySpaceId ), sizes, needed_chunks, remaining_sizes );
 
-      unsigned int remaining_count;
-      for ( remaining_count = 0; remaining_count < needed_chunks && remaining_sizes[ remaining_count ] != 0; remaining_count +=1 );
+      unsigned int remaining_count = 0;
+      while ( remaining_count < needed_chunks && remaining_sizes[ remaining_count ] != 0 ) {
+         remaining_count +=1;
+      }
 
       if ( remaining_count > 0 ) {
          /* check if data can be invalidated in order to allocate the memory */
