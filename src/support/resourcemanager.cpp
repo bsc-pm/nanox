@@ -37,6 +37,12 @@ extern "C" {
 namespace nanos {
 namespace ResourceManager {
    namespace {
+      typedef struct flags_t {
+         bool is_malleable;
+         bool dlb_enabled;
+      } flags_t;
+
+      flags_t   _flags;
       Lock      _lock;
       cpu_set_t _running_cpus;
       cpu_set_t _default_cpus;
@@ -52,6 +58,16 @@ void ResourceManager::init( void )
    sys.getCpuMask( &_running_cpus );
    sys.getCpuMask( &_default_cpus );
    ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+
+   _flags.is_malleable = sys.getPMInterface().isMalleable();
+   _flags.dlb_enabled = sys.dlbEnabled() &&
+                        DLB_UpdateResources_max &&
+                        DLB_UpdateResources &&
+                        DLB_ReleaseCpu &&
+                        DLB_ReturnClaimedCpus &&
+                        DLB_ReturnClaimedCpu &&
+                        DLB_ClaimCpus &&
+                        DLB_CheckCpuAvailability;
 }
 
 /* Check the availabilty of resources
@@ -66,7 +82,7 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
    if ( !team )
       return;
 
-   if ( sys.getPMInterface().isMalleable() ) {
+   if ( _flags.is_malleable ) {
       /* OmpSs*/
 
       int ready_tasks = team->getSchedulePolicy().getPotentiallyParallelWDs();
@@ -80,7 +96,7 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
          if ( needed_resources > 0 ){
             LockBlock Lock( _lock );
 
-            if ( sys.dlbEnabled() && DLB_UpdateResources ) {
+            if ( _flags.dlb_enabled ) {
                //If ready tasks > num threads I claim my cpus being used by somebodyels
                DLB_ClaimCpus( needed_resources );
 
@@ -97,7 +113,7 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 
    } else {
       /* OpenMP */
-      if ( sys.dlbEnabled() && DLB_UpdateResources ) {
+      if ( _flags.dlb_enabled ) {
          DLB_UpdateResources();
       } else {
          // wakeup all in stored cpus
@@ -112,18 +128,18 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 */
 void ResourceManager::releaseCpu( void )
 {
-   if ( !getMyThreadSafe()->getTeam() )
+   if ( !getMyThreadSafe()->getTeam() || getMyThreadSafe()->isSleeping() )
       return;
 
    bool release = true;
-   if ( sys.getPMInterface().isMalleable() && !getMyThreadSafe()->isSleeping() ){
+   if ( _flags.is_malleable ){
       int my_cpu = getMyThreadSafe()->getCpuId();
 
       LockBlock Lock( _lock );
 
       if ( CPU_COUNT(&_running_cpus) > 1 ) {
 
-         if ( sys.dlbEnabled() && DLB_ReleaseCpu ) {
+         if ( _flags.dlb_enabled ) {
             release = DLB_ReleaseCpu( my_cpu );
          }
 
@@ -146,7 +162,7 @@ void ResourceManager::releaseCpu( void )
 */
 void ResourceManager::returnClaimedCpus( void )
 {
-   if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->isMainThread() && sys.getPMInterface().isMalleable() ){
+   if ( _flags.dlb_enabled && _flags.is_malleable && getMyThreadSafe()->isMainThread() ){
       DLB_ReturnClaimedCpus();
    }
 
@@ -168,7 +184,7 @@ void ResourceManager::returnMyCpuIfClaimed( void )
       return;
 
    bool released = false;
-   if ( sys.dlbEnabled() && DLB_ReturnClaimedCpu && sys.getPMInterface().isMalleable() && !getMyThreadSafe()->isSleeping() ){
+   if ( _flags.dlb_enabled && _flags.is_malleable && !getMyThreadSafe()->isSleeping() ){
       LockBlock Lock( _lock );
       released = DLB_ReturnClaimedCpu( my_cpu );
       if ( released ) {
@@ -186,7 +202,7 @@ void ResourceManager::returnMyCpuIfClaimed( void )
 */
 void ResourceManager::waitForCpuAvailability( void )
 {
-   if ( sys.dlbEnabled() && DLB_CheckCpuAvailability ){
+   if ( _flags.dlb_enabled ){
       int cpu = getMyThreadSafe()->getCpuId();
       while ( CPU_COUNT(&_running_cpus) > 1 && !DLB_CheckCpuAvailability(cpu) )
          sched_yield();
