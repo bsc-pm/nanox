@@ -314,10 +314,16 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
-  arm*-linux*)
+  arm*-*-gnueabi*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=armv71
+    ;;
+  aarch64-*-linux-gnu)
+    smp_ult=no
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=aarch64
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
