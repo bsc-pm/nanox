@@ -119,7 +119,6 @@ void ResourceManager::releaseCpu( void )
    if ( sys.getPMInterface().isMalleable() && !getMyThreadSafe()->isSleeping() ){
       int my_cpu = getMyThreadSafe()->getCpuId();
 
-      // TODO: use acquire/release instead of block?
       LockBlock Lock( _lock );
 
       if ( CPU_COUNT(&_running_cpus) > 1 ) {
@@ -131,21 +130,14 @@ void ResourceManager::releaseCpu( void )
          if ( release ) {
             CPU_CLR( my_cpu, &_running_cpus );
             ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
-      myThread->sleep();
-            //_lock.release();
-            //myThread->sleep();
-            //myThread->wait();
-         //} else {
-            //_lock.release();
+            myThread->sleep();
          }
       }
-      //else {
-         //release = false;
-      //}
    }
-   //if ( release ) {
-      //myThread->wait();
-      //}
+   // wait() only after the lock is released
+   if (getMyThreadSafe()->isSleeping() ) {
+      myThread->wait();
+   }
 }
 
 /* Only called by master thread
