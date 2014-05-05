@@ -29,6 +29,7 @@
 #include "basethread_decl.hpp"
 #include "atomic.hpp"
 #include "system.hpp"
+#include "printbt_decl.hpp"
 
 namespace nanos
 {
@@ -102,8 +103,8 @@ namespace nanos
       return next;
    }
 
-   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
-      _id( sys.nextThreadId() ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
+   inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
+      _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
       _threadWD( wd ), _currentWD( NULL), _nextWDs( ),
       _teamData( NULL ), _nextTeamData( NULL ),
       _name( "Thread" ), _description( "" ), _allocator( ) { }
@@ -229,7 +230,7 @@ namespace nanos
  
    inline int BaseThread::getId() const { return _id; }
  
-   inline int BaseThread::getCpuId() const { return _pe->getId(); }
+   //inline int BaseThread::getCpuId() const { return _pe->getId(); }
  
    inline bool BaseThread::isStarring ( const ThreadTeam *t ) const
    {
@@ -264,6 +265,7 @@ namespace nanos
  
      return _description;
    }
+
 }
 
 #endif

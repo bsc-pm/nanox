@@ -64,7 +64,7 @@ namespace nanos
       public:
          /*! \brief ProcessingElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch, int uniqueId,  const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _uid( uniqueId ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
+         ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId ); 
 
          /*! \brief ProcessingElement destructor
           */
@@ -72,9 +72,11 @@ namespace nanos
 
          /* get/put methods */
          int getId() const;
+         //void setId( int id );
          
          //! \brief Returns a unique ID that no other PE will have.
-         int getUId() const;
+         //int getUId() const;
+         //void setUId( int uid );
          
          //! \brief Returns the socket this thread is running on.
          int getNUMANode() const;
@@ -145,6 +147,8 @@ namespace nanos
           * \brief Returns the first thread of the PE that is not tagged to sleep
           */
          virtual BaseThread* getActiveThread();
+
+         std::size_t getNumThreads() const;
    };
 
    typedef class ProcessingElement PE;

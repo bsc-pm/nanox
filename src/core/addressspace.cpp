@@ -16,16 +16,16 @@ MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device
 HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
 }
 
-bool HostAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version ) {
+bool HostAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
    return true;
 }
 
-void HostAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version ) {
+void HostAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
 }
 
-void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
+void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
    if ( reg.setCopying( from ) ) {
-     from.copyOut( reg, version, ops, wd, inval );
+     from.copyOut( reg, version, ops, wd, copyIdx, inval );
    } else {
      reg.waitCopy();
    } 
@@ -54,8 +54,8 @@ void HostAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_
    std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
-void HostAddressSpace::synchronize( bool flushData, WD const &wd ) {
-   _directory.synchronize( flushData, wd );
+void HostAddressSpace::synchronize( WD const &wd ) {
+   _directory.synchronize( wd );
 }
 
 memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
@@ -74,24 +74,24 @@ SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Dev
 }
 
 
-bool SeparateAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version ) {
-   return _cache.pin( reg );
+bool SeparateAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   return _cache.pin( reg, wd, copyIdx );
 }
 
-void SeparateAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version ) {
-   _cache.unpin( reg );
+void SeparateAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   _cache.unpin( reg, wd, copyIdx );
 }
 
-void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, bool inval ) {
-   _cache.NEWcopyOut( reg, version, wd, ops, inval );
+void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval ) {
+   _cache.NEWcopyOut( reg, version, wd, copyIdx, ops, inval );
 }
 
-void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
-   _cache.NEWcopyIn( from._cache.getMemorySpaceId(), reg, version, wd, ops, chunk );
+void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
+   _cache.NEWcopyIn( from._cache.getMemorySpaceId(), reg, version, wd, copyIdx, ops, chunk );
 }
 
-void SeparateAddressSpace::doOp( HostMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
-   _cache.NEWcopyIn( 0, reg, version, wd, ops, chunk );
+void SeparateAddressSpace::doOp( HostMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
+   _cache.NEWcopyIn( 0, reg, version, wd, copyIdx, ops, chunk );
 }
 
 void SeparateAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {
@@ -110,19 +110,19 @@ bool SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int
 //   _cache.prepareRegion( reg, wd );
 //}
 
-unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg ) {
-   return _cache.getVersion( reg );
+unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
+   return _cache.getVersion( reg, wd, copyIdx );
 }
 
-void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd ) {
-   _cache.releaseRegion( reg, wd );
+void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
+   _cache.releaseRegion( reg, wd, copyIdx );
 }
 
-void SeparateAddressSpace::copyFromHost( TransferList list, WD const &wd ) {
+void SeparateAddressSpace::copyFromHost( TransferList &list, WD const &wd ) {
    for ( TransferList::const_iterator it = list.begin(); it != list.end(); it++ ) {
-      if ( sys.getHostMemory().lockForTransfer( it->getRegion(), it->getVersion() ) ) {
-         this->doOp( sys.getHostMemory(), it->getRegion(), it->getVersion(), wd, it->getDeviceOps(), it->getChunk(), false );
-         sys.getHostMemory().releaseForTransfer( it->getRegion(), it->getVersion() );
+      if ( sys.getHostMemory().lockForTransfer( it->getRegion(), it->getVersion(), wd, it->getCopyIndex() ) ) {
+         this->doOp( sys.getHostMemory(), it->getRegion(), it->getVersion(), wd, it->getCopyIndex(), it->getDeviceOps(), it->getChunk(), false );
+         sys.getHostMemory().releaseForTransfer( it->getRegion(), it->getVersion(), wd, it->getCopyIndex() );
       } else {
          this->failToLock( sys.getHostMemory(), it->getRegion(), it->getVersion() );
       }
@@ -149,12 +149,12 @@ void SeparateAddressSpace::setSpecificData( void *data ) {
    _sdata = data;
 }
 
-void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd ) {
-   _cache.copyInputData( ops, reg, version, output, locations, chunk, wd );
+void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   _cache.copyInputData( ops, reg, version, output, locations, chunk, wd, copyIdx );
 }
 
-void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, unsigned int version ) {
-   _cache.allocateOutputMemory( reg, version );
+void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   _cache.allocateOutputMemory( reg, version, wd, copyIdx );
 }
 
 RegionCache &SeparateAddressSpace::getCache() {
@@ -183,8 +183,8 @@ unsigned int SeparateAddressSpace::getHardInvalidationCount() const {
    return _cache.getHardInvalidationCount();
 }
 
-bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations ) {
-   return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations );
+bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd ) {
+   return _cache.canAllocateMemory( memCopies, numCopies, considerInvalidations, wd );
 }
 
 void SeparateAddressSpace::invalidate( global_reg_t const &reg ) {

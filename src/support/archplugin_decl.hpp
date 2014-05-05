@@ -22,7 +22,9 @@
 
 #include "plugin_decl.hpp"
 #include "processingelement_fwd.hpp"
+#include "basethread_fwd.hpp"
 #include <vector>
+#include <iostream>
 
 namespace nanos
 {
@@ -95,6 +97,28 @@ namespace nanos
           *  the PEs vector.
           */
          virtual ProcessingElement * createPE( unsigned id, unsigned uid ) = 0;
+
+         virtual void initialize() {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+         }
+         virtual void finalize() {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+         }
+         virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+         }
+         virtual void startSupportThreads() {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+         }
+         virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+         }
+
+virtual bool isHwlocAvailable () const {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+      return false;
+}
+
    };
 }
 

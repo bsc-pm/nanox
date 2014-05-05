@@ -191,8 +191,9 @@ void SMPThread::wait()
 
    pthread_mutex_unlock( &_mutexWait );
 
-   NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
@@ -314,3 +315,16 @@ void taskExecutionHandler ( int sig, siginfo_t* si, void* context ) throw(TaskEx
    throw TaskExecutionException(getMyThreadSafe()->getCurrentWD(), *si, *(ucontext_t*)context);
 }
 #endif
+
+int SMPThread::getCpuId() const {
+   return _core->getBindingId();
+}
+
+SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
+   setCurrentWD( w );
+   _threads.reserve( representingPEsCount );
+   for ( unsigned int i = 0; i < representingPEsCount; i++ )
+   {
+      _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
+   }
+}

@@ -261,7 +261,7 @@ void WorkDescriptor::finish ()
 {
    // At that point we are ready to copy data out
    if ( getNumCopies() > 0 )
-      _mcontrol.copyDataOut();
+      _mcontrol.copyDataOut( MemController::WRITE_BACK );
 
    // Getting execution time
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
@@ -462,7 +462,9 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    _componentsSyncCond.waitConditionAndSignalers();
-   sys.getHostMemory().synchronize( !avoidFlush, *this );
+   if ( !avoidFlush ) {
+      _mcontrol.synchronize();
+   }
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )

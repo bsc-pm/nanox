@@ -37,10 +37,20 @@ inline int ProcessingElement::getId() const
    return _id;
 }
 
-inline int ProcessingElement::getUId() const
-{
-   return _uid;
-}
+//inline void ProcessingElement::setId( int id )
+//{
+//  _id = id;
+//}
+
+//inline int ProcessingElement::getUId() const
+//{
+//   return _uid;
+//}
+//
+//inline void ProcessingElement::setUId( int uid )
+//{
+//  _uid = uid;
+//}
 
 inline const Device * ProcessingElement::getDeviceType () const
 {
@@ -55,6 +65,8 @@ inline const Device * ProcessingElement::getSubDeviceType () const
 inline int ProcessingElement::getNUMANode() const{ return _numaNode; }
 
 inline void ProcessingElement::setNUMANode( int node ){ _numaNode = node; }
+
+inline std::size_t ProcessingElement::getNumThreads() const { return _threads.size(); }
 
 #endif
 

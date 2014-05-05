@@ -52,6 +52,7 @@ devinclude_HEADERS = \
 	plugin_decl.hpp \
 	plugin.hpp \
 	plugin.cpp \
+	smpbaseplugin_decl.hpp \
 	archplugin_decl.hpp \
 	archplugin.hpp \
 	archplugin.cpp \

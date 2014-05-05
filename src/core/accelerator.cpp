@@ -32,7 +32,7 @@ using namespace nanos;
 Lock Accelerator::_transferLock;
 #endif
 
-Accelerator::Accelerator ( int newId, const Device *arch, int uid, const Device *subArch ) : ProcessingElement( newId, arch, uid, subArch, sys.getMemorySpaceId() ) {}
+Accelerator::Accelerator ( const Device *arch, const Device *subArch ) : ProcessingElement( arch, subArch, sys.getMemorySpaceId() ) {}
 
 void Accelerator::waitInputs( WorkDescriptor &work )
 {

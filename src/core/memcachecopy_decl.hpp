@@ -15,7 +15,7 @@ namespace nanos {
 
          void getVersionInfo();
 
-         void generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd );
+         void generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx );
          void generateInOps2( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd );
          void generateOutOps( SeparateAddressSpaceOutOps &ops, bool input, bool output );
          unsigned int getVersion() const;

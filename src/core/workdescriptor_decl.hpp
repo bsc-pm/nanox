@@ -204,6 +204,7 @@ namespace nanos
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
+         int                           _hostId;                 //!< Work descriptor identifier @ host
          Atomic<int>                   _components;             //!< Number of components (children, direct descendants)
          components_sync_cond_t        _componentsSyncCond;     //!< Synchronize condition on components
          WorkDescriptor               *_parent;                 //!< Parent WD in task hierarchy
@@ -317,6 +318,8 @@ namespace nanos
          }
 
          int getId() const { return _id; }
+         int getHostId() const { return _hostId; }
+         void setHostId( int id ) { _hostId = id; }
          /*! \brief Has this WorkDescriptor ever run?
           */
          bool started ( void ) const;

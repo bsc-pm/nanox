@@ -23,6 +23,7 @@
 #include "smpdd.hpp"
 #include "basethread.hpp"
 #include <nanos-int.h>
+#include "smpprocessor.hpp"
 #include <pthread.h>
 #include <signal.h>
 
@@ -39,6 +40,7 @@ namespace ext
          friend class SMPProcessor;
 
       private:
+         SMPProcessor *_core;
          pthread_t   _pth;
          size_t      _stackSize;
          bool        _useUserThreads;
@@ -55,8 +57,8 @@ namespace ext
         
       public:
          // constructor
-         SMPThread( WD &w, PE *pe, SMPMultiThread *parent=NULL ) :
-               BaseThread( w, pe, parent ), _pth(pthread_self()), _stackSize(0), _useUserThreads(true) {}
+         SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
+               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _core( core ), _pth(pthread_self()), _stackSize(0), _useUserThreads(true) {}
 
          // named parameter idiom
          SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
@@ -121,10 +123,11 @@ namespace ext
          
          /*! \brief Signals the thread to stop waiting. */
          virtual void unblock();
-         
 #ifdef NANOS_RESILIENCY_ENABLED
          virtual void setupSignalHandlers();
 #endif
+
+         virtual int getCpuId() const;
    };
 
    class SMPMultiThread : public SMPThread
@@ -142,15 +145,7 @@ namespace ext
 
       public:
          // constructor
-         SMPMultiThread( WD &w, PE *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
-            setCurrentWD( w );
-            _threads.reserve( representingPEsCount );
-            for ( unsigned int i = 0; i < representingPEsCount; i++ )
-            {
-               _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
-            }
-         }
-
+         SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs );
          // destructor
          virtual ~SMPMultiThread() { }
 

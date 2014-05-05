@@ -177,6 +177,8 @@ namespace ext {
          void addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize );
          void * getSegmentAddr( unsigned int idx );
          std::size_t getSegmentLen( unsigned int idx );
+         unsigned int getNumNodes() const;
+         unsigned int getNodeNum() const;
 
       private:
          void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
