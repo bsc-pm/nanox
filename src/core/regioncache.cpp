@@ -35,13 +35,13 @@
 #include "regiondict.hpp"
 #include "memoryops_decl.hpp"
 
-#define VERBOSE_DEV_OPS 1
+#define VERBOSE_DEV_OPS 0
 #define VERBOSE_INVAL 0
 
 #if VERBOSE_CACHE
  #define _VERBOSE_CACHE 1
 #else
- #define _VERBOSE_CACHE 1
+ #define _VERBOSE_CACHE 0
 #endif
 
 AllocatedChunk::AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t hostAddress, std::size_t size, global_reg_t const &allocatedRegion, bool rooted ) :
