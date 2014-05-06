@@ -62,7 +62,7 @@ extern "C"
    void startHelper ();
 }
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), void *wd,
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                           void *cleanup, void *cleanupArg )
 {
    // stack grows down
