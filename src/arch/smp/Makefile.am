@@ -41,6 +41,7 @@ devinclude_HEADERS = \
 	smpdevice.hpp \
 	smpdd.hpp \
 	smpprocessor.hpp \
+	smpprocessor_fwd.hpp \
 	smpthread.hpp \
 	$(END) 
 
@@ -68,6 +69,7 @@ smp_sources = \
 	smpdd.hpp \
 	smpdd.cpp \
 	smpprocessor.hpp \
+	smpprocessor_fwd.hpp \
 	smpprocessor.cpp \
 	smpthread.hpp \
 	smpthread.cpp \
