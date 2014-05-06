@@ -32,7 +32,7 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) : CachedAccelerator( &GPU, NULL, memId ),
+GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) : ProcessingElement( &GPU, NULL, memId ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), /*_gpuProcessorTransfers(),*/
       _initialized( false ), _gpuMemory( gpuMem ), _core( core ) /*, _allocator(), _inputPinnedMemoryBuffer()*/
 {

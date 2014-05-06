@@ -19,7 +19,7 @@
 
 /*
  <testinfo>
- test_generator="gens/resiliency-generator -a '--pes=1'"
+ test_generator="gens/resiliency-generator -a '--smp-cores=1'"
  </testinfo>
  */
 

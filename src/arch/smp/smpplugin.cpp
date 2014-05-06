@@ -161,7 +161,7 @@ class SMPPlugin : public SMPBasePlugin
       if ( _requestedCores == 0 || _requestedCores > _availableCores ) {
          num_cores = _availableCores;
       }
-      std::cerr << "requested cores: " << _requestedCores << " available: " << _availableCores << " to be used: " << num_cores << std::endl;
+      debug0("requested cores: " << _requestedCores << " available: " << _availableCores << " to be used: " << num_cores);
 
 
       std::vector<int> cpu_affinity;
@@ -193,11 +193,11 @@ class SMPPlugin : public SMPBasePlugin
          i++;
       }
 
-      std::cerr << "[ ";
-      for ( Bindings::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
-         std::cerr << *it << " ";
-      }
-      std::cerr << " ]" << std::endl;
+      // std::cerr << "[ ";
+      // for ( Bindings::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
+      //    std::cerr << *it << " ";
+      // }
+      // std::cerr << " ]" << std::endl;
 
       CPU_ZERO( &_cpuActiveSet );
 

@@ -23,12 +23,12 @@
 #include "config.hpp"
 #include "smpthread.hpp"
 #include "smpdevice.hpp"
-#ifdef SMP_NUMA
-#include "cachedaccelerator.hpp"
-#include "copydescriptor_decl.hpp"
-#else
+//#ifdef SMP_NUMA
+//#include "cachedaccelerator.hpp"
+//#include "copydescriptor_decl.hpp"
+//#else
 #include "processingelement.hpp"
-#endif
+//#endif
 
 // xlc/icc compilers require the next include to emit the vtable of WDDeque
 #include <wddeque.hpp>
@@ -39,15 +39,8 @@ namespace nanos {
 namespace ext
 {
 
-#ifdef SMP_NUMA
-
-   class SMPProcessor : public nanos::CachedAccelerator
-#else
    class SMPProcessor : public PE
-#endif
    {
-
-
       private:
          // config variables
          static bool _useUserThreads;
