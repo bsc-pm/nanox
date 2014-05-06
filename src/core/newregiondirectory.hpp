@@ -22,6 +22,7 @@
 
 #include "deviceops.hpp"
 #include "version.hpp"
+#include "printbt_decl.hpp"
 
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation( -1 ), _ops(), _location(), _rooted( false ), _setLock() {
@@ -61,12 +62,15 @@ inline void NewNewDirectoryEntryData::setWriteLocation( int id ) {
 
 inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) {
    _setLock.acquire();
+   //std::cerr << "+++++++++++++++++v entry " << (void *) this << " v++++++++++++++++++++++" << std::endl;
    if ( version > this->getVersion() ) {
+      //std::cerr << "Upgrading version to " << version << " @location " << id << std::endl;
       _location.clear();
       _writeLocation = id;
       this->setVersion( version );
       _location.insert( id );
    } else if ( version == this->getVersion() ) {
+      //std::cerr << "Equal version (" << version << ") @location " << id << std::endl;
       // entry is going to be replicated, so it must be that multiple copies are used as inputs only
       _location.insert( id );
       if ( _location.size() > 1 )
@@ -74,8 +78,10 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
          _writeLocation = -1;
       }
    } else {
-     std::cerr << "FIXME: wrong case" << std::endl;
+     //std::cerr << "FIXME: wrong case, current version is " << this->getVersion() << " and requested is " << version << " @location " << id <<std::endl;
    }
+   //printBt();
+   //std::cerr << "+++++++++++++++++^ entry " << (void *) this << " ^++++++++++++++++++++++" << std::endl;
    _setLock.release();
 }
 

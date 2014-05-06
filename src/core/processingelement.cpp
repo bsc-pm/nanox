@@ -28,6 +28,11 @@
 
 using namespace nanos;
 
+
+ProcessingElement::ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId ) : 
+   _id ( sys.nextPEId() ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ),
+   _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
+
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
    //work._ccontrol.copyDataIn( NULL );

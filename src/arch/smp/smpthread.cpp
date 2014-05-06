@@ -191,8 +191,9 @@ void SMPThread::wait()
 
    pthread_mutex_unlock( &_mutexWait );
 
-   NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
@@ -289,15 +290,15 @@ void SMPThread::setupSignalHandlers ()
    recovery_action.sa_flags = SA_SIGINFO // Provides context information to the handler.
                             | SA_RESTART; // Resume system calls interrupted by the signal.
 
-   debug("Resiliency: handling synchronous signals raised in tasks' context.");
+   debug0("Resiliency: handling synchronous signals raised in tasks' context.");
    /* Program synchronous signals to use the default recovery handler.
     * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
     */
-   fatal_cond(sigaction(SIGILL, &recovery_action, NULL) != 0, "Signal setup (SIGILL) failed");
-   fatal_cond(sigaction(SIGTRAP, &recovery_action, NULL) != 0, "Signal setup (SIGTRAP) failed");
-   fatal_cond(sigaction(SIGBUS, &recovery_action, NULL) != 0, "Signal setup (SIGBUS) failed");
-   fatal_cond(sigaction(SIGFPE, &recovery_action, NULL) != 0, "Signal setup (SIGFPE) failed");
-   fatal_cond(sigaction(SIGSEGV, &recovery_action, NULL) != 0, "Signal setup (SIGSEGV) failed");
+   fatal_cond0(sigaction(SIGILL, &recovery_action, NULL) != 0, "Signal setup (SIGILL) failed");
+   fatal_cond0(sigaction(SIGTRAP, &recovery_action, NULL) != 0, "Signal setup (SIGTRAP) failed");
+   fatal_cond0(sigaction(SIGBUS, &recovery_action, NULL) != 0, "Signal setup (SIGBUS) failed");
+   fatal_cond0(sigaction(SIGFPE, &recovery_action, NULL) != 0, "Signal setup (SIGFPE) failed");
+   fatal_cond0(sigaction(SIGSEGV, &recovery_action, NULL) != 0, "Signal setup (SIGSEGV) failed");
 
 }
 
@@ -314,3 +315,16 @@ void taskExecutionHandler ( int sig, siginfo_t* si, void* context ) throw(TaskEx
    throw TaskExecutionException(getMyThreadSafe()->getCurrentWD(), *si, *(ucontext_t*)context);
 }
 #endif
+
+int SMPThread::getCpuId() const {
+   return _core->getBindingId();
+}
+
+SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
+   setCurrentWD( w );
+   _threads.reserve( representingPEsCount );
+   for ( unsigned int i = 0; i < representingPEsCount; i++ )
+   {
+      _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
+   }
+}

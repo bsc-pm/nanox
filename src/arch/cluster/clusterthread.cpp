@@ -72,7 +72,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
 }
 
 //ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
-ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( w, pe, parent ), _clusterNode( device ), _lock(), _pendingInitWD( NULL ) {
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( (unsigned int) -1, w, pe, parent ), _clusterNode( device ), _lock(), _pendingInitWD( NULL ) {
    setCurrentWD( w );
 }
 
@@ -309,3 +309,8 @@ void ClusterThread::addWaitingDataWD( WD *wd ) {
    _waitingDataWDs.push_back( wd );
 std::cerr << "Added a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
 }
+
+void ClusterThread::setupSignalHandlers() {
+   std::cerr << __FUNCTION__ << ": unimplemented in ClusterThread." << std::endl;
+}
+

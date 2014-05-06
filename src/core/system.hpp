@@ -35,10 +35,6 @@
 #include <cmath>
 
 
-#ifdef HWLOC
-#include <hwloc.h>
-#endif
-
 using namespace nanos;
 
 // methods to access configuration variable         
@@ -52,23 +48,11 @@ inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
 
 inline int System::getNumThreads () const { return _numThreads; }
 
-inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
+//inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
 
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
-
-inline void System::setBindingStart ( int value ) { _bindingStart = value; }
-
-inline int System::getBindingStart () const { return _bindingStart; }
-
-inline void System::setBindingStride ( int value ) { _bindingStride = value;  }
-
-inline int System::getBindingStride () const { return _bindingStride; }
-
-inline void System::setBinding ( bool set ) { _bindThreads = set; }
-
-inline bool System::getBinding () const { return _bindThreads; }
 
 inline System::ExecutionMode System::getExecutionMode () const { return _executionMode; }
 
@@ -104,39 +88,40 @@ inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
 
 inline int System::getNumWorkers() const { return _workers.size(); }
 
-inline int System::getNumSockets() const { return _numSockets; }
-inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
+//inline int System::getNumSockets() const { return _numSockets; }
+//inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
+//
+//inline int System::getNumAvailSockets() const
+//{
+//   return _numAvailSockets;
+//}
+//
+//inline int System::getVirtualNUMANode( int physicalNode ) const
+//{
+//   return _numaNodeMap[ physicalNode ];
+//}
+//
+//inline int System::getCurrentSocket() const { return _currentSocket; }
+//inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
+//
+//inline int System::getCoresPerSocket() const { return _coresPerSocket; }
+//inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
-inline int System::getNumAvailSockets() const
-{
-   return _numAvailSockets;
-}
+//inline int System::getBindingId ( int pe ) const
+//{
+//   return _bindings[ pe % _bindings.size() ];
+//}
 
-inline int System::getVirtualNUMANode( int physicalNode ) const
-{
-   return _numaNodeMap[ physicalNode ];
-}
+//inline bool System::isHwlocAvailable () const
+//{
+//#ifdef HWLOC
+//   return true;
+//#else
+//   return false;
+//#endif
+//}
 
-inline int System::getCurrentSocket() const { return _currentSocket; }
-inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
-
-inline int System::getCoresPerSocket() const { return _coresPerSocket; }
-inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
-
-inline int System::getBindingId ( int pe ) const
-{
-   return _bindings[ pe % _bindings.size() ];
-}
-
-inline bool System::isHwlocAvailable () const
-{
-#ifdef HWLOC
-   return true;
-#else
-   return false;
-#endif
-}
-
+#if 0
 inline void System::loadHwloc ()
 {
 #ifdef HWLOC
@@ -281,6 +266,7 @@ inline unsigned System::getNodeOfPE ( unsigned pe )
    return sys.getNumSockets() - 1;
 #endif
 }
+#endif
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
@@ -509,6 +495,8 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
 
+inline unsigned int System::nextPEId () { return _peIdSeed++; }
+
 inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
 inline bool System::dlbEnabled() const { return _enableDLB; }
@@ -519,6 +507,22 @@ inline bool System::haveDependencePendantWrites ( void *addr ) const
 }
 
 inline int System::getTaskMaxRetries() const { return _task_max_retries; }
+
+inline void System::setSMPPlugin(SMPBasePlugin *p) {
+   _smpPlugin = p;
+}
+
+inline SMPBasePlugin *System::getSMPPlugin() const {
+   return _smpPlugin;
+}
+
+inline bool System::isSimulator() const {
+   return _simulator;
+}
+
+inline ThreadTeam *System::getMainTeam() {
+   return _mainTeam;
+}
 
 #endif
 

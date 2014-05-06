@@ -161,7 +161,7 @@ namespace nanos
        */
       void OpenMPInterface::getCpuMask( cpu_set_t *cpu_set )
       {
-         sys.getCpuMask( cpu_set );
+         sys.getSMPPlugin()->getCpuMask( cpu_set );
       }
 
       /*!
@@ -174,7 +174,7 @@ namespace nanos
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set );
+         sys.getSMPPlugin()->setCpuMask( cpu_set );
       }
 
       /*!
@@ -188,7 +188,7 @@ namespace nanos
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set );
+         sys.getSMPPlugin()->addCpuMask( cpu_set );
       }
 
 
@@ -257,7 +257,7 @@ namespace nanos
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( nthreads );
 
-         sys.updateActiveWorkers( nthreads );
+         sys.getSMPPlugin()->updateActiveWorkers( nthreads );
       }
 
       /*!
@@ -271,7 +271,7 @@ namespace nanos
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set );
+         sys.getSMPPlugin()->setCpuMask( cpu_set );
       }
 
       /*!
@@ -286,7 +286,7 @@ namespace nanos
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set );
+         sys.getSMPPlugin()->addCpuMask( cpu_set );
       }
    };
 }

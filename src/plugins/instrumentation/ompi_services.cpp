@@ -23,13 +23,7 @@ extern "C" {
 
    unsigned int nanos_extrae_get_max_threads ( void )
    {
-#ifdef CLUSTER_DEV
-      /* CLUSTER_DEV */
-      return sys.getMaxThreads() + sys.getNetwork()->getExtraPEsCount();
-#else
-      /* no CLUSTER_DEV */
-      return sys.getMaxThreads();
-#endif
+      return sys.getSMPPlugin()->getCpuCount();
    }
 
    unsigned int nanos_ompitrace_get_max_threads ( void )
@@ -41,10 +35,8 @@ extern "C" {
    { 
       if ( myThread == NULL )
          return 0;
-      else if ( myThread->getParent() != NULL )
-         return myThread->getParent()->getId();
       else
-         return myThread->getId(); 
+         return myThread->getOsId(); 
    }
 
    unsigned int nanos_ompitrace_get_thread_num ( void )

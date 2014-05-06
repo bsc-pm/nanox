@@ -8,7 +8,7 @@
 namespace nanos {
 namespace ext {
 
-class ClusterPlugin : public Plugin
+class ClusterPlugin : public ArchPlugin
 {
       GASNetAPI _gasnetApi;
 
@@ -22,6 +22,8 @@ class ClusterPlugin : public Plugin
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
+      std::vector<ext::ClusterNode *> *_nodes;
+      ext::SMPMultiThread *_clusterThread;
 
    public:
       ClusterPlugin();
@@ -44,6 +46,16 @@ class ClusterPlugin : public Plugin
       System::CachePolicyType getCachePolicy ( void );
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
       bool getAllocWide();
+
+
+      virtual void startSupportThreads();
+      virtual void startWorkerThreads(std::vector<BaseThread *> &workers);
+      virtual void finalize();
+
+      virtual ProcessingElement * createPE( unsigned id, unsigned uid );
+      virtual unsigned getNumThreads() const; 
+      virtual unsigned getNumPEs() const;
+      void addPEs( std::vector<ProcessingElement *> &pes ) const;
 };
 
 }

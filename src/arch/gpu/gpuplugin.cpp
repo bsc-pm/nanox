@@ -23,9 +23,11 @@
 #include "gpudd.hpp"
 #include "gpumemoryspace_decl.hpp"
 #include "gpuprocessor.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "system_decl.hpp"
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #ifdef HWLOC
 #include <hwloc.h>
@@ -37,8 +39,11 @@ namespace ext {
 
 class GPUPlugin : public ArchPlugin
 {
+         std::vector<ext::GPUProcessor *> *_gpus;
    public:
-      GPUPlugin() : ArchPlugin( "GPU PE Plugin", 1 ) {}
+      GPUPlugin() : ArchPlugin( "GPU PE Plugin", 1 )
+         , _gpus( NULL )
+      {}
 
       void config( Config& cfg )
       {
@@ -48,36 +53,22 @@ class GPUPlugin : public ArchPlugin
       void init()
       {
          GPUConfig::apply();
-      }
-      
-      virtual unsigned getNumHelperPEs() const
-      {
-         return GPUConfig::getGPUCount();
-      }
+         _gpus = NEW std::vector<nanos::ext::GPUProcessor *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUProcessor *) NULL); 
+         for ( int gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::GPU, nanos::ext::GPUConfig::getAllocWide() );
+            SeparateMemoryAddressSpace &gpuMemory = sys.getSeparateMemory( id );
+            gpuMemory.setNodeNumber( 0 );
 
-      virtual unsigned getNumPEs() const
-      {
-         return GPUConfig::getGPUCount();
-      }
+            ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
+            gpuMemory.setSpecificData( gpuMemSpace );
 
-      virtual unsigned getNumThreads() const
-      {
-            return GPUConfig::getGPUCount();
-      }
-            
-      virtual void createBindingList()
-      {
-         /* As we now how many devices we have and how many helper threads we
-          * need, reserve a PE for them */
-         for ( int i = 0; i < GPUConfig::getGPUCount(); ++i )
-         {
             int node = -1;
             // Is NUMA info is available
-            bool numa = true;
-            if ( sys.isHwlocAvailable() )
+            //bool numa = true;
+            if ( sys.getSMPPlugin()->isHwlocAvailable() )
             {
 #ifdef HWLOC
-               hwloc_topology_t topology = ( hwloc_topology_t ) sys.getHwlocTopology();
+               hwloc_topology_t topology = ( hwloc_topology_t ) sys.getSMPPlugin()->getHwlocTopology();
                
                hwloc_obj_t obj = hwloc_cudart_get_device_pcidev ( topology, i );
                if ( obj != NULL ) {
@@ -116,7 +107,99 @@ class GPUPlugin : public ArchPlugin
 
             }
             // Fallback / safety measure
-            if ( node < 0 || sys.getNumSockets() == 1 ) {
+            if ( node < 0 || sys.getSMPPlugin()->getNumSockets() == 1 ) {
+               node = 0;
+               // As we don't have NUMA info, don't request an specific node
+               //numa = false;
+            }
+
+            ext::SMPProcessor *core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnode(node);
+            if ( core == NULL ) {
+               fatal0("Unable to get a core to run the GPU thread.");
+            }
+            
+            //bool reserved;
+            //unsigned pe = sys.reservePE( numa, node, reserved );
+            //
+            //if ( numa ) {
+            //   verbose( "Reserving node " << node << " for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            //}
+            //else {
+            //   verbose( "Reserving for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
+            //}
+
+            (*_gpus)[gpuC] = NEW nanos::ext::GPUProcessor( gpuC, id, core, *gpuMemSpace );
+         }
+      }
+      
+      virtual unsigned getNumHelperPEs() const
+      {
+         return GPUConfig::getGPUCount();
+      }
+
+      virtual unsigned getNumPEs() const
+      {
+         return GPUConfig::getGPUCount();
+      }
+
+      virtual unsigned getNumThreads() const
+      {
+            return GPUConfig::getGPUCount();
+      }
+            
+#if 0
+      virtual void createBindingList()
+      {
+         /* As we now how many devices we have and how many helper threads we
+          * need, reserve a PE for them */
+         for ( int i = 0; i < GPUConfig::getGPUCount(); ++i )
+         {
+            int node = -1;
+            // Is NUMA info is available
+            bool numa = true;
+            if ( sys.getSMPPlugin()->isHwlocAvailable() )
+            {
+#ifdef HWLOC
+               hwloc_topology_t topology = ( hwloc_topology_t ) sys.getSMPPlugin()->getHwlocTopology();
+               
+               hwloc_obj_t obj = hwloc_cudart_get_device_pcidev ( topology, i );
+               if ( obj != NULL ) {
+                  hwloc_obj_t objNode = hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, obj );
+                  if ( objNode != NULL ){
+                     node = objNode->os_index;
+                  }
+               }
+#endif
+            }
+            else
+            {
+               // Warning: Linux specific:
+#if CUDA_VERSION < 4010
+               // This depends on the cuda driver, we are currently NOT linking against it.
+               //int domainId, busId, deviceId;
+               //cuDeviceGetAttribute( &domainId, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, device);
+               //cuDeviceGetAttribute( &busId, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID, device);
+               //cuDeviceGetAttribute( &deviceId, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, device);
+               //std::stringstream ssDevice;
+               //ssDevice << std::hex << std::setfill( '0' ) << std::setw( 4 ) << domainId << ":" << std::setw( 2 ) << busId << ":" << std::setw( 2 ) << deviceId << ".0";
+               //strcpy( pciDevice, ssDevice.str().c_str() );
+#else
+               char pciDevice[20]; // 13 min
+
+               cudaDeviceGetPCIBusId( pciDevice, 20, i );
+
+               // This is common code for cuda 4.0 and 4.1
+               std::stringstream ss;
+               ss << "/sys/bus/pci/devices/" << pciDevice << "/numa_node";
+               std::ifstream fNode( ss.str().c_str() );
+               if ( fNode.good() )
+                  fNode >> node;
+               fNode.close();
+#endif
+
+            }
+            // Fallback / safety measure
+            if ( node < 0 || sys.getSMPPlugin()->getNumSockets() == 1 ) {
                node = 0;
                // As we don't have NUMA info, don't request an specific node
                numa = false;
@@ -135,6 +218,7 @@ class GPUPlugin : public ArchPlugin
             addBinding( pe );
          }
       }
+#endif
 
       virtual PE* createPE( unsigned id, unsigned uid )
       {
@@ -146,19 +230,20 @@ class GPUPlugin : public ArchPlugin
          //return NULL;
 //=======         
         //pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
-        memory_space_id_t mid = sys.getNewSeparateMemoryAddressSpaceId();
-        SeparateMemoryAddressSpace *gpumemory = NEW SeparateMemoryAddressSpace( mid, nanos::ext::GPU, nanos::ext::GPUConfig::getAllocWide());
-        gpumemory->setNodeNumber( 0 );
-        //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
-        //oclmemory->setSpecificData( oclmemspace );
-        sys.addSeparateMemory(mid,gpumemory);
-        
-        ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
-        gpumemory->setSpecificData( gpuMemSpace );
-        nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( getBinding(id), id, uid, mid, *gpuMemSpace );
-
-        gpuPE->setNUMANode( sys.getNodeOfPE( gpuPE->getId() ) ); 
-        return gpuPE;
+//        memory_space_id_t mid = sys.getNewSeparateMemoryAddressSpaceId();
+//        SeparateMemoryAddressSpace *gpumemory = NEW SeparateMemoryAddressSpace( mid, nanos::ext::GPU, nanos::ext::GPUConfig::getAllocWide());
+//        gpumemory->setNodeNumber( 0 );
+//        //ext::OpenCLMemorySpace *oclmemspace = NEW ext::OpenCLMemorySpace();
+//        //oclmemory->setSpecificData( oclmemspace );
+//        sys.addSeparateMemory(mid,gpumemory);
+//        
+//        ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
+//        gpumemory->setSpecificData( gpuMemSpace );
+//        nanos::ext::GPUProcessor *gpuPE = NEW nanos::ext::GPUProcessor( getBinding(id), id, uid, mid, *gpuMemSpace );
+//
+//        gpuPE->setNUMANode( sys.getNodeOfPE( gpuPE->getId() ) ); 
+//        return gpuPE;
+         return NULL;
       }
 
 //      virtual void boot() {
@@ -177,6 +262,22 @@ class GPUPlugin : public ArchPlugin
 //   }
 //         
 //      }
+
+virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
+   for ( std::vector<GPUProcessor *>::const_iterator it = _gpus->begin(); it != _gpus->end(); it++ ) {
+      pes.push_back( *it );
+   }
+}
+
+virtual void startSupportThreads() {
+}
+
+virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+   for ( std::vector<GPUProcessor *>::iterator it = _gpus->begin(); it != _gpus->end(); it++ ) {
+      workers.push_back( &(*it)->startWorker() );
+   }
+}
+
 };
 
 }

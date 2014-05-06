@@ -121,6 +121,64 @@ namespace nanos
             return true;
          }
 
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr = 0 ) const {
+            void *retAddr = NULL;
+
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->lock();
+            retAddr = sallocator->allocate( size );
+            sallocator->unlock();
+            return retAddr;
+         }
+
+         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->lock();
+            sallocator->free( (void *) addr );
+            sallocator->unlock();
+         }
+
+         virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->canAllocate( sizes, numChunks, remainingSizes );
+         }
+
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            return sallocator->getCapacity();
+         }
+
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            ::memcpy( (void *) devAddr, (void *) hostAddr, len );
+         }
+
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            ::memcpy( (void *) hostAddr, (void *) devAddr, len );
+         }
+
+         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            ::memcpy( (void *) devDestAddr, (void *) devOrigAddr, len );
+            return true;
+         }
+
+         /*
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+            std::cerr << "wrong copyIn" <<std::endl;
+         }
+
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+            std::cerr << "wrong copyOut" <<std::endl;
+         }
+
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            std::cerr << "wrong copyDevToDev" <<std::endl; return false;
+         }*/
+
+         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->getFreeChunksList( list );
+         }
+
    };
 }
 

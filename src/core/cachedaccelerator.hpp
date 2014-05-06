@@ -27,9 +27,9 @@
 
 using namespace nanos;
 
-inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch, int uid,
+inline CachedAccelerator::CachedAccelerator( const Device *arch,
    const Device *subArch, memory_space_id_t addressSpace ) :
-   Accelerator( newId, arch, uid, subArch ), _addressSpaceId( addressSpace ) {
+   Accelerator( arch, subArch ), _addressSpaceId( addressSpace ) {
 }
 
 inline CachedAccelerator::~CachedAccelerator() {
