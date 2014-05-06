@@ -131,5 +131,5 @@ std::map<cl_device_id, cl_context> OpenCLPlugin::_devices;
 } // End namespace nanos.
 
 
-DECLARE_PLUGIN("arch-opencl",nanos::ext::OpenCLPlugin);
+DECLARE_PLUGIN("pe-opencl",nanos::ext::OpenCLPlugin);
 

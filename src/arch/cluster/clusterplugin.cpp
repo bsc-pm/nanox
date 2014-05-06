@@ -162,5 +162,5 @@ void ClusterPlugin::prepare( Config& cfg ) {
 }
 }
 
-nanos::ext::ClusterPlugin NanosXPlugin;
+DECLARE_PLUGIN("pe-cluster",nanos::ext::ClusterPlugin);
 
