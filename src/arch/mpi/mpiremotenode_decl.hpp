@@ -42,7 +42,7 @@ namespace nanos {
             static size_t _bufferDefaultSize;
             static char* _bufferPtr;
             
-            static bool _inicialized;   
+            static bool _initialized;   
             static Lock _taskLock;
             static Lock _queueLock;
             static std::list<int> _pendingTasksQueue;
@@ -133,8 +133,8 @@ namespace nanos {
              * @param blackList pointers which should not be considered (failed before)
              * @return 
              */
-            static uint64_t getFreeChunk(int arraysLength, uint64_t* ptrArr[arraysLength],
-                             uint64_t* sizeArr[arraysLength],int* arrLength[arraysLength], size_t chunkSize, std::map<uint64_t,char>& blackList );
+            static uint64_t getFreeChunk(int arraysLength, uint64_t** arrOfPtrs,
+                             uint64_t** sizeArr,int** arrLength, size_t chunkSize, std::map<uint64_t,char>& blackList );
 
             
             /**

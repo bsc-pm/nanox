@@ -111,6 +111,13 @@ void * OS::loadDL( const std::string &dir, const std::string &name )
    return dlopen ( filename.c_str(), RTLD_NOW );
 }
 
+
+
+void * OS::loadLocalDL(  )
+{
+   return dlopen ( NULL, RTLD_NOW|RTLD_GLOBAL );
+}
+
 void * OS::dlFindSymbol( void *dlHandler, const std::string &symbolName )
 {
    return dlsym ( dlHandler, symbolName.c_str() );

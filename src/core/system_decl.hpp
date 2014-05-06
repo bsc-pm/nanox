@@ -653,7 +653,7 @@ namespace nanos
          PinnedAllocator& getPinnedAllocatorCUDA();
 #endif
 #ifdef MPI_DEV
-         char* getOmpssUsesOffload();
+         bool isOffloadSlave();
 #endif
 
          void threadReady ();

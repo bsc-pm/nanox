@@ -89,9 +89,11 @@ Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool initPlugi
       
    }
 
-   Config config;
-   plugin->config(config);
-   config.init();
+   if (plugin->configurable()) {
+      Config config;
+      plugin->config(config);
+      config.init();
+   }
 
    if ( initPlugin )
       plugin->init();

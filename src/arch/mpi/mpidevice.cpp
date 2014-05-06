@@ -28,6 +28,7 @@
 #include "copydescriptor_decl.hpp"
 #include "mpidevice.hpp"
 #include <unistd.h>
+#include "deviceops.hpp"
 
 
 //TODO: check for errors in communications
@@ -77,7 +78,7 @@ void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem
  */
 //void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
 void MPIDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {
-    if (addr == NULL) return;
+    if (addr == 0) return;
     //std::cerr << "Inicio free\n";
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FREE_EVENT);
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) &mem.getConstPE();
@@ -220,6 +221,10 @@ bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
         order.opId = -src->getRank();
         //Send one to the dst telling him who's the source  (-1) and where to store
         nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, dst->getRank(), TAG_CACHE_ORDER, dst->getCommunicator());
+        ops->completeOp(); 
+        if ( f ) {
+           (*f)(); 
+        }
         return true;
         //Wait for ACK from receiver
         //printf("espero ACK\n");
@@ -264,7 +269,7 @@ static void createExtraCacheThread(){
     mpi->startThread(*wd);
 }
 
-void MPIDevice::remoteNodeCacheWorker() {
+void MPIDevice::remoteNodeCacheWorker() {                            
     //myThread = myThread->getNextThread();
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);    
@@ -356,7 +361,7 @@ void MPIDevice::remoteNodeCacheWorker() {
                         {    
                             NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);
                             nanos::ext::MPIRemoteNode::nanosMPIRecv((void*) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_IN, parentcomm, MPI_STATUS_IGNORE );
-//                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+                            //                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
 //                            if (ent != NULL) 
 //                            { 
 //                               if (ent->getOwner() != NULL) {

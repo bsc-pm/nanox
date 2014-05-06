@@ -44,6 +44,8 @@ namespace nanos
          virtual ~Plugin() {}
 
          virtual void config(Config &cfg) {}
+         
+         virtual bool configurable() { return true; }
          virtual void init() {}
 
          virtual void fini() {}

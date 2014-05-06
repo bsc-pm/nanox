@@ -45,7 +45,7 @@ Lock MPIRemoteNode::_taskLock;
 Lock MPIRemoteNode::_queueLock;
 std::list<int> MPIRemoteNode::_pendingTasksQueue;
 std::list<int> MPIRemoteNode::_pendingTaskParentsQueue;
-bool MPIRemoteNode::_inicialized=false;
+bool MPIRemoteNode::_initialized=false;
 int MPIRemoteNode::_currentTaskParent=-1;
 
 Lock& MPIRemoteNode::getTaskLock() {

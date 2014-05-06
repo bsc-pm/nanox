@@ -20,11 +20,6 @@
 #include "errno.h"
 #include <unistd.h>
 
-#ifdef MPI_DEV
-#include "mpi.h"
-#include "mpiprocessor_decl.hpp"
-#endif
-
 #ifndef EXTRAE_VERSION
 #warning Extrae library version is not supported (use >= 2.4):
 #else
@@ -262,15 +257,10 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
 #ifdef MPI_DEV
-        /* if MPITRAE_ON not defined, activate it */
-        int provided;
-        //MPI Init triggers extrae init
-        //If OmpSs has compiled MPI tasks, we assume we are in an offload environment
-        //if (sys.getOmpssUsesOffload()!=0){ //doesnt seem to be working...
         char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
         if (offload_trace_on != NULL){ 
-           if (getenv("I_MPI_WAIT_MODE")==NULL) putenv("I_MPI_WAIT_MODE=1");
-           MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
+           //MPI plugin init will initialize extrae...
+           sys.loadPlugin("arch-mpi");
         } else {
 #endif
             /* Regular SMP OMPItrace initialization */      

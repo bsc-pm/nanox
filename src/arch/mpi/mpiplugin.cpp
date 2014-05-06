@@ -18,7 +18,6 @@
 /*************************************************************************************/
 
 #include "plugin.hpp"
-#include "mpiprocessor_decl.hpp"
 #include "mpidd.hpp"
 #include "system.hpp"
 
@@ -28,9 +27,11 @@ namespace ext {
 
 class MPIPlugin : public ArchPlugin
 {
+   bool _initialized;
+   bool _extraeInitialized;
 
    public:
-      MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ) {}
+      MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ), _initialized(false), _extraeInitialized(false) {}
 
       virtual void config ( Config& cfg )
       {
@@ -38,7 +39,29 @@ class MPIPlugin : public ArchPlugin
          MPIProcessor::prepareConfig( cfg );
       }
       
+      virtual bool configurable() { 
+         char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
+          return offload_trace_on == NULL || _extraeInitialized; 
+      }
+      
       virtual void init() {
+         /* if MPITRAE_ON not defined, activate it */
+         int provided;
+         //MPI Init triggers extrae init
+         //If OmpSs has compiled MPI tasks, we assume we are in an offload environment
+         //if (sys.getOmpssUsesOffload()!=0){ //doesnt seem to be working...
+         char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
+         if (offload_trace_on != NULL && !_extraeInitialized){ 
+             _extraeInitialized=true;              
+             if (getenv("I_MPI_WAIT_MODE")==NULL) putenv( const_cast<char*> ("I_MPI_WAIT_MODE=1"));
+             MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
+             return;
+         }
+        
+         if (!_initialized) {
+           _initialized=true;
+           nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
+         }
       }
       
       virtual unsigned getNumHelperPEs() const
@@ -74,7 +97,7 @@ class MPIPlugin : public ArchPlugin
    virtual PE* createPE( unsigned id, unsigned uid )
    {
       //Not used
-      return NEW MPIProcessor( id , NULL, 0, uid, true, false, NULL, 0);
+      return NULL;
    }
 };
 }

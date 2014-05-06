@@ -423,10 +423,6 @@ inline char *  System::getOmpssUsesCublas() { return &gpu_cublas_init; }
 
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
-#ifdef MPI_DEV
-extern __attribute__((weak)) char ompss_uses_offload;
-inline char* System::getOmpssUsesOffload(){ return &ompss_uses_offload; }
-#endif
 
 
 inline bool System::throttleTaskIn ( void ) const { return _throttlePolicy->throttleIn(); }

@@ -72,9 +72,9 @@ int MPIRemoteNode::nanosMPIWorker(){
 
 
 
-void MPIRemoteNode::mpiOffloadSlaveMain(){    
+void MPIRemoteNode::mpiOffloadSlaveMain(){   
     //If we are slave, turn on slave mode (which keeps working until shutdown) and exit
-    if (getenv("OMPSS_OFFLOAD_SLAVE")){
+    if (getenv("OMPSS_OFFLOAD_SLAVE")){    
        nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
        nanos::ext::MPIRemoteNode::nanosSyncDevPointers(ompss_mpi_masks, ompss_mpi_filenames, ompss_mpi_file_sizes,ompss_mpi_file_ntasks,ompss_mpi_func_pointers_dev);
        //Start as worker and cache (same thread)
@@ -99,16 +99,16 @@ int MPIRemoteNode::ompssMpiGetFunctionIndexHost(void* func_pointer){
  * All this tasks redefine nanox messages
  */
 void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int* userProvided) {    
-    if (_inicialized) return;
+    if (_initialized) return;
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_INIT_EVENT);
     verbose0( "loading MPI support" );
     //Unless user specifies otherwise, enable blocking mode in MPI
     if (getenv("I_MPI_WAIT_MODE")==NULL) putenv(const_cast<char*> ("I_MPI_WAIT_MODE=1"));
 
-    if ( !sys.loadPlugin( "pe-mpi" ) )
+    if ( !sys.loadPlugin( "arch-mpi" ) )
       fatal0 ( "Couldn't load MPI support" );
    
-    _inicialized=true;   
+    _initialized=true;   
     int provided;
     //If user provided a null pointer, we'll a value for internal checks
     if (userProvided==NULL) userProvided=&provided;
@@ -127,8 +127,13 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
         MPI_Query_thread(userProvided);        
     }
     
-    fatal_cond0( (*userProvided) < MPI_THREAD_MULTIPLE,"MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, check your MPI "
-            "implementation and try to configure it so it can support this multithread level");
+    if ((*userProvided) < MPI_THREAD_MULTIPLE ) {
+         std::cerr << "MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, your application may hang, check your MPI "
+            "implementation and try to configure it so it can support this multithread level. Configure your PATH so the mpi compiler"
+            " points to a multithread implementation of MPI";
+         //Some implementations seem to catch fatal0 and continue... make sure we die
+         exit(-1);
+    }
     if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
         _bufferPtr = new char[_bufferDefaultSize];
         MPI_Buffer_attach(_bufferPtr, _bufferDefaultSize);
@@ -277,13 +282,13 @@ void MPIRemoteNode::unifiedMemoryMallocRemoteSafe(cacheOrder& order, int parentR
 //    }
 }
 
-uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t* ptrArr[arraysLength],
-         uint64_t* sizeArr[arraysLength],int* arrLength[arraysLength], size_t chunkSize, std::map<uint64_t,char>& blackList ) {
+uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t** arrOfPtr,
+         uint64_t** sizeArr,int** arrLength, size_t chunkSize, std::map<uint64_t,char>& blackList ) {
 //    uint64_t result=0;
 //    //TODO: Improve this implementation (brute force w/ many stop conditions + binary search right now)
 //    //For every free chunk in each node, check if it's available in every other node
 //    for (int masterSpaceNum=0; masterSpaceNum<arraysLength && resul!=0; ++masterSpaceNum) {
-//        uint64_t* masterPtrArr=ptrArr[masterSpaceNum];
+//        uint64_t* masterPtrArr=arrOfPtr[masterSpaceNum];
 //        uint64_t* masterSizeArr=sizeArr[masterSpaceNum];
 //        int masterArrLength=arrLength[masterSpaceNum];
 //        for (int i=masterArrLength; i>=0 && resul!=0 ; --i) {
@@ -294,7 +299,7 @@ uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t* ptrArr[arraysLe
 //                bool isAvaiableInAllSpaces=true;
 //                for (int slaveSpaceNum=0; slaveSpaceNum<arraysLength && isAvaiableInAllSpaces; ++slaveSpaceNum) {
 //                    bool spaceHasFreeChunk=false;
-//                    uint64_t* slavePtrArr=ptrArr[slaveSpaceNum];
+//                    uint64_t* slavePtrArr=arrOfPtr[slaveSpaceNum];
 //                    uint64_t* slaveSizeArr=sizeArr[slaveSpaceNum];
 //                    unsigned last=(unsigned)arrLength[slaveSpaceNum];
 //                    unsigned min=0;
@@ -407,7 +412,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
 void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, bool strict, int* provided, int offset, const int* pph_list) {  
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
     //IF nanos MPI not initialized, do it
-    if (!_inicialized)
+    if (!_initialized)
         nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
     
     std::vector<std::string> tokensParams;

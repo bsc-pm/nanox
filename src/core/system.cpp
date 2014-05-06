@@ -54,11 +54,6 @@
 
 #include "addressspace.hpp"
 
-#ifdef MPI_DEV
-#include "mpiprocessor_decl.hpp"
-#endif
-
-
 #ifdef OpenCL_DEV
 #include "openclprocessor.hpp"
 #endif
@@ -1935,12 +1930,13 @@ void System::executionSummary( void )
 //main should be done too
 void System::ompss_nanox_main(){
     #ifdef MPI_DEV
-    //This function will already do exit(0) after the slave finishes (when we are on slave)
-    nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
-    #else
-      #ifdef CLUSTER_DEV
-      nanos::ext::ClusterNode::clusterWorker();
-      #endif
+    if (getenv("OMPSS_OFFLOAD_SLAVE")){
+        //Plugin->init of MPI will do everything and then exit(0)
+        sys.loadPlugin("arch-mpi");
+    }
+    #endif
+    #ifdef CLUSTER_DEV
+    nanos::ext::ClusterNode::clusterWorker();
     #endif
 }
 

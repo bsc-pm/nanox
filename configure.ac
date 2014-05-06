@@ -235,61 +235,40 @@ AS_HELP_STRING([--with-mpi=dir], [Directory of mpi installation]),
 		MPIPATH=""
 	]
 )
-	
+
+AC_MSG_CHECKING([if MPI Offload architecture was requested])
 AC_ARG_ENABLE([mpi],
-  AC_HELP_STRING([--enable-mpi],[Enable support for MPI (off by default)]),
-  [
-	 mpi_enabled=yes
-  ],
-  [
-	 AC_MSG_RESULT([no])
-  ]
+    AS_HELP_STRING([--enable-mpi], [Enables mpi offload support/architecture]),
+    [
+        if test x$enableval = xyes -o x$enableval = x;
+        then
+            mpi_enabled="yes"
+            AC_MSG_RESULT([yes])
+        else if test x$enableval = xno;
+            then
+                AC_MSG_RESULT([no])
+                mpi_enabled="no"
+             else
+                AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+             fi
+        fi
+    ],
+    [
+        mpi_enabled="no"
+        AC_MSG_RESULT([yes])
+    ]
 )
 
 if test x$mpi_enabled = xyes; then
-	if test x$use_icc = xyes; then  
-		MPI_CNAME=mpiicc
-		MPI_CXXNAME=mpiicpc
-		CFLAGS="$CFLAGS -mt_mpi"
-		CXXFLAGS="$CXXFLAGS -mt_mpi" 
-	else
-		MPI_CNAME=mpicc
-		MPI_CXXNAME=mpicxx
-		CFLAGS="$CFLAGS -lmpi"
-		CXXFLAGS="$CXXFLAGS -lmpi_cxx" 
-	fi
-	if test x$MPIPATH = x; then   	
-		AC_CHECK_PROG( [MPICC], [$MPI_CNAME], yes, no)
-		if test x$MPICC = xno ; then
-			AC_MSG_ERROR([MPI Compiler ($MPI_CNAME) not found in PATH. Modify your PATH or use --with-mpi clause])
-		else
-			CC=$MPI_CNAME
-			CXX=$MPI_CXXNAME
-		fi
-	else
-		mpi_found=no
-		if test -f $MPIPATH/$MPI_CNAME; then 
-			mpi_found=yes 
-			CC=$MPIPATH/$MPI_CNAME
-			CXX=$MPIPATH/$MPI_CXXNAME
-		fi
-		#search in the path without bin
-		if test x$mpi_found = xno; then		
-			mpi_found=no
-			if test -f $MPIPATH/bin/$MPI_CNAME; then 
-				mpi_found=yes 
-				CC=$MPIPATH/bin/$MPI_CNAME
-				CXX=$MPIPATH/bin/$MPI_CXXNAME
-			else
-				AC_MSG_ERROR([MPI Compiler ($MPI_CNAME) not found in --with-mpi directory $MPIPATH or $MPIPATH/bin])
-			fi
-		fi		
-	fi
 	ARCHITECTURES="$ARCHITECTURES mpi"
 	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"
-	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"		
+	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"	
+	NANOX_OFFL_FLAGS="$NANOX_OFFL_FLAGS -DMPICH_IGNORE_CXX_SEEK"
 	NANOX_MPI_PREFIX=$prefix
 	AC_SUBST([NANOX_MPI_PREFIX])
+	AC_SUBST([NANOX_OFFL_MPICC])
+	AC_SUBST([NANOX_OFFL_MPICXX])
+	AC_SUBST([NANOX_OFFL_FLAGS])
 	mpi_valid=yes
 fi
 
@@ -819,10 +798,12 @@ AC_MSG_CHECKING([for architecture])
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
-	NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
-	NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
-	NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
-	NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
+   if test x"$arch" != x"mpi"; then
+      NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
+      NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
+   fi
 done
 NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
 NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"

@@ -54,7 +54,7 @@ unset TMP_NUM_THREADS
 second="="
 first=${@}
 first=${first//EQUAL/$second}
-export "${@}" 
+export "${first}" 
 if [ "x$TASKSET" != "x" ]; then 
 	taskset -cp $TASKSET $$ > /dev/null 2>&1
 elif [ "x$NX_BINDING_START" == "x" ]; then

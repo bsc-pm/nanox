@@ -76,4 +76,4 @@ class SMPPlugin : public ArchPlugin
 }
 }
 
-DECLARE_PLUGIN("arch-smp",nanos::ext::SMPPlugin);
+DECLARE_PLUGIN("pe-smp",nanos::ext::SMPPlugin);
