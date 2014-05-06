@@ -32,7 +32,13 @@ inline void CommutationDO::dependenciesSatisfied ( )
    }
    if ( _taskReduction != NULL ) {
       void *addr = _taskReduction->finalize();
+#ifndef ON_TASK_REDUCTION
       myThread->getTeam()->removeTaskReduction( addr );
+#else
+      //FIXME no only current WD
+      myThread->getCurrentWD()->removeTaskReduction( addr );
+#endif
+
    }
    
    finished();

@@ -247,7 +247,11 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size, size_t align, void (*init)( void *), void (*reducer)( void *, void * ) ) )
 {
    try {
+#ifndef ON_TASK_REDUCTION
        myThread->getTeam()->registerTaskReduction ( orig, size, init, reducer );
+#else
+       myThread->getCurrentWD()->registerTaskReduction ( orig, size, init, reducer );
+#endif
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -257,7 +261,11 @@ NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t 
 NANOS_API_DEF (nanos_err_t, nanos_task_reduction_get_thread_storage, ( void *orig, void **tpd ) )
 {
    try {
+#ifndef ON_TASK_REDUCTION
       *tpd = myThread->getTeam()->getTaskReductionThreadStorage ( orig, myThread->getTeamId() );
+#else
+      *tpd = myThread->getCurrentWD()->getTaskReductionThreadStorage ( orig, myThread->getTeamId() );
+#endif
    } catch ( nanos_err_t e) {
       return e;
    }

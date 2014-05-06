@@ -628,6 +628,7 @@ namespace nanos
          void removeTaskReduction( void *p_orig );
          void * getTaskReductionThreadStorage( void *p_orig, size_t id );
          TaskReduction * getTaskReduction( const void *p_orig );
+         void copyReductions(WorkDescriptor *parent);
    };
 
    typedef class WorkDescriptor WD;

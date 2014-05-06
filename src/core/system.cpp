@@ -867,6 +867,11 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // In case the master have been busy crating tasks 
    // every 10 tasks created I'll check available cpus
    if(_atomicWDSeed.value()%10==0)dlb_updateAvailableCpus();
+
+#ifndef ON_TASK_REDUCTION
+#else
+   wd->copyReductions((WorkDescriptor *)uwg);
+#endif
 }
 
 /*! \brief Duplicates the whole structure for a given WD
