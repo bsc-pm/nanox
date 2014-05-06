@@ -28,32 +28,32 @@
 namespace nanos
 {
 
-   class CachedAccelerator : public Accelerator
-   {
-      private:
-        memory_space_id_t _addressSpaceId;
+   //class CachedAccelerator : public Accelerator
+   //{
+   //   private:
+   //     memory_space_id_t _addressSpaceId;
 
-        /*! \brief CachedAccelerator default constructor (private)
-         */
-         CachedAccelerator ();
-        /*! \brief CachedAccelerator copy constructor (private)
-         */
-         CachedAccelerator ( const CachedAccelerator &a );
-        /*! \brief CachedAccelerator copy assignment operator (private)
-         */
-         const CachedAccelerator& operator= ( const CachedAccelerator &a );
-      public:
-        /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
-         */
-         CachedAccelerator( const Device *arch, const Device *subArch = NULL,
-            memory_space_id_t addressSpace = (memory_space_id_t) -1 );
+   //     /*! \brief CachedAccelerator default constructor (private)
+   //      */
+   //      CachedAccelerator ();
+   //     /*! \brief CachedAccelerator copy constructor (private)
+   //      */
+   //      CachedAccelerator ( const CachedAccelerator &a );
+   //     /*! \brief CachedAccelerator copy assignment operator (private)
+   //      */
+   //      const CachedAccelerator& operator= ( const CachedAccelerator &a );
+   //   public:
+   //     /*! \brief CachedAccelerator constructor - from 'newId' and 'arch'
+   //      */
+   //      CachedAccelerator( const Device *arch, const Device *subArch = NULL,
+   //         memory_space_id_t addressSpace = (memory_space_id_t) -1 );
 
-        /*! \brief CachedAccelerator destructor
-         */
-         virtual ~CachedAccelerator();
+   //     /*! \brief CachedAccelerator destructor
+   //      */
+   //      virtual ~CachedAccelerator();
 
-         void waitInputsDependent( WorkDescriptor &wd );
-   };
+   //      void waitInputsDependent( WorkDescriptor &wd );
+   //};
 
 };
 

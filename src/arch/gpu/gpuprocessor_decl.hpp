@@ -58,7 +58,7 @@ namespace ext
           }
     };
 
-   class GPUProcessor : public CachedAccelerator
+   class GPUProcessor : public ProcessingElement
    {
       public:
          class GPUProcessorInfo;

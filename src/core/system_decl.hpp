@@ -72,7 +72,7 @@ namespace nanos
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
 
          typedef void (*Init) ();
-         typedef std::vector<Accelerator *> AList;
+         //typedef std::vector<Accelerator *> AList;
 
       private:
          // types

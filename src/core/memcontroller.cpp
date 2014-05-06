@@ -304,7 +304,7 @@ void MemController::synchronize() {
    if ( _mainWd ) {
       sys.getHostMemory().synchronize( _wd );
    } else {
-      std::cerr << "Synchronize on a non main WD!" << std::endl;
+ //     std::cerr << "Synchronize on a non main WD!, it will be considered as 'noflush'." << std::endl;
    }
 }
 
