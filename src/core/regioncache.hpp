@@ -77,9 +77,9 @@ inline void RegionCache::increaseLruTime() {
    _lruTime += 1;
 }
 
-inline bool RegionCache::pin( global_reg_t const &hostMem ) {
+inline bool RegionCache::pin( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx ) {
    bool result = false;
-   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
+   AllocatedChunk *entry = this->getAllocatedChunk( hostMem, wd, copyIdx );
    if ( entry ) {
       entry->addReference();
       entry->unlock();
@@ -88,8 +88,8 @@ inline bool RegionCache::pin( global_reg_t const &hostMem ) {
    return result;
 }
 
-inline void RegionCache::unpin( global_reg_t const &hostMem ) {
-   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
+inline void RegionCache::unpin( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx ) {
+   AllocatedChunk *entry = this->getAllocatedChunk( hostMem, wd, copyIdx );
    if ( entry ) {
       entry->removeReference();
       entry->unlock();

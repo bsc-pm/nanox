@@ -32,9 +32,9 @@ System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 #ifdef SMP_NUMA
-SMPProcessor::SMPProcessor( int id, int uid ) : CachedAccelerator<SMPDevice>( id, &SMP, uid, 0 ) {}
+SMPProcessor::SMPProcessor( int bindingId ) : CachedAccelerator<SMPDevice>( id, &SMP, uid, 0 ), _bindingId( bindingId ) {}
 #else
-SMPProcessor::SMPProcessor( int id, int uid ) : PE( id, &SMP, uid, NULL, sys.getRootMemorySpaceId() ) {}
+SMPProcessor::SMPProcessor( int bindingId ) : PE( &SMP, NULL, sys.getRootMemorySpaceId() ), _bindingId( bindingId )  {}
 #endif
 
 void SMPProcessor::prepareConfig ( Config &config )
@@ -114,7 +114,7 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
 BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
    ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
-   SMPThread &th = *NEW SMPThread( helper,this );
+   SMPThread &th = *NEW SMPThread( helper, this, this );
    th.stackSize( _threadsStackSize ).useUserThreads( _useUserThreads );
 
    return th;

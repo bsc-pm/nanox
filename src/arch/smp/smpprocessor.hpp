@@ -54,6 +54,7 @@ namespace ext
          static size_t _threadsStackSize;
          static size_t _cacheDefaultSize;
          static System::CachePolicyType _cachePolicy;
+         unsigned int _bindingId;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -62,7 +63,9 @@ namespace ext
 
       public:
          // constructors
-         SMPProcessor( int id, int uid );
+         SMPProcessor( int bindingId );
+
+         unsigned int getBindingId() { return _bindingId; }
 
          virtual ~SMPProcessor() {}
 

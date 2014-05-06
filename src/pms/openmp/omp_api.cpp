@@ -74,7 +74,7 @@ extern "C"
 
    NANOS_API_DEF(int, omp_get_num_procs, ( void ))
    {
-      return sys.getCpuCount();
+      return sys.getSMPPlugin()->getCpuCount();
    }
 
    NANOS_API_DEF(int, omp_in_parallel, ( void ))

@@ -377,105 +377,103 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
    return *getRegionDictionary( cd );
 }
 
-void NewNewRegionDirectory::synchronize( bool flushData, WD const &wd ) {
-   if ( flushData ) {
-      //std::cerr << "SYNC DIR" << std::endl;
-      //int c = 0;
-      //print();
-      SeparateAddressSpaceOutOps outOps( true, false );
-      std::set< DeviceOps * > ops;
-      std::set< DeviceOps * > myOps;
-      std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
-      std::set< uint64_t > objects_to_clear;
+void NewNewRegionDirectory::synchronize( WD const &wd ) {
+   //std::cerr << "SYNC DIR" << std::endl;
+   //int c = 0;
+   //print();
+   SeparateAddressSpaceOutOps outOps( true, false );
+   std::set< DeviceOps * > ops;
+   std::set< DeviceOps * > myOps;
+   std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
+   std::set< uint64_t > objects_to_clear;
 
-      for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
-         //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->second <<") ================="<<std::endl;
-         //if ( it->second->getKeepAtOrigin() ) {
-         //   std::cerr << "Object " << it->second << " Keep " << std::endl;
-         //}
-         if ( it->second->getKeepAtOrigin() ) continue;
+   for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = _objects.begin(); it != _objects.end(); it++ ) {
+      //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->second <<") ================="<<std::endl;
+      //if ( it->second->getKeepAtOrigin() ) {
+      //   std::cerr << "Object " << it->second << " Keep " << std::endl;
+      //}
+      if ( it->second->getKeepAtOrigin() ) continue;
 
-         std::list< std::pair< reg_t, reg_t > > missingParts;
-         unsigned int version = 0;
-         //double tini = OS::getMonotonicTime();
-         /*reg_t lol =*/ it->second->registerRegion(1, missingParts, version, true);
-         //double tfini = OS::getMonotonicTime();
-         //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
-         //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
-         //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-         //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
-         //}
-         //std::cerr << "}"<<std::endl;
+      std::list< std::pair< reg_t, reg_t > > missingParts;
+      unsigned int version = 0;
+      //double tini = OS::getMonotonicTime();
+      /*reg_t lol =*/ it->second->registerRegion(1, missingParts, version, true);
+      //double tfini = OS::getMonotonicTime();
+      //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
+      //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
+      //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
+      //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
+      //}
+      //std::cerr << "}"<<std::endl;
 
-         objects_to_clear.insert( it->first );
+      objects_to_clear.insert( it->first );
 
-         for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-            //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
-            if ( mit->first == mit->second ) {
-               global_reg_t reg( mit->first, it->second );
-               if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
-                  if ( !reg.isLocatedIn( 0 ) ) {
-                     DeviceOps *thisOps = reg.getDeviceOps();
-                     if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                        NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
-                        if ( _VERBOSE_CACHE ) {
-                           std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
-                           if ( entry ) std::cerr << " " << *entry << std::endl;
-                           else std::cerr << " nil " << std::endl; 
-                        }
-                        //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                        outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
-                        outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
-                     } else {
-                        outOps.getOtherOps().insert( thisOps );
+      for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
+         //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
+         if ( mit->first == mit->second ) {
+            global_reg_t reg( mit->first, it->second );
+            if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
+               if ( !reg.isLocatedIn( 0 ) ) {
+                  DeviceOps *thisOps = reg.getDeviceOps();
+                  if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
+                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                     if ( _VERBOSE_CACHE ) {
+                        std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                        if ( entry ) std::cerr << " " << *entry << std::endl;
+                        else std::cerr << " nil " << std::endl; 
                      }
-                     //regEntry->addAccess( 0, regEntry->getVersion() );
+                     //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                     outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef );
+                     outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
+                  } else {
+                     outOps.getOtherOps().insert( thisOps );
                   }
-                  // another mechanism to inval data: else if ( reg.getNumLocations() > 1 ) {
-                  // another mechanism to inval data:    //std::cerr << " have too upgrade host region" << std::endl;
-                  // another mechanism to inval data:    reg.setLocationAndVersion( 0, reg.getVersion()+1 ); //increase version to invalidate the device copy
-                  // another mechanism to inval data: }
+                  //regEntry->addAccess( 0, regEntry->getVersion() );
+               }
+               // another mechanism to inval data: else if ( reg.getNumLocations() > 1 ) {
+               // another mechanism to inval data:    //std::cerr << " have too upgrade host region" << std::endl;
+               // another mechanism to inval data:    reg.setLocationAndVersion( 0, reg.getVersion()+1 ); //increase version to invalidate the device copy
+               // another mechanism to inval data: }
 
-                  // aggregate the locations, later, we will invalidate the full object from those locations
-                  locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
-               } else {
-                  objects_to_clear.erase( it->first ); //FIXME: objects may be added later
+               // aggregate the locations, later, we will invalidate the full object from those locations
+               locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
+            } else {
+               objects_to_clear.erase( it->first ); //FIXME: objects may be added later
+            }
+         } else {
+            global_reg_t reg( mit->second, it->second );
+            if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
+               if ( !reg.isLocatedIn( 0 ) ) {
+                  std::cerr << "FIXME: I should sync region! "; reg.key->printRegion( reg.id );
                }
             } else {
-               global_reg_t reg( mit->second, it->second );
-               if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
-                  if ( !reg.isLocatedIn( 0 ) ) {
-                     std::cerr << "FIXME: I should sync region! "; reg.key->printRegion( reg.id );
-                  }
-               } else {
-                  objects_to_clear.erase( it->first );
-               }
+               objects_to_clear.erase( it->first );
             }
          }
-
-         //std::cerr << "=============================================================="<<std::endl;
       }
-      outOps.issue( *( (WD *) NULL ) );
-      while ( !outOps.isDataReady( wd ) ) { myThread->idle(); }
 
-      //std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
-      //printBt();
-      if ( wd.getDepth() == 0 ) {
-         // invalidate data on devices
-         for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
-            for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
-               if ( *locIt != 0 ) {
-                  //std::cerr << "inval object " << it->first << " (addr " << (void*) it->first->getKeyBaseAddress() << ") from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
-                  sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
-               }
+      //std::cerr << "=============================================================="<<std::endl;
+   }
+   outOps.issue( *( (WD *) NULL ) );
+   while ( !outOps.isDataReady( wd ) ) { myThread->idle(); }
+
+   //std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
+   //printBt();
+   if ( wd.getDepth() == 0 ) {
+      // invalidate data on devices
+      for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
+         for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
+            if ( *locIt != 0 ) {
+               //std::cerr << "inval object " << it->first << " (addr " << (void*) it->first->getKeyBaseAddress() << ") from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
+               sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
             }
          }
-         //clear objects from directory
-         for ( std::set< uint64_t >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
-            //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
-            delete _objects[ *it ];
-            _objects.erase( *it );
-         }
+      }
+      //clear objects from directory
+      for ( std::set< uint64_t >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+         //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
+         delete _objects[ *it ];
+         _objects.erase( *it );
       }
    }
 }

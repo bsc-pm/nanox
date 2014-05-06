@@ -13,18 +13,24 @@ namespace nanos {
 class MemController {
    bool                        _initialized;
    bool                        _preinitialized;
+   bool                        _inputDataReady;
+   bool                        _mainWd;
    WD const                   &_wd;
    memory_space_id_t           _memorySpaceId;
-   bool                        _inputDataReady;
    Lock                        _provideLock;
    std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
    BaseAddressSpaceInOps      *_inOps;
    SeparateAddressSpaceOutOps *_outOps;
-   std::size_t _affinityScore;
-   std::size_t _maxAffinityScore;
+   std::size_t                 _affinityScore;
+   std::size_t                 _maxAffinityScore;
 
 public:
-   MemCacheCopy * _memCacheCopies;
+   enum MemControllerPolicy {
+      WRITE_BACK,
+      WRITE_THROUGH,
+      NO_CACHE
+   };
+   MemCacheCopy *_memCacheCopies;
    MemController( WD const &wd );
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );
@@ -32,7 +38,7 @@ public:
    void initialize( ProcessingElement &pe );
    bool allocateInputMemory();
    void copyDataIn();
-   void copyDataOut();
+   void copyDataOut( MemControllerPolicy policy );
    bool isDataReady( WD const &wd );
    uint64_t getAddress( unsigned int index ) const;
    bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
@@ -43,6 +49,8 @@ public:
    std::size_t getAmountOfTransferredData() const;
    std::size_t getTotalAmountOfData() const;
    bool isRooted( memory_space_id_t &loc ) const ;
+   void setMainWD();
+   void synchronize();
 };
 
 }

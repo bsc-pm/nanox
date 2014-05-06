@@ -482,7 +482,7 @@ std::size_t Network::SentWDData::getSentData( unsigned int wdId ) {
 void Network::notifyWork(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq) {
    if ( _recvWdData.getReceivedWDsCount() == delayedSeq )
    {
-      _recvWdData.addWD( delayedWD->getId(), delayedWD, expectedData );
+      _recvWdData.addWD( delayedWD->getHostId(), delayedWD, expectedData );
       checkDeferredWorkReqs();
    } else { //not expected seq number, enqueue
       _deferredWorkReqsLock.acquire();
@@ -506,7 +506,7 @@ void Network::checkDeferredWorkReqs()
          if (dwd.first == _recvWdData.getReceivedWDsCount() ) 
          {
             _deferredWorkReqsLock.release();
-            _recvWdData.addWD( dwd.second.first->getId(), dwd.second.first, dwd.second.second );
+            _recvWdData.addWD( dwd.second.first->getHostId(), dwd.second.first, dwd.second.second );
             checkDeferredWorkReqs();
          } else {
             _deferredWorkReqs.push_back( dwd );
@@ -724,7 +724,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
                      if ( entry ) std::cerr << " " << *entry << std::endl;
                      else std::cerr << " nil " << std::endl; 
                   }
-                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
+                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef );
                   outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
                } else {
                   outOps.getOtherOps().insert( thisOps );

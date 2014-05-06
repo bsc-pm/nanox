@@ -32,9 +32,9 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId, int uid, memory_space_id_t memId, GPUMemorySpace &gpuMem ) : CachedAccelerator( id, &GPU, uid, NULL, memId ),
+GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) : CachedAccelerator( &GPU, NULL, memId ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), /*_gpuProcessorTransfers(),*/
-      _initialized( false ), _gpuMemory( gpuMem ) /*, _allocator(), _inputPinnedMemoryBuffer()*/
+      _initialized( false ), _gpuMemory( gpuMem ), _core( core ) /*, _allocator(), _inputPinnedMemoryBuffer()*/
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
@@ -159,7 +159,7 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread 
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *NEW GPUThread( helper, this, parent, _gpuDevice );
+   GPUThread &th = *NEW GPUThread( helper, this, _core, _gpuDevice );
 
    return th;
 }
