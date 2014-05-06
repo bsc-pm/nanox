@@ -19,7 +19,7 @@
 
 #include "smp_ult.hpp"
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *workWrapper, WD *wd,
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                           void *cleanup, void *cleanupArg )
 {
    intptr_t * state = stack;
@@ -31,7 +31,7 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *workWrapper, W
    state--;
    *state = ( intptr_t )cleanup;
    state--;
-   *state = ( intptr_t )workWrapper;
+   *state = ( intptr_t )wrapperFunction;
 
    // skip first _state
    state -= 4;

@@ -62,7 +62,7 @@ extern "C"
    void startHelper ();
 }
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *workWrapper, void *wd,
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), void *wd,
                           void *cleanup, void *cleanupArg )
 {
    // stack grows down
@@ -101,7 +101,7 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *workWrapper, v
    // r6 (pt)
    state[50] = ( intptr_t ) cleanupArg;
    // r7 (userf)
-   state[49] = ( intptr_t ) workWrapper;
+   state[49] = ( intptr_t ) wrapperFunction;
    // ar.unat (callee)
    state[48] = ( intptr_t ) 0;
    // ar.fpsr
