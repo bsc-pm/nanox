@@ -451,6 +451,7 @@ void System::start ()
    PE *pe = createPE ( _defArch, getBindingId( 0 ), 0 );
    pe->setNUMANode( getNodeOfPE( pe->getId() ) );
    _pes.push_back ( pe );
+   _devices.insert( &pe->getDeviceType() );
    _workers.push_back( &pe->associateThisThread ( getUntieMaster() ) );
    CPU_SET( getBindingId( 0 ), &_cpuActiveSet );
 

@@ -140,6 +140,8 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
    if ( _deviceCounter && _ndevs[ &( thread->runningOn()->getDeviceType() )].value() == 0 )
       return NULL;
 
+   bool erase = false;
+
    {
       LockBlock lock( _lock );
 
@@ -151,7 +153,8 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
          for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
             WD &wd = *(WD *)*it;
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread) ) {
-               if ( wd.dequeue( &found ) ) {
+               erase = wd.dequeue( &found );
+               if ( erase ) {
                    _dq.erase( it );
                    int tasks = --(sys.getSchedulerStats()._readyTasks);
                    decreaseTasksInQueues(tasks);
@@ -165,7 +168,7 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
 
    }
 
-   if ( _deviceCounter && found ) {
+   if ( _deviceCounter && erase ) {
       for ( unsigned int i = 0; i < found->getNumDevices(); i++ ) {
          _ndevs[( found->getDevices()[i]->getDevice() )]--;
       }
@@ -189,6 +192,8 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
    if ( _deviceCounter && _ndevs[ &( thread->runningOn()->getDeviceType() )].value() == 0 )
       return NULL;
 
+   bool erase = false;
+
    {
       LockBlock lock( _lock );
 
@@ -200,7 +205,8 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
          for ( rit = _dq.rbegin(); rit != _dq.rend() ; rit++ ) {
             WD &wd = *(WD *)*rit;
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
-               if ( wd.dequeue( &found ) ) {
+               erase = wd.dequeue( &found );
+               if ( erase ) {
                   _dq.erase( ( ++rit ).base() );
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
@@ -214,7 +220,7 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
 
    }
 
-   if ( _deviceCounter && found ) {
+   if ( _deviceCounter && erase ) {
       for ( unsigned int i = 0; i < found->getNumDevices(); i++ ) {
          _ndevs[( found->getDevices()[i]->getDevice() )]--;
       }
