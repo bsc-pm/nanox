@@ -730,4 +730,4 @@ class SMPPlugin : public SMPBasePlugin
 }
 }
 
-DECLARE_PLUGIN("pe-smp",nanos::ext::SMPPlugin);
+DECLARE_PLUGIN("arch-smp",nanos::ext::SMPPlugin);

@@ -266,5 +266,5 @@ void ClusterPlugin::addPEs( std::vector<ProcessingElement *> &pes ) const {
 }
 }
 
-DECLARE_PLUGIN("pe-cluster",nanos::ext::ClusterPlugin);
+DECLARE_PLUGIN("arch-cluster",nanos::ext::ClusterPlugin);
 
