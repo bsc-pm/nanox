@@ -58,7 +58,7 @@ void SMPDD::prepareConfig ( Config &config )
 
 void SMPDD::initStack ( WD *wd )
 {
-   _state = ::initContext(_stack, _stackSize, (void *) &workWrapper, wd,
+   _state = ::initContext(_stack, _stackSize, &workWrapper, wd,
          (void *) Scheduler::exit, 0);
 }
 

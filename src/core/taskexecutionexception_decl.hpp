@@ -46,7 +46,7 @@ namespace nanos {
           * \param info information about the signal raised
           * \param context contains the state of execution when the error appeared
           */
-        TaskExecutionException ( WD const *task, siginfo_t const &info,
+         TaskExecutionException ( WD const *task, siginfo_t const &info,
                                   ucontext_t const &context ) throw ();
 
          /*!

@@ -42,7 +42,7 @@ namespace nanos {
    {
    }
 
-   inline TaskExecutionException::~TaskExecutionException ( ) throw ()
+   TaskExecutionException::~TaskExecutionException ( ) throw ()
    {
       /*
        * Note that this destructor does not delete the WorkDescriptor object pointed by 'task'.

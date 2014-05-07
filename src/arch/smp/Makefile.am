@@ -34,7 +34,7 @@ EXTRA_DIST= \
 	armv71/stack_asm.s \
 	tile64/stack.cpp \
 	tile64/stack_asm.s \
-   smp_ult.hpp \
+	smp_ult.hpp \
 	$(END)
 
 devinclude_HEADERS = \
