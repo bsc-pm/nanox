@@ -28,6 +28,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* Jbellon: task runtime error info */
+#include <ucontext.h>
+#include <signal.h>
+
+/* Task runtime exceptions data type */
+typedef struct
+{
+  int signal;
+  siginfo_t signal_info;
+  ucontext_t context;
+} task_execution_exception_t;
+/* fJbellon */
+
 #define NANOS_API_DECL(Type, Name, Params) \
     extern Type Name##_ Params; \
     extern Type Name Params
@@ -233,7 +246,7 @@ typedef struct {
 
 typedef struct {
    bool is_final:1;
-   bool reserved1:1;
+   bool is_recover:1;
    bool reserved2:1;
    bool reserved3:1;
    bool reserved4:1;

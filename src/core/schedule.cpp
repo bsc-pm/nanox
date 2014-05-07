@@ -35,6 +35,10 @@
 #endif
 #include "wddeque.hpp"
 #include "dlb.hpp"
+#include "smpthread.hpp"
+#include "nanos-int.h"
+
+#include <iostream>
 
 using namespace nanos;
 
@@ -943,7 +947,7 @@ struct WorkerBehaviour
         Scheduler::switchTo(next);
       }
       else {
-        if ( Scheduler::inlineWork ( next /*jb merge , true*/ ) ) {
+        if ( Scheduler::inlineWork ( next /*jb merge */, true ) ) {
           next->~WorkDescriptor();
           delete[] (char *)next;
         }
@@ -1175,7 +1179,7 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
 
-   const bool done = thread->inlineWorkDependent(*wd);
+   bool done = thread->inlineWorkDependent(*wd);
 
    // reload thread after running WD due wd may be not tied to thread if
    // both work descriptor were not tied to any thread
@@ -1183,10 +1187,11 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    if ( done ) {
       wd->finish();
+
       finishWork( wd, schedule );
+      /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
+      NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    }
-   /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
 
    thread->setCurrentWD( *oldwd );
 

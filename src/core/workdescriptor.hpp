@@ -57,6 +57,8 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  {
                                     _flags.is_final = 0;
                                     _flags.is_submitted = false;
+                                    _flags.is_recoverable = false;
+                                    _flags.is_invalid = false;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
@@ -84,6 +86,8 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                      _devices[0] = device;
                                     _flags.is_final = 0;
                                     _flags.is_submitted = false;
+                                    _flags.is_recoverable = false;
+                                    _flags.is_invalid = false;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
@@ -114,6 +118,8 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                     _flags.to_tie = wd._flags.to_tie;
                                     _flags.is_submitted = false;
                                     _flags.is_implicit = wd._flags.is_implicit;
+                                    _flags.is_recoverable = wd._flags.is_recoverable;
+                                    _flags.is_invalid = false;
 
                                     _mcontrol.preInit();
                                  }
@@ -430,6 +436,40 @@ inline void WorkDescriptor::setRemoteAddr( void *addr ) {
 inline void *WorkDescriptor::getRemoteAddr() const {
    return _remoteAddr;
 }
+
+inline bool WorkDescriptor::setInvalid ( bool flag )
+{
+   if (_flags.is_invalid != flag) {
+      _flags.is_invalid = flag;
+
+      /*
+       * Note: At this time, do not take any action if the task is invalid and it has
+       * no parent. There could be some special cases where it does not imply a fatal
+       * error.
+       */
+      if (_flags.is_invalid && !_flags.is_recoverable) {
+         if (_parent == NULL)
+            /*
+             *  If no invalidity propagation is possible (this task is the root in some way)
+             *  return that no recoverable task was found at this point, so any action can be taken
+             *  accordingly.
+             */
+            return false;
+         else if (!_parent->_flags.is_invalid) {
+            // If this task is not recoverable, propagate invalidation to its parent.
+            return _parent->setInvalid(true);
+            return true;
+         }
+      }
+   }
+   return true;
+}
+
+inline bool WorkDescriptor::isInvalid() const { return _flags.is_invalid; }
+
+inline void WorkDescriptor::setRecoverable( bool flag ) { _flags.is_recoverable = flag; }
+
+inline bool WorkDescriptor::isRecoverable() const { return _flags.is_recoverable; }
 
 #endif
 

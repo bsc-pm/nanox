@@ -121,7 +121,7 @@ void GASNetAPI::print_copies( WD const *wd, int deps )
 {
 #if 1
    unsigned int i;
-   fprintf(stderr, "node %d submit slave %s wd %d with %d deps, copies are: ", gasnet_mynode(), /*(((WG*) wd)->getParent() == (WG*) GASNetAPI::_rwgGPU ? "GPU" : "SMP")*/"n/a", wd->getId(), deps );
+   fprintf(stderr, "node %d submit slave %s wd %d with %d deps, copies are: ", gasnet_mynode(), /*(((WG*) wd)->getParent() == (WG*) GASNetAPI::_rwgGPU ? "GPU" : "SMP")*/"n/a", wd->getHostId(), deps );
    for ( i = 0; i < wd->getNumCopies(); i++)
       fprintf(stderr, "%s%s:%p ", ( wd->getCopies()[i].isInput() ? "r" : "-" ), ( wd->getCopies()[i].isOutput() ? "w" : "-" ), (void *) wd->getCopies()[i].getAddress() );
    fprintf(stderr, "\n");
@@ -390,7 +390,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       //fprintf(stderr, "Copy %d has HostAddr 0x%lx, BaseAddr 0x%p\n", i, newCopies[i].getHostBaseAddress(), newCopies[i].getBaseAddress() );
    }
 
-   localWD->setId( wdId );
+   localWD->setHostId( wdId );
    localWD->setRemoteAddr( rmwd );
 
    getInstance()->_net->notifyWork(expectedData, localWD, seq);
@@ -1619,7 +1619,7 @@ void GASNetAPI::sendMyHostName( unsigned int dest )
 void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId )
 {
    _totalBytes += len;
-   sendWaitForRequestPut( dataDest, dstAddr, wd.getId() );
+   sendWaitForRequestPut( dataDest, dstAddr, wd.getHostId() );
 
    unsigned int seq_number = sys.getNetwork()->getPutRequestSequenceNumber( dest );
 
@@ -1664,7 +1664,7 @@ void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, u
 {
    _totalBytes += ( len * count );
    //NANOS_INSTRUMENT( InstrumentState inst0(NANOS_SEND_WAIT_FOR_REQ_PUT); );
-   sendWaitForRequestPut( dataDest, dstAddr, wd.getId() );
+   sendWaitForRequestPut( dataDest, dstAddr, wd.getHostId() );
    //NANOS_INSTRUMENT( inst0.close(); );
    //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_GET_PINNED_ADDR); );
    unsigned int seq_number = sys.getNetwork()->getPutRequestSequenceNumber( dest );
@@ -1831,3 +1831,10 @@ std::size_t GASNetAPI::getSegmentLen( unsigned int idx ) {
    return _segmentLenList[ idx ];
 }
 
+unsigned int GASNetAPI::getNumNodes() const {
+   return gasnet_nodes();
+}
+
+unsigned int GASNetAPI::getNodeNum() const {
+   return gasnet_mynode();
+}

@@ -58,7 +58,7 @@ namespace ext
           }
     };
 
-   class GPUProcessor : public CachedAccelerator
+   class GPUProcessor : public ProcessingElement
    {
       public:
          class GPUProcessorInfo;
@@ -90,6 +90,7 @@ namespace ext
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
          volatile bool           _initialized; //! Object is initialized
          GPUMemorySpace         &_gpuMemory;
+         SMPProcessor           *_core;
 
 
          //SimpleAllocator               _allocator;
@@ -101,7 +102,7 @@ namespace ext
 
       public:
          //! Constructors
-         GPUProcessor( int id, int gpuId, int uid, memory_space_id_t memId, GPUMemorySpace &gpuMem );
+         GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem );
 
          virtual ~GPUProcessor();
 
@@ -116,7 +117,9 @@ namespace ext
          {
             fatal( "getMultiWorkerWD: GPUProcessor is not allowed to create MultiThreads" );
          }
+
          BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent );
+
          virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
          {
             fatal( "ClusterNode is not allowed to create MultiThreads" );

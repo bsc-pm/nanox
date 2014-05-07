@@ -29,6 +29,7 @@
 #include "allocator_decl.hpp"
 #include <set>
 #include "wddeque_decl.hpp"
+#include "taskexecutionexception_decl.hpp"
 
 namespace nanos
 {
@@ -130,6 +131,7 @@ namespace nanos
       private:
          // Thread info/status
          unsigned short          _id;            /**< Thread identifier */
+         unsigned int            _osId;          /**< OS Thread identifier */
          unsigned short          _maxPrefetch;   /**< Maximum number of tasks that the thread can be running simultaneously */
          volatile StatusFlags    _status;        /**< BaseThread status flags */
          ext::SMPMultiThread    *_parent;
@@ -182,7 +184,7 @@ namespace nanos
          std::set<void *> _pendingRequests;
         /*! \brief BaseThread constructor
          */
-         BaseThread ( WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
+         BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
 
         /*! \brief BaseThread destructor
          */
@@ -279,7 +281,7 @@ namespace nanos
 
          int getId() const;
 
-         int getCpuId() const;
+         virtual int getCpuId() const;
 
          bool singleGuard();
          bool enterSingleBarrierGuard ();
@@ -324,6 +326,16 @@ namespace nanos
          /*! \brief Set Status: Main Thread
           */
          void setMainThread ( bool v = true );
+
+#ifdef NANOS_RESILIENCY_ENABLED
+         /*! \brief Change the action taken by default if some specified signals are received.
+          */
+         virtual void setupSignalHandlers() = 0;
+
+#endif
+         bool tryWakeUp();
+
+         unsigned int getOsId() const;
    };
 
    extern __thread BaseThread *myThread;
@@ -331,5 +343,10 @@ namespace nanos
    BaseThread * getMyThreadSafe();
 
 }
+
+#ifdef NANOS_RESILIENCY_ENABLED
+void taskExecutionHandler(int sig, siginfo_t* si, void* context)
+    throw (TaskExecutionException);
+#endif
 
 #endif

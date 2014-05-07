@@ -12,7 +12,7 @@
 #include "atomic_decl.hpp"
 #include "version_decl.hpp"
 
-#define MAX_REG_ID 16384
+#define MAX_REG_ID (1024*1024)
 
 namespace nanos {
 

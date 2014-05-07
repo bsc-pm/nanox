@@ -44,7 +44,7 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
    
    _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
-   
+
    // Create the context.
    _ctx = nanos::ext::OpenCLConfig::getContextDevice(_dev);   
    
@@ -145,7 +145,9 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
       baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) devAddr, size) ;
    } else {
       //If there is a buffer which covers this buffer (same base address but bigger), return it
+    std::cout << "buscando buffer de  size " << size << " addr " << (void*)devAddr;
       baseAddress=allocator.getBasePointer(devAddr, size);     
+    std::cout << ",encontrado  " << (void*) baseAddress << "\n";
      
    }
    
@@ -179,6 +181,7 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr+baseAddress,size)]=buf;
+       std::cout << "add a la cache  size " << size << " addr " << (void*) (devAddr+baseAddress);
        _sizeCache[devAddr+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
        if (errCode != CL_SUCCESS) {      
@@ -209,6 +212,7 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr,size)]=buf;
+       std::cout << "add a la cache  size " << size << " addr " << (void*)devAddr;
        _sizeCache[devAddr]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
        if (errCode != CL_SUCCESS) {      
@@ -222,6 +226,7 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
        cl_mem buf;
        allocBuffer(size, hostPtr, buf);
        _bufCache[std::make_pair(devAddr,size)]=buf;
+       std::cout << "add a la cache  size " << size << " addr " << (void*)devAddr;
        _sizeCache[devAddr]=size;
        return buf;
    }
@@ -367,6 +372,9 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
                 NULL,
                 NULL
                 );
+         if (errCode != CL_SUCCESS) {
+             fatal0("Errror unmapping buffer");
+         }
     }
     
     NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
@@ -921,8 +929,9 @@ void  OpenCLAdapter::waitForEvents(){
 
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
-OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem ) :
-   CachedAccelerator( id, &OpenCLDev, uid , NULL, memId ),
+OpenCLProcessor::OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem ) :
+   ProcessingElement( &OpenCLDev, NULL, memId ),
+   _core( core ),
    _openclAdapter(),
    _cache( _openclAdapter ),
    _devId ( devId ) { }
@@ -954,7 +963,7 @@ WD & OpenCLProcessor::getMasterWD() const {
 BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd, SMPMultiThread *parent )
 {
 
-   OpenCLThread &thr = *NEW OpenCLThread( wd, this, parent );
+   OpenCLThread &thr = *NEW OpenCLThread( wd, this, _core );
 
    return thr;
 }

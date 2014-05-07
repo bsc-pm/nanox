@@ -157,14 +157,14 @@ namespace nanos {
              */
             void computeDistanceInfo() {
                // Fill the distance info matrix
-               _nearSockets.resize( sys.getNumSockets() );
+               _nearSockets.resize( sys.getSMPPlugin()->getNumSockets() );
                
                // For every numa node
                for ( unsigned from = 0; from < _nearSockets.size(); ++from )
                {
                   _nearSockets[ from ].stealNext = 0;
                   NearSocketsList& row = _nearSockets[ from ].list;
-                  row.reserve( sys.getNumSockets() - 1 );
+                  row.reserve( sys.getSMPPlugin()->getNumSockets() - 1 );
                   
                   unsigned distances[ _nearSockets.size() ];
                   std::stringstream path;
@@ -181,7 +181,7 @@ namespace nanos {
                   
                   fDistances.close();
                   
-                  for ( unsigned to = 0; to < (unsigned) sys.getNumSockets(); ++to )
+                  for ( unsigned to = 0; to < (unsigned) sys.getSMPPlugin()->getNumSockets(); ++to )
                   {
                      //fprintf( stderr, "Distance from %d to %d: %d\n", from, to, distances[to] );
                      if ( to == from )
@@ -217,7 +217,7 @@ namespace nanos {
                   {
                      int node = worker->runningOn()->getNUMANode();
                      // Convert to virtual
-                     int vNode = sys.getVirtualNUMANode( node );
+                     int vNode = sys.getSMPPlugin()->getVirtualNUMANode( node );
                      _gpuNodes.insert( vNode );
                      verbose0( "Found GPU Worker in node " << node << " (virtual " << vNode << ")" );
                   }
@@ -313,7 +313,7 @@ namespace nanos {
                
                //fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
 
-               if ( steal && sys.getNumSockets() == 1 )
+               if ( steal && sys.getSMPPlugin()->getNumSockets() == 1 )
                {
                   fatal0( "Steal can not be enabled with just one socket" );
                }
@@ -343,7 +343,7 @@ namespace nanos {
                computeDistanceInfo();
                
                // Create 2 queues per socket plus one for the global queue.
-               return NEW TeamData( sys.getNumAvailSockets() );
+               return NEW TeamData( sys.getSMPPlugin()->getNumAvailSockets() );
             }
 
             virtual ScheduleThreadData * createThreadData ()
@@ -436,7 +436,7 @@ namespace nanos {
                      
                      //index = (tdata._next++ ) % sys.getNumSockets() + 1;
                      // 2 queues per socket, the first one is for level 1 tasks
-                     fatal_cond( node >= sys.getNumAvailSockets(), "Invalid node selected" );
+                     fatal_cond( node >= sys.getSMPPlugin()->getNumAvailSockets(), "Invalid node selected" );
                      //index = (node % sys.getNumSockets())*2 + 1;
                      index = nodeToQueue( node, true );
                      wd.setWakeUpQueue( index );
@@ -458,7 +458,7 @@ namespace nanos {
                      // If this wd cannot run in this node
                      if ( !canRunInNode( wd, node ) ) {
                         node = findBetterNode( wd, node );
-                        fatal_cond( node >= sys.getNumAvailSockets(), "Invalid node selected" );
+                        fatal_cond( node >= sys.getSMPPlugin()->getNumAvailSockets(), "Invalid node selected" );
                         // If index is not even
                         // Means its parent is level 1, small tasks go in even queues
                         index = nodeToQueue( node, index % 2 != 0);
@@ -499,7 +499,7 @@ namespace nanos {
                // Get the physical node of this thread
                unsigned node = thread->runningOn()->getNUMANode();
                // Convert to virtual
-               unsigned vNode = sys.getVirtualNUMANode( node );
+               unsigned vNode = sys.getSMPPlugin()->getVirtualNUMANode( node );
                
                //fprintf( stderr, "atIdle socket %d\n", socket );
                
@@ -522,7 +522,7 @@ namespace nanos {
                
                
                // TODO Improve atomic condition
-               bool stealFromBig = deepTasksN < 1*sys.getCoresPerSocket() && !emptyBigTasks;
+               bool stealFromBig = deepTasksN < 1*sys.getSMPPlugin()->getCoresPerSocket() && !emptyBigTasks;
                    /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/
                unsigned queueNumber = nodeToQueue( vNode, stealFromBig );
                
@@ -548,7 +548,7 @@ namespace nanos {
                      // Find the queue with the most small tasks
                      WDPriorityQueue<> *largest = &tdata._readyQueues[2];
                      //int largestSocket = 0;
-                     for ( int i = 1; i < sys.getNumSockets(); ++i )
+                     for ( int i = 1; i < sys.getSMPPlugin()->getNumSockets(); ++i )
                      {
                         WDPriorityQueue<> *current = &tdata._readyQueues[ (i+1)*2 ];
                         if ( largest->size() < current->size() ){
@@ -565,7 +565,7 @@ namespace nanos {
                   }
                   else if ( _randomSteal )
                   {
-                     unsigned random = std::rand() % sys.getNumAvailSockets();
+                     unsigned random = std::rand() % sys.getSMPPlugin()->getNumAvailSockets();
                      //index = random * 2 + offset;
                      index = nodeToQueue( random, _stealParents );
                   }
@@ -573,7 +573,7 @@ namespace nanos {
                   else {
                      // getStealNext returns a physical node, we must convert it
                      int close = _nearSockets[node].getStealNext();
-                     int vClose = sys.getVirtualNUMANode( close );
+                     int vClose = sys.getSMPPlugin()->getVirtualNUMANode( close );
                      
                      // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
                      index = nodeToQueue( vClose, _stealParents );
@@ -703,7 +703,7 @@ namespace nanos {
                   TeamData &tdata = ( TeamData & ) *nanos::myThread->getTeam()->getScheduleData();
                   unsigned index = pred->getWakeUpQueue();
                   // What happens if pred is not in any queue? Fatal.
-                  if ( index < static_cast<unsigned>( sys.getNumSockets() ) )
+                  if ( index < static_cast<unsigned>( sys.getSMPPlugin()->getNumSockets() ) )
                      tdata._readyQueues[ index ].reorderWD( pred );
                }
             }
@@ -739,8 +739,8 @@ namespace nanos {
             
             void loadDefaultValues()
             {
-               _numSockets = sys.getNumSockets();
-               _coresPerSocket = sys.getCoresPerSocket();
+               _numSockets = sys.getSMPPlugin()->getNumSockets();
+               _coresPerSocket = sys.getSMPPlugin()->getCoresPerSocket();
             }
          public:
             SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ),
@@ -778,8 +778,8 @@ namespace nanos {
 
             virtual void init() {
                //fprintf(stderr, "Setting numSockets to %d and coresPerSocket to %d\n", _numSockets, _coresPerSocket );
-               sys.setNumSockets( _numSockets );
-               sys.setCoresPerSocket( _coresPerSocket );
+               sys.getSMPPlugin()->setNumSockets( _numSockets );
+               sys.getSMPPlugin()->setCoresPerSocket( _coresPerSocket );
                
                sys.setDefaultSchedulePolicy( NEW SocketSchedPolicy( _steal, _stealParents, _stealLowPriority, _immediate, _smart, _spins, _random ) );
             }

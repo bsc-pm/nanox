@@ -106,6 +106,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
               &_bytesIn);
    // ops->completeOp();
     if (errCode != CL_SUCCESS){
+        std::cerr << errCode << "\n";
         fatal("Buffer writing failed.");
     }
     return true;

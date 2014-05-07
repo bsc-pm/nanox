@@ -11,8 +11,9 @@
 #endif
 
 namespace nanos {
-MemController::MemController( WD const &wd ) : _initialized( false ), _preinitialized(false), _wd( wd ), _memorySpaceId( 0 ), _inputDataReady(false), 
-      _provideLock(), _providedRegions(), _affinityScore( 0 ), _maxAffinityScore( 0 )  {
+MemController::MemController( WD const &wd ) : _initialized( false ), _preinitialized(false), _inputDataReady(false),
+      _mainWd( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions(), _affinityScore( 0 ),
+      _maxAffinityScore( 0 )  {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -162,7 +163,7 @@ void MemController::copyDataIn() {
    
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-      _memCacheCopies[ index ].generateInOps( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd );
+      _memCacheCopies[ index ].generateInOps( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd, index );
    }
 
    //NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
@@ -176,15 +177,15 @@ void MemController::copyDataIn() {
    //NANOS_INSTRUMENT( inst2.close(); );
 }
 
-void MemController::copyDataOut( ) {
+void MemController::copyDataOut( MemControllerPolicy policy ) {
    ensure( _preinitialized == true, "MemController not initialized!");
    ensure( _initialized == true, "MemController not initialized!");
 
-   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-      if ( _wd.getCopies()[index].isOutput() ) {
-         _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ].getVersion() + 1 );
-      }
-   }
+   //for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+   //   if ( _wd.getCopies()[index].isInput() && _wd.getCopies()[index].isOutput() ) {
+   //      _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ].getVersion() + 1 );
+   //   }
+   //}
    if ( _VERBOSE_CACHE ) { std::cerr << "### copyDataOut wd " << _wd.getId() << " metadata set, not released yet" << std::endl; }
 
 
@@ -200,7 +201,7 @@ void MemController::copyDataOut( ) {
       _outOps->issue( _wd );
 
       for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-         sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd ) ;
+         sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd, index ) ;
       }
    }
 }
@@ -245,7 +246,7 @@ bool MemController::isDataReady( WD const &wd ) {
 
 bool MemController::canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const {
    if ( memId > 0 ) {
-      return sys.getSeparateMemory( memId ).canAllocateMemory( _memCacheCopies, _wd.getNumCopies(), considerInvalidations );
+      return sys.getSeparateMemory( memId ).canAllocateMemory( _memCacheCopies, _wd.getNumCopies(), considerInvalidations, _wd );
    } else {
       return true;
    }
@@ -293,6 +294,18 @@ bool MemController::isRooted( memory_space_id_t &loc ) const {
    }
    ensure(count <= 1, "Invalid count of rooted copies! (> 1).");
    return result;
+}
+
+void MemController::setMainWD() {
+   _mainWd = true;
+}
+
+void MemController::synchronize() {
+   if ( _mainWd ) {
+      sys.getHostMemory().synchronize( _wd );
+   } else {
+ //     std::cerr << "Synchronize on a non main WD!, it will be considered as 'noflush'." << std::endl;
+   }
 }
 
 }

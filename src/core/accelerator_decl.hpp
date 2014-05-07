@@ -30,38 +30,38 @@
 namespace nanos
 {
 
-   class Accelerator : public ProcessingElement
-   {
-      protected:
-         virtual WorkDescriptor & getMasterWD () const = 0;
-         virtual WorkDescriptor & getWorkerWD () const = 0;
-
-      private:
-        /*! \brief Accelerator default constructor (private)
-         */
-         Accelerator ();
-        /*! \brief Accelerator copy constructor (private)
-         */
-         Accelerator ( const Accelerator &a );
-        /*! \brief Accelerator copy assignment operator (private)
-         */
-         const Accelerator& operator= ( const Accelerator &a );
-      public:
-        /*! \brief Accelerator constructor - from 'newId' and 'arch'
-         */
-         Accelerator ( int newId, const Device *arch, int uniqueId, const Device *subArch );
-        /*! \brief Accelerator destructor
-         */
-         virtual ~Accelerator() {}
-
-         virtual bool hasSeparatedMemorySpace() const { return true; }
-
-         virtual void copyDataOut( WorkDescriptor& wd );
-
-         virtual void waitInputs( WorkDescriptor& wd );
-
-         virtual void waitInputsDependent( WorkDescriptor &wd ) = 0;
-   };
+//   class Accelerator : public ProcessingElement
+//   {
+//      protected:
+//         virtual WorkDescriptor & getMasterWD () const = 0;
+//         virtual WorkDescriptor & getWorkerWD () const = 0;
+//
+//      private:
+//        /*! \brief Accelerator default constructor (private)
+//         */
+//         Accelerator ();
+//        /*! \brief Accelerator copy constructor (private)
+//         */
+//         Accelerator ( const Accelerator &a );
+//        /*! \brief Accelerator copy assignment operator (private)
+//         */
+//         const Accelerator& operator= ( const Accelerator &a );
+//      public:
+//        /*! \brief Accelerator constructor - from 'newId' and 'arch'
+//         */
+//         Accelerator ( const Device *arch, const Device *subArch, memory_space_id_t memId );
+//        /*! \brief Accelerator destructor
+//         */
+//         virtual ~Accelerator() {}
+//
+//         virtual bool hasSeparatedMemorySpace() const { return true; }
+//
+//         virtual void copyDataOut( WorkDescriptor& wd );
+//
+//         virtual void waitInputs( WorkDescriptor& wd );
+//
+//         virtual void waitInputsDependent( WorkDescriptor &wd ) = 0;
+//   };
 
 };
 

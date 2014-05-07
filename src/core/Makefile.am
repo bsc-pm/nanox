@@ -100,6 +100,8 @@ devinclude_HEADERS = \
 	address_decl.hpp \
 	address.hpp \
 	basedependency_decl.hpp \
+	taskexecutionexception_decl.hpp \
+	taskexecutionexception.hpp \
 	$(END)
 
 common_sources=\
@@ -226,6 +228,9 @@ common_sources=\
 	basedependency_fwd.hpp \
 	basedependency_decl.hpp \
 	graphentry_decl.hpp \
+	taskexecutionexception_decl.hpp \
+	taskexecutionexception.hpp \
+	taskexecutionexception.cpp \
 	$(END)
 
 instr_sources = \

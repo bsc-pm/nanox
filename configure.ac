@@ -368,10 +368,16 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
-  armv71-*-linux*)
+  arm*-*-gnueabi*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=armv71
+    ;;
+  aarch64-*-linux-gnu)
+    smp_ult=no
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=aarch64
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
@@ -1076,6 +1082,29 @@ AC_SUBST([CHAPEL_HOME])
 AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
+
+# Task-level resiliency support
+AC_MSG_CHECKING([if task resiliency is enabled])
+AC_ARG_ENABLE([resiliency],
+  AS_HELP_STRING([--disable-resiliency], [Disables task-level resiliency]),
+  [
+    resiliency=no
+    AC_MSG_RESULT([no])
+  ],
+  [
+    AC_MSG_RESULT([yes])
+    AX_CHECK_COMPILE_FLAG(-fnon-call-exceptions,[resiliency=yes],[resiliency=no],[-Werror])
+    if test "x$resiliency" = "xno";
+    then
+        AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])
+    fi
+  ]
+)
+
+
+AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
+AC_SUBST([resiliency])
+
 
 # Output files
 AC_CONFIG_HEADERS([config.h])

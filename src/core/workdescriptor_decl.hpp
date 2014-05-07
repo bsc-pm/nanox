@@ -204,12 +204,15 @@ namespace nanos
             bool is_submitted:1;     //!< Has this WD been submitted to the Scheduler?
             bool is_configured:1;    //!< Has this WD been configured to the Scheduler?
             bool is_implicit;        //!< Is the WD an implicit task (in a team)?
+            bool is_recoverable:1;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
+            bool is_invalid:1;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
          } WDFlags;
          typedef int PriorityType;
          typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
+         int                           _hostId;                 //!< Work descriptor identifier @ host
          Atomic<int>                   _components;             //!< Number of components (children, direct descendants)
          components_sync_cond_t        _componentsSyncCond;     //!< Synchronize condition on components
          WorkDescriptor               *_parent;                 //!< Parent WD in task hierarchy
@@ -323,6 +326,8 @@ namespace nanos
          }
 
          int getId() const { return _id; }
+         int getHostId() const { return _hostId; }
+         void setHostId( int id ) { _hostId = id; }
          /*! \brief Has this WorkDescriptor ever run?
           */
          bool started ( void ) const;
@@ -665,7 +670,7 @@ namespace nanos
          //!
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
-         void convertToRegularWD();
+         void convertToRegularWD( void );
 
          bool resourceCheck( BaseThread const &thd, bool considerInvalidations ) const;
 
@@ -673,6 +678,23 @@ namespace nanos
 
          void setRemoteAddr( void *addr );
          void *getRemoteAddr() const;
+         
+         /*! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
+             If invalid (flag = true) it propagates upwards to the ancestors until
+             no more ancestors exist or a recoverable task is found.
+             \param A flag that indicates whether this task is being invalidated or not.
+             \return A boolean value that indicates if either the task itself is recoverable or a recoverable ancestor was found.
+         */
+         bool setInvalid ( bool flag );
+
+         //! \brief Returns whether a WorkDescriptor is invalid or not.
+         bool isInvalid ( void ) const;
+
+         //! \brief Marks the WorkDescriptor as recoverable. If the execution of this task is invalid, it will try to re-execute.
+         void setRecoverable( bool flag );
+
+         //!brief Returns whether a WorkDescriptor is able to re-execute from the beginning if an error is detected.
+         bool isRecoverable ( void ) const;
    };
 
    typedef class WorkDescriptor WD;
