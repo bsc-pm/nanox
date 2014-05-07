@@ -40,6 +40,7 @@ namespace nanos
    struct Action
    {
       virtual void run() = 0;
+      virtual ~Action() {}
    };
 
    /****** Actions with static functions and wrappers ******/
