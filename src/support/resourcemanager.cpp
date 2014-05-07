@@ -38,11 +38,12 @@ namespace nanos {
 namespace ResourceManager {
    namespace {
       typedef struct flags_t {
+         bool initialized;
          bool is_malleable;
          bool dlb_enabled;
       } flags_t;
 
-      flags_t   _flags;
+      flags_t   _flags = {false, false, false};
       Lock      _lock;
       cpu_set_t _running_cpus;
       cpu_set_t _default_cpus;
@@ -68,6 +69,7 @@ void ResourceManager::init( void )
                         DLB_ReturnClaimedCpu &&
                         DLB_ClaimCpus &&
                         DLB_CheckCpuAvailability;
+   _flags.initialized = sys.getSchedulerConf().getUseBlock();
 }
 
 /* Check the availabilty of resources
@@ -77,6 +79,9 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
+
+   if ( !_flags.initialized )
+      return;
 
    ThreadTeam *team = getMyThreadSafe()->getTeam();
    if ( !team )
@@ -145,6 +150,9 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 */
 void ResourceManager::releaseCpu( void )
 {
+   if ( !_flags.initialized )
+      return;
+
    if ( !getMyThreadSafe()->getTeam() || getMyThreadSafe()->isSleeping() )
       return;
 
@@ -179,6 +187,9 @@ void ResourceManager::releaseCpu( void )
 */
 void ResourceManager::returnClaimedCpus( void )
 {
+   if ( !_flags.initialized )
+      return;
+
    if ( _flags.dlb_enabled && _flags.is_malleable && getMyThreadSafe()->isMainThread() ){
       DLB_ReturnClaimedCpus();
 
@@ -195,6 +206,9 @@ void ResourceManager::returnClaimedCpus( void )
 */
 void ResourceManager::returnMyCpuIfClaimed( void )
 {
+   if ( !_flags.initialized )
+      return;
+
    if ( _flags.dlb_enabled && _flags.is_malleable ) {
 
       // Return if my cpu belongs to the default mask
@@ -220,6 +234,9 @@ void ResourceManager::returnMyCpuIfClaimed( void )
 */
 void ResourceManager::waitForCpuAvailability( void )
 {
+   if ( !_flags.initialized )
+      return;
+
    if ( _flags.dlb_enabled ){
       int cpu = getMyThreadSafe()->getCpuId();
       while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
@@ -233,6 +250,9 @@ void ResourceManager::waitForCpuAvailability( void )
 
 bool ResourceManager::lastOne( void )
 {
+   if ( !_flags.initialized )
+      return false;
+
    LockBlock Lock( _lock );
    return ( CPU_COUNT(&_running_cpus) == 1 );
 }
