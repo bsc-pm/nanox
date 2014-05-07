@@ -30,7 +30,7 @@ extern "C"
    void switchStacks( void *,void *,void *,void * );
 }
 
-intptr_t * initContext( intptr_t *stack, size_t stackSize, void *workWrapper, WorkDescriptor *wd,
+intptr_t * initContext( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                        void *cleanup, void *cleanupArg );
 
 #ifndef SMP_SUPPORTS_ULT
@@ -38,8 +38,10 @@ intptr_t * initContext( intptr_t *stack, size_t stackSize, void *workWrapper, Wo
 extern "C" {
    inline void switchStacks( void *,void *,void *,void * ) {}
 }
-inline intptr_t * initContext( intptr_t *stack, size_t stackSize, (void (*)(WD&))wrapperFunction, void *wd,
+
+inline intptr_t * initContext( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                        void *cleanup, void *cleanupArg ) { return 0; }
+
 #endif
 
 #endif
