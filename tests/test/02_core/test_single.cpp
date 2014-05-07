@@ -58,7 +58,8 @@ int main ( int argc, char **argv )
    cout << "start" << endl;
 
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
-   for ( int i = 1; i < sys.getNumPEs(); i++ ) {
+   /* FIXME: this sould get the number of workers or SMP threads or anything more meaningful */
+   for ( int i = 1; i < sys.getSMPPlugin()->getCpuCount(); i++ ) {
       WD * wd = new WD( new SMPDD( single_code ) );
       wd->tieTo(team[i]);
       sys.submit( *wd );
