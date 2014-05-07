@@ -12,7 +12,7 @@ def cross(*args):
 def cpus(max_cpus):
 	ans=[]
 	for i in range(1,max_cpus+1):
-		ans = ans + ['--pes='+str(i)]
+		ans = ans + ['--smp-cores='+str(i)]
 	return ans
 
 test_mode=os.environ.get('NX_TEST_MODE')

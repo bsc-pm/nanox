@@ -30,7 +30,7 @@
 #include <assert.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
-#include "clusterdevice_decl.hpp"
+//#include "clusterdevice_decl.hpp"
 #include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;

@@ -28,23 +28,23 @@
 
 using namespace nanos;
 
-#if LOCK_TRANSFER
-Lock Accelerator::_transferLock;
-#endif
-
-Accelerator::Accelerator ( const Device *arch, const Device *subArch ) : ProcessingElement( arch, subArch, sys.getMemorySpaceId() ) {}
-
-void Accelerator::waitInputs( WorkDescriptor &work )
-{
-   this->waitInputsDependent( work );
-}
-
-void Accelerator::copyDataOut( WorkDescriptor& work )
-{
-#if LOCK_TRANSFER
-   _transferLock.acquire();
-#endif
-#if LOCK_TRANSFER
-   _transferLock.release();
-#endif
-}
+//#if LOCK_TRANSFER
+//Lock Accelerator::_transferLock;
+//#endif
+//
+//Accelerator::Accelerator ( const Device *arch, const Device *subArch, memory_space_id_t memId ) : ProcessingElement( arch, subArch, memId ) {}
+//
+//void Accelerator::waitInputs( WorkDescriptor &work )
+//{
+//   this->waitInputsDependent( work );
+//}
+//
+//void Accelerator::copyDataOut( WorkDescriptor& work )
+//{
+//#if LOCK_TRANSFER
+//   _transferLock.acquire();
+//#endif
+//#if LOCK_TRANSFER
+//   _transferLock.release();
+//#endif
+//}

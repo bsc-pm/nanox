@@ -929,8 +929,9 @@ void  OpenCLAdapter::waitForEvents(){
 
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
-OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem ) :
-   CachedAccelerator( id, &OpenCLDev, uid , NULL, memId ),
+OpenCLProcessor::OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem ) :
+   ProcessingElement( &OpenCLDev, NULL, memId ),
+   _core( core ),
    _openclAdapter(),
    _cache( _openclAdapter ),
    _devId ( devId ) { }
@@ -962,7 +963,7 @@ WD & OpenCLProcessor::getMasterWD() const {
 BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd, SMPMultiThread *parent )
 {
 
-   OpenCLThread &thr = *NEW OpenCLThread( wd, this, parent );
+   OpenCLThread &thr = *NEW OpenCLThread( wd, this, _core );
 
    return thr;
 }

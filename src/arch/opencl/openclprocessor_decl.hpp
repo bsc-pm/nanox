@@ -176,10 +176,10 @@ private:
    bool _useHostPtrs;
 };
 
-class OpenCLProcessor : public CachedAccelerator
+class OpenCLProcessor : public ProcessingElement
 {
 public:        
-   OpenCLProcessor( int id , int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem );
+   OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.
@@ -308,6 +308,7 @@ public:
     }
 
 private:
+   SMPProcessor *_core;
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
    int _devId;

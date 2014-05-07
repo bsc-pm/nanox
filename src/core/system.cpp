@@ -769,7 +769,7 @@ void System::finish ()
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
 
-   verbose ( "NANOS++ shutting down.... end" );
+   verbose0 ( "NANOS++ shutting down.... end" );
    sys.getNetwork()->nodeBarrier();
 
 #ifdef CLUSTER_DEV
@@ -818,21 +818,21 @@ void System::finish ()
 //      message0("GPUs Hard invalidations: " << hard_inv);
 //#endif
       
-#ifdef OpenCL_DEV
-      if ( _opencls ) {
-         soft_inv = 0;
-         hard_inv = 0;
-         for ( unsigned int idx = 1; idx < _opencls->size(); idx += 1 ) {
-            soft_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
-            hard_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
-            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-         }
-      }
-      message0("OpenCLs Soft invalidations: " << soft_inv);
-      message0("OpenCLs Hard invalidations: " << hard_inv);
-#endif
+//#ifdef OpenCL_DEV
+//      if ( _opencls ) {
+//         soft_inv = 0;
+//         hard_inv = 0;
+//         for ( unsigned int idx = 1; idx < _opencls->size(); idx += 1 ) {
+//            soft_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
+//            hard_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
+//            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+//         }
+//      }
+//      message0("OpenCLs Soft invalidations: " << soft_inv);
+//      message0("OpenCLs Hard invalidations: " << hard_inv);
+//#endif
    }
 #endif
 

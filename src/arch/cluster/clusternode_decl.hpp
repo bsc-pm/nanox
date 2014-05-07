@@ -33,7 +33,7 @@
 namespace nanos {
    namespace ext {
 
-      class ClusterNode : public CachedAccelerator
+      class ClusterNode : public ProcessingElement
       {
 
          private:

@@ -28,7 +28,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-ClusterNode::ClusterNode( int nodeId, memory_space_id_t memId ) : CachedAccelerator( &SMP,
+ClusterNode::ClusterNode( int nodeId, memory_space_id_t memId ) : ProcessingElement( &SMP,
 #ifdef GPU_DEV
    &GPU,
 #else
