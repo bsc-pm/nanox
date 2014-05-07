@@ -461,7 +461,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
          && thread->isRunning() ) {
       checks--;
       
-      ResourceManager::returnMyCpuIfClaimed();
+      // Non-safe point
+      //ResourceManager::returnMyCpuIfClaimed();
 
       if ( checks == 0 ) {
          checks = init_checks;

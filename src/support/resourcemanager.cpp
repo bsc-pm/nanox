@@ -204,7 +204,7 @@ void ResourceManager::waitForCpuAvailability( void )
 {
    if ( _flags.dlb_enabled ){
       int cpu = getMyThreadSafe()->getCpuId();
-      while ( CPU_COUNT(&_running_cpus) > 1 && !DLB_CheckCpuAvailability(cpu) )
+      while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
          sched_yield();
       /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
             myThread->sleep();
