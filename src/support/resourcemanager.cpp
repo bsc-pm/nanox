@@ -105,6 +105,18 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
                if ( needed_resources > 0 ){
                   DLB_UpdateResources_max( needed_resources );
                }
+            } else {
+               // Iterate over default cpus not running and wake them up if needed
+               for (int i=0; i<CPU_SETSIZE; i++) {
+                  if ( CPU_ISSET( i, &_default_cpus) && !CPU_ISSET( i, &_running_cpus ) ) {
+                     CPU_SET( i, &_running_cpus );
+                     if ( --needed_resources == 0 )
+                        break;
+                     if ( CPU_EQUAL( &_default_cpus, &_running_cpus ) )
+                        break;
+                  }
+               }
+               sys.setCpuMask( &_running_cpus );
             }
             sys.getCpuMask( &_running_cpus );
             ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
@@ -114,9 +126,14 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
    } else {
       /* OpenMP */
       if ( _flags.dlb_enabled ) {
+         LockBlock Lock( _lock );
          DLB_UpdateResources();
+         sys.getCpuMask( &_running_cpus );
+         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
       } else {
-         // wakeup all in stored cpus
+         LockBlock Lock( _lock );
+         memcpy( &_running_cpus, &_default_cpus, sizeof(cpu_set_t) );
+         sys.setCpuMask( &_default_cpus );
       }
    }
 }
@@ -151,7 +168,7 @@ void ResourceManager::releaseCpu( void )
       }
    }
    // wait() only after the lock is released
-   if (getMyThreadSafe()->isSleeping() ) {
+   if ( getMyThreadSafe()->isSleeping() ) {
       myThread->wait();
    }
 }
@@ -164,11 +181,11 @@ void ResourceManager::returnClaimedCpus( void )
 {
    if ( _flags.dlb_enabled && _flags.is_malleable && getMyThreadSafe()->isMainThread() ){
       DLB_ReturnClaimedCpus();
-   }
 
-   LockBlock Lock( _lock );
-   sys.getCpuMask( &_running_cpus );
-   ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+      LockBlock Lock( _lock );
+      sys.getCpuMask( &_running_cpus );
+      ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+   }
 }
 
 /* Only useful for external slave (?) threads
@@ -178,21 +195,22 @@ void ResourceManager::returnClaimedCpus( void )
 */
 void ResourceManager::returnMyCpuIfClaimed( void )
 {
-   // Return if my cpu belongs to the default mask
-   int my_cpu = getMyThreadSafe()->getCpuId();
-   if ( CPU_ISSET( my_cpu, &_default_cpus ) )
-      return;
+   if ( _flags.dlb_enabled && _flags.is_malleable ) {
 
-   bool released = false;
-   if ( _flags.dlb_enabled && _flags.is_malleable && !getMyThreadSafe()->isSleeping() ){
-      LockBlock Lock( _lock );
-      released = DLB_ReturnClaimedCpu( my_cpu );
-      if ( released ) {
-         myThread->sleep();
-         // We can't clear it since DLB could have switch this cpu for another one
-         //CPU_CLR( my_cpu, &_running_cpus );
-         sys.getCpuMask( &_running_cpus );
-         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+      // Return if my cpu belongs to the default mask
+      int my_cpu = getMyThreadSafe()->getCpuId();
+      if ( CPU_ISSET( my_cpu, &_default_cpus ) )
+         return;
+
+      if ( !getMyThreadSafe()->isSleeping() ){
+         LockBlock Lock( _lock );
+         if ( DLB_ReturnClaimedCpu( my_cpu ) ) {
+            myThread->sleep();
+            // We can't clear it since DLB could have switched this cpu for another one
+            //CPU_CLR( my_cpu, &_running_cpus );
+            sys.getCpuMask( &_running_cpus );
+            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+         }
       }
    }
 }
