@@ -145,10 +145,7 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
       baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) devAddr, size) ;
    } else {
       //If there is a buffer which covers this buffer (same base address but bigger), return it
-    std::cout << "buscando buffer de  size " << size << " addr " << (void*)devAddr;
-      baseAddress=allocator.getBasePointer(devAddr, size);     
-    std::cout << ",encontrado  " << (void*) baseAddress << "\n";
-     
+      baseAddress=allocator.getBasePointer(devAddr, size);          
    }
    
    if (baseAddress==devAddr && size<_sizeCache[baseAddress]){
@@ -181,7 +178,6 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr+baseAddress,size)]=buf;
-       std::cout << "add a la cache  size " << size << " addr " << (void*) (devAddr+baseAddress);
        _sizeCache[devAddr+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
        if (errCode != CL_SUCCESS) {      
@@ -212,7 +208,6 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr,size)]=buf;
-       std::cout << "add a la cache  size " << size << " addr " << (void*)devAddr;
        _sizeCache[devAddr]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
        if (errCode != CL_SUCCESS) {      
@@ -226,7 +221,6 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
        cl_mem buf;
        allocBuffer(size, hostPtr, buf);
        _bufCache[std::make_pair(devAddr,size)]=buf;
-       std::cout << "add a la cache  size " << size << " addr " << (void*)devAddr;
        _sizeCache[devAddr]=size;
        return buf;
    }
