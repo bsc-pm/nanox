@@ -105,7 +105,7 @@ namespace nanos
 
    inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
       _id( sys.nextThreadId() ), _maxPrefetch( 1 ), _status( ), _pe( creator ), _mlock( ),
-      _threadWD( wd ), _currentWD( NULL ), _nextWDs( ), _canGetWork( true ),
+      _threadWD( wd ), _currentWD( NULL ), _nextWDs( /* enableDeviceCounter */ false ), _canGetWork( true ),
       _teamData( NULL ), _nextTeamData( NULL ),
       _name( "Thread" ), _description( "" ), _allocator( ) { }
 
