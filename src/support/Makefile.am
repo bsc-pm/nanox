@@ -55,8 +55,6 @@ devinclude_HEADERS = \
 	malign.hpp \
 	memorymap_decl.hpp \
 	memorymap.hpp \
-	containeradapter.hpp \
-	containertraits.hpp \
 	packer_decl.hpp \
 	containeradapter_fwd.hpp \
 	containeradapter_decl.hpp \

@@ -95,9 +95,6 @@ devinclude_HEADERS = \
 	networkapi.hpp  \
 	network_decl.hpp  \
 	bitcounter.hpp \
-	dataaccess_fwd.hpp \
-	dataaccess_decl.hpp \
-	dataaccess.hpp \
 	regiondict_decl.hpp  \
 	regiondict.hpp  \
 	newregiondirectory.hpp  \
