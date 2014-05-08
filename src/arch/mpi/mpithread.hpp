@@ -60,7 +60,7 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe, SMPMultiThread *parent) : SMPThread( w,pe ,parent), _threadList() , _selfLock(), _runningPEs()  {
+         MPIThread( WD &w, PE *pe, SMPProcessor *core) : SMPThread( w,pe ,core), _threadList() , _selfLock(), _runningPEs()  {
              _currPe=0;
              _selfTotRunningWds=0;
              _groupTotRunningWds=&_selfTotRunningWds;
@@ -106,8 +106,6 @@ namespace ext
          bool deleteWd(WD* wd, bool markToDelete);
          
          void checkTaskEnd();
-         
-         void bind();
          
          void finish();
          /**

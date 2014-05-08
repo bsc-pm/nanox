@@ -93,12 +93,21 @@ class MPIPlugin : public ArchPlugin
 //           addBinding( pe );
 //        }
       }
+       
+      virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
+      }
 
-   virtual PE* createPE( unsigned id, unsigned uid )
-   {
-      //Not used
-      return NULL;
-   }
+      virtual void startSupportThreads() {
+      }
+
+      virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+      }
+
+      virtual PE* createPE( unsigned id, unsigned uid )
+      {
+         //Not used
+         return NULL;
+      }
 };
 }
 }

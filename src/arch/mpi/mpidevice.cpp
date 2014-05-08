@@ -258,11 +258,11 @@ void MPIDevice::taskPostFinish(MPI_Comm& comm){
 static void createExtraCacheThread(){    
     //Create extra worker thread
     MPI_Comm mworld= MPI_COMM_WORLD;
-    int nextId=nanos::ext::MPIProcessor::getNextPEId();
-    if (nextId!=-1){
-        nextId=sys.getBindingId(nextId);
+    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
+    if (core==NULL) {
+        core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnode(0);
     }
-    PE *mpi = NEW nanos::ext::MPIProcessor(nextId, &mworld, CACHETHREADRANK,-1, false, false, /* Dummy*/ MPI_COMM_SELF, /* Dummmy memspace */ 0);
+    PE *mpi = NEW nanos::ext::MPIProcessor(&mworld, CACHETHREADRANK,-1, false, false, /* Dummy*/ MPI_COMM_SELF, core, /* Dummmy memspace */ 0);
     nanos::ext::MPIDD * dd = NEW nanos::ext::MPIDD((nanos::ext::MPIDD::work_fct) MPIDevice::remoteNodeCacheWorker);
     WD *wd = NEW WD(dd);
     NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )

@@ -27,79 +27,109 @@ common_libadd=\
 	$(END)
 
 devinclude_HEADERS = \
+	nanos-int.h \
 	nanos_error.h \
 	barrier_fwd.hpp \
-	threadteam_fwd.hpp \
-	basethread_fwd.hpp\
-	processingelement_fwd.hpp \
-	accelerator_fwd.hpp \
-	schedule_fwd.hpp \
-	system_fwd.hpp \
-	wddeque_fwd.hpp \
-	workdescriptor_fwd.hpp \
-	slicer_fwd.hpp \
-	instrumentationcontext_fwd.hpp \
-	instrumentation_fwd.hpp \
-	throttle_fwd.hpp \
-	dataaccess_fwd.hpp \
-	copydata_fwd.hpp \
-	dependableobject_fwd.hpp \
-	dependableobjectwd_fwd.hpp \
-	trackableobject_fwd.hpp \
-	dependenciesdomain_fwd.hpp \
-	synchronizedcondition_fwd.hpp \
-	address_fwd.hpp \
-	basedependency_fwd.hpp \
-	nanos-int.h \
 	barrier_decl.hpp \
 	barrier.hpp \
    cachedaccelerator_decl.hpp \
    cachedaccelerator.hpp \
+	threadteam_fwd.hpp \
 	threadteam_decl.hpp \
 	threadteam.hpp \
+	basethread_fwd.hpp\
 	basethread_decl.hpp\
 	basethread.hpp\
+	processingelement_fwd.hpp \
 	processingelement_decl.hpp \
 	processingelement.hpp \
+	accelerator_fwd.hpp \
 	accelerator_decl.hpp \
+	schedule_fwd.hpp \
 	schedule_decl.hpp \
 	schedule.hpp \
+	system_fwd.hpp \
 	system_decl.hpp\
 	system.hpp \
+	wddeque_fwd.hpp \
 	wddeque_decl.hpp \
 	wddeque.hpp \
+	workdescriptor_fwd.hpp \
 	workdescriptor_decl.hpp \
 	workdescriptor.hpp \
 	worksharing_decl.hpp \
+	slicer_fwd.hpp \
 	slicer_decl.hpp \
 	slicer.hpp \
+	instrumentationcontext_fwd.hpp \
 	instrumentationcontext_decl.hpp \
 	instrumentationcontext.hpp \
 	instrumentationmodule_decl.hpp \
+	instrumentation_fwd.hpp \
 	instrumentation_decl.hpp \
 	instrumentation.hpp \
+	throttle_fwd.hpp \
 	throttle_decl.hpp \
+	dataaccess_fwd.hpp \
 	dataaccess_decl.hpp \
 	dataaccess.hpp \
+	copydata_fwd.hpp \
 	copydata_decl.hpp \
 	copydata.hpp \
+	dependableobject_fwd.hpp \
 	dependableobject_decl.hpp \
 	dependableobject.hpp \
+	dependableobjectwd_fwd.hpp \
 	dependableobjectwd_decl.hpp \
 	dependableobjectwd.hpp \
 	commutationdepobj_decl.hpp \
 	commutationdepobj.hpp \
-	trackableobject_decl.hpp \
-	trackableobject.hpp \
+	dependenciesdomain_fwd.hpp \
 	dependenciesdomain_decl.hpp \
 	dependenciesdomain.hpp \
+	synchronizedcondition_fwd.hpp \
 	synchronizedcondition_decl.hpp \
 	synchronizedcondition.hpp \
 	pminterface_decl.hpp  \
 	basethread_decl.hpp \
+	networkapi.hpp  \
+	network_decl.hpp  \
+	bitcounter.hpp \
+	dataaccess_fwd.hpp \
+	dataaccess_decl.hpp \
+	dataaccess.hpp \
+	regiondict_decl.hpp  \
+	regiondict.hpp  \
+	newregiondirectory.hpp  \
+	newregiondirectory_decl.hpp  \
+	regioncache_fwd.hpp  \
+	regioncache_decl.hpp  \
+	regioncache.hpp  \
+	location_decl.hpp  \
+	location.hpp  \
+	deviceops_decl.hpp  \
+	deviceops_fwd.hpp  \
+	deviceops.hpp  \
+	version.hpp  \
+	version_decl.hpp  \
+	cachedregionstatus.hpp  \
+	cachedregionstatus_decl.hpp  \
+	addressspace_decl.hpp  \
+	addressspace.hpp  \
+	addressspace_fwd.hpp  \
+	memcontroller_fwd.hpp  \
+	memcontroller_decl.hpp  \
+	memcachecopy_decl.hpp \
+	memcachecopy_fwd.hpp \
+	memoryops_decl.hpp \
+	memoryops_fwd.hpp \
+	globalregt_decl.hpp \
+	address_fwd.hpp \
 	address_decl.hpp \
 	address.hpp \
+	basedependency_fwd.hpp \
 	basedependency_decl.hpp \
+	graphentry_decl.hpp \
 	taskexecutionexception_decl.hpp \
 	taskexecutionexception.hpp \
 	$(END)

@@ -107,7 +107,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
    // ops->completeOp();
     if (errCode != CL_SUCCESS){
         std::cerr << errCode << "\n";
-        fatal("Buffer writing failed.");
+        fatal("Buffer writing failed. Check if you are filling GPU's memory");
     }
     return true;
 }

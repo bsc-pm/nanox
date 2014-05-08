@@ -86,7 +86,7 @@ void MPIRemoteNode::mpiOffloadSlaveMain(){
 int MPIRemoteNode::ompssMpiGetFunctionIndexHost(void* func_pointer){  
     int i;
     //This function WILL find the pointer, if it doesnt, program would crash anyways so I won't limit it
-    for (i=0;ompss_mpi_func_pointers_host[i]!=func_pointer;i++);
+    for (i=0;ompss_mpi_func_pointers_host[i]!=func_pointer;i++) { }
     return i;
 }
 
@@ -688,11 +688,11 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
     int rank=spawn_start; //Balance spawn order so each process starts with his owned processes
-    int bindingId=nanos::ext::MPIProcessor::getNextPEId(); //All the PEs share the same local bind ID (at the end they'll be executed by the same thread)
-    if (bindingId!=-1){ //If no free PE, bind to every core
-        bindingId=sys.getBindingId(bindingId);
-    }
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
+    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
+    if (core==NULL) {
+        core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnode(0);
+    }
     for ( int rankCounter=0; rankCounter<totalNumberOfSpawns; rankCounter++ ){  
         memory_space_id_t id = sys.getNewSeparateMemoryAddressSpaceId();
         SeparateMemoryAddressSpace *mpiMem = NEW SeparateMemoryAddressSpace( id, nanos::ext::MPI, nanos::ext::MPIProcessor::getAllocWide());
@@ -702,7 +702,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
         //Each process will have access to every remote node, but only one master will sync each child
         //this way we balance syncs with childs
         if (rank>=spawn_start && rank<spawn_start+numberOfSpawnsThisProcess) {
-            pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, true, shared, comm, id);
+            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,uid++, true, shared, comm, core, id);
             nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
             //If user defined multithread cache behaviour, send the creation order
@@ -714,7 +714,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
                 ((MPIProcessor*)pes[rank])->setHasWorkerThread(true);
             }
         } else {            
-            pes[rank]=NEW nanos::ext::MPIProcessor( bindingId ,intercomm, rank,uid++, false, shared, comm, id);
+            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,uid++, false, shared, comm, core, id);
         }
         rank=(rank+1)%totalNumberOfSpawns;
     }
