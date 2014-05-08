@@ -34,9 +34,9 @@ int  GPUConfig::_numGPUs = -1;
 System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
 int GPUConfig::_numPrefetch = 1;
 bool GPUConfig::_concurrentExec = true;
-bool GPUConfig::_overlap = false;
-bool GPUConfig::_overlapInputs = false;
-bool GPUConfig::_overlapOutputs = false;
+bool GPUConfig::_overlap = true;
+bool GPUConfig::_overlapInputs = true;
+bool GPUConfig::_overlapOutputs = true;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
 bool GPUConfig::_gpuWarmup = true;
@@ -75,7 +75,7 @@ void GPUConfig::prepare( Config& config )
 
    // Set #tasks for prefetching
    config.registerConfigOption ( "gpu-prefetch", NEW Config::IntegerVar( _numPrefetch ),
-                                 "Defines the maximum number of tasks to prefetch (defaults to 0)" );
+                                 "Defines the maximum number of tasks to prefetch (defaults to 1)" );
    config.registerEnvOption ( "gpu-prefetch", "NX_GPUPREFETCH" );
    config.registerArgOption ( "gpu-prefetch", "gpu-prefetch" );
 
@@ -89,7 +89,7 @@ void GPUConfig::prepare( Config& config )
    // Enable / disable overlapping
    config.registerConfigOption( "gpu-overlap", NEW Config::FlagOption( _overlap ),
                                 "Set whether GPU computation should be overlapped with\n\
-                                     all data transfers, whenever possible, or not (disabled by default)" );
+                                     all data transfers, whenever possible, or not (enabled by default)" );
    config.registerEnvOption( "gpu-overlap", "NX_GPUOVERLAP" );
    config.registerArgOption( "gpu-overlap", "gpu-overlap" );
 
