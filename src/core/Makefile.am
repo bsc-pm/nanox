@@ -132,6 +132,9 @@ devinclude_HEADERS = \
 	graphentry_decl.hpp \
 	taskexecutionexception_decl.hpp \
 	taskexecutionexception.hpp \
+	trackableobject_fwd.hpp \
+	trackableobject_decl.hpp \
+        trackableobject.hpp \
 	$(END)
 
 common_sources=\
