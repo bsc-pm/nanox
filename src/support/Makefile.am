@@ -87,6 +87,7 @@ devinclude_HEADERS = \
 	requestqueue_decl.hpp \
 	requestqueue.hpp \
 	printbt_decl.hpp \
+        smpbaseplugin_decl.hpp \
 	$(END) 
 
 support_sources = \
