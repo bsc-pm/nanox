@@ -190,7 +190,7 @@ inline void DependableObject::submitted()
    memoryFence();
 }
 
-inline bool DependableObject::needsSubmission()
+inline bool DependableObject::needsSubmission() const
 {
    return _needsSubmission;
 }

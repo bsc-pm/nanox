@@ -45,7 +45,7 @@ void DOSubmit::dependenciesSatisfiedNoSubmit( )
 
 bool DOSubmit::canBeBatchReleased ( ) const
 {
-   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( _submittedWD );
+   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( _submittedWD ) && needsSubmission();
 }
 
 unsigned long DOSubmit::getDescription ( )

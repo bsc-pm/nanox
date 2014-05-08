@@ -249,7 +249,7 @@ namespace nanos
 
          /*! \brief returns true if the DependableObject needs to be submitted in the domain
           */
-          bool needsSubmission();
+          bool needsSubmission() const;
 
          /*! \brief sets the DO as it needs to be submitted
           */
