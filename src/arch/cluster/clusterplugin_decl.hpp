@@ -54,8 +54,11 @@ class ClusterPlugin : public ArchPlugin
 
       virtual ProcessingElement * createPE( unsigned id, unsigned uid );
       virtual unsigned getNumThreads() const; 
-      virtual unsigned getNumPEs() const;
       void addPEs( std::vector<ProcessingElement *> &pes ) const;
+      virtual unsigned int getNumPEs() const;
+      virtual unsigned int getMaxPEs() const;
+      virtual unsigned int getNumWorkers() const;
+      virtual unsigned int getMaxWorkers() const;
 };
 
 }

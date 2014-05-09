@@ -113,11 +113,22 @@ namespace nanos
          virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
             std::cerr << "Generic " << __FUNCTION__ << std::endl;
          }
-
-virtual bool isHwlocAvailable () const {
+         virtual unsigned int getMaxPEs() const {
             std::cerr << "Generic " << __FUNCTION__ << std::endl;
-      return false;
-}
+            return 0;
+         }
+         virtual unsigned int getNumWorkers() const {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+            return 0;
+         }
+         virtual unsigned int getMaxWorkers() const {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+            return 0;
+         }
+         virtual bool isHwlocAvailable () const {
+            std::cerr << "Generic " << __FUNCTION__ << std::endl;
+            return false;
+         }
 
    };
 }

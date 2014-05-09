@@ -47,6 +47,7 @@ class SMPPlugin : public SMPBasePlugin
    Atomic<unsigned int>         _idSeed;
    int                          _requestedCores;
    int                          _availableCores;
+   int                          _currentCores;
    std::vector<SMPProcessor *> *_cores;
    std::vector<SMPThread *>     _workers;
    int                          _bindingStart;
@@ -84,6 +85,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _idSeed( 0 )
                  , _requestedCores( 0 )
                  , _availableCores( 0 )
+                 , _currentCores( 0 )
                  , _cores( NULL )
                  , _workers()
                  , _bindingStart( 0 )
@@ -153,15 +155,15 @@ class SMPPlugin : public SMPBasePlugin
       sys.setHostFactory( smpProcessorFactory );
       sys.setSMPPlugin( this );
 
-      int num_cores = _requestedCores;
+      _currentCores = _requestedCores;
 
       OS::getProcessAffinity( &_cpuSet );
       _availableCores = CPU_COUNT( &_cpuSet );
 
       if ( _requestedCores == 0 || _requestedCores > _availableCores ) {
-         num_cores = _availableCores;
+         _currentCores = _availableCores;
       }
-      debug0("requested cores: " << _requestedCores << " available: " << _availableCores << " to be used: " << num_cores);
+      debug0("requested cores: " << _requestedCores << " available: " << _availableCores << " to be used: " << _currentCores);
 
 
       std::vector<int> cpu_affinity;
@@ -201,14 +203,14 @@ class SMPPlugin : public SMPBasePlugin
 
       CPU_ZERO( &_cpuActiveSet );
 
-      _cores = NEW std::vector<SMPProcessor *>( num_cores, (SMPProcessor *) NULL ); 
+      _cores = NEW std::vector<SMPProcessor *>( _currentCores, (SMPProcessor *) NULL ); 
 
 
       // Load & check NUMA config
       loadNUMAInfo();
 
 
-      for ( int idx = 0; idx < num_cores; idx += 1 ) {
+      for ( int idx = 0; idx < _currentCores; idx += 1 ) {
          (*_cores)[ idx ] = NEW SMPProcessor( _bindings[ idx ] );
          CPU_SET( (*_cores)[idx]->getBindingId() , &_cpuActiveSet );
          (*_cores)[idx]->setNUMANode( getNodeOfPE( (*_cores)[idx]->getId() ) );
@@ -224,12 +226,6 @@ class SMPPlugin : public SMPBasePlugin
    {
       // TODO (gmiranda): if HWLOC is available, use it.
       return getCoresPerSocket();
-   }
-
-   virtual unsigned getNumPEs() const
-   {
-      // TODO (gmiranda): create PEs here and not in system
-      return 0;
    }
 
    virtual unsigned getNumThreads() const
@@ -724,6 +720,20 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual int getCpuCount() const {
       return _cores->size();
+   }
+
+
+   virtual unsigned int getNumPEs() const {
+      return _currentCores;
+   }
+   virtual unsigned int getMaxPEs() const {
+      return _availableCores;
+   }
+   virtual unsigned int getNumWorkers() const {
+      return _workers.size();
+   }
+   virtual unsigned int getMaxWorkers() const {
+      return _currentCores;
    }
 
 };
