@@ -47,6 +47,7 @@ std::list<int> MPIRemoteNode::_pendingTasksQueue;
 std::list<int> MPIRemoteNode::_pendingTaskParentsQueue;
 bool MPIRemoteNode::_initialized=false;
 int MPIRemoteNode::_currentTaskParent=-1;
+int MPIRemoteNode::_currProcessor=0;
 
 Lock& MPIRemoteNode::getTaskLock() {
     return _taskLock;
@@ -66,6 +67,10 @@ int MPIRemoteNode::getCurrentTaskParent() {
 
 void MPIRemoteNode::setCurrentTaskParent(int parent) {
     _currentTaskParent=parent;
+}
+
+int MPIRemoteNode::getCurrentProcessor() {
+    return _currProcessor++;
 }
 
 void MPIRemoteNode::testTaskQueueSizeAndLock() {    

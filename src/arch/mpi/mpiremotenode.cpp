@@ -691,7 +691,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
     ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
     if (core==NULL) {
-        core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnode(0);
+        core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,getCurrentProcessor());
     }
     for ( int rankCounter=0; rankCounter<totalNumberOfSpawns; rankCounter++ ){  
         memory_space_id_t id = sys.getNewSeparateMemoryAddressSpaceId();

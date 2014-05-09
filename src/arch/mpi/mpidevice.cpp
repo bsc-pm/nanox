@@ -260,7 +260,7 @@ static void createExtraCacheThread(){
     MPI_Comm mworld= MPI_COMM_WORLD;
     ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
     if (core==NULL) {
-        core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnode(0);
+        core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,nanos::ext::MPIRemoteNode::getCurrentProcessor());
     }
     PE *mpi = NEW nanos::ext::MPIProcessor(&mworld, CACHETHREADRANK,-1, false, false, /* Dummy*/ MPI_COMM_SELF, core, /* Dummmy memspace */ 0);
     nanos::ext::MPIDD * dd = NEW nanos::ext::MPIDD((nanos::ext::MPIDD::work_fct) MPIDevice::remoteNodeCacheWorker);

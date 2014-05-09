@@ -63,22 +63,23 @@ class MPIPlugin : public ArchPlugin
            nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
          }
       }
-      
-      virtual unsigned getNumHelperPEs() const
-      {
-           return 0;
-      }
-
-      virtual unsigned getNumPEs() const
-      {
-           return 0;
-      }
-
       virtual unsigned getNumThreads() const
       {
            return 0;
       }
       
+      virtual unsigned int getNumPEs() const {
+         return 0;
+      }
+      virtual unsigned int getMaxPEs() const {
+         return 0;
+      }
+      virtual unsigned int getNumWorkers() const {
+         return 0;
+      }
+      virtual unsigned int getMaxWorkers() const {
+         return 0;
+      }
       
       virtual void createBindingList()
       {
