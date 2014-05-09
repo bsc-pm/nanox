@@ -96,10 +96,10 @@ public:
       return OpenCLConfig::getOpenCLDevicesCount();
    }
 
-   virtual unsigned getNumPEs() const
-   {
-      return OpenCLConfig::getOpenCLDevicesCount();
-   }
+//   virtual unsigned getNumPEs() const
+//   {
+//      return OpenCLConfig::getOpenCLDevicesCount();
+//   }
    
    virtual unsigned getNumThreads() const
    {
@@ -156,6 +156,18 @@ virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
    }
 }
 
+virtual unsigned int getNumPEs() const {
+   return _opencls->size();
+}
+virtual unsigned int getMaxPEs() const {
+   return _opencls->size();
+}
+virtual unsigned int getNumWorkers() const {
+   return _opencls->size();
+}
+virtual unsigned int getMaxWorkers() const {
+   return _opencls->size();
+}
 
 };
 

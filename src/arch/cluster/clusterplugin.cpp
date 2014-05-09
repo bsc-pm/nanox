@@ -188,10 +188,6 @@ unsigned ClusterPlugin::getNumThreads() const {
    return 1;
 }
 
-unsigned ClusterPlugin::getNumPEs() const {
-   return _gasnetApi.getNumNodes() - 1;
-}
-
 void ClusterPlugin::startSupportThreads() {
    if ( _gasnetApi.getNumNodes() > 1 )
    {
@@ -261,6 +257,22 @@ void ClusterPlugin::addPEs( std::vector<ProcessingElement *> &pes ) const {
          pes.push_back( *it );
       }
    }
+}
+
+unsigned int ClusterPlugin::getNumPEs() const {
+   return _nodes->size() - 1;
+}
+
+unsigned int ClusterPlugin::getMaxPEs() const {
+   return _nodes->size() - 1;
+}
+
+unsigned int ClusterPlugin::getNumWorkers() const {
+   return _nodes->size() - 1;
+}
+
+unsigned int ClusterPlugin::getMaxWorkers() const {
+   return _nodes->size() - 1;
 }
 
 }

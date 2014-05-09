@@ -23,7 +23,7 @@ extern "C" {
 
    unsigned int nanos_extrae_get_max_threads ( void )
    {
-      return sys.getSMPPlugin()->getCpuCount();
+      return sys.getSMPPlugin()->getNumPEs();
    }
 
    unsigned int nanos_ompitrace_get_max_threads ( void )
