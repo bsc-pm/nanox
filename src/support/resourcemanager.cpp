@@ -46,6 +46,7 @@ namespace ResourceManager {
       flags_t   _flags = {false, false, false};
       Lock      _lock;
       cpu_set_t _running_cpus;
+      cpu_set_t _waiting_cpus;
       cpu_set_t _default_cpus;
    }
 }}
@@ -58,6 +59,7 @@ void ResourceManager::init( void )
    LockBlock Lock( _lock );
    sys.getCpuMask( &_running_cpus );
    sys.getCpuMask( &_default_cpus );
+   CPU_ZERO( &_waiting_cpus );
    ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
 
    _flags.is_malleable = sys.getPMInterface().isMalleable();
@@ -243,12 +245,14 @@ void ResourceManager::waitForCpuAvailability( void )
 
    if ( _flags.dlb_enabled ){
       int cpu = getMyThreadSafe()->getCpuId();
+      CPU_SET( cpu, &_waiting_cpus );
       while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
          sched_yield();
       /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
             myThread->sleep();
             break;
             }*/
+      CPU_CLR( cpu, &_waiting_cpus );
    }
 }
 
@@ -258,5 +262,5 @@ bool ResourceManager::lastOne( void )
       return false;
 
    LockBlock Lock( _lock );
-   return ( CPU_COUNT(&_running_cpus) == 1 );
+   return ( CPU_COUNT(&_running_cpus) - CPU_COUNT(&_waiting_cpus) <= 1 );
 }
