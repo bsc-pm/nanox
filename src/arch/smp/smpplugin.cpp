@@ -306,12 +306,34 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cores->rbegin();
             it != _cores->rend() && !target;
             it++ ) {
-         if ( (*it)->getNUMANode() == node ) {
+         if ( (*it)->getNUMANode() == node && (*it)->getNumThreads() == 0 ) {
             target = *it;
          }
       }
       return target;
+   }
 
+   virtual ext::SMPProcessor *getSMPProcessorByNUMAnode(int node, unsigned int idx) const {
+      ensure( _cores != NULL, "Uninitialized SMP plugin.");
+      ext::SMPProcessor *target = NULL;
+      std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cores->rbegin();
+      unsigned int counter = idx;
+
+      while ( !target ) {
+         if ( it == _cores->rend() ) {
+            it = _cores->rbegin();
+            if ( idx == counter ) {
+               break;
+            }
+         }
+         if ( (*it)->getNUMANode() == node ) {
+            counter--;
+            if ( counter == 0 ) {
+               target = *it;
+            }
+         }
+      }
+      return target;
    }
 
    void loadHwloc ()
