@@ -226,6 +226,10 @@ void ResourceManager::returnMyCpuIfClaimed( void )
             ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
          }
       }
+
+      // Go to sleep inmediately
+      if ( myThread->isSleeping() )
+         myThread->wait();
    }
 }
 
