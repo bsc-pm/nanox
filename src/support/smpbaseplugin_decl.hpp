@@ -22,6 +22,7 @@
 
 #include <sched.h>
 #include "smpprocessor_fwd.hpp"
+#include "smpthread_fwd.hpp"
 #include "archplugin_decl.hpp"
 
 namespace nanos {
@@ -50,6 +51,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void setCpuMask ( const cpu_set_t *mask ) = 0;
       virtual void getCpuMask ( cpu_set_t *mask ) const = 0;
       virtual void addCpuMask ( const cpu_set_t *mask ) = 0;
+      virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
 };
 
 }

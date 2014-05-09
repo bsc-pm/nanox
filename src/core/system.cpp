@@ -458,8 +458,6 @@ void System::start ()
 
    verbose0 ( "Starting runtime" );
 
-   _pmInterface->start();
-
    _pes.reserve ( _peIdSeed.value() );
 
 #if 0
@@ -470,23 +468,14 @@ void System::start ()
    CPU_SET( getBindingId( 0 ), &_cpuActiveSet );
 #endif
 
-   _workers.push_back( &( _smpPlugin->getFirstSMPProcessor()->associateThisThread( sys.getUntieMaster() ) ) );
+   ext::SMPThread *thisThd = &_smpPlugin->associateThisThread( sys.getUntieMaster() );
+   _workers.push_back( thisThd );
 
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
    mainWD._mcontrol.preInit();
    mainWD._mcontrol.setMainWD();
    mainWD._mcontrol.initialize( *(_smpPlugin->getFirstSMPProcessor()) );
-
-   if ( _pmInterface->getInternalDataSize() > 0 ) {
-      char *data = NEW char[_pmInterface->getInternalDataSize()];
-      _pmInterface->initInternalData( data );
-      mainWD.setInternalData( data );
-   }
-   _pmInterface->setupWD( mainWD );
-
-   /* Renaming currend thread as Master */
-   myThread->rename("Master");
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
@@ -509,6 +498,19 @@ void System::start ()
    {
       (*it)->startWorkerThreads( _workers );
    }   
+
+   _pmInterface->start();
+
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      mainWD.setInternalData( data );
+   }
+   _pmInterface->setupWD( mainWD );
+
+   /* Renaming currend thread as Master */
+   myThread->rename("Master");
+
 
    // For each plugin, notify it's the way to reserve PEs if they are required
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();

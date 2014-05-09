@@ -60,7 +60,7 @@ void hello_world ( void *args )
 
 int main ( int argc, char **argv )
 {
-   cout << "PEs = " << sys.getNumPEs() << endl;
+   cout << "PEs = " << sys.getSMPPlugin()->getNumPEs() << endl;
    cout << "Mode = " << sys.getExecutionMode() << endl;
    cout << "Verbose = " << sys.getVerbose() << endl;
    cout << "Args" << endl;

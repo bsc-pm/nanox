@@ -758,6 +758,12 @@ class SMPPlugin : public SMPBasePlugin
       return _currentCores;
    }
 
+   virtual SMPThread &associateThisThread( bool untie ) {
+      SMPThread &thd = getFirstSMPProcessor()->associateThisThread( untie );
+      _workers.push_back( &thd );
+      return thd;
+   }
+
 };
 }
 }

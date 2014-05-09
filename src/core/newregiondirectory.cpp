@@ -461,14 +461,20 @@ void NewNewRegionDirectory::synchronize( WD const &wd ) {
    //printBt();
    if ( wd.getDepth() == 0 ) {
       // invalidate data on devices
-      for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
-         for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
-            if ( *locIt != 0 ) {
-               //std::cerr << "inval object " << it->first << " (addr " << (void*) it->first->getKeyBaseAddress() << ") from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
-               sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
-            }
+      //for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
+      //   for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
+      //      if ( *locIt != 0 ) {
+      //         std::cerr << "inval object " << it->first << " (addr " << (void*) it->first->getKeyBaseAddress() << ") from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
+      //         sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
+      //      }
+      //   }
+      //}
+      for ( std::set< uint64_t >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+         for ( memory_space_id_t id = 1; id <= sys.getSeparateMemoryAddressSpacesCount(); id++ ) {
+            sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, _objects[ *it ] ) );
          }
       }
+
       //clear objects from directory
       for ( std::set< uint64_t >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
          //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
