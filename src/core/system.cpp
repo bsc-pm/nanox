@@ -1760,10 +1760,13 @@ void System::ompss_nanox_main(){
         sys.loadPlugin("arch-mpi");
     }
     #endif
+    #ifdef CLUSTER_DEV
+    nanos::ext::ClusterNode::clusterWorker();
+    #endif
     
-#ifdef NANOS_RESILIENCY_ENABLED
-    getMyThreadSafe()->setupSignalHandlers();
-#endif
+    #ifdef NANOS_RESILIENCY_ENABLED
+        getMyThreadSafe()->setupSignalHandlers();
+    #endif
 }
 
 void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len) {

@@ -1,10 +1,10 @@
 include $(top_srcdir)/src/common.am
 
-EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in resiliency-generator.in config.py
+EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in resiliency-generator.in config.py mpi-offload-generator.in
 
-noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator
+noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator mpi-offload-generator
 
-CLEANFILES = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator
+CLEANFILES = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator mpi-offload-generator
 
 api-generator: api-generator.in
 	rm -f api-generator
@@ -341,3 +341,48 @@ resiliency-generator: resiliency-generator.in
 		$(srcdir)/resiliency-generator.in > resiliency-generator.tmp
 	mv resiliency-generator.tmp resiliency-generator
 	chmod 755 resiliency-generator
+	
+mpi-offload-generator: mpi-offload-generator.in
+	rm -f mpi-offload-generator 
+	tmp_plugins_perfo=`cat $(abs_top_builddir)/src/plugins-list | grep ^performance\= | cut -d'=' -f2` ;\
+	tmp_plugins_debug=`cat $(abs_top_builddir)/src/plugins-list | grep ^debug\= | cut -d'=' -f2` ;\
+	tmp_plugins_instr=`cat $(abs_top_builddir)/src/plugins-list | grep ^instrumentation\= | cut -d'=' -f2` ;\
+	tmp_plugins_instr_debug=`cat $(abs_top_builddir)/src/plugins-list | grep ^instrumentation_debug\= | cut -d'=' -f2` ;\
+	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
+	tmp_srcdir=$(abs_top_srcdir) ; \
+	tmp_builddir=$(abs_top_builddir) ; \
+	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
+	tmp_debug_cflags='"$(debug_cflags)"' ; \
+	tmp_instr_cflags='"$(instr_cflags)"' ; \
+	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
+	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
+	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
+	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
+	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
+	tmp_mpi_valid='"$(mpi_valid)"' ; \
+	tmp_prefix='"$(NANOX_MPI_PREFIX)"' ; \
+	tmp_cc='"$(CC)"' ; \
+	tmp_cxx='"$(CXX)"' ; \
+	sed \
+		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
+		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
+		-e's,@PLUGINS_PERFORMANCE\@,'"$$tmp_plugins_perfo"',g' \
+		-e's,@PLUGINS_DEBUG\@,'"$$tmp_plugins_debug"',g' \
+		-e's,@PLUGINS_INSTRUMENTATION\@,'"$$tmp_plugins_instr"',g' \
+		-e's,@PLUGINS_INSTRUMENTATION_DEBUG\@,'"$$tmp_plugins_instr_debug"',g' \
+		-e's,@COMPILE_VERSIONS\@,'"$$tmp_compile_versions"',g' \
+		-e's,@PERFO_CFLAGS\@,'"$$tmp_perfo_cflags"',g' \
+		-e's,@DEBUG_CFLAGS\@,'"$$tmp_debug_cflags"',g' \
+		-e's,@INSTR_CFLAGS\@,'"$$tmp_instr_cflags"',g' \
+		-e's,@INSTRDEBUG_CFLAGS\@,'"$$tmp_instrdebug_cflags"',g' \
+		-e's,@PERFO_CXXFLAGS\@,'"$$tmp_perfo_cxxflags"',g' \
+		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
+		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
+		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
+		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
+		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
+		-e's,@MPI_VALID\@,'"$$tmp_mpi_valid"',g' \
+		-e's,@PREFIX\@,'"$$tmp_prefix"',g' \
+		$(srcdir)/mpi-offload-generator.in > mpi-offload-generator.tmp
+	mv mpi-offload-generator.tmp mpi-offload-generator
+	chmod 755 mpi-offload-generator

@@ -67,6 +67,7 @@ mpiinclude_HEADERS = \
 	$(END)
 	
 mpiincludedir = $(prefix)/src/arch/mpi
+nanos_test_cxxflags=$(common_includes) $(common_debug_cxxflags)
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
@@ -78,27 +79,25 @@ performance_LTLIBRARIES =
 install-exec-local:	
 
 	mkdir -p $(NANOX_MPI_PREFIX)/src/arch/mpi
+	echo  -I${devincludedir} ${nanos_test_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/test_flags
 
 if DEBUG_VERSION
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) ${mpi_api_flags}
-	echo ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/debug_flags
+	echo  -I${devincludedir} ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/debug_flags
 endif
 
 if INSTRUMENTATION_VERSION
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) ${mpi_api_flags}
-	echo ${nanos_instr_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_flags
-	echo " -I${devincludedir}" >> $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_flags
+	echo  -I${devincludedir} ${nanos_instr_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_flags
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) ${mpi_api_flags}
-	echo ${nanos_instrdebug_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_debug_flags
-	echo " -I${devincludedir}" >> $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_debug_flags
+	echo  -I${devincludedir} ${nanos_instrdebug_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_debug_flags
 endif
 
 
 if PERFORMANCE_VERSION
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) ${mpi_api_flags}
-	echo ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/performance_flags 
-	echo " -I${devincludedir}" >> $(NANOX_MPI_PREFIX)/src/arch/mpi/performance_flags
+	echo  -I${devincludedir} ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/performance_flags 
 endif
