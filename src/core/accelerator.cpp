@@ -41,6 +41,7 @@ void Accelerator::copyDataIn( WorkDescriptor &work )
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
+      cd.initCopyDescriptor();
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
       if ( cd.isInput() ) {
          NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-in") );
@@ -79,6 +80,7 @@ void Accelerator::copyDataOut( WorkDescriptor& work )
    CopyData *copies = work.getCopies();
    for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
       CopyData & cd = copies[i];
+      cd.initCopyDescriptor();
       uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long) cd.getAddress()) : cd.getAddress();
       if ( cd.isOutput() ) {
          NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-out") );
