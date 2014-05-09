@@ -284,7 +284,7 @@ class InstrumentationExtrae: public Instrumentation
         }
 
         /* Keep current number of threads */
-        _maxThreads = sys.getNumThreads();
+        _maxThreads = sys.getSMPPlugin()->getCpuCount();
       }
       void doLs(std::string dest)
       {

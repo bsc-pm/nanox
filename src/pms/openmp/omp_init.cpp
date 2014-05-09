@@ -76,7 +76,7 @@ namespace nanos
 
          TaskICVs & icvs = globalState->getICVs();
          icvs.setSchedule(LoopSchedule(omp_sched_static));
-         icvs.setNumThreads(sys.getNumThreads());
+         icvs.setNumThreads(sys.getSMPPlugin()->getCpuCount());
 
          _description = std::string("OpenMP");
          _malleable = false;
