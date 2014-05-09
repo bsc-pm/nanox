@@ -159,47 +159,53 @@ void SMPThread::wait()
    ThreadTeam *team = getTeam();
 
    /* Put WD's from local to global queue, leave team, and set flag
-    * Only thread lock is needed */
+    * Locking _mutexWait assures us that the sleep flag is still set when we get here
+    */
    lock();
-   if ( hasNextWD() ) {
-      WD *next = getNextWD();
-      next->untie();
-      team->getSchedulePolicy().queue( this, *next );
-   }
-   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+   pthread_mutex_lock( &_mutexWait );
 
-   if ( team != NULL ) leaveTeam();
-   BaseThread::wait();
-   unlock();
+   if ( isSleeping() ) {
 
-   /* We need a scope for the instrumentation state */
-   {
-      NANOS_INSTRUMENT( InstrumentState inst(NANOS_STOPPED) );
+      if ( hasNextWD() ) {
+         WD *next = getNextWD();
+         next->untie();
+         team->getSchedulePolicy().queue( this, *next );
+      }
+      fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+
+      if ( team != NULL ) leaveTeam();
+      BaseThread::wait();
+
+      unlock();
+
+      NANOS_INSTRUMENT( InstrumentState state_stop(NANOS_STOPPED) );
 
       /* Wait on condition loop */
-      pthread_mutex_lock( &_mutexWait );
       while ( isSleeping() ) {
          pthread_cond_wait( &_condWait, &_mutexWait );
       }
       pthread_mutex_unlock( &_mutexWait );
+
+      NANOS_INSTRUMENT( InstrumentState state_wake(NANOS_WAKINGUP) );
+
+      /* Set waiting status flag */
+      lock();
+      BaseThread::resume();
+      unlock();
+
+      /* Whether the thread should wait for the cpu to be free before doing some work */
+      ResourceManager::waitForCpuAvailability();
+
+      if ( isSleeping() ) wait();
+      else {
+         NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+         NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+      }
    }
-
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_WAKINGUP) );
-
-   /* Set waiting status flag */
-   lock();
-   BaseThread::resume();
-   unlock();
-
-   /* Whether the thread should wait for the cpu to be free before doing some work */
-   ResourceManager::waitForCpuAvailability();
-
-   if ( isSleeping() ) wait();
-
-   else{
-      NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-      NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
-      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+   else {
+      pthread_mutex_unlock( &_mutexWait );
+      unlock();
    }
 }
 

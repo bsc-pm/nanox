@@ -145,6 +145,8 @@ namespace nanos
           * \brief Returns the first thread of the PE that is not tagged to sleep
           */
          virtual BaseThread* getActiveThread();
+
+         virtual BaseThread* getSleepingThread();
    };
 
    typedef class ProcessingElement PE;

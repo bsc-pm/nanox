@@ -205,8 +205,18 @@ BaseThread* ProcessingElement::getUnassignedThread()
             continue;
          }
          (*it)->reserve();
-         (*it)->wakeup();
          (*it)->unlock();
+         return (*it);
+      }
+   }
+   return NULL;
+}
+
+BaseThread* ProcessingElement::getSleepingThread()
+{
+   ThreadList::iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      if ( (*it)->isSleeping() ) {
          return (*it);
       }
    }

@@ -803,7 +803,10 @@ void System::finish ()
    myThread->getCurrentWD()->waitCompletion( true );
 
    //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
-   if ( _workers[0]->isSleeping() ) _workers[0]->wakeup();
+   if ( _workers[0]->isSleeping() ) {
+      acquireWorker( myThread->getTeam(), _workers[0], true, false, false );
+      _workers[0]->wakeup();
+   }
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
@@ -1708,6 +1711,21 @@ inline void System::applyCpuMask()
             acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
             thread->wakeup();
             team->increaseFinalSize();
+         }
+         // In order to avoid race conditions, there still could be a situation where a thread is tagged to sleep
+         // but has not yet entered thread->wait().
+         while ( (thread = _pes[pe_id]->getSleepingThread()) != NULL ) {
+            // We must test again the Team because we can't get the lock in the above getSleepingThread function,
+            // so this flag could have changed.
+            thread->lock();
+            if ( !thread->hasTeam() ) {
+               thread->reserve();
+               thread->unlock();
+               acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+               team->increaseFinalSize();
+            }
+            else thread->unlock();
+            thread->wakeup();
          }
       } else {
          // This PE should not
