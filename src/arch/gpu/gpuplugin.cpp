@@ -39,7 +39,7 @@ namespace ext {
 
 class GPUPlugin : public ArchPlugin
 {
-         std::vector<ext::GPUProcessor *> *_gpus;
+   std::vector<ext::GPUProcessor *> *_gpus;
    public:
       GPUPlugin() : ArchPlugin( "GPU PE Plugin", 1 )
          , _gpus( NULL )
@@ -133,11 +133,6 @@ class GPUPlugin : public ArchPlugin
       }
       
       virtual unsigned getNumHelperPEs() const
-      {
-         return GPUConfig::getGPUCount();
-      }
-
-      virtual unsigned getNumPEs() const
       {
          return GPUConfig::getGPUCount();
       }
@@ -277,6 +272,20 @@ virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
       workers.push_back( &(*it)->startWorker() );
    }
 }
+
+virtual unsigned int getNumPEs() const {
+   return _gpus->size();
+}
+virtual unsigned int getMaxPEs() const {
+   return _gpus->size();
+}
+virtual unsigned int getNumWorkers() const {
+   return _gpus->size();
+}
+virtual unsigned int getMaxWorkers() const {
+   return _gpus->size();
+}
+
 
 };
 

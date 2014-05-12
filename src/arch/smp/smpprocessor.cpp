@@ -144,3 +144,25 @@ BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned i
 //bool SMPProcessor::supportsDirectTransfersWith(ProcessingElement const &pe ) const {
 //   return false;
 //}
+
+
+SMPThread &SMPProcessor::associateThisThread( bool untieMain ) {
+   WD & worker = getMasterWD();
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+   NANOS_INSTRUMENT (icd->setStartingWD(true) );
+   
+   SMPThread &thread = (SMPThread &)createThread( worker );
+
+   thread.setMainThread();
+   thread.associate();
+
+   getThreads().push_back( &thread );
+
+   if ( !untieMain ) {
+      worker.tieTo(thread);
+   }
+
+   return thread;
+}
+

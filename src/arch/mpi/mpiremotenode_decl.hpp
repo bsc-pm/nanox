@@ -48,6 +48,7 @@ namespace nanos {
             static std::list<int> _pendingTasksQueue;
             static std::list<int> _pendingTaskParentsQueue;   
             static int _currentTaskParent;
+            static int _currProcessor;
             
 
             // disable copy constructor and assignment operator
@@ -63,6 +64,8 @@ namespace nanos {
             static int getQueueCurrentTaskParent();
             
             static void setCurrentTaskParent(int parent);
+            
+            static int getCurrentProcessor();
             
             static void testTaskQueueSizeAndLock();
             

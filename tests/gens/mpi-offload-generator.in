@@ -1,0 +1,24 @@
+#!/bin/bash
+cat <<EOF
+
+#This MPI test checks that the mpi plugin (which the user will compile when he compiles the app) is correctly compiling
+#If its not working, most likely MPI offload wont work (only tested after make install and if mpicxx is available at check time)
+
+if [ x@mpi_valid@ = xyes ];
+then
+if command -v mpicxx &>/dev/null ; \
+then \
+if [[ -d "@PREFIX@/src/arch/mpi" ]] ; \
+then \
+mpicxx -DNANOX_PREFIX=\"dummy\" `cat @PREFIX@/src/arch/mpi/test_flags` -c @PREFIX@/src/arch/mpi/mpiall.cpp -o @PREFIX@/src/arch/mpi/tester.o; \
+if [[ ! -f @PREFIX@/src/arch/mpi/tester.o ]] ; \
+then \
+test_CXX="mpi_offload_plugin_did_not_compile"; \
+fi; \
+rm -f @PREFIX@/src/arch/mpi/tester.o; \
+fi; \
+fi;
+fi
+
+`@SRCDIR@/tests/gens/config.py $*`
+EOF

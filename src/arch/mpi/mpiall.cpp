@@ -8,7 +8,6 @@
 #ifndef MPIALL_HPP
 #define MPIALL_HPP
 
-#define NEW new
 #include "mpiplugin.cpp"
 #include "mpiprocessor_fwd.hpp"
 #include "mpiprocessor_decl.hpp"

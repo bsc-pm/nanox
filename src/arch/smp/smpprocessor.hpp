@@ -67,6 +67,7 @@ namespace ext
          virtual WD & getMasterWD () const;
          virtual BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent=NULL );
          virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs );
+         SMPThread &associateThisThread(bool untieMaster);
 
          static void prepareConfig ( Config &config );
          // capability query functions

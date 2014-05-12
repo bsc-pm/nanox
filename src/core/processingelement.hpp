@@ -37,6 +37,10 @@ inline int ProcessingElement::getId() const
    return _id;
 }
 
+inline ProcessingElement::ThreadList &ProcessingElement::getThreads() {
+   return _threads;
+}
+
 //inline void ProcessingElement::setId( int id )
 //{
 //  _id = id;

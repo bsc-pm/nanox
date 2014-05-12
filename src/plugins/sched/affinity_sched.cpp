@@ -691,135 +691,135 @@ namespace nanos {
             WD *fetchWD ( BaseThread *thread, WD *current );  
             virtual void atSupport ( BaseThread *thread );
 #ifdef CLUSTER_DEV
-            void pickWDtoInitialize ( BaseThread *thread );  
+            //void pickWDtoInitialize ( BaseThread *thread );  
 #endif
 
       };
 
 #ifdef CLUSTER_DEV
-      inline void CacheSchedPolicy::pickWDtoInitialize( BaseThread *thread )
-      {
-         WorkDescriptor * wd = NULL;
+      //inline void CacheSchedPolicy::pickWDtoInitialize( BaseThread *thread )
+      //{
+      //   WorkDescriptor * wd = NULL;
 
-         ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-         if ( !data._init ) {
-            //data._cacheId = thread->runningOn()->getMemorySpaceId();
-            data._cacheId = thread->runningOn()->getMyNodeNumber();
-            data._init = true;
-         }
-         if ( data._helped >= 16 ) return;
-         NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-         if ( thread->getId() >= sys.getNumPEs() )  {  // CLUSTER THREAD (master or slave)
-            //ERROR
-            std::cerr << "Error at " << __FUNCTION__ << std::endl;
-         } else { // SMP Thread 
-            if ( data._locaQueue.size() < (unsigned int) 1 ) 
-            { //first try to schedule a task of my queue
-               if ( ( wd = tdata._readyQueues[ 0 ].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( thread ) ) != NULL ) {
-                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT_SELF;)
-                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+      //   ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+      //   if ( !data._init ) {
+      //      //data._cacheId = thread->runningOn()->getMemorySpaceId();
+      //      data._cacheId = thread->runningOn()->getMyNodeNumber();
+      //      data._init = true;
+      //   }
+      //   if ( data._helped >= 16 ) return;
+      //   NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+      //   TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+      //   if ( thread->getId() >= sys.getNumPEs() )  {  // CLUSTER THREAD (master or slave)
+      //      //ERROR
+      //      std::cerr << "Error at " << __FUNCTION__ << std::endl;
+      //   } else { // SMP Thread 
+      //      if ( data._locaQueue.size() < (unsigned int) 1 ) 
+      //      { //first try to schedule a task of my queue
+      //         if ( ( wd = tdata._readyQueues[ 0 ].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( thread ) ) != NULL ) {
+      //            NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT_SELF;)
+      //            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
 
-                  wd->_mcontrol.initialize( *(thread->runningOn()) );
-                  bool result;
-                  do {
-                     result = wd->_mcontrol.allocateInputMemory();
-                  } while( result == false );
-                  wd->init();
+      //            wd->_mcontrol.initialize( *(thread->runningOn()) );
+      //            bool result;
+      //            do {
+      //               result = wd->_mcontrol.allocateInputMemory();
+      //            } while( result == false );
+      //            wd->init();
 
-                  data._locaQueue.push_back( wd );
-                  data._helped++;
-                  return;
-               }
-            }
-
-
-            // then attempt a task of a remote node
-            unsigned int selectedNode = tdata._lastNodeScheduled;
-            selectedNode = (selectedNode == 1) ? tdata._numNodes - 1 : selectedNode - 1;
-
-            tdata._lastNodeScheduled = selectedNode;
-            
-            BaseThread const *actualThread = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
-            BaseThread *actualThreadNC = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
-
-            if ( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getNodeNumber() != selectedNode ) {
-               std::cerr <<"ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
-            }
-            
-            ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
-
-            if ( actualClusterThread->acceptsWDsSMP() ) {
-               if ( actualClusterThread->tryLock() ) {
-
-                  if ( data._fetch < 1 ) {
-                     if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopySiMasterInit > > ( actualThread ) ) != NULL ) {
-                        NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTERINIT ;)
-                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+      //            data._locaQueue.push_back( wd );
+      //            data._helped++;
+      //            return;
+      //         }
+      //      }
 
 
-                        wd->_mcontrol.initialize( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
-                        bool result;
-                        do {
-                           result = wd->_mcontrol.allocateInputMemory();
-                        } while( result == false );
+      //      // then attempt a task of a remote node
+      //      unsigned int selectedNode = tdata._lastNodeScheduled;
+      //      selectedNode = (selectedNode == 1) ? tdata._numNodes - 1 : selectedNode - 1;
 
-                        wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
-                        tdata._readyQueuesAlreadyInit[selectedNode].push_back( wd );
+      //      tdata._lastNodeScheduled = selectedNode;
+      //      
+      //      BaseThread const *actualThread = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
+      //      BaseThread *actualThreadNC = sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE().getFirstThread();
 
-                        data._helped++;
-                        data._fetch++;
-                        actualClusterThread->unlock();
-                        return;
-                     }
-                  }
+      //      if ( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getNodeNumber() != selectedNode ) {
+      //         std::cerr <<"ERROR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
+      //      }
+      //      
+      //      ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
 
-                  if ( ( wd = tdata._readyQueuesAlreadyInit[selectedNode].pop_front( actualThreadNC ) ) != NULL ) {
-                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     actualClusterThread->addRunningWDSMP( wd );
-                     Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
+      //      if ( actualClusterThread->acceptsWDsSMP() ) {
+      //         if ( actualClusterThread->tryLock() ) {
 
-                     actualClusterThread->preOutlineWorkDependent( *wd );
-                     actualClusterThread->runningOn()->waitInputs( *wd );
-                     actualClusterThread->outlineWorkDependent(*wd);
-
-                     data._helped++;
-                     actualClusterThread->unlock();
-                     return;
-                  }
-
-                  if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( actualThread ) ) != NULL ) {
-                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+      //            if ( data._fetch < 1 ) {
+      //               if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopySiMasterInit > > ( actualThread ) ) != NULL ) {
+      //                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTERINIT ;)
+      //                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
 
 
-                     wd->_mcontrol.initialize( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
-                     bool result;
-                     do {
-                        result = wd->_mcontrol.allocateInputMemory();
-                     } while( result == false );
-                     wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+      //                  wd->_mcontrol.initialize( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+      //                  bool result;
+      //                  do {
+      //                     result = wd->_mcontrol.allocateInputMemory();
+      //                  } while( result == false );
 
-                     //std::cerr << "add running wd "<<std::endl;
-                     actualClusterThread->addRunningWDSMP( wd );
-                     //std::cerr << "ore outline with thd "<<std::endl;
-                     Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
-                     //std::cerr << "start wd at "<< selectedNode <<std::endl;
-                     actualClusterThread->preOutlineWorkDependent( *wd );
-                     actualClusterThread->runningOn()->waitInputs( *wd );
-                     actualClusterThread->outlineWorkDependent(*wd);
-                     //std::cerr << "done start wd at "<< selectedNode <<std::endl;
+      //                  wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+      //                  tdata._readyQueuesAlreadyInit[selectedNode].push_back( wd );
 
-                     data._helped++;
-                     actualClusterThread->unlock();
-                     return;
-                  }
-                  actualClusterThread->unlock();
-               }
-            }
-         }
-      }
+      //                  data._helped++;
+      //                  data._fetch++;
+      //                  actualClusterThread->unlock();
+      //                  return;
+      //               }
+      //            }
+
+      //            if ( ( wd = tdata._readyQueuesAlreadyInit[selectedNode].pop_front( actualThreadNC ) ) != NULL ) {
+      //               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
+      //               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+      //               actualClusterThread->addRunningWDSMP( wd );
+      //               Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
+
+      //               actualClusterThread->preOutlineWorkDependent( *wd );
+      //               actualClusterThread->runningOn()->waitInputs( *wd );
+      //               actualClusterThread->outlineWorkDependent(*wd);
+
+      //               data._helped++;
+      //               actualClusterThread->unlock();
+      //               return;
+      //            }
+
+      //            if ( ( wd = tdata._readyQueues[selectedNode].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( actualThread ) ) != NULL ) {
+      //               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
+      //               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+
+
+      //               wd->_mcontrol.initialize( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+      //               bool result;
+      //               do {
+      //                  result = wd->_mcontrol.allocateInputMemory();
+      //               } while( result == false );
+      //               wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
+
+      //               //std::cerr << "add running wd "<<std::endl;
+      //               actualClusterThread->addRunningWDSMP( wd );
+      //               //std::cerr << "ore outline with thd "<<std::endl;
+      //               Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
+      //               //std::cerr << "start wd at "<< selectedNode <<std::endl;
+      //               actualClusterThread->preOutlineWorkDependent( *wd );
+      //               actualClusterThread->runningOn()->waitInputs( *wd );
+      //               actualClusterThread->outlineWorkDependent(*wd);
+      //               //std::cerr << "done start wd at "<< selectedNode <<std::endl;
+
+      //               data._helped++;
+      //               actualClusterThread->unlock();
+      //               return;
+      //            }
+      //            actualClusterThread->unlock();
+      //         }
+      //      }
+      //   }
+      //}
 #endif
 
       inline WD *CacheSchedPolicy::fetchWD( BaseThread *thread, WD *current )
@@ -836,154 +836,154 @@ namespace nanos {
          if ( data._cacheId != 0 ) {
             tdata._lastNodeScheduled = data._cacheId;
          }
-         NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+         //NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
          data._helped = 0;
          data._fetch = 0;
-         if ( thread->getId() >= sys.getNumPEs() ) {  // CLUSTER THREAD (master or slave)
-            if ( ( wd = tdata._readyQueuesAlreadyInit[data._cacheId].pop_front( thread ) ) != NULL ) {
-               return wd;
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            } 
-            if ( !_noInvalAware ) {
-               if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopyNoMaster > > ( thread ) ) != NULL ) {
-                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     return wd;
-               }
-               if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopySiMaster > > ( thread ) ) != NULL ) {
-                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     return wd;
-               }
-               if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
-                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     return wd;
-               }
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< SiCopyNoMaster >( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< SiCopySiMaster >( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< Not< NoCopy > >( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].pop_front( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            wd = tdata._globalReadyQueue.pop_front( thread );
-            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, SiCopyNoMaster> >( thread ) ) != NULL ) {
-            //   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
-            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            //   return wd;
-            //}
-            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, SiCopySiMaster > >( thread ) ) != NULL ) {
-            //   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
-            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            //   return wd;
-            //}
-            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, Not< NoCopy > > >( thread ) ) != NULL ) {
-            //   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
-            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            //   return wd;
-            //}
-            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< WouldNotRunOutOfMemory >( thread ) ) != NULL ) {
-            //   NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
-            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            //   return wd;
-            //}
-            //wd = tdata._globalReadyQueue.popFrontWithConstraints< WouldNotRunOutOfMemory >( thread );
-         } else { // SMP Thread 
-            if ( ( wd = data._locaQueue.pop_front( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = ALREADYINIT;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            } 
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints<NoCopy> ( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               { 
-                  WD *helpWD;
-                  if ( !_noInvalAware ) {
-                     if ( ( helpWD = tdata._readyQueues[ 0 ].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( thread ) ) != NULL ) {
-                        NANOS_INSTRUMENT(static nanos_event_value_t val2 = SICOPYNOMASTERINIT_SELF;)
-                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val2 );)
-
-                        helpWD->_mcontrol.initialize( *(thread->runningOn()) );
-                        bool result;
-                        do {
-                           result = helpWD->_mcontrol.allocateInputMemory();
-                        } while( result == false );
-                        helpWD->init(); //WithPE( myThread->runningOn() );
-
-                        data._locaQueue.push_back( helpWD );
-                        data._helped++;
-                     }
-                  } else {
-                     if ( ( helpWD = tdata._readyQueues[ 0 ].popFrontWithConstraints< SiCopyNoMasterInit > ( thread ) ) != NULL ) {
-                        NANOS_INSTRUMENT(static nanos_event_value_t val2 = SICOPYNOMASTERINIT_SELF;)
-                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val2 );)
-
-                        helpWD->_mcontrol.initialize( *(thread->runningOn()) );
-                        bool result;
-                        do {
-                           result = helpWD->_mcontrol.allocateInputMemory();
-                        } while( result == false );
-                        helpWD->init(); //WithPE( myThread->runningOn() );
-
-                        data._locaQueue.push_back( helpWD );
-                        data._helped++;
-                     }
-                  }
-               }
-               return wd;
-            } 
-            if ( !_noInvalAware ) {
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMaster > >( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, Not< NoCopy > > >( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints<SiCopyNoMaster> ( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< Not< NoCopy > > ( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            if ( ( wd = tdata._readyQueues[data._cacheId].pop_front( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-            wd = tdata._globalReadyQueue.pop_front ( thread );
-         }
-         if ( wd == NULL && thread->getId() < sys.getNumPEs() ) {
-            atSupport( thread );
-         }
+//         if ( thread->getId() >= sys.getNumPEs() ) {  // CLUSTER THREAD (master or slave)
+//            if ( ( wd = tdata._readyQueuesAlreadyInit[data._cacheId].pop_front( thread ) ) != NULL ) {
+//               return wd;
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            } 
+//            if ( !_noInvalAware ) {
+//               if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopyNoMaster > > ( thread ) ) != NULL ) {
+//                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+//                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//                     return wd;
+//               }
+//               if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopySiMaster > > ( thread ) ) != NULL ) {
+//                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
+//                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//                     return wd;
+//               }
+//               if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
+//                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+//                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//                     return wd;
+//               }
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< SiCopyNoMaster >( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< SiCopySiMaster >( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< Not< NoCopy > >( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].pop_front( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            wd = tdata._globalReadyQueue.pop_front( thread );
+//            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, SiCopyNoMaster> >( thread ) ) != NULL ) {
+//            //   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+//            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//            //   return wd;
+//            //}
+//            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, SiCopySiMaster > >( thread ) ) != NULL ) {
+//            //   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
+//            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//            //   return wd;
+//            //}
+//            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, Not< NoCopy > > >( thread ) ) != NULL ) {
+//            //   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+//            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//            //   return wd;
+//            //}
+//            //if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< WouldNotRunOutOfMemory >( thread ) ) != NULL ) {
+//            //   NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+//            //   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//            //   return wd;
+//            //}
+//            //wd = tdata._globalReadyQueue.popFrontWithConstraints< WouldNotRunOutOfMemory >( thread );
+//         } else { // SMP Thread 
+//            if ( ( wd = data._locaQueue.pop_front( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = ALREADYINIT;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            } 
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints<NoCopy> ( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               { 
+//                  WD *helpWD;
+//                  if ( !_noInvalAware ) {
+//                     if ( ( helpWD = tdata._readyQueues[ 0 ].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( thread ) ) != NULL ) {
+//                        NANOS_INSTRUMENT(static nanos_event_value_t val2 = SICOPYNOMASTERINIT_SELF;)
+//                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val2 );)
+//
+//                        helpWD->_mcontrol.initialize( *(thread->runningOn()) );
+//                        bool result;
+//                        do {
+//                           result = helpWD->_mcontrol.allocateInputMemory();
+//                        } while( result == false );
+//                        helpWD->init(); //WithPE( myThread->runningOn() );
+//
+//                        data._locaQueue.push_back( helpWD );
+//                        data._helped++;
+//                     }
+//                  } else {
+//                     if ( ( helpWD = tdata._readyQueues[ 0 ].popFrontWithConstraints< SiCopyNoMasterInit > ( thread ) ) != NULL ) {
+//                        NANOS_INSTRUMENT(static nanos_event_value_t val2 = SICOPYNOMASTERINIT_SELF;)
+//                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val2 );)
+//
+//                        helpWD->_mcontrol.initialize( *(thread->runningOn()) );
+//                        bool result;
+//                        do {
+//                           result = helpWD->_mcontrol.allocateInputMemory();
+//                        } while( result == false );
+//                        helpWD->init(); //WithPE( myThread->runningOn() );
+//
+//                        data._locaQueue.push_back( helpWD );
+//                        data._helped++;
+//                     }
+//                  }
+//               }
+//               return wd;
+//            } 
+//            if ( !_noInvalAware ) {
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMaster > >( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, Not< NoCopy > > >( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints<SiCopyNoMaster> ( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].popFrontWithConstraints< Not< NoCopy > > ( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            if ( ( wd = tdata._readyQueues[data._cacheId].pop_front( thread ) ) != NULL ) {
+//               NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+//               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+//               return wd;
+//            }
+//            wd = tdata._globalReadyQueue.pop_front ( thread );
+//         }
+//         if ( wd == NULL && thread->getId() < sys.getNumPEs() ) {
+//            atSupport( thread );
+//         }
          return wd;
       }
 
@@ -1311,9 +1311,9 @@ namespace nanos {
       void CacheSchedPolicy::atSupport ( BaseThread *thread ) {
          //tryGetLocationData( thread );
 #ifdef CLUSTER_DEV
-         if ( !_noSupport ) {
-            pickWDtoInitialize( thread );
-         }
+         //if ( !_noSupport ) {
+         //   pickWDtoInitialize( thread );
+         //}
 #endif
       }
 

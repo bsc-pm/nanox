@@ -112,15 +112,26 @@ void OpenCLAdapter::freeSharedMemBuffer( void* addr )
 }
 
 
-void OpenCLAdapter::freeAddr(void* addr )
+void OpenCLAdapter::freeAddr(void* addrin )
 {
-   //Protecting against nanox cache freeing already user-freed shared memory address
+   uint64_t addr=(uint64_t)addrin;
    size_t old_size=_sizeCache[(uint64_t)addr];    
-   std::pair<uint64_t,size_t> key = std::make_pair((uint64_t)addr,old_size);
-    if (_bufCache.count(key)>0) {
-        freeBuffer(_bufCache.find(key)->second);
-        _bufCache.erase(_bufCache.find(key)); 
-    }
+  
+   BufferCache::iterator iter=_bufCache.begin();
+   //Search OCL cache looking for the buffer and also sub-buffers
+   while (iter != _bufCache.end())
+   {
+       uint64_t addr_cache=iter->first.first;
+       size_t size_cache=iter->first.second;
+       
+       if (addr <= addr_cache && addr+old_size >= addr_cache+size_cache ) {
+           freeBuffer(iter->second);
+           _bufCache.erase(iter++);
+           _sizeCache.erase(addr_cache);
+       } else {
+           ++iter;
+       }
+   }
 }
 
 size_t OpenCLAdapter::getSizeFromCache(size_t addr){
@@ -145,10 +156,7 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
       baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) devAddr, size) ;
    } else {
       //If there is a buffer which covers this buffer (same base address but bigger), return it
-    std::cout << "buscando buffer de  size " << size << " addr " << (void*)devAddr;
-      baseAddress=allocator.getBasePointer(devAddr, size);     
-    std::cout << ",encontrado  " << (void*) baseAddress << "\n";
-     
+      baseAddress=allocator.getBasePointer(devAddr, size);          
    }
    
    if (baseAddress==devAddr && size<_sizeCache[baseAddress]){
@@ -181,7 +189,6 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr+baseAddress,size)]=buf;
-       std::cout << "add a la cache  size " << size << " addr " << (void*) (devAddr+baseAddress);
        _sizeCache[devAddr+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
        if (errCode != CL_SUCCESS) {      
@@ -212,7 +219,6 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr,size)]=buf;
-       std::cout << "add a la cache  size " << size << " addr " << (void*)devAddr;
        _sizeCache[devAddr]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
        if (errCode != CL_SUCCESS) {      
@@ -226,7 +232,6 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
        cl_mem buf;
        allocBuffer(size, hostPtr, buf);
        _bufCache[std::make_pair(devAddr,size)]=buf;
-       std::cout << "add a la cache  size " << size << " addr " << (void*)devAddr;
        _sizeCache[devAddr]=size;
        return buf;
    }
@@ -896,6 +901,17 @@ cl_int OpenCLAdapter::getPlatformName( std::string &name )
    return errCode;
 }
 
+std::string OpenCLAdapter::getDeviceName(){ 
+   char* value;
+   size_t valueSize;
+   clGetDeviceInfo(_dev, CL_DEVICE_NAME, 0, NULL, &valueSize);
+   value = (char*) malloc(valueSize);
+   clGetDeviceInfo(_dev, CL_DEVICE_NAME, valueSize, value, NULL);
+   std::string ret(value);
+   free(value);
+   return ret;
+}
+
 void  OpenCLAdapter::waitForEvents(){
     cl_int errCode,exitStatus;
     std::vector<cl_event>::iterator iter;
@@ -1047,10 +1063,11 @@ static inline std::string bytesToHumanReadable ( size_t bytes )
 void OpenCLProcessor::printStats ()
 {
    waitForEvents();
+   
    if (_openclAdapter.getUseHostPtr()) {
-      message("OpenCL dev" << _devId << " TRANSFER STATISTICS (using Shared/Mapped memory)");       
+      message("OpenCL " << _openclAdapter.getDeviceName() << " TRANSFER STATISTICS (using Shared/Mapped memory)");       
    } else {       
-      message("OpenCL dev" << _devId << " TRANSFER STATISTICS");
+      message("OpenCL " << _openclAdapter.getDeviceName() << " TRANSFER STATISTICS");
    }
    message("    Total input transfers: " << bytesToHumanReadable( _cache._bytesIn.value() ) );
    message("    Total output transfers: " << bytesToHumanReadable( _cache._bytesOut.value() ) );

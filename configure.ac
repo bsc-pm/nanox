@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.8a], [pmtools@bsc.es])
+AC_INIT([nanox], [0.8a], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
@@ -266,8 +266,6 @@ if test x$mpi_enabled = xyes; then
 	NANOX_OFFL_FLAGS="$NANOX_OFFL_FLAGS -DMPICH_IGNORE_CXX_SEEK"
 	NANOX_MPI_PREFIX=$prefix
 	AC_SUBST([NANOX_MPI_PREFIX])
-	AC_SUBST([NANOX_OFFL_MPICC])
-	AC_SUBST([NANOX_OFFL_MPICXX])
 	AC_SUBST([NANOX_OFFL_FLAGS])
 	mpi_valid=yes
 fi

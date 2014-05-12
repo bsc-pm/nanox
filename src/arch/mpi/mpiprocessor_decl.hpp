@@ -33,7 +33,7 @@
 namespace nanos {
     namespace ext {
 
-        class MPIProcessor : public CachedAccelerator {
+        class MPIProcessor : public ProcessingElement {
         private:
             // config variables
             static bool _useUserThreads;
@@ -69,6 +69,7 @@ namespace nanos {
             int _currExecutingDD;
             std::list<MPI_Request> _pendingReqs;
             MPI_Comm _commOfParents;
+            SMPProcessor* _core;
             
 
             // disable copy constructor and assignment operator
@@ -79,7 +80,7 @@ namespace nanos {
         public:
             
             //MPIProcessor( int id ) : PE( id, &MPI ) {}
-            MPIProcessor(int id, void* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents, memory_space_id_t memId );
+            MPIProcessor( void* communicator, int rank, int uid, bool owned, bool shared, MPI_Comm commOfParents, SMPProcessor* core, memory_space_id_t memId );
 
             ~MPIProcessor() {                
             }            
@@ -111,8 +112,6 @@ namespace nanos {
 
             static bool isUseMultiThread();
             /* End config options*/           
-            
-            static int getNextPEId();    
             
             
 

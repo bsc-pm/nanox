@@ -583,9 +583,11 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 Node* it_parent = (*it)->get_parent_task();
                 Node* last_taskwait_sync = NULL;
                 for(std::set<Node*>::iterator it2 = _graph_nodes.begin(); it2 != _graph_nodes.end(); ++it2) {
+                    if((*it)->get_wd_id()==(*it2)->get_wd_id())
+                        continue;
                     if((it_parent == (*it2)->get_parent_task()) &&                  // The two nodes are in the same region
                         (!(*it2)->is_task()) &&                                      // The potential last sync is a taskwait|barrier|concurrent
-                        (std::abs(wd_id) > std::abs((*it2)->get_wd_id()))) {    // The potential last sync was created before
+                        (std::abs(wd_id) >= std::abs((*it2)->get_wd_id()))) {   // The potential last sync was created before
                         if((last_taskwait_sync == NULL) || 
                             (last_taskwait_sync->get_wd_id() > (*it2)->get_wd_id())) {
                             // From all suitable previous syncs. we want the one created the latest

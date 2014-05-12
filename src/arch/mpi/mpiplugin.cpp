@@ -63,22 +63,23 @@ class MPIPlugin : public ArchPlugin
            nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
          }
       }
-      
-      virtual unsigned getNumHelperPEs() const
-      {
-           return 0;
-      }
-
-      virtual unsigned getNumPEs() const
-      {
-           return 0;
-      }
-
       virtual unsigned getNumThreads() const
       {
            return 0;
       }
       
+      virtual unsigned int getNumPEs() const {
+         return 0;
+      }
+      virtual unsigned int getMaxPEs() const {
+         return 0;
+      }
+      virtual unsigned int getNumWorkers() const {
+         return 0;
+      }
+      virtual unsigned int getMaxWorkers() const {
+         return 0;
+      }
       
       virtual void createBindingList()
       {
@@ -93,12 +94,21 @@ class MPIPlugin : public ArchPlugin
 //           addBinding( pe );
 //        }
       }
+       
+      virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
+      }
 
-   virtual PE* createPE( unsigned id, unsigned uid )
-   {
-      //Not used
-      return NULL;
-   }
+      virtual void startSupportThreads() {
+      }
+
+      virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+      }
+
+      virtual PE* createPE( unsigned id, unsigned uid )
+      {
+         //Not used
+         return NULL;
+      }
 };
 }
 }

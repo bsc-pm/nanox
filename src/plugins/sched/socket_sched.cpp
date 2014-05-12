@@ -744,13 +744,12 @@ namespace nanos {
             }
          public:
             SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ),
+               _numSockets( 0 ), _coresPerSocket( 0 ),
                _steal( true ), _stealParents( false ), _stealLowPriority( false),
                _immediate( false ), _smart( false ),
                _spins( 200 ), _random( false ) {}
 
             virtual void config( Config& cfg ) {
-               // Read hwloc's info before reading user parameters
-               loadDefaultValues();
                
                cfg.setOptionsSection( "Sockets module", "Socket-aware scheduling module" );
                cfg.registerConfigOption( "socket-steal", NEW Config::FlagOption( _steal ), "Enable work stealing from other sockets' inner tasks queues (default)." );
@@ -777,6 +776,8 @@ namespace nanos {
             }
 
             virtual void init() {
+               // Read hwloc's info before reading user parameters
+               loadDefaultValues();
                //fprintf(stderr, "Setting numSockets to %d and coresPerSocket to %d\n", _numSockets, _coresPerSocket );
                sys.getSMPPlugin()->setNumSockets( _numSockets );
                sys.getSMPPlugin()->setCoresPerSocket( _coresPerSocket );

@@ -43,6 +43,7 @@ devinclude_HEADERS = \
 	smpprocessor.hpp \
 	smpprocessor_fwd.hpp \
 	smpthread.hpp \
+	smpthread_fwd.hpp \
 	$(END) 
 
 common_libadd=\
@@ -72,6 +73,7 @@ smp_sources = \
 	smpprocessor_fwd.hpp \
 	smpprocessor.cpp \
 	smpthread.hpp \
+	smpthread_fwd.hpp \
 	smpthread.cpp \
 	$(END)
 

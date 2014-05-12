@@ -38,15 +38,15 @@
 using namespace nanos;
 
 // methods to access configuration variable         
-inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
-
-inline int System::getNumPEs () const { return _numPEs; }
-
-inline unsigned System::getMaxThreads () const { return _targetThreads; } 
-
-inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
-
-inline int System::getNumThreads () const { return _numThreads; }
+//inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
+//
+//inline int System::getNumPEs () const { return _numPEs; }
+//
+//inline unsigned System::getMaxThreads () const { return _targetThreads; } 
+//
+//inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
+//
+//inline int System::getNumThreads () const { return _numThreads; }
 
 //inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
 

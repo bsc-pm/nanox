@@ -22,6 +22,7 @@
 
 #include <sched.h>
 #include "smpprocessor_fwd.hpp"
+#include "smpthread_fwd.hpp"
 #include "archplugin_decl.hpp"
 
 namespace nanos {
@@ -33,6 +34,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual cpu_set_t &getActiveSet() = 0;
       virtual ext::SMPProcessor *getLastFreeSMPProcessor() const = 0;
       virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnode(int node) const = 0;
+      virtual ext::SMPProcessor *getSMPProcessorByNUMAnode(int node, unsigned int idx) const = 0;
       virtual bool getBinding() const = 0;
       virtual int getCpuCount() const = 0;
       virtual void admitCurrentThread( std::vector<BaseThread *> &workers ) = 0;
@@ -49,6 +51,8 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void setCpuMask ( const cpu_set_t *mask ) = 0;
       virtual void getCpuMask ( cpu_set_t *mask ) const = 0;
       virtual void addCpuMask ( const cpu_set_t *mask ) = 0;
+      virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
+      virtual void setRequestedWorkers( int workers ) = 0;
 };
 
 }

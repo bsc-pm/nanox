@@ -458,8 +458,6 @@ void System::start ()
 
    verbose0 ( "Starting runtime" );
 
-   _pmInterface->start();
-
    _pes.reserve ( _peIdSeed.value() );
 
 #if 0
@@ -470,7 +468,8 @@ void System::start ()
    CPU_SET( getBindingId( 0 ), &_cpuActiveSet );
 #endif
 
-   _workers.push_back( &( _smpPlugin->getFirstSMPProcessor()->associateThisThread( sys.getUntieMaster() ) ) );
+   ext::SMPThread *thisThd = &_smpPlugin->associateThisThread( sys.getUntieMaster() );
+   _workers.push_back( thisThd );
 
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
@@ -478,15 +477,13 @@ void System::start ()
    mainWD._mcontrol.setMainWD();
    mainWD._mcontrol.initialize( *(_smpPlugin->getFirstSMPProcessor()) );
 
+   _pmInterface->start();
    if ( _pmInterface->getInternalDataSize() > 0 ) {
       char *data = NEW char[_pmInterface->getInternalDataSize()];
       _pmInterface->initInternalData( data );
       mainWD.setInternalData( data );
    }
    _pmInterface->setupWD( mainWD );
-
-   /* Renaming currend thread as Master */
-   myThread->rename("Master");
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
@@ -510,6 +507,10 @@ void System::start ()
       (*it)->startWorkerThreads( _workers );
    }   
 
+   /* Renaming currend thread as Master */
+   myThread->rename("Master");
+
+
    // For each plugin, notify it's the way to reserve PEs if they are required
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
@@ -517,6 +518,18 @@ void System::start ()
       (*it)->createBindingList();
    }   
    // Right now, _bindings should only store SMP PEs ids
+
+   // Set up internal data for each worker
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+
+      WD & threadWD = (*it)->getThreadWD();
+      if ( _pmInterface->getInternalDataSize() > 0 ) {
+         char *data = NEW char[_pmInterface->getInternalDataSize()];
+         _pmInterface->initInternalData( data );
+         threadWD.setInternalData( data );
+      }
+      _pmInterface->setupWD( threadWD );
+   }
 
    // Create PEs
 #if 0
@@ -549,18 +562,7 @@ void System::start ()
 //      }
 //   }
 
-   // Set up internal data for each worker
-#if 0
-   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
-
-      WD & threadWD = (*it)->getThreadWD();
-      if ( _pmInterface->getInternalDataSize() > 0 ) {
-         char *data = NEW char[_pmInterface->getInternalDataSize()];
-         _pmInterface->initInternalData( data );
-         threadWD.setInternalData( data );
-      }
-      _pmInterface->setupWD( threadWD );
-   }
+#if 1
 #endif
       
 //#ifdef GPU_DEV
@@ -1760,10 +1762,13 @@ void System::ompss_nanox_main(){
         sys.loadPlugin("arch-mpi");
     }
     #endif
+    #ifdef CLUSTER_DEV
+    nanos::ext::ClusterNode::clusterWorker();
+    #endif
     
-#ifdef NANOS_RESILIENCY_ENABLED
-    getMyThreadSafe()->setupSignalHandlers();
-#endif
+    #ifdef NANOS_RESILIENCY_ENABLED
+        getMyThreadSafe()->setupSignalHandlers();
+    #endif
 }
 
 void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len) {

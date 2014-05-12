@@ -225,25 +225,6 @@ void MPIThread::unblock()
    pthread_mutex_unlock( &_completionMutex );
 }
 
-void MPIThread::bind( void )
-{
-   int cpu_id = getCpuId();
-
-   cpu_set_t cpu_set;
-   CPU_ZERO( &cpu_set );
-   CPU_SET( cpu_id, &cpu_set );
-   if (getCpuId()==-1){
-       sys.getCpuMask(&cpu_set);
-   }
-   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   OS::bindThread( pthread_self(), &cpu_set ); 
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-}
-
 void MPIThread::finish() {
     //If I'm the master thread of the group (group counter == self-counter)
     int resul;

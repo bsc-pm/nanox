@@ -1296,7 +1296,7 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
                //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
                //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
                //std::cerr << std::endl;
-   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false );
+   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false, wd, idx );
                //std::cerr << "--1--> chunk is " << (void *) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk<< std::endl;
                memCopies[ idx ]._chunk->unlock();
             }
@@ -1311,7 +1311,7 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
                //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
                //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
                //std::cerr << std::endl;
-   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false );
+   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false, wd, idx );
                //std::cerr << "--2--> chunk is " << (void*) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk << std::endl;
                memCopies[ idx ]._chunk->unlock();
             }
@@ -1472,17 +1472,19 @@ bool RegionCache::canInvalidateToFit( std::size_t *sizes, unsigned int numChunks
 
 
 void RegionCache::invalidateObject( global_reg_t const &reg ) {
+   //std::cerr << "-----------------------vvvvvvvvvvvv inv reg " << reg.id << "vvvvvvvvvvvvvvvvvv--------------------" << std::endl; 
    ConstChunkList results;
    _chunks.getChunk3( reg.getRealFirstAddress(), reg.getBreadth(), results );
-   for ( ConstChunkList::iterator it = results.begin(); it != results.end(); it++ ) {
-      //std::cerr << "-----------------------vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv--------------------" << std::endl; 
-      //std::cerr << "Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
-      ////printBt();
-      //std::cerr << "-----------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------" << std::endl; 
-      if ( it->second != NULL ) {
-         _device.memFree( (*(it->second))->getAddress(), sys.getSeparateMemory( _memorySpaceId ) );
-         delete *(it->second);
+   if ( results.size() > 0 ) {
+      for ( ConstChunkList::iterator it = results.begin(); it != results.end(); it++ ) {
+         //std::cerr << "Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
+         //printBt();
+         if ( it->second != NULL ) {
+            _device.memFree( (*(it->second))->getAddress(), sys.getSeparateMemory( _memorySpaceId ) );
+            delete *(it->second);
+         }
       }
+      _chunks.removeChunks( reg.getRealFirstAddress(), reg.getBreadth() );
    }
-   _chunks.removeChunks( reg.getRealFirstAddress(), reg.getBreadth() );
+   //std::cerr << "-----------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------" << std::endl; 
 }

@@ -31,8 +31,9 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-//MPIProcessor::MPIProcessor(int id, void* communicator, int rank,  memory_space_id_t memId ) : CachedAccelerator( id, &MPI , NULL, &MPI, 0, RegionCache::ALLOC_FIT, memId ) {
-MPIProcessor::MPIProcessor(int id, void* communicator, int rank, int uid, bool owner, bool shared, MPI_Comm communicatorOfParents, memory_space_id_t memId ) : CachedAccelerator(id, &MPI, uid, 0, memId ), _pendingReqs() {
+MPIProcessor::MPIProcessor( void* communicator, int rank, int uid, bool owner, bool shared, 
+        MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) : 
+ProcessingElement( &MPI, NULL, memId ), _pendingReqs(), _core(core) {
     _communicator = *((MPI_Comm *)communicator);
     _commOfParents=communicatorOfParents;
     _rank = rank;
@@ -131,7 +132,7 @@ WorkDescriptor & MPIProcessor::getMasterWD() const {
 }
 
 BaseThread &MPIProcessor::createThread(WorkDescriptor &helper, SMPMultiThread *parent ) {
-     MPIThread &th = *NEW MPIThread(helper, this, parent);
+     MPIThread &th = *NEW MPIThread(helper, this, _core);
  
      return th;
 }
@@ -143,22 +144,4 @@ void MPIProcessor::clearAllRequests() {
         MPI_Waitall(_pendingReqs.size(),&nodeVector[0],MPI_STATUSES_IGNORE);
         _pendingReqs.clear();
     }
-}
-
-int MPIProcessor::getNextPEId() {
-    if (_numPrevPEs==0)  {
-        return -1;
-    }
-    if (_numPrevPEs==-1){
-        _numPrevPEs=sys.getNumCreatedPEs();
-        _numFreeCores=sys.getCpuCount()-_numPrevPEs;
-        _currPE=0;
-        if (_numFreeCores<=0){
-            _numPrevPEs=0;
-            _numFreeCores=sys.getCpuCount();
-            _currPE=sys.getNumCreatedPEs();
-            return -1;
-        }
-    }
-    return (_currPE++%_numFreeCores)+_numPrevPEs;
 }

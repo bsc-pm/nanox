@@ -297,31 +297,31 @@ namespace nanos
          */
          void setupWD( WD &work, WD *parent );
 
-         // methods to access configuration variable         
-         void setNumPEs ( int npes );
-
-         int getNumPEs () const;
-
-         //! \brief Returns the maximum number of threads (SMP + GPU + ...). 
-         unsigned getMaxThreads () const; 
-
-         void setNumThreads ( int nthreads );
-
-         int getNumThreads () const;
-
-         //int getCpuCount ( ) const;
-
-         /*!
-          * \brief Get current system's _cpu_active_set
-          * \param[out] mask
-          */
-         void getCpuMask ( cpu_set_t *mask ) const;
-
-         /*!
-          * \brief Set current system's _cpu_active_set
-          * \param[in] mask
-          */
-         void setCpuMask ( const cpu_set_t *mask );
+//         // methods to access configuration variable         
+//         void setNumPEs ( int npes );
+//
+//         int getNumPEs () const;
+//
+//         //! \brief Returns the maximum number of threads (SMP + GPU + ...). 
+//         unsigned getMaxThreads () const; 
+//
+//         void setNumThreads ( int nthreads );
+//
+//         int getNumThreads () const;
+//
+//         //int getCpuCount ( ) const;
+//
+//         /*!
+//          * \brief Get current system's _cpu_active_set
+//          * \param[out] mask
+//          */
+//         void getCpuMask ( cpu_set_t *mask ) const;
+//
+//         /*!
+//          * \brief Set current system's _cpu_active_set
+//          * \param[in] mask
+//          */
+//         void setCpuMask ( const cpu_set_t *mask );
 
          /*!
           * \brief Add mas to the current system's _cpu_active_set
