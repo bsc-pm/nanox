@@ -477,6 +477,14 @@ void System::start ()
    mainWD._mcontrol.setMainWD();
    mainWD._mcontrol.initialize( *(_smpPlugin->getFirstSMPProcessor()) );
 
+   _pmInterface->start();
+   if ( _pmInterface->getInternalDataSize() > 0 ) {
+      char *data = NEW char[_pmInterface->getInternalDataSize()];
+      _pmInterface->initInternalData( data );
+      mainWD.setInternalData( data );
+   }
+   _pmInterface->setupWD( mainWD );
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
@@ -499,15 +507,6 @@ void System::start ()
       (*it)->startWorkerThreads( _workers );
    }   
 
-   _pmInterface->start();
-
-   if ( _pmInterface->getInternalDataSize() > 0 ) {
-      char *data = NEW char[_pmInterface->getInternalDataSize()];
-      _pmInterface->initInternalData( data );
-      mainWD.setInternalData( data );
-   }
-   _pmInterface->setupWD( mainWD );
-
    /* Renaming currend thread as Master */
    myThread->rename("Master");
 
@@ -519,6 +518,18 @@ void System::start ()
       (*it)->createBindingList();
    }   
    // Right now, _bindings should only store SMP PEs ids
+
+   // Set up internal data for each worker
+   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+
+      WD & threadWD = (*it)->getThreadWD();
+      if ( _pmInterface->getInternalDataSize() > 0 ) {
+         char *data = NEW char[_pmInterface->getInternalDataSize()];
+         _pmInterface->initInternalData( data );
+         threadWD.setInternalData( data );
+      }
+      _pmInterface->setupWD( threadWD );
+   }
 
    // Create PEs
 #if 0
@@ -551,18 +562,7 @@ void System::start ()
 //      }
 //   }
 
-   // Set up internal data for each worker
-#if 0
-   for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
-
-      WD & threadWD = (*it)->getThreadWD();
-      if ( _pmInterface->getInternalDataSize() > 0 ) {
-         char *data = NEW char[_pmInterface->getInternalDataSize()];
-         _pmInterface->initInternalData( data );
-         threadWD.setInternalData( data );
-      }
-      _pmInterface->setupWD( threadWD );
-   }
+#if 1
 #endif
       
 //#ifdef GPU_DEV

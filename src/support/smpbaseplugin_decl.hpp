@@ -52,6 +52,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void getCpuMask ( cpu_set_t *mask ) const = 0;
       virtual void addCpuMask ( const cpu_set_t *mask ) = 0;
       virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
+      virtual void setRequestedWorkers( int workers ) = 0;
 };
 
 }

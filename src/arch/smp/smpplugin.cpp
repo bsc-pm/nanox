@@ -48,6 +48,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _requestedCores;
    int                          _availableCores;
    int                          _currentCores;
+   int                          _requestedWorkers;
    std::vector<SMPProcessor *> *_cores;
    std::vector<SMPThread *>     _workers;
    int                          _bindingStart;
@@ -86,6 +87,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _requestedCores( 0 )
                  , _availableCores( 0 )
                  , _currentCores( 0 )
+                 , _requestedWorkers( -1 )
                  , _cores( NULL )
                  , _workers()
                  , _bindingStart( 0 )
@@ -257,13 +259,22 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
-      for ( std::vector<SMPProcessor *>::const_iterator it = _cores->begin(); it != _cores->end(); it++ ) {
+      //create as much workers as possible
+      int max_workers = ( _requestedWorkers == -1 ) ? _cores->size() : _requestedWorkers;
+      int current_workers = 1;
+
+      for ( std::vector<SMPProcessor *>::const_iterator it = _cores->begin(); it != _cores->end() &&
+            current_workers < max_workers; it++ ) {
          if ( (*it)->getNumThreads() == 0 ) {
             BaseThread *thd = &(*it)->startWorker();
             _workers.push_back( (SMPThread *) thd );
             workers.push_back( thd );
          }
       }
+   }
+
+   virtual void setRequestedWorkers( int workers ) {
+      _requestedWorkers = workers;
    }
 
    virtual ext::SMPProcessor *getFirstSMPProcessor() const {
