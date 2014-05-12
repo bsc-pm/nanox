@@ -19,7 +19,7 @@
 
 /*
  <testinfo>
- test_generator="gens/resiliency-generator -a '--smp-cores=2'"
+ test_generator="gens/resiliency-generator"
  </testinfo>
  */
 
@@ -36,7 +36,9 @@
 using namespace std;
 
 bool errors = false;
-bool wait = true;
+volatile bool wait = true;/* volatile means that this variable value can be modified 
+                           * even if the execution flow of this program doesn't seem to do so.
+                           */
 
 void testSignal ( void* );
 void testSignals ( void* );
@@ -77,6 +79,10 @@ void testSignals ( void *arg )
     * This test just checks that the application does not crash due to the signal.
     */
    wait = false;
+   __sync_synchronize();/* memory barrier (needed to make this change visible 
+                         * for all threads in  ibm like power memory consistency model)
+                         */
+
    this_wd->waitCompletion();
  
    if (task->isInvalid()) {
@@ -89,6 +95,9 @@ void testSignals ( void *arg )
 
    // Second phase: same as the previous but r/w protect the memory region.
    wait = true;
+   __sync_synchronize();/* memory barrier (needed to make this change visible 
+                         * for all threads in  ibm like power memory consistency model)
+                         */
    WD *task2 = new nanos::WD(new nanos::ext::SMPDD(testSignal), sizeof(int*),
          __alignof__(int*), array);
  
@@ -98,6 +107,9 @@ void testSignals ( void *arg )
 
    mprotect(array, 64*sizeof(int), PROT_NONE);
    wait = false;
+   __sync_synchronize();/* memory barrier (needed to make this change visible 
+                         * for all threads in  ibm like power memory consistency model)
+                         */
 
    this_wd->waitCompletion();
 
