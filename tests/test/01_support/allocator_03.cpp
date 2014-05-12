@@ -97,7 +97,7 @@ void allocate( void *args )
 
 int main ( int argc, char **argv )
 {
-   int num_pes = sys.getSMPPlugin()->getNumWorkers()();
+   int num_pes = sys.getSMPPlugin()->getNumWorkers();
    int id[num_pes];
 
    //cout << "Starting test... " << endl;
