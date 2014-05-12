@@ -39,6 +39,7 @@ namespace nanos
             std::string ws_names[NANOS_OMP_WS_TSIZE];
             nanos_ws_t  ws_plugins[NANOS_OMP_WS_TSIZE];
             int _numThreads;
+            int _numThreadsOMP;
             virtual void start () ;
 
          private:
