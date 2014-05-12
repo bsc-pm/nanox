@@ -209,9 +209,21 @@ namespace nanos
          // Base class start()
          OpenMPInterface::start();
 
+         int num_threads = sys.getSMPPlugin()->getRequestedWorkersOMPSS();
+         if ( _numThreads != -1 ) {
+            std::cerr << "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recomended way to set the number of worker smp threads is using the flag --smp-workers." << std::endl;
+            if ( num_threads == -1 ) {
+               std::cerr << "Option --smp-workers not set, will use OMP_NUM_THREADS instead, value: " << _numThreads << "." << std::endl;
+               num_threads = _numThreads;
+            } else if ( num_threads != _numThreads ) {
+               std::cerr << "Option --smp-workers set (value: " << num_threads << "), and OMP_NUM_THREADS is also set (value: " << _numThreads << "), will use the value of --smp-workers." << std::endl;
+            }
+            
+         }
+
          TaskICVs & icvs = globalState->getICVs();
-         icvs.setNumThreads(-1);
-         sys.getSMPPlugin()->setRequestedWorkers( -1 );
+         icvs.setNumThreads( sys.getSMPPlugin()->getRequestedWorkersOMPSS() );
+         sys.getSMPPlugin()->setRequestedWorkers( sys.getSMPPlugin()->getRequestedWorkersOMPSS() );
 
          // Overwrite custom values
          _description = std::string("OmpSs");

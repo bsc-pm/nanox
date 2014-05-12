@@ -49,6 +49,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _availableCores;
    int                          _currentCores;
    int                          _requestedWorkers;
+   int                          _requestedWorkersOMPSS;
    std::vector<SMPProcessor *> *_cores;
    std::vector<SMPThread *>     _workers;
    int                          _bindingStart;
@@ -88,6 +89,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _availableCores( 0 )
                  , _currentCores( 0 )
                  , _requestedWorkers( -1 )
+                 , _requestedWorkersOMPSS( -1 )
                  , _cores( NULL )
                  , _workers()
                  , _bindingStart( 0 )
@@ -114,6 +116,9 @@ class SMPPlugin : public SMPBasePlugin
       SMPDD::prepareConfig( cfg );
       cfg.registerConfigOption ( "smp-num-pes", NEW Config::PositiveVar ( _requestedCores ), "Cores requested." );
       cfg.registerArgOption ( "smp-num-pes", "smp-cores" );
+
+      cfg.registerConfigOption ( "smp-workers", NEW Config::PositiveVar ( _requestedWorkersOMPSS ), "Worker threads requested." );
+      cfg.registerArgOption ( "smp-workers", "smp-workers" );
 
       cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ),
             "Number of cores per socket." );
@@ -773,6 +778,10 @@ class SMPPlugin : public SMPBasePlugin
       SMPThread &thd = getFirstSMPProcessor()->associateThisThread( untie );
       _workers.push_back( &thd );
       return thd;
+   }
+   
+   virtual int getRequestedWorkersOMPSS() const {
+      return _requestedWorkersOMPSS;
    }
 
 };
