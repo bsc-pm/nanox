@@ -106,6 +106,8 @@ public:
    // TODO: replace with new APIs.
    size_t getGlobalSize();
    
+   std::string getDeviceName();
+   
    void waitForEvents();
    
    
