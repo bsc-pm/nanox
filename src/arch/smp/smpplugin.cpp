@@ -51,6 +51,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _requestedWorkers;
    int                          _requestedWorkersOMPSS;
    std::vector<SMPProcessor *> *_cores;
+   std::vector<SMPProcessor *> *_coresByCpuId;
    std::vector<SMPThread *>     _workers;
    int                          _bindingStart;
    int                          _bindingStride;
@@ -91,6 +92,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _requestedWorkers( -1 )
                  , _requestedWorkersOMPSS( -1 )
                  , _cores( NULL )
+                 , _coresByCpuId( NULL )
                  , _workers()
                  , _bindingStart( 0 )
                  , _bindingStride( 1 )
@@ -175,9 +177,11 @@ class SMPPlugin : public SMPBasePlugin
 
       std::vector<int> cpu_affinity;
       cpu_affinity.reserve( _availableCores );
+      unsigned int max_cpuid = 0;
       for ( unsigned int i=0; i<CPU_SETSIZE; i++ ) {
          if ( CPU_ISSET(i, &_cpuSet) ) {
             cpu_affinity.push_back(i);
+            max_cpuid = (max_cpuid < i) ? i : max_cpuid;
          }
       }
 
@@ -211,6 +215,7 @@ class SMPPlugin : public SMPBasePlugin
       CPU_ZERO( &_cpuActiveSet );
 
       _cores = NEW std::vector<SMPProcessor *>( _currentCores, (SMPProcessor *) NULL ); 
+      _coresByCpuId = NEW std::vector<SMPProcessor *>( max_cpuid + 1, (SMPProcessor *) NULL ); 
 
 
       // Load & check NUMA config
@@ -218,7 +223,9 @@ class SMPPlugin : public SMPBasePlugin
 
 
       for ( int idx = 0; idx < _currentCores; idx += 1 ) {
-         (*_cores)[ idx ] = NEW SMPProcessor( _bindings[ idx ] );
+         SMPProcessor *core = NEW SMPProcessor( _bindings[ idx ] );
+         (*_cores)[ idx ] = core;
+         (*_coresByCpuId)[ _bindings[ idx ]] = core;
          CPU_SET( (*_cores)[idx]->getBindingId() , &_cpuActiveSet );
          (*_cores)[idx]->setNUMANode( getNodeOfPE( (*_cores)[idx]->getId() ) );
       }
@@ -268,12 +275,18 @@ class SMPPlugin : public SMPBasePlugin
       int max_workers = ( _requestedWorkers == -1 ) ? _cores->size() : _requestedWorkers;
       int current_workers = 1;
 
-      for ( std::vector<SMPProcessor *>::const_iterator it = _cores->begin(); it != _cores->end() &&
-            current_workers < max_workers; it++ ) {
-         if ( (*it)->getNumThreads() == 0 ) {
-            BaseThread *thd = &(*it)->startWorker();
+      int idx = _bindingStart + _bindingStride;
+      while ( current_workers < max_workers ) {
+         idx = idx % _cores->size();
+         SMPProcessor *core = (*_coresByCpuId)[idx];
+         if ( core->getNumThreads() == 0 ) {
+            BaseThread *thd = &core->startWorker();
             _workers.push_back( (SMPThread *) thd );
             workers.push_back( thd );
+            current_workers += 1;
+            idx += _bindingStride;
+         } else {
+            idx += 1;
          }
       }
    }
@@ -283,7 +296,7 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual ext::SMPProcessor *getFirstSMPProcessor() const {
-      return ( _cores != NULL ) ? (*_cores)[0] : NULL;
+      return ( _cores != NULL ) ? (*_cores)[ _bindingStart ] : NULL;
    }
 
    virtual cpu_set_t &getActiveSet() {
