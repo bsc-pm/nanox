@@ -80,9 +80,8 @@ namespace nanos
          TaskICVs & icvs = globalState->getICVs();
          icvs.setSchedule(LoopSchedule(omp_sched_static));
 
-         if ( _numThreadsOMP == -1 ) {
-            _numThreads = sys.getSMPPlugin()->getNumPEs();
-         }
+         _numThreads = _numThreadsOMP == -1 ? sys.getSMPPlugin()->getNumPEs() : _numThreadsOMP;
+
          icvs.setNumThreads(_numThreads);
          sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
 
