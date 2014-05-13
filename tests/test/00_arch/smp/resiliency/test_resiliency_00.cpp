@@ -50,7 +50,7 @@ void testSignal ( void *arg )
    for(int i = 0; i < 64; i++)
       array[i] += i; // Read & write into a memory space
    // Wait for another thread to (maybe) invalidate array
-   while(wait);
+   while(wait){}
    // Second try
    for(int i = 0; i < 64; i++)
       array[i] += i; // Read & write into a memory space
