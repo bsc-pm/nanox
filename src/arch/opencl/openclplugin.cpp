@@ -25,6 +25,7 @@
 #include "plugin.hpp"
 #include "archplugin.hpp"
 #include "openclprocessor.hpp"
+#include "openclthread_decl.hpp"
 
 #include <dlfcn.h>
 
@@ -43,12 +44,14 @@ private:
   // All found devices.
    static std::map<cl_device_id, cl_context> _devices;
    std::vector<ext::OpenCLProcessor *> *_opencls;
+   std::vector<ext::OpenCLThread *>    *_openclThreads;
 
    friend class OpenCLConfig;
    
 public:
    OpenCLPlugin() : ArchPlugin( "OpenCL PE Plugin", 1 )
       , _opencls( NULL )
+      , _openclThreads( NULL )
    { }
 
    ~OpenCLPlugin() { }
@@ -70,6 +73,7 @@ public:
    {
       OpenCLConfig::apply(_devTy,_devices);
       _opencls = NEW std::vector<nanos::ext::OpenCLProcessor *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLProcessor *) NULL); 
+      _openclThreads = NEW std::vector<nanos::ext::OpenCLThread *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLThread *) NULL); 
       for ( unsigned int openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {
          memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide() );
          SeparateMemoryAddressSpace &oclmemory = sys.getSeparateMemory( id );
@@ -80,7 +84,9 @@ public:
             fatal0("Unable to get a core to run the GPU thread.");
          }
 
-         (*_opencls)[openclC] =  NEW nanos::ext::OpenCLProcessor( openclC, id, core, oclmemory );
+         OpenCLProcessor *ocl = NEW nanos::ext::OpenCLProcessor( openclC, id, core, oclmemory );
+         (*_opencls)[openclC] = ocl;
+         (*_openclThreads)[openclC] = (ext::OpenCLThread *) &ocl->startOpenCLThread();
       }
    }
    
@@ -151,8 +157,8 @@ virtual void startSupportThreads() {
 }
 
 virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
-   for ( std::vector<OpenCLProcessor *>::iterator it = _opencls->begin(); it != _opencls->end(); it++ ) {
-      workers.push_back( &(*it)->startWorker() );
+   for ( std::vector<OpenCLThread *>::iterator it = _openclThreads->begin(); it != _openclThreads->end(); it++ ) {
+      workers.push_back( *it );
    }
 }
 

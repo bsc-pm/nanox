@@ -93,7 +93,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _requestedWorkersOMPSS( -1 )
                  , _cores( NULL )
                  , _coresByCpuId( NULL )
-                 , _workers()
+                 , _workers( 0, NULL )
                  , _bindingStart( 0 )
                  , _bindingStride( 1 )
                  , _bindThreads( true )
@@ -233,7 +233,7 @@ class SMPPlugin : public SMPBasePlugin
       // FIXME (855): do this before thread creation, after PE creation
       completeNUMAInfo();
 
-
+      associateThisThread( sys.getUntieMaster() );
    }
 
    virtual unsigned getPEsInNode( unsigned node ) const
@@ -271,8 +271,22 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+      ensure( _workers.size() == 1, "Main thread should be the only worker created so far." );
+      workers.push_back( _workers[0] );
       //create as much workers as possible
-      int max_workers = ( _requestedWorkers == -1 ) ? _cores->size() : _requestedWorkers;
+      int available_cores = 0;
+      for ( std::vector<SMPProcessor *>::iterator it = _cores->begin(); it != _cores->end(); it++ ) {
+         available_cores += (*it)->getNumThreads() == 0;
+      }
+
+      int max_workers;  
+      if ( _requestedWorkers != -1 && (_requestedWorkers - 1) > available_cores ) {
+         std::cerr << "SMPPlugin: requested number of workers (" << _requestedWorkers << ") is greater than the number of available cpus (" << available_cores << ") creating " << available_cores << " workers." << std::endl;
+         max_workers = available_cores+1;
+      } else {
+         max_workers = ( _requestedWorkers == -1 ) ? available_cores+1 : _requestedWorkers;
+      }
+
       int current_workers = 1;
 
       int idx = _bindingStart + _bindingStride;
@@ -296,7 +310,7 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual ext::SMPProcessor *getFirstSMPProcessor() const {
-      return ( _cores != NULL ) ? (*_cores)[ _bindingStart ] : NULL;
+      return ( _coresByCpuId != NULL ) ? (*_coresByCpuId)[ _bindingStart ] : NULL;
    }
 
    virtual cpu_set_t &getActiveSet() {
