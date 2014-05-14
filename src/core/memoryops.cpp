@@ -184,7 +184,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
 
    DeviceOps *thisRegOps = memCopy._reg.getDeviceOps();
    if ( memCopy._reg.getHostVersion( false ) != memCopy.getVersion() ) {
-      if ( _VERBOSE_CACHE ) { std::cerr << "I have to copy region " << memCopy._reg.id << " dont have it "<<std::endl; }
+      if ( _VERBOSE_CACHE ) { std::cerr << "I have to copy region " << memCopy._reg.id << " dont have it, I want version " << memCopy.getVersion() << " host version is " << memCopy._reg.getHostVersion( false ) <<std::endl; }
       if ( thisRegOps->addCacheOp( /* debug: */ &wd ) ) {
          if ( _VERBOSE_CACHE ) { std::cerr << "I will do the transfer for reg " << memCopy._reg.id << " dont have it "<<std::endl; }
 
@@ -245,6 +245,10 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
    } else {
          if ( _VERBOSE_CACHE ) { std::cerr << "I will not do the transfer for reg " << memCopy._reg.id << " I have it at proper version " << memCopy.getVersion() <<std::endl; }
       getOtherOps().insert( thisRegOps );
+      if ( output ) {
+         //if this is true it means this is an inout copy, we should have exclsuive access over the data if dependencies are ok...
+         memCopy._reg.setLocationAndVersion( 0, memCopy.getVersion() + 1 );
+      }
    }
 
    //for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
