@@ -93,7 +93,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _requestedWorkersOMPSS( -1 )
                  , _cores( NULL )
                  , _coresByCpuId( NULL )
-                 , _workers( 0, NULL )
+                 , _workers( 0, (SMPThread *) NULL )
                  , _bindingStart( 0 )
                  , _bindingStride( 1 )
                  , _bindThreads( true )
