@@ -90,6 +90,7 @@ namespace nanos
          virtual const Device * getCacheDeviceType () const;
 
          BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
+         BaseThread & startThread ( ProcessingElement &representedPE, WD &work, ext::SMPMultiThread *parent );
          BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
          virtual BaseThread & createThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL ) = 0;
          virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs ) = 0;

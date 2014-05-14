@@ -143,5 +143,25 @@ void RegionDictionary< ContainerDense >::printRegion( reg_t region ) const {
    fprintf(stderr, "{key %p : FAkey %p : Real %p : FAReal %p : %zu : %zu}", (void*)_keyBaseAddress, (void*)reg.getKeyFirstAddress(), (void*)_realBaseAddress, (void*) reg.getRealFirstAddress(), reg.getBreadth(), reg.getDataSize() );
 }
 
+
+template <>
+void RegionDictionary< ContainerSparse >::printRegion( reg_t region ) const {
+   RegionNode const *regNode = this->getRegionNode( region );
+   global_reg_t reg( region, &_orig );
+   fprintf(stderr, "%p:%d", &_orig, region);
+   if ( regNode == NULL ) {
+      fprintf(stderr, "NULL LEAF !");
+      return;
+   }
+   for ( int dimensionCount = this->getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {  
+      std::size_t accessedLength = regNode->getValue();
+      regNode = regNode->getParent();
+      std::size_t lowerBound = regNode->getValue();
+      fprintf(stderr, "[%zu;%zu]", lowerBound, accessedLength);
+      regNode = regNode->getParent();
+   }
+   fprintf(stderr, "{key %p : FAkey %p : Real %p : FAReal %p : %zu : %zu}", (void*)_keyBaseAddress, (void*)reg.getKeyFirstAddress(), (void*)_realBaseAddress, (void*) reg.getRealFirstAddress(), reg.getBreadth(), reg.getDataSize() );
+}
+
 }
 

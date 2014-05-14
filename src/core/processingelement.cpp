@@ -104,7 +104,12 @@ BaseThread& ProcessingElement::startMultiWorker ( unsigned int numPEs, Processin
 
 BaseThread & ProcessingElement::startThread ( WD &work, ext::SMPMultiThread *parent )
 {
-   BaseThread &thread = createThread( work, parent );
+   return startThread( *this, work, parent );
+}
+
+BaseThread & ProcessingElement::startThread ( ProcessingElement &representedPE, WD &work, ext::SMPMultiThread *parent )
+{
+   BaseThread &thread = representedPE.createThread( work, parent );
 
    thread.start();
 

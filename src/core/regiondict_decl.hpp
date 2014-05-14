@@ -98,6 +98,7 @@ typedef unsigned int reg_t;
    class ContainerSparse {
       std::map< reg_t, T > _container;
       //ContainerDense< T > &_orig;
+      protected:
       RegionDictionary< ContainerDense > &_orig;
       public:
       bool sparse;

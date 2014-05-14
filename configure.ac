@@ -1104,7 +1104,7 @@ AC_ARG_ENABLE([resiliency],
   ],
   [
     AC_MSG_RESULT([yes])
-    AX_CHECK_COMPILE_FLAG(-fnon-call-exceptions,[resiliency=yes],[resiliency=no],[-Werror])
+    AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],[resiliency=yes],[resiliency=no],[-Werror])
     if test "x$resiliency" = "xno";
     then
         AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])

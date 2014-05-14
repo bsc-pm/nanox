@@ -40,9 +40,11 @@ namespace ext {
 class GPUPlugin : public ArchPlugin
 {
    std::vector<ext::GPUProcessor *> *_gpus;
+   std::vector<ext::GPUThread *>    *_gpuThreads;
    public:
       GPUPlugin() : ArchPlugin( "GPU PE Plugin", 1 )
          , _gpus( NULL )
+         , _gpuThreads( NULL )
       {}
 
       void config( Config& cfg )
@@ -54,6 +56,7 @@ class GPUPlugin : public ArchPlugin
       {
          GPUConfig::apply();
          _gpus = NEW std::vector<nanos::ext::GPUProcessor *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUProcessor *) NULL); 
+         _gpuThreads = NEW std::vector<nanos::ext::GPUThread *>(nanos::ext::GPUConfig::getGPUCount(), (nanos::ext::GPUThread *) NULL); 
          for ( int gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::GPU, nanos::ext::GPUConfig::getAllocWide() );
             SeparateMemoryAddressSpace &gpuMemory = sys.getSeparateMemory( id );
@@ -128,7 +131,9 @@ class GPUPlugin : public ArchPlugin
             //   verbose( "Reserving for GPU " << i << ", returned pe " << pe << ( reserved ? " (exclusive)" : " (shared)") );
             //}
 
-            (*_gpus)[gpuC] = NEW nanos::ext::GPUProcessor( gpuC, id, core, *gpuMemSpace );
+            ext::GPUProcessor *gpu = NEW nanos::ext::GPUProcessor( gpuC, id, core, *gpuMemSpace );
+            (*_gpus)[gpuC] = gpu;
+            (*_gpuThreads)[gpuC] = (ext::GPUThread *) &gpu->startGPUThread();
          }
       }
       
@@ -268,8 +273,8 @@ virtual void startSupportThreads() {
 }
 
 virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
-   for ( std::vector<GPUProcessor *>::iterator it = _gpus->begin(); it != _gpus->end(); it++ ) {
-      workers.push_back( &(*it)->startWorker() );
+   for ( std::vector<GPUThread *>::iterator it = _gpuThreads->begin(); it != _gpuThreads->end(); it++ ) {
+      workers.push_back( *it );
    }
 }
 

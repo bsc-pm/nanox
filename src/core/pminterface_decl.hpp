@@ -65,6 +65,7 @@ namespace nanos
          bool isMalleable( void ) const { return _malleable; }
 
          virtual void setNumThreads( int nthreads ) {}
+         virtual void setNumThreads_globalState( int nthreads ) {}
 
          virtual void getCpuMask( cpu_set_t *cpu_set ) {}
          virtual void setCpuMask( const cpu_set_t *cpu_set ) {}

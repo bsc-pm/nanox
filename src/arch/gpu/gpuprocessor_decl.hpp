@@ -188,6 +188,8 @@ namespace ext
          }
          //virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
          std::size_t getMaxMemoryAvailable () const;
+
+         BaseThread &startGPUThread();
    };
 
 }

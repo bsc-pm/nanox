@@ -898,7 +898,8 @@ bool RegionDictionary< Sparsity >::checkIntersect( reg_t regionIdA, reg_t region
 template < template <class> class Sparsity>
 void RegionDictionary< Sparsity >::substract( reg_t base, reg_t regionToSubstract, std::list< reg_t > &resultingPieces ) {
 
-   //std::cerr << __FUNCTION__ << ": base("<< base << ") "; printRegion(base); std::cerr<< " regToSubs(" << regionToSubstract<< ") "; printRegion(regionToSubstract); std::cerr << std::endl;
+   //std::cerr << __FUNCTION__ << ": base("<< base << ") "; this->printRegion(base); std::cerr<< " regToSubs(" << regionToSubstract<< ") "; this->printRegion(regionToSubstract); std::cerr << std::endl;
+   //std::cerr << __FUNCTION__ << ": base("<< base << ") regToSubs(" << regionToSubstract<< ") " << std::endl;
    if ( !checkIntersect( base, regionToSubstract ) ) {
       return;
    }
@@ -926,28 +927,36 @@ void RegionDictionary< Sparsity >::substract( reg_t base, reg_t regionToSubstrac
       std::size_t accessedLengthGTIntersect = 0;
 
       if ( lowerBoundBase >= lowerBoundToSubs ) {
-          lowerBoundLTIntersect = 0;
-          accessedLengthLTIntersect = 0;
+         lowerBoundLTIntersect = 0;
+         accessedLengthLTIntersect = 0;
 
-          lowerBoundIntersect = lowerBoundBase;
-          accessedLengthIntersect = upperBoundToSubs - lowerBoundBase;
+         lowerBoundIntersect = lowerBoundBase;
 
-          lowerBoundGTIntersect = upperBoundToSubs;
-          accessedLengthGTIntersect = upperBoundBase - upperBoundToSubs;
+         if ( upperBoundBase <= upperBoundToSubs ) {
+            accessedLengthIntersect = upperBoundBase - lowerBoundBase;
+
+            lowerBoundGTIntersect = 0;
+            accessedLengthGTIntersect = 0;
+         } else {
+            accessedLengthIntersect = upperBoundToSubs - lowerBoundBase;
+
+            lowerBoundGTIntersect = upperBoundToSubs;
+            accessedLengthGTIntersect = upperBoundBase - upperBoundToSubs;
+         }
       } else {
-          lowerBoundLTIntersect = lowerBoundBase;
-          accessedLengthLTIntersect = lowerBoundToSubs - lowerBoundBase;
-          lowerBoundIntersect = lowerBoundToSubs;
+         lowerBoundLTIntersect = lowerBoundBase;
+         accessedLengthLTIntersect = lowerBoundToSubs - lowerBoundBase;
+         lowerBoundIntersect = lowerBoundToSubs;
 
-          if ( upperBoundBase <= upperBoundToSubs ) {
-             accessedLengthIntersect = upperBoundBase - lowerBoundToSubs;
-             lowerBoundGTIntersect = 0;
-             accessedLengthGTIntersect = 0;
-          } else {
-             accessedLengthIntersect = upperBoundToSubs - lowerBoundToSubs;
-             lowerBoundGTIntersect = upperBoundToSubs;
-             accessedLengthGTIntersect = upperBoundBase - upperBoundToSubs;
-          }
+         if ( upperBoundBase <= upperBoundToSubs ) {
+            accessedLengthIntersect = upperBoundBase - lowerBoundToSubs;
+            lowerBoundGTIntersect = 0;
+            accessedLengthGTIntersect = 0;
+         } else {
+            accessedLengthIntersect = upperBoundToSubs - lowerBoundToSubs;
+            lowerBoundGTIntersect = upperBoundToSubs;
+            accessedLengthGTIntersect = upperBoundBase - upperBoundToSubs;
+         }
       }
 
       //std::cerr << dimensionCount << " A: lb=" << lowerBoundBase << " al=" << accessedLengthBase << std::endl;

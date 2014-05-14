@@ -192,6 +192,17 @@ void System::loadModules ()
    const OS::ModuleList & modules = OS::getRequestedModules();
    std::for_each(modules.begin(),modules.end(), LoadModule());
 
+   // load default dependencies plugin
+   verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
+
+   if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
+      fatal0 ( "Couldn't load main dependencies manager" );
+
+   ensure0( _dependenciesManager,"No default dependencies manager" );
+
+   if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
+      fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
+
    // load host processor module
    if ( _hostFactory == NULL ) {
      verbose0( "loading Host support" );
@@ -243,18 +254,8 @@ void System::loadModules ()
    if ( !loadPlugin( "barrier-"+getDefaultBarrier() ) )
       fatal0( "Could not load main barrier algorithm" );
 
-   if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
-      fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
-
    ensure0( _defBarrFactory,"No default system barrier factory" );
    
-   // load default dependencies plugin
-   verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
-
-   if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
-      fatal0 ( "Couldn't load main dependencies manager" );
-
-   ensure0( _dependenciesManager,"No default dependencies manager" );
 
 }
 
@@ -468,8 +469,8 @@ void System::start ()
    CPU_SET( getBindingId( 0 ), &_cpuActiveSet );
 #endif
 
-   ext::SMPThread *thisThd = &_smpPlugin->associateThisThread( sys.getUntieMaster() );
-   _workers.push_back( thisThd );
+   //ext::SMPThread *thisThd = &_smpPlugin->associateThisThread( sys.getUntieMaster() );
+   //_workers.push_back( thisThd );
 
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
