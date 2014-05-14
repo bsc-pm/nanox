@@ -20,6 +20,9 @@
 #ifndef _NANOS_RESOURCEMANAGER
 #define _NANOS_RESOURCEMANAGER
 
+// Sleep time in ns between each sched_yield
+#define NANOS_RM_YIELD_SLEEP_NS 20000
+
 namespace nanos {
 namespace ResourceManager {
    void init( void );

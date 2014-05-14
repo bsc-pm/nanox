@@ -23,6 +23,7 @@
 #include "basethread_decl.hpp"
 #include "threadteam_decl.hpp"
 #include "instrumentation_decl.hpp"
+#include "os.hpp"
 
 extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
@@ -247,6 +248,8 @@ void ResourceManager::waitForCpuAvailability( void )
       int cpu = getMyThreadSafe()->getCpuId();
       CPU_SET( cpu, &_waiting_cpus );
       while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
+         // Sleep the thread for a while to reduce the cycles consumption, then yield
+         OS::nanosleep( NANOS_RM_YIELD_SLEEP_NS );
          sched_yield();
       /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
             myThread->sleep();
