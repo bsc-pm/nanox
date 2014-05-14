@@ -223,7 +223,7 @@ namespace nanos
          _numThreads = num_threads;
 
          TaskICVs & icvs = globalState->getICVs();
-         icvs.setNumThreads(_numThreads);
+         icvs.setNumThreads( _numThreads );
          sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
 
          // Overwrite custom values

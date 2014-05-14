@@ -117,10 +117,12 @@ class SMPPlugin : public SMPBasePlugin
       SMPProcessor::prepareConfig( cfg );
       SMPDD::prepareConfig( cfg );
       cfg.registerConfigOption ( "smp-num-pes", NEW Config::PositiveVar ( _requestedCores ), "Cores requested." );
-      cfg.registerArgOption ( "smp-num-pes", "smp-cores" );
+      cfg.registerArgOption ( "smp-num-pes", "smp-cpus" );
+      cfg.registerEnvOption( "smp-num-pes", "NX_SMP_CPUS" );
 
       cfg.registerConfigOption ( "smp-workers", NEW Config::PositiveVar ( _requestedWorkersOMPSS ), "Worker threads requested." );
       cfg.registerArgOption ( "smp-workers", "smp-workers" );
+      cfg.registerEnvOption( "smp-workers", "NX_SMP_WORKERS" );
 
       cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ),
             "Number of cores per socket." );
@@ -303,6 +305,10 @@ class SMPPlugin : public SMPBasePlugin
             idx += 1;
          }
       }
+
+      //FIXME: this makes sense in OpenMP, also, in OpenMP this value is already set (see omp_init.cpp)
+      //       In OmpSs, this will make omp_get_max_threads to return the number of SMP worker threads. 
+      sys.getPMInterface().setNumThreads( _workers.size() );
    }
 
    virtual void setRequestedWorkers( int workers ) {

@@ -19,7 +19,7 @@ int main()
    for ( i=1; i<=MAX_CPUS; i++ ) {
       exec_versions << "normal" << i << " ";
       exec_versions << "cilk" << i << " ";
-      versions_env << "test_ENV_normal" << i << "=\"NX_ARGS='--smp-cores=" << i <<"'\"" << std::endl;
+      versions_env << "test_ENV_normal" << i << "=\"NX_ARGS='--smp-cpus=" << i <<"'\"" << std::endl;
       versions_env << "test_ENV_cilk" << i << "=\"NX_ARGS='--schedule=cilk --smp-cores=" << i << "'\"" << std::endl;
 //      printf("test_ENV_normal=\"NX_ARGS=''\"\n");
 //      printf("test_ENV_cilk=\"NX_ARGS='--schedule cilk'\"\n");
