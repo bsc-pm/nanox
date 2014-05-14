@@ -284,6 +284,12 @@ namespace nanos
          sys.getSMPPlugin()->updateActiveWorkers( nthreads );
       }
 
+      void OmpSsInterface::setNumThreads_globalState ( int nthreads )
+      {
+         TaskICVs & icvs = globalState->getICVs();
+         icvs.setNumThreads( nthreads );
+      }
+
       /*!
        * \brief Set a new mask of active cpus
        * \param[in] cpu_set cpu_set_t that containts the mask to set

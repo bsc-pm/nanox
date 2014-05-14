@@ -308,7 +308,7 @@ class SMPPlugin : public SMPBasePlugin
 
       //FIXME: this makes sense in OpenMP, also, in OpenMP this value is already set (see omp_init.cpp)
       //       In OmpSs, this will make omp_get_max_threads to return the number of SMP worker threads. 
-      sys.getPMInterface().setNumThreads( _workers.size() );
+      sys.getPMInterface().setNumThreads_globalState( _workers.size() );
    }
 
    virtual void setRequestedWorkers( int workers ) {
