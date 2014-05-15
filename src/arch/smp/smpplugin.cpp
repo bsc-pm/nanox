@@ -333,7 +333,7 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual ext::SMPProcessor *getFirstSMPProcessor() const {
-      return ( _coresByCpuId != NULL ) ? (*_cores)[ _bindingStart ] : NULL;
+      return ( _cores != NULL ) ? (*_cores)[ _bindingStart ] : NULL;
    }
 
    virtual cpu_set_t &getActiveSet() {
