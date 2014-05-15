@@ -311,7 +311,7 @@ class SMPPlugin : public SMPBasePlugin
       int idx = _bindingStart + _bindingStride;
       while ( current_workers < max_workers ) {
          idx = idx % _cores->size();
-         SMPProcessor *core = (*_coresByCpuId)[idx];
+         SMPProcessor *core = (*_cores)[idx];
          if ( core->getNumThreads() == 0 ) {
             BaseThread *thd = &core->startWorker();
             _workers.push_back( (SMPThread *) thd );
@@ -333,7 +333,7 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual ext::SMPProcessor *getFirstSMPProcessor() const {
-      return ( _coresByCpuId != NULL ) ? (*_coresByCpuId)[ _bindingStart ] : NULL;
+      return ( _coresByCpuId != NULL ) ? (*_cores)[ _bindingStart ] : NULL;
    }
 
    virtual cpu_set_t &getActiveSet() {
