@@ -441,10 +441,28 @@ void NewNewRegionDirectory::synchronize( WD const &wd ) {
                objects_to_clear.erase( it->first ); //FIXME: objects may be added later
             }
          } else {
-            global_reg_t reg( mit->second, it->second );
-            if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
-               if ( !reg.isLocatedIn( 0 ) ) {
-                  std::cerr << "FIXME: I should sync region! "; reg.key->printRegion( reg.id );
+            global_reg_t region_shape( mit->first, it->second );
+            global_reg_t data_source( mit->second, it->second );
+            if ( !data_source.isRooted() ) { //ignore regions rooted to a certain location
+               if ( !data_source.isLocatedIn( 0 ) ) {
+                  //std::cerr << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); std::cerr << std::endl;
+                  //std::cerr << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); std::cerr << std::endl;
+                  region_shape.initializeGlobalEntryIfNeeded();
+                  DeviceOps *thisOps = region_shape.getDeviceOps();
+                  if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
+                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) region_shape.key->getRegionData( region_shape.id  );
+                     if ( 1 /*_VERBOSE_CACHE*/ ) {
+                        std::cerr << " SYNC REGION! "; region_shape.key->printRegion( region_shape.id );
+                        if ( entry ) std::cerr << " " << *entry << std::endl;
+                        else std::cerr << " nil " << std::endl; 
+                     }
+                     //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                     outOps.addOp( &sys.getSeparateMemory( data_source.getFirstLocation() ), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef );
+                     outOps.insertOwnOp( thisOps, region_shape, data_source.getVersion()+1, 0 ); //increase version to invalidate the device copy
+                  } else {
+                     outOps.getOtherOps().insert( thisOps );
+                  }
+                  //regEntry->addAccess( 0, regEntry->getVersion() );
                }
             } else {
                objects_to_clear.erase( it->first );

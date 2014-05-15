@@ -494,7 +494,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
       }
 
 
-      void addSubRegion( std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert ) {
+      void addSubRegion( std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert, std::list< std::pair< reg_t, reg_t > > &partsToInsert ) {
          //ensure( !partsList.empty(), "Empty parts list!" );
          //if ( partsList.empty() ) {
          //   std::cerr << "FAIL " << __FUNCTION__ << std::endl; 
@@ -513,6 +513,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
          while ( it != partsList.end() ) {
             if ( it->first == regionToInsert ) {
                //std::cerr << __FUNCTION__ << ": skip self intersect: " << it->first << std::endl;
+               partsToInsert.push_back( std::make_pair( regionToInsert, regionToInsert ));
                it = partsList.erase( it );
             } else if ( _currentDict.checkIntersect( it->first, regionToInsert ) ) {
                intersectList.push_back( *it );
@@ -523,11 +524,19 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
          }
       
          for ( it = intersectList.begin(); it != intersectList.end(); it++ ) {
-            std::list<reg_t> pieces;
-            _currentDict.substract( it->first, regionToInsert, pieces );
-            for ( std::list< reg_t >::iterator piecesIt = pieces.begin(); piecesIt != pieces.end(); piecesIt++ ) {
-               //std::cerr << "Add part " << *piecesIt << std::endl;
-               partsList.push_back( std::make_pair( *piecesIt, it->second ) );
+            reg_t intersection = _currentDict.computeIntersect( it->first, regionToInsert );
+            //at this point intersection is either it->first or a subpart of regionToInsert
+            if ( intersection == it->first ) {
+               //std::cerr << "region " << regionToInsert << " totally overlaps " << it->first << std::endl;
+               partsToInsert.push_back( std::make_pair( it->first, regionToInsert ));
+            } else {
+               partsToInsert.push_back( std::make_pair( intersection, regionToInsert ));
+               std::list<reg_t> pieces;
+               _currentDict.substract( it->first, regionToInsert, pieces );
+               for ( std::list< reg_t >::iterator piecesIt = pieces.begin(); piecesIt != pieces.end(); piecesIt++ ) {
+                  //std::cerr << "Add part ( " << *piecesIt << ", " << it->second << " )" << std::endl;
+                  partsList.push_back( std::make_pair( *piecesIt, it->second ) );
+               }
             }
          }
          //std::cerr << "END addSubRegion, content of partsList: ";
@@ -727,6 +736,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
                if ( intersectReg == *it )
                {
                   unsigned int citVersion = ( this->getRegionData( *cit ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( *cit )->getVersion() );
+                  //std::cerr << " Intersect between " << *it << ", " << itVersion << " and " << *cit << ", " << citVersion << std::endl;
                   subpart = ( citVersion >= itVersion );
                }
             }
@@ -743,21 +753,27 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    }
 
    finalParts.push_back( std::make_pair( id, backgroundRegion ) );
-   //if (this->sparse) std::cerr << "starting with " << id << "," << backgroundRegion << std::endl;
+   std::list< std::pair< reg_t, reg_t > > effectiveParts;
+   // /*if (this->sparse)*/ std::cerr << "starting with " << id << "," << backgroundRegion << std::endl;
    for ( typename RegionDictionary::RegionList::const_iterator cit = missingParts.begin();
          cit != missingParts.end(); cit++ ) {
-      //if (this->sparse)std::cerr << /*myThread->getId() <<*/ "BG rgion is " << backgroundRegion<< ", Add sub region " << *cit << " resulting set: { ";
-      local.addSubRegion( finalParts, *cit ); //FIXME: handle case when "finalParts" is empty
+      // /*if (this->sparse) */ std::cerr << /*myThread->getId() <<*/ "BG rgion is " << backgroundRegion<< ", Add sub region " << *cit << " resulting set: { ";
+      local.addSubRegion( finalParts, *cit, effectiveParts ); //FIXME: handle case when "finalParts" is empty
       //for (std::list< std::pair< reg_t, reg_t > >::const_iterator cpit = finalParts.begin(); cpit != finalParts.end(); cpit++ ) {
-      //   if (this->sparse)std::cerr << "(" << cpit->first << "," << cpit->second << ")";
+      //   /*if (this->sparse)*/ std::cerr << "(" << cpit->first << "," << cpit->second << ")";
       //}
-      //if (this->sparse)std::cerr <<" }"<< std::endl;
+      ///*if (this->sparse)*/ std::cerr <<" }"<< std::endl;
    }
-   for ( typename RegionDictionary::RegionList::const_iterator cit = missingParts.begin();
-         cit != missingParts.end(); cit++ ) {
-      //if (this->sparse)std::cerr << /*myThread->getId() <<*/ " final parts region is " << *cit << std::endl;
-      finalParts.push_back( std::make_pair( *cit, *cit ) );
+
+   for ( std::list< std::pair< reg_t, reg_t > >::const_iterator cit = effectiveParts.begin();
+         cit != effectiveParts.end(); cit++ ) {
+      finalParts.push_back( *cit );
    }
+   //for ( typename RegionDictionary::RegionList::const_iterator cit = missingParts.begin();
+   //      cit != missingParts.end(); cit++ ) {
+   //   //if (this->sparse)std::cerr << /*myThread->getId() <<*/ " final parts region is " << *cit << std::endl;
+   //   finalParts.push_back( std::make_pair( *cit, *cit ) );
+   //}
    //double tfiniTOTAL = OS::getMonotonicTime();
    //std::cerr << __FUNCTION__ << " rest of time " << (tfiniTOTAL-tfiniINTERS) << std::endl;
 }

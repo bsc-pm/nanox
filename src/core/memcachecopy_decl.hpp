@@ -21,6 +21,7 @@ namespace nanos {
          unsigned int getVersion() const;
          void setVersion( unsigned int version );
          bool isRooted( memory_space_id_t &loc ) const;
+         void printLocations() const;
    };
 }
 #endif /* MEMCACHECOPY_DECL */
