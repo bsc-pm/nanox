@@ -20,6 +20,7 @@
 /*
  <testinfo>
  test_generator='gens/mpi-offload-generator'
+ test_ignore=yes
  </testinfo>
  */
 

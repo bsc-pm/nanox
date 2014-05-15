@@ -685,7 +685,6 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     }
     
     PE* pes[totalNumberOfSpawns];
-    SeparateMemoryAddressSpace* memspaces[totalNumberOfSpawns];
     int uid=sys.getNumCreatedPEs();
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
@@ -698,7 +697,6 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     for ( int rankCounter=0; rankCounter<totalNumberOfSpawns; rankCounter++ ){  
         memory_space_id_t id = sys.getNewSeparateMemoryAddressSpaceId();
         SeparateMemoryAddressSpace *mpiMem = NEW SeparateMemoryAddressSpace( id, nanos::ext::MPI, nanos::ext::MPIProcessor::getAllocWide());
-        memspaces[rank]=mpiMem;
         mpiMem->setNodeNumber( 0 );
         sys.addSeparateMemory(id,mpiMem);
         //Each process will have access to every remote node, but only one master will sync each child
