@@ -31,7 +31,7 @@ size_t SMPProcessor::_threadsStackSize = 0;
 System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
-SMPProcessor::SMPProcessor( int bindingId ) : PE( &SMP, NULL, sys.getRootMemorySpaceId() ), _bindingId( bindingId )  {}
+SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t numaMemId ) : PE( &SMP, NULL, numaMemId ), _bindingId( bindingId )  {}
 
 void SMPProcessor::prepareConfig ( Config &config )
 {

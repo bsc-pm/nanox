@@ -22,7 +22,10 @@
 #include "smpprocessor.hpp"
 #include "smpdd.hpp"
 #include "os.hpp"
+#include "osallocator_decl.hpp"
 #include "system.hpp"
+
+//#include <numa.h>
 
 #ifdef HWLOC
 #include <hwloc.h>
@@ -56,6 +59,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _bindingStart;
    int                          _bindingStride;
    bool                         _bindThreads;
+   bool                         _smpNuma;
 
    // Nanos++ scheduling domain
    cpu_set_t                    _cpuSet;          /*!< \brief system's default cpu_set */
@@ -97,6 +101,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindingStart( 0 )
                  , _bindingStride( 1 )
                  , _bindThreads( true )
+                 , _smpNuma( false )
                  , _cpuActiveSet()
                  , _numSockets( 0 )
                  , _coresPerSocket( 0 )
@@ -152,6 +157,9 @@ class SMPPlugin : public SMPBasePlugin
             "Disables thread binding" );
       cfg.registerArgOption( "no-binding", "disable-binding" );
 
+      cfg.registerConfigOption( "smp-numa", NEW Config::FlagOption( _smpNuma, true ),
+            "Enables NUMA smp devices." );
+      cfg.registerArgOption( "smp-numa", "smp-numa" );
 
 
    }
@@ -223,9 +231,18 @@ class SMPPlugin : public SMPBasePlugin
       // Load & check NUMA config
       loadNUMAInfo();
 
-
       for ( int idx = 0; idx < _currentCores; idx += 1 ) {
-         SMPProcessor *core = NEW SMPProcessor( _bindings[ idx ] );
+         SMPProcessor *core;
+         if ( _smpNuma ) {
+            OSAllocator a;
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true /* nanos::ext::ClusterInfo::getAllocWide() */ );
+            SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
+            numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
+            numaMem.setNodeNumber( 0 );
+            core = NEW SMPProcessor( _bindings[ idx ], id );
+         } else {
+            core = NEW SMPProcessor( _bindings[ idx ] );
+         }
          (*_cores)[ idx ] = core;
          (*_coresByCpuId)[ _bindings[ idx ]] = core;
          CPU_SET( (*_cores)[idx]->getBindingId() , &_cpuActiveSet );
