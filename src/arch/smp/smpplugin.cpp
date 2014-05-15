@@ -376,10 +376,10 @@ class SMPPlugin : public SMPBasePlugin
             }
          }
          if ( (*it)->getNUMANode() == node ) {
-            counter--;
-            if ( counter == 0 ) {
+            if ( counter <= 0 ) {
                target = *it;
             }
+            counter--;
          }
       }
       return target;

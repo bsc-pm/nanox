@@ -711,7 +711,7 @@ namespace nanos
          * \param num_pes number of process spawned
          * \param pes pointer to a list of Processing Elements
          */
-         void addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** out_threads);
+         void addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** threads);
          
          void increaseAffinityFailureCount() { _affinityFailureCount++; }
          unsigned int getAffinityFailureCount() { return _affinityFailureCount.value(); }

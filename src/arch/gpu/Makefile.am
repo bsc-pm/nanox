@@ -38,6 +38,7 @@ devinclude_HEADERS = \
 	gputhread_decl.hpp \
 	gputhread.hpp \
 	gpuutils.hpp \
+	gpuprocessor_fwd.hpp \
 	$(END) 
 
 gpu_api_sources = \

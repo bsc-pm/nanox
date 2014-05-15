@@ -1667,7 +1667,7 @@ void System::waitUntilThreadsUnpaused ()
 //   return _hwlocTopology;
 //}
  
-void System::addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** out_threads) {  
+void System::addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** threads) {  
     for (int i=0; i<num_pes; i++){
         _pes.push_back ( pes[i] );
         //CPU_SET( pes[rank]->getId(), &_cpu_active_set );
@@ -1675,10 +1675,8 @@ void System::addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThr
     NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
     //Create the workers (which will run in all the PEs of pes) and return them
     for (int i=0; i<num_threads; i++){
-        BaseThread* bt= &pes[i]->startWorker();
-        _workers.push_back( bt );
-        acquireWorker( _mainTeam , bt);
-        out_threads[i]=bt;
+        _workers.push_back( threads[i] );
+        acquireWorker( _mainTeam , threads[i] );
     }
 }
 

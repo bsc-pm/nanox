@@ -162,12 +162,14 @@ void MPIRemoteNode::nanosMPIFinalize() {
     }
     int resul;
     MPI_Finalized(&resul);
+    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     if (!resul){
       //Free every node before finalizing
       DEEP_Booster_free(NULL,-1);
+      std::cout << "finalizing " << getpid() <<"\n";
       MPI_Finalize();
+      std::cout << "end finalizing " << getpid() <<"\n";
     }
-    NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
 #define N_FREE_SLOTS 10
@@ -726,6 +728,10 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     if (numberOfThreads<1) numberOfThreads=1;
     if (numberOfThreads>(int)maxWorkers) numberOfThreads=maxWorkers;
     BaseThread* threads[numberOfThreads];
+    //start the threads...
+    for (int i=0; i < numberOfThreads; ++i) {
+        threads[i]=&((MPIProcessor*)pes[i])->startMPIThread(NULL);
+    }
     sys.addOffloadPEsToTeam(pes, totalNumberOfSpawns, numberOfThreads, threads); 
     //Add all the PEs to the thread
     Lock* gLock=NULL;

@@ -156,10 +156,10 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
       baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) devAddr, size) ;
    } else {
       //If there is a buffer which covers this buffer (same base address but bigger), return it
-      baseAddress=allocator.getBasePointer(devAddr, size);          
+      baseAddress=allocator.getBasePointer(devAddr, size);     
    }
    
-   if (baseAddress==devAddr && size<_sizeCache[baseAddress]){
+   if (baseAddress==devAddr && size<=_sizeCache[baseAddress]){
        cacheKey= std::make_pair(devAddr,_sizeCache[baseAddress]);
        return _bufCache[cacheKey];
    }

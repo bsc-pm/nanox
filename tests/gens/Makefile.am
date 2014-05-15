@@ -359,8 +359,8 @@ mpi-offload-generator: mpi-offload-generator.in
 	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
 	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
 	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
-	tmp_mpi_valid='"$(mpi_valid)"' ; \
-	tmp_prefix='"$(NANOX_MPI_PREFIX)"' ; \
+	tmp_mpi_valid='$(mpi_valid)' ; \
+	tmp_prefix='$(NANOX_MPI_PREFIX)' ; \
 	tmp_cc='"$(CC)"' ; \
 	tmp_cxx='"$(CXX)"' ; \
 	sed \

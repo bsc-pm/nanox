@@ -254,7 +254,7 @@ AC_ARG_ENABLE([mpi],
         fi
     ],
     [
-        mpi_enabled="no"
+        mpi_enabled="yes"
         AC_MSG_RESULT([yes])
     ]
 )
