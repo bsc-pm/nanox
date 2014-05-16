@@ -201,6 +201,13 @@ namespace nanos
          */
          bool addSuccessor ( DependableObject &depObj );
          
+         /*! \brief Delete a successor from the successors list
+          *  \param depObj DependableObject to be erased.
+          *  returns true if the successor was found (and consequently erased)
+          */
+         inline bool deleteSuccessor ( DependableObject &depObj );
+
+
         /*! \brief Get the DependenciesDomain where this belongs
          *  \returns the DependenciesDomain where this belongs
          */

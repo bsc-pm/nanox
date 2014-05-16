@@ -104,7 +104,7 @@ void DependableObject::finished ( )
       else 
       {
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
-            NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
+            NANOS_INSTRUMENT ( instrument ( *(*it) ); )
             (*it)->decreasePredecessors( NULL, this );
          }
       }

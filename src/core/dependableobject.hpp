@@ -33,6 +33,12 @@ using namespace nanos;
 
 inline DependableObject::~DependableObject ( )
 {
+   _predLock.acquire();
+   for ( DependableObjectVector::iterator it = _predecessors.begin(); it != _predecessors.end(); it++ ) {
+      ( *it )->deleteSuccessor( *this );
+   }
+   _predLock.release();
+
    std::for_each(_outputObjects.begin(),_outputObjects.end(),deleter<BaseDependency>);
    std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
 }
@@ -135,6 +141,11 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
    depObj.addPredecessor( *this );
 
    return _successors.insert ( &depObj ).second;
+}
+
+inline bool DependableObject::deleteSuccessor ( DependableObject &depObj )
+{
+   return _successors.erase( &depObj ) > 0;
 }
 
 inline DependenciesDomain * DependableObject::getDependenciesDomain ( ) const
