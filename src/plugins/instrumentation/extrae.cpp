@@ -126,7 +126,7 @@ class InstrumentationExtrae: public Instrumentation
         }
 
         /* Keep current number of threads */
-        _maxThreads = sys.getNumThreads();
+        _maxThreads = sys.getMaxThreads();
       }
 
       void finalize ( void )
