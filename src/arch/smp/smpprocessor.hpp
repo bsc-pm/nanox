@@ -56,7 +56,7 @@ namespace ext
 
       public:
          // constructors
-         SMPProcessor( int bindingId );
+         SMPProcessor( int bindingId, memory_space_id_t numMemId = sys.getRootMemorySpaceId() );
 
          unsigned int getBindingId() { return _bindingId; }
 

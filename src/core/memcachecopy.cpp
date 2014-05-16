@@ -52,3 +52,12 @@ bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
    }
    return result;
 }
+
+void MemCacheCopy::printLocations() const {
+   for ( NewLocationInfoList::const_iterator it = _locations.begin(); it != _locations.end(); it++ ) {
+      NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_reg.key), it->second );
+      std::cerr << "   [ " << it->first << "," << it->second << " ] "; _reg.key->printRegion( it->first ); 
+      if ( d ) std::cerr << " " << *d << std::endl; 
+      else std::cerr << " dir entry n/a" << std::endl;
+   }
+}
