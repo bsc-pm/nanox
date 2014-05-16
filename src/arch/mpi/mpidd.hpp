@@ -79,6 +79,7 @@ namespace ext
          MPI_Comm getAssignedComm() const { return _assignedComm; }
          int getAssignedRank() const { return _assignedRank; }
          static void setSpawnDone(bool _spawnDone);
+         static bool getSpawnDone();
 
          
 

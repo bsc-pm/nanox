@@ -42,7 +42,7 @@ size_t MPIProcessor::_alignThreshold = 128;
 size_t MPIProcessor::_alignment = 4096;
 size_t MPIProcessor::_maxWorkers = 1;
 std::string MPIProcessor::_mpiExecFile;
-std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/ompss_mpi_launch.sh";
+std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/offload_slave_launch.sh";
 std::string MPIProcessor::_mpiHosts;
 std::string MPIProcessor::_mpiHostsFile;
 int MPIProcessor::_numPrevPEs=-1;
