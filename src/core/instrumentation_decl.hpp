@@ -583,7 +583,8 @@ namespace nanos {
             registerEventValue("async-thread", "ASYNC_THREAD_CP_DATA_OUT_EVENT", "Copy data out" );              /* 7 */
             registerEventValue("async-thread", "ASYNC_THREAD_CHECK_EVTS_EVENT", "Check events" );                /* 8 */
             registerEventValue("async-thread", "ASYNC_THREAD_PROCESS_EVT_EVENT", "Processing finished event" );  /* 9 */
-            registerEventValue("async-thread", "ASYNC_THREAD_SYNCHRONIZE_EVENT", "Synchronize copy" );          /* 10 */
+            registerEventValue("async-thread", "ASYNC_THREAD_SYNCHRONIZE_EVENT", "Synchronize copy" );           /* 10 */
+            registerEventValue("async-thread", "ASYNC_THREAD_SCHEDULE_EVENT", "Scheduling tasks" );              /* 11 */
 
             /* 47 */ registerEventKey("copy-in-gpu", "Asynchronous memory copy from host to device", true);
 

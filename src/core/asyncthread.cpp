@@ -50,7 +50,8 @@ typedef enum {
    ASYNC_THREAD_CP_DATA_OUT_EVENT,           /* 7 */
    ASYNC_THREAD_CHECK_EVTS_EVENT,            /* 8 */
    ASYNC_THREAD_PROCESS_EVT_EVENT,           /* 9 */
-   ASYNC_THREAD_SYNCHRONIZE_EVENT           /* 10 */
+   ASYNC_THREAD_SYNCHRONIZE_EVENT,          /* 10 */
+   ASYNC_THREAD_SCHEDULE_EVENT              /* 11 */
 } AsyncThreadState_t;
 
 bool AsyncThread::inlineWorkDependent( WD &work )
@@ -85,11 +86,17 @@ bool AsyncThread::inlineWorkDependent( WD &work )
 
 void AsyncThread::idle()
 {
-   //ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT )
+   NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT );
+   NANOS_INSTRUMENT( } )
    checkEvents();
-   //ASYNC_THREAD_CLOSE_EVENT
+   NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
+   ASYNC_THREAD_CLOSE_EVENT;
+   NANOS_INSTRUMENT( } )
 
    WD * last = ( _runningWDsCounter != 0 ) ? _runningWDs.back() : getCurrentWD();
+
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_SCHEDULE_EVENT );
 
    while ( canGetWork() ) {
       // Fill WD's queue until we get the desired number of prefetched WDs
@@ -116,9 +123,13 @@ void AsyncThread::idle()
          // Start steps to run this WD
          this->preRunWD( next );
 
-         //ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT )
+         NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
+         ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT );
+         NANOS_INSTRUMENT( } )
          checkEvents();
-         //ASYNC_THREAD_CLOSE_EVENT
+         NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
+         ASYNC_THREAD_CLOSE_EVENT;
+         NANOS_INSTRUMENT( } )
 
          last = next;
 
@@ -127,6 +138,8 @@ void AsyncThread::idle()
          break;
       }
    }
+
+   ASYNC_THREAD_CLOSE_EVENT;
 }
 
 

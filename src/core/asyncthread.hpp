@@ -35,6 +35,9 @@ inline void AsyncThread::checkEvents()
    for ( unsigned int i = 0; i < max; i++ ) {
       GenericEvent * evt = _pendingEvents[i];
       if ( evt->isRaised() ) {
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent (
+               sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ),
+               /* ASYNC_THREAD_PROCESS_EVT_EVENT */ 9 ); )
          _previousWD = this->getCurrentWD();
 
          WD * wd = evt->getWD();
@@ -49,6 +52,9 @@ inline void AsyncThread::checkEvents()
 
          // finishWork() function will modify thread's current WD because the active WD will be deleted at that point.
          this->setCurrentWD( *_previousWD );
+
+         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent(
+               sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ), 0 ); )
       }
    }
 
