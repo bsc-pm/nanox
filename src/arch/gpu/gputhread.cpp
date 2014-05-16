@@ -248,7 +248,7 @@ bool GPUThread::runWDDependent( WD &wd )
 
 void GPUThread::yield()
 {
-   cudaFree(0);
+   //cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 
@@ -257,7 +257,7 @@ void GPUThread::yield()
 
 void GPUThread::idle()
 {
-   cudaFree(0);
+   //cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 
