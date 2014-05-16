@@ -151,6 +151,7 @@ namespace nanos {
             
             void clearAllRequests();
 
+            BaseThread& startMPIThread(WD* work);
             
             WD & getWorkerWD() const;
             WD & getMasterWD() const;

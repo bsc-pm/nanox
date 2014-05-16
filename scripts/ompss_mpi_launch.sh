@@ -57,9 +57,9 @@ first=${first//EQUAL/$second}
 export "${first}" 
 if [ "x$TASKSET" != "x" ]; then 
 	taskset -cp $TASKSET $$ > /dev/null 2>&1
-elif [ "x$NX_BINDING_START" == "x" ]; then
+#elif [ "x$NX_BINDING_START" == "x" ]; then
    #thread 0 on MIC is last core so we start on first core by default
-   export NX_BINDING_START=1
+   #export NX_BINDING_START=1
 fi
 
 #################### OMP BLOCK

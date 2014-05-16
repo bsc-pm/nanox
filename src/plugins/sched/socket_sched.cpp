@@ -724,8 +724,6 @@ namespace nanos {
       class SocketSchedPlugin : public Plugin
       {
          private:
-            int _numSockets;
-            int _coresPerSocket;
             
             bool _steal;
             bool _stealParents;
@@ -739,12 +737,9 @@ namespace nanos {
             
             void loadDefaultValues()
             {
-               _numSockets = sys.getSMPPlugin()->getNumSockets();
-               _coresPerSocket = sys.getSMPPlugin()->getCoresPerSocket();
             }
          public:
             SocketSchedPlugin() : Plugin( "Socket-aware scheduling Plugin",1 ),
-               _numSockets( 0 ), _coresPerSocket( 0 ),
                _steal( true ), _stealParents( false ), _stealLowPriority( false),
                _immediate( false ), _smart( false ),
                _spins( 200 ), _random( false ) {}
@@ -778,9 +773,6 @@ namespace nanos {
             virtual void init() {
                // Read hwloc's info before reading user parameters
                loadDefaultValues();
-               //fprintf(stderr, "Setting numSockets to %d and coresPerSocket to %d\n", _numSockets, _coresPerSocket );
-               sys.getSMPPlugin()->setNumSockets( _numSockets );
-               sys.getSMPPlugin()->setCoresPerSocket( _coresPerSocket );
                
                sys.setDefaultSchedulePolicy( NEW SocketSchedPolicy( _steal, _stealParents, _stealLowPriority, _immediate, _smart, _spins, _random ) );
             }

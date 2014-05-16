@@ -86,6 +86,7 @@ devinclude_HEADERS = \
 	requestqueue.hpp \
 	printbt_decl.hpp \
         smpbaseplugin_decl.hpp \
+	pinnedallocator_decl.hpp \
 	$(END) 
 
 support_sources = \

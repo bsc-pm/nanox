@@ -36,7 +36,11 @@ NANOS_API_DEF(void *, nanos_mpi_fortran_factory, (void *args)) {
     nanos_mpi_args_t *mpi = (nanos_mpi_args_t *) args;
     //Fortran will write a 4byte integer into assignedComm, so this is "safe"
     int val=0+(uintptr_t)mpi->assignedComm;
-    MPI_Comm aComm=MPI_Comm_f2c((MPI_Fint)val);
+    //We dont want to translate null/0 MPI_Comm (it may be MPI_COMM_WORLD in
+    // some implementations, but it makes no sense in this place)
+    MPI_Comm aComm;
+    if (val==0) aComm=0;
+    else aComm=MPI_Comm_f2c((MPI_Fint)val);
     return (void *) NEW ext::MPIDD(mpi->outline,aComm,mpi->assignedRank);
 }
 

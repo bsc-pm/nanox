@@ -74,7 +74,7 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
         if (buf==NULL){
             return NULL;
         }
-
+        
         return addr;
     }
 }
@@ -116,7 +116,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
 bool OpenCLCache::copyOut(uint64_t hostAddr,
         uint64_t devAddr,
         size_t size,
-        DeviceOps *ops) {
+        DeviceOps *ops) {       
     //If shared memory, no need to copy
     cl_int errCode;
 
@@ -129,7 +129,7 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
    // ops->completeOp();
 
     if (errCode != CL_SUCCESS && devAddr!=0) {        
-        fatal("Buffer reading failed.");
+        fatal("Buffer reading failed with error" << errCode);
     }    
     return true;
 }
@@ -138,7 +138,7 @@ bool OpenCLCache::copyInBuffer(void *localSrc,
         cl_mem remoteBuffer,
         size_t size) {            
     cl_int errCode;
-    
+
     cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)localSrc,size);
     
     errCode = _openclAdapter.copyInBuffer(buf,
