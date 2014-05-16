@@ -41,7 +41,8 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    //Save OpenCL device type
    cl_device_type devType;
    clGetDeviceInfo( _dev, CL_DEVICE_TYPE, sizeof( cl_device_type ),&devType, NULL );
-   _useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
+   //_useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
+   _useHostPtrs= false;
    
    _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
 

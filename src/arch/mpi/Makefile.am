@@ -78,27 +78,32 @@ performance_LTLIBRARIES =
 
 install-data-hook:	
 
-	echo  -I${devincludedir} ${nanos_test_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/test_flags
+	echo -n ${nanos_test_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/test_flags
+	echo " -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/test_flags
 	echo $(CXX) > $(DESTDIR)$(mpiincludedir)/nanox_compiler
 if DEBUG_VERSION
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/debug_flags
+	echo -n ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/debug_flags
+	echo " -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/debug_flags
 endif
 
 if INSTRUMENTATION_VERSION
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_instr_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_flags
+	echo -n ${nanos_instr_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_flags
+	echo " -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/instrumentation_flags
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_instrdebug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
+	echo -n ${nanos_instrdebug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
+	echo " -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
 endif
 
 
 if PERFORMANCE_VERSION
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/performance_flags 
+	echo  -n ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/performance_flags 
+	echo " -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/performance_flags
 endif
 
 
