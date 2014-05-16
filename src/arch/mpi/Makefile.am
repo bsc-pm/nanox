@@ -42,7 +42,7 @@ pe_mpi_sources = \
 	$(END)
 
 mpi_api_flags = -I$(top_srcdir)/src/apis/c \
-                -DNANOX_PREFIX=\"$(NANOX_MPI_PREFIX)\"
+                -DNANOX_PREFIX=\"$(prefix)\"
 
 mpiinclude_HEADERS = \
 	nanos-mpi.h \
@@ -76,28 +76,48 @@ instrumentation_debug_LTLIBRARIES =
 performance_LTLIBRARIES = 
 
 
-install-exec-local:	
+install-data-hook:	
 
-	mkdir -p $(NANOX_MPI_PREFIX)/src/arch/mpi
-	echo  -I${devincludedir} ${nanos_test_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/test_flags
-
+	echo  -I${devincludedir} ${nanos_test_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/test_flags
+	echo $(CXX) > $(DESTDIR)$(mpiincludedir)/nanox_compiler
 if DEBUG_VERSION
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/debug_flags
+	echo  -I${devincludedir} ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/debug_flags
 endif
 
 if INSTRUMENTATION_VERSION
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_instr_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_flags
+	echo  -I${devincludedir} ${nanos_instr_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_flags
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_instrdebug_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/instrumentation_debug_flags
+	echo  -I${devincludedir} ${nanos_instrdebug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
 endif
 
 
 if PERFORMANCE_VERSION
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) ${mpi_api_flags}
-	echo  -I${devincludedir} ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${NANOX_MPI_PREFIX}@g" > $(NANOX_MPI_PREFIX)/src/arch/mpi/performance_flags 
+	echo  -I${devincludedir} ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/performance_flags 
+endif
+
+
+uninstall-hook:	
+	rm -rf $(DESTDIR)$(mpiincludedir)/test_flags
+	rm -rf $(DESTDIR)$(mpiincludedir)/nanox_compiler
+if DEBUG_VERSION
+	rm -rf $(DESTDIR)$(mpiincludedir)/debug_flags
+endif
+
+if INSTRUMENTATION_VERSION
+	rm -rf $(DESTDIR)$(mpiincludedir)/instrumentation_flags
+endif
+
+if INSTRUMENTATION_DEBUG_VERSION
+	rm -rf $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
+endif
+
+
+if PERFORMANCE_VERSION
+	rm -rf $(DESTDIR)$(mpiincludedir)/performance_flags 
 endif
