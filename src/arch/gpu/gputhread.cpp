@@ -23,6 +23,7 @@
 #include "gpuutils.hpp"
 #include "gpucallback.hpp"
 #include "instrumentationmodule_decl.hpp"
+#include "os.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
 
@@ -63,6 +64,23 @@ void GPUThread::start()
    if ( pthread_create( &_pth, &attr, gpu_bootthread, this ) )
       fatal( "couldn't create thread" );
 }
+
+void GPUThread::bind( void )
+{
+   int cpu_id = getCpuId();
+
+   cpu_set_t cpu_set;
+   CPU_ZERO( &cpu_set );
+   CPU_SET( cpu_id, &cpu_set );
+   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
+   OS::bindThread( &cpu_set );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+}
+
 void GPUThread::join()
 {
    pthread_join( _pth, NULL );

@@ -85,6 +85,7 @@ namespace ext
          GenericEvent * createPostRunEvent( WD * wd );
 
          void start();
+         void bind();
          void join();
 
          void switchTo( WD *work, SchedulerHelper *helper );
