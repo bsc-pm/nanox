@@ -83,6 +83,18 @@ void GPUThread::bind( void )
 
 void GPUThread::join()
 {
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   // CUDA callback to disable instrumentation in CUDA's thread
+   cudaEvent_t evtk;
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_EVENT_RECORD_EVENT );
+   cudaEventCreate( &evtk, 0 );
+   cudaEventRecord( evtk, 0 );
+   cudaStreamWaitEvent( 0, evtk, 0 );
+   GPUCallbackData * cbd = NEW GPUCallbackData( this );
+   cudaStreamAddCallback( 0, unregisterCUDAThreadCallback, ( void * ) cbd, 0 );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+#endif
+
    pthread_join( _pth, NULL );
    joined();
 }
@@ -189,6 +201,18 @@ void GPUThread::runDependent ()
       return;
    }
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   // CUDA callback to enable instrumentation in CUDA's thread
+   cudaEvent_t evtk1;
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_EVENT_RECORD_EVENT );
+   cudaEventCreate( &evtk1, 0 );
+   cudaEventRecord( evtk1, 0 );
+   cudaStreamWaitEvent( 0, evtk1, 0 );
+   GPUCallbackData * cbd = NEW GPUCallbackData( this );
+   cudaStreamAddCallback( 0, registerCUDAThreadCallback, ( void * ) cbd, 0 );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+#endif
 
    dd.getWorkFct()( work.getData() );
 
@@ -288,6 +312,18 @@ void * GPUThread::getCUBLASHandle()
          ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream( _kernelStreamIdx ));
 
    return _cublasHandle;
+}
+
+
+BaseThread * GPUThread::getCUDAThreadInst()
+{
+   return _cudaThreadInst;
+}
+
+
+void GPUThread::setCUDAThreadInst( BaseThread * thread )
+{
+   _cudaThreadInst = thread;
 }
 
 

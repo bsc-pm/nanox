@@ -38,6 +38,7 @@ namespace ext
          size_t      _size;
 
          // constructors
+         GPUCallbackData(  GPUThread * thread ) :  _thread( thread ), _wd( NULL ), _size( 0 ) {}
          GPUCallbackData(  GPUThread * thread, WD * wd ) :  _thread( thread ), _wd( wd ), _size( 0 ) {}
          GPUCallbackData(  GPUThread * thread, size_t size ) :  _thread( thread ), _wd( NULL ), _size( size ) {}
 
@@ -58,6 +59,11 @@ namespace ext
    // Copying outputs
    void CUDART_CB beforeAsyncOutputCallback( cudaStream_t stream, cudaError_t status, void * data );
    void CUDART_CB afterAsyncOutputCallback( cudaStream_t stream, cudaError_t status, void * data );
+
+   void CUDART_CB registerCUDAThreadCallback( cudaStream_t stream, cudaError_t status, void * data );
+   void CUDART_CB unregisterCUDAThreadCallback( cudaStream_t stream, cudaError_t status, void * data );
+
+
 
 
 }

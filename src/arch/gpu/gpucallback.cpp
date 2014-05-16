@@ -30,7 +30,7 @@ void CUDART_CB nanos::ext::beforeWDRunCallback( cudaStream_t stream, cudaError_t
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
    WD * wd = ( ( GPUCallbackData * ) data )->_wd;
 
-   myThread = ( BaseThread * ) thread;
+   myThread = ( BaseThread * ) thread->getCUDAThreadInst();
 
    thread->raiseWDRunEvent( wd );
 
@@ -43,7 +43,7 @@ void CUDART_CB nanos::ext::afterWDRunCallback( cudaStream_t stream, cudaError_t 
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
    WD * wd = ( ( GPUCallbackData * ) data )->_wd;
 
-   myThread = ( BaseThread * ) thread;
+   myThread = ( BaseThread * ) thread->getCUDAThreadInst();
 
    thread->closeWDRunEvent( wd );
 
@@ -56,7 +56,7 @@ void CUDART_CB nanos::ext::beforeAsyncInputCallback( cudaStream_t stream, cudaEr
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
    size_t size = ( ( GPUCallbackData * ) data )->_size;
 
-   myThread = ( BaseThread * ) thread;
+   myThread = ( BaseThread * ) thread->getCUDAThreadInst();
 
    thread->raiseAsyncInputEvent( size );
 
@@ -69,7 +69,7 @@ void CUDART_CB nanos::ext::afterAsyncInputCallback( cudaStream_t stream, cudaErr
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
    size_t size = ( ( GPUCallbackData * ) data )->_size;
 
-   myThread = ( BaseThread * ) thread;
+   myThread = ( BaseThread * ) thread->getCUDAThreadInst();
 
    thread->closeAsyncInputEvent( size );
 
@@ -82,7 +82,7 @@ void CUDART_CB nanos::ext::beforeAsyncOutputCallback( cudaStream_t stream, cudaE
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
    size_t size = ( ( GPUCallbackData * ) data )->_size;
 
-   myThread = ( BaseThread * ) thread;
+   myThread = ( BaseThread * ) thread->getCUDAThreadInst();
 
    thread->raiseAsyncOutputEvent( size );
 
@@ -95,9 +95,30 @@ void CUDART_CB nanos::ext::afterAsyncOutputCallback( cudaStream_t stream, cudaEr
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
    size_t size = ( ( GPUCallbackData * ) data )->_size;
 
-   myThread = ( BaseThread * ) thread;
+   myThread = ( BaseThread * ) thread->getCUDAThreadInst();
 
    thread->closeAsyncOutputEvent( size );
 
    delete ( GPUCallbackData * ) data;
+}
+
+
+void CUDART_CB nanos::ext::registerCUDAThreadCallback( cudaStream_t stream, cudaError_t status, void * data )
+{
+   GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
+
+   sys.admitCurrentThread();
+
+   thread->setCUDAThreadInst( myThread );
+}
+
+
+void CUDART_CB nanos::ext::unregisterCUDAThreadCallback( cudaStream_t stream, cudaError_t status, void * data )
+{
+   GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
+
+   myThread = ( BaseThread * ) thread->getCUDAThreadInst();
+
+   sys.expelCurrentThread();
+   myThread->leaveTeam();
 }

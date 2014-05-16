@@ -42,6 +42,7 @@ namespace ext
          int                           _kernelStreamIdx;
          bool                          _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
          void *                        _cublasHandle; //! Context pointer for CUBLAS library
+         BaseThread *                  _cudaThreadInst;
 
          // disable copy constructor and assignment operator
          GPUThread( const GPUThread &th );
@@ -57,7 +58,7 @@ namespace ext
       public:
          // constructor
          GPUThread( WD &w, PE *pe, int device ) : AsyncThread( w, pe ), _gpuDevice( device ), _kernelStreamIdx ( 0 ),
-         _wdClosingEvents( false ), _cublasHandle( NULL ) {}
+         _wdClosingEvents( false ), _cublasHandle( NULL ), _cudaThreadInst( NULL ) {}
 
          // destructor
          ~GPUThread() {}
@@ -79,6 +80,9 @@ namespace ext
          int getGPUDevice ();
 
          void * getCUBLASHandle();
+
+         BaseThread * getCUDAThreadInst();
+         void setCUDAThreadInst( BaseThread * thread );
 
          GenericEvent * createPreRunEvent( WD * wd );
          GenericEvent * createRunEvent( WD * wd );
