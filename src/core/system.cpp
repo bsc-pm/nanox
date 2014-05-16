@@ -1454,6 +1454,10 @@ void * System::getHwlocTopology ()
 
 void System::admitCurrentThread ( void )
 {
+   _targetThreads++;
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->incrementMaxThreads(); )
+
+
    int pe_id = _pes.size();
 
    //! \note Create a new PE and configure it
@@ -1484,8 +1488,23 @@ void System::admitCurrentThread ( void )
 void System::expelCurrentThread ( void )
 {
    int pe_id =  myThread->runningOn()->getUId();
-   _pes.erase( _pes.begin() + pe_id );
-   _workers.erase ( _workers.begin() + myThread->getId() );
+
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      if ( ( *it )->getId() == pe_id ) {
+         _pes.erase( it );
+         break;
+      }
+   }
+   //_pes.erase( _pes.begin() + pe_id );
+
+   for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      if ( ( *it )->getId() == myThread->getId() ) {
+         _workers.erase( it );
+         _targetThreads--;
+         break;
+      }
+   }
+   //_workers.erase ( _workers.begin() + myThread->getId() );
 }
 
 void System::environmentSummary( void )
