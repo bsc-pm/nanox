@@ -71,7 +71,10 @@ namespace ext
             NANOS_GPU_CUDA_EVENT_RECORD_EVENT,                    /* 23 */
             NANOS_GPU_CUDA_EVENT_QUERY_EVENT,                     /* 24 */
             NANOS_GPU_CUDA_EVENT_SYNC_EVENT,                      /* 25 */
-            NANOS_GPU_CUDA_KERNEL_LAUNCH_EVENT                    /* 26 */
+            NANOS_GPU_CUDA_KERNEL_LAUNCH_EVENT,                   /* 26 */
+            NANOS_GPU_CUDA_STREAM_CREATE_EVENT,                   /* 27 */
+            NANOS_GPU_CUDA_STREAM_DESTROY_EVENT,                  /* 28 */
+            NANOS_GPU_CUDA_GET_PCI_BUS_EVENT                      /* 29 */
          } GPUInstrumentationInCudaRuntimeEventValue;
 
          static void displayAllGPUsProperties( void );

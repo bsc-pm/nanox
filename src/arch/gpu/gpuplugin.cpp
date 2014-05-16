@@ -101,7 +101,9 @@ class GPUPlugin : public ArchPlugin
 #else
                char pciDevice[20]; // 13 min
 
+               NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_GET_PCI_BUS_EVENT );
                cudaDeviceGetPCIBusId( pciDevice, 20, i );
+               NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
                // This is common code for cuda 4.0 and 4.1
                std::stringstream ss;

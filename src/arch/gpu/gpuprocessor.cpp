@@ -181,7 +181,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 {
    if ( inputStream ) {
       // Initialize the CUDA streams used for input data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       cudaError_t err = cudaStreamCreate( &_inTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          // If an error occurred, disable stream overlapping
          _inTransferStream = 0;
@@ -194,7 +197,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       // Initialize the CUDA stream used for tracing input data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       err = cudaStreamCreate( &_tracingInStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          _tracingInStream = 0;
          warning( "CUDA stream creation for tracing input transfers failed: " << cudaGetErrorString( err ) );
@@ -206,7 +212,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 
    if ( outputStream ) {
       // Initialize the CUDA streams used for output data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       cudaError_t err = cudaStreamCreate( &_outTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          // If an error occurred, disable stream overlapping
          _outTransferStream = 0;
@@ -219,7 +228,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       // Initialize the CUDA stream used for tracing output data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       err = cudaStreamCreate( &_tracingOutStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          _tracingOutStream = 0;
          warning( "CUDA stream creation for tracing output transfers failed: " << cudaGetErrorString( err ) );
@@ -231,7 +243,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 
    if ( inputStream || outputStream ) {
       // Initialize the CUDA streams used for local data transfers and kernel execution
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       cudaError_t err = cudaStreamCreate( &_localTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          // If an error occurred, disable stream overlapping
          _localTransferStream = 0;
@@ -246,7 +261,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
       std::cout << "Creating " << _numExecStreams << " exec streams" << std::endl;
       _kernelExecStream = ( cudaStream_t * ) malloc( _numExecStreams * sizeof( cudaStream_t ) );
       for ( int i = 0; i < _numExecStreams; i++ ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
          err = cudaStreamCreate( &_kernelExecStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
          if ( err != cudaSuccess ) {
             // If an error occurred, disable stream overlapping for that kernel stream
             _kernelExecStream[i] = 0;
@@ -261,7 +279,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
       // Initialize the CUDA streams used for tracing kernel launches
       _tracingKernelStream = ( cudaStream_t * ) malloc( _numExecStreams * sizeof( cudaStream_t ) );
       for ( int i = 0; i < _numExecStreams; i++ ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
          err = cudaStreamCreate( &_tracingKernelStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
          if ( err != cudaSuccess ) {
             _tracingKernelStream[i] = 0;
             warning( "CUDA stream creation for tracing kernel launches failed: " << cudaGetErrorString( err ) );
@@ -285,13 +306,19 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
 {
    if ( _inTransferStream ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       cudaError_t err = cudaStreamDestroy( _inTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
       }
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       err = cudaStreamDestroy( _tracingInStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA stream for tracing input transfers: " << cudaGetErrorString( err ) );
       }
@@ -299,13 +326,19 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
    }
 
    if ( _outTransferStream ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       cudaError_t err = cudaStreamDestroy( _outTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
       }
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       err = cudaStreamDestroy( _tracingOutStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA stream for tracing output transfers: " << cudaGetErrorString( err ) );
       }
@@ -313,7 +346,10 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
    }
 
    if ( _localTransferStream ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       cudaError_t err = cudaStreamDestroy( _localTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
       }
@@ -321,7 +357,10 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
 
    for ( int i = 0; i < _numExecStreams; i++ ) {
       if ( _kernelExecStream[i] ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
          cudaError_t err = cudaStreamDestroy( _kernelExecStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
          if ( err != cudaSuccess ) {
             warning( "Error while destroying the CUDA kernel execution stream #" << i << ": " << cudaGetErrorString( err ) );
          }
@@ -331,7 +370,10 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    for ( int i = 0; i < _numExecStreams; i++ ) {
       if ( _tracingKernelStream[i] ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
          cudaError_t err = cudaStreamDestroy( _tracingKernelStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
          if ( err != cudaSuccess ) {
             warning( "Error while destroying the CUDA stream for tracing kernel launches: " << cudaGetErrorString( err ) );
          }
