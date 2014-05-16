@@ -1,5 +1,4 @@
-
-AC_INIT([nanox], [0.6a], [alex.duran@bsc.es])
+AC_INIT([nanox], [0.6], [alex.duran@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 # Environment
