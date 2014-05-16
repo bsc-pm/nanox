@@ -116,7 +116,7 @@ class GPUPlugin : public ArchPlugin
                //numa = false;
             }
 
-            ext::SMPProcessor *core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnode(node);
+            ext::SMPProcessor *core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnodeAndReserve(node);
             if ( core == NULL ) {
                fatal0("Unable to get a core to run the GPU thread.");
             }

@@ -23,6 +23,7 @@ class ClusterPlugin : public ArchPlugin
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
       std::vector<ext::ClusterNode *> *_nodes;
+      ext::SMPProcessor *_cpu;
       ext::SMPMultiThread *_clusterThread;
 
    public:

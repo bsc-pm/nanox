@@ -79,7 +79,7 @@ public:
          SeparateMemoryAddressSpace &oclmemory = sys.getSeparateMemory( id );
          oclmemory.setNodeNumber( 0 );
 
-         ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
+         ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
          if ( core == NULL ) {
             fatal0("Unable to get a core to run the GPU thread.");
          }
