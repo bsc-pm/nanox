@@ -18,10 +18,41 @@ extern "C" {
       return 0;
    } 
 
+
+   //! List of callback declarations
+   ompt_new_parallel_callback_t ompt_nanos_event_parallel_begin = NULL;
+   ompt_parallel_callback_t ompt_nanos_event_parallel_end = NULL;
+   ompt_new_task_callback_t     ompt_nanos_event_task_begin = NULL;
+   ompt_task_callback_t         ompt_nanos_event_task_end = NULL;
+   ompt_thread_type_callback_t  ompt_nanos_event_thread_begin = NULL;
+   ompt_thread_type_callback_t  ompt_nanos_event_thread_end = NULL;
+
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback );
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback )
    {
       switch ( event ) {
+         case ompt_event_parallel_begin:
+            ompt_nanos_event_parallel_begin = (ompt_new_parallel_callback_t) callback;
+            return 4;
+         case ompt_event_parallel_end:
+            ompt_nanos_event_parallel_end = (ompt_parallel_callback_t) callback;
+            return 4;
+         case ompt_event_task_begin: 
+            ompt_nanos_event_task_begin = (ompt_new_task_callback_t) callback;
+            return 4;
+         case ompt_event_task_end:
+            ompt_nanos_event_task_end = (ompt_task_callback_t) callback;
+            return 4;
+         case ompt_event_thread_begin:
+            ompt_nanos_event_thread_begin = (ompt_thread_type_callback_t) callback;
+            return 4;
+         case ompt_event_thread_end:
+            ompt_nanos_event_thread_end = (ompt_thread_type_callback_t) callback;
+            return 4;
+         case ompt_event_control:
+            return 4;
+         case ompt_event_runtime_shutdown:
+            return 4;
          default:
             warning("Callback registration error");
             return 0;
@@ -53,11 +84,58 @@ namespace nanos
          void finalize( void ) {}
          void disable( void ) {}
          void enable( void ) {}
-         void addEventList ( unsigned int count, Event *events ) {}
+         void addEventList ( unsigned int count, Event *events )
+         {
+            InstrumentationDictionary *iD = getInstrumentationDictionary();
+            static const nanos_event_key_t create_wd_ptr = iD->getEventKey("create-wd-ptr");
+            static const nanos_event_key_t api = iD->getEventKey("api");
+            static const nanos_event_value_t api_enter_team = iD->getEventValue("api","enter_team");
+            static const nanos_event_value_t api_leave_team = iD->getEventValue("api","leave_team");
+
+            unsigned int i;
+            for( i=0; i<count; i++) {
+               Event &e = events[i];
+               if ( e.getKey( ) == create_wd_ptr && ompt_nanos_event_task_begin )
+               { 
+                  ompt_nanos_event_task_begin((ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(), NULL,
+                                              (ompt_task_id_t) ((WorkDescriptor *)e.getValue())->getId(), NULL);
+               }
+               else if ( e.getKey( ) == api )
+               {
+                  nanos_event_value_t val = e.getValue();
+                
+                  if ( val == api_enter_team && ompt_nanos_event_parallel_begin )
+                  {
+                     ompt_nanos_event_parallel_begin (
+                       (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
+                       (ompt_frame_t) NULL,
+                       (ompt_parallel_id_t) 0,
+                       (uint32_t) 0,
+                       (void *) NULL );
+                  }
+                  else if ( val == api_leave_team && ompt_nanos_event_parallel_end )
+                  {
+                     ompt_nanos_event_parallel_end (
+                           (ompt_parallel_id_t) 0,
+                           (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
+                  }
+          
+               }
+            }
+         }
          void addResumeTask( WorkDescriptor &w ) {}
-         void addSuspendTask( WorkDescriptor &w, bool last ) {;}
-         void threadStart( BaseThread &thread ) {}
-         void threadFinish ( BaseThread &thread ) {}
+         void addSuspendTask( WorkDescriptor &w, bool last )
+         {
+            if (ompt_nanos_event_task_end && last) ompt_nanos_event_task_end((ompt_task_id_t) w.getId());
+         }
+         void threadStart( BaseThread &thread ) 
+         {
+            if (ompt_nanos_event_thread_begin) ompt_nanos_event_thread_begin((ompt_thread_type_t) 2, (ompt_thread_id_t) nanos::myThread->getId());
+         }
+         void threadFinish ( BaseThread &thread )
+         {
+            if (ompt_nanos_event_thread_end) ompt_nanos_event_thread_end((ompt_thread_type_t) 2, (ompt_thread_id_t) nanos::myThread->getId());
+         }
          void incrementMaxThreads( void ) {}
    };
    namespace ext
