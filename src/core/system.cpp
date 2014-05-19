@@ -192,14 +192,6 @@ void System::loadModules ()
    const OS::ModuleList & modules = OS::getRequestedModules();
    std::for_each(modules.begin(),modules.end(), LoadModule());
 
-   // load default dependencies plugin
-   verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
-
-   if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
-      fatal0 ( "Couldn't load main dependencies manager" );
-
-   ensure0( _dependenciesManager,"No default dependencies manager" );
-
    // load host processor module
    if ( _hostFactory == NULL ) {
      verbose0( "loading Host support" );
@@ -235,6 +227,14 @@ void System::loadModules ()
 
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
+
+   // load default dependencies plugin
+   verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );
+
+   if ( !loadPlugin( "deps-"+getDefaultDependenciesManager() ) )
+      fatal0 ( "Couldn't load main dependencies manager" );
+
+   ensure0( _dependenciesManager,"No default dependencies manager" );
 
    // load default schedule plugin
    verbose0( "loading " << getDefaultSchedule() << " scheduling policy support" );
@@ -432,11 +432,11 @@ void System::start ()
    loadModules();
 
    // Increase targetThreads, ask the architecture plugins
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it )
-   {
-      _targetThreads += (*it)->getNumThreads();
-   }
+   //for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+   //     it != _archs.end(); ++it )
+   //{
+   //   _targetThreads += (*it)->getNumThreads();
+   //}
 
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
@@ -446,11 +446,24 @@ void System::start ()
 
    _pes.reserve ( _peIdSeed.value() );
 
+   _smpPlugin->associateThisThread( getUntieMaster() );
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
-   mainWD._mcontrol.preInit();
+///* this previously was in SMPProcessor::associateThisThread */
+//   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) mainWD.getId(), 0, 0 ); )
+//   NANOS_INSTRUMENT (InstrumentationContextData *icd = mainWD.getInstrumentationContextData() );
+//   NANOS_INSTRUMENT (icd->setStartingWD(true) );
+///* this is also in SMPProcessor::bind */
+//   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cpuid"); )
+//   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) ((ext::SMPThread *)myThread)->getCpuId() + 1; )
+//   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+///* WD::init */
+//   NANOS_INSTRUMENT( if ( sys.getInstrumentation() != NULL ) { sys.getInstrumentation()->wdCreate( &mainWD ); } )
+///* BaseThread::associate */
+//   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &mainWD, false) );
+///***/
+   //mainWD.setDependenciesDomain( _dependenciesManager->createDependenciesDomain() );
    mainWD._mcontrol.setMainWD();
-   mainWD._mcontrol.initialize( *(_smpPlugin->getFirstSMPProcessor()) );
 
    _pmInterface->start();
    if ( _pmInterface->getInternalDataSize() > 0 ) {
@@ -460,10 +473,14 @@ void System::start ()
    }
    _pmInterface->setupWD( mainWD );
 
+   /* Renaming currend thread as Master */
+   myThread->rename("Master");
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
+
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
    {
+      verbose0("addPEs for arch: " << (*it)->getName()); 
       (*it)->addPEs( _pes );
    }   
 
@@ -479,15 +496,14 @@ void System::start ()
       (*it)->startWorkerThreads( _workers );
    }   
 
-   /* Renaming currend thread as Master */
-   myThread->rename("Master");
-
    // For each plugin, notify it's the way to reserve PEs if they are required
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
    {
       (*it)->createBindingList();
    }   
+
+   _targetThreads = _smpPlugin->getNumThreads();
 
    // Set up internal data for each worker
    for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {

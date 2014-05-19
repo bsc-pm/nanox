@@ -133,7 +133,6 @@ class GPUPlugin : public ArchPlugin
 
             ext::GPUProcessor *gpu = NEW nanos::ext::GPUProcessor( gpuC, id, core, *gpuMemSpace );
             (*_gpus)[gpuC] = gpu;
-            (*_gpuThreads)[gpuC] = (ext::GPUThread *) &gpu->startGPUThread();
          }
       }
       
@@ -270,6 +269,10 @@ virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
 }
 
 virtual void startSupportThreads() {
+   for ( unsigned int gpuC = 0; gpuC < _gpus->size(); gpuC += 1 ) {
+      GPUProcessor *gpu = (*_gpus)[gpuC];
+      (*_gpuThreads)[gpuC] = (ext::GPUThread *) &gpu->startGPUThread();
+   }
 }
 
 virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {

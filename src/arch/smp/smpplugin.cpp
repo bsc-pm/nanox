@@ -61,6 +61,7 @@ class SMPPlugin : public SMPBasePlugin
    bool                         _bindThreads;
    bool                         _smpNuma;
    bool                         _workersCreated;
+   int                          _numThreadsRequestedForSupport;
 
    // Nanos++ scheduling domain
    cpu_set_t                    _cpuSet;          /*!< \brief system's default cpu_set */
@@ -104,6 +105,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindThreads( true )
                  , _smpNuma( false )
                  , _workersCreated( false )
+                 , _numThreadsRequestedForSupport( 0 )
                  , _cpuActiveSet()
                  , _numSockets( 0 )
                  , _coresPerSocket( 0 )
@@ -254,7 +256,8 @@ class SMPPlugin : public SMPBasePlugin
       // FIXME (855): do this before thread creation, after PE creation
       completeNUMAInfo();
 
-      associateThisThread( sys.getUntieMaster() );
+      /* reserve it for main thread */
+      getFirstSMPProcessor()->reserve();
    }
 
    virtual unsigned getPEsInNode( unsigned node ) const
@@ -265,8 +268,7 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual unsigned getNumThreads() const
    {
-      //return sys.getNumThreads();
-      return 0;
+      return _workers.size() + _numThreadsRequestedForSupport;
    }
 
    virtual ProcessingElement* createPE( unsigned id, unsigned uid )
@@ -292,6 +294,7 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+      //associateThisThread( sys.getUntieMaster() );
       ensure( _workers.size() == 1, "Main thread should be the only worker created so far." );
       workers.push_back( _workers[0] );
       //create as much workers as possible
@@ -355,7 +358,7 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
-   virtual ext::SMPProcessor *getLastFreeSMPProcessorAndReserve() const {
+   virtual ext::SMPProcessor *getLastFreeSMPProcessorAndReserve() {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
@@ -363,13 +366,15 @@ class SMPPlugin : public SMPBasePlugin
             it++ ) {
          if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
             target = *it;
+            std::cerr << " reserving cpu " << target->getBindingId() << std::endl;
             target->reserve();
+            _numThreadsRequestedForSupport += 1;
          }
       }
       return target;
    }
 
-   virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node) const {
+   virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node) {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
@@ -377,7 +382,9 @@ class SMPPlugin : public SMPBasePlugin
             it++ ) {
          if ( (*it)->getNUMANode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
             target = *it;
+            std::cerr << " reserving cpu " << target->getBindingId() << std::endl;
             target->reserve();
+            _numThreadsRequestedForSupport += 1;
          }
       }
       return target;
@@ -826,13 +833,13 @@ class SMPPlugin : public SMPBasePlugin
    virtual unsigned int getNumWorkers() const {
       int count = 0;
       if ( !_workersCreated ) {
-         //first count the number of "free" cpus
-         for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-            count += !(*it)->isReserved();
-         }
-         //if a certain number of workers was requested, pick the minimum between that value and the number of free cpus
+         /*if a certain number of workers was requested, pick the minimum between that value
+          * and the number of cpus and the support threads requested
+          */
          if ( _requestedWorkers > 0 ) {
-            count = std::min( _requestedWorkers, count );
+            count = std::min( (size_t) _requestedWorkers, _cpus->size() - _numThreadsRequestedForSupport );
+         } else {
+            count = _cpus->size() - _numThreadsRequestedForSupport;
          }
          debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
       } else {
