@@ -97,6 +97,8 @@ System::System () :
 //      , _opencls( NULL )
 //#endif
       , _createLocalTasks( false )
+      , _verboseDevOps( false )
+      , _splitOutputForThreads( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -417,6 +419,13 @@ void System::config ()
                              "Defines the number of times a restartable task can be re-executed (default: 1). ");
    cfg.registerArgOption( "task_retries", "task-retries" );
    cfg.registerEnvOption( "task_retries", "NX_TASK_RETRIES" );
+
+
+   cfg.registerConfigOption ( "verbose-devops", NEW Config::FlagOption ( _verboseDevOps, true ), "Verbose cache ops" );
+   cfg.registerArgOption ( "verbose-devops", "verbose-devops" );
+
+   cfg.registerConfigOption ( "thd-output", NEW Config::FlagOption ( _splitOutputForThreads, true ), "Create separate files for each thread" );
+   cfg.registerArgOption ( "thd-output", "thd-output" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );

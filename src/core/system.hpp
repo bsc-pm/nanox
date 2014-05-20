@@ -527,5 +527,13 @@ inline ThreadTeam *System::getMainTeam() {
    return _mainTeam;
 }
 
+inline bool System::getVerboseDevOps() const {
+   return _verboseDevOps;
+}
+
+inline bool System::getSplitOutputForThreads() const {
+   return _splitOutputForThreads;
+}
+
 #endif
 
