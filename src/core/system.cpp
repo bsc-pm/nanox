@@ -225,8 +225,6 @@ void System::loadModules ()
    }
 #endif
 
-   /* test */ _smpPlugin->getNumWorkers();
-
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 

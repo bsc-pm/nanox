@@ -24,6 +24,7 @@
 #include "os.hpp"
 #include "osallocator_decl.hpp"
 #include "system.hpp"
+#include "printbt_decl.hpp"
 
 //#include <numa.h>
 
@@ -61,6 +62,7 @@ class SMPPlugin : public SMPBasePlugin
    bool                         _bindThreads;
    bool                         _smpNuma;
    bool                         _workersCreated;
+   unsigned int                 _numWorkers; //must be updated if the number of workers increases after calling startWorkerThreads
    int                          _numThreadsRequestedForSupport;
 
    // Nanos++ scheduling domain
@@ -105,6 +107,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindThreads( true )
                  , _smpNuma( false )
                  , _workersCreated( false )
+                 , _numWorkers( 0 )
                  , _numThreadsRequestedForSupport( 0 )
                  , _cpuActiveSet()
                  , _numSockets( 0 )
@@ -218,6 +221,8 @@ class SMPPlugin : public SMPBasePlugin
          }
          _bindings.push_back( cpu_affinity[pos] );
          i++;
+
+         
       }
 
       // std::cerr << "[ ";
@@ -268,7 +273,7 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual unsigned getNumThreads() const
    {
-      return _workers.size() + _numThreadsRequestedForSupport;
+      return this->getNumWorkers() + _numThreadsRequestedForSupport;
    }
 
    virtual ProcessingElement* createPE( unsigned id, unsigned uid )
@@ -327,6 +332,8 @@ class SMPPlugin : public SMPBasePlugin
             idx += 1;
          }
       }
+      _numWorkers = _workers.size();
+      _workersCreated = true;
 
       //FIXME: this makes sense in OpenMP, also, in OpenMP this value is already set (see omp_init.cpp)
       //       In OmpSs, this will make omp_get_max_threads to return the number of SMP worker threads. 
@@ -815,8 +822,6 @@ class SMPPlugin : public SMPBasePlugin
 
       //! \note Include thread into main thread
       sys.acquireWorker( sys.getMainTeam(), thread, /* enter */ true, /* starring */ false, /* creator */ false );
-
-      _workersCreated = true;
    }
 
    virtual int getCpuCount() const {
@@ -830,23 +835,25 @@ class SMPPlugin : public SMPBasePlugin
    virtual unsigned int getMaxPEs() const {
       return _availableCores;
    }
-   virtual unsigned int getNumWorkers() const {
-      int count = 0;
-      if ( !_workersCreated ) {
-         /*if a certain number of workers was requested, pick the minimum between that value
-          * and the number of cpus and the support threads requested
-          */
-         if ( _requestedWorkers > 0 ) {
-            count = std::min( (size_t) _requestedWorkers, _cpus->size() - _numThreadsRequestedForSupport );
-         } else {
-            count = _cpus->size() - _numThreadsRequestedForSupport;
-         }
-         debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
+
+   unsigned int getEstimatedNumWorkers() const {
+      unsigned int count = 0;
+      /*if a certain number of workers was requested, pick the minimum between that value
+       * and the number of cpus and the support threads requested
+       */
+      if ( _requestedWorkers > 0 ) {
+         count = std::min( (size_t) _requestedWorkers, _cpus->size() - _numThreadsRequestedForSupport );
       } else {
-         count = _workers.size();
+         count = _cpus->size() - _numThreadsRequestedForSupport;
       }
+      debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
       return count;
    }
+
+   virtual unsigned int getNumWorkers() const {
+      return _workersCreated ? _numWorkers : getEstimatedNumWorkers();
+   }
+
    virtual unsigned int getMaxWorkers() const {
       return _currentCores;
    }
