@@ -176,11 +176,13 @@ debug_sources = \
 	memtracker.cpp
         $(END)
 
+if GPU_SUPPORT
 gpu_support_sources = \
 	pinnedallocator_decl.hpp \
 	pinnedallocator.hpp \
 	pinnedallocator.cpp \
         $(END)
+endif
 	
 
 noinst_LTLIBRARIES =
@@ -188,52 +190,31 @@ noinst_LTLIBRARIES =
 if DEBUG_VERSION
 noinst_LTLIBRARIES += debug/libsupport.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) 
-
-debug_libsupport_la_CXXFLAGS=$(nanos_debug_cxxflags)
-if GPU_SUPPORT
+debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_debug_cxxflags)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-else
-debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources)
-endif
+debug_libsupport_la_LDFLAGS=$(dlb_ldflags)
 endif
 
 if INSTRUMENTATION_VERSION
 noinst_LTLIBRARIES += instrumentation/libsupport.la
 
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) 
-
-instrumentation_libsupport_la_CXXFLAGS=$(nanos_instr_cxxflags)
-if GPU_SUPPORT
+instrumentation_libsupport_la_CXXFLAGS=$(common_includes) $(common_instr_cxxflags)
 instrumentation_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
-else
-instrumentation_libsupport_la_SOURCES=$(support_sources)
-endif
+instrumentation_libsupport_la_LDFLAGS=$(dlb_ldflags)
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
 noinst_LTLIBRARIES += instrumentation-debug/libsupport.la
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) 
-
-instrumentation_debug_libsupport_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
-if GPU_SUPPORT
+instrumentation_debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_instrdebug_cxxflags)
 instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-else
-instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources)
-endif
+instrumentation_debug_libsupport_la_LDFLAGS=$(dlb_ldflags)
 endif
 
 if PERFORMANCE_VERSION
 noinst_LTLIBRARIES += performance/libsupport.la
 
-nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) 
-
-performance_libsupport_la_CXXFLAGS=$(nanos_perfo_cxxflags)
-if GPU_SUPPORT
+performance_libsupport_la_CXXFLAGS=$(common_includes) $(common_perfo_cxxflags)
 performance_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
-else
-performance_libsupport_la_SOURCES=$(support_sources)
+performance_libsupport_la_LDFLAGS=$(dlb_ldflags)
 endif
-endif
-

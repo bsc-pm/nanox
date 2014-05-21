@@ -26,6 +26,7 @@
 namespace nanos {
 namespace ResourceManager {
    void init( void );
+   void finalize( void );
    void acquireResourcesIfNeeded( void );
    void releaseCpu( void );
    void returnClaimedCpus( void );

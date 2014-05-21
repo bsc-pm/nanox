@@ -786,6 +786,8 @@ System::~System ()
 int createdWds=0;
 void System::finish ()
 {
+   ResourceManager::finalize();
+
    //! \note Instrumentation: first removing RUNNING state from top of the state statck
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );

@@ -25,6 +25,9 @@
 #include "instrumentation_decl.hpp"
 #include "os.hpp"
 
+#ifdef DLB
+#include <DLB_interface.h>
+#else
 extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
    void DLB_UpdateResources( void ) __attribute__(( weak ));
@@ -33,7 +36,10 @@ extern "C" {
    int DLB_ReturnClaimedCpu ( int cpu ) __attribute__(( weak ));
    void DLB_ClaimCpus (int cpus) __attribute__(( weak ));
    int DLB_CheckCpuAvailability ( int cpu ) __attribute__(( weak ));
+   void DLB_Init ( void ) __attribute__(( weak ));
+   void DLB_Finalize ( void ) __attribute__(( weak ));
 }
+#endif
 
 namespace nanos {
 namespace ResourceManager {
@@ -64,15 +70,28 @@ void ResourceManager::init( void )
    ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
 
    _flags.is_malleable = sys.getPMInterface().isMalleable();
-   _flags.dlb_enabled = sys.dlbEnabled() &&
-                        DLB_UpdateResources_max &&
-                        DLB_UpdateResources &&
-                        DLB_ReleaseCpu &&
-                        DLB_ReturnClaimedCpus &&
-                        DLB_ReturnClaimedCpu &&
-                        DLB_ClaimCpus &&
-                        DLB_CheckCpuAvailability;
+   _flags.dlb_enabled = sys.dlbEnabled();
+#ifndef DLB
+   _flags.dlb_enabled &=
+         DLB_UpdateResources_max &&
+         DLB_UpdateResources &&
+         DLB_ReleaseCpu &&
+         DLB_ReturnClaimedCpus &&
+         DLB_ReturnClaimedCpu &&
+         DLB_ClaimCpus &&
+         DLB_CheckCpuAvailability;
+#endif
    _flags.initialized = sys.getSchedulerConf().getUseBlock();
+
+   if ( _flags.dlb_enabled )
+      DLB_Init();
+}
+
+void ResourceManager::finalize( void )
+{
+   _flags.initialized = false;
+   if ( _flags.dlb_enabled )
+      DLB_Finalize();
 }
 
 /* Check the availabilty of resources
@@ -118,7 +137,7 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
                for (int i=0; i<CPU_SETSIZE; i++) {
                   if ( CPU_ISSET( i, &_default_cpus) && !CPU_ISSET( i, &_running_cpus ) ) {
                      CPU_SET( i, &_running_cpus );
-                     if ( --needed_resources == 0 )
+                     if ( --ready_tasks == 0 )
                         break;
                      if ( CPU_EQUAL( &_default_cpus, &_running_cpus ) )
                         break;

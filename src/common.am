@@ -19,14 +19,19 @@ hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@
 hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc
 endif
 
+if DLB
+dlb_cxxflags = -DDLB -I@DLB_INC@
+dlb_ldflags = -L@DLB_LIB@ -ldlb_nanos
+endif
+
 if GNU_C
-common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags)
+common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags) $(dlb_cxxflags)
 common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC
 no_inline_flag= -fno-inline
 endif
 
 if IBM_C
-common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags)
+common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags) $(dlb_cxxflags)
 common_fcflags= -qPIC -DPIC
 no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs
