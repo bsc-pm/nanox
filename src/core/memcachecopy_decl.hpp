@@ -2,6 +2,7 @@
 #define MEMCACHECOPY_DECL
 #include "memoryops_decl.hpp"
 #include "regioncache_fwd.hpp"
+#include <fstream>
 namespace nanos {
    class MemCacheCopy {
          unsigned int         _version;
@@ -21,7 +22,7 @@ namespace nanos {
          unsigned int getVersion() const;
          void setVersion( unsigned int version );
          bool isRooted( memory_space_id_t &loc ) const;
-         void printLocations() const;
+         void printLocations( std::ostream &o) const;
    };
 }
 #endif /* MEMCACHECOPY_DECL */

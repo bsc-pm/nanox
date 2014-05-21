@@ -242,10 +242,12 @@ namespace nanos
 //#ifdef GPU_DEV
 //         std::vector<ext::GPUProcessor *> *_gpus;
 //#endif
-#ifdef OpenCL_DEV
-         std::vector<ext::OpenCLProcessor *> *_opencls;
-#endif
+//#ifdef OpenCL_DEV
+//         std::vector<ext::OpenCLProcessor *> *_opencls;
+//#endif
          bool                      _createLocalTasks;
+         bool _verboseDevOps;
+         bool _splitOutputForThreads;
          PE * createPE ( std::string pe_type, int pid, int uid );
 
          //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
@@ -733,6 +735,8 @@ namespace nanos
          SMPBasePlugin *getSMPPlugin() const;
          bool isSimulator() const;
          ThreadTeam *getMainTeam();
+         bool getVerboseDevOps() const;
+         bool getSplitOutputForThreads() const;
    };
 
    extern System sys;

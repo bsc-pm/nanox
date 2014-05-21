@@ -30,6 +30,7 @@
 #include "atomic.hpp"
 #include "system.hpp"
 #include "printbt_decl.hpp"
+#include <stdio.h>
 
 namespace nanos
 {
@@ -107,7 +108,15 @@ namespace nanos
       _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
       _threadWD( wd ), _currentWD( NULL), _nextWDs( ),
       _teamData( NULL ), _nextTeamData( NULL ),
-      _name( "Thread" ), _description( "" ), _allocator( ) { }
+      _name( "Thread" ), _description( "" ), _allocator( ) {
+         if ( sys.getSplitOutputForThreads() ) {
+            char tmpbuf[32];
+            sprintf(tmpbuf, "thd_out.%04d.log", _id );
+            _file = NEW std::ofstream(tmpbuf);
+         } else {
+            _file = &std::cerr;
+         }
+      }
 
    inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
 

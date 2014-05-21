@@ -134,7 +134,7 @@ void SMPThread::yield()
 
 void SMPThread::idle( bool debug )
 {
-   if ( sys.getNetwork()->getNumNodes() > 0 ) {
+   if ( sys.getNetwork()->getNumNodes() > 1 ) {
       sys.getNetwork()->poll(0);
 
       if ( !_pendingRequests.empty() ) {
