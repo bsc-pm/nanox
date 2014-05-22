@@ -45,12 +45,13 @@ namespace nanos {
 namespace ResourceManager {
    namespace {
       typedef struct flags_t {
-         bool initialized;
-         bool is_malleable;
-         bool dlb_enabled;
+         bool initialized:1;
+         bool is_malleable:1;
+         bool dlb_enabled:1;
+         bool block_enabled:1;
       } flags_t;
 
-      flags_t   _status = {false, false, false};
+      flags_t   _status = {false, false, false, false};
       Lock      _lock;
       cpu_set_t _running_cpus;
       cpu_set_t _waiting_cpus;
@@ -70,6 +71,7 @@ void ResourceManager::init( void )
    ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
 
    _status.is_malleable = sys.getPMInterface().isMalleable();
+   _status.block_enabled = sys.getSchedulerConf().getUseBlock();
    _status.dlb_enabled = sys.dlbEnabled();
 #ifndef DLB
    _status.dlb_enabled &=
@@ -81,16 +83,20 @@ void ResourceManager::init( void )
          DLB_ClaimCpus &&
          DLB_CheckCpuAvailability;
 #endif
-   _status.initialized = sys.getSchedulerConf().getUseBlock();
 
-   if ( _status.dlb_enabled )
+   // DLB is only manually initialized when Nanos has --enable-block (No MPI)
+   if ( _status.dlb_enabled && _status.block_enabled )
       DLB_Init();
+
+   _status.initialized = _status.dlb_enabled || _status.block_enabled;
 }
 
 void ResourceManager::finalize( void )
 {
    _status.initialized = false;
-   if ( _status.dlb_enabled )
+
+   // DLB is only manually finalized when Nanos has --enable-block (No MPI)
+   if ( _status.dlb_enabled && _status.block_enabled )
       DLB_Finalize();
 }
 
@@ -102,12 +108,10 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
 
-   if ( !_status.initialized )
-      return;
+   ThreadTeam *team;
 
-   ThreadTeam *team = getMyThreadSafe()->getTeam();
-   if ( !team )
-      return;
+   if ( !_status.initialized ) return;
+   if ( !(team = getMyThreadSafe()->getTeam()) ) return;
 
    if ( _status.is_malleable ) {
       /* OmpSs*/
@@ -172,29 +176,27 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 */
 void ResourceManager::releaseCpu( void )
 {
-   if ( !_status.initialized )
-      return;
-
-   if ( !getMyThreadSafe()->getTeam() || getMyThreadSafe()->isSleeping() )
-      return;
+   if ( !_status.initialized ) return;
+   if ( !_status.is_malleable ) return;
+   if ( !_status.block_enabled ) return;
+   if ( !getMyThreadSafe()->getTeam() ) return;
+   if ( getMyThreadSafe()->isSleeping() ) return;
 
    bool release = true;
-   if ( _status.is_malleable ){
-      int my_cpu = getMyThreadSafe()->getCpuId();
+   int my_cpu = getMyThreadSafe()->getCpuId();
 
-      LockBlock Lock( _lock );
+   LockBlock Lock( _lock );
 
-      if ( CPU_COUNT(&_running_cpus) > 1 ) {
+   if ( CPU_COUNT(&_running_cpus) > 1 ) {
 
-         if ( _status.dlb_enabled ) {
-            release = DLB_ReleaseCpu( my_cpu );
-         }
+      if ( _status.dlb_enabled ) {
+         release = DLB_ReleaseCpu( my_cpu );
+      }
 
-         if ( release ) {
-            CPU_CLR( my_cpu, &_running_cpus );
-            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
-            myThread->sleep();
-         }
+      if ( release ) {
+         CPU_CLR( my_cpu, &_running_cpus );
+         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+         myThread->sleep();
       }
    }
    // wait() only after the lock is released
@@ -209,16 +211,15 @@ void ResourceManager::releaseCpu( void )
 */
 void ResourceManager::returnClaimedCpus( void )
 {
-   if ( !_status.initialized )
-      return;
+   if ( !_status.initialized ) return;
+   if ( !_status.is_malleable ) return;
+   if ( !_status.dlb_enabled ) return;
+   if ( !getMyThreadSafe()->isMainThread() ) return;
 
-   if ( _status.dlb_enabled && _status.is_malleable && getMyThreadSafe()->isMainThread() ){
-      DLB_ReturnClaimedCpus();
-
-      LockBlock Lock( _lock );
-      sys.getCpuMask( &_running_cpus );
-      ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
-   }
+   DLB_ReturnClaimedCpus();
+   LockBlock Lock( _lock );
+   sys.getCpuMask( &_running_cpus );
+   ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
 }
 
 /* Only useful for external slave (?) threads
@@ -228,31 +229,29 @@ void ResourceManager::returnClaimedCpus( void )
 */
 void ResourceManager::returnMyCpuIfClaimed( void )
 {
-   if ( !_status.initialized )
+   if ( !_status.initialized ) return;
+   if ( !_status.is_malleable ) return;
+   if ( !_status.dlb_enabled ) return;
+
+   // Return if my cpu belongs to the default mask
+   int my_cpu = getMyThreadSafe()->getCpuId();
+   if ( CPU_ISSET( my_cpu, &_default_cpus ) )
       return;
 
-   if ( _status.dlb_enabled && _status.is_malleable ) {
-
-      // Return if my cpu belongs to the default mask
-      int my_cpu = getMyThreadSafe()->getCpuId();
-      if ( CPU_ISSET( my_cpu, &_default_cpus ) )
-         return;
-
-      if ( !getMyThreadSafe()->isSleeping() ){
-         LockBlock Lock( _lock );
-         if ( DLB_ReturnClaimedCpu( my_cpu ) ) {
-            myThread->sleep();
-            // We can't clear it since DLB could have switched this cpu for another one
-            //CPU_CLR( my_cpu, &_running_cpus );
-            sys.getCpuMask( &_running_cpus );
-            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
-         }
+   if ( !getMyThreadSafe()->isSleeping() ){
+      LockBlock Lock( _lock );
+      if ( DLB_ReturnClaimedCpu( my_cpu ) ) {
+         myThread->sleep();
+         // We can't clear it since DLB could have switched this cpu for another one
+         //CPU_CLR( my_cpu, &_running_cpus );
+         sys.getCpuMask( &_running_cpus );
+         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
       }
-
-      // Go to sleep inmediately
-      if ( myThread->isSleeping() )
-         myThread->wait();
    }
+
+   // Go to sleep inmediately
+   if ( myThread->isSleeping() )
+      myThread->wait();
 }
 
 /* When waking up to check if the my cpu is "really" free
@@ -260,22 +259,20 @@ void ResourceManager::returnMyCpuIfClaimed( void )
 */
 void ResourceManager::waitForCpuAvailability( void )
 {
-   if ( !_status.initialized )
-      return;
+   if ( !_status.initialized ) return;
+   if ( !_status.dlb_enabled ) return;
 
-   if ( _status.dlb_enabled ){
-      int cpu = getMyThreadSafe()->getCpuId();
-      CPU_SET( cpu, &_waiting_cpus );
-      while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
-         // Sleep the thread for a while to reduce the cycles consumption, then yield
-         OS::nanosleep( NANOS_RM_YIELD_SLEEP_NS );
-         sched_yield();
-      /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
-            myThread->sleep();
-            break;
-            }*/
-      CPU_CLR( cpu, &_waiting_cpus );
-   }
+   int cpu = getMyThreadSafe()->getCpuId();
+   CPU_SET( cpu, &_waiting_cpus );
+   while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
+      // Sleep the thread for a while to reduce the cycles consumption, then yield
+      OS::nanosleep( NANOS_RM_YIELD_SLEEP_NS );
+      sched_yield();
+   /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
+         myThread->sleep();
+         break;
+         }*/
+   CPU_CLR( cpu, &_waiting_cpus );
 }
 
 bool ResourceManager::lastOne( void )
