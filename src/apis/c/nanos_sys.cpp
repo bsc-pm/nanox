@@ -20,11 +20,16 @@
  *  \brief 
  */
 #include "nanos.h"
+#include "config.h"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 
+NANOS_API_DEF(const char *, nanos_get_runtime_version, () )
+{
+   return PACKAGE_VERSION;
+}
 NANOS_API_DEF(const char *, nanos_get_default_architecture, ())
 {
    return (sys.getDefaultArch()).c_str();
