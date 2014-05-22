@@ -92,6 +92,7 @@ class SeparateAddressSpaceOutOps : public BaseOps {
 
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, unsigned int copyIdx );
    void issue( WD const &wd );
+   void copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
 };
 
 }

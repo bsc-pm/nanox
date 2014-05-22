@@ -1525,3 +1525,16 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
    }
    //std::cerr << "-----------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^--------------------" << std::endl; 
 }
+
+void RegionCache::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   if ( output ) {
+      if ( policy != WRITE_BACK ) {
+      // WRITE_THROUGH or NO_CACHE
+         std::cerr << "I should copy this back " << std::endl;
+      }
+   } 
+
+   if ( policy == NO_CACHE ) {
+         std::cerr << "I should free this region " << std::endl;
+   }
+}

@@ -213,6 +213,9 @@ namespace nanos {
          void getAllocatableRegion( global_reg_t const &reg, global_reg_t &allocRegion ) const;
          void prepareRegionsToCopyToHost( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
          void registerOwnedMemory(void *addr, std::size_t len);
+
+         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE };
+         void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
    };
 }
 

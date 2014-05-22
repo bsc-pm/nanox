@@ -110,8 +110,8 @@ namespace nanos
       _teamData( NULL ), _nextTeamData( NULL ),
       _name( "Thread" ), _description( "" ), _allocator( ) {
          if ( sys.getSplitOutputForThreads() ) {
-            char tmpbuf[32];
-            sprintf(tmpbuf, "thd_out.%04d.log", _id );
+            char tmpbuf[64];
+            sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
             _file = NEW std::ofstream(tmpbuf);
          } else {
             _file = &std::cerr;

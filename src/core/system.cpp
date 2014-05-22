@@ -225,6 +225,9 @@ void System::loadModules ()
    }
 #endif
 
+   verbose0( "Architectures loaded, stating PM interface.");
+   _pmInterface->start();
+
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
 
@@ -472,7 +475,6 @@ void System::start ()
    //mainWD.setDependenciesDomain( _dependenciesManager->createDependenciesDomain() );
    mainWD._mcontrol.setMainWD();
 
-   _pmInterface->start();
    if ( _pmInterface->getInternalDataSize() > 0 ) {
       char *data = NEW char[_pmInterface->getInternalDataSize()];
       _pmInterface->initInternalData( data );
