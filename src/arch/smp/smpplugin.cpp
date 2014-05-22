@@ -50,6 +50,7 @@ class SMPPlugin : public SMPBasePlugin
 
    Atomic<unsigned int>         _idSeed;
    int                          _requestedCores;
+   int                          _requestedCoresByMask;
    int                          _availableCores;
    int                          _currentCores;
    int                          _requestedWorkers;
@@ -95,6 +96,7 @@ class SMPPlugin : public SMPBasePlugin
    SMPPlugin() : SMPBasePlugin( "SMP PE Plugin", 1 )
                  , _idSeed( 0 )
                  , _requestedCores( 0 )
+                 , _requestedCoresByMask( 0 )
                  , _availableCores( 0 )
                  , _currentCores( 0 )
                  , _requestedWorkers( -1 )
@@ -181,66 +183,95 @@ class SMPPlugin : public SMPBasePlugin
       sys.setHostFactory( smpProcessorFactory );
       sys.setSMPPlugin( this );
 
-      _currentCores = _requestedCores;
-
       OS::getProcessAffinity( &_cpuSet );
-      _availableCores = CPU_COUNT( &_cpuSet );
+      int available_cores_by_mask = CPU_COUNT( &_cpuSet );
+      _availableCores = OS::getMaxProcessors();
+      _requestedCoresByMask = available_cores_by_mask;
 
-      if ( _requestedCores == 0 || _requestedCores > _availableCores ) {
-         _currentCores = _availableCores;
+      if ( _availableCores == 0 ) {
+         if ( available_cores_by_mask > 0 ) {
+            warning0("SMPPlugin: Unable to detect the number of processors in the system, using the value provided by the process cpu mask (" << available_cores_by_mask << ").");
+            _availableCores = available_cores_by_mask;
+         } else if ( _requestedCores > 0 ) {
+            warning0("SMPPlugin: Unable to detect the number of processors in the system and cpu mask not set, using the number of requested cpus (" << _requestedCores << ").");
+            _availableCores = _requestedCores;
+         } else {
+            fatal0("SMPPlugin: Unable to detect the number of cpus of the system and --smp-cpus was unset or with a value less than 1.");
+         }
+      }
+      //at this point _availableCores has a valid value
+
+      if ( _requestedCores > 0 ) { //--smp-cpus flag was set
+         if ( _requestedCores > available_cores_by_mask ) {
+            warning0("SMPPlugin: Requested number of cpus is greater than the cpu mask provided, using the value specified by the mask (" << available_cores_by_mask << ").");
+            _currentCores = available_cores_by_mask;
+         } else {
+            _currentCores = _requestedCores;
+         }
+      } else if ( _requestedCores == 0 ) { //no cpus requested through --smp-cpus
+         _currentCores = available_cores_by_mask;
+      } else {
+         fatal0("Invalid number of requested cpus (--smp-cpus)");
       }
       verbose0("requested cpus: " << _requestedCores << " available: " << _availableCores << " to be used: " << _currentCores);
 
 
-      std::vector<int> cpu_affinity;
-      cpu_affinity.reserve( _availableCores );
-      unsigned int max_cpuid = 0;
+      _bindings.reserve( _availableCores );
       for ( unsigned int i=0; i<CPU_SETSIZE; i++ ) {
          if ( CPU_ISSET(i, &_cpuSet) ) {
-            cpu_affinity.push_back(i);
-            max_cpuid = (max_cpuid < i) ? i : max_cpuid;
+            _bindings.push_back(i);
          }
       }
+
+      //add the cpus that were not in the mask
+      for ( int i = 0; i < _availableCores; i++ ) {
+         if ( !CPU_ISSET(i, &_cpuSet) ) {
+            _bindings.push_back(i);
+         }
+      }
+      //std::cerr << "[ ";
+      //for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
+      //   std::cerr << *it << " ";
+      //}
+      //std::cerr << "]" << std::endl;
 
       // Set _bindings structure once we have the system mask and the binding info
-      _bindings.reserve( _availableCores );
-      for ( int i=0, collisions = 0; i < _availableCores; ) {
+      // _bindings.reserve( _availableCores );
+      // for ( int i=0, collisions = 0; i < _availableCores; ) {
 
-         // The cast over cpu_affinity is needed because std::vector::size() returns a size_t type
-         //int pos = (_bindingStart + _bindingStride*i + collisions) % (int)cpu_affinity.size();
-         int pos = ( i + collisions) % (int)cpu_affinity.size();
+      //    // The cast over cpu_affinity is needed because std::vector::size() returns a size_t type
+      //    //int pos = (_bindingStart + _bindingStride*i + collisions) % (int)cpu_affinity.size();
+      //    int pos = ( i + collisions) % (int)cpu_affinity.size();
 
-         // 'pos' may be negative if either bindingStart or bindingStride were negative
-         // this loop fixes that % operator is the remainder, not the modulo operation
-         while ( pos < 0 ) pos+=cpu_affinity.size();
+      //    // 'pos' may be negative if either bindingStart or bindingStride were negative
+      //    // this loop fixes that % operator is the remainder, not the modulo operation
+      //    while ( pos < 0 ) pos+=cpu_affinity.size();
 
-         if ( std::find( _bindings.begin(), _bindings.end(), cpu_affinity[pos] ) != _bindings.end() ) {
-            collisions++;
-            ensure( collisions != _availableCores, "Reached limit of collisions. We should never get here." );
-            continue;
-         }
-         _bindings.push_back( cpu_affinity[pos] );
-         i++;
-
-         
-      }
+      //    if ( std::find( _bindings.begin(), _bindings.end(), cpu_affinity[pos] ) != _bindings.end() ) {
+      //       collisions++;
+      //       ensure( collisions != _availableCores, "Reached limit of collisions. We should never get here." );
+      //       continue;
+      //    }
+      //    _bindings.push_back( cpu_affinity[pos] );
+      //    i++;
+      // }
 
       // std::cerr << "[ ";
       // for ( Bindings::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
       //    std::cerr << *it << " ";
       // }
-      // std::cerr << " ]" << std::endl;
+      // std::cerr << "]" << std::endl;
 
       CPU_ZERO( &_cpuActiveSet );
 
-      _cpus = NEW std::vector<SMPProcessor *>( _currentCores, (SMPProcessor *) NULL ); 
-      _cpusByCpuId = NEW std::vector<SMPProcessor *>( max_cpuid + 1, (SMPProcessor *) NULL ); 
-
+      _cpus = NEW std::vector<SMPProcessor *>( _availableCores, (SMPProcessor *) NULL ); 
+      _cpusByCpuId = NEW std::vector<SMPProcessor *>( _availableCores, (SMPProcessor *) NULL ); 
 
       // Load & check NUMA config
       loadNUMAInfo();
 
-      for ( int idx = 0; idx < _currentCores; idx += 1 ) {
+      int count = 0;
+      for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
          if ( _smpNuma ) {
             OSAllocator a;
@@ -248,15 +279,22 @@ class SMPPlugin : public SMPBasePlugin
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
             numaMem.setNodeNumber( 0 );
-            cpu = NEW SMPProcessor( _bindings[ idx ], id );
+            cpu = NEW SMPProcessor( *it, id, ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ) );
          } else {
-            cpu = NEW SMPProcessor( _bindings[ idx ] );
+            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ) );
          }
-         (*_cpus)[ idx ] = cpu;
-         (*_cpusByCpuId)[ _bindings[ idx ]] = cpu;
-         CPU_SET( (*_cpus)[idx]->getBindingId() , &_cpuActiveSet );
-         (*_cpus)[idx]->setNUMANode( getNodeOfPE( (*_cpus)[idx]->getId() ) );
+         CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
+         cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
+         (*_cpus)[count] = cpu;
+         (*_cpusByCpuId)[ *it ] = cpu;
+         count += 1;
       }
+
+      // std::cerr << "[ ";
+      // for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+      //    std::cerr << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
+      // }
+      // std::cerr << "]" << std::endl;
 
       // FIXME (855): do this before thread creation, after PE creation
       completeNUMAInfo();
@@ -303,14 +341,19 @@ class SMPPlugin : public SMPBasePlugin
       ensure( _workers.size() == 1, "Main thread should be the only worker created so far." );
       workers.push_back( _workers[0] );
       //create as much workers as possible
-      int available_cpus = 1; /* start as 1 as my cpu is available and i'm a worker thread */
+      int available_cpus = 0; /* my cpu is unavailable, numthreads is 1 */
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         available_cpus += (*it)->getNumThreads() == 0;
+         available_cpus += ( (*it)->getNumThreads() == 0 && (*it)->isActive() );
       }
 
       int max_workers;  
       if ( _requestedWorkers != -1 && (_requestedWorkers - 1) > available_cpus ) {
-         std::cerr << "SMPPlugin: requested number of workers (" << _requestedWorkers << ") is greater than the number of available cpus (" << available_cpus << ") creating " << available_cpus << " workers." << std::endl;
+         warning("SMPPlugin: requested number of workers (" << _requestedWorkers << ") is greater than the number of available cpus (" << available_cpus+1 << ") a total of " << available_cpus+1 << " workers will be created.");
+         if ( _availableCores > _currentCores ) {
+            warning("SMPPlugin: The system has more cpus available (" << _availableCores << ") but only " << _currentCores << " are being used. Try increasing the cpus available to Nanos++ using the --smp-cpus flag or the setting appropiate cpu mask (using the 'taskset' command). Please note that if both the --smp-cpus flag and the cpu mask are set, the most restrictive value will be considered.");
+         } else {
+            warning("SMPPlugin: All cpus are being used by Nanos++ (" << _availableCores << ") so you may have requested too many smp workers.");
+         }
          max_workers = available_cpus;
       } else {
          max_workers = ( _requestedWorkers == -1 ) ? available_cpus : _requestedWorkers;
@@ -322,7 +365,7 @@ class SMPPlugin : public SMPBasePlugin
       while ( current_workers < max_workers ) {
          idx = idx % _cpus->size();
          SMPProcessor *cpu = (*_cpus)[idx];
-         if ( cpu->getNumThreads() == 0 ) {
+         if ( cpu->getNumThreads() == 0 && cpu->isActive() ) {
             BaseThread *thd = &cpu->startWorker();
             _workers.push_back( (SMPThread *) thd );
             workers.push_back( thd );
@@ -358,7 +401,7 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<ext::SMPProcessor *>::const_iterator it = _cpus->begin();
             it != _cpus->end() && !target;
             it++ ) {
-         if ( (*it)->getNumThreads() == 0 ) {
+         if ( (*it)->getNumThreads() == 0 && (*it)->isActive() ) {
             target = *it;
          }
       }
@@ -371,9 +414,8 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
             it != _cpus->rend() && !target;
             it++ ) {
-         if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
+         if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
             target = *it;
-            std::cerr << " reserving cpu " << target->getBindingId() << std::endl;
             target->reserve();
             _numThreadsRequestedForSupport += 1;
          }
@@ -387,9 +429,8 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
             it != _cpus->rend() && !target;
             it++ ) {
-         if ( (*it)->getNUMANode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
+         if ( (*it)->getNUMANode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
             target = *it;
-            std::cerr << " reserving cpu " << target->getBindingId() << std::endl;
             target->reserve();
             _numThreadsRequestedForSupport += 1;
          }
