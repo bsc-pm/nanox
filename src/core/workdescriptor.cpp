@@ -317,7 +317,7 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, void (*
    }
 }
 
-void WorkDescriptor::removeTaskReduction( void *p_orig )
+bool WorkDescriptor::removeTaskReduction( void *p_orig, bool del )
 {
    //! Check if orig is already registered
    task_reduction_list_t::iterator it;
@@ -325,7 +325,12 @@ void WorkDescriptor::removeTaskReduction( void *p_orig )
       if ( (*it)->have( p_orig, 0 ) ) break;
    }
 
-   if ( it != _taskReductions.end() ) _taskReductions.erase( it );
+   if ( it != _taskReductions.end() ) {
+       if ( del ) delete (*it);
+       _taskReductions.erase( it );
+       return true;
+   }
+   return false;
 }
 
 void * WorkDescriptor::getTaskReductionThreadStorage( void *p_orig, size_t id )

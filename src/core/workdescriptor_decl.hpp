@@ -625,7 +625,7 @@ namespace nanos
          void convertToRegularWD();
 
          void registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *), void (*p_reducer)( void *, void * ) );
-         void removeTaskReduction( void *p_orig );
+         bool removeTaskReduction( void *p_orig, bool del = false );
          void * getTaskReductionThreadStorage( void *p_orig, size_t id );
          TaskReduction * getTaskReduction( const void *p_orig );
          void copyReductions(WorkDescriptor *parent);

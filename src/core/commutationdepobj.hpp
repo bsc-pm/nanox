@@ -35,8 +35,8 @@ inline void CommutationDO::dependenciesSatisfied ( )
 #ifndef ON_TASK_REDUCTION
       myThread->getTeam()->removeTaskReduction( addr );
 #else
-      //FIXME no only current WD
-      myThread->getCurrentWD()->removeTaskReduction( addr );
+      bool b = myThread->getCurrentWD()->getParent()->removeTaskReduction( addr, true );
+      myThread->getCurrentWD()->removeTaskReduction( addr, !b );
 #endif
 
    }
