@@ -718,6 +718,9 @@ new_graph_sources = \
 
 ompt_sources = \
     instrumentation/ompt.cpp \
+    instrumentation/ompt_api.h \
+    instrumentation/ompt_callbacks.h \
+    instrumentation/ompt_types.h \
     $(END)
 
 if INSTRUMENTATION_EXTRAE
