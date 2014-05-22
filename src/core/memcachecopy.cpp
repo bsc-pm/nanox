@@ -5,7 +5,7 @@
 #include "memoryops_decl.hpp"
 #include "deviceops.hpp"
 #include "workdescriptor.hpp"
-MemCacheCopy::MemCacheCopy() : _version( 0 ), _reg( 0, (reg_key_t) NULL ), _locations(), _locationDataReady( false ), _chunk( NULL ) {
+MemCacheCopy::MemCacheCopy() : _version( 0 ), _reg( 0, (reg_key_t) NULL ), _locations(), _locationDataReady( false ), _chunk( NULL ), _policy( RegionCache::WRITE_BACK ) {
 }
 
 MemCacheCopy::MemCacheCopy( WD const &wd, unsigned int index/*, MemController &ccontrol*/ ) {
@@ -33,8 +33,9 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
    //NANOS_INSTRUMENT( inst4.close(); );
 }
 
-void MemCacheCopy::generateOutOps( SeparateAddressSpaceOutOps &ops, bool input, bool output ) {
+void MemCacheCopy::generateOutOps( SeparateMemoryAddressSpace *from, SeparateAddressSpaceOutOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
    //std::cerr << __FUNCTION__ << std::endl;
+   ops.copyOutputData( from, *this, output, wd, copyIdx );
 }
 
 unsigned int MemCacheCopy::getVersion() const {
@@ -53,11 +54,11 @@ bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
    return result;
 }
 
-void MemCacheCopy::printLocations() const {
+void MemCacheCopy::printLocations( std::ostream &o ) const {
    for ( NewLocationInfoList::const_iterator it = _locations.begin(); it != _locations.end(); it++ ) {
       NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_reg.key), it->second );
-      std::cerr << "   [ " << it->first << "," << it->second << " ] "; _reg.key->printRegion( it->first ); 
-      if ( d ) std::cerr << " " << *d << std::endl; 
-      else std::cerr << " dir entry n/a" << std::endl;
+      o << "   [ " << it->first << "," << it->second << " ] "; _reg.key->printRegion( o, it->first ); 
+      if ( d ) o << " " << *d << std::endl; 
+      else o << " dir entry n/a" << std::endl;
    }
 }

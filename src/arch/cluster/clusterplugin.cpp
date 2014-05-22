@@ -39,7 +39,7 @@ ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ), _gasnetAp
 _numPinnedSegments ( 0 ),
 _pinnedSegmentAddrList ( NULL ), _pinnedSegmentLenList ( NULL ), _extraPEsCount ( 0 ), _conduit (""),
 _nodeMem ( DEFAULT_NODE_MEM ), _allocWide ( false ), _gpuPresend ( 1 ), _smpPresend ( 1 ),
-_cachePolicy ( System::DEFAULT ), _nodes( NULL ), _clusterThread( NULL )
+_cachePolicy ( System::DEFAULT ), _nodes( NULL ), _cpu( NULL ), _clusterThread( NULL )
 {}
 
 void ClusterPlugin::config( Config& cfg )
@@ -72,7 +72,7 @@ void ClusterPlugin::init()
          (*_nodes)[ node->getNodeNum() ] = node;
       }
    }
-
+   _cpu = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
 }
 
 void ClusterPlugin::addPinnedSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
@@ -191,11 +191,10 @@ unsigned ClusterPlugin::getNumThreads() const {
 void ClusterPlugin::startSupportThreads() {
    if ( _gasnetApi.getNumNodes() > 1 )
    {
-      SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
       if ( _gasnetApi.getNodeNum() == 0 ) {
-         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &core->startMultiWorker( _gasnetApi.getNumNodes() - 1, (ProcessingElement **) &(*_nodes)[1] ) );
+         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( _gasnetApi.getNumNodes() - 1, (ProcessingElement **) &(*_nodes)[1] ) );
       } else {
-         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &core->startMultiWorker( 0, NULL ) );
+         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( 0, NULL ) );
          if ( sys.getPMInterface().getInternalDataSize() > 0 )
             _clusterThread->getThreadWD().setInternalData(NEW char[sys.getPMInterface().getInternalDataSize()]);
          //_pmInterface->setupWD( smpRepThd->getThreadWD() );

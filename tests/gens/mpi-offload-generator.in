@@ -17,7 +17,7 @@ rm -rf @PREFIX@/src/arch/mpi/tester.o; \
 mpicxx -DNANOX_PREFIX=\"dummy\" `cat @PREFIX@/src/arch/mpi/test_flags` -c @PREFIX@/src/arch/mpi/mpiall.cpp -o @PREFIX@/src/arch/mpi/tester.o; \
 if [[ ! -f @PREFIX@/src/arch/mpi/tester.o ]] ; \
 then \
-test_CXX="mpi_offload_plugin_did_not_compile"; \
+test_CXX="mpi_offload_plugin_did_not_compile_check_log"; \
 fi; \
 rm -f @PREFIX@/src/arch/mpi/tester.o; \
 fi; \

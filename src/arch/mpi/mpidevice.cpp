@@ -258,7 +258,7 @@ void MPIDevice::taskPostFinish(MPI_Comm& comm){
 static void createExtraCacheThread(){    
     //Create extra worker thread
     MPI_Comm mworld= MPI_COMM_WORLD;
-    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
+    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
     if (core==NULL) {
         core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,nanos::ext::MPIRemoteNode::getCurrentProcessor());
     }

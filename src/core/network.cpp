@@ -720,7 +720,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
                if ( thisOps->addCacheOp( /* debug: */ &myThread->getThreadWD() ) ) {
                   NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
                   if ( /*_VERBOSE_CACHE*/ 0 ) {
-                     std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                     std::cerr << " SYNC REGION! "; reg.key->printRegion( std::cerr, reg.id );
                      if ( entry ) std::cerr << " " << *entry << std::endl;
                      else std::cerr << " nil " << std::endl; 
                   }

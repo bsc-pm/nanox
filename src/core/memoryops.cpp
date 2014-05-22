@@ -313,4 +313,8 @@ void SeparateAddressSpaceOutOps::issue( WD const &wd ) {
    }
 }
 
+void SeparateAddressSpaceOutOps::copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx ) {
+   from->copyOutputData( *this, memCopy._reg, memCopy.getVersion(), output, memCopy._policy, memCopy._chunk, wd, copyIdx );
+}
+
 }

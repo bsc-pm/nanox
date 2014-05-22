@@ -70,10 +70,12 @@ void BaseThread::associate ()
 
    if ( sys.getSMPPlugin()->getBinding() ) bind();
 
+   _threadWD._mcontrol.preInit();
+   _threadWD._mcontrol.initialize( *runningOn() );
    _threadWD.init();
    _threadWD.start(WD::IsNotAUserLevelThread);
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false); )
 }
 
 bool BaseThread::singleGuard ()

@@ -127,13 +127,6 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
         MPI_Query_thread(userProvided);        
     }
     
-    if ((*userProvided) < MPI_THREAD_MULTIPLE ) {
-         std::cerr << "MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, your application may hang, check your MPI "
-            "implementation and try to configure it so it can support this multithread level. Configure your PATH so the mpi compiler"
-            " points to a multithread implementation of MPI";
-         //Some implementations seem to catch fatal0 and continue... make sure we die
-         exit(-1);
-    }
     if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
         _bufferPtr = new char[_bufferDefaultSize];
         MPI_Buffer_attach(_bufferPtr, _bufferDefaultSize);
@@ -172,6 +165,7 @@ void MPIRemoteNode::nanosMPIFinalize() {
     }
 }
 
+//TODO: Finish implementing shared memory
 #define N_FREE_SLOTS 10
 void MPIRemoteNode::unifiedMemoryMallocHost(size_t size, MPI_Comm communicator) {    
 //    int comm_size;
@@ -416,6 +410,19 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
     //IF nanos MPI not initialized, do it
     if (!_initialized)
         nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
+    
+        
+    if (!MPIDD::getSpawnDone()) {
+        int userProvided;
+        MPI_Query_thread(&userProvided);        
+        if (userProvided < MPI_THREAD_MULTIPLE ) {
+             std::cerr << "MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, your application may hang when offloading, check your MPI "
+                "implementation and try to configure it so it can support this multithread level. Configure your PATH so the mpi compiler"
+                " points to a multithread implementation of MPI";
+             //Some implementations seem to catch fatal0 and continue... make sure we die
+             exit(-1);
+        }
+    }
     
     std::vector<std::string> tokensParams;
     std::vector<std::string> tokensHost;   
@@ -690,7 +697,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
     int rank=spawn_start; //Balance spawn order so each process starts with his owned processes
     //Now they are spawned, send source ordering array so both master and workers have function pointers at the same position
-    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
+    ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
     if (core==NULL) {
         core = sys.getSMPPlugin()->getSMPProcessorByNUMAnode(0,getCurrentProcessor());
     }

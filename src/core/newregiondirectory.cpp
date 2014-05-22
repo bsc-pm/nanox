@@ -332,9 +332,9 @@ void NewNewRegionDirectory::print() const {
       for (reg_t i = 1; i < it->second->getMaxRegionId(); i++ ) {
          NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) it->second->getRegionData( i );
          if ( !entry ) {
-            std::cerr << "\t" << i << " "; it->second->printRegion( i ); std::cerr << " : null " << std::endl;
+            std::cerr << "\t" << i << " "; it->second->printRegion( std::cerr, i ); std::cerr << " : null " << std::endl;
          } else {
-            std::cerr << "\t" << i << " "; it->second->printRegion( i ); std::cerr << " : ("<< entry <<") "<< *entry << std::endl;
+            std::cerr << "\t" << i << " "; it->second->printRegion( std::cerr, i ); std::cerr << " : ("<< entry <<") "<< *entry << std::endl;
          }
       }
    }
@@ -418,7 +418,7 @@ void NewNewRegionDirectory::synchronize( WD const &wd ) {
                   if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
                      NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
                      if ( _VERBOSE_CACHE ) {
-                        std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                        std::cerr << "f SYNC REGION! "; reg.key->printRegion( std::cerr, reg.id );
                         if ( entry ) std::cerr << " " << *entry << std::endl;
                         else std::cerr << " nil " << std::endl; 
                      }
@@ -450,9 +450,9 @@ void NewNewRegionDirectory::synchronize( WD const &wd ) {
                   region_shape.initializeGlobalEntryIfNeeded();
                   DeviceOps *thisOps = region_shape.getDeviceOps();
                   if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) region_shape.key->getRegionData( region_shape.id  );
-                     if ( 1 /*_VERBOSE_CACHE*/ ) {
-                        std::cerr << " SYNC REGION! "; region_shape.key->printRegion( region_shape.id );
+                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  );
+                     if ( _VERBOSE_CACHE ) {
+                        std::cerr << " SYNC REGION! "; region_shape.key->printRegion( std::cerr, region_shape.id );
                         if ( entry ) std::cerr << " " << *entry << std::endl;
                         else std::cerr << " nil " << std::endl; 
                      }

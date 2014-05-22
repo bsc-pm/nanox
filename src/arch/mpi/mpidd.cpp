@@ -42,6 +42,10 @@ void MPIDD::setSpawnDone(bool spawnDone) {
    _spawnDone = spawnDone;
 }
 
+bool MPIDD::getSpawnDone() {
+   return _spawnDone;
+}
+
 bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {    
     //PE is null when device gets activated
     if (pe==NULL) return true;

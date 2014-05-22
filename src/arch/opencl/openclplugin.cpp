@@ -79,14 +79,13 @@ public:
          SeparateMemoryAddressSpace &oclmemory = sys.getSeparateMemory( id );
          oclmemory.setNodeNumber( 0 );
 
-         ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessor();
+         ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
          if ( core == NULL ) {
             fatal0("Unable to get a core to run the GPU thread.");
          }
 
          OpenCLProcessor *ocl = NEW nanos::ext::OpenCLProcessor( openclC, id, core, oclmemory );
          (*_opencls)[openclC] = ocl;
-         (*_openclThreads)[openclC] = (ext::OpenCLThread *) &ocl->startOpenCLThread();
       }
    }
    
@@ -154,6 +153,10 @@ virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
 
 
 virtual void startSupportThreads() {
+   for ( unsigned int openclC = 0; openclC < _opencls->size(); openclC += 1 ) {
+      OpenCLProcessor *ocl = (*_opencls)[openclC];
+      (*_openclThreads)[openclC] = (ext::OpenCLThread *) &ocl->startOpenCLThread();
+   }
 }
 
 virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {

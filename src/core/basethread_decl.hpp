@@ -28,6 +28,7 @@
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
 #include <set>
+#include <fstream>
 #include "wddeque_decl.hpp"
 #include "taskexecutionexception_decl.hpp"
 
@@ -181,6 +182,7 @@ namespace nanos
          */
          const BaseThread & operator= ( const BaseThread & );
       public:
+         std::ostream          *_file;
          std::set<void *> _pendingRequests;
         /*! \brief BaseThread constructor
          */

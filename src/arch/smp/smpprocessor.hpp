@@ -48,6 +48,7 @@ namespace ext
          static size_t _cacheDefaultSize;
          static System::CachePolicyType _cachePolicy;
          unsigned int _bindingId;
+         bool _reserved;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -77,6 +78,8 @@ namespace ext
          virtual bool supportsUserLevelThreads () const { return false; }
 #endif
          virtual bool isGPU () const { return false; }
+         bool isReserved() const { return _reserved; }
+         void reserve() { _reserved = true; }
          //virtual void* getAddressDependent( uint64_t tag );
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          //virtual void* newGetAddressDependent( CopyData const &cd );
