@@ -252,6 +252,7 @@ paraver_config_files = \
      paraver_configs/ompss/graph_and_scheduling/nb_tasks_in_graph.cfg\
      paraver_configs/ompss/graph_and_scheduling/2dp_order.cfg\
      paraver_configs/ompss/graph_and_scheduling/nb_ready_tasks.cfg\
+     paraver_configs/ompss/graph_and_scheduling/nb_concurrent_ready.cfg\
      paraver_configs/ompss/graph_and_scheduling/creating_submitting_task.cfg\
      paraver_configs/ompss/runtime/3dh_duration_state.cfg\
      paraver_configs/ompss/runtime/thread_state.cfg\
