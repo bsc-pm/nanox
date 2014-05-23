@@ -185,18 +185,20 @@ void ResourceManager::releaseCpu( void )
    bool release = true;
    int my_cpu = getMyThreadSafe()->getCpuId();
 
-   LockBlock Lock( _lock );
+   {
+      LockBlock Lock( _lock );
 
-   if ( CPU_COUNT(&_running_cpus) > 1 ) {
+      if ( CPU_COUNT(&_running_cpus) > 1 ) {
 
-      if ( _status.dlb_enabled ) {
-         release = DLB_ReleaseCpu( my_cpu );
-      }
+         if ( _status.dlb_enabled ) {
+            release = DLB_ReleaseCpu( my_cpu );
+         }
 
-      if ( release ) {
-         CPU_CLR( my_cpu, &_running_cpus );
-         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
-         myThread->sleep();
+         if ( release ) {
+            CPU_CLR( my_cpu, &_running_cpus );
+            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+            myThread->sleep();
+         }
       }
    }
    // wait() only after the lock is released
