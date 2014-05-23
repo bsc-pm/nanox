@@ -159,9 +159,7 @@ void MPIRemoteNode::nanosMPIFinalize() {
     if (!resul){
       //Free every node before finalizing
       DEEP_Booster_free(NULL,-1);
-      std::cout << "finalizing " << getpid() <<"\n";
       MPI_Finalize();
-      std::cout << "end finalizing " << getpid() <<"\n";
     }
 }
 

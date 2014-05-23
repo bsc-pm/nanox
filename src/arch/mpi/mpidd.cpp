@@ -50,9 +50,12 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     //PE is null when device gets activated
     if (pe==NULL) return true;
     int res=MPI_UNEQUAL;
+    //Only MPI threads will enter this function
+    nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread *) myThread;
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
     if ((uintptr_t)_assignedComm!=0) MPI_Comm_compare(myPE->getCommunicator(),_assignedComm,&res);
     
+    //TODO: (not sure if necessary or worths the overheads)
     //If our remote node is shared and we are not bound to a rank (if we are, we don't care, we have to execute here
     //Query the node to check if it's doing something
 //    if (_assignedRank  == UNKOWN_RANKSRCDST && myPE->getShared()){
@@ -75,17 +78,17 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     if ( ( res == MPI_IDENT || 
             ((uintptr_t)_assignedComm==0 && _assignedRank<(int)((nanos::ext::MPIThread *) myThread)->getRunningPEs().size()))
             && !resul){  
-       //Only MPI threads will enter this function
-       nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread *) myThread;
        if (_assignedRank==UNKOWN_RANKSRCDST) {
          resul=mpiThread->switchToNextFreePE(uid);         
        } else {
          resul=mpiThread->switchToPE(_assignedRank,uid); 
        }
-//       if (!free){
-//           mpiThread->switchToNextPE(); 
-//       }
     } 
+    //After we reserve a PE, bind this DD to that PE
+    if (resul) {
+        _assignedRank= ((MPIProcessor*) mpiThread->runningOn())->getRank();
+        _assignedComm= ((MPIProcessor*) mpiThread->runningOn())->getCommunicator();
+    }
     return resul;
 }
 
