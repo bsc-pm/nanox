@@ -292,6 +292,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **ad
 NANOS_API_DECL(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd ));
 
 // system interface
+NANOS_API_DECL(const char *, nanos_get_runtime_version, () );
 NANOS_API_DECL(const char *, nanos_get_default_architecture, ());
 NANOS_API_DECL(const char *, nanos_get_pm, ());
 NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));

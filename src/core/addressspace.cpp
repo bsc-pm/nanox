@@ -153,6 +153,10 @@ void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg
    _cache.copyInputData( ops, reg, version, output, locations, chunk, wd, copyIdx );
 }
 
+void SeparateAddressSpace::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   _cache.copyOutputData( ops, reg, version, output, policy, chunk, wd, copyIdx );
+}
+
 void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
    _cache.allocateOutputMemory( reg, version, wd, copyIdx );
 }

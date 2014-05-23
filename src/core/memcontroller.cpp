@@ -196,7 +196,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
       _outOps = NEW SeparateAddressSpaceOutOps( false, false );
 
       for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-         _memCacheCopies[ index ].generateOutOps( *_outOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput() );
+         _memCacheCopies[ index ].generateOutOps( &sys.getSeparateMemory( _memorySpaceId ), *_outOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd, index );
       }
 
       //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;

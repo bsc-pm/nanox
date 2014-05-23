@@ -715,6 +715,14 @@ new_graph_sources = \
     instrumentation/graph_utils_new.hpp \
     instrumentation/graph_new.cpp \
     $(END)
+
+ompt_sources = \
+    instrumentation/ompt.cpp \
+    instrumentation/ompt_api.h \
+    instrumentation/ompt_callbacks.h \
+    instrumentation/ompt_types.h \
+    $(END)
+
 if INSTRUMENTATION_EXTRAE
 extrae_mpitrace_cxxflags=$(mpitrace_cxxflags)
 extrae_mpitrace_ldflags=$(mpitrace_ldflags)
@@ -771,6 +779,7 @@ instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-instrumentation-print_trace.la \
 	instrumentation/libnanox-instrumentation-graph.la \
 	instrumentation/libnanox-instrumentation-new-graph.la \
+	instrumentation/libnanox-instrumentation-ompt.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
@@ -820,6 +829,11 @@ instrumentation_libnanox_instrumentation_nextsim_la_CXXFLAGS = $(nanos_instr_cxx
 instrumentation_libnanox_instrumentation_nextsim_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_instrumentation_nextsim_la_SOURCES = $(nextsim_sources)
 endif
+
+instrumentation_libnanox_instrumentation_ompt_la_CXXFLAGS = $(nanos_instr_cxxflags)
+instrumentation_libnanox_instrumentation_ompt_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_libnanox_instrumentation_ompt_la_SOURCES = $(ompt_sources)
+
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
