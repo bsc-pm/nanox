@@ -76,8 +76,8 @@ namespace nanos
 
       private:
          // types
-         typedef std::vector<PE *>         PEList;
-         typedef std::vector<BaseThread *> ThreadList;
+         typedef std::map<unsigned int, PE *>         PEList;
+         typedef std::map<unsigned int, BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;

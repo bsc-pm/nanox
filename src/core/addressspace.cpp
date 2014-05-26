@@ -114,8 +114,8 @@ unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, W
    return _cache.getVersion( reg, wd, copyIdx );
 }
 
-void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
-   _cache.releaseRegion( reg, wd, copyIdx );
+void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy ) {
+   _cache.releaseRegion( reg, wd, copyIdx, policy );
 }
 
 void SeparateAddressSpace::copyFromHost( TransferList &list, WD const &wd ) {

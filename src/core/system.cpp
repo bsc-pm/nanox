@@ -454,7 +454,7 @@ void System::start ()
 
    verbose0 ( "Starting runtime" );
 
-   _pes.reserve ( _peIdSeed.value() );
+   //_pes.reserve ( _peIdSeed.value() );
 
    _smpPlugin->associateThisThread( getUntieMaster() );
    //Setup MainWD
@@ -517,7 +517,7 @@ void System::start ()
    // Set up internal data for each worker
    for ( ThreadList::const_iterator it = _workers.begin(); it != _workers.end(); it++ ) {
 
-      WD & threadWD = (*it)->getThreadWD();
+      WD & threadWD = it->second->getThreadWD();
       if ( _pmInterface->getInternalDataSize() > 0 ) {
          char *data = NEW char[_pmInterface->getInternalDataSize()];
          _pmInterface->initInternalData( data );
@@ -531,7 +531,7 @@ void System::start ()
        PEList::iterator it;
        for ( it = _pes.begin() ; it != _pes.end(); it++ )
        {
-           PE *pe = *it;
+           PE *pe = it->second;
            if ( pe->getDeviceType()->getName() != NULL)
               if ( _defDeviceName == pe->getDeviceType()->getName()  )
                  _defDevice = pe->getDeviceType();
@@ -1327,7 +1327,7 @@ int System::getNumWorkers( DeviceData *arch )
    int n = 0;
 
    for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
-      if ( arch->isCompatible( *(( *it )->runningOn()->getDeviceType()), ( *it )->runningOn() ) ) n++;
+      if ( arch->isCompatible( *(it->second->runningOn()->getDeviceType() ) ), it->second->runningOn() ) n++;
    }
    return n;
 }
@@ -1580,13 +1580,13 @@ void System::waitUntilThreadsUnpaused ()
  
 void System::addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** threads) {  
     for (int i=0; i<num_pes; i++){
-        _pes.push_back ( pes[i] );
+        _pes.insert( std::make_pair( pes[i]->getId(), pes[i] ) );
         //CPU_SET( pes[rank]->getId(), &_cpu_active_set );
     }
     NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
     //Create the workers (which will run in all the PEs of pes) and return them
     for (int i=0; i<num_threads; i++){
-        _workers.push_back( threads[i] );
+        _workers.insert( std::make_pair( threads[i]->getId(), threads[i] ) );
         acquireWorker( _mainTeam , threads[i] );
     }
 }
@@ -1599,8 +1599,8 @@ void System::admitCurrentThread ( void )
 void System::expelCurrentThread ( void )
 {
    int pe_id =  myThread->runningOn()->getId();
-   _pes.erase( _pes.begin() + pe_id );
-   _workers.erase ( _workers.begin() + myThread->getId() );
+   _pes.erase( pe_id );
+   _workers.erase ( myThread->getId() );
 }
 
 void System::environmentSummary( void )

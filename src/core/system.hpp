@@ -459,8 +459,8 @@ inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id )
    bool found = false;
    PE *target = NULL;
    for ( PEList::iterator it = _pes.begin(); it != _pes.end() && !found; it++ ) {
-      if ( (*it)->getMemorySpaceId() == id ) {
-         target = *it;
+      if ( it->second->getMemorySpaceId() == id ) {
+         target = it->second;
          found = true;
       }
    }

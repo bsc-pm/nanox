@@ -145,9 +145,9 @@ public:
       return NULL;
    }
 
-virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
+virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
    for ( std::vector<OpenCLProcessor *>::const_iterator it = _opencls->begin(); it != _opencls->end(); it++ ) {
-      pes.push_back( *it );
+      pes.insert( std::make_pair( (*it)->getId(), *it ) );
    }
 }
 
@@ -159,9 +159,9 @@ virtual void startSupportThreads() {
    }
 }
 
-virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
    for ( std::vector<OpenCLThread *>::iterator it = _openclThreads->begin(); it != _openclThreads->end(); it++ ) {
-      workers.push_back( *it );
+      workers.insert( std::make_pair( (*it)->getId(), *it ) );
    }
 }
 

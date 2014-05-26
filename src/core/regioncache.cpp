@@ -104,6 +104,18 @@ bool AllocatedChunk::locked() const {
    return _lock.getState() != NANOS_LOCK_FREE;
 }
 
+void AllocatedChunk::copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
+   global_reg_t greg( reg, key );
+   DeviceOps * dops = greg.getDeviceOps();
+   if ( dops->addCacheOp( &wd ) ) {
+      ops.insertOwnOp( dops, greg, version, 0 );
+   } else {
+      ops.getOtherOps().insert( dops );
+   }
+
+}
+
 bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx ) {
    unsigned int currentVersion = 0;
    bool opEmitted = false;
@@ -1294,11 +1306,14 @@ unsigned int RegionCache::getVersion( global_reg_t const &reg, WD const &wd, uns
    return version;
 }
 
-void RegionCache::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
+void RegionCache::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum CachePolicy policy ) {
    //std::cerr << "Release region for wd " << wd.getId() << ": " << std::endl;
    //reg.key->printRegion(reg.id);
    //std::cerr << std::endl;
    AllocatedChunk *chunk = _getAllocatedChunk( reg, true, false, wd, copyIdx );
+   //TODO if ( policy == NO_CACHE ) {
+   //TODO    chunk->removeRegion( reg );
+   //TODO }
    chunk->removeReference();
    //chunk->unlock();
 }
@@ -1527,14 +1542,16 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
 }
 
 void RegionCache::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   std::ostream &o = *(myThread->_file);
    if ( output ) {
       if ( policy != WRITE_BACK ) {
-      // WRITE_THROUGH or NO_CACHE
-         std::cerr << "I should copy this back " << std::endl;
+         // WRITE_THROUGH or NO_CACHE
+         o << "I should copy this back "; reg.key->printRegion( o, reg.id ); o << std::endl;
+         chunk->copyRegionToHost( ops, reg.id, version, wd, copyIdx );
       }
    } 
 
    if ( policy == NO_CACHE ) {
-         std::cerr << "I should free this region " << std::endl;
+      o << "I should free this region "; reg.key->printRegion( o, reg.id ); o << std::endl;
    }
 }

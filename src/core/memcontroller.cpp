@@ -12,6 +12,7 @@
 
 namespace nanos {
 MemController::MemController( WD const &wd ) : _initialized( false ), _preinitialized(false), _inputDataReady(false),
+      _outputDataReady(false), _memoryAllocated( false ),
       _mainWd( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions(), _affinityScore( 0 ),
       _maxAffinityScore( 0 )  {
    if ( _wd.getNumCopies() > 0 ) {
@@ -142,6 +143,7 @@ bool MemController::allocateInputMemory() {
          }
       }
    }
+   _memoryAllocated = result;
    return result;
 }
 
@@ -192,6 +194,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
 
 
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
+      _outputDataReady = true;
    } else {
       _outOps = NEW SeparateAddressSpaceOutOps( false, false );
 
@@ -202,9 +205,6 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
       //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;
       _outOps->issue( _wd );
 
-      for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-         sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd, index ) ;
-      }
    }
 }
 
@@ -242,6 +242,25 @@ bool MemController::isDataReady( WD const &wd ) {
          }
       }
       return _inputDataReady;
+   } 
+   return false;
+}
+
+
+bool MemController::isOutputDataReady( WD const &wd ) {
+   ensure( _preinitialized == true, "MemController not initialized!");
+   if ( _initialized ) {
+      if ( !_outputDataReady ) {
+         _outputDataReady = _outOps->isDataReady( wd );
+         if ( _outputDataReady ) {
+            if ( _VERBOSE_CACHE ) { std::cerr << "Output data is ready for wd " << _wd.getId() << " obj " << (void *)_outOps << std::endl; }
+
+            for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+               sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd, index, _memCacheCopies[ index ]._policy ) ;
+            }
+         }
+      }
+      return _outputDataReady;
    } 
    return false;
 }
@@ -308,6 +327,10 @@ void MemController::synchronize() {
    } else {
  //     std::cerr << "Synchronize on a non main WD!, it will be considered as 'noflush'." << std::endl;
    }
+}
+
+bool MemController::isMemoryAllocated() const {
+   return _memoryAllocated;
 }
 
 }

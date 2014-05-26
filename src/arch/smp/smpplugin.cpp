@@ -327,19 +327,19 @@ class SMPPlugin : public SMPBasePlugin
       //    unloadHwloc();
    }
 
-   virtual void addPEs( std::vector<PE *> &pes ) const {
+   virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         pes.push_back( *it );
+         pes.insert( std::make_pair( (*it)->getId(), *it ) );
       }
    }
 
    virtual void startSupportThreads() {
    }
 
-   virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+   virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
       //associateThisThread( sys.getUntieMaster() );
       ensure( _workers.size() == 1, "Main thread should be the only worker created so far." );
-      workers.push_back( _workers[0] );
+      workers.insert( std::make_pair( _workers[0]->getId(), _workers[0] ) );
       //create as much workers as possible
       int available_cpus = 0; /* my cpu is unavailable, numthreads is 1 */
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
@@ -354,9 +354,9 @@ class SMPPlugin : public SMPBasePlugin
          } else {
             warning("SMPPlugin: All cpus are being used by Nanos++ (" << _availableCores << ") so you may have requested too many smp workers.");
          }
-         max_workers = available_cpus;
+         max_workers = available_cpus + 1;
       } else {
-         max_workers = ( _requestedWorkers == -1 ) ? available_cpus : _requestedWorkers;
+         max_workers = ( _requestedWorkers == -1 ) ? available_cpus + 1 : _requestedWorkers;
       }
 
       int current_workers = 1;
@@ -368,7 +368,7 @@ class SMPPlugin : public SMPBasePlugin
          if ( cpu->getNumThreads() == 0 && cpu->isActive() ) {
             BaseThread *thd = &cpu->startWorker();
             _workers.push_back( (SMPThread *) thd );
-            workers.push_back( thd );
+            workers.insert( std::make_pair( thd->getId(), thd ) );
             current_workers += 1;
             idx += _bindingStride;
          } else {
@@ -841,13 +841,13 @@ class SMPPlugin : public SMPBasePlugin
       return NULL;
    }
 
-   virtual void admitCurrentThread( std::vector<BaseThread *> &workers ) {
+   virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers ) {
 
       ext::SMPProcessor *cpu = getFirstFreeSMPProcessor();
 
       //! \note Create a new Thread object and associate it to the current thread
       BaseThread *thread = &cpu->associateThisThread ( /* untie */ true ) ;
-      workers.push_back( thread );
+      workers.insert( std::make_pair( thread->getId(), thread ) );
       _workers.push_back( (SMPThread *) thread );
 
       //! \note Update current cpu active set mask

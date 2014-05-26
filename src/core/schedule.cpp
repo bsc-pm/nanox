@@ -1162,13 +1162,16 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    // Initializing wd if necessary
    // It will be started later in inlineWorkDependent call
    
-   wd->_mcontrol.initialize( *(thread->runningOn()) );
-   bool result;
-   do {
-      result = wd->_mcontrol.allocateInputMemory();
-   } while( result == false );
-
-   if ( !wd->started() ) wd->init();
+   if ( !wd->started() ) { 
+      if ( !wd->_mcontrol.isMemoryAllocated() ) {
+         wd->_mcontrol.initialize( *(thread->runningOn()) );
+         bool result;
+         do {
+            result = wd->_mcontrol.allocateInputMemory();
+         } while( result == false );
+      }
+      wd->init();
+   }
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
