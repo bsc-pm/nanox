@@ -171,18 +171,14 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     setCurrentWD(*wd);
     //Before finishing wd, switch thread to the right PE
     //Wait until local cache in the PE is free
-    PE* oldPE=runningOn();
-    setRunningOn(finishedPE);
     //Clear all async requests on this PE (they finished a while ago)
     finishedPE->clearAllRequests();
     //Finish the wd, finish work and destroy wd
     wd->finish();
     Scheduler::finishWork(wd,true);
-    setRunningOn(oldPE);
     finishedPE->setBusy(false);
     setCurrentWD(*previousWD);
     deleteWd(wd,true);
-    //Restore previous PE
     (*_groupTotRunningWds)--;
 }
 
@@ -202,6 +198,8 @@ void MPIThread::checkTaskEnd() {
                    &status);
         if (flag!=0) {            
             MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
+            _currPe=status.MPI_SOURCE;
+            setRunningOn(finishedPE);
             //If received something and not mine, stop until whoever is the owner gets it
             freeCurrExecutingWD(finishedPE);
         }
