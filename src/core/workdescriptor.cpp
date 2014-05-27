@@ -260,11 +260,11 @@ void WorkDescriptor::submit( bool force_queue )
 void WorkDescriptor::finish ()
 {
    // At that point we are ready to copy data out
-   if ( getNumCopies() > 0 )
+   if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );
-
-   while ( !_mcontrol.isOutputDataReady( *this ) ) {
-      myThread->idle();
+      while ( !_mcontrol.isOutputDataReady( *this ) ) {
+         myThread->idle();
+      }
    }
 
    // Getting execution time
