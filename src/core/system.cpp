@@ -1203,8 +1203,8 @@ BaseThread * System::getUnassignedWorker ( void )
 {
    BaseThread *thread;
 
-   for ( unsigned i = 0; i < _workers.size(); i++ ) {
-      thread = _workers[i];
+   for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      thread = it->second;
       if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
          // skip if the thread is not in the mask
@@ -1280,8 +1280,12 @@ BaseThread * System::getUnassignedWorker ( void )
 
 BaseThread * System::getWorker ( unsigned int n )
 {
-   if ( n < _workers.size() ) return _workers[n];
-   else return NULL;
+   BaseThread *worker = NULL;
+   ThreadList::iterator elem = _workers.find( n );
+   if ( elem != _workers.end() ) {
+      worker = elem->second;
+   } 
+   return worker;
 }
 
 void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter, bool star, bool creator )
