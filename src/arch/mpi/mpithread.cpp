@@ -169,14 +169,13 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     finishedPE->setCurrExecutingWd(NULL);
     WD* previousWD = getCurrentWD();
     setCurrentWD(*wd);
-    //Before finishing wd, switch thread to the right PE
-    //Wait until local cache in the PE is free
     //Clear all async requests on this PE (they finished a while ago)
-    finishedPE->clearAllRequests();
-    //Finish the wd, finish work and destroy wd
+    finishedPE->clearAllRequests();    
     wd->finish();
-    Scheduler::finishWork(wd,true);
+    //Set the PE as free so we can re-schedule work to it
     finishedPE->setBusy(false);
+    //Finish the wd, finish work and destroy wd
+    Scheduler::finishWork(wd,true);
     setCurrentWD(*previousWD);
     deleteWd(wd,true);
     (*_groupTotRunningWds)--;

@@ -64,7 +64,6 @@ bool OpenCLConfig::getAllocWide() {
 
 void OpenCLConfig::prepare( Config &cfg )
 {
-   cfg.setOptionsSection( "OpenCL Arch", "OpenCL specific options" );
 
    // Enable/disable OpenCL.
    cfg.registerConfigOption( "enable-opencl",

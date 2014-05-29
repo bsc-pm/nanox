@@ -733,9 +733,10 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     BaseThread* threads[numberOfThreads];
     //start the threads...
     for (int i=0; i < numberOfThreads; ++i) {
+        NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
         threads[i]=&((MPIProcessor*)pes[i])->startMPIThread(NULL);
     }
-    sys.addOffloadPEsToTeam(pes, totalNumberOfSpawns, numberOfThreads, threads); 
+    sys.addPEsAndThreadsToTeam(pes, totalNumberOfSpawns, threads, numberOfThreads); 
     nanos::ext::MPIPlugin::addPECount(totalNumberOfSpawns);
     nanos::ext::MPIPlugin::addWorkerCount(numberOfThreads);    
     //Add all the PEs to the thread

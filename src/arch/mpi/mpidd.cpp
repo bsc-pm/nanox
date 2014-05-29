@@ -79,7 +79,7 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
             ((uintptr_t)_assignedComm==0 && _assignedRank<(int)((nanos::ext::MPIThread *) myThread)->getRunningPEs().size()))
             && !resul){  
        if (_assignedRank==UNKOWN_RANKSRCDST) {
-         resul=mpiThread->switchToNextFreePE(uid);         
+         resul=mpiThread->switchToNextFreePE(uid);      
        } else {
          resul=mpiThread->switchToPE(_assignedRank,uid); 
        }
