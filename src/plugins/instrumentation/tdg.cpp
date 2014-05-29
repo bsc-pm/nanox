@@ -1,4 +1,4 @@
-#include "graph_utils_new.hpp"
+#include "tdg_utils.hpp"
 
 #include "instrumentation.hpp"
 #include "instrumentationcontext_decl.hpp"
@@ -26,9 +26,13 @@ namespace nanos {
 const int64_t concurrent_min_id = 1000000;
 static unsigned int cluster_id = 1;
 
-class InstrumentationNewGraphInstrumentation: public Instrumentation
+class InstrumentationTDGInstrumentation: public Instrumentation
 {
-    private:
+public:
+    // public static data-members
+    static std::string _nodeSizeFunc;
+    
+private:
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
     std::map<int64_t, std::string> _funct_id_to_decl_map;   /*!< relation between a task id and its name */
     double _time_avg;
@@ -386,10 +390,13 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             exit(EXIT_FAILURE);
         
         // Compute the time average to print the nodes size accordingly
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
-            _time_avg += (*it)->get_total_time();
+        if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "avg_proportional")
+        {
+            for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+                _time_avg += (*it)->get_total_time();
+            }
+            _time_avg /= _graph_nodes.size();
         }
-        _time_avg /= _graph_nodes.size();
         
         // Print the graph
         std::map<int, int> node_to_cluster;
@@ -536,15 +543,15 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     }
     
 #ifndef NANOS_INSTRUMENTATION_ENABLED
-    public:
+public:
     // constructor
-    InstrumentationNewGraphInstrumentation() : Instrumentation(),
-                                               _graph_nodes(), _funct_id_to_decl_map(), 
-                                               _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+    InstrumentationTDGInstrumentation() : Instrumentation(),
+                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
-    ~InstrumentationNewGraphInstrumentation() {}
+    ~InstrumentationTDGInstrumentation() {}
 
     // low-level instrumentation interface (mandatory functions)
     void initialize(void) {}
@@ -557,15 +564,16 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     void threadStart(BaseThread &thread) {}
     void threadFinish (BaseThread &thread) {}
 #else
-    public:
+public:
+    
     // constructor
-    InstrumentationNewGraphInstrumentation() : Instrumentation(*new InstrumentationContextDisabled()),
-                                               _graph_nodes(), _funct_id_to_decl_map(), 
-                                               _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+    InstrumentationTDGInstrumentation() : Instrumentation(*new InstrumentationContextDisabled()),
+                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
-    ~InstrumentationNewGraphInstrumentation () {}
+    ~InstrumentationTDGInstrumentation () {}
 
     // low-level instrumentation interface (mandatory functions)
     void initialize(void) 
@@ -810,18 +818,33 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
 
 };
 
+std::string InstrumentationTDGInstrumentation::_nodeSizeFunc = "linear";
+
 namespace ext {
     
-    class InstrumentationNewGraphInstrumentationPlugin : public Plugin {
+    class InstrumentationTDGInstrumentationPlugin : public Plugin {
     public:
-        InstrumentationNewGraphInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
-        ~InstrumentationNewGraphInstrumentationPlugin () {}
+        InstrumentationTDGInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
+        ~InstrumentationTDGInstrumentationPlugin () {}
         
-        void config(Config &cfg) {}
+        void config(Config &cfg) 
+        {
+            cfg.setOptionsSection("Task Dependency Graph Plugin ", "TDG plugin specific options" );
+            cfg.registerConfigOption("node-size",  NEW Config::StringVar(InstrumentationTDGInstrumentation::_nodeSizeFunc),
+                                     "Defines the size of the nodes depending on the execution time of the related task" );
+            cfg.registerArgOption("node-size", "node-size");
+        }
         
         void init ()
         {
-            sys.setInstrumentation(new InstrumentationNewGraphInstrumentation());
+            if((InstrumentationTDGInstrumentation::_nodeSizeFunc != "linear") && 
+               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "avg_proportional"))
+            {
+                std::cerr << "Invalid node-size value \'" << InstrumentationTDGInstrumentation::_nodeSizeFunc << "\'. "
+                          << "One of the following expected: \'linear\', \'avg_proportional\'. "
+                          << "Using default \'linear\'." << std::endl;
+            }
+            sys.setInstrumentation(new InstrumentationTDGInstrumentation());
         }
     };
     
@@ -829,4 +852,4 @@ namespace ext {
 
 } // namespace nanos
 
-DECLARE_PLUGIN("intrumentation-new-graph",nanos::ext::InstrumentationNewGraphInstrumentationPlugin);
+DECLARE_PLUGIN("intrumentation-tdg",nanos::ext::InstrumentationTDGInstrumentationPlugin);
