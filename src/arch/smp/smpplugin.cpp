@@ -290,11 +290,15 @@ class SMPPlugin : public SMPBasePlugin
          count += 1;
       }
 
-      // std::cerr << "[ ";
-      // for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-      //    std::cerr << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
-      // }
-      // std::cerr << "]" << std::endl;
+#ifdef NANOS_DEBUG_ENABLED
+      if ( sys.getVerbose() ) {
+         std::cerr << "Bindings: [ ";
+         for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+            std::cerr << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
+         }
+         std::cerr << "]" << std::endl;
+      }
+#endif /* NANOS_DEBUG_ENABLED */
 
       // FIXME (855): do this before thread creation, after PE creation
       completeNUMAInfo();
@@ -882,10 +886,15 @@ class SMPPlugin : public SMPBasePlugin
       /*if a certain number of workers was requested, pick the minimum between that value
        * and the number of cpus and the support threads requested
        */
+      int active_cpus = 0;
+      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         active_cpus += (*it)->isActive();
+      }
+
       if ( _requestedWorkers > 0 ) {
-         count = std::min( (size_t) _requestedWorkers, _cpus->size() - _numThreadsRequestedForSupport );
+         count = std::min( _requestedWorkers, active_cpus - _numThreadsRequestedForSupport );
       } else {
-         count = _cpus->size() - _numThreadsRequestedForSupport;
+         count = active_cpus - _numThreadsRequestedForSupport;
       }
       debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
       return count;

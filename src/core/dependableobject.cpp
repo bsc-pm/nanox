@@ -70,7 +70,7 @@ void DependableObject::finished ( )
             // If this dependable object can't be released in batch
             if ( !(*it)->canBeBatchReleased() )
             {
-               (*it)->decreasePredecessors( NULL );
+               (*it)->decreasePredecessors( NULL, false, this );
                continue;
             }
             
@@ -104,7 +104,7 @@ void DependableObject::finished ( )
       {
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
             NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
-            (*it)->decreasePredecessors( NULL );
+            (*it)->decreasePredecessors( NULL, false, this );
          }
       }
    }
