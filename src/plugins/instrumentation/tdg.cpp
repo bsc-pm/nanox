@@ -9,8 +9,9 @@
 
 #include <cassert>
 #include <cmath>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <limits>
 #include <map>
 #include <math.h>
 #include <stdlib.h>
@@ -35,7 +36,9 @@ public:
 private:
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
     std::map<int64_t, std::string> _funct_id_to_decl_map;   /*!< relation between a task id and its name */
-    double _time_avg;
+    double _min_time;
+    double _total_time;
+    double _min_diam;
     
     int64_t _next_tw_id;
     int64_t _next_conc_id;
@@ -74,13 +77,23 @@ private:
         }
         
         // Get the size of the node
-        if(_time_avg == 0.0) {
+        if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "constant" || _total_time == 0.0)
+        {
             node_attrs += "\", width=\"1\", height=\"1\"";
         }
-        else {
-            double size = std::max(0.01, (double)n->get_total_time() / _time_avg);
-            std::stringstream ss; ss << size;
-            node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+        else
+        {
+            double diam = std::sqrt(n->get_total_time() / M_PI) * 2;
+            if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "linear")
+            {
+                std::stringstream ss; ss << diam / _min_diam;
+                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+            }
+            else if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "log")
+            {
+                std::stringstream ss; ss << std::log((diam / _min_diam) * M_E);
+                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+            }
         }
         
         // Build and return the whole node info
@@ -390,12 +403,17 @@ private:
             exit(EXIT_FAILURE);
         
         // Compute the time average to print the nodes size accordingly
-        if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "avg_proportional")
+        if(InstrumentationTDGInstrumentation::_nodeSizeFunc != "constant")
         {
             for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
-                _time_avg += (*it)->get_total_time();
+                if((*it)->is_task())
+                {
+                    _min_time = std::min(_min_time, (*it)->get_total_time()); 
+                    _total_time += (*it)->get_total_time();
+                }
             }
-            _time_avg /= _graph_nodes.size();
+            _min_diam = std::sqrt(_min_time/M_PI) * 2;
+            
         }
         
         // Print the graph
@@ -547,7 +565,8 @@ public:
     // constructor
     InstrumentationTDGInstrumentation() : Instrumentation(),
                                           _graph_nodes(), _funct_id_to_decl_map(), 
-                                          _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                                          _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
@@ -569,7 +588,8 @@ public:
     // constructor
     InstrumentationTDGInstrumentation() : Instrumentation(*new InstrumentationContextDisabled()),
                                           _graph_nodes(), _funct_id_to_decl_map(), 
-                                          _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                                          _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
@@ -594,8 +614,9 @@ public:
                     if((*it)->get_wd_id()==(*it2)->get_wd_id())
                         continue;
                     if((it_parent == (*it2)->get_parent_task()) &&                  // The two nodes are in the same region
-                        (!(*it2)->is_task()) &&                                      // The potential last sync is a taskwait|barrier|concurrent
-                        (std::abs(wd_id) >= std::abs((*it2)->get_wd_id()))) {   // The potential last sync was created before
+                        (!(*it2)->is_task()) &&                                     // The potential last sync is a taskwait|barrier|concurrent
+                        (std::abs(wd_id) >= std::abs((*it2)->get_wd_id())) &&       // The potential last sync was created before
+                        !(*it)->is_connected_with(*it2) ) {                         // Make sure we don't connect with our own child
                         if((last_taskwait_sync == NULL) || 
                             (last_taskwait_sync->get_wd_id() > (*it2)->get_wd_id())) {
                             // From all suitable previous syncs. we want the one created the latest
@@ -818,7 +839,7 @@ public:
 
 };
 
-std::string InstrumentationTDGInstrumentation::_nodeSizeFunc = "linear";
+std::string InstrumentationTDGInstrumentation::_nodeSizeFunc = "log";
 
 namespace ext {
     
@@ -837,12 +858,13 @@ namespace ext {
         
         void init ()
         {
-            if((InstrumentationTDGInstrumentation::_nodeSizeFunc != "linear") && 
-               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "avg_proportional"))
+            if((InstrumentationTDGInstrumentation::_nodeSizeFunc != "constant") &&
+               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "linear") && 
+               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "log"))
             {
                 std::cerr << "Invalid node-size value \'" << InstrumentationTDGInstrumentation::_nodeSizeFunc << "\'. "
-                          << "One of the following expected: \'linear\', \'avg_proportional\'. "
-                          << "Using default \'linear\'." << std::endl;
+                          << "One of the following expected: \'constant\', \'linear\' and \'log\'. "
+                          << "Using default \'log\'." << std::endl;
             }
             sys.setInstrumentation(new InstrumentationTDGInstrumentation());
         }
