@@ -112,7 +112,6 @@ void SMPThread::join ()
 
 void SMPThread::bind( void )
 {
-    std::cout << "meto thread" << getpid() << "en bind\n";
    int cpu_id = getCpuId();
 
    cpu_set_t cpu_set;
@@ -125,7 +124,6 @@ void SMPThread::bind( void )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-    std::cout << "saco thread" << getpid() << "en bind\n";
 }
 
 void SMPThread::yield()
