@@ -93,15 +93,9 @@ void MemController::preInit( ) {
       *(myThread->_file) << " (preinit)INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << std::endl;
    }
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t debug_key = ID->getEventKey("debug"); )
-
    for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
       //std::cerr << "WD "<< _wd.getId() << " Depth: "<< _wd.getDepth() <<" Creating copy "<< index << std::endl;
       //std::cerr << _wd.getCopies()[ index ];
-   NANOS_INSTRUMENT( nanos_event_value_t debug_val_first = 0; )
-   NANOS_INSTRUMENT( nanos_event_value_t debug_val_last = (_wd.getId() << 8) | ( (index+1) << 4 ) | 1; )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents( 1, &debug_key, &debug_val_first ); )
       new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
       unsigned int predecessorsVersion;
       if ( hasVersionInfoForRegion( _memCacheCopies[ index ]._reg, predecessorsVersion, _memCacheCopies[ index ]._locations ) )
@@ -110,11 +104,9 @@ void MemController::preInit( ) {
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " copy "<< index <<" got location info from predecessor "<<  _memCacheCopies[ index ]._reg.id << " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
       } else {
-         NANOS_INSTRUMENT( debug_val_last = (_wd.getId() << 8) | ( (index+1) << 4 ) | 2; )
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " copy "<< index <<" got requesting location info to global directory for region "<<  _memCacheCopies[ index ]._reg.id << " "; }
          _memCacheCopies[ index ].getVersionInfo();
       }
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents( 1, &debug_key, &debug_val_last ); )
       if ( _VERBOSE_CACHE ) { 
          for ( NewLocationInfoList::const_iterator it = _memCacheCopies[ index ]._locations.begin(); it != _memCacheCopies[ index ]._locations.end(); it++ ) {
                NewNewDirectoryEntryData *rsentry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( it->first );

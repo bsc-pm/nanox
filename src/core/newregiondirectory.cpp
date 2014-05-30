@@ -92,15 +92,6 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
          entry->addAccess( 0, 1 );
          it->second->setRegionData( 1, entry );
       }
-
-      //if ( sys.getNetwork()->getNodeNum() == 0 ) {
-      //   std::cerr  << " REGISTERING NEW DICTIONARY FOR OBJ ADDR " << (void *) cd.getBaseAddress() << " DICT IS " << (void *) it->second << std::endl;
-      //}
-      //(void) entry;
-   } else {
-      //if ( sys.getNetwork()->getNodeNum() == 0 ) {
-      //   std::cerr  << " >>>>>> NOT <<<<< REGISTERING NEW DICTIONARY FOR OBJ ADDR " << (void *) cd.getBaseAddress() << " USING " << (void *) it->second << std::endl;
-      //}
    }
    hb._lock.release();
    return it->second;
@@ -117,8 +108,8 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
 
    std::map< uint64_t, GlobalRegionDictionary * >::const_iterator it = hb._bobjects.lower_bound( objectAddr );
    if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( objectAddr, it->first) ) {
-     std::cerr << "Error, CopyData object not registered in the RegionDictionary " << std::endl;
-     printBt();
+     *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << std::endl;
+     printBt( *(myThread->_file) );
      fatal("can not continue");
    }
    return it->second;
@@ -136,11 +127,24 @@ reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData c
 }
 
 void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
-   if ( dict->tryLock() ) {
-   //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
-    __getLocation( dict, reg, missingParts, version, wd );
-   //NANOS_INSTRUMENT( inst1.close(); );
-      dict->unlock();
+   NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( reg );
+
+   if ( entry == NULL ) {
+      entry = NEW NewNewDirectoryEntryData();
+      entry->addAccess( 0, 1 );
+      dict->setRegionData( reg, entry );
+   }
+   if ( dict->getVersion() != entry->getVersion() ) {
+      if ( dict->tryLock() ) {
+         //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
+         __getLocation( dict, reg, missingParts, version, wd );
+         //NANOS_INSTRUMENT( inst1.close(); );
+         dict->unlock();
+      }
+   } else {
+      //std::cerr << "Avoid checking of global directory because dict Version == reg Version." << std::endl; 
+      missingParts.push_back( std::make_pair( reg, reg ) );
+      version = dict->getVersion();
    }
 }
 
@@ -266,6 +270,7 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
 
 void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
 {
+   dict->setVersion( version );
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
    //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }

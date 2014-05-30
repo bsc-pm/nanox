@@ -35,7 +35,6 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
    do {
      NewNewRegionDirectory::tryGetLocation( reg.key, reg.id, locations, version, *((WD*)NULL) );
    } while ( version == 0 ); 
-   reg.initializeGlobalEntryIfNeeded();
 }
 
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {

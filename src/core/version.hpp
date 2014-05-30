@@ -35,8 +35,8 @@ inline unsigned int Version::getVersion( bool increaseVersion ) {
 
 inline void Version::setVersion( unsigned int version ) {
    if ( version < _version ) {
-      std::cerr << "WARNING not version increase " << _version << " => " << version << std::endl;
-      printBt();
+      (*myThread->_file) << "WARNING not version increase " << _version << " => " << version << std::endl;
+      printBt( *(myThread->_file) );
    }
    _version = version;
 }
