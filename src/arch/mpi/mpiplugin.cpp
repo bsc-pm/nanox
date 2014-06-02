@@ -29,7 +29,9 @@ class MPIPlugin : public ArchPlugin
 {
    bool _initialized;
    bool _extraeInitialized;
-
+   static Atomic<unsigned int> _numWorkers;
+   static Atomic<unsigned int> _numPEs;
+   
    public:
       MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ), _initialized(false), _extraeInitialized(false) {}
 
@@ -63,19 +65,28 @@ class MPIPlugin : public ArchPlugin
            nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
          }
       }
+      
+      static void addPECount(unsigned int count) {
+          _numPEs+=count;
+      }
+      
+      static void addWorkerCount(unsigned int count) {
+          _numWorkers+=count;
+      }
+      
       virtual unsigned getNumThreads() const
       {
            return 0;
       }
       
       virtual unsigned int getNumPEs() const {
-         return 0;
+         return _numPEs.value();
       }
       virtual unsigned int getMaxPEs() const {
          return 0;
       }
       virtual unsigned int getNumWorkers() const {
-         return 0;
+         return _numWorkers.value();
       }
       virtual unsigned int getMaxWorkers() const {
          return 0;
@@ -95,14 +106,14 @@ class MPIPlugin : public ArchPlugin
 //        }
       }
        
-      virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
-      }
+    virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+    }
 
-      virtual void startSupportThreads() {
-      }
+    virtual void startSupportThreads() {
+    }
 
-      virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
-      }
+    virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
+    }
 
       virtual PE* createPE( unsigned id, unsigned uid )
       {
@@ -113,4 +124,6 @@ class MPIPlugin : public ArchPlugin
 }
 }
 
+Atomic<unsigned int> nanos::ext::MPIPlugin::_numWorkers=0;
+Atomic<unsigned int> nanos::ext::MPIPlugin::_numPEs=0;
 DECLARE_PLUGIN("arch-mpi",nanos::ext::MPIPlugin);

@@ -105,7 +105,7 @@ class SeparateAddressSpace {
 
    
    //unsigned int lockRegionAndGetCurrentVersion( global_reg_t const &reg, bool increaseVersion = false );
-   void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
+   void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
    
    bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );

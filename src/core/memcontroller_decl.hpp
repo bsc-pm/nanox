@@ -14,6 +14,8 @@ class MemController {
    bool                        _initialized;
    bool                        _preinitialized;
    bool                        _inputDataReady;
+   bool                        _outputDataReady;
+   bool                        _memoryAllocated;
    bool                        _mainWd;
    WD const                   &_wd;
    memory_space_id_t           _memorySpaceId;
@@ -40,6 +42,7 @@ public:
    void copyDataIn();
    void copyDataOut( MemControllerPolicy policy );
    bool isDataReady( WD const &wd );
+   bool isOutputDataReady( WD const &wd );
    uint64_t getAddress( unsigned int index ) const;
    bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
    void setAffinityScore( std::size_t score );
@@ -51,6 +54,7 @@ public:
    bool isRooted( memory_space_id_t &loc ) const ;
    void setMainWD();
    void synchronize();
+   bool isMemoryAllocated() const;
 };
 
 }

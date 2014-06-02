@@ -12,6 +12,7 @@
 
 namespace nanos {
 MemController::MemController( WD const &wd ) : _initialized( false ), _preinitialized(false), _inputDataReady(false),
+      _outputDataReady(false), _memoryAllocated( false ),
       _mainWd( false ), _wd( wd ), _memorySpaceId( 0 ), _provideLock(), _providedRegions(), _affinityScore( 0 ),
       _maxAffinityScore( 0 )  {
    if ( _wd.getNumCopies() > 0 ) {
@@ -32,6 +33,9 @@ bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &ver
          resultHIT = true;
          wantedDir->second.erase( wantedReg );
       }
+      //if ( resultHIT ) {
+      //   std::cerr << " HIT got version " << versionHIT << " for region " << reg.id << std::endl;
+      //}
 
       unsigned int versionSUPER = 0;
       reg_t superPart = wantedDir->first->isThisPartOf( reg.id, wantedDir->second.begin(), wantedDir->second.end(), versionSUPER ); 
@@ -88,6 +92,7 @@ void MemController::preInit( ) {
    if ( _VERBOSE_CACHE ) { 
       *(myThread->_file) << " (preinit)INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << std::endl;
    }
+
    for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
       //std::cerr << "WD "<< _wd.getId() << " Depth: "<< _wd.getDepth() <<" Creating copy "<< index << std::endl;
       //std::cerr << _wd.getCopies()[ index ];
@@ -111,6 +116,8 @@ void MemController::preInit( ) {
          *(myThread->_file) << std::endl;
       }
    }
+
+
    if ( _VERBOSE_CACHE ) { 
       *(myThread->_file) << " (preinit)END OF INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << std::endl;
    }
@@ -142,6 +149,7 @@ bool MemController::allocateInputMemory() {
          }
       }
    }
+   _memoryAllocated = result;
    return result;
 }
 
@@ -192,6 +200,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
 
 
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
+      _outputDataReady = true;
    } else {
       _outOps = NEW SeparateAddressSpaceOutOps( false, false );
 
@@ -202,9 +211,6 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
       //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;
       _outOps->issue( _wd );
 
-      for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-         sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd, index ) ;
-      }
    }
 }
 
@@ -226,7 +232,7 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
    for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
       std::map< reg_t, unsigned int > &regs = _providedRegions[ predecessorController._memCacheCopies[ index ]._reg.key ];
       regs[ predecessorController._memCacheCopies[ index ]._reg.id ] = ( ( predecessorController._wd.getCopies()[index].isOutput() ) ? predecessorController._memCacheCopies[ index ].getVersion() + 1 : predecessorController._memCacheCopies[ index ].getVersion() );
-      //std::cerr << "provided data for copy " << index << " reg ("<<predecessorController._cacheCopies[ index ]._reg.key<<"," << predecessorController._cacheCopies[ index ]._reg.id << ") with version " << ( ( predecessorController._cacheCopies[index].getCopyData().isOutput() ) ? predecessorController._cacheCopies[ index ].getNewVersion() + 1 : predecessorController._cacheCopies[ index ].getNewVersion() ) << " isOut "<< predecessorController._cacheCopies[index].getCopyData().isOutput()<< " isIn "<< predecessorController._cacheCopies[index].getCopyData().isInput() << std::endl;
+      //std::cerr << "from wd " << predecessorController._wd.getId() << " to wd " << _wd.getId()  << " provided data for copy " << index << " reg ("<<predecessorController._memCacheCopies[ index ]._reg.key<<"," << predecessorController._memCacheCopies[ index ]._reg.id << ") with version " << ( ( predecessorController._wd.getCopies()[index].isOutput() ) ? predecessorController._memCacheCopies[ index ].getVersion() + 1 : predecessorController._memCacheCopies[ index ].getVersion() ) << " isOut "<< predecessorController._wd.getCopies()[index].isOutput()<< " isIn "<< predecessorController._wd.getCopies()[index].isInput() << std::endl;
    }
    _provideLock.release();
 }
@@ -242,6 +248,25 @@ bool MemController::isDataReady( WD const &wd ) {
          }
       }
       return _inputDataReady;
+   } 
+   return false;
+}
+
+
+bool MemController::isOutputDataReady( WD const &wd ) {
+   ensure( _preinitialized == true, "MemController not initialized!");
+   if ( _initialized ) {
+      if ( !_outputDataReady ) {
+         _outputDataReady = _outOps->isDataReady( wd );
+         if ( _outputDataReady ) {
+            if ( _VERBOSE_CACHE ) { std::cerr << "Output data is ready for wd " << _wd.getId() << " obj " << (void *)_outOps << std::endl; }
+
+            for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+               sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd, index, _memCacheCopies[ index ]._policy ) ;
+            }
+         }
+      }
+      return _outputDataReady;
    } 
    return false;
 }
@@ -308,6 +333,10 @@ void MemController::synchronize() {
    } else {
  //     std::cerr << "Synchronize on a non main WD!, it will be considered as 'noflush'." << std::endl;
    }
+}
+
+bool MemController::isMemoryAllocated() const {
+   return _memoryAllocated;
 }
 
 }

@@ -76,8 +76,8 @@ namespace nanos
 
       private:
          // types
-         typedef std::vector<PE *>         PEList;
-         typedef std::vector<BaseThread *> ThreadList;
+         typedef std::map<unsigned int, PE *>         PEList;
+         typedef std::map<unsigned int, BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
@@ -710,10 +710,12 @@ namespace nanos
         /**
          * \brief Registers PEs to current nanox workers/team
          * Function created to serve MPI device
+         * Whoever creates the threads is reponsible 
+         * of increasing extrae max threads
          * \param num_pes number of process spawned
          * \param pes pointer to a list of Processing Elements
          */
-         void addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** threads);
+         void addPEsAndThreadsToTeam(PE **pes, int num_pes, BaseThread** threads, int num_threads);
          
          void increaseAffinityFailureCount() { _affinityFailureCount++; }
          unsigned int getAffinityFailureCount() { return _affinityFailureCount.value(); }

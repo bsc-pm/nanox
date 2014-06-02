@@ -104,6 +104,18 @@ bool AllocatedChunk::locked() const {
    return _lock.getState() != NANOS_LOCK_FREE;
 }
 
+void AllocatedChunk::copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
+   global_reg_t greg( reg, key );
+   DeviceOps * dops = greg.getDeviceOps();
+   if ( dops->addCacheOp( &wd ) ) {
+      ops.insertOwnOp( dops, greg, version, 0 );
+   } else {
+      ops.getOtherOps().insert( dops );
+   }
+
+}
+
 bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx ) {
    unsigned int currentVersion = 0;
    bool opEmitted = false;
@@ -989,19 +1001,19 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
       else
          allocChunkPtr = NULL;
    } else if ( results.size() > 1 ) {
-         std::cerr <<"Requested addr " << (void *) reg.getRealFirstAddress() << " size " << reg.getBreadth() << std::endl;
+         *(myThread->_file) <<"Requested addr " << (void *) reg.getRealFirstAddress() << " size " << reg.getBreadth() << std::endl;
       message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
       for ( ConstChunkList::const_iterator it = results.begin(); it != results.end(); it++ )
          std::cerr << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
       if ( &wd != NULL ) {
-         std::cerr << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
+         *(myThread->_file) << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
       } else {
-         std::cerr << "Realloc needed. Unknown WD, probably comes from a taskwait or any other synchronization point." << std::endl;
+         *(myThread->_file) << "Realloc needed. Unknown WD, probably comes from a taskwait or any other synchronization point." << std::endl;
       }
       fatal("Can not continue.");
    }
    if ( !allocChunkPtr && complain ) {
-      printBt(); std::cerr << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( std::cerr, reg.id ); std::cerr << std::endl;
+      printBt(*(myThread->_file) ); *(myThread->_file) << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( *(myThread->_file), reg.id ); *(myThread->_file) << std::endl;
       ensure(allocChunkPtr != NULL, "Chunk not found!");
    }
    if ( allocChunkPtr && lockChunk ) {
@@ -1294,11 +1306,14 @@ unsigned int RegionCache::getVersion( global_reg_t const &reg, WD const &wd, uns
    return version;
 }
 
-void RegionCache::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
+void RegionCache::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum CachePolicy policy ) {
    //std::cerr << "Release region for wd " << wd.getId() << ": " << std::endl;
    //reg.key->printRegion(reg.id);
    //std::cerr << std::endl;
    AllocatedChunk *chunk = _getAllocatedChunk( reg, true, false, wd, copyIdx );
+   //TODO if ( policy == NO_CACHE ) {
+   //TODO    chunk->removeRegion( reg );
+   //TODO }
    chunk->removeReference();
    //chunk->unlock();
 }
@@ -1527,14 +1542,16 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
 }
 
 void RegionCache::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   std::ostream &o = *(myThread->_file);
    if ( output ) {
       if ( policy != WRITE_BACK ) {
-      // WRITE_THROUGH or NO_CACHE
-         std::cerr << "I should copy this back " << std::endl;
+         // WRITE_THROUGH or NO_CACHE
+         o << "I should copy this back "; reg.key->printRegion( o, reg.id ); o << std::endl;
+         chunk->copyRegionToHost( ops, reg.id, version, wd, copyIdx );
       }
    } 
 
    if ( policy == NO_CACHE ) {
-         std::cerr << "I should free this region " << std::endl;
+      o << "I should free this region "; reg.key->printRegion( o, reg.id ); o << std::endl;
    }
 }

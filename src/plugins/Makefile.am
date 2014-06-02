@@ -711,9 +711,9 @@ graph_sources = \
 	instrumentation/graph.cpp \
 	$(END)
 
-new_graph_sources = \
-    instrumentation/graph_utils_new.hpp \
-    instrumentation/graph_new.cpp \
+tdg_sources = \
+    instrumentation/tdg_utils.hpp \
+    instrumentation/tdg.cpp \
     $(END)
 
 ompt_sources = \
@@ -733,7 +733,7 @@ debug_LTLIBRARIES += \
 	debug/libnanox-instrumentation-empty_trace.la \
 	debug/libnanox-instrumentation-print_trace.la \
 	debug/libnanox-instrumentation-graph.la \
-	debug/libnanox-instrumentation-new-graph.la \
+	debug/libnanox-instrumentation-tdg.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
@@ -756,9 +756,9 @@ debug_libnanox_instrumentation_graph_la_CXXFLAGS = $(nanos_debug_cxxflags)
 debug_libnanox_instrumentation_graph_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_instrumentation_graph_la_SOURCES = $(graph_sources)
 
-debug_libnanox_instrumentation_new_graph_la_CXXFLAGS = $(nanos_debug_cxxflags)
-debug_libnanox_instrumentation_new_graph_la_LDFLAGS = $(ld_plugin_flags)
-debug_libnanox_instrumentation_new_graph_la_SOURCES = $(new_graph_sources)
+debug_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_debug_cxxflags)
+debug_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
+debug_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
 if INSTRUMENTATION_EXTRAE
 debug_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_debug_cxxflags) $(extrae_mpitrace_cxxflags)
@@ -778,7 +778,7 @@ instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-instrumentation-empty_trace.la \
 	instrumentation/libnanox-instrumentation-print_trace.la \
 	instrumentation/libnanox-instrumentation-graph.la \
-	instrumentation/libnanox-instrumentation-new-graph.la \
+	instrumentation/libnanox-instrumentation-tdg.la \
 	instrumentation/libnanox-instrumentation-ompt.la \
 	$(END)
 
@@ -806,9 +806,9 @@ instrumentation_libnanox_instrumentation_graph_la_CXXFLAGS = $(nanos_instr_cxxfl
 instrumentation_libnanox_instrumentation_graph_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_instrumentation_graph_la_SOURCES = $(graph_sources)
 
-instrumentation_libnanox_instrumentation_new_graph_la_CXXFLAGS = $(nanos_instr_cxxflags)
-instrumentation_libnanox_instrumentation_new_graph_la_LDFLAGS = $(ld_plugin_flags)
-instrumentation_libnanox_instrumentation_new_graph_la_SOURCES = $(new_graph_sources)
+instrumentation_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_instr_cxxflags)
+instrumentation_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
 if INSTRUMENTATION_EXTRAE
 instrumentation_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_instr_cxxflags) $(extrae_mpitrace_cxxflags)
@@ -841,7 +841,7 @@ instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-instrumentation-empty_trace.la \
 	instrumentation-debug/libnanox-instrumentation-print_trace.la \
 	instrumentation-debug/libnanox-instrumentation-graph.la \
-	instrumentation-debug/libnanox-instrumentation-new-graph.la \
+	instrumentation-debug/libnanox-instrumentation-tdg.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
@@ -864,9 +864,9 @@ instrumentation_debug_libnanox_instrumentation_graph_la_CXXFLAGS = $(nanos_instr
 instrumentation_debug_libnanox_instrumentation_graph_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_debug_libnanox_instrumentation_graph_la_SOURCES = $(graph_sources)
 
-instrumentation_debug_libnanox_instrumentation_new_graph_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
-instrumentation_debug_libnanox_instrumentation_new_graph_la_LDFLAGS = $(ld_plugin_flags)
-instrumentation_debug_libnanox_instrumentation_new_graph_la_SOURCES = $(new_graph_sources)
+instrumentation_debug_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+instrumentation_debug_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_debug_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
 if INSTRUMENTATION_EXTRAE
 instrumentation_debug_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_instrdebug_cxxflags) $(extrae_mpitrace_cxxflags)
@@ -886,7 +886,7 @@ performance_LTLIBRARIES += \
 	performance/libnanox-instrumentation-empty_trace.la \
 	performance/libnanox-instrumentation-print_trace.la \
 	performance/libnanox-instrumentation-graph.la \
-	performance/libnanox-instrumentation-new-graph.la \
+	performance/libnanox-instrumentation-tdg.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
@@ -909,9 +909,9 @@ performance_libnanox_instrumentation_graph_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 performance_libnanox_instrumentation_graph_la_LDFLAGS = $(ld_plugin_flags)
 performance_libnanox_instrumentation_graph_la_SOURCES = $(graph_sources)
 
-performance_libnanox_instrumentation_new_graph_la_CXXFLAGS = $(nanos_perfo_cxxflags)
-performance_libnanox_instrumentation_new_graph_la_LDFLAGS = $(ld_plugin_flags)
-performance_libnanox_instrumentation_new_graph_la_SOURCES = $(new_graph_sources)
+performance_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+performance_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
+performance_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
 if INSTRUMENTATION_EXTRAE
 performance_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_perfo_cxxflags) $(extrae_mpitrace_cxxflags)

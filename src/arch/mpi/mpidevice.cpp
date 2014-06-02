@@ -202,6 +202,7 @@ bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
     MPI_Comm_compare(src->getCommunicator(),dst->getCommunicator(),&res);
     //If both devices are in the same comunicator, they can do a dev2dev communication, otherwise go through host
     if (res == MPI_IDENT){
+        ops->addOp();
         cacheOrder order;
         //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
         if (src->getCurrExecutingWd()!=NULL && !src->getHasWorkerThread()) {        

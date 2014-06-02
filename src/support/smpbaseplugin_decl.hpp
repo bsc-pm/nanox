@@ -37,7 +37,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual ext::SMPProcessor *getSMPProcessorByNUMAnode(int node, unsigned int idx) const = 0;
       virtual bool getBinding() const = 0;
       virtual int getCpuCount() const = 0;
-      virtual void admitCurrentThread( std::vector<BaseThread *> &workers ) = 0;
+      virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual int getNumSockets() const = 0;
       virtual int getCurrentSocket() const = 0;
       virtual void setCurrentSocket( int socket ) = 0;

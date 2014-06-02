@@ -50,12 +50,12 @@ class ClusterPlugin : public ArchPlugin
 
 
       virtual void startSupportThreads();
-      virtual void startWorkerThreads(std::vector<BaseThread *> &workers);
+      virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers);
       virtual void finalize();
 
       virtual ProcessingElement * createPE( unsigned id, unsigned uid );
       virtual unsigned getNumThreads() const; 
-      void addPEs( std::vector<ProcessingElement *> &pes ) const;
+      void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const;
       virtual unsigned int getNumPEs() const;
       virtual unsigned int getMaxPEs() const;
       virtual unsigned int getNumWorkers() const;

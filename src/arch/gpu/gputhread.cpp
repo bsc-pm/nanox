@@ -209,24 +209,35 @@ void GPUThread::yield()
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
+struct TestInputsGPU {
+   static void call( ProcessingElement *pe, WorkDescriptor *wd ) {
+      pe->testInputs( *wd );
+   }
+};
+
 void GPUThread::idle( bool debug )
 {
    cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
-   sys.getNetwork()->poll(0);
-   if ( !_pendingRequests.empty() ) {
-      std::set<void *>::iterator it = _pendingRequests.begin();
-      while ( it != _pendingRequests.end() ) {
-         GetRequest *req = (GetRequest *) (*it);
-         if ( req->isCompleted() ) {
-           std::set<void *>::iterator toBeDeletedIt = it;
-           it++;
-           _pendingRequests.erase(toBeDeletedIt);
-           req->clear();
-           delete req;
-         } else {
-            it++;
+
+   getNextWDQueue().iterate<TestInputsGPU>();
+
+   if ( sys.getNetwork()->getNumNodes() > 1 ) {
+      sys.getNetwork()->poll(0);
+      if ( !_pendingRequests.empty() ) {
+         std::set<void *>::iterator it = _pendingRequests.begin();
+         while ( it != _pendingRequests.end() ) {
+            GetRequest *req = (GetRequest *) (*it);
+            if ( req->isCompleted() ) {
+               std::set<void *>::iterator toBeDeletedIt = it;
+               it++;
+               _pendingRequests.erase(toBeDeletedIt);
+               req->clear();
+               delete req;
+            } else {
+               it++;
+            }
          }
       }
    }

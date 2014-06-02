@@ -5,6 +5,7 @@ CURR_ARCH=`uname -p`
 #if -p didnt return a value
 if [ "$CURR_ARCH" = "unknown" ]; then CURR_ARCH=`uname -m`; fi
 #remove everything after last point (get the original filename without arch)
+original_filename=$1
 filename=${1%.*}
 #in case you want to "rename"/add additional names for an architecture, follow this schema
 if [ "$CURR_ARCH" = "k1om" ] && [ ! -f $filename.$CURR_ARCH ]; then CURR_ARCH="mic"; fi
@@ -90,6 +91,10 @@ unset TMP_NUM_THREADS
 
 #################### END OMP BLOCK
 
-#export NX_ARGS=$NX_ARGS" --spins=4 --sleep-time=10 --sleeps=50000000"
 export OMPSS_OFFLOAD_SLAVE=1
+if [ ! -f $filename.$CURR_ARCH ]; then
+echo "WARNING: By convention, when offloading, your executable should be named as \"$filename.$CURR_ARCH\" if you want to offload to this architecture (NAME.ARCHITECTURE). Falling back to master executable ($original_filename)"
+exec $original_filename $ARG1 $ARG2
+else
 exec $filename.$CURR_ARCH $ARG1 $ARG2
+fi

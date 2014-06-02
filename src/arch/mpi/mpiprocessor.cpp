@@ -149,8 +149,8 @@ void MPIProcessor::clearAllRequests() {
 BaseThread &MPIProcessor::startMPIThread(WD* wd) {
    if (wd==NULL) wd=&getWorkerWD();
     
-   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
-   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wd->getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (InstrumentationContextData *icd = wd->getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
 
    return _core->startThread( *this, *wd, NULL );

@@ -23,6 +23,7 @@
 #include "atomic.hpp"
 #include "system.hpp"
 #include "debug.hpp"
+#include "printbt_decl.hpp"
 
 using namespace nanos;
 
@@ -69,6 +70,7 @@ void * SimpleAllocator::allocate( std::size_t size )
       //sys.printBt();
       return NULL;
    }
+ //  *(myThread->_file) << "SimpleAllocator::allocate returns " << (void *) retAddr << std::endl;
 
    return retAddr;
 }
@@ -125,6 +127,7 @@ void * SimpleAllocator::allocateSizeAligned( std::size_t size )
 
 std::size_t SimpleAllocator::free( void *address )
 {
+   //*(myThread->_file) << "SimpleAllocator::free " << (void *) address << std::endl;
    SegmentMap::iterator mapIter = _allocatedChunks.find( ( uint64_t ) address );
 
    // Unknown address, simply ignore
@@ -188,7 +191,8 @@ std::size_t SimpleAllocator::free( void *address )
       }
       //duplicate key, error
       else {
-         std::cerr << "Duplicate entry in segment map, addr " << address << "." << std::endl;
+         *(myThread->_file) << "Duplicate entry in segment map, addr " << address << "." << std::endl;
+         //printBt();
       }
    }
    else {

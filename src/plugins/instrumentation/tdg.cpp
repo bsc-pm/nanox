@@ -1,4 +1,4 @@
-#include "graph_utils_new.hpp"
+#include "tdg_utils.hpp"
 
 #include "instrumentation.hpp"
 #include "instrumentationcontext_decl.hpp"
@@ -9,8 +9,9 @@
 
 #include <cassert>
 #include <cmath>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <limits>
 #include <map>
 #include <math.h>
 #include <stdlib.h>
@@ -26,12 +27,18 @@ namespace nanos {
 const int64_t concurrent_min_id = 1000000;
 static unsigned int cluster_id = 1;
 
-class InstrumentationNewGraphInstrumentation: public Instrumentation
+class InstrumentationTDGInstrumentation: public Instrumentation
 {
-    private:
+public:
+    // public static data-members
+    static std::string _nodeSizeFunc;
+    
+private:
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
     std::map<int64_t, std::string> _funct_id_to_decl_map;   /*!< relation between a task id and its name */
-    double _time_avg;
+    double _min_time;
+    double _total_time;
+    double _min_diam;
     
     int64_t _next_tw_id;
     int64_t _next_conc_id;
@@ -70,13 +77,23 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         }
         
         // Get the size of the node
-        if(_time_avg == 0.0) {
+        if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "constant" || _total_time == 0.0)
+        {
             node_attrs += "\", width=\"1\", height=\"1\"";
         }
-        else {
-            double size = std::max(0.01, (double)n->get_total_time() / _time_avg);
-            std::stringstream ss; ss << size;
-            node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+        else
+        {
+            double diam = std::sqrt(n->get_total_time() / M_PI) * 2;
+            if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "linear")
+            {
+                std::stringstream ss; ss << diam / _min_diam;
+                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+            }
+            else if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "log")
+            {
+                std::stringstream ss; ss << std::log((diam / _min_diam) * M_E);
+                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+            }
         }
         
         // Build and return the whole node info
@@ -386,10 +403,18 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             exit(EXIT_FAILURE);
         
         // Compute the time average to print the nodes size accordingly
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
-            _time_avg += (*it)->get_total_time();
+        if(InstrumentationTDGInstrumentation::_nodeSizeFunc != "constant")
+        {
+            for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+                if((*it)->is_task())
+                {
+                    _min_time = std::min(_min_time, (*it)->get_total_time()); 
+                    _total_time += (*it)->get_total_time();
+                }
+            }
+            _min_diam = std::sqrt(_min_time/M_PI) * 2;
+            
         }
-        _time_avg /= _graph_nodes.size();
         
         // Print the graph
         std::map<int, int> node_to_cluster;
@@ -536,15 +561,16 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     }
     
 #ifndef NANOS_INSTRUMENTATION_ENABLED
-    public:
+public:
     // constructor
-    InstrumentationNewGraphInstrumentation() : Instrumentation(),
-                                               _graph_nodes(), _funct_id_to_decl_map(), 
-                                               _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+    InstrumentationTDGInstrumentation() : Instrumentation(),
+                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                                          _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
-    ~InstrumentationNewGraphInstrumentation() {}
+    ~InstrumentationTDGInstrumentation() {}
 
     // low-level instrumentation interface (mandatory functions)
     void initialize(void) {}
@@ -557,15 +583,17 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     void threadStart(BaseThread &thread) {}
     void threadFinish (BaseThread &thread) {}
 #else
-    public:
+public:
+    
     // constructor
-    InstrumentationNewGraphInstrumentation() : Instrumentation(*new InstrumentationContextDisabled()),
-                                               _graph_nodes(), _funct_id_to_decl_map(), 
-                                               _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+    InstrumentationTDGInstrumentation() : Instrumentation(*new InstrumentationContextDisabled()),
+                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                                          _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
-    ~InstrumentationNewGraphInstrumentation () {}
+    ~InstrumentationTDGInstrumentation () {}
 
     // low-level instrumentation interface (mandatory functions)
     void initialize(void) 
@@ -586,8 +614,9 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     if((*it)->get_wd_id()==(*it2)->get_wd_id())
                         continue;
                     if((it_parent == (*it2)->get_parent_task()) &&                  // The two nodes are in the same region
-                        (!(*it2)->is_task()) &&                                      // The potential last sync is a taskwait|barrier|concurrent
-                        (std::abs(wd_id) >= std::abs((*it2)->get_wd_id()))) {   // The potential last sync was created before
+                        (!(*it2)->is_task()) &&                                     // The potential last sync is a taskwait|barrier|concurrent
+                        (std::abs(wd_id) >= std::abs((*it2)->get_wd_id())) &&       // The potential last sync was created before
+                        !(*it)->is_connected_with(*it2) ) {                         // Make sure we don't connect with our own child
                         if((last_taskwait_sync == NULL) || 
                             (last_taskwait_sync->get_wd_id() > (*it2)->get_wd_id())) {
                             // From all suitable previous syncs. we want the one created the latest
@@ -810,18 +839,34 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
 
 };
 
+std::string InstrumentationTDGInstrumentation::_nodeSizeFunc = "log";
+
 namespace ext {
     
-    class InstrumentationNewGraphInstrumentationPlugin : public Plugin {
+    class InstrumentationTDGInstrumentationPlugin : public Plugin {
     public:
-        InstrumentationNewGraphInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
-        ~InstrumentationNewGraphInstrumentationPlugin () {}
+        InstrumentationTDGInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
+        ~InstrumentationTDGInstrumentationPlugin () {}
         
-        void config(Config &cfg) {}
+        void config(Config &cfg) 
+        {
+            cfg.setOptionsSection("Task Dependency Graph Plugin ", "TDG plugin specific options" );
+            cfg.registerConfigOption("node-size",  NEW Config::StringVar(InstrumentationTDGInstrumentation::_nodeSizeFunc),
+                                     "Defines the size of the nodes depending on the execution time of the related task" );
+            cfg.registerArgOption("node-size", "node-size");
+        }
         
         void init ()
         {
-            sys.setInstrumentation(new InstrumentationNewGraphInstrumentation());
+            if((InstrumentationTDGInstrumentation::_nodeSizeFunc != "constant") &&
+               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "linear") && 
+               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "log"))
+            {
+                std::cerr << "Invalid node-size value \'" << InstrumentationTDGInstrumentation::_nodeSizeFunc << "\'. "
+                          << "One of the following expected: \'constant\', \'linear\' and \'log\'. "
+                          << "Using default \'log\'." << std::endl;
+            }
+            sys.setInstrumentation(new InstrumentationTDGInstrumentation());
         }
     };
     
@@ -829,4 +874,4 @@ namespace ext {
 
 } // namespace nanos
 
-DECLARE_PLUGIN("intrumentation-new-graph",nanos::ext::InstrumentationNewGraphInstrumentationPlugin);
+DECLARE_PLUGIN("intrumentation-tdg",nanos::ext::InstrumentationTDGInstrumentationPlugin);

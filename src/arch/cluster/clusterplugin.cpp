@@ -29,8 +29,24 @@
 #include "gpuconfig.hpp"
 #endif
 
+#if defined(__SIZEOF_SIZE_T__) 
+   #if  __SIZEOF_SIZE_T__ == 8
+
 #define DEFAULT_NODE_MEM (0x542000000ULL) 
 #define MAX_NODE_MEM     (0x542000000ULL) 
+
+   #elif __SIZEOF_SIZE_T__ == 4
+
+#define DEFAULT_NODE_MEM (0x40000000UL) 
+#define MAX_NODE_MEM     (0x40000000UL) 
+
+   #else
+      #error "Weird"
+   #endif
+#else
+   #error "I need to know the size of a size_t"
+#endif
+
 
 namespace nanos {
 namespace ext {
@@ -208,21 +224,23 @@ void ClusterPlugin::startSupportThreads() {
    }
 }
 
-void ClusterPlugin::startWorkerThreads( std::vector<BaseThread *> &workers ) {
+void ClusterPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
    if ( _gasnetApi.getNodeNum() == 0 )
    {
       if ( _clusterThread ) {
          for ( unsigned int thdIndex = 0; thdIndex < _clusterThread->getNumThreads(); thdIndex += 1 )
          {
-            workers.push_back( _clusterThread->getThreadVector()[ thdIndex ] );
+            BaseThread *thd = _clusterThread->getThreadVector()[ thdIndex ];
+            workers.insert( std::make_pair( thd->getId(), thd ) );
          }
       }
    } else {
-      workers.push_back( _clusterThread ); 
+      workers.insert( std::make_pair( _clusterThread->getId(), _clusterThread ) ); 
    }
 }
 
 void ClusterPlugin::finalize() {
+#if 0
    if ( _gasnetApi.getNodeNum() == 0 ) {
       //message0("Master: Created " << createdWds << " WDs.");
       message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
@@ -245,15 +263,16 @@ void ClusterPlugin::finalize() {
       //   message0("Cluster Balance: " << balance );
       //}
    }
+#endif
 }
 
 
-void ClusterPlugin::addPEs( std::vector<ProcessingElement *> &pes ) const {
+void ClusterPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
    if ( _nodes ) {
       std::vector<ClusterNode *>::const_iterator it = _nodes->begin();
       it++; //position 0 is null, node 0 does not have a ClusterNode object
       for (; it != _nodes->end(); it++ ) {
-         pes.push_back( *it );
+         pes.insert( std::make_pair( (*it)->getId(), *it ) );
       }
    }
 }

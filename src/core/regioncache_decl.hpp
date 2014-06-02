@@ -95,6 +95,7 @@ namespace nanos {
          bool isRooted() const;
 
 
+         void copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          //void clearDirty( global_reg_t const &reg );
    };
 
@@ -110,6 +111,7 @@ namespace nanos {
 
    class RegionCache {
       public:
+         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE };
          enum CacheOptions {
             ALLOC_FIT,
             ALLOC_WIDE
@@ -198,7 +200,7 @@ namespace nanos {
 
          //unsigned int getVersionSetVersion( global_reg_t const &hostMem, unsigned int newVersion );
          unsigned int getVersion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
-         void releaseRegion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
+         void releaseRegion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx );
 
@@ -214,7 +216,6 @@ namespace nanos {
          void prepareRegionsToCopyToHost( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
          void registerOwnedMemory(void *addr, std::size_t len);
 
-         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE };
          void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
    };
 }

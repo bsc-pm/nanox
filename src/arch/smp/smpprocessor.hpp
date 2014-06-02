@@ -23,12 +23,7 @@
 #include "config.hpp"
 #include "smpthread.hpp"
 #include "smpdevice.hpp"
-//#ifdef SMP_NUMA
-//#include "cachedaccelerator.hpp"
-//#include "copydescriptor_decl.hpp"
-//#else
 #include "processingelement.hpp"
-//#endif
 
 // xlc/icc compilers require the next include to emit the vtable of WDDeque
 #include <wddeque.hpp>
@@ -49,6 +44,7 @@ namespace ext
          static System::CachePolicyType _cachePolicy;
          unsigned int _bindingId;
          bool _reserved;
+         bool _active;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -57,7 +53,7 @@ namespace ext
 
       public:
          // constructors
-         SMPProcessor( int bindingId, memory_space_id_t numMemId = sys.getRootMemorySpaceId() );
+         SMPProcessor( int bindingId, memory_space_id_t numMemId, bool active );
 
          unsigned int getBindingId() { return _bindingId; }
 
@@ -80,6 +76,7 @@ namespace ext
          virtual bool isGPU () const { return false; }
          bool isReserved() const { return _reserved; }
          void reserve() { _reserved = true; }
+         bool isActive() const { return _active; }
          //virtual void* getAddressDependent( uint64_t tag );
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          //virtual void* newGetAddressDependent( CopyData const &cd );

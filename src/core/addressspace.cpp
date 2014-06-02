@@ -35,7 +35,6 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
    do {
      NewNewRegionDirectory::tryGetLocation( reg.key, reg.id, locations, version, *((WD*)NULL) );
    } while ( version == 0 ); 
-   reg.initializeGlobalEntryIfNeeded();
 }
 
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
@@ -114,8 +113,8 @@ unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, W
    return _cache.getVersion( reg, wd, copyIdx );
 }
 
-void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
-   _cache.releaseRegion( reg, wd, copyIdx );
+void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy ) {
+   _cache.releaseRegion( reg, wd, copyIdx, policy );
 }
 
 void SeparateAddressSpace::copyFromHost( TransferList &list, WD const &wd ) {

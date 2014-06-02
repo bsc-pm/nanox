@@ -262,9 +262,9 @@ class GPUPlugin : public ArchPlugin
 //         
 //      }
 
-virtual void addPEs( std::vector<ProcessingElement *> &pes ) const {
+virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
    for ( std::vector<GPUProcessor *>::const_iterator it = _gpus->begin(); it != _gpus->end(); it++ ) {
-      pes.push_back( *it );
+      pes.insert( std::make_pair( (*it)->getId(), *it ) );
    }
 }
 
@@ -275,9 +275,9 @@ virtual void startSupportThreads() {
    }
 }
 
-virtual void startWorkerThreads( std::vector<BaseThread *> &workers ) {
+virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
    for ( std::vector<GPUThread *>::iterator it = _gpuThreads->begin(); it != _gpuThreads->end(); it++ ) {
-      workers.push_back( *it );
+      workers.insert( std::make_pair( (*it)->getId(), *it ) );
    }
 }
 
