@@ -25,6 +25,7 @@ RegionNode * ContainerDense< T >::getRegionNode( reg_t id ) const {
 template <class T>
 void ContainerDense< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
    _container[ leaf->getId() ].setLeaf( leaf );
+   _container[ leaf->getId() ].setData( NULL );
    if (!rogue) _leafCount++;
 }
 
@@ -53,7 +54,6 @@ reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const re
    if ( rogue ) _rogueLock.acquire();
    _lock.acquire();
    reg_t id = _root.addNode( region, _dimensionSizes.size(), 0, *this, rogue );
-   this->setRegionData(id, NULL);
    _lock.release();
    if ( rogue ) _rogueLock.release();
    return id;
