@@ -30,7 +30,7 @@ inline bool DeviceOps::addCacheOp( /* debug: */ WorkDescriptor const *wd, int lo
       ensure( wd != NULL, "Invalid WD adding a Cache Op.")
       if ( b ) {
          if ( VERBOSE_CACHE_OPS ) {
-            std::cerr << "[" << myThread->getId() << "] "<< (void *)this << " Added an op by " << wd->getId() << " at loc " << loc << std::endl;
+            *(myThread->_file) << "[" << myThread->getId() << "] "<< (void *)this << " Added an op by " << wd->getId() << " at loc " << loc << std::endl;
          }
          _wd = wd;
          _owner = wd->getId();
@@ -59,7 +59,7 @@ inline void DeviceOps::completeCacheOp( /* debug: */ WorkDescriptor const *wd ) 
    ensure( _pendingCacheOp.getState() != NANOS_LOCK_FREE, "Already completed op!" );
         ensure( wd == _wd, "Invalid owner clearing a cache op." );
         if ( VERBOSE_CACHE_OPS ) {
-           std::cerr << "[" << myThread->getId() << "] "<< (void *)this << " cleared an op by " << wd->getId() << std::endl;
+           *(myThread->_file) << "[" << myThread->getId() << "] "<< (void *)this << " cleared an op by " << wd->getId() << std::endl;
         }
         _wd = NULL;
         _owner = -1;

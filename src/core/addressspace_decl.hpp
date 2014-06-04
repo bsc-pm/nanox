@@ -71,8 +71,6 @@ class HostAddressSpace {
    public:
    HostAddressSpace( Device &arch );
 
-   bool lockForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
-   void releaseForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
    void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
    void getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations );
    void getRegionId( CopyData const &cd, global_reg_t &reg );
@@ -93,8 +91,6 @@ class SeparateAddressSpace {
    public:
    SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide );
 
-   bool lockForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
-   void releaseForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
    void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval );
    void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
    void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
@@ -102,16 +98,11 @@ class SeparateAddressSpace {
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void copyFromHost( TransferList &list, WD const &wd );
 
-
-   
-   //unsigned int lockRegionAndGetCurrentVersion( global_reg_t const &reg, bool increaseVersion = false );
    void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
    
    bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
-   //void prepareRegion( global_reg_t const &reg, WD const &wd );
    void setRegionVersion( global_reg_t const &reg, unsigned int version );
-   //unsigned int getCurrentVersionSetVersion( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
    unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
    unsigned int getNodeNumber() const;
@@ -143,7 +134,6 @@ class MemSpace : public T {
    MemSpace<T>( Device &d );
    MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide );
    void copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const &wd, bool inval = false );
-   void releaseRegions( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const &wd );
 };
 
 typedef MemSpace<SeparateAddressSpace> SeparateMemoryAddressSpace;

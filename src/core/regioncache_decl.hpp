@@ -51,6 +51,8 @@ namespace nanos {
          std::size_t                       _roBytes;
          std::size_t                       _rwBytes;
          Atomic<unsigned int>              _refs;
+         std::map<int, unsigned int>       _refWdId;
+         std::map<int, std::set<int> >     _refLoc;
          global_reg_t                      _allocatedRegion;
          
          CacheRegionDictionary *_newRegions;
@@ -82,8 +84,8 @@ namespace nanos {
          bool locked() const;
          bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
          void NEWaddWriteRegion( reg_t reg, unsigned int version );
-         void addReference();
-         void removeReference();
+         void addReference(int wdId, unsigned int loc);
+         void removeReference(int wdId);
          unsigned int getReferenceCount() const;
          void confirmCopyIn( reg_t id, unsigned int version );
          unsigned int getVersion( global_reg_t const &reg );
@@ -97,6 +99,7 @@ namespace nanos {
 
          void copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          //void clearDirty( global_reg_t const &reg );
+         void printReferencingWDs() const;
    };
 
    class CompleteOpFunctor : public Functor {
@@ -195,10 +198,7 @@ namespace nanos {
          unsigned int getNodeNumber() const;
          unsigned int getLruTime() const;
          void increaseLruTime();
-         bool pin( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
-         void unpin( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
 
-         //unsigned int getVersionSetVersion( global_reg_t const &hostMem, unsigned int newVersion );
          unsigned int getVersion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
          void releaseRegion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
@@ -213,10 +213,12 @@ namespace nanos {
          bool canInvalidateToFit( std::size_t *sizes, unsigned int numChunks ) const;
          std::size_t getAllocatableSize( global_reg_t const &reg ) const;
          void getAllocatableRegion( global_reg_t const &reg, global_reg_t &allocRegion ) const;
-         void prepareRegionsToCopyToHost( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
+         void prepareRegionsToBeCopied( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
+         void _prepareRegionToBeCopied( global_reg_t const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) ;
          void registerOwnedMemory(void *addr, std::size_t len);
 
          void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+         void printReferencedChunksAndWDs() const;
    };
 }
 
