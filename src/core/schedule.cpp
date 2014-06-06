@@ -177,7 +177,9 @@ void Scheduler::updateExitStats ( WD &wd )
 
 struct TestInputs {
    static void call( ProcessingElement *pe, WorkDescriptor *wd ) {
-      pe->testInputs( *wd );
+      if ( wd->_mcontrol.isMemoryAllocated() ) {
+         pe->testInputs( *wd );
+      }
    }
 };
 

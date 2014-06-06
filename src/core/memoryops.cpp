@@ -35,47 +35,56 @@ void BaseOps::OwnOp::commitMetadata() const {
    _reg.setLocationAndVersion( _location, _version );
 }
 
-BaseOps::BaseOps( bool delayedCommit ) : _delayedCommit( delayedCommit ), _ownDeviceOps(), _otherDeviceOps(), _amountOfTransferredData( 0 ) {
+BaseOps::BaseOps( bool delayedCommit ) : _delayedCommit( delayedCommit ), _dataReady( false ), _ownDeviceOps(), _otherDeviceOps(), _amountOfTransferredData( 0 ) {
 }
 
 BaseOps::~BaseOps() {
 }
 
-bool BaseOps::isDataReady( WD const &wd ) {
-   bool allReady = true;
+bool BaseOps::isDataReady( WD const &wd, bool inval ) {
+   if ( !_dataReady ) {
+      bool allReady = true;
 
-   std::set< OwnOp >::iterator it = _ownDeviceOps.begin();
-   while ( it != _ownDeviceOps.end() && allReady ) {
-      if ( it->_ops->allCompleted() ) {
-         it++;
-      } else {
-         allReady = false;
-      }
-   }
-   // do it this way because there may be dependencies between operations,
-   // by clearing all when all are completed any dependence will be satisfied.
-   if ( allReady ) {
-      for ( it = _ownDeviceOps.begin(); it != _ownDeviceOps.end(); it++ ) {
-         it->_ops->completeCacheOp( /* debug: */ &wd );
-         if ( _delayedCommit ) { 
-            it->commitMetadata();
-         }
-      }
-      _ownDeviceOps.clear();
-   }
-   if ( allReady ) {
-      std::set< DeviceOps * >::iterator otherIt = _otherDeviceOps.begin();
-      while ( otherIt != _otherDeviceOps.end() && allReady ) {
-         if ( (*otherIt)->allCacheOpsCompleted() ) {
-            std::set< DeviceOps * >::iterator toBeRemovedIt = otherIt;
-            otherIt++;
-            _otherDeviceOps.erase( toBeRemovedIt );
+      std::set< OwnOp >::iterator it = _ownDeviceOps.begin();
+      while ( it != _ownDeviceOps.end() && allReady ) {
+         if ( it->_ops->allCompleted() ) {
+            it++;
          } else {
             allReady = false;
          }
       }
+      // do it this way because there may be dependencies between operations,
+      // by clearing all when all are completed any dependence will be satisfied.
+      if ( allReady ) {
+         //if (!inval) {
+         //   *(myThread->_file) << "######################## COMPLETED OPS FOR WD " << wd.getId() << " ownOps is "<< _ownDeviceOps.size() << std::endl;
+         //}
+         for ( it = _ownDeviceOps.begin(); it != _ownDeviceOps.end(); it++ ) {
+            it->_ops->completeCacheOp( /* debug: */ &wd );
+            if ( _delayedCommit ) { 
+               it->commitMetadata();
+            }
+         }
+         _ownDeviceOps.clear();
+      }
+      if ( allReady ) {
+         std::set< DeviceOps * >::iterator otherIt = _otherDeviceOps.begin();
+         while ( otherIt != _otherDeviceOps.end() && allReady ) {
+            if ( (*otherIt)->allCacheOpsCompleted() ) {
+               std::set< DeviceOps * >::iterator toBeRemovedIt = otherIt;
+               otherIt++;
+               _otherDeviceOps.erase( toBeRemovedIt );
+            } else {
+               allReady = false;
+            }
+         }
+      }
+      if ( allReady ) {
+         releaseLockedSourceChunks( wd );
+      }
+      _dataReady = allReady;
    }
-   return allReady;
+   return _dataReady;
 }
 
 std::set< DeviceOps * > &BaseOps::getOtherOps() {
@@ -137,17 +146,17 @@ void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned 
    for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
       global_reg_t region_shape( it->first, reg.key );
       global_reg_t data_source( it->second, reg.key );
-      //if ( !data_source.isLocatedIn( thisLocation ) ) {
+      if ( data_source.getFirstLocation() != 0 ) {
          memory_space_id_t location = data_source.getFirstLocation();
          if ( location != thisLocation ) {
             parts[ location ].insert( data_source );
          }
-      //}
+      }
    }
    if ( _VERBOSE_CACHE ) { std::cerr << "avoiding... process region " << reg.id << " got locked chunks: " << std::endl; }
    for ( std::map< memory_space_id_t, std::set< global_reg_t > >::iterator mIt = parts.begin(); mIt != parts.end(); mIt++ ) {
       if ( _VERBOSE_CACHE ) { std::cerr << " from location " << mIt->first << std::endl; }
-      sys.getSeparateMemory( mIt->first ).getCache().prepareRegionsToCopyToHost( mIt->second, version, _lockedChunks, wd, copyIdx );
+      sys.getSeparateMemory( mIt->first ).getCache().prepareRegionsToBeCopied( mIt->second, version, _lockedChunks, wd, copyIdx );
    }
    if ( _VERBOSE_CACHE ) {
       std::cerr << "safe from invalidations... process region " << reg.id << " got locked chunks: ";
@@ -158,10 +167,9 @@ void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned 
    }
 }
 
-void BaseAddressSpaceInOps::releaseLockedSourceChunks() {
+void BaseOps::releaseLockedSourceChunks( WD const &wd ) {
    for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
-      //(*it)->unlock();
-      (*it)->removeReference();
+      (*it)->removeReference( wd.getId() );
    }
    _lockedChunks.clear();
 }
@@ -288,6 +296,7 @@ unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &re
 }
 
 void SeparateAddressSpaceInOps::copyInputData( MemCacheCopy const& memCopy, bool output, WD const &wd, unsigned int copyIdx ) {
+   lockSourceChunks( memCopy._reg, memCopy.getVersion(), memCopy._locations, _destination.getMemorySpaceId(), wd, copyIdx );
    _destination.copyInputData( *this, memCopy._reg, memCopy.getVersion(), output, memCopy._locations, memCopy._chunk, wd, copyIdx );
 }
 
@@ -295,16 +304,29 @@ void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, u
    _destination.allocateOutputMemory( reg, version, wd, copyIdx );
 }
 
-
 SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( bool delayedCommit, bool isInval ) : BaseOps( delayedCommit ), _invalidation( isInval ), _transfers() {
 }
 
 SeparateAddressSpaceOutOps::~SeparateAddressSpaceOutOps() {
 }
 
-void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, unsigned int copyIdx ) {
+void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
    TransferList &list = _transfers[ from ];
+   if ( _lockedChunks.count( chunk ) == 0 ) {
+      chunk->lock();
+      chunk->addReference( wd.getId(), 1 );
+      _lockedChunks.insert( chunk );
+      chunk->unlock();
+   }
    list.push_back( TransferListEntry( reg, version, ops, chunk, copyIdx ) );
+}
+
+void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx ) {
+   TransferList &list = _transfers[ from ];
+   from->getCache().lock();
+   from->getCache()._prepareRegionToBeCopied( reg, version, _lockedChunks, wd, copyIdx );
+   from->getCache().unlock();
+   list.push_back( TransferListEntry( reg, version, ops, NULL, copyIdx ) );
 }
 
 void SeparateAddressSpaceOutOps::issue( WD const &wd ) {

@@ -25,6 +25,7 @@ RegionNode * ContainerDense< T >::getRegionNode( reg_t id ) const {
 template <class T>
 void ContainerDense< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
    _container[ leaf->getId() ].setLeaf( leaf );
+   _container[ leaf->getId() ].setData( NULL );
    if (!rogue) _leafCount++;
 }
 

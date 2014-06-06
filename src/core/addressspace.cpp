@@ -16,13 +16,6 @@ MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device
 HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
 }
 
-bool HostAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   return true;
-}
-
-void HostAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-}
-
 void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
    if ( reg.setCopying( from ) ) {
      from.copyOut( reg, version, ops, wd, copyIdx, inval );
@@ -72,15 +65,6 @@ reg_t HostAddressSpace::getLocalRegionId( void *hostObject, reg_t hostRegionId )
 SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT ), _nodeNumber( 0 )  {
 }
 
-
-bool SeparateAddressSpace::lockForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   return _cache.pin( reg, wd, copyIdx );
-}
-
-void SeparateAddressSpace::releaseForTransfer( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   _cache.unpin( reg, wd, copyIdx );
-}
-
 void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval ) {
    _cache.NEWcopyOut( reg, version, wd, copyIdx, ops, inval );
 }
@@ -119,12 +103,7 @@ void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd,
 
 void SeparateAddressSpace::copyFromHost( TransferList &list, WD const &wd ) {
    for ( TransferList::const_iterator it = list.begin(); it != list.end(); it++ ) {
-      if ( sys.getHostMemory().lockForTransfer( it->getRegion(), it->getVersion(), wd, it->getCopyIndex() ) ) {
-         this->doOp( sys.getHostMemory(), it->getRegion(), it->getVersion(), wd, it->getCopyIndex(), it->getDeviceOps(), it->getChunk(), false );
-         sys.getHostMemory().releaseForTransfer( it->getRegion(), it->getVersion(), wd, it->getCopyIndex() );
-      } else {
-         this->failToLock( sys.getHostMemory(), it->getRegion(), it->getVersion() );
-      }
+      this->doOp( sys.getHostMemory(), it->getRegion(), it->getVersion(), wd, it->getCopyIndex(), it->getDeviceOps(), it->getChunk(), false );
    }
 }
 

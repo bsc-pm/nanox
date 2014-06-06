@@ -135,6 +135,8 @@ void MemController::initialize( ProcessingElement &pe ) {
          _inOps = NEW SeparateAddressSpaceInOps( true, sys.getSeparateMemory( _memorySpaceId ) );
       }
       _initialized = true;
+   } else {
+      ensure(_memorySpaceId == pe.getMemorySpaceId(), " MemController, called initialize twice with different PE!");
    }
 }
 
@@ -142,6 +144,7 @@ bool MemController::allocateInputMemory() {
    ensure( _inOps != NULL, "NULL ops." );
    bool result = _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
    if ( result ) {
+      //*(myThread->_file) << "++++ Succeeded allocation for wd " << _wd.getId() << std::endl;
       for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
          if ( _memCacheCopies[idx]._reg.key->getKeepAtOrigin() ) {
             //std::cerr << "WD " << _wd.getId() << " rooting to memory space " << _memorySpaceId << std::endl;
@@ -242,10 +245,6 @@ bool MemController::isDataReady( WD const &wd ) {
    if ( _initialized ) {
       if ( !_inputDataReady ) {
          _inputDataReady = _inOps->isDataReady( wd );
-         if ( _inputDataReady ) {
-            if ( _VERBOSE_CACHE ) { std::cerr << "Data is ready for wd " << _wd.getId() << " obj " << (void *)_inOps << std::endl; }
-            _inOps->releaseLockedSourceChunks();
-         }
       }
       return _inputDataReady;
    } 
@@ -259,7 +258,7 @@ bool MemController::isOutputDataReady( WD const &wd ) {
       if ( !_outputDataReady ) {
          _outputDataReady = _outOps->isDataReady( wd );
          if ( _outputDataReady ) {
-            if ( _VERBOSE_CACHE ) { std::cerr << "Output data is ready for wd " << _wd.getId() << " obj " << (void *)_outOps << std::endl; }
+            if ( _VERBOSE_CACHE ) { *(myThread->_file) << "Output data is ready for wd " << _wd.getId() << " obj " << (void *)_outOps << std::endl; }
 
             for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
                sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd, index, _memCacheCopies[ index ]._policy ) ;
