@@ -89,9 +89,6 @@ namespace nanos
          Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
 
          // configuration variables
-         unsigned int         _numPEs;
-         int                  _numThreads;
-         int                  _maxCpus;
          int                  _deviceStackSize;
          bool                 _profile;
          bool                 _instrument;

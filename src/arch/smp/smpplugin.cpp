@@ -918,6 +918,14 @@ class SMPPlugin : public SMPBasePlugin
       return _requestedWorkersOMPSS;
    }
 
+   virtual void getBindingMaskString( std::ostream &o ) const {
+      o << "[ ";
+      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         o << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
+      }
+      o << "]";
+   }
+
 };
 }
 }
