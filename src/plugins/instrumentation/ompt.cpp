@@ -20,12 +20,14 @@ extern "C" {
 
 
    //! List of callback declarations
-   ompt_new_parallel_callback_t ompt_nanos_event_parallel_begin = NULL;
-   ompt_parallel_callback_t ompt_nanos_event_parallel_end = NULL;
-   ompt_new_task_callback_t     ompt_nanos_event_task_begin = NULL;
-   ompt_task_callback_t         ompt_nanos_event_task_end = NULL;
-   ompt_thread_type_callback_t  ompt_nanos_event_thread_begin = NULL;
-   ompt_thread_type_callback_t  ompt_nanos_event_thread_end = NULL;
+   ompt_new_parallel_callback_t  ompt_nanos_event_parallel_begin = NULL;
+   ompt_parallel_callback_t      ompt_nanos_event_parallel_end = NULL;
+   ompt_new_task_callback_t      ompt_nanos_event_task_begin = NULL;
+   ompt_task_callback_t          ompt_nanos_event_task_end = NULL;
+   ompt_thread_type_callback_t   ompt_nanos_event_thread_begin = NULL;
+   ompt_thread_type_callback_t   ompt_nanos_event_thread_end = NULL;
+   ompt_control_callback_t       ompt_nanos_event_control = NULL;
+   ompt_callback_t               ompt_nanos_event_shutdown = NULL;
 
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback );
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback )
@@ -50,8 +52,11 @@ extern "C" {
             ompt_nanos_event_thread_end = (ompt_thread_type_callback_t) callback;
             return 4;
          case ompt_event_control:
+            //FIXME Consider to instrument user control calls
+            ompt_nanos_event_control = (ompt_control_callback_t) callback;
             return 4;
          case ompt_event_runtime_shutdown:
+            ompt_nanos_event_shutdown = (ompt_callback_t) callback;
             return 4;
          default:
             warning("Callback registration error");
@@ -130,11 +135,11 @@ namespace nanos
          }
          void threadStart( BaseThread &thread ) 
          {
-            if (ompt_nanos_event_thread_begin) ompt_nanos_event_thread_begin((ompt_thread_type_t) 2, (ompt_thread_id_t) nanos::myThread->getId());
+            if (ompt_nanos_event_thread_begin) ompt_nanos_event_thread_begin((ompt_thread_type_t) ompt_thread_worker, (ompt_thread_id_t) nanos::myThread->getId());
          }
          void threadFinish ( BaseThread &thread )
          {
-            if (ompt_nanos_event_thread_end) ompt_nanos_event_thread_end((ompt_thread_type_t) 2, (ompt_thread_id_t) nanos::myThread->getId());
+            if (ompt_nanos_event_thread_end) ompt_nanos_event_thread_end((ompt_thread_type_t) ompt_thread_worker, (ompt_thread_id_t) nanos::myThread->getId());
          }
          void incrementMaxThreads( void ) {}
    };
