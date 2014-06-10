@@ -211,7 +211,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, bool out
                ensure( location > 0, "Wrong location.");
                this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, copyIdx );
             } else {
-               std::cerr << "This should not happen, reg " << data_source.id << " reported to be in 0 (first loc " << location << " ) shape is " << region_shape.id << std::endl;
+               *(myThread->_file) << "This should not happen, reg " << data_source.id << " reported to be in 0 (first loc " << location << " ) shape is " << region_shape.id << " wd: " << wd.getId() << " copyIdx " << copyIdx << " " << ((wd.getDescription()!=NULL) ? wd.getDescription() : "n/a") << std::endl;
                //fatal("Impossible path!");
                getOtherOps().insert( data_source.getDeviceOps() );
             }

@@ -337,6 +337,7 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    //_myGraphRepList.value()->push_back( getGE() );
    //if (predecessorWd != NULL) predecessorWd->listed();
 
+   //*(myThread->_file) << "I'm " << getId() << " : " << getDescription() << " my predecessor " << predecessorWd->getId() << " : " << predecessorWd->getDescription() << " has finished." << std::endl;
    _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
 }
 

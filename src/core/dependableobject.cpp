@@ -55,6 +55,18 @@ void DependableObject::finished ( )
 
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
 
+
+      //*(myThread->_file) << "Successors for wd " << this->getWD()->getId() << " : " << this->getWD()->getDescription() << " { " ;
+      //for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
+      //   WD *wd = (*it)->getWD();
+      //   if ( wd != NULL ) {
+      //      *(myThread->_file) << "[" << wd->getId() << " : "<< wd->getDescription() << " ]";
+      //   } else {
+      //      *(myThread->_file) << "[null succ]";
+      //   }
+      //}
+      //*(myThread->_file) << " }" << std::endl;
+
       // See if it's worth batch releasing.
       // The idea here is to prevent initialising the vector unless we will
       // use it.
