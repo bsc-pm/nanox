@@ -143,9 +143,14 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
    return _successors.insert ( &depObj ).second;
 }
 
+inline bool DependableObject::deleteSuccessor ( DependableObject *depObj )
+{
+   return _successors.erase( depObj ) > 0;
+}
+
 inline bool DependableObject::deleteSuccessor ( DependableObject &depObj )
 {
-   return _successors.erase( &depObj ) > 0;
+   return deleteSuccessor( &depObj );
 }
 
 inline DependenciesDomain * DependableObject::getDependenciesDomain ( ) const
