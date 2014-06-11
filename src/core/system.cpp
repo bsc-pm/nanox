@@ -78,8 +78,8 @@ System::System () :
       _pausedThreadsCond(), _unpausedThreadsCond(),
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
-      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP )
-
+      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr("")
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -358,6 +358,10 @@ void System::config ()
    cfg.registerConfigOption ( "thd-output", NEW Config::FlagOption ( _splitOutputForThreads, true ), "Create separate files for each thread" );
    cfg.registerArgOption ( "thd-output", "thd-output" );
 
+   cfg.registerConfigOption ( "regioncache-policy", NEW Config::StringVar ( _regionCachePolicyStr ), "Region cache policy, accepted values are : nocache, writethrough, writeback. Default is writeback." );
+   cfg.registerArgOption ( "regioncache-policy", "cache-policy" );
+   cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
+
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
@@ -376,6 +380,19 @@ void System::start ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
 
    verbose0 ( "Starting runtime" );
+
+   if ( _regionCachePolicyStr.compare("") != 0 ) {
+      //value is set
+      if ( _regionCachePolicyStr.compare("nocache") == 0 ) {
+         _regionCachePolicy = RegionCache::NO_CACHE;
+      } else if ( _regionCachePolicyStr.compare("writethrough") == 0 ) {
+         _regionCachePolicy = RegionCache::WRITE_THROUGH;
+      } else if ( _regionCachePolicyStr.compare("writeback") == 0 ) {
+         _regionCachePolicy = RegionCache::WRITE_BACK;
+      } else {
+         warning0("Invalid option for region cache policy '" << _regionCachePolicyStr << "', using default value.");
+      }
+   }
 
    _smpPlugin->associateThisThread( getUntieMaster() );
    //Setup MainWD
@@ -1077,7 +1094,7 @@ void System::inlineWork ( WD &work )
       work._mcontrol.initialize( *( myThread->runningOn() ) );
       bool result;
       do {
-         result = work._mcontrol.allocateInputMemory();
+         result = work._mcontrol.allocateTaskMemory();
       } while( result == false );
       Scheduler::inlineWork( &work );
    }

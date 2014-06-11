@@ -535,5 +535,9 @@ inline bool System::getSplitOutputForThreads() const {
    return _splitOutputForThreads;
 }
 
+inline RegionCache::CachePolicy System::getRegionCachePolicy() const {
+   return _regionCachePolicy;
+}
+
 #endif
 

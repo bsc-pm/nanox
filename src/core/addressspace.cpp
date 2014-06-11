@@ -127,8 +127,8 @@ void SeparateAddressSpace::setSpecificData( void *data ) {
    _sdata = data;
 }
 
-void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
-   _cache.copyInputData( ops, reg, version, output, locations, chunk, wd, copyIdx );
+void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   _cache.copyInputData( ops, reg, version, locations, chunk, wd, copyIdx );
 }
 
 void SeparateAddressSpace::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
@@ -171,6 +171,10 @@ bool SeparateAddressSpace::canAllocateMemory( MemCacheCopy *memCopies, unsigned 
 
 void SeparateAddressSpace::invalidate( global_reg_t const &reg ) {
    _cache.invalidateObject( reg );
+}
+
+void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   _cache.setRegionVersion( reg, version, wd, copyIdx );
 }
 
 }

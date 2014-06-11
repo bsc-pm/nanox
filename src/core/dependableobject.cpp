@@ -56,11 +56,11 @@ void DependableObject::finished ( )
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
 
 
-      //*(myThread->_file) << "Successors for wd " << this->getWD()->getId() << " : " << this->getWD()->getDescription() << " { " ;
+      //*(myThread->_file) << "Successors for wd " << this->getWD()->getId() << " : " << ( this->getWD()->getDescription() != NULL ? this->getWD()->getDescription() : "[no description]" ) << " { " ;
       //for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
       //   WD *wd = (*it)->getWD();
       //   if ( wd != NULL ) {
-      //      *(myThread->_file) << "[" << wd->getId() << " : "<< wd->getDescription() << " ]";
+      //      *(myThread->_file) << "[" << wd->getId() << " : "<< ( wd->getDescription() != NULL ? wd->getDescription() : "[no description]" ) << " ]";
       //   } else {
       //      *(myThread->_file) << "[null succ]";
       //   }
@@ -150,6 +150,11 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                } else {
                   NANOS_INSTRUMENT ( instrument ( *found ); )
                   DependenciesDomain::decreaseTasksInGraph();
+                  //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<
+                  //   ( this->getWD()->getDescription() != NULL ? this->getWD()->getDescription() : "[no description]" ) <<
+                  //   " { " << found->getWD()->getId() << 
+                  //   " : " << ( found->getWD()->getDescription() != NULL ? found->getWD()->getDescription() : "[no description]" ) <<
+                  //   " }" << std::endl;
                   break;
                }
             }

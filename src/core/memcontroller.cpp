@@ -145,9 +145,11 @@ void MemController::initialize( ProcessingElement &pe ) {
    }
 }
 
-bool MemController::allocateInputMemory() {
-   ensure( _inOps != NULL, "NULL ops." );
-   bool result = _inOps->prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
+bool MemController::allocateTaskMemory() {
+   bool result = true;
+   if ( _memorySpaceId != 0 ) {
+      result = sys.getSeparateMemory( _memorySpaceId ).prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
+   }
    if ( result ) {
       //*(myThread->_file) << "++++ Succeeded allocation for wd " << _wd.getId() << std::endl;
       for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
@@ -210,7 +212,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
    if ( _memorySpaceId == 0 /* HOST_MEMSPACE_ID */) {
       _outputDataReady = true;
    } else {
-      _outOps = NEW SeparateAddressSpaceOutOps( false, false );
+      _outOps = NEW SeparateAddressSpaceOutOps( false, true );
 
       for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
          _memCacheCopies[ index ].generateOutOps( &sys.getSeparateMemory( _memorySpaceId ), *_outOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd, index );
@@ -351,6 +353,17 @@ void MemController::synchronize() {
 
 bool MemController::isMemoryAllocated() const {
    return _memoryAllocated;
+}
+
+void MemController::setCacheMetaData() {
+   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+      if ( _wd.getCopies()[index].isOutput() ) {
+         _memCacheCopies[ index ]._reg.setLocationAndVersion( _memorySpaceId, _memCacheCopies[ index ].getVersion() + 1 );
+         if ( _memorySpaceId != 0 /* HOST_MEMSPACE_ID */) {
+            sys.getSeparateMemory( _memorySpaceId ).setRegionVersion( _memCacheCopies[ index ]._reg, _memCacheCopies[ index ].getVersion() + 1, _wd, index );
+         }
+      }
+   }
 }
 
 }

@@ -161,18 +161,24 @@ namespace nanos
             return true;
          }
 
-         /*
          virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-            std::cerr << "wrong copyIn" <<std::endl;
+            for ( std::size_t count = 0; count < numChunks; count += 1) {
+               ::memcpy( ((char *) devAddr) + count * ld, ((char *) hostAddr) + count * ld, len );
+            }
          }
 
          virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-            std::cerr << "wrong copyOut" <<std::endl;
+            for ( std::size_t count = 0; count < numChunks; count += 1) {
+               ::memcpy( ((char *) hostAddr) + count * ld, ((char *) devAddr) + count * ld, len );
+            }
          }
 
          virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
-            std::cerr << "wrong copyDevToDev" <<std::endl; return false;
-         }*/
+            for ( std::size_t count = 0; count < numChunks; count += 1) {
+               ::memcpy( ((char *) devDestAddr) + count * ld, ((char *) devOrigAddr) + count * ld, len );
+            }
+            return true;
+         }
 
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
             SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();

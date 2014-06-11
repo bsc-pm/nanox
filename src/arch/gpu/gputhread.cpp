@@ -166,7 +166,7 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
          WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
          if ( next != NULL ) {
             next->_mcontrol.initialize( *(this->runningOn()) );
-            if ( next->_mcontrol.allocateInputMemory() ) {
+            if ( next->_mcontrol.allocateTaskMemory() ) {
                next->init();
             } else {
                *(myThread->_file) << "------ failed allocation for wd " << next->getId() << std::endl;

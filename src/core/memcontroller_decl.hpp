@@ -38,7 +38,7 @@ public:
    void getInfoFromPredecessor( MemController const &predecessorController );
    void preInit();
    void initialize( ProcessingElement &pe );
-   bool allocateInputMemory();
+   bool allocateTaskMemory();
    void copyDataIn();
    void copyDataOut( MemControllerPolicy policy );
    bool isDataReady( WD const &wd );
@@ -55,6 +55,7 @@ public:
    void setMainWD();
    void synchronize();
    bool isMemoryAllocated() const;
+   void setCacheMetaData();
 };
 
 }

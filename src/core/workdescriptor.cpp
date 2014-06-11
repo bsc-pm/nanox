@@ -126,6 +126,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    // Setting state to ready
    _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
+   _mcontrol.setCacheMetaData();
 }
 
 
@@ -163,6 +164,7 @@ bool WorkDescriptor::isInputDataReady() {
 
       // Setting state to ready
       setReady();
+      _mcontrol.setCacheMetaData();
    }
    return result;
 }
