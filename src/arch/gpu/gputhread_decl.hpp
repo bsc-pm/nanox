@@ -69,6 +69,8 @@ namespace ext
          bool runWDDependent( WD &work );
          //bool inlineWorkDependent( WD &work );
 
+         bool processDependentWD ( WD * wd );
+
          void yield();
 
          void idle();

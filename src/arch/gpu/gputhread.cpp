@@ -233,6 +233,14 @@ bool GPUThread::runWDDependent( WD &wd )
 {
    GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
    GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
+   int streamIdx = -1;
+
+   if ( wd.getCudaStreamIdx() == -1 ) {
+      wd.setCudaStreamIdx( _kernelStreamIdx );
+   } else {
+      streamIdx = _kernelStreamIdx;
+      _kernelStreamIdx = wd.getCudaStreamIdx();
+   }
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    // CUDA events and callbacks to instrument kernel execution on GPU
@@ -263,11 +271,36 @@ bool GPUThread::runWDDependent( WD &wd )
    cudaStreamAddCallback( myGPU.getGPUProcessorInfo()->getTracingKernelStream( _kernelStreamIdx ), afterWDRunCallback, ( void * ) cbd2, 0 );
 #endif
 
-   _kernelStreamIdx++;
-
-   if ( _kernelStreamIdx == myGPU.getGPUProcessorInfo()->getNumExecStreams() ) _kernelStreamIdx = 0;
+   if ( streamIdx == -1 ) {
+      _kernelStreamIdx++;
+      if ( _kernelStreamIdx == myGPU.getGPUProcessorInfo()->getNumExecStreams() ) _kernelStreamIdx = 0;
+   } else {
+      _kernelStreamIdx = streamIdx;
+   }
 
    return false;
+}
+
+bool GPUThread::processDependentWD ( WD * wd )
+{
+   DOSubmit * doSubmit = wd->getDOSubmit();
+
+   if ( doSubmit != NULL ) {
+      DependableObject::DependableObjectVector & preds = wd->getDOSubmit()->getPredecessors();
+      for ( DependableObject::DependableObjectVector::iterator it = preds.begin(); it != preds.end(); it++ ) {
+         WD * wdPred = ( WD * ) ( *it )->getRelatedObject();
+         if ( wdPred != NULL ) {
+            if ( wdPred->isTiedTo() == ( BaseThread * ) this ) {
+               if ( wdPred->getCudaStreamIdx() != -1 ) {
+                  wd->setCudaStreamIdx( wdPred->getCudaStreamIdx() );
+                  return false;
+               }
+            }
+         }
+      }
+   }
+
+   return AsyncThread::processDependentWD( wd );
 }
 
 void GPUThread::yield()

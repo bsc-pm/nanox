@@ -104,6 +104,7 @@ namespace nanos
          virtual void waitInputs( WD &work );
          virtual void copyDataOut( WD &work );
 
+         virtual bool processDependentWD ( WD * wd );
 
          virtual void synchronize( CopyDescriptor cd );
 

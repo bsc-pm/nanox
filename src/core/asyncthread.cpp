@@ -99,6 +99,16 @@ void AsyncThread::idle()
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_SCHEDULE_EVENT );
 
    while ( canGetWork() ) {
+
+      NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
+      ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT );
+      NANOS_INSTRUMENT( } )
+      checkEvents();
+      NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
+      ASYNC_THREAD_CLOSE_EVENT;
+      NANOS_INSTRUMENT( } )
+
+
       // Fill WD's queue until we get the desired number of prefetched WDs
       WD * next = Scheduler::prefetch( ( BaseThread *) this, *last );
 
@@ -162,31 +172,40 @@ void AsyncThread::preRunWD ( WD * wd )
 }
 
 
+bool AsyncThread::processDependentWD ( WD * wd )
+{
+   GenericEvent * deps;
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+   deps = NEW GenericEvent( wd, "Checking WD deps" );
+#else
+   deps = NEW GenericEvent( wd );
+#endif
+
+   Action * depsAction = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, wd );
+   deps->addNextAction( depsAction );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   deps->setDescription( deps->getDescription() + " action:AsyncThread::runWD" );
+#endif
+
+   deps->setRaised();
+
+   addEvent( deps );
+
+   return true;
+}
+
+
 void AsyncThread::runWD ( WD * wd )
 {
    // Check WD's dependencies
    if ( wd->getNumDepsPredecessors() != 0 ) {
       // Its WD predecessor is still running, so enqueue another event
       // to make this WD wait till the predecessor has finished
-      GenericEvent * deps;
 
-#ifdef NANOS_GENERICEVENT_DEBUG
-      deps = NEW GenericEvent( wd, "Checking WD deps" );
-#else
-      deps = NEW GenericEvent( wd );
-#endif
+      bool waitDeps = processDependentWD( wd );
 
-      Action * depsAction = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, wd );
-      deps->addNextAction( depsAction );
-#ifdef NANOS_GENERICEVENT_DEBUG
-      deps->setDescription( deps->getDescription() + " action:AsyncThread::runWD" );
-#endif
-
-      deps->setRaised();
-
-      addEvent( deps );
-
-      return;
+      if ( waitDeps ) return;
    }
 
    debug( "[Async] Running WD " << wd << " : " << wd->getId() );

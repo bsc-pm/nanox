@@ -204,6 +204,7 @@ namespace nanos
          unsigned char                 _numDevices;             //!< Number of suported devices for this workdescriptor
          DeviceData                  **_devices;                //!< Supported devices for this workdescriptor
          unsigned char                 _activeDeviceIdx;        //!< In _devices, index where we can find the current active DeviceData (if any)
+         int                           _cudaStreamIdx;          //!< FIXME: Only used in CUDA tasks, should not be here...
          size_t                        _numCopies;              //!< Copy-in / Copy-out data
          CopyData                     *_copies;                 //!< Copy-in / Copy-out data
          size_t                        _paramsSize;             //!< Total size of WD's parameters
@@ -397,6 +398,9 @@ namespace nanos
 
          void setActiveDeviceIdx( unsigned char idx );
          unsigned char getActiveDeviceIdx() const;
+
+         void setCudaStreamIdx( int idx );
+         int getCudaStreamIdx() const;
 
          /*! \brief Sets specific internal data of the programming model
           * \param [in] data Pointer to internal data

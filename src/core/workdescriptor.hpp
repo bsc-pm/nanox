@@ -47,7 +47,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ),  _myQueue ( NULL ), _depth ( 0 ),
-                                 _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
+                                 _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ), _cudaStreamIdx( -1 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
@@ -66,7 +66,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tiedTo ( NULL ),
                                  _state( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( 0 ),
-                                 _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ),
+                                 _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ), _cudaStreamIdx( -1 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
@@ -86,7 +86,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
                                  _wdData ( NULL ), _flags(), _tiedTo ( wd._tiedTo ),
                                  _state ( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( wd._depth ),
-                                 _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
+                                 _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ), _cudaStreamIdx( wd._cudaStreamIdx ),
                                  _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
                                  _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
                                  _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(NULL), _doWait(),
@@ -187,6 +187,10 @@ inline bool WorkDescriptor::hasActiveDevice() const { return _activeDeviceIdx !=
 inline void WorkDescriptor::setActiveDeviceIdx( unsigned char idx ) { _activeDeviceIdx = idx; }
 
 inline unsigned char WorkDescriptor::getActiveDeviceIdx() const { return _activeDeviceIdx; }
+
+inline void WorkDescriptor::setCudaStreamIdx( int idx ) { _cudaStreamIdx = idx; }
+
+inline int WorkDescriptor::getCudaStreamIdx() const { return _cudaStreamIdx; }
 
 inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) { 
     union { void* p; intptr_t i; } u = { data };
