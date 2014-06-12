@@ -100,11 +100,25 @@ void GPUDevice::freeWholeMemory( void * address )
 
 void * GPUDevice::allocatePinnedMemory( size_t size )
 {
-   void * address = 0;
+   void * address = NULL;
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MALLOC_HOST_EVENT );
    cudaError_t err = cudaMallocHost( &address, size );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+   if ( err == cudaErrorMemoryAllocation) {
+      // Out of memory error, try a workaround: first, allocate and then register the memory as pinned
+      address = std::malloc( size );
+      if ( address != NULL ) {
+         err = cudaHostRegister( address, size, cudaHostRegisterPortable );
+
+         if ( err != cudaSuccess ) {
+            warning( "Memory allocation succeeded, but could not register the address as pinned memory with cudaHostRegister(): "
+                  << cudaGetErrorString( err ) );
+            err = cudaSuccess; // To avoid the fatal_cond below
+         }
+      }
+   }
 
    ensure( address != NULL, "cudaMallocHost() returned a NULL pointer while trying to allocate "
          + ext::bytesToHumanReadable( size ) + ". Error returned by CUDA is: " + cudaGetErrorString( err ) );
@@ -114,6 +128,7 @@ void * GPUDevice::allocatePinnedMemory( size_t size )
 
    return address;
 }
+
 void * GPUDevice::allocatePinnedMemory2( size_t size )
 {
    void * address = 0;
@@ -128,9 +143,25 @@ void * GPUDevice::allocatePinnedMemory2( size_t size )
 
 void GPUDevice::freePinnedMemory( void * address )
 {
+   // There are 2 possible ways of getting pinned memory:
+   // 1) Calling cudaMallocHost() or cudaHostAlloc()
+   // 2) Allocating memory + calling cudaHostRegister()
+   // As we don't know which method we used, we need to control the errors returned by
+   // CUDA and act properly.
+
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_FREE_HOST_EVENT );
    cudaError_t err = cudaFreeHost( address );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+   if ( err == cudaSuccess ) return;
+
+   // err value should then be cudaErrorInvalidValue
+   err = cudaHostUnregister( address );
+
+   if ( err == cudaSuccess || err == cudaErrorHostMemoryNotRegistered ) {
+      std::free( address );
+      err = cudaSuccess;
+   }
 
    fatal_cond( err != cudaSuccess, "Trying to free host memory at " + toString<void *>( address ) +
          + " with cudaFreeHost(): " + cudaGetErrorString( err ) );
