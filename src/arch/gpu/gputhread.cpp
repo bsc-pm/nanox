@@ -46,15 +46,9 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   // Initialize GPUProcessor
-   ( ( GPUProcessor * ) myThread->runningOn() )->init();
-
-   // Warming up GPU's...
-   if ( GPUConfig::isGPUWarmupDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_FREE_EVENT );
-      cudaFree(0);
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-   }
+   // WARNING: Since GPUProcessor::init() allocates almost all the GPU memory, CUBLAS must be initialized before
+   // this happens. Otherwise, it may happen that cublasCreate() fails because there is not enough GPU memory
+   // (the given error for this situation does not help finding out the problem: CUBLAS_STATUS_NOT_INITIALIZED)
 
 #ifndef NANOS_GPU_USE_CUDA32
    // Initialize CUBLAS handle in case of potentially using CUBLAS
@@ -81,6 +75,16 @@ void GPUThread::initializeDependent ()
       }
    }
 #endif
+
+   // Initialize GPUProcessor
+   ( ( GPUProcessor * ) myThread->runningOn() )->init();
+
+   // Warming up GPU's...
+   if ( GPUConfig::isGPUWarmupDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_FREE_EVENT );
+      cudaFree(0);
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+   }
 
    // Reset CUDA errors that may have occurred inside the runtime initialization
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
