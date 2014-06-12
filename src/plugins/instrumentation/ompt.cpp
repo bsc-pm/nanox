@@ -191,7 +191,7 @@ namespace nanos
          {
             ompt_initialize ( ompt_nanos_lookup, "Nanos++ 0.8a", 1);
          }
-         void finalize( void ) { ompt_nanos_event_shutdown(); }
+         void finalize( void ) { if ( ompt_nanos_event_shutdown ) ompt_nanos_event_shutdown(); }
          void disable( void ) {}
          void enable( void ) {}
          void addEventList ( unsigned int count, Event *events )
