@@ -18,6 +18,9 @@ extern "C" {
       return 0;
    } 
 
+   #define OMPT_NANOS_STATES 5
+   ompt_state_t nanos_state_values[OMPT_NANOS_STATES] = { ompt_state_first, ompt_state_idle, ompt_state_work_serial, ompt_state_work_parallel, ompt_state_undefined };
+   const char  *nanos_state_string[OMPT_NANOS_STATES] = { "First", "Idle", "Serial", "Parallel", "Undefined" };
 
    //! List of callback declarations
    ompt_new_parallel_callback_t  ompt_nanos_event_parallel_begin = NULL;
@@ -82,8 +85,21 @@ extern "C" {
    int ompt_nanos_enumerate_state( ompt_state_t current_state, ompt_state_t *next_state, const char **next_state_name );
    int ompt_nanos_enumerate_state( ompt_state_t current_state, ompt_state_t *next_state, const char **next_state_name )
    {
-      // FIXME: TBD
-      return 0;
+      int i;
+      for ( i = 0; i < OMPT_NANOS_STATES; i++) {
+         if ( nanos_state_values[i] == current_state ) {
+            i++;
+            break;
+         }
+      }
+
+      if ( i < OMPT_NANOS_STATES) {
+         *next_state = nanos_state_values[i];
+         *next_state_name = nanos_state_string[i];
+         return 1;
+      } else {
+         return 0;
+      }
    }
 
    ompt_thread_id_t ompt_nanos_get_thread_id( void );
@@ -170,7 +186,7 @@ namespace nanos
    {
       public:
          InstrumentationOMPT( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
-         ~InstrumentationOMPT() {}
+         ~InstrumentationOMPT() { }
          void initialize( void )
          {
             ompt_initialize ( ompt_nanos_lookup, "Nanos++ 0.8a", 1);
