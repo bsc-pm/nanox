@@ -56,6 +56,8 @@ AllocatedChunk::AllocatedChunk( RegionCache &owner, uint64_t addr, uint64_t host
    _roBytes( 0 ),
    _rwBytes( 0 ),
    _refs( 0 ),
+   _refWdId(),
+   _refLoc(),
    _allocatedRegion( allocatedRegion ) {
       //std::cerr << "region " << allocatedRegion.id << " addr " << (void *) addr<<" hostAddr is " << (void*)hostAddress << " key " << allocatedRegion.key << std::endl;
       _newRegions = NEW CacheRegionDictionary( *(allocatedRegion.key) );
@@ -106,17 +108,26 @@ bool AllocatedChunk::locked() const {
 
 void AllocatedChunk::copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
    NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
-   global_reg_t greg( reg, key );
-   DeviceOps * dops = greg.getDeviceOps();
-   if ( dops->addCacheOp( &wd ) ) {
-      ops.insertOwnOp( dops, greg, version, 0 );
+   CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg );
+   if ( entry->getVersion() == version || entry->getVersion() == (version+1) ) {
+      global_reg_t greg( reg, key );
+      DeviceOps * dops = greg.getDeviceOps();
+      if ( dops->addCacheOp( &wd, 8 ) ) {
+         ops.insertOwnOp( dops, greg, version, 0 );
+         ops.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), greg, version, dops, this, wd, copyIdx );
+      } else {
+         ops.getOtherOps().insert( dops );
+      }
    } else {
-      ops.getOtherOps().insert( dops );
+      *(myThread->_file) << "CopyOut for wd: "<< wd.getId() << " copyIdx " << copyIdx << " requested to copy version " << version << " but cache version is " << entry->getVersion() << " region: ";
+      _newRegions->printRegion( *(myThread->_file), reg );
+      *(myThread->_file) << std::endl;
+      
+      printBt( *(myThread->_file) );
    }
-
 }
 
-bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx ) {
+bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx ) {
    unsigned int currentVersion = 0;
    bool opEmitted = false;
    std::list< std::pair< reg_t, reg_t > > components;
@@ -224,8 +235,8 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                               std::cerr << "ERROR " << __FUNCTION__ << std::endl;
                            }
                       //FIXME: this now updates the metadata of reg: which is redundant but updating the metadata of region_shape it's not possible since it could not have a directory entry, and its not right to update the source region since we may be copying just a piece.
-                           ops.insertOwnOp( entryToCopyOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version + (output ? 1 : 0), _owner.getMemorySpaceId() ); 
-                           //ops.insertOwnOp( entryToCopyOps, global_reg_t( locIt->first, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
+                           //ops.insertOwnOp( entryToCopyOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version + (output ? 1 : 0), _owner.getMemorySpaceId() ); 
+                           ops.insertOwnOp( entryToCopyOps, global_reg_t( locIt->first, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
                         }
 
                         if ( location == 0 ) {
@@ -256,14 +267,14 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
             std::cerr << std::endl;
          }
       }
-      thisRegEntry->setVersion( version + ( output ? 1 : 0) );
-      ops.insertOwnOp( thisEntryOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version + (output ? 1 : 0), _owner.getMemorySpaceId() );
-      //ops.insertOwnOp( thisEntryOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
+      //*(myThread->_file) << __FUNCTION__ << " set region cache entry version to " << version << " for wd " << wd.getId() << " idx " << copyIdx << std::endl;
+      thisRegEntry->setVersion( version );
+      ops.insertOwnOp( thisEntryOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
    } else {
       ops.getOtherOps().insert( thisEntryOps );
+      //*(myThread->_file) << __FUNCTION__ << " im NOT setting region cache entry version to " << version << " for wd " << wd.getId() << " idx " << copyIdx << std::endl;
    }
    //std::cerr << "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[X]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"<< std::endl;
-   _dirty = _dirty || output;
    return opEmitted;
 }
 
@@ -288,6 +299,19 @@ void AllocatedChunk::prepareRegion( reg_t reg, unsigned int version ) {
 //   }
 //   entry->clearDirty();
 //}
+
+void AllocatedChunk::setRegionVersion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   unsigned int currentVersion = 0;
+   CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg );
+   ensure(entry != NULL, "CacheEntry not found!");
+   currentVersion = entry->getVersion();
+   entry->setVersion( version );
+   if ( version > currentVersion ) {
+      _dirty = true;
+   } else {
+      *(myThread->_file) << "setRegionVersion and not version increase! current: " << currentVersion << " requested " << version << " wd: " << wd.getId() << " : " << (wd.getDescription() != NULL ? wd.getDescription() : "[no description]" ) << std::endl;
+   }
+}
 
 void AllocatedChunk::NEWaddWriteRegion( reg_t reg, unsigned int version ) {
    unsigned int currentVersion = 0;
@@ -353,38 +377,20 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
          if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
             //std::cerr << "AC: has to be copied!, shape = dsrc and Im the only owner!" << std::endl;
             hard = true;
-            if ( thisChunkOps->addCacheOp( /* debug: */ &wd ) ) {
+            if ( thisChunkOps->addCacheOp( /* debug: */ &wd, 3 ) ) {
                invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
-               invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), _allocatedRegion, alloc_entry->getVersion(), NULL, this, copyIdx );
+               invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), _allocatedRegion, alloc_entry->getVersion(), NULL, this, wd, copyIdx );
                alloc_entry->resetVersion();
             } else {
                std::cerr << " ERROR: could not add a cache op to my ops!"<<std::endl;
             }
          }
       }
-   //} else if ( alloc_entry != NULL && alloc_entry->getVersion() == ver && _newRegions->doTheseRegionsForm( _allocatedRegion.id, missing.begin(), missing.end() ) ) {
-   //   for ( std::list< std::pair< reg_t, reg_t > >::iterator lit = missing.begin(); lit != missing.end(); lit++ ) {
-   //      global_reg_t reg( lit->second, key );
-   //      regionsToRemoveAccess.insert( reg );
-   //   }
-   //   if ( _allocatedRegion.isLocatedIn( _owner.getMemorySpaceId() ) ) {
-   //      regionsToRemoveAccess.insert( _allocatedRegion );
-   //      if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
-   //         if ( thisChunkOps->addCacheOp( /* debug: */ &wd ) ) {
-   //            invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
-   //            invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), _allocatedRegion, alloc_entry->getVersion(), NULL, this );
-   //            alloc_entry->resetVersion();
-   //         } else {
-   //            std::cerr << " ERROR: could not add a cache op to my ops!"<<std::endl;
-   //         }
-   //      }
-   //   }
    } else {
-
       std::map< reg_t, std::set< reg_t > > fragmented_regions;
       for ( std::list< std::pair< reg_t, reg_t > >::iterator lit = missing.begin(); lit != missing.end(); lit++ ) {
          NewNewDirectoryEntryData *dentry = NewNewRegionDirectory::getDirectoryEntry( *(_allocatedRegion.key), lit->first );
-         if ( _VERBOSE_CACHE ) {
+         if ( VERBOSE_INVAL ) {
             NewNewDirectoryEntryData *dsentry = NewNewRegionDirectory::getDirectoryEntry( *(_allocatedRegion.key), lit->second );
             std::cerr << (void *)_newRegions << " missing registerReg: " << lit->first << " "; _allocatedRegion.key->printRegion( std::cerr, lit->first ); if (!dentry ) { std::cerr << " nul "; } else { std::cerr << *dentry; } 
             std::cerr << "," << lit->second << " "; _allocatedRegion.key->printRegion( std::cerr, lit->second ); if (!dsentry ) { std::cerr << " nul "; } else { std::cerr << *dsentry; }
@@ -396,9 +402,9 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
             ensure( _allocatedRegion.id != data_source.id, "Wrong region" );
             if ( data_source.isLocatedIn( _owner.getMemorySpaceId() ) ) {
                regionsToRemoveAccess.insert( data_source );
-               //if ( NewNewRegionDirectory::isOnlyLocated( data_source.key, data_source.id, _owner.getMemorySpaceId() ) ) {
+               //if ( NewNewRegionDirectory::isOnlyLocated( data_source.key, data_source.id, _owner.getMemorySpaceId() ) )
                if ( ! data_source.isLocatedIn( 0 ) ) { // FIXME: not optimal, but we write metadata to "allocatedRegion" entry so we must copy all to node 0 if its not there to keep it consistent!
-                  if ( _VERBOSE_CACHE ) {
+                  if ( VERBOSE_INVAL ) {
                      for ( CacheRegionDictionary::citerator pit = _newRegions->begin(); pit != _newRegions->end(); pit++ ) {
                         NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_allocatedRegion.key), pit->first );
                         CachedRegionStatus *c = ( CachedRegionStatus * ) _newRegions->getRegionData( pit->first );
@@ -409,7 +415,7 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                   }
                   DeviceOps *fragment_ops = data_source.getDeviceOps();
                   CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( data_source.id );
-                  if ( _VERBOSE_CACHE ) { std::cerr << data_source.id << " has to be copied!, shape = dsrc and Im the only owner! "<< (void *)entry << std::endl; }
+                  if ( VERBOSE_INVAL ) { std::cerr << data_source.id << " has to be copied!, shape = dsrc and Im the only owner! "<< (void *)entry << std::endl; }
                   unsigned int version;
                   if ( entry ) {
                      version = entry->getVersion();
@@ -418,9 +424,9 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                      version = NewNewRegionDirectory::getVersion( data_source.key, data_source.id, false );
                   }
                   hard = true;
-                  if ( fragment_ops->addCacheOp( /* debug: */ &wd ) ) {
+                  if ( fragment_ops->addCacheOp( /* debug: */ &wd, 4 ) ) {
                      invalOps.insertOwnOp( fragment_ops, data_source, version, 0 );
-                     invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), data_source, version, NULL, this, copyIdx );
+                     invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), data_source, version, NULL, this, wd, copyIdx );
                   } else {
                      invalOps.getOtherOps().insert( fragment_ops );
                      // make sure the op we are waiting for its the same that we want to do, maybe it is impossible to reach this code
@@ -442,17 +448,17 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
       }
 
       for ( std::map< reg_t, std::set< reg_t > >::iterator mit = fragmented_regions.begin(); mit != fragmented_regions.end(); mit++ ) {
-         if ( _VERBOSE_CACHE ) { std::cerr << " fragmented region " << mit->first << " has #chunks " << mit->second.size() << std::endl; }
+         if ( VERBOSE_INVAL ) { std::cerr << " fragmented region " << mit->first << " has #chunks " << mit->second.size() << std::endl; }
          global_reg_t data_source( mit->first, key );
          regionsToRemoveAccess.insert( data_source );
-         //if ( NewNewRegionDirectory::isOnlyLocated( key, data_source.id, _owner.getMemorySpaceId() ) ) {
+         //if ( NewNewRegionDirectory::isOnlyLocated( key, data_source.id, _owner.getMemorySpaceId() ) )
          if ( ! data_source.isLocatedIn( 0 ) ) { // FIXME: not optimal, but we write metadata to "allocatedRegion" entry so we must copy all to node 0 if its not there to keep it consistent!
             bool subChunkInval = false;
             CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( data_source.id );
-            if ( _VERBOSE_CACHE ) { std::cerr << "data source is " << data_source.id << " with entry "<< entry << std::endl; }
+            if ( VERBOSE_INVAL ) { std::cerr << "data source is " << data_source.id << " with entry "<< entry << std::endl; }
 
             for ( std::set< reg_t >::iterator sit = mit->second.begin(); sit != mit->second.end(); sit++ ) {
-               if ( _VERBOSE_CACHE ) { std::cerr << "    this is region " << *sit << std::endl; }
+               if ( VERBOSE_INVAL ) { std::cerr << "    this is region " << *sit << std::endl; }
                global_reg_t subReg( *sit, key );
                NewNewDirectoryEntryData *dentry = NewNewRegionDirectory::getDirectoryEntry( *key, *sit );
                if ( dentry == NULL ) { //FIXME: maybe we need a version check to handle when the dentry exists but is old?
@@ -462,27 +468,27 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                   for ( std::list< std::pair< reg_t, reg_t > >::iterator lit = missingSubReg.begin(); lit != missingSubReg.end(); lit++ ) {
                      global_reg_t region_shape( lit->first, key );
                      global_reg_t new_data_source( lit->second, key );
-                     if ( _VERBOSE_CACHE ) { std::cerr << " DIR CHECK WITH FRAGMENT: "<< lit->first << " - " << lit->second << " " << std::endl; }
+                     if ( VERBOSE_INVAL ) { std::cerr << " DIR CHECK WITH FRAGMENT: "<< lit->first << " - " << lit->second << " " << std::endl; }
 
                      NewNewDirectoryEntryData *subEntry = NewNewRegionDirectory::getDirectoryEntry( *key, lit->first );
                      if ( !subEntry ) {
                         std::cerr << "FIXME: Invalidation, and found a region shape (" << lit->first << ") with no entry, a new Entry may be needed." << std::endl;
-                     } else if ( _VERBOSE_CACHE ) {
+                     } else if ( VERBOSE_INVAL ) {
                         std::cerr << " Fragment " << lit->first << " has entry! " << subEntry << std::endl;
                      }
                      if ( new_data_source.id == data_source.id || NewNewRegionDirectory::isOnlyLocated( key, new_data_source.id, _owner.getMemorySpaceId() ) ) {
                         subChunkInval = true;
-                        if ( _VERBOSE_CACHE ) { std::cerr << " COPY subReg " << lit->first << " comes from subreg "<< subReg.id << " new DS " << new_data_source.id << std::endl; }
-                        invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), region_shape, entry->getVersion(), thisChunkOps, this, copyIdx );
+                        if ( VERBOSE_INVAL ) { std::cerr << " COPY subReg " << lit->first << " comes from subreg "<< subReg.id << " new DS " << new_data_source.id << std::endl; }
+                        invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), region_shape, entry->getVersion(), thisChunkOps, this, wd, copyIdx );
                      }
                   }
                } else {
                   DeviceOps *subRegOps = subReg.getDeviceOps();
                   hard = true;
-                  if ( subRegOps->addCacheOp( /* debug: */ &wd ) ) {
+                  if ( subRegOps->addCacheOp( /* debug: */ &wd, 5 ) ) {
                      regionsToRemoveAccess.insert( subReg );
                      invalOps.insertOwnOp( subRegOps, data_source, entry->getVersion(), 0 );
-                     invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), subReg, entry->getVersion(), subRegOps, this, copyIdx );
+                     invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), subReg, entry->getVersion(), subRegOps, this, wd, copyIdx );
                   } else {
                      invalOps.getOtherOps().insert( subRegOps );
                      std::cerr << "FIXME " << __FUNCTION__ << std::endl;
@@ -493,7 +499,7 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
             if ( subChunkInval ) {
                //FIXME I think this is wrong, can potentially affect regions that are not there, 
                hard = true;
-               if ( thisChunkOps->addCacheOp( /* debug: */ &wd ) ) { // FIXME: others may believe there's an ongoing op for the full region!
+               if ( thisChunkOps->addCacheOp( /* debug: */ &wd, 6 ) ) { // FIXME: others may believe there's an ongoing op for the full region!
                  invalOps.insertOwnOp( thisChunkOps, data_source, entry->getVersion(), 0 );
                } else {
                  std::cerr << "ERROR, could not add an inval cache op " << std::endl;
@@ -505,10 +511,10 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
 
       if ( alloc_entry != NULL ) {
          if ( _allocatedRegion.isLocatedIn( _owner.getMemorySpaceId() ) ) {
-            //if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) ) {
+            //if ( NewNewRegionDirectory::isOnlyLocated( _allocatedRegion.key, _allocatedRegion.id, _owner.getMemorySpaceId() ) )
             if ( ! _allocatedRegion.isLocatedIn( 0 ) ) { // FIXME: not optimal, but we write metadata to "allocatedRegion" entry so we must copy all to node 0 if its not there to keep it consistent!
                hard = true;
-               if ( thisChunkOps->addCacheOp( /* debug: */ &wd ) ) {
+               if ( thisChunkOps->addCacheOp( /* debug: */ &wd, 7 ) ) {
                   invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
                   alloc_entry->resetVersion();
                }
@@ -517,10 +523,9 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
             }
          }
       }
-
    }
 
-   //std::cerr << numCall++ << "=============> " << "Cache " << _owner.getMemorySpaceId() << " Invalidate region "<< (void*) key << ":" << _allocatedRegion.id << " reg: "; _allocatedRegion.key->printRegion( _allocatedRegion.id ); std::cerr << std::endl;
+   //*(myThread->_file) << numCall++ << "=============> " << "Cache " << _owner.getMemorySpaceId() << ( hard ? " hard":" soft" ) <<" Invalidate region "<< (void*) key << ":" << _allocatedRegion.id << " reg: "; _allocatedRegion.key->printRegion(*(myThread->_file), _allocatedRegion.id ); *(myThread->_file) << std::endl;
    return hard;
 
 }
@@ -600,14 +605,14 @@ AllocatedChunk **RegionCache::selectChunkToInvalidate( std::size_t allocSize ) {
       if ( _VERBOSE_CACHE ) { fprintf(stderr, "[%s] Thd %d Im cache with id %d, I've found a chunk to free, %p (locked? %d) region %d addr=%p size=%zu\n",  __FUNCTION__, myThread->getId(), _memorySpaceId, *allocChunkPtrPtr, ((*allocChunkPtrPtr)->locked()?1:0), (*allocChunkPtrPtr)->getAllocatedRegion().id, (void*)it->first.getAddress(), it->first.getLength()); }
       (*allocChunkPtrPtr)->lock();
    } else {
-      if ( VERBOSE_INVAL ) {
-         count = 0;
-         for ( it = _chunks.begin(); it != _chunks.end() && !done; it++ ) {
-            if ( it->second == NULL ) std::cerr << "["<< count << "] this chunk: null chunk" << std::endl;
-            else std::cerr << "["<< count << "] this chunk: " << ((void *) it->second) << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getSize() << " vs " << allocSize << " " << " dirty? " << it->second->isDirty() << std::endl;
-            count++;
-         }
-      }
+      // if ( VERBOSE_INVAL ) {
+      //    count = 0;
+      //    for ( it = _chunks.begin(); it != _chunks.end() && !done; it++ ) {
+      //       if ( it->second == NULL ) std::cerr << "["<< count << "] this chunk: null chunk" << std::endl;
+      //       else std::cerr << "["<< count << "] this chunk: " << ((void *) it->second) << " refs " <<  it->second->getReferenceCount() << " size is " << it->second->getSize() << " vs " << allocSize << " " << " dirty? " << it->second->isDirty() << std::endl;
+      //       count++;
+      //    }
+      // }
       //fatal("IVE _not_ FOUND A CHUNK TO FREE");
       allocChunkPtrPtr = NULL;
    }
@@ -636,14 +641,18 @@ void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< All
          //    reg.key->printRegion( reg.id );
          //    std::cerr << std::endl;
          // }
-         if ( it->second != NULL && it->second->getReferenceCount() == 0 ) {
-            device_mem.addChunk( it->second->getAddress(), it->second->getSize(), (uint64_t) &(it->second) );
-         } else if ( it->second != NULL && it->second->getReferenceCount() > 0 ) {
-            bool mine = false;
-            for (unsigned int idx = 0; idx < wd.getNumCopies() && !mine ; idx += 1) {
-               mine = ( wd._mcontrol._memCacheCopies[ idx ]._chunk == it->second );
+         if ( it->second != NULL ) {
+            AllocatedChunk &c = *(it->second);
+            AllocatedChunk **chunk_at_map_ptr = &(it->second);
+            if ( it->second->getReferenceCount() == 0 ) {
+               device_mem.addChunk( c.getAddress(), c.getSize(), (uint64_t) chunk_at_map_ptr );
+            } else {
+               bool mine = false;
+               for (unsigned int idx = 0; idx < wd.getNumCopies() && !mine ; idx += 1) {
+                  mine = ( wd._mcontrol._memCacheCopies[ idx ]._chunk == &c );
+               }
+               otherReferencedChunks += mine ? 0 : 1;
             }
-            otherReferencedChunks += mine ? 0 : 1;
          }
       }
       
@@ -771,7 +780,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
             *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
             allocChunkPtr = *(results.front().second);
             if ( reg.isRooted() ) {
-               allocChunkPtr->addReference();
+               allocChunkPtr->addReference(wd.getId(), 2);
             }
             //*(results.front().second) = allocChunkPtr;
          } else {
@@ -797,7 +806,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
       //   allocChunkPtr = NULL;
       //}
       if ( allocChunkPtr->trylock() ) {
-         allocChunkPtr->addReference();
+         allocChunkPtr->addReference( wd.getId() , 4);
       } else {
          allocChunkPtr = NULL;
       }
@@ -832,6 +841,8 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
          if ( other_referenced_chunks == 0 ) {
          fatal("Unable to free enough space to allocate task data, probably a fragmentation issue. Try increasing the available device memory.");
          } else {
+            *(myThread->_file) << "Unable to invalidate using selectChunksToInvalidate, wd: " << wd.getId() <<std::endl;
+            printReferencedChunksAndWDs();
             return NULL;
          }
       }
@@ -848,7 +859,7 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
    }
 
    inval_ops.issue( wd );
-   while ( !inval_ops.isDataReady( wd ) ) { myThread->idle(); }
+   while ( !inval_ops.isDataReady( wd, true ) ) { myThread->idle(); }
    if ( _VERBOSE_CACHE ) { std::cerr << "===> Invalidation complete at " << _memorySpaceId << " remove access for regs: "; }
    for ( std::set< global_reg_t >::iterator it = regions_to_remove_access.begin(); it != regions_to_remove_access.end(); it++ ) {
    if ( _VERBOSE_CACHE ) { std::cerr << it->id << " "; }
@@ -954,7 +965,7 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
      //std::cerr << __FUNCTION__ << " returns dev address " << (void *) allocChunkPtr->getAddress() << std::endl;
      //if ( !allocChunkPtr->locked() ) 
       if ( lock_chunk ) allocChunkPtr->lock();
-     allocChunkPtr->addReference();
+     allocChunkPtr->addReference( wd.getId(), 4 );
    }
    return allocChunkPtr;
 }
@@ -1001,19 +1012,19 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
       else
          allocChunkPtr = NULL;
    } else if ( results.size() > 1 ) {
-         std::cerr <<"Requested addr " << (void *) reg.getRealFirstAddress() << " size " << reg.getBreadth() << std::endl;
+         *(myThread->_file) <<"Requested addr " << (void *) reg.getRealFirstAddress() << " size " << reg.getBreadth() << std::endl;
       message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
       for ( ConstChunkList::const_iterator it = results.begin(); it != results.end(); it++ )
          std::cerr << " addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
       if ( &wd != NULL ) {
-         std::cerr << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
+         *(myThread->_file) << "Realloc needed. Caused by wd " << (wd.getDescription() ? wd.getDescription() : "n/a") << " copy index " << copyIdx << std::endl;
       } else {
-         std::cerr << "Realloc needed. Unknown WD, probably comes from a taskwait or any other synchronization point." << std::endl;
+         *(myThread->_file) << "Realloc needed. Unknown WD, probably comes from a taskwait or any other synchronization point." << std::endl;
       }
       fatal("Can not continue.");
    }
    if ( !allocChunkPtr && complain ) {
-      printBt(); std::cerr << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( std::cerr, reg.id ); std::cerr << std::endl;
+      printBt(*(myThread->_file) ); *(myThread->_file) << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( *(myThread->_file), reg.id ); *(myThread->_file) << std::endl;
       ensure(allocChunkPtr != NULL, "Chunk not found!");
    }
    if ( allocChunkPtr && lockChunk ) {
@@ -1289,7 +1300,8 @@ CompleteOpFunctor::~CompleteOpFunctor() {
 }
 
 void CompleteOpFunctor::operator()() {
-   _chunk->removeReference();
+   std::cerr << "Functor called!" <<std::endl;
+   //_chunk->removeReference( 0 );
 }
 
 //unsigned int RegionCache::getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion ) {
@@ -1314,7 +1326,7 @@ void RegionCache::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned
    //TODO if ( policy == NO_CACHE ) {
    //TODO    chunk->removeRegion( reg );
    //TODO }
-   chunk->removeReference();
+   chunk->removeReference( wd.getId() );
    //chunk->unlock();
 }
 
@@ -1377,30 +1389,36 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
    return result;
 }
 
-void RegionCache::prepareRegionsToCopyToHost( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) {
+void RegionCache::prepareRegionsToBeCopied( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) {
    _lock.acquire();
    for ( std::set< global_reg_t >::iterator it = regs.begin(); it != regs.end(); it++ ) {
-      AllocatedChunk *chunk = _getAllocatedChunk( *it, false, false, wd, copyIdx );
-      if ( _VERBOSE_CACHE ) { std::cerr << " reg " << it->id << " got chunk " << chunk << std::endl; }
-      if ( chunk != NULL ) {
-         if ( chunks.count( chunk ) == 0 ) {
-            chunk->lock();
-            chunk->addReference();
-            chunks.insert( chunk );
-            chunk->unlock();
-         }
-      }
+      this->_prepareRegionToBeCopied( *it, version, chunks, wd, copyIdx );
    }
    _lock.release();
 }
 
+void RegionCache::_prepareRegionToBeCopied( global_reg_t const &reg, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) {
+   AllocatedChunk *chunk = _getAllocatedChunk( reg, false, false, wd, copyIdx );
+   if ( _VERBOSE_CACHE ) { std::cerr << " reg " << reg.id << " got chunk " << chunk << std::endl; }
+   if ( chunk != NULL ) {
+      if ( chunks.count( chunk ) == 0 ) {
+         chunk->lock();
+         chunk->addReference( wd.getId(), 1 );
+         chunks.insert( chunk );
+         chunk->unlock();
+      }
+   } else {
+      fatal("Could not add a reference to a source chunk."); 
+   }
+}
+
 void RegionCache::setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx ) {
    AllocatedChunk *chunk = getAllocatedChunk( hostMem, wd, copyIdx );
-   chunk->NEWaddWriteRegion( hostMem.id, version );
+   chunk->setRegionVersion( hostMem.id, version, wd, copyIdx );
    chunk->unlock();
 }
 
-void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
    _lock.acquire();
 //reg.key->printRegion( reg.id ); std::cerr << std::endl;
    //AllocatedChunk *chunk = getAllocatedChunk( reg );
@@ -1410,7 +1428,7 @@ void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const 
    //         std::cerr << "[ " << it2->first << "," << it2->second << " ] ";
    //      }
    //      std::cerr << std::endl;
-   if ( chunk->NEWaddReadRegion2( ops, reg.id, version, notPresentParts, output, locations, wd, copyIdx ) ) {
+   if ( chunk->NEWaddReadRegion2( ops, reg.id, version, notPresentParts, locations, wd, copyIdx ) ) {
    }
    //chunk->unlock();
    _lock.release();
@@ -1531,7 +1549,7 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
       for ( ConstChunkList::iterator it = results.begin(); it != results.end(); it++ ) {
          //std::cerr << "Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
          //printBt();
-         if ( it->second != NULL ) {
+         if ( it->second != NULL && *(it->second) != NULL ) {
             _device.memFree( (*(it->second))->getAddress(), sys.getSeparateMemory( _memorySpaceId ) );
             delete *(it->second);
          }
@@ -1546,12 +1564,37 @@ void RegionCache::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t 
    if ( output ) {
       if ( policy != WRITE_BACK ) {
          // WRITE_THROUGH or NO_CACHE
-         o << "I should copy this back "; reg.key->printRegion( o, reg.id ); o << std::endl;
-         chunk->copyRegionToHost( ops, reg.id, version, wd, copyIdx );
+         //o << "I should copy this back "; reg.key->printRegion( o, reg.id ); o << std::endl;
+         chunk->copyRegionToHost( ops, reg.id, version + 1, wd, copyIdx );
       }
    } 
 
    if ( policy == NO_CACHE ) {
       o << "I should free this region "; reg.key->printRegion( o, reg.id ); o << std::endl;
+   }
+}
+
+void AllocatedChunk::printReferencingWDs() const {
+   *(myThread->_file) << "Referencing WDs: [";
+   for ( std::map<int, unsigned int>::const_iterator it = _refWdId.begin(); it != _refWdId.end(); it++ ) {
+      if ( it->second != 0 ) {
+         std::map<int, std::set<int> >::const_iterator itLoc = _refLoc.find( it->first );
+         *(myThread->_file) << "(wd: " << it->first << " count: " << it->second <<" loc: {";
+         for (std::set<int>::const_iterator sIt = itLoc->second.begin(); sIt != itLoc->second.end(); sIt++ ) {
+            *(myThread->_file) << *sIt << " ";
+         }
+         *(myThread->_file) << "}";
+      }
+   }
+   *(myThread->_file) << "]" << std::endl;
+}
+
+void RegionCache::printReferencedChunksAndWDs() const {
+   MemoryMap<AllocatedChunk>::const_iterator it;
+   for ( it = _chunks.begin(); it != _chunks.end(); it++ ) {
+      if ( it->second != NULL ) {
+         AllocatedChunk &c = *(it->second);
+         c.printReferencingWDs();
+      }
    }
 }

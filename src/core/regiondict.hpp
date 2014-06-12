@@ -10,7 +10,8 @@
 namespace nanos {
 
 template <class T>
-ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container( MAX_REG_ID, RegionVectorEntry() ), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), sparse( false ) {
+ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), sparse( false ) {
+   //_container.reserve( MAX_REG_ID );
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx += 1 ) {
       _dimensionSizes[ idx ] = cd.getDimensions()[ idx ].size;
    }
@@ -24,6 +25,7 @@ RegionNode * ContainerDense< T >::getRegionNode( reg_t id ) const {
 template <class T>
 void ContainerDense< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
    _container[ leaf->getId() ].setLeaf( leaf );
+   _container[ leaf->getId() ].setData( NULL );
    if (!rogue) _leafCount++;
 }
 
@@ -60,6 +62,7 @@ reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const re
 template <class T>
 reg_t ContainerDense< T >::getNewRegionId() {
    reg_t id = _idSeed++;
+   _container.resize( id + 1 );
    if (id >= MAX_REG_ID) { std::cerr <<"Max regions reached."<<std::endl;}
    return id;
 }
@@ -124,7 +127,7 @@ RegionNode * ContainerSparse< T >::getRegionNode( reg_t id ) const {
    if ( it == _container.end() || _container.key_comp()(id, it->first) ) {
       //fatal0( "Error, RegionMap::getLeaf does not contain region" );
      RegionNode *leaf = _orig.getRegionNode( id );
-   if ( leaf == NULL ) { std::cerr << "NULL LEAF CHECK by orig: " << std::endl; printBt(); }
+   if ( leaf == NULL ) { *(myThread->_file) << "NULL LEAF CHECK by orig: " << std::endl; printBt( *(myThread->_file) ); }
       return leaf;
    }
    return it->second.getLeaf();
@@ -132,7 +135,7 @@ RegionNode * ContainerSparse< T >::getRegionNode( reg_t id ) const {
 
 template <class T>
 void ContainerSparse< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
-   if ( leaf == NULL ) { std::cerr << "NULL LEAF INSERT: " << std::endl; printBt(); }
+   if ( leaf == NULL ) { *(myThread->_file) << "NULL LEAF INSERT: " << std::endl; printBt( *(myThread->_file) ); }
    _container[ leaf->getId() ].setLeaf( leaf );
 }
 
@@ -216,7 +219,7 @@ std::vector< std::size_t > const &ContainerSparse< T >::getDimensionSizes() cons
 
 
 template < template <class> class Sparsity>
-RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : Sparsity< RegionVectorEntry >( cd ), _intersects( cd.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
+RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : Sparsity< RegionVectorEntry >( cd ), Version( 1 ), _intersects( cd.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
       _keyBaseAddress( cd.getHostBaseAddress() == 0 ? ( (uint64_t) cd.getBaseAddress() ) : cd.getHostBaseAddress() ), _realBaseAddress( (uint64_t) cd.getBaseAddress() ), _lock() {
    //std::cerr << "CREATING MASTER DICT: tree: " << (void *) &_tree << std::endl;
    nanos_region_dimension_internal_t dims[ cd.getNumDimensions() ];
@@ -259,8 +262,8 @@ void RegionDictionary< Sparsity >::_computeIntersect( reg_t regionIdA, reg_t reg
    RegionNode const *regB = this->getRegionNode( regionIdB );
 
    if ( regionIdA == regionIdB ) {
-      std::cerr << __FUNCTION__ << " Dummy check! regA == regB ( " << regionIdA << " )" << std::endl;
-      printBt();
+      *(myThread->_file) << __FUNCTION__ << " Dummy check! regA == regB ( " << regionIdA << " )" << std::endl;
+      printBt( *(myThread->_file) );
       for ( int dimensionCount = this->getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {
          outReg[ dimensionCount ].accessed_length = 0;
          outReg[ dimensionCount ].lower_bound = 0;
@@ -561,7 +564,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    unsigned int thisRegionVersion = thisEntry != NULL ? thisEntry->getVersion() : ( this->sparse ? 0 : 1 );
 
    RegionNode const *regNode = this->getRegionNode( id );
-   if ( regNode == NULL ) { std::cerr << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id << " sparse? "<< (this->sparse ? 1 : 0)  <<std::endl; printBt();}
+   if ( regNode == NULL ) { *(myThread->_file) << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id << " sparse? "<< (this->sparse ? 1 : 0)  <<std::endl; printBt( *(myThread->_file) );}
    MemoryMap< std::set< reg_t > >::MemChunkList results[ this->getNumDimensions() ];
    std::map< reg_t, unsigned int > interacts;
    unsigned int skipDimensions = 0;
@@ -884,8 +887,8 @@ reg_t RegionDictionary< Sparsity >::registerRegionReturnSameVersionSubparts( reg
 template < template <class> class Sparsity>
 bool RegionDictionary< Sparsity >::checkIntersect( reg_t regionIdA, reg_t regionIdB ) const {
    if ( regionIdA == regionIdB ) {
-      std::cerr << __FUNCTION__ << " Dummy check! regA == regB ( " << regionIdA << " )" << std::endl;
-      printBt();
+      *(myThread->_file) << __FUNCTION__ << " Dummy check! regA == regB ( " << regionIdA << " )" << std::endl;
+      printBt( *(myThread->_file) );
    }
 
    {

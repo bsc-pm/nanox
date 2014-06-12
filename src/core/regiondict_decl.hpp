@@ -129,7 +129,7 @@ typedef unsigned int reg_t;
    typedef RegionDictionary<ContainerSparse> CacheRegionDictionary;
 
    template< template <class> class Sparsity >
-   class RegionDictionary : public Sparsity< RegionVectorEntry > {
+   class RegionDictionary : public Sparsity< RegionVectorEntry >, public Version {
       std::vector< MemoryMap< std::set< reg_t > > > _intersects;
       uint64_t _keyBaseAddress;
       uint64_t _realBaseAddress;

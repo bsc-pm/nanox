@@ -78,8 +78,8 @@ System::System () :
       _pausedThreadsCond(), _unpausedThreadsCond(),
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
-      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP )
-
+      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr("")
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -87,15 +87,6 @@ System::System () :
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enableCpuidEvent( false )
 #endif
       , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false),  _task_max_retries(1), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
-//#ifdef CLUSTER_DEV
-//      , _nodes( NULL )
-//#endif
-//#ifdef GPU_DEV
-//      , _gpus( NULL )
-//#endif
-//#ifdef OpenCL_DEV
-//      , _opencls( NULL )
-//#endif
       , _createLocalTasks( false )
       , _verboseDevOps( false )
       , _splitOutputForThreads( false )
@@ -106,62 +97,6 @@ System::System () :
    // to locate the program arguments at that point
    OS::init();
    config();
-
-#if 0
-   OS::getProcessAffinity( &_cpuSet );
-
-   _maxCpus = OS::getMaxProcessors();
-   int cpu_count = getCpuCount();
-
-   std::vector<int> cpu_affinity;
-   cpu_affinity.reserve( cpu_count );
-   std::ostringstream oss_cpu_idx;
-   oss_cpu_idx << "[";
-   for ( int i=0; i<CPU_SETSIZE; i++ ) {
-      if ( CPU_ISSET(i, &_cpuSet) ) {
-         cpu_affinity.push_back(i);
-         oss_cpu_idx << i << ", ";
-      }
-   }
-   oss_cpu_idx << "]";
-   
-   verbose0("PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str());
-   
-   // Ensure everything is properly configured
-   if( getNumPEs() == INT_MAX && _numThreads == 0 )
-      // If no parameter specified, use all available CPUs
-      setNumPEs( cpu_count );
-   
-   if ( _numThreads == 0 )
-      // No threads specified? Use as many as PEs
-      _numThreads = _numPEs;
-   else if ( getNumPEs() == INT_MAX ){
-      // No number of PEs given? Use 1 thread per PE
-      setNumPEs(  _numThreads );
-   }
-
-   // Set _bindings structure once we have the system mask and the binding info
-   _bindings.reserve( cpu_count );
-   for ( int i=0, collisions = 0; i < cpu_count; ) {
-
-      // The cast over cpu_affinity is needed because std::vector::size() returns a size_t type
-      int pos = (_bindingStart + _bindingStride*i + collisions) % (int)cpu_affinity.size();
-
-      // 'pos' may be negative if either bindingStart or bindingStride were negative
-      // this loop fixes that % operator is the remainder, not the modulo operation
-      while ( pos < 0 ) pos+=cpu_affinity.size();
-
-      if ( std::find( _bindings.begin(), _bindings.end(), cpu_affinity[pos] ) != _bindings.end() ) {
-         collisions++;
-         ensure( collisions != cpu_count, "Reached limit of collisions. We should never get here." );
-         continue;
-      }
-      _bindings.push_back( cpu_affinity[pos] );
-      i++;
-   }
-
-   CPU_ZERO( &_cpuActiveSet );
-#endif
 
    _lockPool = NEW Lock[_lockPoolSize];
 
@@ -306,15 +241,10 @@ void System::config ()
 
    cfg.setOptionsSection( "Core", "Core options of the core of Nanos++ runtime" );
 
-   //cfg.registerConfigOption( "num_pes", NEW Config::UintVar( _numPEs ),
-   //                          "Defines the number of processing elements" );
-   //cfg.registerArgOption( "num_pes", "pes" );
-   //cfg.registerEnvOption( "num_pes", "NX_PES" );
-
-   cfg.registerConfigOption( "num_threads", NEW Config::PositiveVar( _numThreads ),
-                             "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
-   cfg.registerArgOption( "num_threads", "threads" );
-   cfg.registerEnvOption( "num_threads", "NX_THREADS" );
+//   cfg.registerConfigOption( "num_threads", NEW Config::PositiveVar( _numThreads ),
+//                             "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
+//   cfg.registerArgOption( "num_threads", "threads" );
+//   cfg.registerEnvOption( "num_threads", "NX_THREADS" );
    
    cfg.registerConfigOption( "stack-size", NEW Config::PositiveVar( _deviceStackSize ),
                              "Defines the default stack size for all devices" );
@@ -428,6 +358,10 @@ void System::config ()
    cfg.registerConfigOption ( "thd-output", NEW Config::FlagOption ( _splitOutputForThreads, true ), "Create separate files for each thread" );
    cfg.registerArgOption ( "thd-output", "thd-output" );
 
+   cfg.registerConfigOption ( "regioncache-policy", NEW Config::StringVar ( _regionCachePolicyStr ), "Region cache policy, accepted values are : nocache, writethrough, writeback. Default is writeback." );
+   cfg.registerArgOption ( "regioncache-policy", "cache-policy" );
+   cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
+
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
 
@@ -441,38 +375,28 @@ void System::start ()
    // Modules can be loaded now
    loadModules();
 
-   // Increase targetThreads, ask the architecture plugins
-   //for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-   //     it != _archs.end(); ++it )
-   //{
-   //   _targetThreads += (*it)->getNumThreads();
-   //}
-
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
 
    verbose0 ( "Starting runtime" );
 
-   //_pes.reserve ( _peIdSeed.value() );
+   if ( _regionCachePolicyStr.compare("") != 0 ) {
+      //value is set
+      if ( _regionCachePolicyStr.compare("nocache") == 0 ) {
+         _regionCachePolicy = RegionCache::NO_CACHE;
+      } else if ( _regionCachePolicyStr.compare("writethrough") == 0 ) {
+         _regionCachePolicy = RegionCache::WRITE_THROUGH;
+      } else if ( _regionCachePolicyStr.compare("writeback") == 0 ) {
+         _regionCachePolicy = RegionCache::WRITE_BACK;
+      } else {
+         warning0("Invalid option for region cache policy '" << _regionCachePolicyStr << "', using default value.");
+      }
+   }
 
    _smpPlugin->associateThisThread( getUntieMaster() );
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
-///* this previously was in SMPProcessor::associateThisThread */
-//   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) mainWD.getId(), 0, 0 ); )
-//   NANOS_INSTRUMENT (InstrumentationContextData *icd = mainWD.getInstrumentationContextData() );
-//   NANOS_INSTRUMENT (icd->setStartingWD(true) );
-///* this is also in SMPProcessor::bind */
-//   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("cpuid"); )
-//   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) ((ext::SMPThread *)myThread)->getCpuId() + 1; )
-//   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-///* WD::init */
-//   NANOS_INSTRUMENT( if ( sys.getInstrumentation() != NULL ) { sys.getInstrumentation()->wdCreate( &mainWD ); } )
-///* BaseThread::associate */
-//   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &mainWD, false) );
-///***/
-   //mainWD.setDependenciesDomain( _dependenciesManager->createDependenciesDomain() );
    mainWD._mcontrol.setMainWD();
 
    if ( _pmInterface->getInternalDataSize() > 0 ) {
@@ -1170,7 +1094,7 @@ void System::inlineWork ( WD &work )
       work._mcontrol.initialize( *( myThread->runningOn() ) );
       bool result;
       do {
-         result = work._mcontrol.allocateInputMemory();
+         result = work._mcontrol.allocateTaskMemory();
       } while( result == false );
       Scheduler::inlineWork( &work );
    }
@@ -1203,8 +1127,8 @@ BaseThread * System::getUnassignedWorker ( void )
 {
    BaseThread *thread;
 
-   for ( unsigned i = 0; i < _workers.size(); i++ ) {
-      thread = _workers[i];
+   for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
+      thread = it->second;
       if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
          // skip if the thread is not in the mask
@@ -1231,57 +1155,14 @@ BaseThread * System::getUnassignedWorker ( void )
    return NULL;
 }
 
-//BaseThread * System::getInactiveWorker ( void )
-//{
-//   BaseThread *thread;
-//
-//   for ( unsigned i = 0; i < _workers.size(); i++ ) {
-//      thread = _workers[i];
-//      if ( thread->tryWakeUp() ) {
-//         return thread;
-//      }
-//      //if ( !thread->hasTeam() && thread->isWaiting() ) {
-//      //   // recheck availability with exclusive access
-//      //   thread->lock();
-//      //   if ( thread->hasTeam() || !thread->isWaiting() ) {
-//      //      // we lost it
-//      //      thread->unlock();
-//      //      continue;
-//      //   }
-//      //   thread->reserve(); // set team flag only
-//      //   thread->wakeup();
-//      //   thread->unlock();
-//
-//      //   return thread;
-//      //}
-//   }
-//   return NULL;
-//}
-
-//BaseThread * System::getAssignedWorker ( ThreadTeam *team )
-//{
-//   BaseThread *thread;
-//
-//   ThreadList::reverse_iterator rit;
-//   for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
-//      thread = *rit;
-//      thread->lock();
-//      //! \note Checking thread availabitity.
-//      if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
-//         //! \note return this thread LOCKED!!!
-//         return thread;
-//      }
-//      thread->unlock();
-//   }
-//
-//   //! \note If no thread has found, return NULL.
-//   return NULL;
-//}
-
 BaseThread * System::getWorker ( unsigned int n )
 {
-   if ( n < _workers.size() ) return _workers[n];
-   else return NULL;
+   BaseThread *worker = NULL;
+   ThreadList::iterator elem = _workers.find( n );
+   if ( elem != _workers.end() ) {
+      worker = elem->second;
+   } 
+   return worker;
 }
 
 void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter, bool star, bool creator )
@@ -1386,149 +1267,6 @@ void System::endTeam ( ThreadTeam *team )
    delete team;
 }
 
-//void System::updateActiveWorkers ( int nthreads )
-//{
-//   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-//   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-//   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
-//   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
-//
-//   BaseThread *thread;
-//   //! \bug Team variable must be received as a function parameter
-//   ThreadTeam *team = myThread->getTeam();
-//
-//   int num_threads = nthreads - team->getFinalSize();
-//
-//   while ( !(team->isStable()) ) memoryFence();
-//
-//   if ( num_threads < 0 ) team->setStable(false);
-//
-//   team->setFinalSize(nthreads);
-//
-//   //! \bug We need to consider not only numThreads < nthreads but num_threads < availables?
-//   while (  _numThreads < nthreads ) {
-//      createWorker( _pes.size() );
-//      _numThreads++;
-//      //jb _numPEs++;
-//   }
-//
-//   //! \note If requested threads are more than current increase number of threads
-//   while ( num_threads > 0 ) {
-//      thread = getUnassignedWorker();
-//      if (!thread) thread = getInactiveWorker();
-//      if (thread) {
-//         acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-//         num_threads--;
-//      }
-//   }
-//
-//   //! \note If requested threads are less than current decrease number of threads
-//   while ( num_threads < 0 ) {
-//      thread = getAssignedWorker( team );
-//      if ( thread ) {
-//         thread->sleep();
-//         thread->unlock();
-//         num_threads++;
-//      }
-//   }
-//
-//
-//}
-
-// Not thread-safe
-//inline void System::applyCpuMask()
-//{
-//   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-//   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-//   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_smpPlugin->getActiveSet() ) )
-//   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
-//
-//   BaseThread *thread;
-//   ThreadTeam *team = myThread->getTeam();
-//   unsigned int _activePEs = 0;
-//
-//   for ( unsigned pe_id = 0; pe_id < _pes.size() || _activePEs < (size_t)CPU_COUNT(&_smpPlugin->getActiveSet() ); pe_id++ ) {
-//
-//      // Create PE & Worker if it does not exist
-//      if ( pe_id == _pes.size() ) {
-//         createWorker( pe_id );
-//         _numThreads++;
-//         //jb _numPEs++;
-//      }
-//
-//      int pe_binding = getBindingId( pe_id );
-//      if ( CPU_ISSET( pe_binding, &_smpPlugin->getActiveSet() ) ) {
-//         _activePEs++;
-//         // This PE should be running
-//         while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
-//            acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-//            team->increaseFinalSize();
-//         }
-//      } else {
-//         // This PE should not
-//         while ( (thread = _pes[pe_id]->getActiveThread()) != NULL ) {
-//            thread->lock();
-//            thread->sleep();
-//            thread->unlock();
-//            team->decreaseFinalSize();
-//         }
-//      }
-//   }
-//}
-
-//void System::getCpuMask ( cpu_set_t *mask ) const
-//{
-//   memcpy( mask, &_smpPlugin->getActiveSet() , sizeof(cpu_set_t) );
-//}
-//
-//void System::setCpuMask ( const cpu_set_t *mask )
-//{
-//   memcpy( &_smpPlugin->getActiveSet() , mask, sizeof(cpu_set_t) );
-//   sys.processCpuMask();
-//}
-//
-//void System::addCpuMask ( const cpu_set_t *mask )
-//{
-//   CPU_OR( &_smpPlugin->getActiveSet() , &_smpPlugin->getActiveSet() , mask );
-//   sys.processCpuMask();
-//}
-
-//inline void System::processCpuMask( void )
-//{
-//
-//   // if _bindThreads is enabled, update _bindings adding new elements of _cpuActiveSet
-//   if ( sys.getBinding() ) {
-//      std::ostringstream oss_cpu_idx;
-//      oss_cpu_idx << "[";
-//      for ( int cpu=0; cpu<CPU_SETSIZE; cpu++) {
-//         if ( cpu > _maxCpus-1 && !_simulator ) {
-//            CPU_CLR( cpu, &_smpPlugin->getActiveSet() );
-//            debug("Trying to use more cpus than available is not allowed (do you forget --simulator option?)");
-//            continue;
-//         }
-//         if ( CPU_ISSET( cpu, &_smpPlugin->getActiveSet()  ) ) {
-//
-//            if ( std::find( _bindings.begin(), _bindings.end(), cpu ) == _bindings.end() ) {
-//               _bindings.push_back( cpu );
-//            }
-//
-//            oss_cpu_idx << cpu << ", ";
-//         }
-//      }
-//      oss_cpu_idx << "]";
-//      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-//      if ( _pmInterface->isMalleable() ) {
-//         sys.applyCpuMask();
-//      }
-//   }
-//   else {
-//      verbose0( "PID[" << getpid() << "]. Changing number of threads: " << (int) myThread->getTeam()->getFinalSize() << " to " << (int) CPU_COUNT( &_smpPlugin->getActiveSet()  ) );
-//      if ( _pmInterface->isMalleable() ) {
-//         sys.updateActiveWorkers( CPU_COUNT( &_smpPlugin->getActiveSet()  ) );
-//      }
-//   }
-//}
-
 void System::waitUntilThreadsPaused ()
 {
    // Wait until all threads are paused
@@ -1540,51 +1278,13 @@ void System::waitUntilThreadsUnpaused ()
    // Wait until all threads are paused
    _unpausedThreadsCond.wait();
 }
-
-//unsigned System::reservePE ( bool reserveNode, unsigned node, bool & reserved )
-//{
-//   // For each available PE
-//   for ( Bindings::reverse_iterator it = _bindings.rbegin(); it != _bindings.rend(); ++it )
-//   {
-//      unsigned pe = *it;
-//      unsigned currentNode = getNodeOfPE( pe );
-//      
-//      // If this PE is in the requested node or we don't need to reserve in
-//      // a certain node
-//      if ( currentNode == node || !reserveNode )
-//      {
-//         // Ensure there is at least one PE for smp
-//         if ( _bindings.size() == 1 )
-//         {
-//            reserved = false;
-//            warning( "Cannot reserve PE " << pe << ", there is just one PE left. It will be shared." );
-//         }
-//         else
-//         {
-//            // Take this pe out of the available bindings list.
-//            _bindings.erase( --( it.base() ) );
-//            reserved = true;
-//         }
-//         return pe;
-//      }
-//   }
-//   // If we reach this point, there are no PEs available for that node.
-//   verbose( "reservePE failed for node " << node );
-//   fatal( "There are no available PEs for the requested node" );
-//}
-
-//void * System::getHwlocTopology ()
-//{
-//   return _hwlocTopology;
-//}
  
-void System::addOffloadPEsToTeam(PE **pes, int num_pes, int num_threads, BaseThread** threads) {  
+void System::addPEsAndThreadsToTeam(PE **pes, int num_pes, BaseThread** threads, int num_threads) {  
+    //Insert PEs to the team
     for (int i=0; i<num_pes; i++){
         _pes.insert( std::make_pair( pes[i]->getId(), pes[i] ) );
-        //CPU_SET( pes[rank]->getId(), &_cpu_active_set );
     }
-    NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-    //Create the workers (which will run in all the PEs of pes) and return them
+    //Insert the workers to the team
     for (int i=0; i<num_threads; i++){
         _workers.insert( std::make_pair( threads[i]->getId(), threads[i] ) );
         acquireWorker( _mainTeam , threads[i] );
@@ -1605,15 +1305,8 @@ void System::expelCurrentThread ( void )
 
 void System::environmentSummary( void )
 {
-   /* Get Specific Mask String (depending on _bindThreads) */
-   //cpu_set_t *cpu_set = _bindThreads ? &_smpPlugin->getActiveSet()  : &_cpuSet;
    std::ostringstream mask;
-   mask << "[ ";
-   //for ( int i=0; i<CPU_SETSIZE; i++ ) {
-   //   if ( CPU_ISSET(i, cpu_set) )
-   //      mask << i << ", ";
-   //}
-   mask << "]";
+   _smpPlugin->getBindingMaskString( mask );
 
    /* Get Prog. Model string */
    std::string prog_model;
@@ -1631,21 +1324,20 @@ void System::environmentSummary( void )
    }
 
    message0( "========== Nanos++ Initial Environment Summary ==========" );
-   message0( "=== PID:            " << getpid() );
-   message0( "=== Num. threads:   " << _numThreads );
-   message0( "=== Active CPUs:    " << mask.str() );
-   //message0( "=== Binding:        " << std::boolalpha << _bindThreads );
-   message0( "=== Prog. Model:    " << prog_model );
+   message0( "=== PID:                 " << getpid() );
+   //message0( "=== Num. SMP threads:        " << _smpPlugin->getNumThreads() );
+   //message0( "=== Num. SMP worker threads: " << _smpPlugin->getNumWorkers() );
+   message0( "=== Num. worker threads: " << _workers.size() );
+   message0( "=== System CPUs:         " << mask.str() );
+   message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
+   message0( "=== Prog. Model:         " << prog_model );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it ) {
-
-      // Temporarily hide SMP plugin because it has empty information
-      if ( strcmp( (*it)->getName(), "SMP PE Plugin" ) == 0 )
-         continue;
-
-      message0( "=== Plugin:         " << (*it)->getName() );
-      message0( "===  | Threads:     " << (*it)->getNumThreads() );
+      message0( "=== Plugin:              " << (*it)->getName() );
+      message0( "===  | PEs:              " << (*it)->getNumPEs() );
+      message0( "===  | Threads:          " << (*it)->getNumThreads() );
+      message0( "===  | Worker Threads:   " << (*it)->getNumWorkers() );
    }
 
    message0( "=========================================================" );

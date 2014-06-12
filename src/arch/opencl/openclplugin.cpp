@@ -58,6 +58,7 @@ public:
 
    void config( Config &cfg )
    {
+      cfg.setOptionsSection( "OpenCL Arch", "OpenCL specific options" );
       // Select the device to use.
       cfg.registerConfigOption( "opencl-device-type",
                                 NEW Config::StringVar( _devTy ),

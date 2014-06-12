@@ -331,7 +331,7 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
        NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
        ret = clEnqueueWriteBuffer( _queue,
                                           buf,
-                                          CL_FALSE,
+                                          CL_TRUE,
                                           offset,
                                           size,
                                           src,
@@ -340,7 +340,7 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                           &ev
                                         );
         *globalSizeCounter += size;
-        _pendingEvents.push_back(ev);
+        //_pendingEvents.push_back(ev);
         NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    }
    return ret;
@@ -426,7 +426,7 @@ cl_int OpenCLAdapter::copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offs
 //                             );
 //   
 //   clReleaseEvent( ev );
-
+   
    return errCode;
    
 }
@@ -657,7 +657,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Don't worry about exit code, we are cleaning an error.
       clReleaseKernel( openclKernel );
       processOpenCLError(errCode);
-      fatal0("Error launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error launching OpenCL kernel",errCode);
    }
 
    // Wait for its termination.
@@ -668,7 +668,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );      
       processOpenCLError(errCode);
-      fatal0("Error launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error launching OpenCL kernel",errCode);
    }
 
    // Check if any errors has occurred.
@@ -684,7 +684,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
       processOpenCLError(errCode);
-      fatal0("Error waiting for events after launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error waiting for events after launching OpenCL kernel",errCode);
    }
 
    // Free the event.
@@ -695,7 +695,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
       processOpenCLError(errCode);
-      fatal0("Error waiting for events after launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error waiting for events after launching OpenCL kernel",errCode);
    }
 
    // Free the kernel.
@@ -992,15 +992,19 @@ void OpenCLProcessor::setKernelBufferArg(void* openclKernel, int argNum, const v
     cl_int errCode= clSetKernelArg( (cl_kernel) openclKernel, argNum, sizeof(cl_mem), &buffer ); 
     if( errCode != CL_SUCCESS )
     {
-         fatal0("Error setting kernel buffer arg");
+        fatal0kernelNameErr(openclKernel,"Error in setKernelArg with copies/buffer ", errCode);    
     }
 }
 
-void OpenCLProcessor::setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer){
-    cl_int errCode= clSetKernelArg( (cl_kernel) opencl_kernel, arg_num, size, pointer );
+void OpenCLProcessor::setKernelArg(void* openclKernel, int argNum, size_t size,const void* pointer){
+    cl_int errCode= clSetKernelArg( (cl_kernel) openclKernel, argNum, size, pointer );
     if( errCode != CL_SUCCESS )
     {
-         fatal0("Error setting kernel arg");
+        if ( errCode == CL_INVALID_ARG_INDEX) {
+            fatal0kernelName(openclKernel,"error setting kernel arg, make sure your task declaration"
+                    " and OpenCL kernel definition have the same number of arguments");            
+        }
+        fatal0kernelNameErr(openclKernel,"Error in setKernelArg ", errCode);    
     }
 }
 
@@ -1016,7 +1020,7 @@ void OpenCLProcessor::execKernel(void* openclKernel,
                             ndrGlobalSize);
      if( errCode != CL_SUCCESS )
     {
-         fatal0("Error executing kernel");
+        fatal0kernelNameErr(openclKernel,"Error executing kernel ", errCode);  
     }
 }
 

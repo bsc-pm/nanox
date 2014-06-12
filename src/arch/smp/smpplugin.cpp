@@ -61,7 +61,8 @@ class SMPPlugin : public SMPBasePlugin
    int                          _bindingStart;
    int                          _bindingStride;
    bool                         _bindThreads;
-   bool                         _smpNuma;
+   bool                         _smpPrivateMemory;
+   int                          _smpHostCpus;
    bool                         _workersCreated;
    unsigned int                 _numWorkers; //must be updated if the number of workers increases after calling startWorkerThreads
    int                          _numThreadsRequestedForSupport;
@@ -107,7 +108,8 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindingStart( 0 )
                  , _bindingStride( 1 )
                  , _bindThreads( true )
-                 , _smpNuma( false )
+                 , _smpPrivateMemory( false )
+                 , _smpHostCpus( 0 )
                  , _workersCreated( false )
                  , _numWorkers( 0 )
                  , _numThreadsRequestedForSupport( 0 )
@@ -166,9 +168,13 @@ class SMPPlugin : public SMPBasePlugin
             "Disables thread binding" );
       cfg.registerArgOption( "no-binding", "disable-binding" );
 
-      cfg.registerConfigOption( "smp-numa", NEW Config::FlagOption( _smpNuma, true ),
+      cfg.registerConfigOption( "smp-private-memory", NEW Config::FlagOption( _smpPrivateMemory, true ),
             "Enables NUMA smp devices." );
-      cfg.registerArgOption( "smp-numa", "smp-numa" );
+      cfg.registerArgOption( "smp-private-memory", "smp-private-memory" );
+
+      cfg.registerConfigOption( "smp-host-cpus", NEW Config::IntegerVar( _smpHostCpus ),
+            "Enables NUMA smp devices." );
+      cfg.registerArgOption( "smp-host-cpus", "smp-host-cpus" );
 
 
    }
@@ -273,7 +279,7 @@ class SMPPlugin : public SMPBasePlugin
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
-         if ( _smpNuma ) {
+         if ( _smpPrivateMemory && count >= _smpHostCpus ) {
             OSAllocator a;
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true /* nanos::ext::ClusterInfo::getAllocWide() */ );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
@@ -290,11 +296,15 @@ class SMPPlugin : public SMPBasePlugin
          count += 1;
       }
 
-      // std::cerr << "[ ";
-      // for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-      //    std::cerr << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
-      // }
-      // std::cerr << "]" << std::endl;
+#ifdef NANOS_DEBUG_ENABLED
+      if ( sys.getVerbose() ) {
+         std::cerr << "Bindings: [ ";
+         for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+            std::cerr << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
+         }
+         std::cerr << "]" << std::endl;
+      }
+#endif /* NANOS_DEBUG_ENABLED */
 
       // FIXME (855): do this before thread creation, after PE creation
       completeNUMAInfo();
@@ -882,10 +892,15 @@ class SMPPlugin : public SMPBasePlugin
       /*if a certain number of workers was requested, pick the minimum between that value
        * and the number of cpus and the support threads requested
        */
+      int active_cpus = 0;
+      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         active_cpus += (*it)->isActive();
+      }
+
       if ( _requestedWorkers > 0 ) {
-         count = std::min( (size_t) _requestedWorkers, _cpus->size() - _numThreadsRequestedForSupport );
+         count = std::min( _requestedWorkers, active_cpus - _numThreadsRequestedForSupport );
       } else {
-         count = _cpus->size() - _numThreadsRequestedForSupport;
+         count = active_cpus - _numThreadsRequestedForSupport;
       }
       debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
       return count;
@@ -907,6 +922,14 @@ class SMPPlugin : public SMPBasePlugin
    
    virtual int getRequestedWorkersOMPSS() const {
       return _requestedWorkersOMPSS;
+   }
+
+   virtual void getBindingMaskString( std::ostream &o ) const {
+      o << "[ ";
+      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         o << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
+      }
+      o << "]";
    }
 
 };

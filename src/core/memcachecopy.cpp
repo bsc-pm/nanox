@@ -5,7 +5,15 @@
 #include "memoryops_decl.hpp"
 #include "deviceops.hpp"
 #include "workdescriptor.hpp"
-MemCacheCopy::MemCacheCopy() : _version( 0 ), _reg( 0, (reg_key_t) NULL ), _locations(), _locationDataReady( false ), _chunk( NULL ), _policy( RegionCache::WRITE_BACK ) {
+
+MemCacheCopy::MemCacheCopy() : 
+   _version( 0 )
+   , _reg( 0, (reg_key_t) NULL )
+   , _locations()
+   , _locationDataReady( false )
+   , _chunk( NULL )
+   , _policy( sys.getRegionCachePolicy() )
+{
 }
 
 MemCacheCopy::MemCacheCopy( WD const &wd, unsigned int index/*, MemController &ccontrol*/ ) {
@@ -24,9 +32,9 @@ void MemCacheCopy::getVersionInfo() {
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
    //NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
    if ( input ) {
-      ops.copyInputData( *this, output, wd, copyIdx );
+      ops.copyInputData( *this, wd, copyIdx );
    } else if ( output ) {
-      ops.allocateOutputMemory( _reg, _version + 1, wd, copyIdx );
+      ops.allocateOutputMemory( _reg, _version, wd, copyIdx );
    } else {
       fprintf(stderr, "Error at %s.\n", __FUNCTION__);
    }

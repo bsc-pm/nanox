@@ -85,18 +85,18 @@ fi
 # Memtracker support
 AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
 AC_ARG_ENABLE([memtracker],
-  AS_HELP_STRING([--disable-memtracker], [Disables Memtracker module]),
+  AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module]),
   [
-    memtracker_disabled=yes
-    AC_MSG_RESULT([yes])
+    memtracker_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
-    memtracker_disabled=no
+    memtracker_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$memtracker_disabled = xno; then
+if test x$memtracker_enabled = xyes; then
 	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
 	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
 fi
@@ -1154,6 +1154,16 @@ echo "Host arch:" $SMP_ARCH
 echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
 echo "Configured versions:" $VERSIONS
+if test x$memtracker_enabled = xyes ; then
+   echo "Memory tracker: enabled"
+else
+   echo "Memory tracker: disabled"
+fi
+if test x$allocator_disabled = xno ; then
+   echo "Memory allocator: enabled"
+else
+   echo "Memory allocator: disabled"
+fi
 if test x$cluster_enabled = xyes ; then
    echo "With cluster/gasnet conduits:" $CONDUITS
    if test x$have_C_mpi = xyes ; then

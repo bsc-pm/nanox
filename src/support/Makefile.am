@@ -48,6 +48,7 @@ devinclude_HEADERS = \
 	simpleallocator.hpp \
 	list_decl.hpp \
 	list.hpp \
+	hashfunction_decl.hpp \
 	hashmap.hpp \
 	hashmap_decl.hpp \
 	copydescriptor.hpp \

@@ -20,10 +20,16 @@ class BaseOps {
       void commitMetadata() const;
    };
    private:
-   bool _delayedCommit;
-   std::set< OwnOp > _ownDeviceOps;
+   bool                    _delayedCommit;
+   bool                    _dataReady;
+   std::set< OwnOp >       _ownDeviceOps;
    std::set< DeviceOps * > _otherDeviceOps;
-   std::size_t _amountOfTransferredData;
+   std::size_t             _amountOfTransferredData;
+
+   BaseOps( BaseOps const &op );
+   BaseOps &operator=( BaseOps const &op );
+   protected:
+   std::set< AllocatedChunk * > _lockedChunks;
 
    public:
    BaseOps( bool delayedCommit );
@@ -31,16 +37,16 @@ class BaseOps {
    std::set< DeviceOps * > &getOtherOps();
    std::set< OwnOp > &getOwnOps();
    void insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location );
-   bool isDataReady( WD const &wd );
+   bool isDataReady( WD const &wd, bool inval = false );
    std::size_t getAmountOfTransferredData() const;
    void addAmountTransferredData(std::size_t amount);
+   void releaseLockedSourceChunks( WD const &wd );
 };
 
 class BaseAddressSpaceInOps : public BaseOps {
    protected:
    typedef std::map< SeparateMemoryAddressSpace *, TransferList > MapType;
    MapType _separateTransfers;
-   std::set< AllocatedChunk * > _lockedChunks;
 
    public:
    BaseAddressSpaceInOps( bool delayedCommit );
@@ -48,15 +54,13 @@ class BaseAddressSpaceInOps : public BaseOps {
 
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    void lockSourceChunks( global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, memory_space_id_t thisLocation, WD const &wd, unsigned int copyIdx );
-   void releaseLockedSourceChunks();
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    virtual void issue( WD const &wd );
 
-   virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
-   virtual void copyInputData( MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
+   virtual void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
 };
 
@@ -74,10 +78,9 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    virtual void issue( WD const &wd );
 
-   virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
-   virtual void copyInputData( MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
+   virtual void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
 };
 
@@ -90,7 +93,8 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    SeparateAddressSpaceOutOps( bool delayedCommit, bool isInval );
    ~SeparateAddressSpaceOutOps();
 
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, unsigned int copyIdx );
+   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx );
    void issue( WD const &wd );
    void copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
 };

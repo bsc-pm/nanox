@@ -71,8 +71,16 @@ namespace nanos
    class NewNewRegionDirectory
    {
       private:
-         std::map< uint64_t, GlobalRegionDictionary * > _objects;
-         Lock _lock;
+         //struct __attribute__((aligned(64))) HashBucket {
+         struct HashBucket {
+            Lock _lock;
+            std::map< uint64_t, GlobalRegionDictionary * > _bobjects;
+            HashBucket();
+            HashBucket( HashBucket const & hb );
+            HashBucket &operator=( HashBucket const &hb );
+         };
+
+         std::vector< HashBucket > _objects;
 
       private:
 
