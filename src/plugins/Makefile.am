@@ -842,6 +842,7 @@ instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-instrumentation-print_trace.la \
 	instrumentation-debug/libnanox-instrumentation-graph.la \
 	instrumentation-debug/libnanox-instrumentation-tdg.la \
+	instrumentation-debug/libnanox-instrumentation-ompt.la \
 	$(END)
 
 if INSTRUMENTATION_EXTRAE
@@ -879,6 +880,11 @@ instrumentation_debug_libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_ins
 instrumentation_debug_libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
 instrumentation_debug_libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
 endif
+
+instrumentation_debug_libnanox_instrumentation_ompt_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+instrumentation_debug_libnanox_instrumentation_ompt_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_debug_libnanox_instrumentation_ompt_la_SOURCES = $(ompt_sources)
+
 endif
 
 if PERFORMANCE_VERSION
