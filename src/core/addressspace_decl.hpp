@@ -102,7 +102,7 @@ class SeparateAddressSpace {
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
    
    bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
-   void setRegionVersion( global_reg_t const &reg, unsigned int version );
+   void setRegionVersion( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
    unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
    unsigned int getNodeNumber() const;
@@ -112,7 +112,7 @@ class SeparateAddressSpace {
 
 
    void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
-   void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+   void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
    void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
 
    RegionCache &getCache();

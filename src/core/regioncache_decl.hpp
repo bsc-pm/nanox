@@ -82,8 +82,9 @@ namespace nanos {
          void lock( bool setVerbose=false );
          void unlock( bool unsetVerbose=false );
          bool locked() const;
-         bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, bool output, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
+         bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
          void NEWaddWriteRegion( reg_t reg, unsigned int version );
+         void setRegionVersion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          void addReference(int wdId, unsigned int loc);
          void removeReference(int wdId);
          unsigned int getReferenceCount() const;
@@ -204,7 +205,7 @@ namespace nanos {
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx );
 
-         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, bool output, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
          void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
 
          unsigned int getSoftInvalidationCount() const;

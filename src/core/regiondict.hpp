@@ -10,8 +10,8 @@
 namespace nanos {
 
 template <class T>
-ContainerDense< T >::ContainerDense( CopyData const &cd ) : /*_container( MAX_REG_ID, RegionVectorEntry() ),*/ _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), sparse( false ) {
-   _container.reserve( MAX_REG_ID );
+ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), sparse( false ) {
+   //_container.reserve( MAX_REG_ID );
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx += 1 ) {
       _dimensionSizes[ idx ] = cd.getDimensions()[ idx ].size;
    }
@@ -62,6 +62,7 @@ reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const re
 template <class T>
 reg_t ContainerDense< T >::getNewRegionId() {
    reg_t id = _idSeed++;
+   _container.resize( id + 1 );
    if (id >= MAX_REG_ID) { std::cerr <<"Max regions reached."<<std::endl;}
    return id;
 }

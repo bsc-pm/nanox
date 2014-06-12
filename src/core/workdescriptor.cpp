@@ -126,6 +126,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    // Setting state to ready
    _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
+   _mcontrol.setCacheMetaData();
 }
 
 
@@ -163,6 +164,7 @@ bool WorkDescriptor::isInputDataReady() {
 
       // Setting state to ready
       setReady();
+      _mcontrol.setCacheMetaData();
    }
    return result;
 }
@@ -337,6 +339,7 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    //_myGraphRepList.value()->push_back( getGE() );
    //if (predecessorWd != NULL) predecessorWd->listed();
 
+   //*(myThread->_file) << "I'm " << getId() << " : " << getDescription() << " my predecessor " << predecessorWd->getId() << " : " << predecessorWd->getDescription() << " has finished." << std::endl;
    _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
 }
 

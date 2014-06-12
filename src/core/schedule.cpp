@@ -1045,7 +1045,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
    bool result = false;
    BaseThread *thread = getMyThreadSafe();
 
-   if ( wd->_mcontrol.allocateInputMemory() ) {
+   if ( wd->_mcontrol.allocateTaskMemory() ) {
       //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
@@ -1169,7 +1169,7 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
          wd->_mcontrol.initialize( *(thread->runningOn()) );
          bool result;
          do {
-            result = wd->_mcontrol.allocateInputMemory();
+            result = wd->_mcontrol.allocateTaskMemory();
          } while( result == false );
       }
       wd->init();
@@ -1236,7 +1236,7 @@ void Scheduler::switchTo ( WD *to )
          to->_mcontrol.initialize( *(myThread->runningOn()) );
          bool result;
          do {
-            result = to->_mcontrol.allocateInputMemory();
+            result = to->_mcontrol.allocateTaskMemory();
          } while( result == false );
 
          to->init();
@@ -1324,7 +1324,7 @@ void Scheduler::exitTo ( WD *to )
        to->_mcontrol.initialize( *(myThread->runningOn()) );
        bool result;
        do {
-          result = to->_mcontrol.allocateInputMemory();
+          result = to->_mcontrol.allocateTaskMemory();
        } while( result == false );
 
        to->init();

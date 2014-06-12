@@ -58,10 +58,9 @@ class BaseAddressSpaceInOps : public BaseOps {
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    virtual void issue( WD const &wd );
 
-   virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
-   virtual void copyInputData( MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
+   virtual void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
 };
 
@@ -79,10 +78,9 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    virtual void issue( WD const &wd );
 
-   virtual bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
-   virtual void copyInputData( MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
+   virtual void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
    virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
 };
 
