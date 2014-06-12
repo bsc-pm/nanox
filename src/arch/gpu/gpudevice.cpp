@@ -136,33 +136,6 @@ void GPUDevice::freePinnedMemory( void * address )
          + " with cudaFreeHost(): " + cudaGetErrorString( err ) );
 }
 
-void GPUDevice::copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
-{
-   // Copy from device memory to device memory
-   cudaError_t err = cudaSuccess;
-
-   if ( ( ( nanos::ext::GPUProcessor * ) pe )->getGPUProcessorInfo()->getLocalTransferStream() != 0 ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT );
-      err = cudaMemcpyAsync(
-               dst,
-               src,
-               size,
-               cudaMemcpyDeviceToDevice,
-               ((nanos::ext::GPUProcessor *) pe )->getGPUProcessorInfo()->getLocalTransferStream()
-            );
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-    }
-    else {
-       NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
-       err = cudaMemcpy( dst, src, size, cudaMemcpyDeviceToDevice );
-       NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-   }
-
-   fatal_cond( err != cudaSuccess, "Trying to copy " + ext::bytesToHumanReadable( size )
-         + " of data from device (" + toString<void *>( src ) + ") to device ("
-         + toString<void *>( dst ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
-}
-
 void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 {
    ( ( nanos::ext::GPUProcessor * ) myThread->runningOn() )->transferInput( size );
@@ -180,7 +153,7 @@ void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 void GPUDevice::copyInAsyncToBuffer( void * dst, void * src, size_t size )
 {
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_MEMCOPY_EVENT );
-   SMPDevice::copyLocal( dst, src, size, NULL );
+   ::memcpy( dst, src, size );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
@@ -256,7 +229,7 @@ void GPUDevice::copyOutAsyncWait ()
 void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
 {
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_MEMCOPY_EVENT );
-   SMPDevice::copyLocal( dst, src, size, NULL );
+   ::memcpy( dst, src, size );
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 

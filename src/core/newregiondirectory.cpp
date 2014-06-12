@@ -134,7 +134,7 @@ void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, 
       entry->addAccess( 0, 1 );
       dict->setRegionData( reg, entry );
    }
-   if ( dict->getVersion() != entry->getVersion() ) {
+   if ( dict->getVersion() != entry->getVersion() || entry->getVersion() == 1 ) {
       if ( dict->tryLock() ) {
          //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
          __getLocation( dict, reg, missingParts, version, wd );
@@ -270,7 +270,7 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
 
 void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
 {
-   dict->setVersion( version );
+   if (dict->getVersion() < version ) dict->setVersion( version );
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
    //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }

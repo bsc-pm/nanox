@@ -170,11 +170,11 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
          WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
          if ( next != NULL ) {
             next->_mcontrol.initialize( *(this->runningOn()) );
-            bool result;
-            do {
-               result = next->_mcontrol.allocateInputMemory();
-            } while( result == false );
-            next->init();
+            if ( next->_mcontrol.allocateTaskMemory() ) {
+               next->init();
+            } else {
+               *(myThread->_file) << "------ failed allocation for wd " << next->getId() << std::endl;
+            }
             addNextWD( next );
             last = next;
          } else {
@@ -215,7 +215,9 @@ void GPUThread::yield()
 
 struct TestInputsGPU {
    static void call( ProcessingElement *pe, WorkDescriptor *wd ) {
-      pe->testInputs( *wd );
+      if ( wd->_mcontrol.isMemoryAllocated() ) {
+         pe->testInputs( *wd );
+      }
    }
 };
 

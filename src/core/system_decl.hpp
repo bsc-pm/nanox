@@ -89,9 +89,6 @@ namespace nanos
          Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
 
          // configuration variables
-         unsigned int         _numPEs;
-         int                  _numThreads;
-         int                  _maxCpus;
          int                  _deviceStackSize;
          bool                 _profile;
          bool                 _instrument;
@@ -123,7 +120,7 @@ namespace nanos
          std::string          _defArch;
          std::string          _defDeviceName;
 
-         const Device              *_defDevice;
+         const Device         *_defDevice;
 
          /*! factories for scheduling, pes and barriers objects */
          peFactory            _hostFactory;
@@ -180,9 +177,11 @@ namespace nanos
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
 
-         unsigned int _separateMemorySpacesCount;
-         std::vector< SeparateMemoryAddressSpace * > _separateAddressSpaces;
-         HostMemoryAddressSpace                      _hostMemory;
+         unsigned int                                  _separateMemorySpacesCount;
+         std::vector< SeparateMemoryAddressSpace * >   _separateAddressSpaces;
+         HostMemoryAddressSpace                        _hostMemory;
+         RegionCache::CachePolicy                      _regionCachePolicy;
+         std::string                                   _regionCachePolicyStr;
          
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -236,15 +235,6 @@ namespace nanos
          Atomic<int> _atomicSeedWg;
          Atomic<int> _atomicSeedMemorySpace;
          Atomic<unsigned int> _affinityFailureCount;
-//#ifdef CLUSTER_DEV
-//         std::vector<ext::ClusterNode *> *_nodes;
-//#endif
-//#ifdef GPU_DEV
-//         std::vector<ext::GPUProcessor *> *_gpus;
-//#endif
-//#ifdef OpenCL_DEV
-//         std::vector<ext::OpenCLProcessor *> *_opencls;
-//#endif
          bool                      _createLocalTasks;
          bool _verboseDevOps;
          bool _splitOutputForThreads;
@@ -299,32 +289,6 @@ namespace nanos
          */
          void setupWD( WD &work, WD *parent );
 
-//         // methods to access configuration variable         
-//         void setNumPEs ( int npes );
-//
-//         int getNumPEs () const;
-//
-//         //! \brief Returns the maximum number of threads (SMP + GPU + ...). 
-//         unsigned getMaxThreads () const; 
-//
-//         void setNumThreads ( int nthreads );
-//
-//         int getNumThreads () const;
-//
-//         //int getCpuCount ( ) const;
-//
-//         /*!
-//          * \brief Get current system's _cpu_active_set
-//          * \param[out] mask
-//          */
-//         void getCpuMask ( cpu_set_t *mask ) const;
-//
-//         /*!
-//          * \brief Set current system's _cpu_active_set
-//          * \param[in] mask
-//          */
-//         void setCpuMask ( const cpu_set_t *mask );
-
          /*!
           * \brief Add mas to the current system's _cpu_active_set
           * \param[in] mask
@@ -334,18 +298,6 @@ namespace nanos
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
-
-         //void setBindingStart ( int value );
-        
-         //int getBindingStart () const;
-
-         //void setBindingStride ( int value );
-
-         //int getBindingStride () const;
-
-         //void setBinding ( bool set );
-
-         //bool getBinding () const;
 
          ExecutionMode getExecutionMode () const;
 
@@ -376,91 +328,6 @@ namespace nanos
 
          int getNumWorkers( DeviceData *arch );
 
-         ///** \brief Returns the number of physical NUMA nodes. */
-         //int getNumSockets() const;
-
-         //void setNumSockets ( int numSockets );
-
-         ///** \brief Returns the number of NUMA nodes available for the user. */
-         //int getNumAvailSockets() const;
-
-         /**
-          * \brief Translates from a physical NUMA node to a virtual (user-selectable) node.
-          * \return A number in the range [0..N) where N is the number of virtual NUMA nodes,
-          * or INT_MIN if that physical node cannot be used.
-          */
-         //int getVirtualNUMANode( int physicalNode ) const;
-
-         //int getCurrentSocket() const;
-
-         ///**
-         // * \brief Sets the (virtual) node where tasks should be executed.
-         // * \param currentSocket A value in the range [0,N) where N is the number
-         // * of available nodes (what is returned by getNumAvailSockets()).
-         // * \see getNumAvailSockets.
-         // */
-         //void setCurrentSocket( int currentSocket );
-
-         //int getCoresPerSocket() const;
-
-         //void setCoresPerSocket ( int coresPerSocket );
-         
-         /**
-          * \brief Returns a CPU Id that the given architecture should use
-          * to tie a new processing element to.
-          * \param pe Processing Element number.
-          * \note This method is the one that uses the affinity mask and binding
-          * start and stride parameters.
-          */
-         //int getBindingId ( int pe ) const;
-         
-         /**
-          * \brief Reserves a PE to be used exclusively by a certain
-          * architecture.
-          * If you try to reserve all PEs, leaving no PEs for SMPs, reserved
-          * will be false and a warning will be displayed.
-          * \param reserveNode [in] If enabled, will try to reserve the PE in
-          * the node specified by the node parameter, otherwise, that parameter
-          * will be ignored.
-          * \param node [in] NUMA node to reserve the PE from. It is only used
-          * when reserveNode is true.
-          * \param reserved [out] If the PE was successfully reserved or not.
-          * \return Id of the PE to reserve.
-          */
-         //unsigned reservePE ( bool reserveNode, unsigned node, bool & reserved );
-         
-         /**
-          * \brief Checks if hwloc is available.
-          */
-         //bool isHwlocAvailable () const;
-         
-         /**
-          * \brief Returns the hwloc_topology_t structure.
-          * This structure will only be available for a short window during
-          * System::start. Otherwise, NULL will be returned.
-          * In order to avoid surrounding this function by ifdefs, it returns
-          * a void * that you must cast to hwloc_topology_t.
-          */
-         //void * getHwlocTopology ();
-         
-         /*!
-          * \brief Sets the number of NUMA nodes and the number of cores per
-          * NUMA node .
-          * Uses hwloc if available.
-          */
-         //void loadNUMAInfo ();
-         
-         /*!
-          * \brief Sets the the number of active/available NUMA nodes.
-          * Creates the NUMA node translation table as well.
-          * \note It is really important to call this after PEs are created.
-          */
-         //void completeNUMAInfo ();
-
-         /** \brief Retrieves the NUMA node of a given PE.
-          *  \note Will use hwloc if available.
-          */
-         //unsigned getNodeOfPE ( unsigned pe );
 
          void setUntieMaster ( bool value );
 
@@ -739,6 +606,7 @@ namespace nanos
          ThreadTeam *getMainTeam();
          bool getVerboseDevOps() const;
          bool getSplitOutputForThreads() const;
+         RegionCache::CachePolicy getRegionCachePolicy() const;
    };
 
    extern System sys;

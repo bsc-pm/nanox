@@ -20,6 +20,7 @@
 #ifndef _NANOS_SMPBASEPLUGIN_DECL
 #define _NANOS_SMPBASEPLUGIN_DECL
 
+#include <fstream>
 #include <sched.h>
 #include "smpprocessor_fwd.hpp"
 #include "smpthread_fwd.hpp"
@@ -54,6 +55,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
       virtual void setRequestedWorkers( int workers ) = 0;
       virtual int getRequestedWorkersOMPSS() const = 0;
+      virtual void getBindingMaskString( std::ostream &o ) const = 0;
 };
 
 }
