@@ -514,7 +514,7 @@ namespace ext
          {
             WDExecInfoData &data = tdata.getWDExecInfo( wd );
             if ( data.empty() ) {
-               tdata.initExecInfoData( data, wd ); 
+               tdata.initExecInfoData( data, wd );
             }
             data[deviceIdx]._numAssigned++;
 
@@ -1054,9 +1054,6 @@ namespace ext
                ProcessingElement * pe = thread->runningOn();
                double executionTime = currentWD.getExecutionTime();
                unsigned int devIdx = currentWD.getActiveDeviceIdx();
-
-               currentWD.setEstimatedExecutionTime( 77.77 );
-
 
                tdata._executionMap[thread->getId()]->finishTask( &currentWD );
 
