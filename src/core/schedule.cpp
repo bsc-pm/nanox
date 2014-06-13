@@ -229,8 +229,8 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
-   current->setIdle();
    sys.getSchedulerStats()._idleThreads++;
+   myThread->setIdle( true );
 
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
@@ -350,8 +350,8 @@ inline void Scheduler::idleLoop ()
          spins = init_spins;
       }
    }
+   myThread->setIdle(false);
    sys.getSchedulerStats()._idleThreads--;
-   current->setReady();
    //current->~WorkDescriptor();
 
    //// This is actually a free(current) but dressed up as C++
@@ -412,9 +412,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    WD * current = myThread->getCurrentWD();
 
-   sys.getSchedulerStats()._idleThreads++;
    current->setSyncCond( condition );
-   current->setIdle();
+   sys.getSchedulerStats()._idleThreads++;
+   myThread->setIdle( true );
    
    BaseThread *thread = getMyThreadSafe();
 

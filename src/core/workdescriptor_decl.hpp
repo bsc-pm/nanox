@@ -208,7 +208,7 @@ namespace nanos
             bool is_invalid:1;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
          } WDFlags;
          typedef int PriorityType;
-         typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
+         typedef enum { INIT, START, READY, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
@@ -406,10 +406,6 @@ namespace nanos
          void * getData () const;
 
          void setTotalSize ( size_t size );
-
-         bool isIdle () const;
-
-         void setIdle ();
 
          void setBlocked ();
 

@@ -123,6 +123,7 @@ namespace nanos
             bool has_started:1;
             bool must_stop:1;
             bool must_sleep:1;
+            bool is_idle:1;
             bool is_paused:1;
             bool has_team:1;
             bool has_joined:1;
@@ -338,6 +339,11 @@ namespace nanos
          bool tryWakeUp();
 
          unsigned int getOsId() const;
+
+         //! \brief Change thread state idle to value ( true by default )
+         void setIdle ( bool value = true ) ;
+         //! \brief Inquiry thread state idle
+         bool isIdle ( void ) const;
    };
 
    extern __thread BaseThread *myThread;

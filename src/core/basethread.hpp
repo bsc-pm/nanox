@@ -277,6 +277,10 @@ namespace nanos
      return _description;
    }
 
+   inline void BaseThread::setIdle ( bool value ) { _status.is_idle = value; }
+
+   inline bool BaseThread::isIdle ( void ) const { return _status.is_idle; }
+
 }
 
 #endif

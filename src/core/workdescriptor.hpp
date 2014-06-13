@@ -171,9 +171,6 @@ inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
 inline void * WorkDescriptor::getData () const { return _data; }
 
-inline bool WorkDescriptor::isIdle () const { return _state == WorkDescriptor::IDLE; }
-inline void WorkDescriptor::setIdle () { _state = WorkDescriptor::IDLE; }
-
 inline bool WorkDescriptor::isReady () const { return _flags.is_ready; }
 
 inline void WorkDescriptor::setBlocked () {
