@@ -277,9 +277,10 @@ bool MemController::isOutputDataReady( WD const &wd ) {
          if ( _outputDataReady ) {
             if ( _VERBOSE_CACHE ) { *(myThread->_file) << "Output data is ready for wd " << _wd.getId() << " obj " << (void *)_outOps << std::endl; }
 
-            for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-               sys.getSeparateMemory( _memorySpaceId ).releaseRegion( _memCacheCopies[ index ]._reg, _wd, index, _memCacheCopies[ index ]._policy ) ;
-            }
+            sys.getSeparateMemory( _memorySpaceId ).releaseRegions( _memCacheCopies, _wd.getNumCopies(), _wd ) ;
+            //for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+            //   sys.getSeparateMemory( _memorySpaceId ).releaseRegions( _memCacheCopies, _wd.getNumCopies(), _wd ) ;
+            //}
          }
       }
       return _outputDataReady;

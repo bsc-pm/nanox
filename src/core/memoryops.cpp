@@ -138,6 +138,8 @@ unsigned int BaseAddressSpaceInOps::getVersionNoLock( global_reg_t const &reg, W
 }
 
 void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, memory_space_id_t thisLocation, WD const &wd, unsigned int copyIdx ) {
+   // FIXME: This should be more resillient code, first decide where to copy from, then try to lock the chunk (using .prepareRegionsToBeCopied) and if it fails then try wth a new location.
+   // this could happen if an invalidation occurs and the data is only available on RegionCaches. Maybe we have read data_source.getFirstLocation() but the invalidation occured in between.
    std::map< memory_space_id_t, std::set< global_reg_t > > parts;
    for ( NewLocationInfoList::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
       global_reg_t region_shape( it->first, reg.key );
@@ -204,7 +206,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
             ensure( region_shape.id == memCopy._reg.id, "Wrong region" );
             if ( !is_located_in_host ) {
                ensure( location > 0, "Wrong location.");
-               this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, copyIdx );
+               this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, copyIdx ); // inOp
             } else {
                *(myThread->_file) << "This should not happen, reg " << data_source.id << " reported to be in 0 (first loc " << location << " ) shape is " << region_shape.id << " wd: " << wd.getId() << " copyIdx " << copyIdx << " " << ((wd.getDescription()!=NULL) ? wd.getDescription() : "n/a") << std::endl;
                //fatal("Impossible path!");
@@ -230,7 +232,7 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
                         std::cerr << "ERROR, could not add a cache op for a chunk!" << std::endl;
                      }
                      if ( _VERBOSE_CACHE ) { std::cerr << " added a op! ds= " << it->second << " rs= " << it->first << " added= " << added << " so far we have ops: " << getOwnOps().size() << " this Obj "<< (void *) this << std::endl; }
-                     this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, copyIdx );
+                     this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, copyIdx ); //inOp
                   } else {
                      if ( _VERBOSE_CACHE ) { std::cerr << " sync with other op! ds= " << it->second << " rs= " << it->first <<std::endl; }
                      getOtherOps().insert( data_source.getDeviceOps() );
@@ -299,7 +301,7 @@ void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global
    TransferList &list = _transfers[ from ];
    if ( _lockedChunks.count( chunk ) == 0 ) {
       chunk->lock();
-      chunk->addReference( wd.getId(), 1 );
+      chunk->addReference( wd.getId(), 1 ); //Out addOp( with chunk )
       _lockedChunks.insert( chunk );
       chunk->unlock();
    }

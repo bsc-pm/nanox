@@ -724,7 +724,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
                      if ( entry ) std::cerr << " " << *entry << std::endl;
                      else std::cerr << " nil " << std::endl; 
                   }
-                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, myThread->getThreadWD(), (unsigned int)0xdeadbeef );
+                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, myThread->getThreadWD(), (unsigned int)0xdeadbeef ); // OutOp Network::getDataFromDevice
                   outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
                } else {
                   outOps.getOtherOps().insert( thisOps );

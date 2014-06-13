@@ -98,7 +98,8 @@ class SeparateAddressSpace {
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void copyFromHost( TransferList &list, WD const &wd );
 
-   void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
+   void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+   //void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
    
    bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
