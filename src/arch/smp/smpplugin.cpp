@@ -169,12 +169,14 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "no-binding", "disable-binding" );
 
       cfg.registerConfigOption( "smp-private-memory", NEW Config::FlagOption( _smpPrivateMemory, true ),
-            "Enables NUMA smp devices." );
+            "SMP devices use a private memory area." );
       cfg.registerArgOption( "smp-private-memory", "smp-private-memory" );
+      cfg.registerEnvOption( "smp-private-memory", "NX_SMP_PRIVATE_MEMORY" );
 
       cfg.registerConfigOption( "smp-host-cpus", NEW Config::IntegerVar( _smpHostCpus ),
-            "Enables NUMA smp devices." );
+            "When using SMP devices with private memory, set how many CPUs will work with the host memory." );
       cfg.registerArgOption( "smp-host-cpus", "smp-host-cpus" );
+      cfg.registerEnvOption( "smp-host-cpus", "NX_SMP_HOST_CPUS" );
 
 
    }
