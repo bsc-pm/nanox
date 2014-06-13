@@ -68,6 +68,55 @@ extern "C" {
          case ompt_event_runtime_shutdown:
             ompt_nanos_event_shutdown = (ompt_callback_t) callback;
             return 4;
+         case ompt_event_idle_begin:
+         case ompt_event_idle_end:
+         case ompt_event_wait_barrier_begin:
+         case ompt_event_wait_barrier_end:
+         case ompt_event_wait_taskwait_begin:
+         case ompt_event_wait_taskwait_end:
+         case ompt_event_wait_taskgroup_begin:
+         case ompt_event_wait_taskgroup_end:
+         case ompt_event_release_lock:
+         case ompt_event_release_nest_lock_last:
+         case ompt_event_release_critical:
+         case ompt_event_release_atomic:
+         case ompt_event_release_ordered:
+         case ompt_event_implicit_task_begin:
+         case ompt_event_implicit_task_end:
+         case ompt_event_initial_task_begin:
+         case ompt_event_initial_task_end:
+         case ompt_event_task_switch:
+         case ompt_event_loop_begin:
+         case ompt_event_loop_end:
+         case ompt_event_sections_begin:
+         case ompt_event_sections_end:
+         case ompt_event_single_in_block_begin:
+         case ompt_event_single_in_block_end:
+         case ompt_event_single_others_begin:
+         case ompt_event_single_others_end:
+         case ompt_event_workshare_begin:
+         case ompt_event_workshare_end:
+         case ompt_event_master_begin:
+         case ompt_event_master_end:
+         case ompt_event_barrier_begin:
+         case ompt_event_barrier_end:
+         case ompt_event_taskwait_begin:
+         case ompt_event_taskwait_end:
+         case ompt_event_taskgroup_begin:
+         case ompt_event_taskgroup_end:
+         case ompt_event_release_nest_lock_prev:
+         case ompt_event_wait_lock:
+         case ompt_event_wait_nest_lock:
+         case ompt_event_wait_critical:
+         case ompt_event_wait_atomic:
+         case ompt_event_wait_ordered:
+         case ompt_event_acquired_lock:
+         case ompt_event_acquired_nest_lock_first:
+         case ompt_event_acquired_nest_lock_next:
+         case ompt_event_acquired_critical:
+         case ompt_event_acquired_atomic:
+         case ompt_event_acquired_ordered:
+            return 1;
          default:
             warning("Callback registration error");
             return 0;
@@ -86,14 +135,12 @@ extern "C" {
    int ompt_nanos_enumerate_state( ompt_state_t current_state, ompt_state_t *next_state, const char **next_state_name )
    {
       int i;
+
       for ( i = 0; i < OMPT_NANOS_STATES; i++) {
-         if ( nanos_state_values[i] == current_state ) {
-            i++;
-            break;
-         }
+         if ( nanos_state_values[i] == current_state ) break;
       }
 
-      if ( i < OMPT_NANOS_STATES) {
+      if ( ++i < OMPT_NANOS_STATES ) {
          *next_state = nanos_state_values[i];
          *next_state_name = nanos_state_string[i];
          return 1;
