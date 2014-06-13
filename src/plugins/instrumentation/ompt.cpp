@@ -159,8 +159,24 @@ extern "C" {
    ompt_state_t ompt_nanos_get_state( ompt_wait_id_t *wait_id );
    ompt_state_t ompt_nanos_get_state( ompt_wait_id_t *wait_id )
    {
-      // FIXME: TBD
-      return (ompt_state_t) 0;
+      //! \note This function must be ordered acording with state genericity
+      //! specific states must be first to be detected, so the first state that fits
+      //! with curret thread state must be returned.
+
+
+      //! \note If thread state is idle, return idle
+      if ( myThread->isIdle() ) return ompt_state_idle;
+
+      //! \note If we consider OmpSs running always in parallel there is only when
+      //! case in which we can run serially: first level team, running with one thread. 
+      ThreadTeam *tt = myThread->getTeam();
+      if ( tt && tt->size() == 1 && tt->getLevel() == 0 ) 
+         return ompt_state_work_serial;
+      else if ( tt )
+         return ompt_state_work_parallel;
+
+      //! \note Otherwise return undefined
+      return ompt_state_undefined;
    }
 
    void * ompt_nanos_get_idle_frame(void);

@@ -106,9 +106,9 @@ namespace nanos
 
    inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
       _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
-      _threadWD( wd ), _currentWD( NULL), _nextWDs( ),
-      _teamData( NULL ), _nextTeamData( NULL ),
-      _name( "Thread" ), _description( "" ), _allocator( ) {
+      _threadWD( wd ), _currentWD( NULL), _nextWDs( ), _teamData( NULL ), _nextTeamData( NULL ),
+      _name( "Thread" ), _description( "" ), _allocator( )
+   {
          if ( sys.getSplitOutputForThreads() ) {
             char tmpbuf[64];
             sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
@@ -116,7 +116,7 @@ namespace nanos
          } else {
             _file = &std::cerr;
          }
-      }
+   }
 
    inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
 
