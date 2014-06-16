@@ -262,42 +262,80 @@ namespace nanos
             InstrumentationDictionary *iD = getInstrumentationDictionary();
             static const nanos_event_key_t create_wd_ptr = iD->getEventKey("create-wd-ptr");
             static const nanos_event_key_t api = iD->getEventKey("api");
-            static const nanos_event_value_t api_enter_team = iD->getEventValue("api","enter_team");
-            static const nanos_event_value_t api_leave_team = iD->getEventValue("api","leave_team");
+            static const nanos_event_key_t set_num_threads = iD->getEventKey("set-num-threads");
+            static const nanos_event_value_t api_create_team = iD->getEventValue("api","create_team");
+            static const nanos_event_value_t api_end_team = iD->getEventValue("api","end_team");
 
             unsigned int i;
             for( i=0; i<count; i++) {
                Event &e = events[i];
-               if ( e.getKey( ) == create_wd_ptr && ompt_nanos_event_task_begin )
-               { 
-                  ompt_nanos_event_task_begin(
-                     (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
-                     NULL,  // FIXME: task frame
-                     (ompt_task_id_t) ((WorkDescriptor *)e.getValue())->getId(),
-                     NULL   // FIXME: outlined function
-                  );
-               }
-               else if ( e.getKey( ) == api )
-               {
-                  nanos_event_value_t val = e.getValue();
-                
-                  if ( val == api_enter_team && ompt_nanos_event_parallel_begin )
-                  {
-                     ompt_nanos_event_parallel_begin (
-                        (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
-                        (ompt_frame_t) NULL,    // FIXME: frame data of parent task
-                        (ompt_parallel_id_t) 0, // FIXME: parallel_id
-                        (uint32_t) 0,           // FIXME: requested team size
-                        (void *) NULL           // FIXME: outlined function
-                     );
-                  }
-                  else if ( val == api_leave_team && ompt_nanos_event_parallel_end )
-                  {
-                     ompt_nanos_event_parallel_end (
-                           (ompt_parallel_id_t) 0, // FIXME: parallel_id
-                           (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
-                  }
-          
+// DEBUG INFO
+#if 0
+               int thid = nanos::myThread? nanos::myThread->getId():0; 
+               fprintf(stderr,"NANOS++ [%d]: (%d/%d) event %ld value %lu\n",
+                     thid,
+                     (int)i+1,
+                     (int)count,
+                     (long) e.getKey(),
+                     (unsigned long) e.getValue()
+                     ); // FIXME: debug information
+#endif
+               switch ( e.getType() ) {
+                  case NANOS_POINT:
+                     if ( e.getKey( ) == create_wd_ptr && ompt_nanos_event_task_begin )
+                     { 
+                        ompt_nanos_event_task_begin(
+                              (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
+                              NULL,  // FIXME: task frame
+                              (ompt_task_id_t) ((WorkDescriptor *)e.getValue())->getId(),
+                              NULL   // FIXME: outlined function
+                              );
+                     }
+                     break;
+                  case NANOS_BURST_START:
+                     if ( e.getKey( ) == api )
+                     {
+                        nanos_event_value_t val = e.getValue();
+
+                        if ( val == api_create_team && ompt_nanos_event_parallel_begin )
+                        {
+                           uint32_t team_size = 0;
+                           while ( i < count ) {
+                              Event &e1 = events[++i];
+                              if ( e1.getKey() == set_num_threads ) {
+                                 team_size = (uint32_t) e1.getValue();
+                                 break;
+                              }
+                           }
+
+                           ompt_nanos_event_parallel_begin (
+                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
+                                 (ompt_frame_t) NULL,    // FIXME: frame data of parent task
+                                 (ompt_parallel_id_t) 0, // FIXME: parallel_id
+                                 (uint32_t) team_size,
+                                 (void *) NULL           // FIXME: outlined function
+                                 );
+                        }
+                        else if ( val == api_end_team && ompt_nanos_event_parallel_end )
+                        {
+                           ompt_nanos_event_parallel_end (
+                                 (ompt_parallel_id_t) 0, // FIXME: parallel_id
+                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
+                        }
+
+                     }
+                     break;
+                  case NANOS_BURST_END:
+                  case NANOS_STATE_START:
+                  case NANOS_STATE_END:
+                  case NANOS_SUBSTATE_START:
+                  case NANOS_SUBSTATE_END:
+                  case NANOS_PTP_START:
+                  case NANOS_PTP_END:
+                  case EVENT_TYPES:
+                     break;
+                  default:
+                     break;
                }
             }
          }
