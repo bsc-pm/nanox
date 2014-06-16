@@ -24,6 +24,7 @@
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "instrumentationmodule_decl.hpp"
+#include "instrumentation_decl.hpp"
 
 using namespace nanos;
 
@@ -47,10 +48,19 @@ using namespace nanos;
 NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
                                nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info ))
 {
-   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) nthreads); )
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_team",NANOS_RUNTIME) );
+   unsigned i = 0;
+
+   NANOS_INSTRUMENT( static Instrumentation *INS = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = INS->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT( static nanos_event_key_t api_key = ID->getEventKey("api"); )
+   NANOS_INSTRUMENT( static nanos_event_value_t api_value = ID->getEventValue("api","create_team"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t threads_key = ID->getEventKey("set-num-threads"); )
+
+   NANOS_INSTRUMENT( Instrumentation::Event events[3]; )
+   NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
+   NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], threads_key, (nanos_event_value_t ) *nthreads ); )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
       if ( *team ) warning( "pre-allocated team not supported yet" );
@@ -64,7 +74,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
 
       *nthreads = new_team->size();
 
-      for ( unsigned i = 0; i < new_team->size(); i++ )
+      for ( i = 0; i < new_team->size(); i++ )
          info[i] = ( nanos_thread_t ) &( *new_team )[i];
    } catch ( nanos_err_t e) {
       return e;
