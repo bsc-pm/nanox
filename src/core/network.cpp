@@ -839,9 +839,3 @@ int Network::getGpuPresend() const {
 int Network::getSmpPresend() const {
    return _smpPresend;
 }
-void Network::setExtraPEsCount(int e) {
-   _extraPEs = e;
-}
-int Network::getExtraPEsCount() const {
-   return _extraPEs;
-}

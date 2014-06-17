@@ -289,7 +289,7 @@ class SMPPlugin : public SMPBasePlugin
          SMPProcessor *cpu;
          if ( _smpPrivateMemory && count >= _smpHostCpus ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true /* nanos::ext::ClusterInfo::getAllocWide() */ );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
             numaMem.setNodeNumber( 0 );

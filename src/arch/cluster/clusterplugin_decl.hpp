@@ -39,12 +39,9 @@ class ClusterPlugin : public ArchPlugin
       void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
       void * getPinnedSegmentAddr( unsigned int idx );
       std::size_t getPinnedSegmentLen( unsigned int idx );
-      unsigned int getExtraPEsCount();
-      void setExtraPEsCount( unsigned int num );
       std::size_t getNodeMem();
       int getGpuPresend();
       int getSmpPresend();
-      void setUpCache();
       System::CachePolicyType getCachePolicy ( void );
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
       bool getAllocWide();
