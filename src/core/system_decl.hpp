@@ -53,7 +53,7 @@
 #endif
 
 #ifdef CLUSTER_DEV
-#include "clusternode_fwd.hpp"
+//#include "clusternode_fwd.hpp"
 #endif
 
 namespace nanos

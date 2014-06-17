@@ -3,6 +3,7 @@
 
 #include "plugin.hpp"
 #include "system_decl.hpp"
+#include "clusternode_decl.hpp"
 #include "gasnetapi_decl.hpp"
 
 namespace nanos {
