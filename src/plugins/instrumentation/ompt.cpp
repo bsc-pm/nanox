@@ -22,6 +22,15 @@ extern "C" {
    ompt_state_t nanos_state_values[OMPT_NANOS_STATES] = { ompt_state_first, ompt_state_idle, ompt_state_work_serial, ompt_state_work_parallel, ompt_state_undefined };
    const char  *nanos_state_string[OMPT_NANOS_STATES] = { "First", "Idle", "Serial", "Parallel", "Undefined" };
 
+   // Scheduler break point callback
+   typedef void (*break_point_callback_t)( void );
+
+   void breakPointCallBack(void); 
+   void breakPointCallBack(void) { 
+      // fprintf(stderr, "sched. step, thread %p\n", nanos::myThread);
+      nanos::myThread->setSteps(1);
+   }
+
    //! List of callback declarations
    ompt_new_parallel_callback_t  ompt_nanos_event_parallel_begin = NULL;
    ompt_parallel_callback_t      ompt_nanos_event_parallel_end = NULL;
@@ -346,6 +355,10 @@ namespace nanos
          }
          void threadStart( BaseThread &thread ) 
          {
+            // Setting break point
+            thread.setSteps (1);
+            thread.setCallBack ( breakPointCallBack );
+
             if (ompt_nanos_event_thread_begin) {
                ompt_nanos_event_thread_begin( (ompt_thread_type_t) ompt_thread_worker, (ompt_thread_id_t) nanos::myThread->getId());
             }

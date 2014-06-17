@@ -118,6 +118,7 @@ namespace nanos
    {
       friend class Scheduler;
       private:
+         typedef void (*callback_t)(void);
          typedef struct StatusFlags_t{
             bool is_main_thread:1;
             bool has_started:1;
@@ -154,6 +155,9 @@ namespace nanos
          std::string             _description;   /**< Thread description */
          // Allocator:
          Allocator               _allocator;     /**< Per thread allocator */
+         unsigned short          _steps;         //!< Number of scheduler steps (zero means infinite)
+         callback_t              _bpCallBack;    //!< Break point callback. We call it after _steps scheduler ops
+         
 
       private:
          virtual void initializeDependent () = 0;
@@ -173,24 +177,19 @@ namespace nanos
           */ 
          void joined ( void ); 
       private:
-        /*! \brief BaseThread default constructor (private)
-         */
+         //! \brief BaseThread default constructor (private)
          BaseThread ();
-        /*! \brief BaseThread copy constructor (private)
-         */
+         //! \brief BaseThread copy constructor (private)
          BaseThread( const BaseThread & );
-        /*! \brief BaseThread copy assignment operator (private)
-         */
+         //! \brief BaseThread copy assignment operator (private)
          const BaseThread & operator= ( const BaseThread & );
       public:
          std::ostream          *_file;
          std::set<void *> _pendingRequests;
-        /*! \brief BaseThread constructor
-         */
+         //! \brief BaseThread constructor
          BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
 
-        /*! \brief BaseThread destructor
-         */
+         //! \brief BaseThread destructor
          virtual ~BaseThread()
          {
             finish();
@@ -344,6 +343,12 @@ namespace nanos
          void setIdle ( bool value = true ) ;
          //! \brief Inquiry thread state idle
          bool isIdle ( void ) const;
+         //! \brief Basethread step.
+         void step( void );
+         //! \brief Set break point steps 
+         void setSteps( unsigned short s );
+         //! \brief Set break point callback
+         void setCallBack( callback_t cb );
    };
 
    extern __thread BaseThread *myThread;

@@ -294,6 +294,7 @@ inline void Scheduler::idleLoop ()
          behaviour::switchWD(thread, current, next);
 
          thread = getMyThreadSafe();
+         thread->step();
 
          sys.getSchedulerStats()._idleThreads++;
          myThread->setIdle( true );
@@ -484,6 +485,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                switchTo ( next );
 
                thread = getMyThreadSafe();
+               thread->step();
 
                NANOS_INSTRUMENT ( total_spins = 0; )
 
