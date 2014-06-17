@@ -1306,7 +1306,7 @@ CompleteOpFunctor::~CompleteOpFunctor() {
 }
 
 void CompleteOpFunctor::operator()() {
-   std::cerr << "Functor called!" <<std::endl;
+   //std::cerr << "Functor called!" <<std::endl;
    //_chunk->removeReference( 0 );
 }
 

@@ -94,7 +94,9 @@ void ContainerDense< T >::invalUnlock() {
 
 template <class T>
 void ContainerDense< T >::addMasterRegionId( reg_t masterId, reg_t localId ) {
+   _lock.acquire();
    _masterIdToLocalId[ masterId ] = localId;
+   _lock.release();
 }
 
 template <class T>
