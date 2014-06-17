@@ -88,9 +88,10 @@ namespace nanos {
          void addReference(int wdId, unsigned int loc);
          void removeReference(int wdId);
          unsigned int getReferenceCount() const;
-         void confirmCopyIn( reg_t id, unsigned int version );
+         //void confirmCopyIn( reg_t id, unsigned int version );
          unsigned int getVersion( global_reg_t const &reg );
          //unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
+         void removeRegionAndMarkForChunkDeallocation( reg_t reg, WD const &wd, unsigned int copyIdx );
 
          DeviceOps *getDeviceOps( global_reg_t const &reg );
          void prepareRegion( reg_t reg, unsigned int version );
@@ -201,7 +202,9 @@ namespace nanos {
          void increaseLruTime();
 
          unsigned int getVersion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx );
-         void releaseRegion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
+         //void releaseRegion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
+
+         void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx );
 

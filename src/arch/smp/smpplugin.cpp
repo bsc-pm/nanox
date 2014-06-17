@@ -63,6 +63,7 @@ class SMPPlugin : public SMPBasePlugin
    bool                         _bindThreads;
    bool                         _smpPrivateMemory;
    int                          _smpHostCpus;
+   int                          _smpPrivateMemorySize;
    bool                         _workersCreated;
    unsigned int                 _numWorkers; //must be updated if the number of workers increases after calling startWorkerThreads
    int                          _numThreadsRequestedForSupport;
@@ -109,7 +110,8 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindingStride( 1 )
                  , _bindThreads( true )
                  , _smpPrivateMemory( false )
-                 , _smpHostCpus( 0 )
+                 , _smpHostCpus( 1 )
+                 , _smpPrivateMemorySize( 256 * 1024 * 1024 ) // 256 Mb
                  , _workersCreated( false )
                  , _numWorkers( 0 )
                  , _numThreadsRequestedForSupport( 0 )
@@ -169,13 +171,19 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "no-binding", "disable-binding" );
 
       cfg.registerConfigOption( "smp-private-memory", NEW Config::FlagOption( _smpPrivateMemory, true ),
-            "Enables NUMA smp devices." );
+            "SMP devices use a private memory area." );
       cfg.registerArgOption( "smp-private-memory", "smp-private-memory" );
+      cfg.registerEnvOption( "smp-private-memory", "NX_SMP_PRIVATE_MEMORY" );
 
-      cfg.registerConfigOption( "smp-host-cpus", NEW Config::IntegerVar( _smpHostCpus ),
-            "Enables NUMA smp devices." );
+      cfg.registerConfigOption( "smp-host-cpus", NEW Config::PositiveVar( _smpHostCpus ),
+            "When using SMP devices with private memory, set how many CPUs will work with the host memory. Minimum value is 1 (which is also the default)." );
       cfg.registerArgOption( "smp-host-cpus", "smp-host-cpus" );
+      cfg.registerEnvOption( "smp-host-cpus", "NX_SMP_HOST_CPUS" );
 
+      cfg.registerConfigOption( "smp-private-memory-size", NEW Config::PositiveVar( _smpPrivateMemorySize ),
+            "Set the size of SMP devices private memory area." );
+      cfg.registerArgOption( "smp-private-memory-size", "smp-private-memory-size" );
+      cfg.registerEnvOption( "smp-private-memory-size", "NX_SMP_PRIVATE_MEMORY_SIZE" );
 
    }
 

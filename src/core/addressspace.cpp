@@ -97,9 +97,13 @@ unsigned int SeparateAddressSpace::getCurrentVersion( global_reg_t const &reg, W
    return _cache.getVersion( reg, wd, copyIdx );
 }
 
-void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy ) {
-   _cache.releaseRegion( reg, wd, copyIdx, policy );
+void SeparateAddressSpace::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   _cache.releaseRegions( memCopies, numCopies, wd );
 }
+
+//void SeparateAddressSpace::releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy ) {
+//   _cache.releaseRegion( reg, wd, copyIdx, policy );
+//}
 
 void SeparateAddressSpace::copyFromHost( TransferList &list, WD const &wd ) {
    for ( TransferList::const_iterator it = list.begin(); it != list.end(); it++ ) {
