@@ -106,9 +106,9 @@ namespace nanos
 
    inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
       _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
-      _threadWD( wd ), _currentWD( NULL), _nextWDs( ),
-      _teamData( NULL ), _nextTeamData( NULL ),
-      _name( "Thread" ), _description( "" ), _allocator( ) {
+      _threadWD( wd ), _currentWD( NULL), _nextWDs( ), _teamData( NULL ), _nextTeamData( NULL ),
+      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL )
+   {
          if ( sys.getSplitOutputForThreads() ) {
             char tmpbuf[64];
             sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
@@ -116,7 +116,7 @@ namespace nanos
          } else {
             _file = &std::cerr;
          }
-      }
+   }
 
    inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
 
@@ -276,6 +276,20 @@ namespace nanos
  
      return _description;
    }
+
+   inline void BaseThread::setIdle ( bool value ) { _status.is_idle = value; }
+
+   inline bool BaseThread::isIdle ( void ) const { return _status.is_idle; }
+
+   inline void BaseThread::step ( void )
+   {
+      if ( _steps && _bpCallBack ) {
+         if ( --_steps == 0 ) _bpCallBack();
+      }
+   }
+   inline void BaseThread::setCallBack ( callback_t cb ) { _bpCallBack = cb; }
+
+   inline void BaseThread::setSteps ( unsigned short s ) { _steps = s; }
 
 }
 
