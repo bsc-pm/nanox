@@ -239,9 +239,9 @@ public:
    
    void cleanUp();
      
-   void *allocate( size_t size, uint64_t tag )
+   void *allocate( size_t size, uint64_t tag, uint64_t offset )
    {
-      return _cache.allocate( size, tag );
+      return _cache.allocate( size, tag, offset );
    }
    
    void *realloc( void *address, size_t size, size_t ceSize )

@@ -55,7 +55,7 @@ MPIDevice::~MPIDevice() {
 
 /* \breif allocate size bytes in the device
  */
-void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr) const {
+void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ALLOC_EVENT);
     //std::cerr << "Inicio allocate\n";
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) &mem.getConstPE();

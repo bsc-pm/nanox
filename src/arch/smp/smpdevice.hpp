@@ -48,7 +48,7 @@ namespace nanos
           */
          ~SMPDevice() {};
 
-         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr = 0 ) const {
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const {
             void *retAddr = NULL;
 
             SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();

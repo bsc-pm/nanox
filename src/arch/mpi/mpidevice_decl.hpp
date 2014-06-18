@@ -107,7 +107,7 @@ namespace nanos
          static void taskPostFinish(MPI_Comm& comm);
          
          
-         void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr=0) const;
+         void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const;
          std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const;
          void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
 

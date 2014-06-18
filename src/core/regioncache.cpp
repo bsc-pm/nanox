@@ -793,7 +793,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
    } else {
       if ( *(results.front().second) == NULL ) {
 
-         void *deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ), targetHostAddr );
+         void *deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ), wd, copyIdx );
          if ( deviceMem != NULL ) {
             *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
             allocChunkPtr = *(results.front().second);
@@ -930,7 +930,7 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
       //}
       if ( *(results.front().second) == NULL ) {
 
-         void *deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ), targetHostAddr );
+         void *deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ), wd, copyIdx );
          //std::cerr << "malloc returns " << (void *)deviceMem << std::endl;
          if ( deviceMem == NULL ) {
             /* Invalidate */
@@ -942,7 +942,7 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
                *(results.front().second) = allocChunkPtr;
             } else {
                /* allocate mem */
-               deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ), targetHostAddr );
+               deviceMem = _device.memAllocate( allocSize, sys.getSeparateMemory( _memorySpaceId ), wd, copyIdx );
                if ( deviceMem == NULL ) {
                   //fatal("Unable to allocate memory on the device.");
                   // let it return NULL 

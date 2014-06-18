@@ -303,8 +303,7 @@ bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addr
 //   //std::cerr << "GPU memAllocate( " << size << " )  returns: " << mem << std::endl;
 //   return mem;
 //}
-
-void * GPUDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr) const
+void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const
 {
    void * address = NULL;
 

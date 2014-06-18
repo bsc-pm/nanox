@@ -79,7 +79,7 @@ namespace nanos
           */
          const char * getName ( void ) const { return _name; }
 
-         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr = 0 ) const { return (void *) 0xdeadbeef; }
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const { return (void *) 0xdeadbeef; }
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {  std::cerr << "wrong memFree" <<std::endl; }
          virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const { std::cerr << "wrong canAllocate" <<std::endl; }
          virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const { std::cerr << "wrong getMemCapacity" <<std::endl; return 0; }

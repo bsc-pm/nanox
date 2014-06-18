@@ -30,11 +30,18 @@ using namespace nanos::ext;
 
 OpenCLDevice::OpenCLDevice( const char *name ) : Device( name ) { }
 
-void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr) const
+void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const
 { 
    nanos::ProcessingElement * pe = &(mem.getPE());
-   if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
-      return proc->allocate( size , targetHostAddr);
+   if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) ) {
+       CopyData cdata=wd.getCopies()[copyIdx];
+       //If we are on allocWide mode and we have the complete size (aka we are allocating the whole structure), do offset = 0
+       if (nanos::ext::OpenCLConfig::getAllocWide() && cdata.getSize()!=cdata.getMaxSize()) {
+         return proc->allocate( size , cdata.getAddress(), 0);
+       } else {
+         return proc->allocate( size , cdata.getAddress(), cdata.getOffset());
+       }
+   }
 
 
    fatal( "Can allocate only on OpenCLProcessor" );
