@@ -53,7 +53,7 @@ namespace ext
 
       public:
          // constructors
-         SMPProcessor( int bindingId, memory_space_id_t numMemId, bool active );
+         SMPProcessor( int bindingId, memory_space_id_t numMemId, bool active, unsigned int numaNode, unsigned int socket );
 
          unsigned int getBindingId() { return _bindingId; }
 

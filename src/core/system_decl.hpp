@@ -182,6 +182,9 @@ namespace nanos
          HostMemoryAddressSpace                        _hostMemory;
          RegionCache::CachePolicy                      _regionCachePolicy;
          std::string                                   _regionCachePolicyStr;
+
+         std::set<unsigned int>                        _clusterNodes;
+         std::set<unsigned int>                        _numaNodes;
          
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -607,6 +610,11 @@ namespace nanos
          bool getVerboseDevOps() const;
          bool getSplitOutputForThreads() const;
          RegionCache::CachePolicy getRegionCachePolicy() const;
+
+         unsigned int getNumClusterNodes() const;
+         unsigned int getNumNumaNodes() const;
+         std::set<unsigned int> const &getClusterNodeSet() const;
+         memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;
    };
 
    extern System sys;

@@ -215,7 +215,7 @@ namespace nanos {
                   //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
                   if ( &nanos::ext::GPU == worker->runningOn()->getDeviceType() )
                   {
-                     int node = worker->runningOn()->getNUMANode();
+                     int node = worker->runningOn()->getNumaNode();
                      // Convert to virtual
                      int vNode = sys.getSMPPlugin()->getVirtualNUMANode( node );
                      _gpuNodes.insert( vNode );
@@ -441,7 +441,7 @@ namespace nanos {
                      index = nodeToQueue( node, true );
                      wd.setWakeUpQueue( index );
                      
-                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.runningOn()->getNUMANode() );
+                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.runningOn()->getNumaNode() );
                      
                      // Insert at the front (these will have higher priority)
                      tdata._readyQueues[index].push_back ( &wd );
@@ -497,7 +497,7 @@ namespace nanos {
                WD* wd = NULL;
                
                // Get the physical node of this thread
-               unsigned node = thread->runningOn()->getNUMANode();
+               unsigned node = thread->runningOn()->getNumaNode();
                // Convert to virtual
                unsigned vNode = sys.getSMPPlugin()->getVirtualNUMANode( node );
                

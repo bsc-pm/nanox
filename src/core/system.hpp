@@ -539,5 +539,29 @@ inline RegionCache::CachePolicy System::getRegionCachePolicy() const {
    return _regionCachePolicy;
 }
 
+inline unsigned int System::getNumClusterNodes() const {
+   return _clusterNodes.size();
+}
+
+inline unsigned int System::getNumNumaNodes() const {
+   return _numaNodes.size();
+}
+
+inline std::set<unsigned int> const &System::getClusterNodeSet() const {
+   return _clusterNodes;
+}
+
+inline memory_space_id_t System::getMemorySpaceIdOfClusterNode( unsigned int node ) const {
+   memory_space_id_t id = 0;
+   if ( node != 0 ) {
+      for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+         if ( it->second->getClusterNode() == node ) {
+            id = it->second->getMemorySpaceId();
+         }
+      }
+   }
+   return id;
+}
+
 #endif
 

@@ -294,6 +294,19 @@ virtual unsigned int getMaxWorkers() const {
    return _gpus->size();
 }
 
+virtual void finalize() {
+   if ( _gpus ) {
+      int soft_inv = 0;
+      int hard_inv = 0;
+      for ( unsigned int idx = 0; idx < _gpus->size(); idx += 1 ) {
+         soft_inv += sys.getSeparateMemory( (*_gpus)[idx]->getMemorySpaceId() ).getSoftInvalidationCount();
+         hard_inv += sys.getSeparateMemory( (*_gpus)[idx]->getMemorySpaceId() ).getHardInvalidationCount();
+      }
+      message0("GPUs Soft invalidations: " << soft_inv);
+      message0("GPUs Hard invalidations: " << hard_inv);
+   }
+}
+
 
 };
 

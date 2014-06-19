@@ -967,7 +967,7 @@ void  OpenCLAdapter::waitForEvents(){
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
 OpenCLProcessor::OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem ) :
-   ProcessingElement( &OpenCLDev, NULL, memId ),
+   ProcessingElement( &OpenCLDev, NULL, memId, 0 /* local node */, 0 /* FIXME: numa */, true, 0 /* socket: n/a? */, false ),
    _core( core ),
    _openclAdapter(),
    _cache( _openclAdapter ),

@@ -31,7 +31,9 @@ size_t SMPProcessor::_threadsStackSize = 0;
 System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
-SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t numaMemId, bool active ) : PE( &SMP, NULL, numaMemId ), _bindingId( bindingId ), _reserved(false), _active( active ) {}
+SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active, unsigned int numaNode, unsigned int socket ) :
+   PE( &SMP, NULL, memId, 0 /* always local node */, numaNode, true, socket, true ),
+   _bindingId( bindingId ), _reserved(false), _active( active ) {}
 
 void SMPProcessor::prepareConfig ( Config &config )
 {

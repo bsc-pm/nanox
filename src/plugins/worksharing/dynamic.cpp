@@ -97,4 +97,4 @@ class WorkSharingDynamicForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::WorkSharingDynamicForPlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::WorkSharingDynamicForPlugin );

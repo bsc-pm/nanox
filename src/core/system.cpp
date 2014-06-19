@@ -79,7 +79,7 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr("")
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes()
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -415,7 +415,14 @@ void System::start ()
    {
       verbose0("addPEs for arch: " << (*it)->getName()); 
       (*it)->addPEs( _pes );
-   }   
+   }
+
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      _clusterNodes.insert( it->second->getClusterNode() );
+      if ( it->second->isInNumaNode() ) {
+         _numaNodes.insert( it->second->getNumaNode() );
+      }
+   }
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
@@ -430,11 +437,11 @@ void System::start ()
    }   
 
    // For each plugin, notify it's the way to reserve PEs if they are required
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it )
-   {
-      (*it)->createBindingList();
-   }   
+   //for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+   //     it != _archs.end(); ++it )
+   //{
+   //   (*it)->createBindingList();
+   //}   
 
    _targetThreads = _smpPlugin->getNumThreads();
 
@@ -529,14 +536,8 @@ void System::finish ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
 
-   verbose ( "NANOS++ statistics");
-   verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
-
    verbose ( "NANOS++ shutting down.... init" );
 
-   if (sys.getNetwork()->getNodeNum() > 0) {
-      std::cerr << " Thd wd has id " << myThread->getCurrentWD()->getId() << std::endl;
-   }
    //! \note waiting for remaining tasks
    myThread->getCurrentWD()->waitCompletion( true );
 
@@ -555,6 +556,45 @@ void System::finish ()
    verbose ( "...thread has been joined" );
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
+
+   verbose ( "NANOS++ statistics");
+   verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
+
+   sys.getNetwork()->nodeBarrier();
+
+   for ( unsigned int nodeCount = 0; nodeCount < sys.getNetwork()->getNumNodes(); nodeCount += 1 ) {
+      if ( sys.getNetwork()->getNodeNum() == nodeCount ) {
+         for ( ArchitecturePlugins::const_iterator it = _archs.begin(); it != _archs.end(); ++it )
+         {
+            (*it)->finalize();
+         }
+#ifdef CLUSTER_DEV
+         if ( _net.getNodeNum() == 0 && usingCluster() ) {
+            //message0("Master: Created " << createdWds << " WDs.");
+            //message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
+            //int soft_inv = 0;
+            //int hard_inv = 0;
+
+            //#ifdef OpenCL_DEV
+            //      if ( _opencls ) {
+            //         soft_inv = 0;
+            //         hard_inv = 0;
+            //         for ( unsigned int idx = 1; idx < _opencls->size(); idx += 1 ) {
+            //            soft_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
+            //            hard_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
+            //            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+            //            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+            //            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+            //         }
+            //      }
+            //      message0("OpenCLs Soft invalidations: " << soft_inv);
+            //      message0("OpenCLs Hard invalidations: " << hard_inv);
+            //#endif
+         }
+#endif
+      }
+      sys.getNetwork()->nodeBarrier();
+   }
 
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
@@ -609,77 +649,10 @@ void System::finish ()
    if ( allocator != NULL ) free (allocator);
 
    verbose0 ( "NANOS++ shutting down.... end" );
-   sys.getNetwork()->nodeBarrier();
-
-#ifdef CLUSTER_DEV
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin(); it != _archs.end(); ++it )
-   {
-      if ( ::strcmp( (*it)->getName(), "Cluster PE Plugin") == 0 ) {
-         (*it)->finalize();
-      }
-   }
-   if ( _net.getNodeNum() == 0 && usingCluster() ) {
-      //message0("Master: Created " << createdWds << " WDs.");
-      //message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
-      //int soft_inv = 0;
-      //int hard_inv = 0;
-      //#ifdef CLUSTER_DEV
-      //unsigned int max_execd_wds = 0;
-      //if ( _nodes ) {
-      //   for ( unsigned int idx = 1; idx < _nodes->size(); idx += 1 ) {
-      //      soft_inv += _separateAddressSpaces[(*_nodes)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
-      //      hard_inv += _separateAddressSpaces[(*_nodes)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
-      //      max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-      //      //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-      //      //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-      //   }
-      //}
-      //message0("Cluster Soft invalidations: " << soft_inv);
-      //message0("Cluster Hard invalidations: " << hard_inv);
-      //if ( max_execd_wds > 0 ) {
-      //   float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
-      //   message0("Cluster Balance: " << balance );
-      //}
-      //#endif
-//#ifdef GPU_DEV
-//      if ( _gpus ) {
-//         soft_inv = 0;
-//         hard_inv = 0;
-//         for ( unsigned int idx = 1; idx < _gpus->size(); idx += 1 ) {
-//            soft_inv += _separateAddressSpaces[(*_gpus)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
-//            hard_inv += _separateAddressSpaces[(*_gpus)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
-//            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-//         }
-//      }
-//      message0("GPUs Soft invalidations: " << soft_inv);
-//      message0("GPUs Hard invalidations: " << hard_inv);
-//#endif
-      
-//#ifdef OpenCL_DEV
-//      if ( _opencls ) {
-//         soft_inv = 0;
-//         hard_inv = 0;
-//         for ( unsigned int idx = 1; idx < _opencls->size(); idx += 1 ) {
-//            soft_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
-//            hard_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
-//            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-//         }
-//      }
-//      message0("OpenCLs Soft invalidations: " << soft_inv);
-//      message0("OpenCLs Hard invalidations: " << hard_inv);
-//#endif
-   }
-#endif
-
-   _net.finalize();
-
    //! \note printing execution summary
    if ( _summary ) executionSummary();
 
+   _net.finalize(); //this can call exit (because of GASNet)
 }
 
 /*! \brief Creates a new WD

@@ -53,8 +53,13 @@ inline Plugin* PluginManager::loadAndGetPlugin ( const std::string &plugin_name,
 }
 
 #ifdef PIC 
-#define DECLARE_PLUGIN(name,type) \
-       type NanosXPlugin;
+#define DECLARE_PLUGIN(name,type)     \
+   extern "C" {                       \
+      Plugin * NanosXPluginFactory(); \
+   }                                  \
+   Plugin * NanosXPluginFactory() {   \
+      return new type();              \
+   }
 #else
 #define INITX {_registerPlugin, NULL} 
 #define DECLARE_PLUGIN(name,type) \

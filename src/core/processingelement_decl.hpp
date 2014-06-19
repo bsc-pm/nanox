@@ -25,6 +25,7 @@
 #include "functors_decl.hpp"
 #include "basethread_fwd.hpp"
 #include "schedule_fwd.hpp"
+#include "location_decl.hpp"
 
 namespace nanos
 {
@@ -32,7 +33,7 @@ namespace nanos
    class SMPMultiThread;
    };
 
-   class ProcessingElement
+   class ProcessingElement : public Location
    {
       private:
          typedef std::vector<BaseThread *>    ThreadList;
@@ -45,7 +46,6 @@ namespace nanos
          const Device *                       _subDeviceNo;
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
-         int                                  _numaNode;
 
       private:
          /*! \brief ProcessingElement default constructor
@@ -65,7 +65,8 @@ namespace nanos
       public:
          /*! \brief ProcessingElement constructor
           */
-         ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId ); 
+         ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId,
+            unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
 
          /*! \brief ProcessingElement destructor
           */
@@ -73,18 +74,7 @@ namespace nanos
 
          /* get/put methods */
          int getId() const;
-         //void setId( int id );
          
-         //! \brief Returns a unique ID that no other PE will have.
-         //int getUId() const;
-         //void setUId( int uid );
-         
-         //! \brief Returns the socket this thread is running on.
-         int getNUMANode() const;
-         
-         //! \brief Sets the socket this thread is running on.
-         void setNUMANode( int node );
-
          const Device * getDeviceType () const;
          const Device * getSubDeviceType () const;
          virtual const Device * getCacheDeviceType () const;

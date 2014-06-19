@@ -112,4 +112,4 @@ class WorkSharingStaticForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::WorkSharingStaticForPlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::WorkSharingStaticForPlugin );

@@ -287,12 +287,12 @@ class SMPPlugin : public SMPBasePlugin
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
             numaMem.setNodeNumber( 0 );
-            cpu = NEW SMPProcessor( *it, id, ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ) );
+            cpu = NEW SMPProcessor( *it, id, ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ), getNodeOfPE( *it ), 0 /* FIXME: socket */ );
          } else {
-            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ) );
+            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ), getNodeOfPE( *it ), 0 /* FIXME: socket */ );
          }
          CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
-         cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
+         //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
          (*_cpus)[count] = cpu;
          (*_cpusByCpuId)[ *it ] = cpu;
          count += 1;
@@ -309,7 +309,7 @@ class SMPPlugin : public SMPBasePlugin
 #endif /* NANOS_DEBUG_ENABLED */
 
       // FIXME (855): do this before thread creation, after PE creation
-      completeNUMAInfo();
+      //completeNUMAInfo();
 
       /* reserve it for main thread */
       getFirstSMPProcessor()->reserve();
@@ -441,7 +441,7 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
             it != _cpus->rend() && !target;
             it++ ) {
-         if ( (*it)->getNUMANode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
+         if ( (int) (*it)->getNumaNode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
             target = *it;
             target->reserve();
             _numThreadsRequestedForSupport += 1;
@@ -463,7 +463,7 @@ class SMPPlugin : public SMPBasePlugin
                break;
             }
          }
-         if ( (*it)->getNUMANode() == node ) {
+         if ( (int) (*it)->getNumaNode() == node ) {
             if ( counter <= 0 ) {
                target = *it;
             }
@@ -567,7 +567,7 @@ class SMPPlugin : public SMPBasePlugin
        * that can be selected by the user via nanos_current_socket() */
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); ++it )
       {
-         int node = (*it)->getNUMANode();
+         int node = (*it)->getNumaNode();
          // If that node has not been translated, yet
          if ( _numaNodeMap[ node ] == INT_MIN )
          {

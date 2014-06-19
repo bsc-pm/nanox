@@ -202,7 +202,6 @@ void ClusterPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &wo
 }
 
 void ClusterPlugin::finalize() {
-#if 0
    if ( _gasnetApi.getNodeNum() == 0 ) {
       //message0("Master: Created " << createdWds << " WDs.");
       message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
@@ -225,7 +224,6 @@ void ClusterPlugin::finalize() {
       //   message0("Cluster Balance: " << balance );
       //}
    }
-#endif
 }
 
 
