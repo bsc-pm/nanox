@@ -487,7 +487,7 @@ void MPIRemoteNode::buildHostLists(
         }
     } else if ( !mpiHostsFile.empty() ){
         std::ifstream infile(mpiHostsFile.c_str());
-        fatal_cond0(infile.bad(),"DEEP_Booster alloc error, NX_OFFLHOSTFILE file not found");
+        fatal_cond0(infile.bad(),"DEEP_Booster alloc error, NX_OFFL_HOSTFILE file not found");
         std::string line;
         while( getline( infile, line , '\n') ){            
             if (offset>0) offset--;

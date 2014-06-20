@@ -33,7 +33,7 @@ using namespace nanos::ext;
 
 MPIProcessor::MPIProcessor( void* communicator, int rank, int uid, bool owner, bool shared, 
         MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) : 
-ProcessingElement( &MPI, NULL, memId ), _pendingReqs(), _core(core) {
+ProcessingElement( &MPI, NULL, memId, 0, 0, false, 0 , false ), _pendingReqs(), _core(core) {
     _communicator = *((MPI_Comm *)communicator);
     _commOfParents=communicatorOfParents;
     _rank = rank;
