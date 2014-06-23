@@ -97,7 +97,7 @@ if DEBUG_VERSION
 noinst_LTLIBRARIES += debug/libgpu.la
 debug_LTLIBRARIES += debug/libnanox-gpu-api.la debug/libnanox-pe-gpu.la debug/libnanox-gpu-cublas.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(gpu_includes)
+nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(gpu_includes) 
 
 debug_libgpu_la_CXXFLAGS=$(nanos_debug_cxxflags)
 debug_libgpu_la_LDFLAGS=$(gpu_ldflags)

@@ -63,7 +63,3 @@ unsigned int ArchPlugin::getMaxWorkers() const {
    std::cerr << "Generic " << __FUNCTION__ << std::endl;
    return 0;
 }
-bool ArchPlugin::isHwlocAvailable () const {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-   return false;
-}

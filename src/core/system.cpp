@@ -90,6 +90,7 @@ System::System () :
       , _createLocalTasks( false )
       , _verboseDevOps( false )
       , _splitOutputForThreads( false )
+      , _hwloc()
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -812,12 +813,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( slicer ) wd->setSlicer(slicer);
 
    // Set WD's socket
-   wd->setSocket( _smpPlugin->getCurrentSocket() );
+   wd->setSocket( myThread->runningOn()->getSocket() );
    
    // Set total size
    wd->setTotalSize(total_size );
    
-   if ( _smpPlugin->getCurrentSocket() >= _smpPlugin->getNumSockets() )
+   if ( (int)myThread->runningOn()->getSocket() >= _smpPlugin->getNumSockets() )
       throw NANOS_INVALID_PARAM;
 
    // All the implementations for a given task will have the same ID
