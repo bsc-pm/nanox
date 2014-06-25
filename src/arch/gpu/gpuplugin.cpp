@@ -107,7 +107,7 @@ class GPUPlugin : public ArchPlugin
          else
          {
             // Warning: Linux specific:
-#if CUDA_VERSION < 4010
+#if defined( CUDA_VERSION ) && (CUDA_VERSION < 4010 )
             // This depends on the cuda driver, we are currently NOT linking against it.
             //int domainId, busId, deviceId;
             //cuDeviceGetAttribute( &domainId, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, device);
@@ -116,7 +116,7 @@ class GPUPlugin : public ArchPlugin
             //std::stringstream ssDevice;
             //ssDevice << std::hex << std::setfill( '0' ) << std::setw( 4 ) << domainId << ":" << std::setw( 2 ) << busId << ":" << std::setw( 2 ) << deviceId << ".0";
             //strcpy( pciDevice, ssDevice.str().c_str() );
-#else
+#elif defined( CUDART_VERSION ) && ( CUDART_VERSION >= 4010 )
             char pciDevice[20]; // 13 min
 
             cudaDeviceGetPCIBusId( pciDevice, 20, gpuId );
