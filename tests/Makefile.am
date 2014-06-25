@@ -21,7 +21,7 @@ SUBDIRS = gens
 
 CLEANFILES=
 
-CLEANFILES+=tests.log tests.log.xml
+CLEANFILES+=tests.log
 
 check-local: $(top_srcdir)/scripts/bets
 	$(top_srcdir)/scripts/bets $(BETS_OPTIONS) -o tests.log $(srcdir)/test
