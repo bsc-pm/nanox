@@ -1,7 +1,10 @@
 #include "hwloc_decl.hpp"
 #include "debug.hpp"
-#ifdef GPU_DEV
-#include <hwloc/cudart.h>
+
+#ifdef HWLOC
+ #ifdef GPU_DEV
+  #include <hwloc/cudart.h>
+ #endif
 #endif
 
 namespace nanos {
