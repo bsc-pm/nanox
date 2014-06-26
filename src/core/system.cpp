@@ -551,8 +551,8 @@ void System::finish ()
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
-   for ( unsigned p = 0; p < _pes.size() ; p++ ) {
-      _pes[p]->stopAllThreads();
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      it->second->stopAllThreads();
    }
    verbose ( "...thread has been joined" );
 
@@ -633,8 +633,10 @@ void System::finish ()
    delete team;
 
    //! \note deleting processing elements (but main pe)
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      if ( it->first != (unsigned int)myThread->runningOn()->getId() ) {
+         delete it->second;
+      }
    }
    
    //! \note unload modules
@@ -644,7 +646,7 @@ void System::finish ()
    delete _dependenciesManager;
 
    //! \note deleting last processing element
-   delete _pes[0];
+   delete _pes[ myThread->runningOn()->getId() ];
 
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);

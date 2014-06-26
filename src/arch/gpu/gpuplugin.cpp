@@ -64,11 +64,11 @@ class GPUPlugin : public ArchPlugin
 
             ext::SMPProcessor *core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnodeAndReserve(node);
             if ( core == NULL ) {
-               warning0("Unable to get a cpu on numa node " << node << " to run the CPU thread.");
                core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
                if ( core == NULL ) {
                   fatal0("Unable to get a core to run the GPU thread.");
                }
+               warning0("Unable to get a cpu on numa node " << node << " to run the CPU thread. Will run on numa node "<< core->getNumaNode());
             }
             
             //bool reserved;
