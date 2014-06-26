@@ -298,7 +298,7 @@ class SMPPlugin : public SMPBasePlugin
 #endif /* NANOS_DEBUG_ENABLED */
 
       // FIXME (855): do this before thread creation, after PE creation
-      //completeNUMAInfo();
+      completeNUMAInfo();
 
       /* reserve it for main thread */
       getFirstSMPProcessor()->reserve();
