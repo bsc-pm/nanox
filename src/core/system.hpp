@@ -563,5 +563,13 @@ inline memory_space_id_t System::getMemorySpaceIdOfClusterNode( unsigned int nod
    return id;
 }
 
+int System::getUserDefinedNUMANode() const {
+   return _userDefinedNUMANode;
+}
+
+void System::setUserDefinedNUMANode( int nodeId ) {
+   _userDefinedNUMANode = nodeId;
+}
+
 #endif
 

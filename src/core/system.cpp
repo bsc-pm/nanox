@@ -90,6 +90,7 @@ System::System () :
       , _createLocalTasks( false )
       , _verboseDevOps( false )
       , _splitOutputForThreads( false )
+      , _userDefinedNUMANode( -1 )
       , _hwloc()
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -815,7 +816,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( slicer ) wd->setSlicer(slicer);
 
    // Set WD's socket
-   wd->setSocket( myThread->runningOn()->getSocket() );
+   wd->setSocket( sys.getUserDefinedNUMANode() );
    
    // Set total size
    wd->setTotalSize(total_size );

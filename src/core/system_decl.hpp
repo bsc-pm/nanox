@@ -235,6 +235,7 @@ namespace nanos
          bool                      _createLocalTasks;
          bool _verboseDevOps;
          bool _splitOutputForThreads;
+         int _userDefinedNUMANode;
       public:
          Hwloc _hwloc;
 
@@ -613,6 +614,8 @@ namespace nanos
          unsigned int getNumNumaNodes() const;
          std::set<unsigned int> const &getClusterNodeSet() const;
          memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;
+         int getUserDefinedNUMANode() const;
+         void setUserDefinedNUMANode( int nodeId );
    };
 
    extern System sys;

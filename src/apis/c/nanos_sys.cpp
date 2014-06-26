@@ -86,7 +86,7 @@ NANOS_API_DEF(nanos_err_t, nanos_finish, ())
 NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
 {
    try {
-      sys.getSMPPlugin()->setCurrentSocket( socket );
+      sys.setUserDefinedNUMANode( socket );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
