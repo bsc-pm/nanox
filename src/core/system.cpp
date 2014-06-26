@@ -816,12 +816,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( slicer ) wd->setSlicer(slicer);
 
    // Set WD's socket
-   wd->setSocket( sys.getUserDefinedNUMANode() );
+   wd->setNUMANode( sys.getUserDefinedNUMANode() );
    
    // Set total size
    wd->setTotalSize(total_size );
    
-   if ( (int)myThread->runningOn()->getSocket() >= _smpPlugin->getNumSockets() )
+   if ( wd->getNUMANode() >= (int)sys.getNumNumaNodes() )
       throw NANOS_INVALID_PARAM;
 
    // All the implementations for a given task will have the same ID
