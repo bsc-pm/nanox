@@ -90,6 +90,8 @@ System::System () :
       , _createLocalTasks( false )
       , _verboseDevOps( false )
       , _splitOutputForThreads( false )
+      , _userDefinedNUMANode( -1 )
+      , _hwloc()
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -550,8 +552,8 @@ void System::finish ()
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
-   for ( unsigned p = 0; p < _pes.size() ; p++ ) {
-      _pes[p]->stopAllThreads();
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      it->second->stopAllThreads();
    }
    verbose ( "...thread has been joined" );
 
@@ -632,8 +634,10 @@ void System::finish ()
    delete team;
 
    //! \note deleting processing elements (but main pe)
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      if ( it->first != (unsigned int)myThread->runningOn()->getId() ) {
+         delete it->second;
+      }
    }
    
    //! \note unload modules
@@ -643,7 +647,7 @@ void System::finish ()
    delete _dependenciesManager;
 
    //! \note deleting last processing element
-   delete _pes[0];
+   delete _pes[ myThread->runningOn()->getId() ];
 
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
@@ -812,12 +816,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( slicer ) wd->setSlicer(slicer);
 
    // Set WD's socket
-   wd->setSocket( _smpPlugin->getCurrentSocket() );
+   wd->setNUMANode( sys.getUserDefinedNUMANode() );
    
    // Set total size
    wd->setTotalSize(total_size );
    
-   if ( _smpPlugin->getCurrentSocket() >= _smpPlugin->getNumSockets() )
+   if ( wd->getNUMANode() >= (int)sys.getNumNumaNodes() )
       throw NANOS_INVALID_PARAM;
 
    // All the implementations for a given task will have the same ID

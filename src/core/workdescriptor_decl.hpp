@@ -245,7 +245,7 @@ namespace nanos
          PriorityType                  _priority;               //!< Task priority
          CommutativeOwnerMap          *_commutativeOwnerMap;    //!< Map from commutative target address to owner pointer
          WorkDescriptorPtrList        *_commutativeOwners;      //!< Array of commutative target owners
-         int                           _socket;                 //!< FIXME:scheduler data. The socket this WD was assigned to
+         int                           _numaNode;               //!< FIXME:scheduler data. The NUMA node this WD was assigned to
          unsigned int                  _wakeUpQueue;            //!< FIXME:scheduler data. Queue to wake up to
          bool                          _copiesNotInChunk;       //!< States whether the buffer of the copies is allocated in the chunk of the WD
          char                         *_description;            //!< WorkDescriptor description, usually user function name
@@ -450,17 +450,17 @@ namespace nanos
 
          nanos_translate_args_t getTranslateArgs() const;
 
-         /*! \brief Returns the socket that this WD was assigned to.
+         /*! \brief Returns the NUMA node that this WD was assigned to.
           * 
-          * \see setSocket
+          * \see NUMANodet
           */
-         int getSocket() const;
+         int getNUMANode() const;
 
-         /*! \brief Changes the socket this WD is assigned to.
+         /*! \brief Changes the NUMA node this WD is assigned to.
           *
-          * \see getSocket
+          * \see getNUMANode
           */
-         void setSocket( int socket );
+         void setNUMANode( int node );
          
          /*! \brief Returns the queue this WD should wake up in.
           *  This will be used by the socket-aware schedule policy.

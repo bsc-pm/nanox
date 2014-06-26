@@ -82,7 +82,6 @@ namespace nanos
          virtual unsigned int getMaxPEs() const;
          virtual unsigned int getNumWorkers() const;
          virtual unsigned int getMaxWorkers() const;
-         virtual bool isHwlocAvailable () const;
    };
 }
 

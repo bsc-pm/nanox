@@ -29,11 +29,6 @@
 #include <sstream>
 #include <vector>
 
-#ifdef HWLOC
-#include <hwloc.h>
-#include <hwloc/cudart.h>
-#endif
-
 namespace nanos {
 namespace ext {
 
@@ -65,60 +60,15 @@ class GPUPlugin : public ArchPlugin
             ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
             gpuMemory.setSpecificData( gpuMemSpace );
 
-            int node = -1;
-            // Is NUMA info is available
-            //bool numa = true;
-            if ( sys.getSMPPlugin()->isHwlocAvailable() )
-            {
-#ifdef HWLOC
-               hwloc_topology_t topology = ( hwloc_topology_t ) sys.getSMPPlugin()->getHwlocTopology();
-               
-               hwloc_obj_t obj = hwloc_cudart_get_device_pcidev ( topology, i );
-               if ( obj != NULL ) {
-                  hwloc_obj_t objNode = hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, obj );
-                  if ( objNode != NULL ){
-                     node = objNode->os_index;
-                  }
-               }
-#endif
-            }
-            else
-            {
-               // Warning: Linux specific:
-#if CUDA_VERSION < 4010
-               // This depends on the cuda driver, we are currently NOT linking against it.
-               //int domainId, busId, deviceId;
-               //cuDeviceGetAttribute( &domainId, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, device);
-               //cuDeviceGetAttribute( &busId, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID, device);
-               //cuDeviceGetAttribute( &deviceId, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, device);
-               //std::stringstream ssDevice;
-               //ssDevice << std::hex << std::setfill( '0' ) << std::setw( 4 ) << domainId << ":" << std::setw( 2 ) << busId << ":" << std::setw( 2 ) << deviceId << ".0";
-               //strcpy( pciDevice, ssDevice.str().c_str() );
-#else
-               char pciDevice[20]; // 13 min
-
-               cudaDeviceGetPCIBusId( pciDevice, 20, i );
-
-               // This is common code for cuda 4.0 and 4.1
-               std::stringstream ss;
-               ss << "/sys/bus/pci/devices/" << pciDevice << "/numa_node";
-               std::ifstream fNode( ss.str().c_str() );
-               if ( fNode.good() )
-                  fNode >> node;
-               fNode.close();
-#endif
-
-            }
-            // Fallback / safety measure
-            if ( node < 0 || sys.getSMPPlugin()->getNumSockets() == 1 ) {
-               node = 0;
-               // As we don't have NUMA info, don't request an specific node
-               //numa = false;
-            }
+            int node = getNumaNodeOfGPU( gpuC );
 
             ext::SMPProcessor *core = sys.getSMPPlugin()->getFreeSMPProcessorByNUMAnodeAndReserve(node);
             if ( core == NULL ) {
-               fatal0("Unable to get a core to run the GPU thread.");
+               core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
+               if ( core == NULL ) {
+                  fatal0("Unable to get a core to run the GPU thread.");
+               }
+               warning0("Unable to get a cpu on numa node " << node << " to run the CPU thread. Will run on numa node "<< core->getNumaNode());
             }
             
             //bool reserved;
@@ -144,6 +94,50 @@ class GPUPlugin : public ArchPlugin
       virtual unsigned getNumThreads() const
       {
             return GPUConfig::getGPUCount();
+      }
+
+      int getNumaNodeOfGPU( int gpuId ) {
+         // Is NUMA info is available
+         int node = -1;
+         bool numa = true;
+         if ( sys._hwloc.isHwlocAvailable() )
+         {
+            node = sys._hwloc.getNumaNodeOfGpu( gpuId );
+         }
+         else
+         {
+            // Warning: Linux specific:
+#if defined( CUDA_VERSION ) && (CUDA_VERSION < 4010 )
+            // This depends on the cuda driver, we are currently NOT linking against it.
+            //int domainId, busId, deviceId;
+            //cuDeviceGetAttribute( &domainId, CU_DEVICE_ATTRIBUTE_PCI_DOMAIN_ID, device);
+            //cuDeviceGetAttribute( &busId, CU_DEVICE_ATTRIBUTE_PCI_BUS_ID, device);
+            //cuDeviceGetAttribute( &deviceId, CU_DEVICE_ATTRIBUTE_PCI_DEVICE_ID, device);
+            //std::stringstream ssDevice;
+            //ssDevice << std::hex << std::setfill( '0' ) << std::setw( 4 ) << domainId << ":" << std::setw( 2 ) << busId << ":" << std::setw( 2 ) << deviceId << ".0";
+            //strcpy( pciDevice, ssDevice.str().c_str() );
+#elif defined( CUDART_VERSION ) && ( CUDART_VERSION >= 4010 )
+            char pciDevice[20]; // 13 min
+
+            cudaDeviceGetPCIBusId( pciDevice, 20, gpuId );
+
+            // This is common code for cuda 4.0 and 4.1
+            std::stringstream ss;
+            ss << "/sys/bus/pci/devices/" << pciDevice << "/numa_node";
+            std::ifstream fNode( ss.str().c_str() );
+            if ( fNode.good() )
+               fNode >> node;
+            fNode.close();
+#endif
+
+         }
+         // Fallback / safety measure
+         if ( node < 0 || sys.getSMPPlugin()->getNumSockets() == 1 ) {
+            node = 0;
+            // As we don't have NUMA info, don't request an specific node
+            numa = false;
+         }
+         return node;
       }
             
 #if 0

@@ -100,13 +100,8 @@ debug_libnanox_sched_affinity_smartpriority_la_CXXFLAGS = $(nanos_debug_cxxflags
 debug_libnanox_sched_affinity_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_sched_affinity_smartpriority_la_SOURCES = $(affinity_smartpriority_sources)
 
-if HWLOC
-debug_libnanox_sched_socket_la_CXXFLAGS = $(nanos_debug_cxxflags) -DHWLOC -I@HWLOC_INC@
-debug_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags) -L@HWLOC_LIB@ -lhwloc
-else
 debug_libnanox_sched_socket_la_CXXFLAGS = $(nanos_debug_cxxflags)
 debug_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags)
-endif
 debug_libnanox_sched_socket_la_SOURCES = $(socket_sources)
 endif
 
@@ -145,13 +140,8 @@ instrumentation_libnanox_sched_affinity_smartpriority_la_CXXFLAGS = $(nanos_inst
 instrumentation_libnanox_sched_affinity_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_sched_affinity_smartpriority_la_SOURCES = $(affinity_smartpriority_sources)
  
-if HWLOC
-instrumentation_libnanox_sched_socket_la_CXXFLAGS = $(nanos_instr_cxxflags) -DHWLOC -I@HWLOC_INC@
-instrumentation_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags) -L@HWLOC_LIB@ -lhwloc
-else
 instrumentation_libnanox_sched_socket_la_CXXFLAGS = $(nanos_instr_cxxflags)
 instrumentation_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags)
-endif
 instrumentation_libnanox_sched_socket_la_SOURCES = $(socket_sources)
 endif
 
@@ -190,13 +180,8 @@ instrumentation_debug_libnanox_sched_affinity_smartpriority_la_CXXFLAGS = $(nano
 instrumentation_debug_libnanox_sched_affinity_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_debug_libnanox_sched_affinity_smartpriority_la_SOURCES = $(affinity_smartpriority_sources)
  
-if HWLOC
-instrumentation_debug_libnanox_sched_socket_la_CXXFLAGS = $(nanos_instrdebug_cxxflags) -DHWLOC -I@HWLOC_INC@
-instrumentation_debug_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags) -L@HWLOC_LIB@ -lhwloc
-else
 instrumentation_debug_libnanox_sched_socket_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 instrumentation_debug_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags)
-endif
 instrumentation_debug_libnanox_sched_socket_la_SOURCES = $(socket_sources)
 endif
 
@@ -235,13 +220,8 @@ performance_libnanox_sched_affinity_smartpriority_la_CXXFLAGS = $(nanos_perfo_cx
 performance_libnanox_sched_affinity_smartpriority_la_LDFLAGS = $(ld_plugin_flags)
 performance_libnanox_sched_affinity_smartpriority_la_SOURCES = $(affinity_smartpriority_sources)
  
-if HWLOC
-performance_libnanox_sched_socket_la_CXXFLAGS = $(nanos_perfo_cxxflags) -DHWLOC -I@HWLOC_INC@
-performance_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags) -L@HWLOC_LIB@ -lhwloc
-else
 performance_libnanox_sched_socket_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 performance_libnanox_sched_socket_la_LDFLAGS = $(ld_plugin_flags)
-endif
 performance_libnanox_sched_socket_la_SOURCES = $(socket_sources)
 endif
 ######################################################################################################

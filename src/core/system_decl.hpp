@@ -40,6 +40,7 @@
 #include "location.hpp"
 #include "addressspace_decl.hpp"
 #include "smpbaseplugin_decl.hpp"
+#include "hwloc_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
 
@@ -50,10 +51,6 @@
 
 #ifdef OpenCL_DEV
 #include "openclprocessor_fwd.hpp"
-#endif
-
-#ifdef CLUSTER_DEV
-//#include "clusternode_fwd.hpp"
 #endif
 
 namespace nanos
@@ -232,15 +229,17 @@ namespace nanos
           */
          void processCpuMask( void );
          
-         void loadHwloc();
-         void unloadHwloc();
-         
          Atomic<int> _atomicSeedWg;
          Atomic<int> _atomicSeedMemorySpace;
          Atomic<unsigned int> _affinityFailureCount;
          bool                      _createLocalTasks;
          bool _verboseDevOps;
          bool _splitOutputForThreads;
+         int _userDefinedNUMANode;
+      public:
+         Hwloc _hwloc;
+
+      private:
          PE * createPE ( std::string pe_type, int pid, int uid );
 
          //* \brief Prints the Environment Summary (resources, plugins, prog. model, etc.) before the execution
@@ -615,6 +614,8 @@ namespace nanos
          unsigned int getNumNumaNodes() const;
          std::set<unsigned int> const &getClusterNodeSet() const;
          memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;
+         int getUserDefinedNUMANode() const;
+         void setUserDefinedNUMANode( int nodeId );
    };
 
    extern System sys;
