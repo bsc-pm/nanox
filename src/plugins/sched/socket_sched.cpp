@@ -343,7 +343,7 @@ namespace nanos {
                computeDistanceInfo();
                
                // Create 2 queues per socket plus one for the global queue.
-               return NEW TeamData( sys.getSMPPlugin()->getNumAvailSockets() );
+               return NEW TeamData( sys.getNumNumaNodes() );
             }
 
             virtual ScheduleThreadData * createThreadData ()
@@ -420,7 +420,7 @@ namespace nanos {
                   warning0( "WD already has a queue (" << wd.getWakeUpQueue() << ")" );
                
                unsigned index;
-               int node;
+               unsigned node;
                
                switch( wd.getDepth() ) {
                   case 0:
@@ -436,7 +436,7 @@ namespace nanos {
                      
                      //index = (tdata._next++ ) % sys.getNumSockets() + 1;
                      // 2 queues per socket, the first one is for level 1 tasks
-                     fatal_cond( node >= sys.getSMPPlugin()->getNumAvailSockets(), "Invalid node selected" );
+                     fatal_cond( node >= sys.getNumNumaNodes(), "Invalid node selected" );
                      //index = (node % sys.getNumSockets())*2 + 1;
                      index = nodeToQueue( node, true );
                      wd.setWakeUpQueue( index );
@@ -458,7 +458,7 @@ namespace nanos {
                      // If this wd cannot run in this node
                      if ( !canRunInNode( wd, node ) ) {
                         node = findBetterNode( wd, node );
-                        fatal_cond( node >= sys.getSMPPlugin()->getNumAvailSockets(), "Invalid node selected" );
+                        fatal_cond( node >= sys.getNumNumaNodes(), "Invalid node selected" );
                         // If index is not even
                         // Means its parent is level 1, small tasks go in even queues
                         index = nodeToQueue( node, index % 2 != 0);
@@ -565,7 +565,7 @@ namespace nanos {
                   }
                   else if ( _randomSteal )
                   {
-                     unsigned random = std::rand() % sys.getSMPPlugin()->getNumAvailSockets();
+                     unsigned random = std::rand() % sys.getNumNumaNodes();
                      //index = random * 2 + offset;
                      index = nodeToQueue( random, _stealParents );
                   }
