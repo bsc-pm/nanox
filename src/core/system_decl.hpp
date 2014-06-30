@@ -607,6 +607,7 @@ namespace nanos
          bool getVerboseDevOps() const;
          bool getSplitOutputForThreads() const;
          RegionCache::CachePolicy getRegionCachePolicy() const;
+         void createDependence( WD* pred, WD* succ);
    };
 
    extern System sys;

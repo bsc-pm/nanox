@@ -539,5 +539,12 @@ inline RegionCache::CachePolicy System::getRegionCachePolicy() const {
    return _regionCachePolicy;
 }
 
+inline void System::createDependence( WD* pred, WD* succ)
+{
+   DOSubmit *pred_do = pred->getDOSubmit(), *succ_do = succ->getDOSubmit();
+   pred_do->addSuccessor(*succ_do);
+   succ_do->increasePredecessors();
+}
+
 #endif
 

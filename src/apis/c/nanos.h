@@ -258,6 +258,7 @@ NANOS_API_DECL(nanos_err_t, nanos_expel_current_thread, (void));
 // dependence
 NANOS_API_DECL(nanos_err_t, nanos_dependence_release_all, ( void ) );
 NANOS_API_DECL(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *addr ));
+NANOS_API_DECL(nanos_err_t, nanos_dependence_create, ( nanos_wd_t pred, nanos_wd_t succ ) );
 
 // worksharing
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
