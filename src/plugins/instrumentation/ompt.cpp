@@ -263,8 +263,9 @@ namespace nanos
          {
             ompt_initialize ( ompt_nanos_lookup, "Nanos++ 0.8a", 1);
 
+            // initialize() cannot reference myThead object
             if (ompt_nanos_event_thread_begin) {
-               ompt_nanos_event_thread_begin( (ompt_thread_type_t) ompt_thread_initial, (ompt_thread_id_t) nanos::myThread->getId());
+               ompt_nanos_event_thread_begin( (ompt_thread_type_t) ompt_thread_initial, (ompt_thread_id_t) 0);
             }
          }
          void finalize( void )
