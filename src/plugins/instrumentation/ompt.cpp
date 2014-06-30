@@ -267,7 +267,13 @@ namespace nanos
                ompt_nanos_event_thread_begin( (ompt_thread_type_t) ompt_thread_initial, (ompt_thread_id_t) nanos::myThread->getId());
             }
          }
-         void finalize( void ) { if ( ompt_nanos_event_shutdown ) ompt_nanos_event_shutdown(); }
+         void finalize( void )
+         {
+            if (ompt_nanos_event_thread_end) {
+               ompt_nanos_event_thread_end((ompt_thread_type_t) ompt_thread_initial, (ompt_thread_id_t) nanos::myThread->getId());
+            }
+            if ( ompt_nanos_event_shutdown ) ompt_nanos_event_shutdown();
+         }
          void disable( void ) {}
          void enable( void ) {}
          void addEventList ( unsigned int count, Event *events )
