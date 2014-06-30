@@ -244,7 +244,7 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 
    return NANOS_OK;
 }
-NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size, size_t align, void (*init)( void *), void (*reducer)( void *, void * ) ) )
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size, size_t align, void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) )
 {
    try {
 #ifndef ON_TASK_REDUCTION

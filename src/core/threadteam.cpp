@@ -74,7 +74,7 @@ void ThreadTeam::cleanUpReductionList( void )
    }
 }
 
-void ThreadTeam::registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *), void (*p_reducer)( void *, void * ) )
+void ThreadTeam::registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *, void *), void (*p_reducer)( void *, void * ) )
 {
    LockBlock Lock( _lockTaskReductions );
 

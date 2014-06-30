@@ -22,7 +22,7 @@
 
 class TaskReduction {
    public: /* data types */
-      typedef void ( *initializer_t ) ( void *obj );
+      typedef void ( *initializer_t ) ( void *omp_priv,  void* omp_orig );
       typedef void ( *reducer_t ) ( void *obj1, void *obj2 );
       typedef std::vector<char> storage_t;
    private: /* data members */
@@ -44,7 +44,7 @@ class TaskReduction {
          _min = & _storage[0];
          _max = & _storage[_size*threads];
          size_t i;
-         for ( i=0; i<threads; i++) _initializer( &_storage[i*_size] );
+         for ( i=0; i<threads; i++) _initializer( &_storage[i*_size], _original );
       }
 
      ~TaskReduction ( )

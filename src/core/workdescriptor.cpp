@@ -304,7 +304,7 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
-void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *), void (*p_reducer)( void *, void * ) )
+void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) )
 {
    //! Check if orig is already registered
    task_reduction_list_t::iterator it;
