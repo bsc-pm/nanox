@@ -21,11 +21,6 @@
 
 include ../common.am
 
-if HWLOC
-hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@
-hwloc_ldflags = -L@HWLOC_LIB@ -Wl,-rpath,@HWLOC_LIB@ -lhwloc
-endif
-
 pkginclude_HEADERS=nanos-int.h nanos_error.h
 
 common_libadd=\

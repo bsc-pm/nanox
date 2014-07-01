@@ -98,10 +98,10 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 //   return _numAvailSockets;
 //}
 //
-//inline int System::getVirtualNUMANode( int physicalNode ) const
-//{
-//   return _numaNodeMap[ physicalNode ];
-//}
+inline int System::getVirtualNUMANode( int physicalNode ) const
+{
+   return _numaNodeMap[ physicalNode ];
+}
 //
 //inline int System::getCurrentSocket() const { return _currentSocket; }
 //inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }

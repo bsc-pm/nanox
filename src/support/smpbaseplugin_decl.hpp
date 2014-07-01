@@ -42,8 +42,6 @@ class SMPBasePlugin : public ArchPlugin {
       virtual int getNumSockets() const = 0;
       virtual int getCurrentSocket() const = 0;
       virtual void setCurrentSocket( int socket ) = 0;
-      virtual int getNumAvailSockets() const = 0;
-      virtual int getVirtualNUMANode( int physicalNode ) const = 0;
       virtual void setNumSockets ( int numSockets ) = 0;
       virtual void setCoresPerSocket ( int coresPerSocket ) = 0;
       virtual int getCoresPerSocket() const = 0;

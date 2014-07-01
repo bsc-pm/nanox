@@ -28,6 +28,16 @@ bool Hwloc::isHwlocAvailable () const
 #endif
 }
 
+void Hwloc::config( Config &cfg )
+{
+#ifdef HWLOC
+   cfg.registerConfigOption( "hwloc-topology", NEW Config::StringVar( _topologyPath ),
+         "Overrides hwloc's topology discovery and uses the one provided by an XML file." );
+   cfg.registerArgOption( "hwloc-topology", "hwloc-topology" );
+   cfg.registerEnvOption( "hwloc-topology", "NX_HWLOC_TOPOLOGY_PATH" );
+#endif
+}
+
 void Hwloc::loadHwloc ()
 {
 #ifdef HWLOC
@@ -35,11 +45,11 @@ void Hwloc::loadHwloc ()
    hwloc_topology_init( &_hwlocTopology );
 
    // If the user provided an alternate topology
-   //if ( !_topologyPath.empty() )
-   //{
-   //   int res = hwloc_topology_set_xml( _hwlocTopology, _topologyPath.c_str() );
-   //   fatal_cond0( res != 0, "Could not load hwloc topology xml file." );
-   //}
+   if ( !_topologyPath.empty() )
+   {
+      int res = hwloc_topology_set_xml( _hwlocTopology, _topologyPath.c_str() );
+      fatal_cond0( res != 0, "Could not load hwloc topology xml file." );
+   }
 
    // Enable GPU detection
    hwloc_topology_set_flags( _hwlocTopology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES );
@@ -63,7 +73,6 @@ unsigned int Hwloc::getNumaNodeOfCpu ( unsigned int cpu )
 {
    int numaNodeId = 0;
 #ifdef HWLOC
-   loadHwloc();
    hwloc_obj_t pu = hwloc_get_pu_obj_by_os_index( _hwlocTopology, cpu );
 
    // Now we have the PU object, go find its parent numa node
@@ -76,7 +85,6 @@ unsigned int Hwloc::getNumaNodeOfCpu ( unsigned int cpu )
       numaNodeId = numaNode->os_index;
    }
 
-   unloadHwloc();
    return numaNodeId;
 #else
    return numaNodeId;
@@ -85,7 +93,6 @@ unsigned int Hwloc::getNumaNodeOfCpu ( unsigned int cpu )
 
 void Hwloc::getNumSockets(unsigned int &allowedNodes, int &numSockets, unsigned int &hwThreads) {
 #ifdef HWLOC
-   loadHwloc();
    numSockets = 0;
    // Nodes that can be seen by hwloc
    allowedNodes = 0;
@@ -118,7 +125,6 @@ void Hwloc::getNumSockets(unsigned int &allowedNodes, int &numSockets, unsigned 
       allowedNodes = 1; 
       numSockets = 1;
    }
-   unloadHwloc();
 #else
    numSockets = 0;
    allowedNodes = 0;
@@ -129,7 +135,6 @@ unsigned int Hwloc::getNumaNodeOfGpu( unsigned int gpu ) {
    unsigned int node = 0;
 #ifdef GPU_DEV
 #ifdef HWLOC
-   loadHwloc();
    hwloc_obj_t obj = hwloc_cudart_get_device_pcidev ( _hwlocTopology, gpu );
    if ( obj != NULL ) {
       hwloc_obj_t objNode = hwloc_get_ancestor_obj_by_type( _hwlocTopology, HWLOC_OBJ_NODE, obj );
@@ -137,7 +142,6 @@ unsigned int Hwloc::getNumaNodeOfGpu( unsigned int gpu ) {
          node = objNode->os_index;
       }
    }
-   unloadHwloc();
 #endif
 #endif
    return node;

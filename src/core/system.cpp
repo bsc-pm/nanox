@@ -366,6 +366,8 @@ void System::config ()
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
+   
+   _hwloc.config( cfg );
 
    verbose0 ( "Reading Configuration" );
 
@@ -374,6 +376,8 @@ void System::config ()
 
 void System::start ()
 {
+   _hwloc.loadHwloc();
+   
    // Modules can be loaded now
    loadModules();
 
@@ -419,12 +423,41 @@ void System::start ()
       (*it)->addPEs( _pes );
    }
 
+   
+   
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       _clusterNodes.insert( it->second->getClusterNode() );
       if ( it->second->isInNumaNode() ) {
-         _numaNodes.insert( it->second->getNumaNode() );
+         // Add the node of this PE to the set of used NUMA nodes
+         unsigned node = it->second->getNumaNode() ;
+         _numaNodes.insert( node );
       }
    }
+   
+   // gmiranda: was completeNUMAInfo() We must do this after the
+   // previous loop since we need the size of _numaNodes
+   
+   unsigned availNUMANodes = 0;
+   // Create the NUMA node translation table. Do this before creating the team,
+   // as the schedulers might need the information.
+   _numaNodeMap.resize( _numaNodes.size(), INT_MIN );
+   
+   for ( std::set<unsigned int>::const_iterator it = _numaNodes.begin();
+        it != _numaNodes.end(); ++it )
+   {
+      unsigned node = *it;
+      // If that node has not been translated, yet
+      if ( _numaNodeMap[ node ] == INT_MIN )
+      {
+         verbose0( "[NUMA] Mapping from physical node " << node << " to user node " << availNUMANodes );
+         _numaNodeMap[ node ] = availNUMANodes;
+         // Increase the number of available NUMA nodes
+         ++availNUMANodes;
+      }
+      // Otherwise, do nothing
+   }
+   ensure0( _numaNodeMap.size() == _numaNodes.size(), "Virtual NUMA node translation table and node set do not match" );
+   verbose0( "[NUMA] " << availNUMANodes << " NUMA node(s) available for the user." );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )

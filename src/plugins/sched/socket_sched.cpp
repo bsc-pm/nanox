@@ -217,7 +217,7 @@ namespace nanos {
                   {
                      int node = worker->runningOn()->getNumaNode();
                      // Convert to virtual
-                     int vNode = sys.getSMPPlugin()->getVirtualNUMANode( node );
+                     int vNode = sys.getVirtualNUMANode( node );
                      _gpuNodes.insert( vNode );
                      verbose0( "Found GPU Worker in node " << node << " (virtual " << vNode << ")" );
                   }
@@ -499,7 +499,7 @@ namespace nanos {
                // Get the physical node of this thread
                unsigned node = thread->runningOn()->getNumaNode();
                // Convert to virtual
-               unsigned vNode = sys.getSMPPlugin()->getVirtualNUMANode( node );
+               unsigned vNode = sys.getVirtualNUMANode( node );
                
                //fprintf( stderr, "atIdle socket %d\n", socket );
                
@@ -573,7 +573,7 @@ namespace nanos {
                   else {
                      // getStealNext returns a physical node, we must convert it
                      int close = _nearSockets[node].getStealNext();
-                     int vClose = sys.getSMPPlugin()->getVirtualNUMANode( close );
+                     int vClose = sys.getVirtualNUMANode( close );
                      
                      // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
                      index = nodeToQueue( vClose, _stealParents );

@@ -182,6 +182,8 @@ namespace nanos
 
          std::set<unsigned int>                        _clusterNodes;
          std::set<unsigned int>                        _numaNodes;
+         //! Maps from a physical NUMA node to a user-selectable node
+         std::vector<int>                              _numaNodeMap;
          
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
@@ -612,6 +614,7 @@ namespace nanos
 
          unsigned int getNumClusterNodes() const;
          unsigned int getNumNumaNodes() const;
+         int getVirtualNUMANode( int physicalNode ) const;
          std::set<unsigned int> const &getClusterNodeSet() const;
          memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;
          int getUserDefinedNUMANode() const;

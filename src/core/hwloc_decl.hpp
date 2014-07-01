@@ -1,5 +1,8 @@
 #ifndef HWLOC_DECL
 #define HWLOC_DECL
+
+
+#include <config.hpp>
 #include <string>
 
 #ifdef HWLOC
@@ -18,15 +21,17 @@ class Hwloc {
 
    public:
 
-   Hwloc();
-   ~Hwloc();
-   bool isHwlocAvailable() const;
-
-   void loadHwloc();
-   void unloadHwloc();
-   unsigned int getNumaNodeOfCpu( unsigned int cpu );
-   unsigned int getNumaNodeOfGpu( unsigned int gpu );
-   void getNumSockets(unsigned int &allowedNodes, int &numSockets, unsigned int &hwThreads);
+      Hwloc();
+      ~Hwloc();
+      
+      void config( Config & cfg );
+      bool isHwlocAvailable() const;
+   
+      void loadHwloc();
+      void unloadHwloc();
+      unsigned int getNumaNodeOfCpu( unsigned int cpu );
+      unsigned int getNumaNodeOfGpu( unsigned int gpu );
+      void getNumSockets(unsigned int &allowedNodes, int &numSockets, unsigned int &hwThreads);
 
 };
 

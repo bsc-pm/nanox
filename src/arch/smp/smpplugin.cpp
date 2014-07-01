@@ -72,18 +72,12 @@ class SMPPlugin : public SMPBasePlugin
    //! Physical NUMA nodes
    int                          _numSockets;
    int                          _coresPerSocket;
-   //! Available NUMA nodes given by the CPU set
-   int                          _numAvailSockets;
    //! The socket that will be assigned to the next WD
    int                          _currentSocket;
 
 
    //! CPU id binding list
    Bindings                     _bindings;
-
-
-   //! Maps from a physical NUMA node to a user-selectable node
-   std::vector<int>             _numaNodeMap;
 
    public:
    SMPPlugin() : SMPBasePlugin( "SMP PE Plugin", 1 )
@@ -109,9 +103,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _cpuActiveSet()
                  , _numSockets( 0 )
                  , _coresPerSocket( 0 )
-                 , _numAvailSockets( 0 ) 
                  , _bindings()
-                 , _numaNodeMap()
    {}
 
    virtual unsigned int getNewSMPThreadId() {
@@ -138,11 +130,6 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ),
             "Number of sockets available." );
       cfg.registerArgOption( "num-sockets", "num-sockets" );
-
-      //cfg.registerConfigOption( "hwloc-topology", NEW Config::StringVar( _topologyPath ),
-      //      "Overrides hwloc's topology discovery and uses the one provided by an XML file." );
-      //cfg.registerArgOption( "hwloc-topology", "hwloc-topology" );
-      //cfg.registerEnvOption( "hwloc-topology", "NX_HWLOC_TOPOLOGY_PATH" );
 
 
       cfg.registerConfigOption( "binding-start", NEW Config::IntegerVar ( _bindingStart ),
@@ -296,9 +283,6 @@ class SMPPlugin : public SMPBasePlugin
          std::cerr << "]" << std::endl;
       }
 #endif /* NANOS_DEBUG_ENABLED */
-
-      // FIXME (855): do this before thread creation, after PE creation
-      completeNUMAInfo();
 
       /* reserve it for main thread */
       getFirstSMPProcessor()->reserve();
@@ -541,33 +525,6 @@ class SMPPlugin : public SMPBasePlugin
       verbose0( toString( "[NUMA] " ) + toString( _numSockets ) + toString( " NUMA nodes, " ) + toString( _coresPerSocket ) + toString( " HW threads each." ) );
    }
 
-   void completeNUMAInfo()
-   {
-      // Create the NUMA node translation table. Do this before creating the team,
-      // as the schedulers might need the information.
-      _numaNodeMap.resize( _numSockets, INT_MIN );
-
-      /* As all PEs are already created by this time, count how many physical
-       * NUMA nodes are available, and map from a physical id to a virtual ID
-       * that can be selected by the user via nanos_current_socket() */
-      for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); ++it )
-      {
-         int node = (*it)->getNumaNode();
-         // If that node has not been translated, yet
-         if ( _numaNodeMap[ node ] == INT_MIN )
-         {
-            verbose0( "Mapping from physical node " << node << " to user node " << _numAvailSockets );
-            _numaNodeMap[ node ] = _numAvailSockets;
-            // Increase the number of available sockets
-            ++_numAvailSockets;
-         }
-         // Otherwise, do nothing
-      }
-
-      verbose0( _numAvailSockets << " NUMA node(s) available for the user." );
-
-   }
-
    unsigned getNodeOfPE ( unsigned pe )
    {
       if ( sys._hwloc.isHwlocAvailable() ) {
@@ -597,16 +554,6 @@ class SMPPlugin : public SMPBasePlugin
    virtual int getNumSockets() const { return _numSockets; }
 
    virtual void setNumSockets ( int numSockets ) { _numSockets = numSockets; }
-
-   virtual int getNumAvailSockets() const
-   {
-      return _numAvailSockets;
-   }
-
-   virtual int getVirtualNUMANode( int physicalNode ) const
-   {
-      return _numaNodeMap[ physicalNode ];
-   }
 
    virtual int getCurrentSocket() const { return _currentSocket; }
    virtual void setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
