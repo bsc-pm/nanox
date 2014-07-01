@@ -25,6 +25,7 @@
 #include "osallocator_decl.hpp"
 #include "system.hpp"
 #include "printbt_decl.hpp"
+#include <limits>
 
 //#include <numa.h>
 
@@ -257,15 +258,19 @@ class SMPPlugin : public SMPBasePlugin
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
+         bool active = ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) );
+         unsigned numaNode = active ? getNodeOfPE( *it ) : std::numeric_limits<unsigned>::max();
+         unsigned socket = numaNode;   /* FIXME: socket */
+         
          if ( _smpPrivateMemory && count >= _smpHostCpus ) {
             OSAllocator a;
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
             numaMem.setNodeNumber( 0 );
-            cpu = NEW SMPProcessor( *it, id, ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ), getNodeOfPE( *it ), getNodeOfPE(*it )  /* FIXME: socket */ );
+            cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
-            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ), getNodeOfPE( *it ), getNodeOfPE( *it ) /* FIXME: socket */ );
+            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), active, numaNode, socket );
          }
          CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
          //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
@@ -535,6 +540,7 @@ class SMPPlugin : public SMPBasePlugin
          //return pe / getCoresPerSocket();
 
          // Otherwise, return
+         // FIXME: return NUMA nodes -1
          return getNumSockets() - 1;
       }
    }
