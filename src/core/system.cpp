@@ -1397,7 +1397,7 @@ void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t 
             cd.setDimensions( &dim );
             cd.setNumDimensions( 1 );
             global_reg_t reg;
-            getHostMemory().getRegionId( cd, reg );
+            getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
             reg.setOwnedMemory(loc);
            //not really needed.., *it->registerOwnedMemory( reg );
          }
@@ -1417,7 +1417,7 @@ void System::stickToProducer(void *addr, std::size_t len) {
       cd.setDimensions( &dim );
       cd.setNumDimensions( 1 );
       global_reg_t reg;
-      getHostMemory().getRegionId( cd, reg );
+      getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
       reg.key->setKeepAtOrigin( true );
    }
 }

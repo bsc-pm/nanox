@@ -797,7 +797,7 @@ void GetRequestStrided::clear() {
 
 void Network::notifyRegionMetaData( CopyData *cd ) {
    global_reg_t reg;
-   sys.getHostMemory().getRegionId( *cd, reg );
+   sys.getHostMemory().getRegionId( *cd, reg, *((WD *)0), 0 );
 }
 
 void Network::addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize ) {

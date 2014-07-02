@@ -17,7 +17,7 @@ MemCacheCopy::MemCacheCopy() :
 }
 
 MemCacheCopy::MemCacheCopy( WD const &wd, unsigned int index/*, MemController &ccontrol*/ ) {
-   sys.getHostMemory().getRegionId( wd.getCopies()[ index ], _reg );
+   sys.getHostMemory().getRegionId( wd.getCopies()[ index ], _reg, wd, index );
 }
 
 void MemCacheCopy::getVersionInfo() {

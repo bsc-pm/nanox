@@ -115,16 +115,16 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
    return it->second;
 }
 
-reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
-   reg_t reg = 0;
-   if ( dict->tryLock() ) {
-   //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
-    reg = _getLocation( dict, cd, missingParts, version, wd );
-   //NANOS_INSTRUMENT( inst1.close(); );
-      dict->unlock();
-   }
-   return reg;
-}
+// reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
+//    reg_t reg = 0;
+//    if ( dict->tryLock() ) {
+//    //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
+//     reg = _getLocation( dict, cd, missingParts, version, wd );
+//    //NANOS_INSTRUMENT( inst1.close(); );
+//       dict->unlock();
+//    }
+//    return reg;
+// }
 
 void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
    NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( reg );
@@ -148,58 +148,58 @@ void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, 
    }
 }
 
-reg_t NewNewRegionDirectory::_getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
-{
-   reg_t reg = 0;
-   ensure( missingParts.empty(), "Non empty list provided." );
-   missingParts.clear();
-   //sys.getMasterRegionDirectory().print();
-
-   reg = dict->registerRegion( cd, missingParts, version );
-
-   for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
-      if ( it->first != it->second ) {
-         NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
-         NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
-         if ( firstEntry == NULL ) {
-            if ( secondEntry != NULL ) {
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
-               firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
-      //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, !null"<<std::endl;
-          } else {
-      //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, null"<<std::endl;
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"(null)"<<std::endl;
-               firstEntry = NEW NewNewDirectoryEntryData();
-               firstEntry->addAccess( 0, 1 );
-               secondEntry = NEW NewNewDirectoryEntryData();
-               secondEntry->addAccess( 0, 1 );
-               dict->setRegionData( it->second, secondEntry );
-            }
-            dict->setRegionData( it->first, firstEntry );
-         } else {
-            if ( secondEntry != NULL ) {
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"("<<*firstEntry<<"),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
-      //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, !null, !null"<<std::endl;
-
-               *firstEntry = *secondEntry;
-            } else {
-               std::cerr << "Dunno what to do..."<<std::endl;
-            }
-         }
-      } else {
-      //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, same id"<<std::endl;
-         NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"( " << (void*) entry << " ),"<< it->second <<"( )"<<std::endl;
-         if ( entry == NULL ) {
-            entry = NEW NewNewDirectoryEntryData();
-            entry->addAccess( 0, 1 );
-            dict->setRegionData( it->first, entry );
-         }
-      }
-   }
-
-   return reg;
-}
+// reg_t NewNewRegionDirectory::_getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
+// {
+//    reg_t reg = 0;
+//    ensure( missingParts.empty(), "Non empty list provided." );
+//    missingParts.clear();
+//    //sys.getMasterRegionDirectory().print();
+// 
+//    reg = dict->registerRegion( cd, missingParts, version );
+// 
+//    for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
+//       if ( it->first != it->second ) {
+//          NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
+//          NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
+//          if ( firstEntry == NULL ) {
+//             if ( secondEntry != NULL ) {
+//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
+//                firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
+//       //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, !null"<<std::endl;
+//           } else {
+//       //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, null"<<std::endl;
+//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"(null)"<<std::endl;
+//                firstEntry = NEW NewNewDirectoryEntryData();
+//                firstEntry->addAccess( 0, 1 );
+//                secondEntry = NEW NewNewDirectoryEntryData();
+//                secondEntry->addAccess( 0, 1 );
+//                dict->setRegionData( it->second, secondEntry );
+//             }
+//             dict->setRegionData( it->first, firstEntry );
+//          } else {
+//             if ( secondEntry != NULL ) {
+//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"("<<*firstEntry<<"),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
+//       //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, !null, !null"<<std::endl;
+// 
+//                *firstEntry = *secondEntry;
+//             } else {
+//                std::cerr << "Dunno what to do..."<<std::endl;
+//             }
+//          }
+//       } else {
+//       //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, same id"<<std::endl;
+//          NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
+//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"( " << (void*) entry << " ),"<< it->second <<"( )"<<std::endl;
+//          if ( entry == NULL ) {
+//             entry = NEW NewNewDirectoryEntryData();
+//             entry->addAccess( 0, 1 );
+//             dict->setRegionData( it->first, entry );
+//          }
+//       }
+//    }
+// 
+//    return reg;
+// }
 
 void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
 {

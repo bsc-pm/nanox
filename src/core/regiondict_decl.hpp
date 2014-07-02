@@ -11,6 +11,7 @@
 #include "memorymap_decl.hpp"
 #include "atomic_decl.hpp"
 #include "version_decl.hpp"
+#include "workdescriptor_fwd.hpp"
 
 #define MAX_REG_ID (1024*1024)
 
@@ -146,10 +147,10 @@ typedef unsigned int reg_t;
 
       RegionDictionary( CopyData const &cd );
       RegionDictionary( GlobalRegionDictionary &dict );
-      reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version );
+      //reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, WD const &wd, unsigned int idx );
       reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
-      reg_t obtainRegionId( CopyData const &cd );
+      reg_t obtainRegionId( CopyData const &cd, WorkDescriptor const &wd, unsigned int idx );
       reg_t obtainRegionId( nanos_region_dimension_internal_t region[] );
       reg_t tryObtainRegionId( CopyData const &cd );
       void addLeaf( RegionNode *leaf );
