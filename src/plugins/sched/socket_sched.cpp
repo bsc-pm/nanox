@@ -429,19 +429,29 @@ namespace nanos {
                      tdata._readyQueues[0].push_back ( &wd );
                      break;
                   case 1:
-                     node = wd.getNUMANode();
-                     // If the node cannot execute this WD
-                     if ( !canRunInNode( wd, node ) )
-                        node = findBetterNode( wd, node );
+                     // If a node was not selected
+                     if ( wd.getNUMANode() == -1 )
+                        // Go to the general queue
+                        index = 0;
+                     // Otherwise, do the usual stuff.
+                     else
+                     {
+                        node = wd.getNUMANode();
+                        // If the node cannot execute this WD
+                        if ( !canRunInNode( wd, node ) ){
+                           node = findBetterNode( wd, node );
+                           //fprintf( stderr, "Had to find a better node: %d\n", node );
+                        }
+                        
+                        //index = (tdata._next++ ) % sys.getNumSockets() + 1;
+                        // 2 queues per socket, the first one is for level 1 tasks
+                        fatal_cond( node >= sys.getNumNumaNodes(), "Invalid node selected" );
+                        //index = (node % sys.getNumSockets())*2 + 1;
+                        index = nodeToQueue( node, true );
+                        wd.setWakeUpQueue( index );
+                     }
                      
-                     //index = (tdata._next++ ) % sys.getNumSockets() + 1;
-                     // 2 queues per socket, the first one is for level 1 tasks
-                     fatal_cond( node >= sys.getNumNumaNodes(), "Invalid node selected" );
-                     //index = (node % sys.getNumSockets())*2 + 1;
-                     index = nodeToQueue( node, true );
-                     wd.setWakeUpQueue( index );
-                     
-                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.runningOn()->getNumaNode() );
+                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.getNUMANode() );
                      
                      // Insert at the front (these will have higher priority)
                      tdata._readyQueues[index].push_back ( &wd );
@@ -451,7 +461,7 @@ namespace nanos {
                      //fprintf( stderr, "Next = %d\n", tdata._next.value() );
                      break;
                   default:
-                     // Insert this in its parent's socket
+                     // Insert this in its parent's node
                      index = wd.getParent()->getWakeUpQueue();
                      
                      node = queueToNode( index );
