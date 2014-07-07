@@ -32,6 +32,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
    , _pes()
    , _rooted( false )
    , _setLock() 
+   , _firstWriterPE( NULL )
 {
    _location.insert(0);  
 }
@@ -43,6 +44,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectory
    , _pes( de._pes )
    , _rooted( de._rooted )
    , _setLock()
+   , _firstWriterPE( de._firstWriterPE )
 {
 }
 
@@ -59,6 +61,7 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
    _location.insert( de._location.begin(), de._location.end() );
    _pes.insert( de._pes.begin(), de._pes.end() );
    _rooted = de._rooted;
+   _firstWriterPE = de._firstWriterPE;
    de._setLock.release();
    _setLock.release();
    return *this;

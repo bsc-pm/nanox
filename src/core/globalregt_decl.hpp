@@ -48,6 +48,7 @@ struct global_reg_t {
    bool isRooted() const;
    void setOwnedMemory( memory_space_id_t loc ) const;
    unsigned int getNumLocations() const;
+   ProcessingElement *getFirstWriterPE() const;
 private:
    uint64_t getFirstAddress(uint64_t baseAddress) const;
 };

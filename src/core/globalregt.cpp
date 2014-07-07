@@ -226,3 +226,9 @@ unsigned int global_reg_t::getNumLocations() const {
    ensure(entry != NULL, "invalid entry.");
    return entry->getLocations().size();
 }
+
+ProcessingElement *global_reg_t::getFirstWriterPE() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   return entry->getFirstWriterPE();
+}
