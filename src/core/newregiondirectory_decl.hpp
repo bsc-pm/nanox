@@ -133,8 +133,8 @@ namespace nanos
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc );
-         static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );
-         static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
+         //static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );
+         //static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
          static unsigned int getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion );
          static void addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version );
          static void addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version );
