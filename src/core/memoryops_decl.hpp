@@ -17,14 +17,15 @@ class BaseOps {
       bool operator<( OwnOp const &op ) const {
          return ( ( uintptr_t ) _ops ) < ( ( uintptr_t ) op._ops );
       }
-      void commitMetadata() const;
+      void commitMetadata( ProcessingElement *pe ) const;
    };
    private:
-   bool                    _delayedCommit;
-   bool                    _dataReady;
-   std::set< OwnOp >       _ownDeviceOps;
-   std::set< DeviceOps * > _otherDeviceOps;
-   std::size_t             _amountOfTransferredData;
+   bool                     _delayedCommit;
+   bool                     _dataReady;
+   ProcessingElement       *_pe;
+   std::set< OwnOp >        _ownDeviceOps;
+   std::set< DeviceOps * >  _otherDeviceOps;
+   std::size_t              _amountOfTransferredData;
 
    BaseOps( BaseOps const &op );
    BaseOps &operator=( BaseOps const &op );
@@ -32,8 +33,9 @@ class BaseOps {
    std::set< AllocatedChunk * > _lockedChunks;
 
    public:
-   BaseOps( bool delayedCommit );
+   BaseOps( ProcessingElement *pe, bool delayedCommit );
    ~BaseOps();
+   ProcessingElement *getPE() const;
    std::set< DeviceOps * > &getOtherOps();
    std::set< OwnOp > &getOwnOps();
    void insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location );
@@ -49,7 +51,7 @@ class BaseAddressSpaceInOps : public BaseOps {
    MapType _separateTransfers;
 
    public:
-   BaseAddressSpaceInOps( bool delayedCommit );
+   BaseAddressSpaceInOps( ProcessingElement *pe, bool delayedCommit );
    virtual ~BaseAddressSpaceInOps();
 
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
@@ -72,7 +74,7 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    TransferList _hostTransfers;
 
    public:
-   SeparateAddressSpaceInOps( bool delayedCommit, SeparateMemoryAddressSpace &destination );
+   SeparateAddressSpaceInOps( ProcessingElement *pe, bool delayedCommit, SeparateMemoryAddressSpace &destination );
    ~SeparateAddressSpaceInOps();
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
@@ -90,7 +92,7 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    MapType _transfers;
 
    public:
-   SeparateAddressSpaceOutOps( bool delayedCommit, bool isInval );
+   SeparateAddressSpaceOutOps( ProcessingElement *pe, bool delayedCommit, bool isInval );
    ~SeparateAddressSpaceOutOps();
 
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );

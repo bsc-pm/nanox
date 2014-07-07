@@ -139,8 +139,8 @@ void SeparateAddressSpace::copyOutputData( SeparateAddressSpaceOutOps &ops, glob
    _cache.copyOutputData( ops, reg, version, output, policy, chunk, wd, copyIdx );
 }
 
-void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   _cache.allocateOutputMemory( reg, version, wd, copyIdx );
+void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   _cache.allocateOutputMemory( reg, pe, version, wd, copyIdx );
 }
 
 RegionCache &SeparateAddressSpace::getCache() {

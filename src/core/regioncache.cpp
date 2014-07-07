@@ -825,7 +825,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
 AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD const &wd, unsigned int copyIdx ) {
    AllocatedChunk *allocChunkPtr = NULL;
    AllocatedChunk **allocChunkPtrPtr = NULL;
-   SeparateAddressSpaceOutOps inval_ops( true, true );
+   SeparateAddressSpaceOutOps inval_ops( myThread->runningOn(), true, true );
    std::set< global_reg_t > regions_to_remove_access;
    std::set< NewNewRegionDirectory::RegionDirectoryKey > locked_objects;
 
@@ -1449,12 +1449,12 @@ void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const 
    _lock.release();
 }
 
-void RegionCache::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+void RegionCache::allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx ) {
    _lock.acquire();
    AllocatedChunk *chunk = getAllocatedChunk( reg, wd, copyIdx );
    chunk->NEWaddWriteRegion( reg.id, version );
    //*(myThread->_file) << __FUNCTION__ << " set version to " << version << " for region "; reg.key->printRegion( *myThread->_file, reg.id); *myThread->_file << std::endl;
-   reg.setLocationAndVersion( _memorySpaceId, version );
+   reg.setLocationAndVersion( pe, this->getMemorySpaceId(), version );
    chunk->unlock();
    _lock.release();
 }

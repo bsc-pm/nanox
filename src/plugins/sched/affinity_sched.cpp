@@ -215,7 +215,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( ! locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0) ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0) ) {
                                     return true;
                                  }
                               }
@@ -243,7 +243,7 @@ namespace nanos {
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
                                  if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() )
-                                 && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 )  ) {
+                                 && NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 )  ) {
                                     return true;
                                 }
                               }
@@ -271,7 +271,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 ) ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
                                     return true;
                                  }
                               }
@@ -298,7 +298,7 @@ namespace nanos {
                            NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                            if ( !locs.empty() ) {
                               for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, 0 ) ) {
+                                 if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn() ) && ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, (memory_space_id_t) 0 ) ) {
                                     return true;
                                  }
                               }
@@ -522,7 +522,7 @@ namespace nanos {
                return NEW ThreadData();
             }
 
-            unsigned int computeAffinityScore( WD &wd, unsigned int numNodes, std::size_t *scores, std::size_t &maxPossibleScore );
+            int computeAffinityScore( WD &wd, unsigned int numNodes, std::size_t *scores, std::size_t &maxPossibleScore );
             void rankWD( BaseThread *thread, WD &wd );
             void tryGetLocationData( BaseThread *thread ); 
             /*!
@@ -1125,7 +1125,7 @@ namespace nanos {
          if ( wd && sys.getNetwork()->getNodeNum() == 0 ) {
             std::size_t scores[ tdata._numNodes ];
             std::size_t maxScore = 0;
-            unsigned int winner = computeAffinityScore( *wd, tdata._numNodes, scores, maxScore );
+            int winner = computeAffinityScore( *wd, tdata._numNodes, scores, maxScore );
             if ( scores[winner] != scores[data._nodeId] ) {
                sys.increaseAffinityFailureCount();
             }
@@ -1191,7 +1191,7 @@ namespace nanos {
          }
       }
 
-      unsigned int CacheSchedPolicy::computeAffinityScore( WD &wd, unsigned int numNodes, std::size_t *scores, std::size_t &maxPossibleScore ) {
+      int CacheSchedPolicy::computeAffinityScore( WD &wd, unsigned int numNodes, std::size_t *scores, std::size_t &maxPossibleScore ) {
          CopyData * copies = wd.getCopies();
          for (unsigned int i = 0; i < numNodes; i++ ) {
             scores[i] = 0;
@@ -1216,13 +1216,9 @@ namespace nanos {
                   }
                } else {
                   for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
-                     int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
+                     //int loc = ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) ? NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first )  : NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
+                     int loc = NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first );
                      unsigned int score_idx = ( loc != 0 ? sys.getSeparateMemory( loc ).getPE().getClusterNode() : 0 );
-                     if ( NewNewRegionDirectory::hasWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) ) {
-                        //std::cerr << " wd " << wd.getId() << " has write loc " << NewNewRegionDirectory::getWriteLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
-                     } else {
-                        //std::cerr << " wd " << wd.getId() << " DOES NOT have write loc " << NewNewRegionDirectory::getFirstLocation( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first ) << " locToNode-> " <<  ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 ) << std::endl;
-                     }
                      if (wd._mcontrol._memCacheCopies[ i ]._reg.isRooted()) {
                      fprintf(stderr, "ROOTED DATA!\n");
                         scores[ score_idx ] = (std::size_t) -1;
@@ -1233,7 +1229,7 @@ namespace nanos {
                }
             } //else { std::cerr << "ignored copy "<< std::endl; }
          }
-         unsigned int winner = (unsigned int) -1;
+         int winner = -1;
          unsigned int start = ( _noMaster ) ? 1 : 0 ;
          std::size_t maxRank = 0;
          for ( unsigned int i = start; i < numNodes; i++ ) {
@@ -1242,17 +1238,22 @@ namespace nanos {
                maxRank = scores[i];
             }
          }
-         if ( winner == (unsigned int) -1 )
+         if ( winner == -1 )
             winner = start;
          return winner;
       }
 
       void CacheSchedPolicy::rankWD( BaseThread *thread, WD &wd ) {
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+
+
+
+         /* Rank by cluster node */ 
+
          std::size_t scores[ tdata._numNodes ];
          //std::cerr << "RANKING WD " << wd.getId() << " numCopies " << wd.getNumCopies() << std::endl;
          std::size_t max_possible_score = 0;
-         unsigned int winner = computeAffinityScore( wd, tdata._numNodes, scores, max_possible_score );
+         int winner = computeAffinityScore( wd, tdata._numNodes, scores, max_possible_score );
          unsigned int usage[ tdata._numNodes ];
          unsigned int ties=0;
          std::size_t maxRank = scores[ winner ];
@@ -1292,7 +1293,30 @@ namespace nanos {
          //std::cerr << "the winner is " << winner << std::endl;
          wd._mcontrol.setAffinityScore( scores[ winner ] );
          wd._mcontrol.setMaxAffinityScore( max_possible_score );
-         tdata._readyQueues[winner].push_back( &wd );
+
+         /* end of rank by cluster node */
+
+         if ( winner != 0 ) {
+            tdata._readyQueues[winner].push_back( &wd );
+         } else {
+            tdata._readyQueues[winner].push_back( &wd );
+#if 0 /* WIP */
+            /* rank for accelerators in node 0 */
+            std::size_t local_scores[ tdata._numAccelerators ];
+            std::size_t max_possible_local_score = 0;
+            int local_winner = computeAffinityScore( wd, tdata._numAccelerators, local_scores, max_possible_local_score );
+
+            /* end of rank for accelerators in node 0 */
+
+            if ( local_winner != 0 ) {
+               tdata._readyQueuesLocalAccelerators[winner].push_back( &wd );
+            } else {
+               /* rank smp by NUMA node ? */
+               /* end of rank smp by NUMA node ? */
+               tdata._readyQueues[winner].push_back( &wd );
+            }
+#endif
+         }
       }
 
       void CacheSchedPolicy::atSupport ( BaseThread *thread ) {

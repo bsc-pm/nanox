@@ -25,11 +25,25 @@
 #include "printbt_decl.hpp"
 
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData(): Version( 1 ), _writeLocation( -1 ), _ops(), _location(), _rooted( false ), _setLock() {
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
+   //, _writeLocation( -1 )
+   , _ops()
+   , _location()
+   , _pes()
+   , _rooted( false )
+   , _setLock() 
+{
+   _location.insert(0);  
 }
 
-inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ): Version( de ), _writeLocation( de._writeLocation ),
-   _ops(), _location( de._location ), _rooted( de._rooted ), _setLock() {
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ) : Version( de )
+   //, _writeLocation( de._writeLocation )
+   , _ops()
+   , _location( de._location )
+   , _pes( de._pes )
+   , _rooted( de._rooted )
+   , _setLock()
+{
 }
 
 inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
@@ -37,46 +51,57 @@ inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
 
 inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDirectoryEntryData &de ) {
    Version::operator=( de );
-   _writeLocation = de._writeLocation;
+   //_writeLocation = de._writeLocation;
    _setLock.acquire();
-   _location.clear();
    de._setLock.acquire();
+   _location.clear();
+   _pes.clear();
    _location.insert( de._location.begin(), de._location.end() );
+   _pes.insert( de._pes.begin(), de._pes.end() );
    _rooted = de._rooted;
    de._setLock.release();
    _setLock.release();
    return *this;
 }
 
-inline bool NewNewDirectoryEntryData::hasWriteLocation() const {
-   return ( _writeLocation != -1 );
-}
+//inline bool NewNewDirectoryEntryData::hasWriteLocation() const {
+//   return ( _writeLocation != -1 );
+//}
 
-inline int NewNewDirectoryEntryData::getWriteLocation() const {
-   return _writeLocation;
-}
+// inline int NewNewDirectoryEntryData::getWriteLocation() const {
+//    return _writeLocation;
+// }
+// 
+// inline void NewNewDirectoryEntryData::setWriteLocation( int id ) {
+//    _writeLocation = id;
+// }
 
-inline void NewNewDirectoryEntryData::setWriteLocation( int id ) {
-   _writeLocation = id;
-}
-
-inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) {
+inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) {
    _setLock.acquire();
    //std::cerr << "+++++++++++++++++v entry " << (void *) this << " v++++++++++++++++++++++" << std::endl;
    if ( version > this->getVersion() ) {
       //std::cerr << "Upgrading version to " << version << " @location " << id << std::endl;
       _location.clear();
-      _writeLocation = id;
+      //_writeLocation = id;
       this->setVersion( version );
-      _location.insert( id );
+      _location.insert( loc );
+      if ( pe != NULL && loc == pe->getMemorySpaceId() ) {
+         _pes.insert( pe );
+      }
+      if ( version == 2 ) {
+         _firstWriterPE = pe;
+      }
    } else if ( version == this->getVersion() ) {
       //std::cerr << "Equal version (" << version << ") @location " << id << std::endl;
       // entry is going to be replicated, so it must be that multiple copies are used as inputs only
-      _location.insert( id );
-      if ( _location.size() > 1 )
-      {
-         _writeLocation = -1;
+      _location.insert( loc );
+      if ( pe != NULL && loc == pe->getMemorySpaceId() ) {
+         _pes.insert( pe );
       }
+      // if ( _location.size() > 1 )
+      // {
+      //    _writeLocation = -1;
+      // }
    } else {
      //std::cerr << "FIXME: wrong case, current version is " << this->getVersion() << " and requested is " << version << " @location " << id <<std::endl;
    }
@@ -85,30 +110,40 @@ inline void NewNewDirectoryEntryData::addAccess( int id, unsigned int version ) 
    _setLock.release();
 }
 
-inline void NewNewDirectoryEntryData::addRootedAccess( int id, unsigned int version ) {
+inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned int version ) {
    _setLock.acquire();
    ensure(version == this->getVersion(), "addRootedAccess of already accessed entry." );
    _location.clear();
-   _writeLocation = id;
+   //_writeLocation = id;
    this->setVersion( version );
-   _location.insert( id );
+   _location.insert( loc );
    _rooted = true;
    _setLock.release();
 }
 
-inline bool NewNewDirectoryEntryData::delAccess( int from ) {
+inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
    bool result;
    _setLock.acquire();
    _location.erase( from );
+   std::set< ProcessingElement * >::iterator it = _pes.begin();
+   while ( it != _pes.end() ) {
+      if ( (*it)->getMemorySpaceId() == from ) {
+         std::set< ProcessingElement * >::iterator toBeErased = it;
+         ++it;
+         _pes.erase( toBeErased );
+      } else {
+         ++it;
+      }
+   }
    result = _location.empty();
    _setLock.release();
    return result;
 }
 
-inline bool NewNewDirectoryEntryData::isLocatedIn( int id, unsigned int version ) {
+inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int version ) {
    bool result;
    _setLock.acquire();
-   result = ( version <= this->getVersion() && _location.count( id ) > 0 );
+   result = ( version <= this->getVersion() && _location.count( pe->getMemorySpaceId() ) > 0 );
    _setLock.release();
    return result;
 }
@@ -121,10 +156,14 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( int id, unsigned int version 
 //   return _invalidated == 1;
 //}
 
-inline bool NewNewDirectoryEntryData::isLocatedIn( int id ) {
+inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe ) {
+   return this->isLocatedIn( pe->getMemorySpaceId() );
+}
+
+inline bool NewNewDirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
    bool result;
    _setLock.acquire();
-   result = ( _location.count( id ) > 0 );
+   result = ( _location.count( loc ) > 0 );
    _setLock.release();
    return result;
 }
@@ -150,7 +189,8 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( int id ) {
 //   }*/
 //}
 inline void NewNewDirectoryEntryData::print() const {
-   std::cerr << "WL: " << _writeLocation << " V: " << this->getVersion() << " Locs: ";
+   //std::cerr << "WL: " << _writeLocation << " V: " << this->getVersion() << " Locs: ";
+   std::cerr << " V: " << this->getVersion() << " Locs: ";
    for ( std::set< memory_space_id_t >::iterator it = _location.begin(); it != _location.end(); it++ ) {
       std::cerr << *it << " ";
    }
@@ -206,6 +246,10 @@ inline void NewNewDirectoryEntryData::setRooted() {
 
 inline bool NewNewDirectoryEntryData::isRooted() const{
    return _rooted;
+}
+
+inline ProcessingElement *NewNewDirectoryEntryData::getFirstWriterPE() const {
+   return _firstWriterPE;
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {

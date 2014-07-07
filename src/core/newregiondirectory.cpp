@@ -56,7 +56,8 @@ using namespace nanos;
 
 std::ostream & nanos::operator<< (std::ostream &o, nanos::NewNewDirectoryEntryData const &ent)
 {
-   o << "WL: " << ent._writeLocation << " V: " << ent.getVersion() << " Locs: ";
+   //o << "WL: " << ent._writeLocation << " V: " << ent.getVersion() << " Locs: ";
+   o << " V: " << ent.getVersion() << " Locs: ";
    for ( std::set<memory_space_id_t>::iterator it = ent._location.begin(); it != ent._location.end(); it++ ) {
       o << *it << " ";
    }
@@ -89,7 +90,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
       NewNewDirectoryEntryData *entry = getDirectoryEntry( *(it->second), 1 );
       if ( entry == NULL ) {
          entry = NEW NewNewDirectoryEntryData();
-         entry->addAccess( 0, 1 );
+         //entry->addAccess( 0, 1 );
          it->second->setRegionData( 1, entry );
       }
    }
@@ -131,7 +132,7 @@ void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, 
 
    if ( entry == NULL ) {
       entry = NEW NewNewDirectoryEntryData();
-      entry->addAccess( 0, 1 );
+      //entry->addAccess( 0, 1 );
       dict->setRegionData( reg, entry );
    }
    if ( dict->getVersion() != entry->getVersion() || entry->getVersion() == 1 ) {
@@ -226,9 +227,9 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
       //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, null"<<std::endl;
       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"(null)"<<std::endl;
                firstEntry = NEW NewNewDirectoryEntryData();
-               firstEntry->addAccess( 0, 1 );
+               //firstEntry->addAccess( 0, 1 );
                secondEntry = NEW NewNewDirectoryEntryData();
-               secondEntry->addAccess( 0, 1 );
+               //secondEntry->addAccess( 0, 1 );
                dict->setRegionData( it->second, secondEntry );
             }
             dict->setRegionData( it->first, firstEntry );
@@ -250,7 +251,7 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
          if ( entry == NULL ) {
        //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " USING NEW VAL, same second " << std::endl; }
             entry = NEW NewNewDirectoryEntryData();
-            entry->addAccess( 0, 1 );
+            //entry->addAccess( 0, 1 );
             dict->setRegionData( it->first, entry );
          } else {
        //if (1 ) { std::cerr << (void *)dict << " ENTRY EXISTS FOR REG " << it->first << std::endl; }
@@ -268,7 +269,7 @@ void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, N
 
 }
 
-void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
+void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version )
 {
    if (dict->getVersion() < version ) dict->setVersion( version );
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
@@ -276,15 +277,15 @@ void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, unsign
    //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "ADD ACCESS "<< (void*) dict << ":" << id << " to "<< memorySpaceId << std::endl;
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
-   regEntry->addAccess( memorySpaceId, version );
+   regEntry->addAccess( pe, loc, version );
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
 }
 
-void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
+void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version )
 {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   regEntry->addRootedAccess( memorySpaceId, version );
+   regEntry->addRootedAccess( loc, version );
 }
 
 //void NewNewRegionDirectory::addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
@@ -312,7 +313,7 @@ NewNewDirectoryEntryData *NewNewRegionDirectory::getDirectoryEntry( GlobalRegion
    return entry;
 }
 
-bool NewNewRegionDirectory::delAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId ) {
+bool NewNewRegionDirectory::delAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t memorySpaceId ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    bool res;
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "DEL ACCESS "<< (void*) dict << ":" << id << " from "<< memorySpaceId << std::endl;
@@ -323,14 +324,21 @@ bool NewNewRegionDirectory::delAccess( RegionDirectoryKey dict, reg_t id, unsign
    return res;
 }
 
-bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId ) {
+bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    bool res;
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "DEL ACCESS "<< (void*) dict << ":" << id << " from "<< memorySpaceId << std::endl;
    //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
-   res = ( ( regEntry->isLocatedIn( memorySpaceId ) ) && ( regEntry->getNumLocations() == 1 ) );
+   res = ( ( regEntry->isLocatedIn( pe ) ) && ( regEntry->getNumLocations() == 1 ) );
    //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
    //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
+   return res;
+}
+
+bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc ) {
+   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   bool res;
+   res = ( ( regEntry->isLocatedIn( loc ) ) && ( regEntry->getNumLocations() == 1 ) );
    return res;
 }
 
@@ -375,13 +383,25 @@ unsigned int NewNewRegionDirectory::getVersion( RegionDirectoryKey dict, reg_t i
    return entry->getVersion( increaseVersion );
 }
 
-bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc, unsigned int version ) {
+bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry << " version requested " << version<< std::endl;
-   return regEntry->isLocatedIn( loc, version );
+   return regEntry->isLocatedIn( pe, version );
 }
 
-bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc ) {
+// bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version ) {
+//    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+//    //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry << " version requested " << version<< std::endl;
+//    return regEntry->isLocatedIn( loc, version );
+// }
+
+bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
+   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+   //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
+   return (regEntry) ? regEntry->isLocatedIn( pe ) : 0;
+}
+
+bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
    return (regEntry) ? regEntry->isLocatedIn( loc ) : 0;
@@ -392,15 +412,15 @@ unsigned int NewNewRegionDirectory::getFirstLocation( RegionDirectoryKey dict, r
    return regEntry->getFirstLocation();
 }
 
-bool NewNewRegionDirectory::hasWriteLocation( RegionDirectoryKey dict, reg_t id ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   return regEntry->hasWriteLocation();
-}
+// bool NewNewRegionDirectory::hasWriteLocation( RegionDirectoryKey dict, reg_t id ) {
+//    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+//    return regEntry->hasWriteLocation();
+// }
 
-unsigned int NewNewRegionDirectory::getWriteLocation( RegionDirectoryKey dict, reg_t id ) {
-   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   return regEntry->getWriteLocation();
-}
+// unsigned int NewNewRegionDirectory::getWriteLocation( RegionDirectoryKey dict, reg_t id ) {
+//    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
+//    return regEntry->getWriteLocation();
+// }
 
 GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd ) const {
    return *getRegionDictionary( cd );
@@ -410,7 +430,7 @@ void NewNewRegionDirectory::synchronize( WD const &wd ) {
    //std::cerr << "SYNC DIR" << std::endl;
    //int c = 0;
    //print();
-   SeparateAddressSpaceOutOps outOps( true, false );
+   SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
    std::set< DeviceOps * > ops;
    std::set< DeviceOps * > myOps;
    std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
@@ -547,7 +567,7 @@ DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
 
 void NewNewRegionDirectory::initializeEntry( RegionDirectoryKey dict, reg_t reg ) {
    NewNewDirectoryEntryData *entry = NEW NewNewDirectoryEntryData();
-   entry->addAccess( 0, 1 );
+   //entry->addAccess( 0, 1 );
    dict->setRegionData( reg, entry );
 }
 
