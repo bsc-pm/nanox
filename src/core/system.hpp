@@ -98,10 +98,10 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 //   return _numAvailSockets;
 //}
 //
-//inline int System::getVirtualNUMANode( int physicalNode ) const
-//{
-//   return _numaNodeMap[ physicalNode ];
-//}
+inline int System::getVirtualNUMANode( int physicalNode ) const
+{
+   return _numaNodeMap[ physicalNode ];
+}
 //
 //inline int System::getCurrentSocket() const { return _currentSocket; }
 //inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
@@ -544,6 +544,37 @@ inline void System::createDependence( WD* pred, WD* succ)
    DOSubmit *pred_do = pred->getDOSubmit(), *succ_do = succ->getDOSubmit();
    pred_do->addSuccessor(*succ_do);
    succ_do->increasePredecessors();
+
+inline unsigned int System::getNumClusterNodes() const {
+   return _clusterNodes.size();
+}
+
+inline unsigned int System::getNumNumaNodes() const {
+   return _numaNodes.size();
+}
+
+inline std::set<unsigned int> const &System::getClusterNodeSet() const {
+   return _clusterNodes;
+}
+
+inline memory_space_id_t System::getMemorySpaceIdOfClusterNode( unsigned int node ) const {
+   memory_space_id_t id = 0;
+   if ( node != 0 ) {
+      for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+         if ( it->second->getClusterNode() == node ) {
+            id = it->second->getMemorySpaceId();
+         }
+      }
+   }
+   return id;
+}
+
+inline int System::getUserDefinedNUMANode() const {
+   return _userDefinedNUMANode;
+}
+
+inline void System::setUserDefinedNUMANode( int nodeId ) {
+   _userDefinedNUMANode = nodeId;
 }
 
 #endif

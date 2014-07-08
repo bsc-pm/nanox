@@ -5,6 +5,7 @@
 
 #include "addressspace_fwd.hpp"
 #include "deviceops_decl.hpp"
+#include "processingelement_fwd.hpp"
 
 namespace nanos {
 
@@ -37,7 +38,7 @@ struct global_reg_t {
    uint64_t getRealBaseAddress() const;
    DeviceOps *getDeviceOps() const;
    void initializeGlobalEntryIfNeeded() const;
-   void setLocationAndVersion( memory_space_id_t loc, unsigned int version ) const;
+   void setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const;
    bool contains( global_reg_t const &reg ) const;
    bool isLocatedIn( memory_space_id_t loc ) const;
    void fillCopyData( CopyData &cd ) const;
@@ -47,6 +48,7 @@ struct global_reg_t {
    bool isRooted() const;
    void setOwnedMemory( memory_space_id_t loc ) const;
    unsigned int getNumLocations() const;
+   ProcessingElement *getFirstWriterPE() const;
 private:
    uint64_t getFirstAddress(uint64_t baseAddress) const;
 };

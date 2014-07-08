@@ -24,15 +24,5 @@
 
 using namespace nanos;
 
-inline void ArchPlugin::addBinding ( unsigned pe )
-{
-   _bindings.push_back( pe );
-}
-
-inline ArchPlugin::PEList::value_type ArchPlugin::getBinding( unsigned index )
-{
-   return _bindings[ index ];
-}
-
 
 #endif

@@ -35,7 +35,9 @@ public:
     
 private:
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
+    Lock _graph_nodes_lock;
     std::map<int64_t, std::string> _funct_id_to_decl_map;   /*!< relation between a task id and its name */
+    Lock _funct_id_to_decl_map_lock;
     double _min_time;
     double _total_time;
     double _min_diam;
@@ -125,10 +127,10 @@ private:
     inline std::string print_nested_nodes(Node* n, std::string indentation) {
         std::string nested_nodes_info = "";
         // Find all nodes which parent is 'n' and the edges connecting them is a 'Nesting' edge
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) 
+        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) 
         {
-            std::vector<Edge*> entries = (*it)->get_entries();
-            for(std::vector<Edge*>::iterator it2 = entries.begin(); it2 != entries.end(); ++it2)
+            std::vector<Edge*> const &entries = (*it)->get_entries();
+            for(std::vector<Edge*>::const_iterator it2 = entries.begin(); it2 != entries.end(); ++it2)
             {
                 if(((*it2)->get_source() == n) && (*it2)->is_nesting())
                 {   // This is a nested relation!
@@ -192,7 +194,7 @@ private:
         
         int id = 1;
         std::set<std::string> printed_funcs;
-        for(std::map<int64_t, std::string>::iterator it = _funct_id_to_decl_map.begin(); it != _funct_id_to_decl_map.end() ; ++it)
+        for(std::map<int64_t, std::string>::const_iterator it = _funct_id_to_decl_map.begin(); it != _funct_id_to_decl_map.end() ; ++it)
         {
             if(printed_funcs.find(it->second) == printed_funcs.end())
             {
@@ -201,10 +203,10 @@ private:
                 nodes_legend += "    subgraph {\n";
                 nodes_legend += "      rank=same;\n";
                 // Print the transparent node with the name of the function
-                nodes_legend += "      " + _funct_id_to_decl_map[it->first] + "[color=\"white\", margin=\"0.0,0.0\"];\n";
+                nodes_legend += "      " + it->second + "[color=\"white\", margin=\"0.0,0.0\"];\n";
                 // Print one node for each function id that has the same name as the current function name
                 int last_id = 0;
-                for(std::map<int64_t, std::string>::iterator it2 = _funct_id_to_decl_map.begin(); 
+                for(std::map<int64_t, std::string>::const_iterator it2 = _funct_id_to_decl_map.begin(); 
                      it2 != _funct_id_to_decl_map.end(); ++it2)
                 {
                     if(it2->second == it->second)
@@ -230,7 +232,7 @@ private:
         // We want the pairs of <task_set, task_name> to be shown vertically
         // To achieve it, we create edges between each two consecutive pair subgraph
         std::set<std::string>::iterator it2;
-        for(std::set<std::string>::iterator it = printed_funcs.begin(); it != printed_funcs.end(); ++it)
+        for(std::set<std::string>::const_iterator it = printed_funcs.begin(); it != printed_funcs.end(); ++it)
         {
             it2 = it; it2++;
             if(it2 != printed_funcs.end())
@@ -242,9 +244,9 @@ private:
         return nodes_legend;
     }
     
-    inline Node* find_node_from_wd_id(int64_t wd_id) {
+    inline Node* find_node_from_wd_id(int64_t wd_id) const {
         Node* result = NULL;
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
             if((*it)->get_wd_id() == wd_id) {
                 result = *it;
                 break;
@@ -275,7 +277,7 @@ private:
     }
     
     inline int get_cluster_id(std::map<int, int>& node_to_cluster, int cluster_inner_node_id, 
-                              std::vector<Edge*> edges_to_from_cluster, bool cluster_is_source)
+                              std::vector<Edge*> const &edges_to_from_cluster, bool cluster_is_source)
     {
         int current_cluster_id;
         std::map<int, int>::const_iterator cluster_inner_node_it = node_to_cluster.find(cluster_inner_node_id);
@@ -291,10 +293,10 @@ private:
             
             // Insert in the map the relation between all brothers of cluster_inner_node_id and the new cluster id
             if(cluster_is_source)
-                for(std::vector<Edge*>::iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
+                for(std::vector<Edge*>::const_iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
                     node_to_cluster[(*e)->get_source()->get_wd_id()] = current_cluster_id;
             else
-                for(std::vector<Edge*>::iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
+                for(std::vector<Edge*>::const_iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
                     node_to_cluster[(*e)->get_target()->get_wd_id()] = current_cluster_id;
         }
         
@@ -303,7 +305,7 @@ private:
     
     inline std::string print_clustered_subgraph(int64_t current_wd, bool cluster_is_source, bool cluster_is_concurrent,
                                                  const std::vector<Edge*>& cluster_edges,
-                                                 std::map<int, int>& node_to_cluster, std::vector<Edge*> cluster_exits) {
+                                                 std::map<int, int>& node_to_cluster, std::vector<Edge*> const &cluster_exits) {
         std::string result = "";
         // Get the identifier of the cluster if it has been previously created or create a new identifier otherwise
         int cluster_inner_node_id = (cluster_is_source ? cluster_edges[0]->get_source()->get_wd_id() : 
@@ -328,11 +330,11 @@ private:
         }
         result += "  }\n";
         
-        for(std::vector<Edge*>::iterator it = cluster_exits.begin(); it != cluster_exits.end(); ++it)
+        for(std::vector<Edge*>::const_iterator it = cluster_exits.begin(); it != cluster_exits.end(); ++it)
         {
             std::vector<Edge*> actual_exits;
             if((*it)->get_target()->is_commutative() || (*it)->get_target()->is_concurrent())
-                actual_exits = (*it)->get_target()->get_exits();
+                actual_exits = (*it)->get_target()->get_exits(); //copy assign operator
             else
                 actual_exits.push_back(*it);
             for(std::vector<Edge*>::iterator e = actual_exits.begin(); e != actual_exits.end(); ++e) {
@@ -355,8 +357,8 @@ private:
     
     inline bool has_virtual_sync_parent(Node* n)
     {
-        std::vector<Edge*> entries = n->get_entries();
-        for(std::vector<Edge*>::iterator it = entries.begin(); it != entries.end(); ++it)
+        std::vector<Edge*> const &entries = n->get_entries();
+        for(std::vector<Edge*>::const_iterator it = entries.begin(); it != entries.end(); ++it)
             if((*it)->get_source()->is_concurrent() || (*it)->get_source()->is_commutative())
                 return true;
             return false;
@@ -364,8 +366,8 @@ private:
     
     inline Node* get_virtual_sync_parent(Node* n)
     {
-        std::vector<Edge*> entries = n->get_entries();
-        for(std::vector<Edge*>::iterator it = entries.begin(); it != entries.end(); ++it)
+        std::vector<Edge*> const &entries = n->get_entries();
+        for(std::vector<Edge*>::const_iterator it = entries.begin(); it != entries.end(); ++it)
             if((*it)->get_source()->is_concurrent() || (*it)->get_source()->is_commutative())
                 return (*it)->get_source();
             fatal("No concurrent|commutative parent found for a node that is meant to have a virtual synchronization node as parent.\n");
@@ -374,8 +376,8 @@ private:
     
     inline bool has_virtual_sync_child(Node* n)
     {
-        std::vector<Edge*> exits = n->get_exits();
-        for(std::vector<Edge*>::iterator it = exits.begin(); it != exits.end(); ++it)
+        std::vector<Edge*> const &exits = n->get_exits();
+        for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
             if((*it)->get_target()->is_concurrent() || (*it)->get_target()->is_commutative())
                 return true;
             return false;
@@ -383,8 +385,8 @@ private:
     
     inline Node* get_virtual_sync_child(Node* n)
     {
-        std::vector<Edge*> exits = n->get_exits();
-        for(std::vector<Edge*>::iterator it = exits.begin(); it != exits.end(); ++it)
+        std::vector<Edge*> const &exits = n->get_exits();
+        for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
             if((*it)->get_target()->is_concurrent() || (*it)->get_target()->is_commutative())
                 return (*it)->get_target();
             fatal("No concurrent|commutative child found for a node that is meant to have a virtual synchronization node as child.\n");
@@ -405,7 +407,7 @@ private:
         // Compute the time average to print the nodes size accordingly
         if(InstrumentationTDGInstrumentation::_nodeSizeFunc != "constant")
         {
-            for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+            for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
                 if((*it)->is_task())
                 {
                     _min_time = std::min(_min_time, (*it)->get_total_time()); 
@@ -422,7 +424,7 @@ private:
             // Print attributes of the graph
             dot_file << "  graph[compound=true];\n";
             // Print the graph nodes
-            for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it)
+            for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it)
             {
                 if((*it)->is_printed())
                     continue;
@@ -432,8 +434,7 @@ private:
                     continue;
                 }
                 
-                std::vector<Edge*> entries = (*it)->get_entries();
-                std::vector<Edge*> exits = (*it)->get_exits();
+                std::vector<Edge*> const &exits = (*it)->get_exits();
                 if(has_virtual_sync_parent(*it) && has_virtual_sync_child(*it))
                 {
                     /* This happens when we treat either T1 or T2, whichever is the first in _graph_nodes:
@@ -444,7 +445,7 @@ private:
                      *       C
                      */
                     Node* virtual_sync_parent = get_virtual_sync_parent(*it);
-                    std::vector<Edge*> edges_to_clustered_tasks = virtual_sync_parent->get_exits();
+                    std::vector<Edge*> const &edges_to_clustered_tasks = virtual_sync_parent->get_exits();
                     dot_file << print_clustered_subgraph((*it)->get_wd_id(), /*cluster_is_source*/ false, 
                                                          /*cluster_is_concurrent*/ virtual_sync_parent->is_concurrent(),
                                                           edges_to_clustered_tasks, node_to_cluster, exits);
@@ -456,7 +457,7 @@ private:
                      *     C
                      */
                     Node* virtual_sync_child = get_virtual_sync_child(*it);
-                    std::vector<Edge*> edges_from_clustered_tasks = virtual_sync_child->get_entries();
+                    std::vector<Edge*> const &edges_from_clustered_tasks = virtual_sync_child->get_entries();
                     dot_file << print_clustered_subgraph((*it)->get_wd_id(), /*cluster_is_source*/ true, 
                                                          /*cluster_is_concurrent*/ virtual_sync_child->is_concurrent(),
                                                           edges_from_clustered_tasks, node_to_cluster, exits);
@@ -466,7 +467,7 @@ private:
                     
                     // Print the exit edges (outside the rank, so they are displayed top-bottom)
                     std::set<Node*> nodes_in_same_cluster_to_avoid;
-                    for(std::vector<Edge*>::iterator edge = exits.begin(); edge != exits.end(); ++edge) {
+                    for(std::vector<Edge*>::const_iterator edge = exits.begin(); edge != exits.end(); ++edge) {
                         if(!(*edge)->is_nesting()) 
                         {   // nesting edges have been printed previously in 'print_nested_nodes'
                             if(!(*edge)->get_target()->is_concurrent() && !(*edge)->get_target()->is_commutative() && 
@@ -526,7 +527,7 @@ private:
                                         lock.acquire();
                                         current_cluster_id = cluster_id++;
                                         lock.release();
-                                        for(std::vector<Edge*>::iterator e = exits.begin(); e != exits.end(); ++e) {
+                                        for(std::vector<Edge*>::const_iterator e = exits.begin(); e != exits.end(); ++e) {
                                             if(has_virtual_sync_child((*e)->get_target())) 
                                             {
                                                 node_to_cluster[(*e)->get_target()->get_wd_id()] = current_cluster_id;
@@ -538,7 +539,7 @@ private:
                                     std::stringstream sst; sst << (*edge)->get_target()->get_wd_id();
                                     dot_file << "  " << sss.str() + " -> " + sst.str() + "[style=\"solid\", color=\"black\"];\n";
                                     // The rest of nodes in the same cluster must not be connected
-                                    for(std::vector<Edge*>::iterator e = exits.begin(); e != exits.end(); ++e) {
+                                    for(std::vector<Edge*>::const_iterator e = exits.begin(); e != exits.end(); ++e) {
                                         if(has_virtual_sync_child((*e)->get_target()))
                                         {
                                             nodes_in_same_cluster_to_avoid.insert((*e)->get_target());
@@ -604,13 +605,13 @@ public:
         // So far, taskwaits have been synchronized with the tasks created previously
         // But those tasks created after a given taskwait have not been connected to the taskwait
         // Note: The wd of a taskwait is always a negative number!
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
             if(!(*it)->is_previous_synchronized()) {
                 // The task has no parent, look for a taskwait|barrier suitable to be its parent
                 int64_t wd_id = (*it)->get_wd_id() - (((*it)->is_concurrent() || (*it)->is_commutative()) ? concurrent_min_id : 0);
                 Node* it_parent = (*it)->get_parent_task();
                 Node* last_taskwait_sync = NULL;
-                for(std::set<Node*>::iterator it2 = _graph_nodes.begin(); it2 != _graph_nodes.end(); ++it2) {
+                for(std::set<Node*>::const_iterator it2 = _graph_nodes.begin(); it2 != _graph_nodes.end(); ++it2) {
                     if((*it)->get_wd_id()==(*it2)->get_wd_id())
                         continue;
                     if((it_parent == (*it2)->get_parent_task()) &&                  // The two nodes are in the same region
@@ -729,7 +730,9 @@ public:
                 _next_conc_id = wd_id + 1;
                 // Create the new node
                 Node* new_node = new Node(wd_id, funct_id, TaskNode);
+                _graph_nodes_lock.acquire();
                 _graph_nodes.insert(new_node);
+                _graph_nodes_lock.release();
                 
                 // Connect the task with its parent task, if exists
                 if(current_parent != NULL) {
@@ -739,12 +742,14 @@ public:
             else if (e.getKey() == user_funct_location)
             {   // A user function has been called
                 int64_t func_id = e.getValue();
+                _funct_id_to_decl_map_lock.acquire();
                 if(func_id != 0 && _funct_id_to_decl_map.find(func_id) == _funct_id_to_decl_map.end()) {
                     std::string description = iD->getValueDescription(user_funct_location, func_id);
                     int pos2 = description.find_first_of("(");
                     int pos1 = description.find_last_of (" ", pos2);
                     _funct_id_to_decl_map[ func_id ] = '\"' + description.substr(pos1+1, pos2-pos1-1) + '\"';
                 }
+                _funct_id_to_decl_map_lock.release();
             }
             else if (e.getKey() == dependence)
             {  // A dependence occurs
@@ -800,13 +805,17 @@ public:
                     // Create the new sender node, if necessary
                     if(sender == NULL) {
                         sender = new Node(sender_wd_id, 0, nt);
+                        _graph_nodes_lock.acquire();
                         _graph_nodes.insert(sender);
+                        _graph_nodes_lock.release();
                     }
                     
                     // Create the new receiver node, if necessary
                     if(receiver == NULL) {
                         receiver = new Node(receiver_wd_id, 0, nt);
+                        _graph_nodes_lock.acquire();
                         _graph_nodes.insert(receiver);
+                        _graph_nodes_lock.release();
                     }
                 }
                 Node::connect_nodes(sender, receiver, Dependency, dep_type);
@@ -817,7 +826,8 @@ public:
                 Node* new_node = new Node(_next_tw_id, -1, TaskwaitNode);
                 --_next_tw_id;
                 // First synchronize the tasks
-                for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+                _graph_nodes_lock.acquire();
+                for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
                     // Synchronization nodes will be connected, if necessary, when 'finalize' is called
                     if(!(*it)->is_next_synchronized() && (*it)->is_task()) {
                         Node* parent_task = (*it)->get_parent_task();
@@ -827,6 +837,7 @@ public:
                     }
                 }
                 _graph_nodes.insert(new_node);
+                _graph_nodes_lock.release();
             }
         }
     }

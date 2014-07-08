@@ -25,12 +25,9 @@
 #include "osallocator_decl.hpp"
 #include "system.hpp"
 #include "printbt_decl.hpp"
+#include <limits>
 
 //#include <numa.h>
-
-#ifdef HWLOC
-#include <hwloc.h>
-#endif
 
 namespace nanos {
 namespace ext {
@@ -76,23 +73,12 @@ class SMPPlugin : public SMPBasePlugin
    //! Physical NUMA nodes
    int                          _numSockets;
    int                          _coresPerSocket;
-   //! Available NUMA nodes given by the CPU set
-   int                          _numAvailSockets;
    //! The socket that will be assigned to the next WD
    int                          _currentSocket;
 
 
    //! CPU id binding list
    Bindings                     _bindings;
-
-   //! hwloc topology structure
-   void *                       _hwlocTopology;
-   //! Path to a hwloc topology xml
-   std::string                  _topologyPath;
-
-
-   //! Maps from a physical NUMA node to a user-selectable node
-   std::vector<int>             _numaNodeMap;
 
    public:
    SMPPlugin() : SMPBasePlugin( "SMP PE Plugin", 1 )
@@ -118,11 +104,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _cpuActiveSet()
                  , _numSockets( 0 )
                  , _coresPerSocket( 0 )
-                 , _numAvailSockets( 0 ) 
                  , _bindings()
-                 , _hwlocTopology( NULL )
-                 , _topologyPath()
-                 , _numaNodeMap()
    {}
 
    virtual unsigned int getNewSMPThreadId() {
@@ -149,11 +131,6 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ),
             "Number of sockets available." );
       cfg.registerArgOption( "num-sockets", "num-sockets" );
-
-      cfg.registerConfigOption( "hwloc-topology", NEW Config::StringVar( _topologyPath ),
-            "Overrides hwloc's topology discovery and uses the one provided by an XML file." );
-      cfg.registerArgOption( "hwloc-topology", "hwloc-topology" );
-      cfg.registerEnvOption( "hwloc-topology", "NX_HWLOC_TOPOLOGY_PATH" );
 
 
       cfg.registerConfigOption( "binding-start", NEW Config::IntegerVar ( _bindingStart ),
@@ -188,12 +165,6 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual void init() {
-
-
-      //! Load hwloc first, in order to make it available for modules
-      if ( isHwlocAvailable() )
-         loadHwloc();
-
       sys.setHostFactory( smpProcessorFactory );
       sys.setSMPPlugin( this );
 
@@ -287,18 +258,22 @@ class SMPPlugin : public SMPBasePlugin
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
+         bool active = ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) );
+         unsigned numaNode = active ? getNodeOfPE( *it ) : std::numeric_limits<unsigned>::max();
+         unsigned socket = numaNode;   /* FIXME: socket */
+         
          if ( _smpPrivateMemory && count >= _smpHostCpus ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true /* nanos::ext::ClusterInfo::getAllocWide() */ );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
             numaMem.setNodeNumber( 0 );
-            cpu = NEW SMPProcessor( *it, id, ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ) );
+            cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
-            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) ) );
+            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), active, numaNode, socket );
          }
          CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
-         cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
+         //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
          (*_cpus)[count] = cpu;
          (*_cpusByCpuId)[ *it ] = cpu;
          count += 1;
@@ -308,14 +283,11 @@ class SMPPlugin : public SMPBasePlugin
       if ( sys.getVerbose() ) {
          std::cerr << "Bindings: [ ";
          for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-            std::cerr << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
+            std::cerr << (*it)->getBindingId() << ( (*it)->isActive() ? "a" : "i" ) << (*it)->getNumaNode() << " " ;
          }
          std::cerr << "]" << std::endl;
       }
 #endif /* NANOS_DEBUG_ENABLED */
-
-      // FIXME (855): do this before thread creation, after PE creation
-      completeNUMAInfo();
 
       /* reserve it for main thread */
       getFirstSMPProcessor()->reserve();
@@ -341,13 +313,13 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual void finalize() {
-      // if ( isHwlocAvailable() )
-      //    unloadHwloc();
    }
 
    virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         pes.insert( std::make_pair( (*it)->getId(), *it ) );
+         if ( (*it)->isActive() ) {
+            pes.insert( std::make_pair( (*it)->getId(), *it ) );
+         }
       }
    }
 
@@ -447,7 +419,7 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
             it != _cpus->rend() && !target;
             it++ ) {
-         if ( (*it)->getNUMANode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
+         if ( (int) (*it)->getNumaNode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
             target = *it;
             target->reserve();
             _numThreadsRequestedForSupport += 1;
@@ -469,7 +441,7 @@ class SMPPlugin : public SMPBasePlugin
                break;
             }
          }
-         if ( (*it)->getNUMANode() == node ) {
+         if ( (int) (*it)->getNumaNode() == node ) {
             if ( counter <= 0 ) {
                target = *it;
             }
@@ -479,158 +451,98 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
-   void loadHwloc ()
-   {
-#ifdef HWLOC
-      // Allocate and initialize topology object.
-      hwloc_topology_init( ( hwloc_topology_t* )&_hwlocTopology );
-
-      // If the user provided an alternate topology
-      if ( !_topologyPath.empty() )
-      {
-         int res = hwloc_topology_set_xml( ( hwloc_topology_t ) _hwlocTopology, _topologyPath.c_str() );
-         fatal_cond0( res != 0, "Could not load hwloc topology xml file." );
-      }
-
-      // Enable GPU detection
-      hwloc_topology_set_flags( ( hwloc_topology_t ) _hwlocTopology, HWLOC_TOPOLOGY_FLAG_IO_DEVICES );
-
-      // Perform the topology detection.
-      hwloc_topology_load( ( hwloc_topology_t ) _hwlocTopology );
-#endif
-   }
 
    void loadNUMAInfo ()
    {
-#ifdef HWLOC
-      hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
-
-      // Nodes that can be seen by hwloc
-      unsigned allowedNodes = 0;
-      // Hardware threads
-      unsigned hwThreads = 0;
-
-      // Read the number of numa nodes if the user didn't set that value
-      if ( _numSockets == 0 )
-      {
-         int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
-
-
-         // If there are NUMA nodes in this machine
-         if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-            //hwloc_const_cpuset_t cpuset = hwloc_topology_get_online_cpuset( topology );
-            //allowedNodes = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_NODE );
-            //hwThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_PU );
-            unsigned nodes = hwloc_get_nbobjs_by_depth( topology, depth );
-            //hwloc_cpuset_t set = i
-
-            // For each node, count how many hardware threads there are below.
-            for ( unsigned nodeIdx = 0; nodeIdx < nodes; ++nodeIdx )
-            {
-               hwloc_obj_t node = hwloc_get_obj_by_depth( topology, depth, nodeIdx );
-               int localThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, node->cpuset, HWLOC_OBJ_PU );
-               // Increase hw thread count
-               hwThreads += localThreads;
-               // If this node has hw threads beneath, increase the number of viewable nodes
-               if ( localThreads > 0 ) ++allowedNodes;
-            }
-            _numSockets = nodes;
-         }
-         // Otherwise, set it to 1
-         else {
-            allowedNodes = 1; 
+      if ( _numSockets == 0 ) {
+         if ( sys._hwloc.isHwlocAvailable() ) {
+            unsigned int allowedNodes = 0;
+            unsigned int hwThreads = 0;
+            sys._hwloc.getNumSockets(allowedNodes, _numSockets, hwThreads);
+            if ( hwThreads == 0 ) hwThreads = _cpus->size(); //failed to read hwloc info
+            if( _coresPerSocket == 0 )
+               _coresPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
+         } else {
             _numSockets = 1;
          }
       }
-
-      if( _coresPerSocket == 0 )
-         _coresPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
-#else
-      // Number of sockets can be read with
-      // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
-      // Cores per socket:
-      // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
-
-      // Assume just 1 socket
-      if ( _numSockets == 0 )
-         _numSockets = 1;
-
-      // Same thing, just change the value if the user didn't provide one
+      ensure(_numSockets > 0, "Invalid number of sockets!");
       if ( _coresPerSocket == 0 )
          _coresPerSocket = std::ceil( _cpus->size() / static_cast<float>( _numSockets ) );
-#endif
+      ensure(_coresPerSocket > 0, "Invalid number of cores per socket!");
+//#ifdef HWLOC
+//      hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
+//
+//      // Nodes that can be seen by hwloc
+//      unsigned allowedNodes = 0;
+//      // Hardware threads
+//      unsigned hwThreads = 0;
+//
+//      // Read the number of numa nodes if the user didn't set that value
+//      if ( _numSockets == 0 )
+//      {
+//         int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
+//
+//
+//         // If there are NUMA nodes in this machine
+//         if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
+//            //hwloc_const_cpuset_t cpuset = hwloc_topology_get_online_cpuset( topology );
+//            //allowedNodes = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_NODE );
+//            //hwThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_PU );
+//            unsigned nodes = hwloc_get_nbobjs_by_depth( topology, depth );
+//            //hwloc_cpuset_t set = i
+//
+//            // For each node, count how many hardware threads there are below.
+//            for ( unsigned nodeIdx = 0; nodeIdx < nodes; ++nodeIdx )
+//            {
+//               hwloc_obj_t node = hwloc_get_obj_by_depth( topology, depth, nodeIdx );
+//               int localThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, node->cpuset, HWLOC_OBJ_PU );
+//               // Increase hw thread count
+//               hwThreads += localThreads;
+//               // If this node has hw threads beneath, increase the number of viewable nodes
+//               if ( localThreads > 0 ) ++allowedNodes;
+//            }
+//            _numSockets = nodes;
+//         }
+//         // Otherwise, set it to 1
+//         else {
+//            allowedNodes = 1; 
+//            _numSockets = 1;
+//         }
+//      }
+//
+//      if( _coresPerSocket == 0 )
+//         _coresPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
+//#else
+//      // Number of sockets can be read with
+//      // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
+//      // Cores per socket:
+//      // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
+//
+//      // Assume just 1 socket
+//      if ( _numSockets == 0 )
+//         _numSockets = 1;
+//
+//      // Same thing, just change the value if the user didn't provide one
+//      if ( _coresPerSocket == 0 )
+//         _coresPerSocket = std::ceil( _cpus->size() / static_cast<float>( _numSockets ) );
+//#endif
       verbose0( toString( "[NUMA] " ) + toString( _numSockets ) + toString( " NUMA nodes, " ) + toString( _coresPerSocket ) + toString( " HW threads each." ) );
-   }
-
-   void completeNUMAInfo()
-   {
-      // Create the NUMA node translation table. Do this before creating the team,
-      // as the schedulers might need the information.
-      _numaNodeMap.resize( _numSockets, INT_MIN );
-
-      /* As all PEs are already created by this time, count how many physical
-       * NUMA nodes are available, and map from a physical id to a virtual ID
-       * that can be selected by the user via nanos_current_socket() */
-      for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); ++it )
-      {
-         int node = (*it)->getNUMANode();
-         // If that node has not been translated, yet
-         if ( _numaNodeMap[ node ] == INT_MIN )
-         {
-            verbose0( "Mapping from physical node " << node << " to user node " << _numAvailSockets );
-            _numaNodeMap[ node ] = _numAvailSockets;
-            // Increase the number of available sockets
-            ++_numAvailSockets;
-         }
-         // Otherwise, do nothing
-      }
-
-      verbose0( _numAvailSockets << " NUMA node(s) available for the user." );
-
-   }
-
-   void unloadHwloc ()
-   {
-#ifdef HWLOC
-      /* Destroy topology object. */
-      hwloc_topology_destroy( ( hwloc_topology_t )_hwlocTopology );
-#endif
    }
 
    unsigned getNodeOfPE ( unsigned pe )
    {
-#ifdef HWLOC
-      // cast just once
-      hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
+      if ( sys._hwloc.isHwlocAvailable() ) {
+         return sys._hwloc.getNumaNodeOfCpu( pe );
+      } else {
+         // Dirty way, will not work with hyperthreading
+         // Use /sys/bus/cpu/devices/cpuX/
+         //return pe / getCoresPerSocket();
 
-      hwloc_obj_t pu = hwloc_get_pu_obj_by_os_index( topology, pe );
-
-      // Now we have the PU object, go find its parent numa node
-      hwloc_obj_t numaNode =
-         hwloc_get_ancestor_obj_by_type( topology, HWLOC_OBJ_NODE, pu );
-
-      // If the machine is not NUMA
-      if ( numaNode == NULL )
-         return 0;
-
-      return numaNode->os_index;
-#else
-      // Dirty way, will not work with hyperthreading
-      // Use /sys/bus/cpu/devices/cpuX/
-      //return pe / getCoresPerSocket();
-
-      // Otherwise, return
-      return getNumSockets() - 1;
-#endif
-   }
-
-   virtual bool isHwlocAvailable () const
-   {
-#ifdef HWLOC
-      return true;
-#else
-      return false;
-#endif
+         // Otherwise, return
+         // FIXME: return NUMA nodes -1
+         return getNumSockets() - 1;
+      }
    }
 
    void setBindingStart ( int value ) { _bindingStart = value; }
@@ -648,16 +560,6 @@ class SMPPlugin : public SMPBasePlugin
    virtual int getNumSockets() const { return _numSockets; }
 
    virtual void setNumSockets ( int numSockets ) { _numSockets = numSockets; }
-
-   virtual int getNumAvailSockets() const
-   {
-      return _numAvailSockets;
-   }
-
-   virtual int getVirtualNUMANode( int physicalNode ) const
-   {
-      return _numaNodeMap[ physicalNode ];
-   }
 
    virtual int getCurrentSocket() const { return _currentSocket; }
    virtual void setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }

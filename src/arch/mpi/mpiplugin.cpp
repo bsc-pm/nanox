@@ -33,67 +33,67 @@ class MPIPlugin : public ArchPlugin
    static Atomic<unsigned int> _numPEs;
    
    public:
-      MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ), _initialized(false), _extraeInitialized(false) {}
+    MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ), _initialized(false), _extraeInitialized(false) {}
 
-      virtual void config ( Config& cfg )
-      {
-         cfg.setOptionsSection( "Offload Arch", "Offload specific options" );
-         MPIProcessor::prepareConfig( cfg );
-      }
-      
-      virtual bool configurable() { 
-         char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
-          return offload_trace_on == NULL || _extraeInitialized; 
-      }
-      
-      virtual void init() {
-         /* if MPITRAE_ON not defined, activate it */
-         int provided;
-         //MPI Init triggers extrae init
-         //If OmpSs has compiled MPI tasks, we assume we are in an offload environment
-         //if (sys.getOmpssUsesOffload()!=0){ //doesnt seem to be working...
-         char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
-         if (offload_trace_on != NULL && !_extraeInitialized){ 
-             _extraeInitialized=true;              
-             if (getenv("I_MPI_WAIT_MODE")==NULL) putenv( const_cast<char*> ("I_MPI_WAIT_MODE=1"));
-             MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
-             return;
-         }
-        
-         if (!_initialized) {
-           _initialized=true;
-           nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
-         }
-      }
-      
-      static void addPECount(unsigned int count) {
-          _numPEs+=count;
-      }
-      
-      static void addWorkerCount(unsigned int count) {
-          _numWorkers+=count;
-      }
-      
-      virtual unsigned getNumThreads() const
-      {
-           return 0;
-      }
-      
-      virtual unsigned int getNumPEs() const {
-         return _numPEs.value();
-      }
-      virtual unsigned int getMaxPEs() const {
+    virtual void config ( Config& cfg )
+    {
+       cfg.setOptionsSection( "Offload Arch", "Offload specific options" );
+       MPIProcessor::prepareConfig( cfg );
+    }
+
+    virtual bool configurable() { 
+       char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
+        return offload_trace_on == NULL || _extraeInitialized; 
+    }
+
+    virtual void init() {
+       /* if MPITRAE_ON not defined, activate it */
+       int provided;
+       //MPI Init triggers extrae init
+       //If OmpSs has compiled MPI tasks, we assume we are in an offload environment
+       //if (sys.getOmpssUsesOffload()!=0){ //doesnt seem to be working...
+       char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
+       if (offload_trace_on != NULL && !_extraeInitialized){ 
+           _extraeInitialized=true;              
+           if (getenv("I_MPI_WAIT_MODE")==NULL) putenv( const_cast<char*> ("I_MPI_WAIT_MODE=1"));
+           MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
+           return;
+       }
+
+       if (!_initialized) {
+         _initialized=true;
+         nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
+       }
+    }
+
+    static void addPECount(unsigned int count) {
+        _numPEs+=count;
+    }
+
+    static void addWorkerCount(unsigned int count) {
+        _numWorkers+=count;
+    }
+
+    virtual unsigned getNumThreads() const
+    {
          return 0;
-      }
-      virtual unsigned int getNumWorkers() const {
-         return _numWorkers.value();
-      }
-      virtual unsigned int getMaxWorkers() const {
-         return 0;
-      }
-      
-      virtual void createBindingList()
-      {
+    }
+
+    virtual unsigned int getNumPEs() const {
+       return _numPEs.value();
+    }
+    virtual unsigned int getMaxPEs() const {
+       return 0;
+    }
+    virtual unsigned int getNumWorkers() const {
+       return _numWorkers.value();
+    }
+    virtual unsigned int getMaxWorkers() const {
+       return 0;
+    }
+
+    virtual void createBindingList()
+    {
 //        /* As we now how many devices we have and how many helper threads we
 //         * need, reserve a PE for them */
 //        for ( unsigned i = 0; i < OpenCLConfig::getOpenCLDevicesCount(); ++i )
@@ -104,7 +104,7 @@ class MPIPlugin : public ArchPlugin
 //           // Now add this node to the binding list
 //           addBinding( pe );
 //        }
-      }
+    }
        
     virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
     }
@@ -114,12 +114,16 @@ class MPIPlugin : public ArchPlugin
 
     virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
     }
+    
+    virtual void finalize() {
+    }
+      
 
-      virtual PE* createPE( unsigned id, unsigned uid )
-      {
-         //Not used
-         return NULL;
-      }
+    virtual PE* createPE( unsigned id, unsigned uid )
+    {
+       //Not used
+       return NULL;
+    }
 };
 }
 }

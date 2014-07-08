@@ -18,7 +18,7 @@ class MemController {
    bool                        _memoryAllocated;
    bool                        _mainWd;
    WD const                   &_wd;
-   memory_space_id_t           _memorySpaceId;
+   ProcessingElement          *_pe;
    Lock                        _provideLock;
    std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
    BaseAddressSpaceInOps      *_inOps;

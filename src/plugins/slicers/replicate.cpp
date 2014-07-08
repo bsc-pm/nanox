@@ -89,4 +89,4 @@ class SlicerReplicatePlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerReplicatePlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::SlicerReplicatePlugin );

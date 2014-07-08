@@ -301,13 +301,13 @@ bool ClusterThread::hasWaitingDataWDs() const {
 WD *ClusterThread::getWaitingDataWD() {
    WD *wd = _waitingDataWDs.front();
    _waitingDataWDs.pop_front();
-std::cerr << "popped a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
+//std::cerr << "popped a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
    return wd;
 }
 
 void ClusterThread::addWaitingDataWD( WD *wd ) {
    _waitingDataWDs.push_back( wd );
-std::cerr << "Added a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
+//std::cerr << "Added a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
 }
 
 void ClusterThread::setupSignalHandlers() {

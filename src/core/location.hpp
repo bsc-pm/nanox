@@ -5,7 +5,10 @@
 
 using namespace nanos;
 
-inline Location::Location() : _nodeId( (unsigned int) -1 ), _memorySpaceId( ( unsigned int ) -1 ), _socketId( ( unsigned int ) -1 ), _coreId( (unsigned int) -1 ) { }
+//inline Location::Location() : _nodeId( (unsigned int) -1 ), _memorySpaceId( ( unsigned int ) -1 ), _socketId( ( unsigned int ) -1 ), _coreId( (unsigned int) -1 ) { }
+inline Location::Location( unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket) :
+      _clusterNode( clusterNode ), _numaNode( numaNode ), _socket( socket ), _inNumaNode( inNumaNode ), _inSocket( inSocket ) { }
+/*
 inline Location::Location( Location const &l) : _nodeId( l._nodeId ), _memorySpaceId( l._memorySpaceId ), _socketId( l._socketId ), _coreId( l._coreId ) { }
 inline Location &Location::operator=( Location const &l ) {
    _nodeId = l._nodeId;
@@ -14,32 +17,34 @@ inline Location &Location::operator=( Location const &l ) {
    _coreId = l._coreId;
    return *this;
 }
+*/
 
-inline unsigned int Location::getNodeId() const {
-   return _nodeId;
+inline unsigned int Location::getClusterNode() const {
+   return _clusterNode;
 }
-inline void Location::setNodeId( unsigned int nodeId ) {
-   _nodeId = nodeId;
+//inline void Location::setClusterNode( unsigned int clusterNode ) {
+//   _clusterNode = clusterNode;
+//}
+inline unsigned int Location::getNumaNode() const {
+   return _numaNode;
 }
-inline unsigned int Location::getMemorySpaceId() const {
-   return _memorySpaceId;
+//inline void Location::setNumaNode( unsigned int numaNode ) {
+//   _numaNode = numaNode;
+//}
+inline bool Location::isInNumaNode() const {
+   return _inNumaNode;
 }
-inline void Location::setMemorySpaceId( unsigned int memId ) {
-   _memorySpaceId = memId;
+inline unsigned int Location::getSocket() const {
+   return _socket;
 }
-inline unsigned int Location::getSocketId() const {
-   return _socketId;
-}
-inline void Location::setSocketId( unsigned int socketId ) {
-   _socketId = socketId;
-}
-inline unsigned int Location::getCoreId() const {
-   return _coreId;
-}
-inline void Location::setCoreId( unsigned int coreId ) {
-   _coreId = coreId;
+//inline void Location::setSocket( unsigned int socket ) {
+//   _socket = socket;
+//}
+inline bool Location::isInSocket() const {
+   return _inSocket;
 }
 
+/*
 inline LocationDirectory::LocationDirectory() : _locations() { }
 inline void LocationDirectory::initialize( unsigned int numLocs ) {
    _locations.reserve( numLocs );
@@ -47,5 +52,6 @@ inline void LocationDirectory::initialize( unsigned int numLocs ) {
 inline Location &LocationDirectory::operator[]( unsigned int locationId ) {
    return _locations[ locationId ];
 }
+*/
 
 #endif /* LOCATION_H */

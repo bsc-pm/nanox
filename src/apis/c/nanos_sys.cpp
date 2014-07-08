@@ -86,7 +86,7 @@ NANOS_API_DEF(nanos_err_t, nanos_finish, ())
 NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
 {
    try {
-      sys.getSMPPlugin()->setCurrentSocket( socket );
+      sys.setUserDefinedNUMANode( socket );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -97,7 +97,7 @@ NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
 NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
 {
    try {
-      *num_sockets = sys.getSMPPlugin()->getNumAvailSockets();
+      *num_sockets = sys.getNumNumaNodes();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

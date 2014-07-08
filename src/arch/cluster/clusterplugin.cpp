@@ -71,24 +71,20 @@ void ClusterPlugin::init()
    sys.getNetwork()->setGpuPresend(this->getGpuPresend() );
    sys.getNetwork()->setSmpPresend(this->getSmpPresend() );
 
-   this->setExtraPEsCount( 1 ); // We will use 1 paraver thread only to represent the soft-threads and the container. (extrae_get_thread_num must be coded acordingly
-   sys.getNetwork()->setExtraPEsCount(this->getExtraPEsCount() );
-
-   if ( _gasnetApi.getNodeNum() == 0 ) {
-      _nodes = NEW std::vector<nanos::ext::ClusterNode *>(_gasnetApi.getNumNodes(), (nanos::ext::ClusterNode *) NULL); 
-      for ( unsigned int nodeC = 1; nodeC < _gasnetApi.getNumNodes(); nodeC++ ) {
-         memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, true /* nanos::ext::ClusterInfo::getAllocWide() */ );
-         SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
-         nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) _gasnetApi.getSegmentAddr( nodeC ), _gasnetApi.getSegmentLen( nodeC ) ) );
-         nodeMemory.setNodeNumber( nodeC );
-
-         nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id );
-         //CPU_SET( getBindingId( node->getId() ), &_cpuActiveSet );
-         //_pes.push_back( node );
-         (*_nodes)[ node->getNodeNum() ] = node;
+   if ( _gasnetApi.getNumNodes() > 1 ) {
+      if ( _gasnetApi.getNodeNum() == 0 ) {
+         _nodes = NEW std::vector<nanos::ext::ClusterNode *>(_gasnetApi.getNumNodes(), (nanos::ext::ClusterNode *) NULL); 
+         for ( unsigned int nodeC = 1; nodeC < _gasnetApi.getNumNodes(); nodeC++ ) {
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, true /* nanos::ext::ClusterInfo::getAllocWide() */ );
+            SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
+            nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) _gasnetApi.getSegmentAddr( nodeC ), _gasnetApi.getSegmentLen( nodeC ) ) );
+            nodeMemory.setNodeNumber( nodeC );
+            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id );
+            (*_nodes)[ node->getNodeNum() ] = node;
+         }
       }
+      _cpu = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
    }
-   _cpu = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
 }
 
 void ClusterPlugin::addPinnedSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
@@ -110,40 +106,6 @@ void * ClusterPlugin::getPinnedSegmentAddr( unsigned int idx ) {
 
 std::size_t ClusterPlugin::getPinnedSegmentLen( unsigned int idx ) {
    return _pinnedSegmentLenList[ idx ];
-}
-
-#if 0
-void ClusterPlugin::addSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
-   unsigned int idx;
-   _numSegments = numSegments;
-   _segmentAddrList = NEW void *[ numSegments ];
-   _segmentLenList = NEW std::size_t[ numSegments ];
-
-   for ( idx = 0; idx < numSegments; idx += 1)
-   {
-      _segmentAddrList[ idx ] = segmentAddr[ idx ];
-      _segmentLenList[ idx ] = segmentSize[ idx ];
-   }
-}
-
-void * ClusterPlugin::getSegmentAddr( unsigned int idx ) {
-   return _segmentAddrList[ idx ];
-}
-
-std::size_t ClusterPlugin::getSegmentLen( unsigned int idx ) {
-   return _segmentLenList[ idx ];
-}
-#endif
-
-unsigned int ClusterPlugin::getExtraPEsCount() {
-   return _extraPEsCount;
-}
-
-void ClusterPlugin::setExtraPEsCount( unsigned int num) {
-   _extraPEsCount = num;
-}
-
-void ClusterPlugin::setUpCache() {
 }
 
 std::size_t ClusterPlugin::getNodeMem() {
@@ -240,7 +202,6 @@ void ClusterPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &wo
 }
 
 void ClusterPlugin::finalize() {
-#if 0
    if ( _gasnetApi.getNodeNum() == 0 ) {
       //message0("Master: Created " << createdWds << " WDs.");
       message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
@@ -263,7 +224,6 @@ void ClusterPlugin::finalize() {
       //   message0("Cluster Balance: " << balance );
       //}
    }
-#endif
 }
 
 

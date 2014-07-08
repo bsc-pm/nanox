@@ -25,13 +25,16 @@
 #include "copydata.hpp"
 #include "system.hpp"
 #include "instrumentation.hpp"
+#include "location.hpp"
 
 using namespace nanos;
 
 
-ProcessingElement::ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId ) : 
+ProcessingElement::ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId,
+   unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
+   Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
    _id ( sys.nextPEId() ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ),
-   _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
+   _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ) {}
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
@@ -128,27 +131,6 @@ BaseThread & ProcessingElement::startMultiThread ( WD &work, unsigned int numPEs
 
    return thread;
 }
-
-//BaseThread & ProcessingElement::associateThisThread ( bool untieMain )
-//{
-//   WD & worker = getMasterWD();
-//   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
-//   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
-//   NANOS_INSTRUMENT (icd->setStartingWD(true) );
-//   
-//   BaseThread &thread = createThread( worker );
-//
-//   thread.setMainThread();
-//   thread.associate();
-//
-//   _threads.push_back( &thread );
-//
-//   if ( !untieMain ) {
-//      worker.tieTo(thread);
-//   }
-//
-//   return thread;
-//}
 
 void ProcessingElement::stopAllThreads ()
 {

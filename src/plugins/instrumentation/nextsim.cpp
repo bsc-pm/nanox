@@ -502,4 +502,4 @@ class InstrumentationTasksimTracePlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::InstrumentationTasksimTracePlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::InstrumentationTasksimTracePlugin );

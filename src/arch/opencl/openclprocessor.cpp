@@ -1,3 +1,21 @@
+/*************************************************************************************/
+/*      Copyright 2014 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
 
 #include "openclprocessor.hpp"
 #include "openclthread.hpp"
@@ -17,19 +35,20 @@ OpenCLAdapter::~OpenCLAdapter()
 
   errCode = clReleaseCommandQueue( _queue );
   if( errCode != CL_SUCCESS )
-     fatal0( "Unable to release the command queue" );
-
-  errCode = clReleaseContext( _ctx );
+     warning0( "Unable to release the command queue" );
   
-  //Invalid context means it was already released by another thread
-  if( errCode != CL_SUCCESS && errCode != CL_INVALID_CONTEXT){
-     fatal0( "Unable to release the context" );
-  }
   for( ProgramCache::iterator i = _progCache.begin(),
                               e = _progCache.end();
                               i != e;
                               ++i )
     clReleaseProgram( i->second );
+
+  errCode = clReleaseContext( _ctx );
+  
+  //Invalid context means it was already released by another thread
+  if( errCode != CL_SUCCESS && errCode != CL_INVALID_CONTEXT){
+     warning0( "Unable to release the context" );
+  }
 }
 
 void OpenCLAdapter::initialize(cl_device_id dev)
@@ -39,8 +58,8 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _dev = dev;
    
    //Save OpenCL device type
-   cl_device_type devType;
-   clGetDeviceInfo( _dev, CL_DEVICE_TYPE, sizeof( cl_device_type ),&devType, NULL );
+   //cl_device_type devType;
+   //clGetDeviceInfo( _dev, CL_DEVICE_TYPE, sizeof( cl_device_type ),&devType, NULL );
    //_useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
    _useHostPtrs= false;
    
@@ -172,7 +191,7 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
    if (_sizeCache.count(devAddr)!=0 && baseAddress!=devAddr && baseAddress!= 0 )  {
        freeAddr((void*)devAddr);
    }
-   
+
    
    size_t old_size=_sizeCache[baseAddress];       
    parentBuf=_bufCache[std::make_pair(baseAddress,old_size)];
@@ -214,15 +233,16 @@ cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
        cl_int errCode;
        NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_SUBBUFFER_EVENT );
        cl_buffer_region regInfo;
-       regInfo.origin=devAddr;
+       regInfo.origin=devAddr-ALLOCATOR_START_ADDR;
        regInfo.size=size;
        cl_mem buf = clCreateSubBuffer(parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
        _bufCache[std::make_pair(devAddr,size)]=buf;
-       _sizeCache[devAddr]=size;
+       _sizeCache[devAddr]=size;      
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-       if (errCode != CL_SUCCESS) {      
+       if (errCode != CL_SUCCESS) {  
+           warning("Error when creating subBuffer from preallocated memory " << errCode);
            return NULL;
        }    
 
@@ -947,7 +967,7 @@ void  OpenCLAdapter::waitForEvents(){
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
 OpenCLProcessor::OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem ) :
-   ProcessingElement( &OpenCLDev, NULL, memId ),
+   ProcessingElement( &OpenCLDev, NULL, memId, 0 /* local node */, 0 /* FIXME: numa */, true, 0 /* socket: n/a? */, false ),
    _core( core ),
    _openclAdapter(),
    _cache( _openclAdapter ),

@@ -42,7 +42,7 @@ ClusterDevice::ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {
 ClusterDevice::~ClusterDevice() {
 }
 
-void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr ) const {
+void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const {
    void *retAddr = NULL;
 
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();

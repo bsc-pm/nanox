@@ -59,7 +59,7 @@ void utilInit ( void * )
          if ( name.compare(0,9,"libnanox-") == 0 && name.compare( name.size()-3,3,".so" ) == 0 ) {
             //Check if the library has the symbol NanosXPlugin
             handle = dlopen( (std::string(PLUGIN_DIR) + std::string("/") + name).c_str(), RTLD_LOCAL | RTLD_LAZY);
-            iptr = (int *)dlsym(handle, "NanosXPlugin");
+            iptr = (int *)dlsym(handle, "NanosXPluginFactory");
             if (iptr!=NULL){
                 name.erase( name.size()-3 );
                 name.erase( 0, std::string("libnanox-").size() );

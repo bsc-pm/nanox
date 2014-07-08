@@ -79,7 +79,7 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr("")
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes()
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -90,6 +90,8 @@ System::System () :
       , _createLocalTasks( false )
       , _verboseDevOps( false )
       , _splitOutputForThreads( false )
+      , _userDefinedNUMANode( -1 )
+      , _hwloc()
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -364,6 +366,8 @@ void System::config ()
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
+   
+   _hwloc.config( cfg );
 
    verbose0 ( "Reading Configuration" );
 
@@ -372,6 +376,8 @@ void System::config ()
 
 void System::start ()
 {
+   _hwloc.loadHwloc();
+   
    // Modules can be loaded now
    loadModules();
 
@@ -415,7 +421,43 @@ void System::start ()
    {
       verbose0("addPEs for arch: " << (*it)->getName()); 
       (*it)->addPEs( _pes );
-   }   
+   }
+
+   
+   
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      _clusterNodes.insert( it->second->getClusterNode() );
+      if ( it->second->isInNumaNode() ) {
+         // Add the node of this PE to the set of used NUMA nodes
+         unsigned node = it->second->getNumaNode() ;
+         _numaNodes.insert( node );
+      }
+   }
+   
+   // gmiranda: was completeNUMAInfo() We must do this after the
+   // previous loop since we need the size of _numaNodes
+   
+   unsigned availNUMANodes = 0;
+   // Create the NUMA node translation table. Do this before creating the team,
+   // as the schedulers might need the information.
+   _numaNodeMap.resize( _numaNodes.size(), INT_MIN );
+   
+   for ( std::set<unsigned int>::const_iterator it = _numaNodes.begin();
+        it != _numaNodes.end(); ++it )
+   {
+      unsigned node = *it;
+      // If that node has not been translated, yet
+      if ( _numaNodeMap[ node ] == INT_MIN )
+      {
+         verbose0( "[NUMA] Mapping from physical node " << node << " to user node " << availNUMANodes );
+         _numaNodeMap[ node ] = availNUMANodes;
+         // Increase the number of available NUMA nodes
+         ++availNUMANodes;
+      }
+      // Otherwise, do nothing
+   }
+   ensure0( _numaNodeMap.size() == _numaNodes.size(), "Virtual NUMA node translation table and node set do not match" );
+   verbose0( "[NUMA] " << availNUMANodes << " NUMA node(s) available for the user." );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it )
@@ -430,11 +472,11 @@ void System::start ()
    }   
 
    // For each plugin, notify it's the way to reserve PEs if they are required
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it )
-   {
-      (*it)->createBindingList();
-   }   
+   //for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+   //     it != _archs.end(); ++it )
+   //{
+   //   (*it)->createBindingList();
+   //}   
 
    _targetThreads = _smpPlugin->getNumThreads();
 
@@ -529,14 +571,8 @@ void System::finish ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
 
-   verbose ( "NANOS++ statistics");
-   verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
-
    verbose ( "NANOS++ shutting down.... init" );
 
-   if (sys.getNetwork()->getNodeNum() > 0) {
-      std::cerr << " Thd wd has id " << myThread->getCurrentWD()->getId() << std::endl;
-   }
    //! \note waiting for remaining tasks
    myThread->getCurrentWD()->waitCompletion( true );
 
@@ -549,12 +585,51 @@ void System::finish ()
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
-   for ( unsigned p = 0; p < _pes.size() ; p++ ) {
-      _pes[p]->stopAllThreads();
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      it->second->stopAllThreads();
    }
    verbose ( "...thread has been joined" );
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
+
+   verbose ( "NANOS++ statistics");
+   verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
+
+   sys.getNetwork()->nodeBarrier();
+
+   for ( unsigned int nodeCount = 0; nodeCount < sys.getNetwork()->getNumNodes(); nodeCount += 1 ) {
+      if ( sys.getNetwork()->getNodeNum() == nodeCount ) {
+         for ( ArchitecturePlugins::const_iterator it = _archs.begin(); it != _archs.end(); ++it )
+         {
+            (*it)->finalize();
+         }
+#ifdef CLUSTER_DEV
+         if ( _net.getNodeNum() == 0 && usingCluster() ) {
+            //message0("Master: Created " << createdWds << " WDs.");
+            //message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
+            //int soft_inv = 0;
+            //int hard_inv = 0;
+
+            //#ifdef OpenCL_DEV
+            //      if ( _opencls ) {
+            //         soft_inv = 0;
+            //         hard_inv = 0;
+            //         for ( unsigned int idx = 1; idx < _opencls->size(); idx += 1 ) {
+            //            soft_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
+            //            hard_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
+            //            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+            //            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+            //            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+            //         }
+            //      }
+            //      message0("OpenCLs Soft invalidations: " << soft_inv);
+            //      message0("OpenCLs Hard invalidations: " << hard_inv);
+            //#endif
+         }
+#endif
+      }
+      sys.getNetwork()->nodeBarrier();
+   }
 
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
@@ -592,8 +667,10 @@ void System::finish ()
    delete team;
 
    //! \note deleting processing elements (but main pe)
-   for ( unsigned p = 1; p < _pes.size() ; p++ ) {
-      delete _pes[p];
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+      if ( it->first != (unsigned int)myThread->runningOn()->getId() ) {
+         delete it->second;
+      }
    }
    
    //! \note unload modules
@@ -603,83 +680,16 @@ void System::finish ()
    delete _dependenciesManager;
 
    //! \note deleting last processing element
-   delete _pes[0];
+   delete _pes[ myThread->runningOn()->getId() ];
 
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
 
    verbose0 ( "NANOS++ shutting down.... end" );
-   sys.getNetwork()->nodeBarrier();
-
-#ifdef CLUSTER_DEV
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin(); it != _archs.end(); ++it )
-   {
-      if ( ::strcmp( (*it)->getName(), "Cluster PE Plugin") == 0 ) {
-         (*it)->finalize();
-      }
-   }
-   if ( _net.getNodeNum() == 0 && usingCluster() ) {
-      //message0("Master: Created " << createdWds << " WDs.");
-      //message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
-      //int soft_inv = 0;
-      //int hard_inv = 0;
-      //#ifdef CLUSTER_DEV
-      //unsigned int max_execd_wds = 0;
-      //if ( _nodes ) {
-      //   for ( unsigned int idx = 1; idx < _nodes->size(); idx += 1 ) {
-      //      soft_inv += _separateAddressSpaces[(*_nodes)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
-      //      hard_inv += _separateAddressSpaces[(*_nodes)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
-      //      max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-      //      //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-      //      //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-      //   }
-      //}
-      //message0("Cluster Soft invalidations: " << soft_inv);
-      //message0("Cluster Hard invalidations: " << hard_inv);
-      //if ( max_execd_wds > 0 ) {
-      //   float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
-      //   message0("Cluster Balance: " << balance );
-      //}
-      //#endif
-//#ifdef GPU_DEV
-//      if ( _gpus ) {
-//         soft_inv = 0;
-//         hard_inv = 0;
-//         for ( unsigned int idx = 1; idx < _gpus->size(); idx += 1 ) {
-//            soft_inv += _separateAddressSpaces[(*_gpus)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
-//            hard_inv += _separateAddressSpaces[(*_gpus)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
-//            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-//         }
-//      }
-//      message0("GPUs Soft invalidations: " << soft_inv);
-//      message0("GPUs Hard invalidations: " << hard_inv);
-//#endif
-      
-//#ifdef OpenCL_DEV
-//      if ( _opencls ) {
-//         soft_inv = 0;
-//         hard_inv = 0;
-//         for ( unsigned int idx = 1; idx < _opencls->size(); idx += 1 ) {
-//            soft_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getSoftInvalidationCount();
-//            hard_inv += _separateAddressSpaces[(*_opencls)[idx]->getMemorySpaceId()]->getHardInvalidationCount();
-//            //max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-//         }
-//      }
-//      message0("OpenCLs Soft invalidations: " << soft_inv);
-//      message0("OpenCLs Hard invalidations: " << hard_inv);
-//#endif
-   }
-#endif
-
-   _net.finalize();
-
    //! \note printing execution summary
    if ( _summary ) executionSummary();
 
+   _net.finalize(); //this can call exit (because of GASNet)
 }
 
 /*! \brief Creates a new WD
@@ -839,12 +849,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    if ( slicer ) wd->setSlicer(slicer);
 
    // Set WD's socket
-   wd->setSocket( _smpPlugin->getCurrentSocket() );
+   wd->setNUMANode( sys.getUserDefinedNUMANode() );
    
    // Set total size
    wd->setTotalSize(total_size );
    
-   if ( _smpPlugin->getCurrentSocket() >= _smpPlugin->getNumSockets() )
+   if ( wd->getNUMANode() >= (int)sys.getNumNumaNodes() )
       throw NANOS_INVALID_PARAM;
 
    // All the implementations for a given task will have the same ID
@@ -1387,7 +1397,7 @@ void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t 
             cd.setDimensions( &dim );
             cd.setNumDimensions( 1 );
             global_reg_t reg;
-            getHostMemory().getRegionId( cd, reg );
+            getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
             reg.setOwnedMemory(loc);
            //not really needed.., *it->registerOwnedMemory( reg );
          }
@@ -1407,7 +1417,7 @@ void System::stickToProducer(void *addr, std::size_t len) {
       cd.setDimensions( &dim );
       cd.setNumDimensions( 1 );
       global_reg_t reg;
-      getHostMemory().getRegionId( cd, reg );
+      getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
       reg.key->setKeepAtOrigin( true );
    }
 }

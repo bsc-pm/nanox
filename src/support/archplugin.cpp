@@ -35,3 +35,31 @@ unsigned ArchPlugin::getNumHelperPEs() const
 void ArchPlugin::createBindingList()
 {
 }
+
+void ArchPlugin::initialize() {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+}
+void ArchPlugin::finalize() {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+}
+void ArchPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+}
+void ArchPlugin::startSupportThreads() {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+}
+void ArchPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+}
+unsigned int ArchPlugin::getMaxPEs() const {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+   return 0;
+}
+unsigned int ArchPlugin::getNumWorkers() const {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+   return 0;
+}
+unsigned int ArchPlugin::getMaxWorkers() const {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
+   return 0;
+}

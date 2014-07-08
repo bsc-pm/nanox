@@ -15,8 +15,8 @@
 
 namespace nanos {
 
-BaseOps::OwnOp::OwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location ) :
-   _ops( ops ), _reg( reg ), _version( version ), _location( location ) {
+BaseOps::OwnOp::OwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t loc ) :
+   _ops( ops ), _reg( reg ), _version( version ), _location( loc ) {
 }
 
 BaseOps::OwnOp::OwnOp( BaseOps::OwnOp const &op ) :
@@ -31,11 +31,17 @@ BaseOps::OwnOp &BaseOps::OwnOp::operator=( BaseOps::OwnOp const &op ) {
    return *this;
 }
 
-void BaseOps::OwnOp::commitMetadata() const {
-   _reg.setLocationAndVersion( _location, _version );
+void BaseOps::OwnOp::commitMetadata( ProcessingElement *pe ) const {
+   _reg.setLocationAndVersion( pe, _location, _version );
 }
 
-BaseOps::BaseOps( bool delayedCommit ) : _delayedCommit( delayedCommit ), _dataReady( false ), _ownDeviceOps(), _otherDeviceOps(), _amountOfTransferredData( 0 ) {
+BaseOps::BaseOps( ProcessingElement *pe, bool delayedCommit ) : _delayedCommit( delayedCommit )
+   , _dataReady( false )
+   , _pe( pe )
+   , _ownDeviceOps()
+   , _otherDeviceOps()
+   , _amountOfTransferredData( 0 )
+{
 }
 
 BaseOps::~BaseOps() {
@@ -62,7 +68,7 @@ bool BaseOps::isDataReady( WD const &wd, bool inval ) {
          for ( it = _ownDeviceOps.begin(); it != _ownDeviceOps.end(); it++ ) {
             it->_ops->completeCacheOp( /* debug: */ &wd );
             if ( _delayedCommit ) { 
-               it->commitMetadata();
+               it->commitMetadata( _pe );
             }
          }
          _ownDeviceOps.clear();
@@ -95,11 +101,11 @@ std::set< BaseOps::OwnOp > &BaseOps::getOwnOps() {
    return _ownDeviceOps;
 }
 
-void BaseOps::insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t location ) {
-   OwnOp op( ops, reg, version, location );
+void BaseOps::insertOwnOp( DeviceOps *ops, global_reg_t reg, unsigned int version, memory_space_id_t loc ) {
+   OwnOp op( ops, reg, version, loc );
    _ownDeviceOps.insert( op );
    if ( !_delayedCommit ) {
-      op.commitMetadata();
+      op.commitMetadata( _pe );
    }
 }
 
@@ -107,11 +113,16 @@ std::size_t BaseOps::getAmountOfTransferredData() const {
    return _amountOfTransferredData;
 }
 
+ProcessingElement *BaseOps::getPE() const {
+   return _pe;
+}
+
 void BaseOps::addAmountTransferredData( std::size_t amount ) {
    _amountOfTransferredData += amount;
 }
 
-BaseAddressSpaceInOps::BaseAddressSpaceInOps( bool delayedCommit ) : BaseOps( delayedCommit ) , _separateTransfers() {
+BaseAddressSpaceInOps::BaseAddressSpaceInOps( ProcessingElement *pe, bool delayedCommit ) : BaseOps( pe, delayedCommit )
+   , _separateTransfers() {
 }
 
 BaseAddressSpaceInOps::~BaseAddressSpaceInOps() {
@@ -260,7 +271,7 @@ void BaseAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsig
    //reg.setLocationAndVersion( 0, version );
 }
 
-SeparateAddressSpaceInOps::SeparateAddressSpaceInOps( bool delayedCommit, MemSpace<SeparateAddressSpace> &destination ) : BaseAddressSpaceInOps( delayedCommit ), _destination( destination ), _hostTransfers() {
+SeparateAddressSpaceInOps::SeparateAddressSpaceInOps( ProcessingElement *pe, bool delayedCommit, MemSpace<SeparateAddressSpace> &destination ) : BaseAddressSpaceInOps( pe, delayedCommit ), _destination( destination ), _hostTransfers() {
 }
 
 SeparateAddressSpaceInOps::~SeparateAddressSpaceInOps() {
@@ -288,10 +299,13 @@ void SeparateAddressSpaceInOps::copyInputData( MemCacheCopy const& memCopy, WD c
 }
 
 void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   _destination.allocateOutputMemory( reg, version, wd, copyIdx );
+   _destination.allocateOutputMemory( reg, this->getPE(), version, wd, copyIdx );
 }
 
-SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( bool delayedCommit, bool isInval ) : BaseOps( delayedCommit ), _invalidation( isInval ), _transfers() {
+SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( ProcessingElement *pe, bool delayedCommit, bool isInval ) : BaseOps( pe, delayedCommit )
+   , _invalidation( isInval )
+   , _transfers()
+{
 }
 
 SeparateAddressSpaceOutOps::~SeparateAddressSpaceOutOps() {

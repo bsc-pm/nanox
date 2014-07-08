@@ -30,11 +30,11 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
    } while ( version == 0 ); 
 }
 
-void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg ) {
+void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx ) {
    //std::cerr << "Registering CD with addr " << (void *) cd.getBaseAddress() << std::endl;
    //std::cerr << cd << std::endl;
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
-   reg.id = reg.key->obtainRegionId( cd );
+   reg.id = reg.key->obtainRegionId( cd, wd, idx );
    //std::cerr << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
    reg_t master_id = cd.getHostRegionId();
    if ( master_id != 0 ) {
@@ -139,8 +139,8 @@ void SeparateAddressSpace::copyOutputData( SeparateAddressSpaceOutOps &ops, glob
    _cache.copyOutputData( ops, reg, version, output, policy, chunk, wd, copyIdx );
 }
 
-void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   _cache.allocateOutputMemory( reg, version, wd, copyIdx );
+void SeparateAddressSpace::allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   _cache.allocateOutputMemory( reg, pe, version, wd, copyIdx );
 }
 
 RegionCache &SeparateAddressSpace::getCache() {

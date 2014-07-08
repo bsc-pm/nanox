@@ -271,8 +271,6 @@ namespace nanos {
          void setSmpPresend(int p);
          int getGpuPresend() const;
          int getSmpPresend() const;
-         int getExtraPEsCount() const;
-         void setExtraPEsCount( int e) ;
    };
 }
 

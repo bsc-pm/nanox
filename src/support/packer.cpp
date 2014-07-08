@@ -1,6 +1,7 @@
 
 #include "packer_decl.hpp"
 #include "system.hpp"
+#include "printbt_decl.hpp"
 
 #include <iostream>
 
@@ -74,6 +75,7 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
 #endif
    if ( result == NULL ) {
       std::cerr << "Error: could not get a memory area to pack data. Requested " << ( len*count) << " bytes, capacity " << _allocator->getCapacity() << " bytes."<< std::endl;
+      printBt(std::cerr);
    }
    //std::cerr <<"pack returrns "<<  result << std::endl;
    return result;

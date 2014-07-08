@@ -236,14 +236,14 @@ inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateAr
 inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() const { return _translateArgs; }
 
 //inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() { return _translateArgs; }
-inline int WorkDescriptor::getSocket() const
+inline int WorkDescriptor::getNUMANode() const
 {
-   return _socket;
+   return _numaNode;
 }
 
-inline void WorkDescriptor::setSocket( int socket )
+inline void WorkDescriptor::setNUMANode( int node )
 {
-   _socket = socket;
+   _numaNode = node;
 }
 
 inline unsigned int WorkDescriptor::getWakeUpQueue() const

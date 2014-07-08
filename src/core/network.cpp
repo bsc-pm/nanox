@@ -696,7 +696,7 @@ void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::siz
 
    if ( reg.isRegistered() ) {
       if ( reg.getFirstLocation() != 0 ) {
-         reg.setLocationAndVersion( 0, reg.getVersion() );
+         reg.setLocationAndVersion( NULL, 0, reg.getVersion() );
       }
    }
 }
@@ -707,7 +707,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
 
    if ( thisReg.isRegistered() ) {
       if ( thisReg.getFirstLocation() != 0 ) {
-         SeparateAddressSpaceOutOps outOps( false, false );
+         SeparateAddressSpaceOutOps outOps( myThread->runningOn(), false, false );
 
          std::list< std::pair< reg_t, reg_t > > missingParts;
          unsigned int version = 0;
@@ -797,7 +797,7 @@ void GetRequestStrided::clear() {
 
 void Network::notifyRegionMetaData( CopyData *cd ) {
    global_reg_t reg;
-   sys.getHostMemory().getRegionId( *cd, reg );
+   sys.getHostMemory().getRegionId( *cd, reg, *((WD *)0), 0 );
 }
 
 void Network::addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize ) {
@@ -838,10 +838,4 @@ int Network::getGpuPresend() const {
 
 int Network::getSmpPresend() const {
    return _smpPresend;
-}
-void Network::setExtraPEsCount(int e) {
-   _extraPEs = e;
-}
-int Network::getExtraPEsCount() const {
-   return _extraPEs;
 }

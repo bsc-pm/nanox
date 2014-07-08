@@ -56,11 +56,6 @@ ult_sources= \
    $(END)
 
 
-if HWLOC
-hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@
-hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc
-endif
-
 ult_flags=-DSMP_SUPPORTS_ULT
 
 smp_numa_flags=-DSMP_NUMA
@@ -94,19 +89,19 @@ noinst_LTLIBRARIES += debug/libsmp.la
 debug_LTLIBRARIES = debug/libnanox-pe-smp.la
 debug_LTLIBRARIES += debug/libnanox-pe-smp-numa.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(smp_ult_flags) $(hwloc_cxxflags)
+nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(smp_ult_flags)
 
 debug_libsmp_la_CXXFLAGS=$(nanos_debug_cxxflags)
 debug_libsmp_la_CCASFLAGS=$(nanos_debug_cxxflags)
 debug_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 debug_libnanox_pe_smp_la_CXXFLAGS=$(nanos_debug_cxxflags)
-debug_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_ldflags)
+debug_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags)
 debug_libnanox_pe_smp_la_LIBADD=$(common_libadd)
 debug_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 
 debug_libnanox_pe_smp_numa_la_CXXFLAGS=$(nanos_debug_cxxflags) $(smp_numa_flags)
-debug_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_cxxflags)
+debug_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags)
 debug_libnanox_pe_smp_numa_la_LIBADD=$(common_libadd)
 debug_libnanox_pe_smp_numa_la_SOURCES=$(pe_smp_sources)
 endif
@@ -116,19 +111,19 @@ noinst_LTLIBRARIES += instrumentation/libsmp.la
 instrumentation_LTLIBRARIES = instrumentation/libnanox-pe-smp.la
 instrumentation_LTLIBRARIES += instrumentation/libnanox-pe-smp-numa.la
 
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(smp_ult_flags) $(hwloc_cxxflags)
+nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(smp_ult_flags)
 
 instrumentation_libsmp_la_CXXFLAGS=$(nanos_instr_cxxflags)
 instrumentation_libsmp_la_CCASFLAGS=$(nanos_instr_cxxflags)
 instrumentation_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 instrumentation_libnanox_pe_smp_la_CXXFLAGS=$(nanos_instr_cxxflags)
-instrumentation_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_cxxflags)
+instrumentation_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags)
 instrumentation_libnanox_pe_smp_la_LIBADD=$(common_libadd)
 instrumentation_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 
 instrumentation_libnanox_pe_smp_numa_la_CXXFLAGS=$(nanos_instr_cxxflags) $(smp_numa_flags)
-instrumentation_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_cxxflags)
+instrumentation_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags)
 instrumentation_libnanox_pe_smp_numa_la_LIBADD=$(common_libadd)
 instrumentation_libnanox_pe_smp_numa_la_SOURCES=$(pe_smp_sources)
 endif
@@ -138,19 +133,19 @@ noinst_LTLIBRARIES += instrumentation-debug/libsmp.la
 instrumentation_debug_LTLIBRARIES = instrumentation-debug/libnanox-pe-smp.la
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-pe-smp-numa.la
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(smp_ult_flags) $(hwloc_cxxflags)
+nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(smp_ult_flags)
 
 instrumentation_debug_libsmp_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
 instrumentation_debug_libsmp_la_CCASFLAGS=$(nanos_instrdebug_cxxflags)
 instrumentation_debug_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 instrumentation_debug_libnanox_pe_smp_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
-instrumentation_debug_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_cxxflags)
+instrumentation_debug_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags)
 instrumentation_debug_libnanox_pe_smp_la_LIBADD=$(common_libadd)
 instrumentation_debug_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 
 instrumentation_debug_libnanox_pe_smp_numa_la_CXXFLAGS=$(nanos_instrdebug_cxxflags) $(smp_numa_flags)
-instrumentation_debug_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_cxxflags)
+instrumentation_debug_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags)
 instrumentation_debug_libnanox_pe_smp_numa_la_LIBADD=$(common_libadd)
 instrumentation_debug_libnanox_pe_smp_numa_la_SOURCES=$(pe_smp_sources)
 endif
@@ -160,19 +155,19 @@ noinst_LTLIBRARIES += performance/libsmp.la
 performance_LTLIBRARIES = performance/libnanox-pe-smp.la
 performance_LTLIBRARIES += performance/libnanox-pe-smp-numa.la
 
-nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(smp_ult_flags) $(hwloc_cxxflags)
+nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(smp_ult_flags)
 
 performance_libsmp_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 performance_libsmp_la_CCASFLAGS=$(nanos_perfo_cxxflags)
 performance_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 performance_libnanox_pe_smp_la_CXXFLAGS=$(nanos_perfo_cxxflags)
-performance_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_cxxflags)
+performance_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags)
 performance_libnanox_pe_smp_la_LIBADD=$(common_libadd)
 performance_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 
 performance_libnanox_pe_smp_numa_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(smp_numa_flags)
-performance_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags) $(hwloc_cxxflags)
+performance_libnanox_pe_smp_numa_la_LDFLAGS=$(ld_plugin_flags)
 performance_libnanox_pe_smp_numa_la_LIBADD=$(common_libadd)
 performance_libnanox_pe_smp_numa_la_SOURCES=$(pe_smp_sources)
 endif

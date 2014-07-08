@@ -179,6 +179,9 @@ virtual unsigned int getMaxWorkers() const {
    return _opencls->size();
 }
 
+virtual void finalize() {
+}      
+
 };
 
 std::string OpenCLPlugin::_devTy = "ALL";

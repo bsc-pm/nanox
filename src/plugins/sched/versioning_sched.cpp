@@ -1263,5 +1263,4 @@ namespace ext
 }
 
 
-nanos::ext::VersioningSchedPlugin NanosXPlugin;
-
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::VersioningSchedPlugin );

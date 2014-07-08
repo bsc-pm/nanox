@@ -42,20 +42,20 @@ void OpenCLCache::initialize() {
     if (_devCacheSize <= 100)
         _devCacheSize = (size_t)((double)_openclAdapter.getGlobalSize()*_devCacheSize/100);
 
-    
+            
     //If device is not a CPU (aka shared memory, allocate the whole memory)
     if (_openclAdapter.getPreallocatesWholeMemory()){
         if (_openclAdapter.allocBuffer(_devCacheSize,NULL, _mainBuffer) != CL_SUCCESS)
-            fatal0("Not enough memory available on device to allocate requested memory size");
+            fatal("Not enough memory available on device to allocate requested memory size");
     } else {
         _mainBuffer=NULL;
     }
 
     // Initialize the device allocator.
-    _devAllocator.init(4 , _devCacheSize);
+    _devAllocator.init(ALLOCATOR_START_ADDR, _devCacheSize);
 }
 
-void *OpenCLCache::allocate(size_t size, uint64_t tag) {
+void *OpenCLCache::allocate(size_t size, uint64_t tag, uint64_t offset) {
     //Shared memory buffers are already allocated
     //We only need to search for them with tag +1 (they are internally stored in different address)
     if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) tag, size)){
@@ -65,17 +65,18 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag) {
         //}
         return (void*)(tag);
     } else {
+        //Create the buffer
+        size=size+offset;
         _devAllocator.lock();
         void* addr=(void*) _devAllocator.allocate(size);
         _devAllocator.unlock();
         if (addr==NULL) return NULL;
-        //Create the buffer
         cl_mem buf=_openclAdapter.createBuffer(_mainBuffer,(size_t)addr,size,(void*)tag);
-        if (buf==NULL){
+        if (buf==NULL){    
             return NULL;
         }
         
-        return addr;
+        return (void*)((uint64_t)addr+offset);
     }
 }
 
@@ -83,7 +84,7 @@ void *OpenCLCache::reallocate(void * addr, size_t size, size_t ceSize) {
    
     free(addr);
 
-    return allocate(size, (uint64_t) addr);
+    return allocate(size, (uint64_t) addr, 0);
 }
 
 void OpenCLCache::free(void * addr) {
