@@ -53,7 +53,7 @@ int main()
     unsigned int nanos_num_threads = nanos_omp_get_num_threads_next_parallel(0);
     nanos_team_t nanos_team = (nanos_team_t)0;
     nanos_thread_t nanos_team_threads[nanos_num_threads];
-    err = nanos_create_team(&nanos_team, (nanos_sched_t)0, &nanos_num_threads, (nanos_constraint_t *)0, 1, nanos_team_threads);
+    err = nanos_create_team(&nanos_team, (nanos_sched_t)0, &nanos_num_threads, (nanos_constraint_t *)0, 1, nanos_team_threads, NULL );
     if (err != NANOS_OK)
       {
         nanos_handle_error(err);
