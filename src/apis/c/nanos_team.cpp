@@ -50,7 +50,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
 {
    unsigned i = 0;
 
-   nanos_const_wd_definition_internal_t *const_data = reinterpret_cast<nanos_const_wd_definition_internal_t*>(const_data_ext);
+   NANOS_INSTRUMENT( nanos_const_wd_definition_internal_t *const_data = reinterpret_cast<nanos_const_wd_definition_internal_t*>(const_data_ext); )
 
    NANOS_INSTRUMENT( static Instrumentation *INS = sys.getInstrumentation(); )
    NANOS_INSTRUMENT( static InstrumentationDictionary *ID = INS->getInstrumentationDictionary(); )
