@@ -46,9 +46,11 @@ using namespace nanos;
  *  \sa ThreadTeam
  */
 NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
-                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info /*, void *outline FIXME:222 */ ))
+                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info, nanos_const_wd_definition_t *const_data_ext ))
 {
    unsigned i = 0;
+
+   nanos_const_wd_definition_internal_t *const_data = reinterpret_cast<nanos_const_wd_definition_internal_t*>(const_data_ext);
 
    NANOS_INSTRUMENT( static Instrumentation *INS = sys.getInstrumentation(); )
    NANOS_INSTRUMENT( static InstrumentationDictionary *ID = INS->getInstrumentationDictionary(); )
@@ -61,7 +63,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
    NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], threads_key, (nanos_event_value_t ) *nthreads ); )
-   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) /*outline FIXME:222*/ -1 ); )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) const_data->devices[0].arg ); )
    NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
