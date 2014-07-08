@@ -350,7 +350,7 @@ namespace nanos {
                   
                   // FIXME
                   tdata._next = ( winner+1 ) % sys.getNumNumaNodes();
-                  fprintf(stderr, "[socket] WD %d (%s) is init task, assigned to NUMA node %d\n", wd.getId(), wd.getDescription(), winner );
+                  //fprintf(stderr, "[socket] WD %d (%s) is init task, assigned to NUMA node %d\n", wd.getId(), wd.getDescription(), winner );
                   //fprintf( stderr, "[socket] Round.robbin next = %d\n", tdata._next.value() );
                }
                else
@@ -550,7 +550,7 @@ namespace nanos {
                      break;
                   case 1:
                      // If a node was not selected
-                     if ( wd.getNUMANode() == -1 )
+                     if ( !_useCopies && wd.getNUMANode() == -1 )
                         // Go to the general queue
                         index = 0;
                      // Otherwise, do the usual stuff.
