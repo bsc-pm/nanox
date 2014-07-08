@@ -224,7 +224,7 @@ NANOS_API_DECL(nanos_err_t, nanos_set_final, ( bool value ));
 // Team related functions
 
 NANOS_API_DECL(nanos_err_t, nanos_create_team,(nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
-                              nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info));
+                              nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info /*, void *outline = (void *) -1 FIXME:222*/ ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_team_mapped, (nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads, unsigned int *mapping));
 

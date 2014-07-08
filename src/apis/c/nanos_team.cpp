@@ -46,7 +46,7 @@ using namespace nanos;
  *  \sa ThreadTeam
  */
 NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
-                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info ))
+                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info /*, void *outline FIXME:222 */ ))
 {
    unsigned i = 0;
 
@@ -55,11 +55,13 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    NANOS_INSTRUMENT( static nanos_event_key_t api_key = ID->getEventKey("api"); )
    NANOS_INSTRUMENT( static nanos_event_value_t api_value = ID->getEventValue("api","create_team"); )
    NANOS_INSTRUMENT( static nanos_event_key_t threads_key = ID->getEventKey("set-num-threads"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t parallel_ol_key = ID->getEventKey("parallel-outline-fct"); )
 
-   NANOS_INSTRUMENT( Instrumentation::Event events[3]; )
+   NANOS_INSTRUMENT( Instrumentation::Event events[4]; )
    NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
    NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], threads_key, (nanos_event_value_t ) *nthreads ); )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) /*outline FIXME:222*/ -1 ); )
    NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {

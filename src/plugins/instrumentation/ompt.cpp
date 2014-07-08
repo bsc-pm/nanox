@@ -296,6 +296,7 @@ namespace nanos
             static const nanos_event_key_t set_num_threads = iD->getEventKey("set-num-threads");
             static const nanos_event_value_t api_create_team = iD->getEventValue("api","create_team");
             static const nanos_event_value_t api_end_team = iD->getEventValue("api","end_team");
+            static const nanos_event_key_t parallel_outline = iD->getEventKey("parallel-outline-fct");
 
             unsigned int i;
             for( i=0; i<count; i++) {
@@ -328,13 +329,16 @@ namespace nanos
                      {
                         nanos_event_value_t val = e.getValue();
 
-                        if ( val == api_create_team && ompt_nanos_event_parallel_begin )
-                        {
+                        if ( val == api_create_team && ompt_nanos_event_parallel_begin ) {
                            uint32_t team_size = 0;
+                           void *parallel_fct = NULL;
                            while ( i < count ) {
                               Event &e1 = events[++i];
                               if ( e1.getKey() == set_num_threads ) {
                                  team_size = (uint32_t) e1.getValue();
+                              }
+                              else if ( e1.getKey() == parallel_outline ) {
+                                 parallel_fct = (void *) e1.getValue();
                                  break;
                               }
                            }
@@ -344,11 +348,9 @@ namespace nanos
                                  (ompt_frame_t) NULL,    // FIXME: frame data of parent task
                                  (ompt_parallel_id_t) 0, // FIXME: parallel_id
                                  (uint32_t) team_size,
-                                 (void *) NULL           // FIXME: outlined function
+                                 (void *) parallel_fct   // FIXME: outlined function
                                  );
-                        }
-                        else if ( val == api_end_team && ompt_nanos_event_parallel_end )
-                        {
+                        } else if ( val == api_end_team && ompt_nanos_event_parallel_end ) {
                            ompt_nanos_event_parallel_end (
                                  (ompt_parallel_id_t) 0, // FIXME: parallel_id
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );

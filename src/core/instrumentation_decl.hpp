@@ -599,6 +599,7 @@ namespace nanos {
 
             /* 49 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
             /* 50 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+            /* 51 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
