@@ -99,7 +99,6 @@ class GPUPlugin : public ArchPlugin
       int getNumaNodeOfGPU( int gpuId ) {
          // Is NUMA info is available
          int node = -1;
-         bool numa = true;
          if ( sys._hwloc.isHwlocAvailable() )
          {
             node = sys._hwloc.getNumaNodeOfGpu( gpuId );
@@ -135,7 +134,6 @@ class GPUPlugin : public ArchPlugin
          if ( node < 0 || sys.getSMPPlugin()->getNumSockets() == 1 ) {
             node = 0;
             // As we don't have NUMA info, don't request an specific node
-            numa = false;
          }
          return node;
       }
