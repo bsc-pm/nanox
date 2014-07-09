@@ -1598,7 +1598,7 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
    std::set< AllocatedChunk * > removedChunks; //this is done for debugging purposes, there should not be any duplicates
 
    if ( results.size() > 0 ) {
-      unsigned int count = 0;
+      //unsigned int count = 0;
       for ( ConstChunkList::iterator it = results.begin(); it != results.end(); it++ ) {
          //*(myThread->_file) << count++ << " Invalidate object, chunk:: addr: " << (void *) it->first->getAddress() << " size " << it->first->getLength() << std::endl; 
          //printBt();
