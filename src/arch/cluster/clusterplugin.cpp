@@ -84,6 +84,7 @@ void ClusterPlugin::init()
          }
       }
       _cpu = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
+      _cpu->setNumFutureThreads( 1 );
    }
 }
 

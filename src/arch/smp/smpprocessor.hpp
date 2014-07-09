@@ -45,6 +45,7 @@ namespace ext
          unsigned int _bindingId;
          bool _reserved;
          bool _active;
+         unsigned int _futureThreads;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -81,6 +82,8 @@ namespace ext
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          //virtual void* newGetAddressDependent( CopyData const &cd );
          //virtual bool supportsDirectTransfersWith(ProcessingElement const & pe) const;
+         void setNumFutureThreads( unsigned int nthreads );
+         unsigned int getNumFutureThreads() const;
    };
 
 }

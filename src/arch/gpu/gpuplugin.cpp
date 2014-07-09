@@ -70,6 +70,7 @@ class GPUPlugin : public ArchPlugin
                }
                warning0("Unable to get a cpu on numa node " << node << " to run the CPU thread. Will run on numa node "<< core->getNumaNode());
             }
+            core->setNumFutureThreads( 1 );
             
             //bool reserved;
             //unsigned pe = sys.reservePE( numa, node, reserved );
