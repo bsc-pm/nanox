@@ -63,7 +63,11 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
    NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], threads_key, (nanos_event_value_t ) *nthreads ); )
+   NANOS_INSTRUMENT ( if ( const_data != NULL ) { )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) ((nanos_smp_args_t *)(const_data->devices[0].arg))->outline ); )
+   NANOS_INSTRUMENT ( } else { )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) NULL ) ; )
+   NANOS_INSTRUMENT ( } )
    NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
