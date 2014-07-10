@@ -438,9 +438,12 @@ void System::start ()
    // previous loop since we need the size of _numaNodes
    
    unsigned availNUMANodes = 0;
+   // #994: this should be the number of NUMA objects in hwloc, but if we don't
+   // want to query, this max should be enough
+   unsigned maxNUMANode = _numaNodes.empty() ? 1 : *std::max_element( _numaNodes.begin(), _numaNodes.end() );
    // Create the NUMA node translation table. Do this before creating the team,
    // as the schedulers might need the information.
-   _numaNodeMap.resize( _numaNodes.size(), INT_MIN );
+   _numaNodeMap.resize( maxNUMANode + 1, INT_MIN );
    
    for ( std::set<unsigned int>::const_iterator it = _numaNodes.begin();
         it != _numaNodes.end(); ++it )
@@ -456,7 +459,6 @@ void System::start ()
       }
       // Otherwise, do nothing
    }
-   ensure0( _numaNodeMap.size() == _numaNodes.size(), "Virtual NUMA node translation table and node set do not match" );
    verbose0( "[NUMA] " << availNUMANodes << " NUMA node(s) available for the user." );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
