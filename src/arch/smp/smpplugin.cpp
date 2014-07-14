@@ -338,7 +338,7 @@ class SMPPlugin : public SMPBasePlugin
       }
 
       if ( _requestedWorkers > 0 ) {
-         count = std::min( _requestedWorkers, active_cpus - reserved_cpus );
+         count = std::min( ( _requestedWorkers - 1 /* main thd is already reserved */), active_cpus - reserved_cpus );
       } else {
          count = active_cpus - reserved_cpus;
       }
