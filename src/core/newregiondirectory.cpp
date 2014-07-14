@@ -426,13 +426,11 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
    return *getRegionDictionary( cd );
 }
 
-void NewNewRegionDirectory::synchronize( WD const &wd ) {
+void NewNewRegionDirectory::synchronize( WD &wd ) {
    //std::cerr << "SYNC DIR" << std::endl;
    //int c = 0;
    //print();
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
-   std::set< DeviceOps * > ops;
-   std::set< DeviceOps * > myOps;
    std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
    std::map< uint64_t, std::map< uint64_t, GlobalRegionDictionary * > * > objects_to_clear;
 
@@ -440,10 +438,19 @@ void NewNewRegionDirectory::synchronize( WD const &wd ) {
       HashBucket &hb = *bit;
 
    for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = hb._bobjects.begin(); it != hb._bobjects.end(); it++ ) {
-      //std::cerr << "==================  start object " << ++c << " of " << _objects.size() << "("<< it->second <<") ================="<<std::endl;
+      //std::cerr << "==================  start object " << ++c << "("<< it->second <<") ================="<<std::endl;
       //if ( it->second->getKeepAtOrigin() ) {
       //   std::cerr << "Object " << it->second << " Keep " << std::endl;
       //}
+      if ( sys.getNewTaskwait() ) {
+         if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, it->second ) ) ) {
+            if ( sys.getVerboseCopies() ) {
+               std::ostream &o = (*myThread->_file);
+               o << "Not synchronizing this object! "; it->second->printRegion( o, 1 ); o << std::endl;
+            }
+            continue;
+         }
+      }
       if ( it->second->getKeepAtOrigin() ) continue;
 
       std::list< std::pair< reg_t, reg_t > > missingParts;

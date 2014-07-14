@@ -62,6 +62,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
+                                          copies[i].setRemoteHost( false );
                                        }
                                     }
                                  }
@@ -91,6 +92,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
+                                          copies[i].setRemoteHost( false );
                                        }
                                     }
                                  }
@@ -139,7 +141,7 @@ inline size_t WorkDescriptor::getDataAlignment () const { return _data_align; }
 
 inline void WorkDescriptor::setTotalSize ( size_t size ) { _totalSize = size; }
 
-inline WorkDescriptor * WorkDescriptor::getParent() { return _parent!=NULL?_parent:_forcedParent ; }
+inline WorkDescriptor * WorkDescriptor::getParent() const { return _parent!=NULL?_parent:_forcedParent ; }
 inline void WorkDescriptor::forceParent ( WorkDescriptor * p ) { _forcedParent = p; }
 
 inline WDPool * WorkDescriptor::getMyQueue() { return _myQueue; }

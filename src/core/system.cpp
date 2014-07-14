@@ -89,6 +89,8 @@ System::System () :
       , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false),  _task_max_retries(1), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
       , _createLocalTasks( false )
       , _verboseDevOps( false )
+      , _verboseCopies( false )
+      , _newTaskwait( false )
       , _splitOutputForThreads( false )
       , _userDefinedNUMANode( -1 )
       , _hwloc()
@@ -356,6 +358,12 @@ void System::config ()
 
    cfg.registerConfigOption ( "verbose-devops", NEW Config::FlagOption ( _verboseDevOps, true ), "Verbose cache ops" );
    cfg.registerArgOption ( "verbose-devops", "verbose-devops" );
+   cfg.registerConfigOption ( "verbose-copies", NEW Config::FlagOption ( _verboseCopies, true ), "Verbose data copies" );
+   cfg.registerArgOption ( "verbose-copies", "verbose-copies" );
+
+
+   cfg.registerConfigOption ( "new-taskwait", NEW Config::FlagOption ( _newTaskwait, true ), "New taskwait" );
+   cfg.registerArgOption ( "new-taskwait", "new-taskwait" );
 
    cfg.registerConfigOption ( "thd-output", NEW Config::FlagOption ( _splitOutputForThreads, true ), "Create separate files for each thread" );
    cfg.registerArgOption ( "thd-output", "thd-output" );

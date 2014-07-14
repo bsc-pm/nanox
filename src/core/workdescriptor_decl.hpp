@@ -367,7 +367,7 @@ namespace nanos
           */
          size_t getDataAlignment () const;
 
-         WorkDescriptor * getParent();
+         WorkDescriptor * getParent() const;
 
          void forceParent ( WorkDescriptor * p );
 

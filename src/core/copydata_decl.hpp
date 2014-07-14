@@ -107,6 +107,8 @@ namespace nanos
          void getFitDimensions( nanos_region_dimension_internal_t *outDimensions ) const;
          void setHostRegionId( memory_space_id_t id );
          memory_space_id_t getHostRegionId() const;
+         bool isRemoteHost() const;
+         void setRemoteHost( bool value );
 
       friend std::ostream& operator<< (std::ostream& o, CopyData const &cd);
 
