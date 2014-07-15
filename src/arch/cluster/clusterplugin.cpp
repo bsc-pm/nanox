@@ -126,7 +126,10 @@ System::CachePolicyType ClusterPlugin::getCachePolicy ( void ) {
 }
 
 RemoteWorkDescriptor * ClusterPlugin::getRemoteWorkDescriptor( int archId ) {
-   return NEW RemoteWorkDescriptor( archId );
+   RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( archId );
+   rwd->_mcontrol.preInit();
+   rwd->_mcontrol.initialize( *_cpu );
+   return rwd;
 }
 
 bool ClusterPlugin::getAllocWide() {

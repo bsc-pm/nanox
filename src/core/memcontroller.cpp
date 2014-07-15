@@ -118,7 +118,7 @@ void MemController::preInit( ) {
 
    uint64_t host_copy_addr = 0;
    if ( _wd.getParent() != NULL && !_wd.getParent()->_mcontrol._mainWd ) {
-      for ( unsigned int parent_idx = 0; parent_idx < _wd.getNumCopies(); parent_idx += 1 ) {
+      for ( unsigned int parent_idx = 0; parent_idx < _wd.getParent()->getNumCopies(); parent_idx += 1 ) {
          if ( _wd.getParent()->_mcontrol.getAddress( parent_idx ) == (uint64_t) _wd.getCopies()[ index ].getBaseAddress() ) {
             host_copy_addr = (uint64_t) _wd.getParent()->getCopies()[ parent_idx ].getBaseAddress();
             //std::cerr << "TADAAAA this comes from a father's copy "<< std::hex << host_copy_addr << std::endl;
@@ -178,7 +178,7 @@ void MemController::preInit( ) {
 
 
    if ( _VERBOSE_CACHE ) { 
-      *(myThread->_file) << " (preinit)END OF INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << std::endl;
+      *(myThread->_file) << " (preinit)END OF INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << " &_preinitialized= "<< &_preinitialized<< std::endl;
    }
    _preinitialized = true;
 }
@@ -278,7 +278,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
 }
 
 uint64_t MemController::getAddress( unsigned int index ) const {
-   ensure( _preinitialized == true, "MemController not initialized!");
+   ensure( _preinitialized == true, "MemController not preinitialized!");
    ensure( _initialized == true, "MemController not initialized!");
    uint64_t addr = 0;
    //std::cerr << " _getAddress, reg: " << index << " key: " << (void *)_memCacheCopies[ index ]._reg.key << " id: " << _memCacheCopies[ index ]._reg.id << std::endl;
