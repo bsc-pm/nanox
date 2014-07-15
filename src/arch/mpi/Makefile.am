@@ -77,31 +77,31 @@ performance_LTLIBRARIES =
 install-data-hook:	
 
 	echo -n ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/test_flags
-	echo " -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/test_flags
+	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/test_flags
 	echo $(CXX) > $(DESTDIR)$(mpiincludedir)/nanox_compiler
 if DEBUG_VERSION
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) ${mpi_api_flags}
 	echo -n ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/debug_flags
-	echo " -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/debug_flags
+	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/debug_flags
 endif
 
 if INSTRUMENTATION_VERSION
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) ${mpi_api_flags}
 	echo -n ${nanos_instr_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_flags
-	echo " -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_flags
+	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_flags
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) ${mpi_api_flags}
 	echo -n ${nanos_instrdebug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
-	echo " -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
+	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
 endif
 
 
 if PERFORMANCE_VERSION
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) ${mpi_api_flags}
 	echo  -n ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/performance_flags 
-	echo " -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/performance_flags
+	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/performance_flags
 endif
 
 
