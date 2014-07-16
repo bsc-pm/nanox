@@ -117,7 +117,7 @@ void MemController::preInit( ) {
       //
 
    uint64_t host_copy_addr = 0;
-   if ( _wd.getParent() != NULL && !_wd.getParent()->_mcontrol._mainWd ) {
+   if ( _wd.getParent() != NULL /* && !_wd.getParent()->_mcontrol._mainWd */ ) {
       for ( unsigned int parent_idx = 0; parent_idx < _wd.getParent()->getNumCopies(); parent_idx += 1 ) {
          if ( _wd.getParent()->_mcontrol.getAddress( parent_idx ) == (uint64_t) _wd.getCopies()[ index ].getBaseAddress() ) {
             host_copy_addr = (uint64_t) _wd.getParent()->getCopies()[ parent_idx ].getBaseAddress();
@@ -408,12 +408,7 @@ void MemController::setMainWD() {
 }
 
 void MemController::synchronize() {
-   if ( _mainWd || sys.getNewTaskwait() ) {
-      //std::cerr << "Synchronize this WD " << _wd.getId() << std::endl;
-      sys.getHostMemory().synchronize( _wd );
-   } else {
-      std::cerr << "Synchronize on a non main WD!, it will be considered as 'noflush'." << std::endl;
-   }
+   sys.getHostMemory().synchronize( _wd );
 }
 
 bool MemController::isMemoryAllocated() const {

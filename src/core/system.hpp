@@ -535,10 +535,6 @@ inline bool System::getVerboseCopies() const {
    return _verboseCopies;
 }
 
-inline bool System::getNewTaskwait() const {
-   return _newTaskwait;
-}
-
 inline bool System::getSplitOutputForThreads() const {
    return _splitOutputForThreads;
 }

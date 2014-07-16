@@ -237,7 +237,6 @@ namespace nanos
          bool                      _createLocalTasks;
          bool _verboseDevOps;
          bool _verboseCopies;
-         bool _newTaskwait;
          bool _splitOutputForThreads;
          int _userDefinedNUMANode;
       public:
@@ -612,7 +611,6 @@ namespace nanos
          ThreadTeam *getMainTeam();
          bool getVerboseDevOps() const;
          bool getVerboseCopies() const;
-         bool getNewTaskwait() const;
          bool getSplitOutputForThreads() const;
          RegionCache::CachePolicy getRegionCachePolicy() const;
          void createDependence( WD* pred, WD* succ);

@@ -442,14 +442,12 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       //if ( it->second->getKeepAtOrigin() ) {
       //   std::cerr << "Object " << it->second << " Keep " << std::endl;
       //}
-      if ( sys.getNewTaskwait() ) {
-         if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, it->second ) ) ) {
-            if ( sys.getVerboseCopies() ) {
-               std::ostream &o = (*myThread->_file);
-               o << "Not synchronizing this object! "; it->second->printRegion( o, 1 ); o << std::endl;
-            }
-            continue;
+      if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, it->second ) ) ) {
+         if ( sys.getVerboseCopies() ) {
+            std::ostream &o = (*myThread->_file);
+            o << "Not synchronizing this object! "; it->second->printRegion( o, 1 ); o << std::endl;
          }
+         continue;
       }
       if ( it->second->getKeepAtOrigin() ) continue;
 
