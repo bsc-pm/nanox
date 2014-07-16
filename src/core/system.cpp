@@ -89,6 +89,7 @@ System::System () :
       , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false),  _task_max_retries(1), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
       , _createLocalTasks( false )
       , _verboseDevOps( false )
+      , _verboseCopies( false )
       , _splitOutputForThreads( false )
       , _userDefinedNUMANode( -1 )
       , _hwloc()
@@ -356,6 +357,8 @@ void System::config ()
 
    cfg.registerConfigOption ( "verbose-devops", NEW Config::FlagOption ( _verboseDevOps, true ), "Verbose cache ops" );
    cfg.registerArgOption ( "verbose-devops", "verbose-devops" );
+   cfg.registerConfigOption ( "verbose-copies", NEW Config::FlagOption ( _verboseCopies, true ), "Verbose data copies" );
+   cfg.registerArgOption ( "verbose-copies", "verbose-copies" );
 
    cfg.registerConfigOption ( "thd-output", NEW Config::FlagOption ( _splitOutputForThreads, true ), "Create separate files for each thread" );
    cfg.registerArgOption ( "thd-output", "thd-output" );
@@ -438,9 +441,12 @@ void System::start ()
    // previous loop since we need the size of _numaNodes
    
    unsigned availNUMANodes = 0;
+   // #994: this should be the number of NUMA objects in hwloc, but if we don't
+   // want to query, this max should be enough
+   unsigned maxNUMANode = _numaNodes.empty() ? 1 : *std::max_element( _numaNodes.begin(), _numaNodes.end() );
    // Create the NUMA node translation table. Do this before creating the team,
    // as the schedulers might need the information.
-   _numaNodeMap.resize( _numaNodes.size(), INT_MIN );
+   _numaNodeMap.resize( maxNUMANode + 1, INT_MIN );
    
    for ( std::set<unsigned int>::const_iterator it = _numaNodes.begin();
         it != _numaNodes.end(); ++it )
@@ -456,7 +462,6 @@ void System::start ()
       }
       // Otherwise, do nothing
    }
-   ensure0( _numaNodeMap.size() == _numaNodes.size(), "Virtual NUMA node translation table and node set do not match" );
    verbose0( "[NUMA] " << availNUMANodes << " NUMA node(s) available for the user." );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();

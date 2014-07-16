@@ -531,6 +531,10 @@ inline bool System::getVerboseDevOps() const {
    return _verboseDevOps;
 }
 
+inline bool System::getVerboseCopies() const {
+   return _verboseCopies;
+}
+
 inline bool System::getSplitOutputForThreads() const {
    return _splitOutputForThreads;
 }

@@ -59,11 +59,11 @@ class SMPPlugin : public SMPBasePlugin
    int                          _bindingStride;
    bool                         _bindThreads;
    bool                         _smpPrivateMemory;
+   bool                         _smpAllocWide;
    int                          _smpHostCpus;
    int                          _smpPrivateMemorySize;
    bool                         _workersCreated;
    unsigned int                 _numWorkers; //must be updated if the number of workers increases after calling startWorkerThreads
-   int                          _numThreadsRequestedForSupport;
 
    // Nanos++ scheduling domain
    cpu_set_t                    _cpuSet;          /*!< \brief system's default cpu_set */
@@ -96,11 +96,11 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindingStride( 1 )
                  , _bindThreads( true )
                  , _smpPrivateMemory( false )
-                 , _smpHostCpus( 1 )
+                 , _smpAllocWide( false )
+                 , _smpHostCpus( 0 )
                  , _smpPrivateMemorySize( 256 * 1024 * 1024 ) // 256 Mb
                  , _workersCreated( false )
                  , _numWorkers( 0 )
-                 , _numThreadsRequestedForSupport( 0 )
                  , _cpuActiveSet()
                  , _numSockets( 0 )
                  , _coresPerSocket( 0 )
@@ -152,7 +152,12 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "smp-private-memory", "smp-private-memory" );
       cfg.registerEnvOption( "smp-private-memory", "NX_SMP_PRIVATE_MEMORY" );
 
-      cfg.registerConfigOption( "smp-host-cpus", NEW Config::PositiveVar( _smpHostCpus ),
+      cfg.registerConfigOption( "smp-alloc-wide", NEW Config::FlagOption( _smpAllocWide, true ),
+            "SMP devices use a private memory area." );
+      cfg.registerArgOption( "smp-alloc-wide", "smp-alloc-wide" );
+      cfg.registerEnvOption( "smp-alloc-wide", "NX_SMP_ALLOC_WIDE" );
+
+      cfg.registerConfigOption( "smp-host-cpus", NEW Config::IntegerVar( _smpHostCpus ),
             "When using SMP devices with private memory, set how many CPUs will work with the host memory. Minimum value is 1 (which is also the default)." );
       cfg.registerArgOption( "smp-host-cpus", "smp-host-cpus" );
       cfg.registerEnvOption( "smp-host-cpus", "NX_SMP_HOST_CPUS" );
@@ -264,9 +269,9 @@ class SMPPlugin : public SMPBasePlugin
          
          if ( _smpPrivateMemory && count >= _smpHostCpus ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
-            numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
+            numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             numaMem.setNodeNumber( 0 );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
@@ -291,17 +296,60 @@ class SMPPlugin : public SMPBasePlugin
 
       /* reserve it for main thread */
       getFirstSMPProcessor()->reserve();
+      getFirstSMPProcessor()->setNumFutureThreads( 1 );
    }
 
-   virtual unsigned getPEsInNode( unsigned node ) const
+#if 0
+   virtual unsigned int getPEsInNode( unsigned node ) const
    {
       // TODO (gmiranda): if HWLOC is available, use it.
       return getCoresPerSocket();
    }
+#endif
 
-   virtual unsigned getNumThreads() const
+   virtual unsigned int getEstimatedNumThreads() const {
+      unsigned int count = 0;
+      /* This function is called from getNumThreads() when no threads have been created,
+       * which happens when the instrumentation plugin is initialized. At that point
+       * the arch plugins have been loaded and have discovered the hardware resources
+       * available, but no threads have been created yet.
+       * Threads can not be created because they require the instrumentation plugin to
+       * be correctly initialized (the creation process emits instrumentation events).
+       *
+       * The number of threads computed now is:
+       * "number of smp workers" + "number of support threads"
+       *
+       * The number of smp workers is computed with this:
+       * if a certain number of workers was requested:
+       *    min of "the number of active non-reserved CPUs" and requested workers
+       * else
+       *    "the number of active non-reserved CPUs"
+       *
+       * The number of support threads is computed with this:
+       * sum of "future threads" of each reserved cpu
+       */
+      int active_cpus = 0;
+      int reserved_cpus = 0;
+      int future_threads = 0; /* this is the amount of threads that the devices say they will create on reserved cpus */
+      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         active_cpus += (*it)->isActive();
+         reserved_cpus += (*it)->isReserved();
+         future_threads += (*it)->isReserved() ? (*it)->getNumFutureThreads() : 0;
+      }
+
+      if ( _requestedWorkers > 0 ) {
+         count = std::min( ( _requestedWorkers - 1 /* main thd is already reserved */), active_cpus - reserved_cpus );
+      } else {
+         count = active_cpus - reserved_cpus;
+      }
+      debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
+      return count + future_threads;
+
+   }
+
+   virtual unsigned int getNumThreads() const
    {
-      return this->getNumWorkers() + _numThreadsRequestedForSupport;
+      return ( _idSeed.value() ? _idSeed.value() : getEstimatedNumThreads() );
    }
 
    virtual ProcessingElement* createPE( unsigned id, unsigned uid )
@@ -407,7 +455,6 @@ class SMPPlugin : public SMPBasePlugin
          if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
             target = *it;
             target->reserve();
-            _numThreadsRequestedForSupport += 1;
          }
       }
       return target;
@@ -422,7 +469,6 @@ class SMPPlugin : public SMPBasePlugin
          if ( (int) (*it)->getNumaNode() == node && (*it)->getNumThreads() == 0 && !(*it)->isReserved() && (*it)->isActive() ) {
             target = *it;
             target->reserve();
-            _numThreadsRequestedForSupport += 1;
          }
       }
       return target;
@@ -803,14 +849,17 @@ class SMPPlugin : public SMPBasePlugin
        * and the number of cpus and the support threads requested
        */
       int active_cpus = 0;
+      int reserved_cpus = 0;
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
          active_cpus += (*it)->isActive();
+         reserved_cpus += (*it)->isReserved();
       }
 
+
       if ( _requestedWorkers > 0 ) {
-         count = std::min( _requestedWorkers, active_cpus - _numThreadsRequestedForSupport );
+         count = std::min( _requestedWorkers, active_cpus - reserved_cpus );
       } else {
-         count = active_cpus - _numThreadsRequestedForSupport;
+         count = active_cpus - reserved_cpus;
       }
       debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
       return count;

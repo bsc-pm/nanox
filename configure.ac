@@ -261,9 +261,8 @@ AC_ARG_ENABLE([mpi],
 
 if test x$mpi_enabled = xyes; then
 	ARCHITECTURES="$ARCHITECTURES mpi"
-	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"
-	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"	
-	NANOX_OFFL_FLAGS="$NANOX_OFFL_FLAGS -DMPICH_IGNORE_CXX_SEEK"
+	CFLAGS="$CFLAGS -DMPI_DEV"
+	CXXFLAGS="$CXXFLAGS -DMPI_DEV"	
 	NANOX_MPI_PREFIX=$prefix
 	AC_SUBST([NANOX_MPI_PREFIX])
 	AC_SUBST([NANOX_OFFL_FLAGS])
@@ -300,7 +299,7 @@ if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
 fi
 
 if test x$use_gnu = xyes; then
-    if test x$use_bgq = xno -a test x$use_icc = xno; then
+    if test x$use_bgq = xno -a x$use_icc = xno; then
         CFLAGS="$CFLAGS -Wredundant-decls"
         CXXFLAGS="$CXXFLAGS -Wredundant-decls"
     fi
@@ -634,9 +633,9 @@ if test x$gpu_enabled = xyes ; then
 fi
 
 if test x$gpu_valid = xyes; then
-	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
-	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
-        LDFLAGS="$LDFLAGS $CUDA_RPATH"
+	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
+        LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 

@@ -133,6 +133,7 @@ devinclude_HEADERS = \
 	trackableobject_decl.hpp \
    trackableobject.hpp \
 	hwloc_decl.hpp \
+	regionset_decl.hpp \
 	$(END)
 
 common_sources=\
@@ -264,6 +265,8 @@ common_sources=\
 	taskexecutionexception.cpp \
 	hwloc_decl.hpp \
 	hwloc.cpp \
+	regionset_decl.hpp \
+	regionset.cpp \
 	$(END)
 
 instr_sources = \

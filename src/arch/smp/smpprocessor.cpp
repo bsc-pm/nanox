@@ -33,7 +33,7 @@ size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active, unsigned int numaNode, unsigned int socket ) :
    PE( &SMP, NULL, memId, 0 /* always local node */, numaNode, true, socket, true ),
-   _bindingId( bindingId ), _reserved(false), _active( active ) {}
+   _bindingId( bindingId ), _reserved( false ), _active( active ), _futureThreads( 0 ) {}
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
@@ -113,5 +113,13 @@ SMPThread &SMPProcessor::associateThisThread( bool untieMain ) {
    }
 
    return thread;
+}
+
+void SMPProcessor::setNumFutureThreads( unsigned int nthreads ) {
+   _futureThreads = nthreads;
+}
+
+unsigned int SMPProcessor::getNumFutureThreads() const {
+   return _futureThreads;
 }
 

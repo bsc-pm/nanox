@@ -84,6 +84,7 @@ public:
          if ( core == NULL ) {
             fatal0("Unable to get a core to run the GPU thread.");
          }
+         core->setNumFutureThreads( 1 );
 
          OpenCLProcessor *ocl = NEW nanos::ext::OpenCLProcessor( openclC, id, core, oclmemory );
          (*_opencls)[openclC] = ocl;

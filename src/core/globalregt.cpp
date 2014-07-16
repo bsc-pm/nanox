@@ -190,6 +190,7 @@ unsigned int global_reg_t::getVersion() const {
 
 void global_reg_t::fillCopyData( CopyData &cd ) const {
    cd.setBaseAddress( 0 );
+   cd.setRemoteHost( true );
    cd.setHostBaseAddress( key->getKeyBaseAddress() );
    cd.setNumDimensions( key->getNumDimensions() );
 }

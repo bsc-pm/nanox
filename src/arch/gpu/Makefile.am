@@ -81,11 +81,12 @@ gpu_cublas_sources = \
 	
 gpu_api_flags = -I$(srcdir)/../../apis/c
 
-gpu_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
-gpu_includes = -I @CUDA_INC@
+gpu_ldflags = -lcublas
+#995 Already included in CFLAGS
+gpu_includes = 
 
-gpu_cublas_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
-gpu_cublas_includes = -I @CUDA_INC@
+gpu_cublas_ldflags = -lcublas
+gpu_cublas_includes =
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =

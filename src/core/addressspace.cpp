@@ -31,11 +31,11 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
 }
 
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx ) {
-   //std::cerr << "Registering CD with addr " << (void *) cd.getBaseAddress() << std::endl;
-   //std::cerr << cd << std::endl;
+   // *(myThread->_file) << "Registering CD with addr " << (void *) cd.getBaseAddress() << std::endl;
+   // *(myThread->_file) << cd << std::endl;
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
    reg.id = reg.key->obtainRegionId( cd, wd, idx );
-   //std::cerr << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
+   //*(myThread->_file) << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
    reg_t master_id = cd.getHostRegionId();
    if ( master_id != 0 ) {
       NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
@@ -46,7 +46,7 @@ void HostAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_
    std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
-void HostAddressSpace::synchronize( WD const &wd ) {
+void HostAddressSpace::synchronize( WD &wd ) {
    _directory.synchronize( wd );
 }
 
