@@ -30,7 +30,7 @@ using namespace nanos::ext;
 
 OpenCLDevice::OpenCLDevice( const char *name ) : Device( name ) { }
 
-void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const
+void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx)
 { 
    nanos::ProcessingElement * pe = &(mem.getPE());
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) ) {
@@ -57,7 +57,7 @@ void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &m
 //   fatal( "Can reallocate only on OpenCLProcessor" );
 //}
 
-void OpenCLDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const
+void OpenCLDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem )
 {
     nanos::ProcessingElement * pe = &(mem.getPE());
 

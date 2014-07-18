@@ -68,9 +68,9 @@ public:
 //
 //   static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe );
 //   
-   void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const;
+   void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx );
    std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const;
-   void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
+   void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem );
    void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const;
    void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
    void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;

@@ -42,7 +42,7 @@ ClusterDevice::ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {
 ClusterDevice::~ClusterDevice() {
 }
 
-void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const {
+void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) {
    void *retAddr = NULL;
 
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
@@ -52,7 +52,7 @@ void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem,
    return retAddr;
 }
 
-void ClusterDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {
+void ClusterDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
    allocator->lock();
    allocator->free( (void *) addr );

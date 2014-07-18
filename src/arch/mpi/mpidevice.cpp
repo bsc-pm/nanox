@@ -55,7 +55,7 @@ MPIDevice::~MPIDevice() {
 
 /* \breif allocate size bytes in the device
  */
-void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const {
+void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ALLOC_EVENT);
     //std::cerr << "Inicio allocate\n";
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) &mem.getConstPE();
@@ -77,7 +77,7 @@ void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem
 /* \brief free address
  */
 //void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
-void MPIDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {
+void MPIDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
     if (addr == 0) return;
     //std::cerr << "Inicio free\n";
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FREE_EVENT);

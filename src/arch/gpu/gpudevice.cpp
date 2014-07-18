@@ -298,12 +298,12 @@ bool GPUDevice::copyDevToDev( void * addrDst, CopyDescriptor &dstCd, void * addr
    return true;
 }
 
-//void *GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem ) const {
+//void *GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem ) {
 //   void *mem = allocate( size, &pe );
 //   //std::cerr << "GPU memAllocate( " << size << " )  returns: " << mem << std::endl;
 //   return mem;
 //}
-void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const
+void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx )
 {
    void * address = NULL;
 
@@ -315,7 +315,7 @@ void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem
    return address;
 }
 
-void GPUDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const
+void GPUDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem )
 {
    // Check there are no pending copies to execute before we free the memory (and if there are, execute them)
    
