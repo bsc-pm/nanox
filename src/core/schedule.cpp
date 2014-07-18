@@ -399,6 +399,7 @@ inline void Scheduler::idleLoop ()
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
+#if 0
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
 
    NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key  = ID->getEventKey("num-spins"); )
@@ -423,9 +424,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    NANOS_INSTRUMENT ( unsigned event_start; )
    NANOS_INSTRUMENT ( unsigned event_num; )
-
+#endif
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
-
+#if 0
    NANOS_INSTRUMENT ( unsigned long total_spins = 0; ) /* Number of spins by idle phase*/
    NANOS_INSTRUMENT ( unsigned long total_yields = 0; ) /* Number of yields by idle phase */
    NANOS_INSTRUMENT ( unsigned long total_blocks = 0; ) /* Number of blocks by idle phase */
@@ -433,11 +434,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    NANOS_INSTRUMENT ( unsigned long time_blocks = 0; ) /* Time of blocks by idle phase */
    NANOS_INSTRUMENT ( unsigned long time_yields = 0; ) /* Time of yields by idle phase */
    NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of sched by idle phase */
+#endif
 
-   if (condition->check()) {
-       return;
-   }
-
+   if (condition->check()) return;
+#if 0
    const int init_spins = sys.getSchedulerConf().getNumSpins();
    const int init_checks = sys.getSchedulerConf().getNumChecks();
    const int init_yields = sys.getSchedulerConf().getNumYields();
@@ -448,6 +448,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    unsigned int checks = init_checks; 
    unsigned int spins = init_spins;
    unsigned int yields = init_yields;
+#else
+   unsigned int checks = (unsigned int) sys.getSchedulerConf().getNumChecks();
+#endif
 
    WD * current = myThread->getCurrentWD();
 
@@ -457,21 +460,23 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    
    BaseThread *thread = getMyThreadSafe();
 
-   while ( !condition->check()
-         && thread->isRunning() ) {
+   while ( !condition->check() && thread->isRunning() ) {
       checks--;
       
       // Non-safe point
       //ResourceManager::returnMyCpuIfClaimed();
 
       if ( checks == 0 ) {
+#if 0
          checks = init_checks;
+#endif
 
          condition->lock();
          if ( !( condition->check() ) ) {
+#if 0
             //! Init of schedule phase
             spins--;
-
+#endif
             WD * next = myThread->getNextWD();
 
             if ( !next ) {
@@ -481,14 +486,15 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
                      // The thread is not paused, mark it as so
                      thread->unpause();
-                     
+#if 0                     
                      NANOS_INSTRUMENT ( total_scheds++; )
                      NANOS_INSTRUMENT ( unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-
+#endif
                      next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
-
+#if 0
                      NANOS_INSTRUMENT ( unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                      NANOS_INSTRUMENT ( time_scheds += ( end_sched - begin_sched ); )
+#endif
                   }
                   else {
                      // Pause this thread
@@ -496,12 +502,15 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   }
                }
             }
+                     // This code is forcing a context switch but I am not quite sure about other
+                     // side efects produced by forcing it with WD that has been inlined on top
+                     // of a ThreadWD
+            if ( !next) next = (WD *) &(myThread->runningOn()->getWorkerWD());
 
             if ( next ) {
-
-
                sys.getSchedulerStats()._idleThreads--;
 
+#if 0
                NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
 
                NANOS_INSTRUMENT ( total_spins+= spins; )
@@ -520,10 +529,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
-
+#endif
                switchTo ( next );
                thread = getMyThreadSafe();
-
+#if 0
                NANOS_INSTRUMENT ( total_spins = 0; )
 
                NANOS_INSTRUMENT ( total_yields = 0; )
@@ -533,14 +542,16 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT ( time_blocks = 0; ) 
                NANOS_INSTRUMENT ( time_yields = 0; )
                NANOS_INSTRUMENT ( time_scheds = 0; )
-
+#endif
                sys.getSchedulerStats()._idleThreads++;
-
+#if 0
                spins = init_spins;
+#endif
             }
 
             condition->unlock();
 
+#if 0
             if ( spins == 0 ) {
                NANOS_INSTRUMENT ( total_spins+= init_spins; )
 
@@ -554,47 +565,50 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
                if ( yields == 0 || !use_yield ) {
 
-
                   if ( use_block ) {
-               // releaseCpu temporarily disabled in waitOnCondition
-               //ResourceManager::releaseCpu();
-               /* FIXME DLB
-                     condition->lock();
-                     if ( !condition->check() ) {
+                     sys.getSchedulerStats()._idleThreads--;
+                     switchTo ( &worker );
+                     thread = getMyThreadSafe();
+                     sys.getSchedulerStats()._idleThreads++;
+                     // releaseCpu temporarily disabled in waitOnCondition
+                     //ResourceManager::releaseCpu();
+                     /* FIXME DLB
+                        condition->lock();
+                        if ( !condition->check() ) {
                         WD * currentWD = thread->getCurrentWD();
-                        // If it's not tied to the current thread, tie it until the thread is resumed
-                        bool tiedTemporally = false;
-                        if ( currentWD->isTiedTo() == NULL )
-                        {
-                           currentWD->tieTo( *thread );
-                           tiedTemporally = true;
-                        }
-                        
-                        // Unblock other threads so that they can work
-                        for ( int t = 0; t < sys.getNumWorkers(); ++t )
-                        {
-                           BaseThread * worker = sys.getWorker( t );
-                           if ( worker == thread ) continue;
-                           // wake up, Neo
-                           worker->unblock();
-                        }
-                        
-                        currentWD->setBlocked();   // Very important
-                        condition->addWaiter( currentWD );
-                        condition->unlock(); // FIXME: may cause race condition
-                        
-                        NANOS_INSTRUMENT ( total_blocks++; )
-                        NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                        thread->block(); //FIXME:xteruel
-                        NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                        NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-                        
-                        // Having reached this point, if we temporally tied the wd to the thread, undo it
-                        if ( tiedTemporally )
-                           currentWD->untie();
+                     // If it's not tied to the current thread, tie it until the thread is resumed
+                     bool tiedTemporally = false;
+                     if ( currentWD->isTiedTo() == NULL )
+                     {
+                     currentWD->tieTo( *thread );
+                     tiedTemporally = true;
+                     }
+
+                     // Unblock other threads so that they can work
+                     for ( int t = 0; t < sys.getNumWorkers(); ++t )
+                     {
+                     BaseThread * worker = sys.getWorker( t );
+                     if ( worker == thread ) continue;
+                     // wake up, Neo
+                     worker->unblock();
+                     }
+
+                     currentWD->setBlocked();   // Very important
+                     condition->addWaiter( currentWD );
+                     condition->unlock(); // FIXME: may cause race condition
+
+                     NANOS_INSTRUMENT ( total_blocks++; )
+                     NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                     thread->block(); //FIXME:xteruel
+                     NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                     NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+
+                     // Having reached this point, if we temporally tied the wd to the thread, undo it
+                     if ( tiedTemporally )
+                     currentWD->untie();
                      }
                      else {
-                        condition->unlock();                        
+                     condition->unlock();                        
                      }
                      */
                   }
@@ -610,6 +624,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                }
                spins = init_spins;
             }
+#endif
          } else {
             condition->unlock();
          }
@@ -623,6 +638,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
       current->setReady();
    }
 
+#if 0
    NANOS_INSTRUMENT ( total_spins+= (init_spins - spins); )
 
    NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
@@ -642,6 +658,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
    NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
+#endif
 
 }
 

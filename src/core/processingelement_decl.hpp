@@ -57,11 +57,10 @@ namespace nanos
          /*! \brief ProcessingElement copy assignment operator (private)
           */
          const ProcessingElement & operator= ( const ProcessingElement &pe );
-      protected:
+      public:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
          virtual WorkDescriptor & getMultiWorkerWD () const = 0;
-      public:
          /*! \brief ProcessingElement constructor
           */
          ProcessingElement ( int newId, const Device *arch, int uniqueId,  const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _uid( uniqueId ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
