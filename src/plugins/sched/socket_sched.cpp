@@ -350,7 +350,8 @@ namespace nanos {
                   
                   // FIXME
                   tdata._next = ( winner+1 ) % sys.getNumNumaNodes();
-                  //fprintf(stderr, "[socket] WD %d (%s) is init task, assigned to NUMA node %d\n", wd.getId(), wd.getDescription(), winner );
+                  verbose0( toString( "[NUMA] wd ") + toString( wd.getId() ) + toString( "(" ) + toString( wd.getDescription() )
+                     + toString(")") + toString( " is init task, assigned to NUMA node " ) + toString( winner ) );
                   //fprintf( stderr, "[socket] Round.robbin next = %d\n", tdata._next.value() );
                }
                else
@@ -432,11 +433,6 @@ namespace nanos {
                //int coresPerSocket = sys.getCoresPerSocket();
                
                //fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
-
-               if ( steal && sys.getSMPPlugin()->getNumSockets() == 1 )
-               {
-                  fatal0( "Steal can not be enabled with just one socket" );
-               }
                
                // Check config
                // gmiranda: disabled temporary since NumPES < numWorkers when using GPUS
@@ -457,6 +453,12 @@ namespace nanos {
 
             virtual ScheduleTeamData * createTeamData ()
             {
+               if ( _steal && sys.getNumNumaNodes() == 1 )
+               {
+                  message0( "[NUMA] Stealing can not be enabled with just one NUMA node available, disabling it" );
+                  _steal = false;
+               }
+               
                // Now we can find GPU nodes since the workers will have been created
                findGPUNodes();
                
