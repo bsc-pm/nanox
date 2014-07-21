@@ -186,7 +186,9 @@ namespace nanos {
                   for ( unsigned to = 0; to < (unsigned) sys.getSMPPlugin()->getNumSockets(); ++to )
                   {
                      //fprintf( stderr, "Distance from %d to %d: %d\n", from, to, distances[to] );
-                     if ( to == from )
+                     // If the target node is different than the origin
+                     // or it's not in the valid list, jump
+                     if ( to == from || sys.getVirtualNUMANode( to ) == INT_MIN )
                         continue;
                      row.push_back( to );
                   }

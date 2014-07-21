@@ -100,7 +100,7 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 //
 inline int System::getVirtualNUMANode( int physicalNode ) const
 {
-   return _numaNodeMap[ physicalNode ];
+   return ( physicalNode < (int)_numaNodeMap.size() ) ? _numaNodeMap[ physicalNode ] : INT_MIN;
 }
 //
 //inline int System::getCurrentSocket() const { return _currentSocket; }
