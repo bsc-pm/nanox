@@ -318,8 +318,8 @@ namespace nanos {
                      // If the next one is uncommented, stream initialisation tasks will not work
                      //ro_copies += (  copies[idx].isInput() && !copies[idx].isOutput() );
                      //wo_copies += ( !copies[idx].isInput() &&  copies[idx].isOutput() );
-                     if ( wd._mcontrol._memCacheCopies[ idx ].getVersion() == 1 )
-                        createdDataSize += ( !copies[idx].isInput() && copies[idx].isOutput() ) * copies[idx].getSize();
+                     if ( wd._mcontrol._memCacheCopies[ idx ].getVersion() == 1 && copies[idx].isOutput() )
+                        createdDataSize += copies[idx].getSize();
                   }
                }
                
