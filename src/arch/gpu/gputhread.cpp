@@ -46,15 +46,9 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   // Initialize GPUProcessor
-   ( ( GPUProcessor * ) myThread->runningOn() )->init();
-
-   // Warming up GPU's...
-   if ( GPUConfig::isGPUWarmupDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_FREE_EVENT );
-      cudaFree(0);
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-   }
+   // WARNING: Since GPUProcessor::init() allocates almost all the GPU memory, CUBLAS must be initialized before
+   // this happens. Otherwise, it may happen that cublasCreate() fails because there is not enough GPU memory
+   // (the given error for this situation does not help finding out the problem: CUBLAS_STATUS_NOT_INITIALIZED)
 
 #ifndef NANOS_GPU_USE_CUDA32
    // Initialize CUBLAS handle in case of potentially using CUBLAS
@@ -82,6 +76,16 @@ void GPUThread::initializeDependent ()
    }
 #endif
 
+   // Initialize GPUProcessor
+   ( ( GPUProcessor * ) myThread->runningOn() )->init();
+
+   // Warming up GPU's...
+   if ( GPUConfig::isGPUWarmupDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_FREE_EVENT );
+      cudaFree(0);
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+   }
+
    // Reset CUDA errors that may have occurred inside the runtime initialization
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
    err = cudaGetLastError();
@@ -99,7 +103,6 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
    dd.getWorkFct()( work.getData() );
-   message("I've prefetched " << _prefetchedWDs << " WDs and I have executed " << _executedWDs );
 
    if ( GPUConfig::isCUBLASInitDefined() ) {
 #ifdef NANOS_GPU_USE_CUDA32
@@ -134,12 +137,8 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
 
    GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
 
-   _executedWDs++;
-
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
-   cudaError_t err = cudaGetLastError( );
-	if (err != cudaSuccess) printf("Error at kernel: %s\n", cudaGetErrorString(err));
 
    if ( !GPUConfig::isOverlappingOutputsDefined() && !GPUConfig::isOverlappingInputsDefined() ) {
       // Wait for the GPU kernel to finish
@@ -171,11 +170,11 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
          WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
          if ( next != NULL ) {
             next->_mcontrol.initialize( *(this->runningOn()) );
-            bool result;
-            do {
-               result = next->_mcontrol.allocateInputMemory();
-            } while( result == false );
-            next->init();
+            if ( next->_mcontrol.allocateTaskMemory() ) {
+               next->init();
+            } else {
+               *(myThread->_file) << "------ failed allocation for wd " << next->getId() << std::endl;
+            }
             addNextWD( next );
             last = next;
          } else {
@@ -214,24 +213,37 @@ void GPUThread::yield()
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 }
 
+struct TestInputsGPU {
+   static void call( ProcessingElement *pe, WorkDescriptor *wd ) {
+      if ( wd->_mcontrol.isMemoryAllocated() ) {
+         pe->testInputs( *wd );
+      }
+   }
+};
+
 void GPUThread::idle( bool debug )
 {
    cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
-   sys.getNetwork()->poll(0);
-   if ( !_pendingRequests.empty() ) {
-      std::set<void *>::iterator it = _pendingRequests.begin();
-      while ( it != _pendingRequests.end() ) {
-         GetRequest *req = (GetRequest *) (*it);
-         if ( req->isCompleted() ) {
-           std::set<void *>::iterator toBeDeletedIt = it;
-           it++;
-           _pendingRequests.erase(toBeDeletedIt);
-           req->clear();
-           delete req;
-         } else {
-            it++;
+
+   getNextWDQueue().iterate<TestInputsGPU>();
+
+   if ( sys.getNetwork()->getNumNodes() > 1 ) {
+      sys.getNetwork()->poll(0);
+      if ( !_pendingRequests.empty() ) {
+         std::set<void *>::iterator it = _pendingRequests.begin();
+         while ( it != _pendingRequests.end() ) {
+            GetRequest *req = (GetRequest *) (*it);
+            if ( req->isCompleted() ) {
+               std::set<void *>::iterator toBeDeletedIt = it;
+               it++;
+               _pendingRequests.erase(toBeDeletedIt);
+               req->clear();
+               delete req;
+            } else {
+               it++;
+            }
          }
       }
    }

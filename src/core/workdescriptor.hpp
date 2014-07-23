@@ -57,9 +57,12 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  {
                                     _flags.is_final = 0;
                                     _flags.is_submitted = false;
+                                    _flags.is_recoverable = false;
+                                    _flags.is_invalid = false;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
+                                          copies[i].setRemoteHost( false );
                                        }
                                     }
                                  }
@@ -84,9 +87,12 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                      _devices[0] = device;
                                     _flags.is_final = 0;
                                     _flags.is_submitted = false;
+                                    _flags.is_recoverable = false;
+                                    _flags.is_invalid = false;
                                     if ( copies != NULL ) {
                                        for ( unsigned int i = 0; i < numCopies; i += 1 ) {
                                           copies[i].setHostBaseAddress( 0 );
+                                          copies[i].setRemoteHost( false );
                                        }
                                     }
                                  }
@@ -114,14 +120,16 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                     _flags.to_tie = wd._flags.to_tie;
                                     _flags.is_submitted = false;
                                     _flags.is_implicit = wd._flags.is_implicit;
+                                    _flags.is_recoverable = wd._flags.is_recoverable;
+                                    _flags.is_invalid = false;
 
                                     _mcontrol.preInit();
                                  }
 
 /* DeviceData inlined functions */
 inline const Device * DeviceData::getDevice () const { return _architecture; }
-
-inline bool DeviceData::isCompatible ( const Device &arch ) { return _architecture == &arch; }
+inline bool DeviceData::isCompatible ( const Device &arch , const ProcessingElement* pe) { return _architecture == &arch && isCompatibleWithPE(pe); }
+inline bool DeviceData::isCompatibleWithPE ( const ProcessingElement* pe) { return true; }
 
 /* WorkDescriptor inlined functions */
 inline bool WorkDescriptor::started ( void ) const { return (( _state != INIT ) && (_state != START)); }
@@ -133,7 +141,7 @@ inline size_t WorkDescriptor::getDataAlignment () const { return _data_align; }
 
 inline void WorkDescriptor::setTotalSize ( size_t size ) { _totalSize = size; }
 
-inline WorkDescriptor * WorkDescriptor::getParent() { return _parent!=NULL?_parent:_forcedParent ; }
+inline WorkDescriptor * WorkDescriptor::getParent() const { return _parent!=NULL?_parent:_forcedParent ; }
 inline void WorkDescriptor::forceParent ( WorkDescriptor * p ) { _forcedParent = p; }
 
 inline WDPool * WorkDescriptor::getMyQueue() { return _myQueue; }
@@ -164,9 +172,6 @@ inline void WorkDescriptor::untieLocation() { _tiedToLocation = ( (memory_space_
 inline void WorkDescriptor::setData ( void *wdata ) { _data = wdata; }
 
 inline void * WorkDescriptor::getData () const { return _data; }
-
-inline bool WorkDescriptor::isIdle () const { return _state == WorkDescriptor::IDLE; }
-inline void WorkDescriptor::setIdle () { _state = WorkDescriptor::IDLE; }
 
 inline bool WorkDescriptor::isReady () const { return _flags.is_ready; }
 
@@ -233,14 +238,14 @@ inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateAr
 inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() const { return _translateArgs; }
 
 //inline nanos_translate_args_t WorkDescriptor::getTranslateArgs() { return _translateArgs; }
-inline int WorkDescriptor::getSocket() const
+inline int WorkDescriptor::getNUMANode() const
 {
-   return _socket;
+   return _numaNode;
 }
 
-inline void WorkDescriptor::setSocket( int socket )
+inline void WorkDescriptor::setNUMANode( int node )
 {
-   _socket = socket;
+   _numaNode = node;
 }
 
 inline unsigned int WorkDescriptor::getWakeUpQueue() const
@@ -430,6 +435,40 @@ inline void WorkDescriptor::setRemoteAddr( void *addr ) {
 inline void *WorkDescriptor::getRemoteAddr() const {
    return _remoteAddr;
 }
+
+inline bool WorkDescriptor::setInvalid ( bool flag )
+{
+   if (_flags.is_invalid != flag) {
+      _flags.is_invalid = flag;
+
+      /*
+       * Note: At this time, do not take any action if the task is invalid and it has
+       * no parent. There could be some special cases where it does not imply a fatal
+       * error.
+       */
+      if (_flags.is_invalid && !_flags.is_recoverable) {
+         if (_parent == NULL)
+            /*
+             *  If no invalidity propagation is possible (this task is the root in some way)
+             *  return that no recoverable task was found at this point, so any action can be taken
+             *  accordingly.
+             */
+            return false;
+         else if (!_parent->_flags.is_invalid) {
+            // If this task is not recoverable, propagate invalidation to its parent.
+            return _parent->setInvalid(true);
+            return true;
+         }
+      }
+   }
+   return true;
+}
+
+inline bool WorkDescriptor::isInvalid() const { return _flags.is_invalid; }
+
+inline void WorkDescriptor::setRecoverable( bool flag ) { _flags.is_recoverable = flag; }
+
+inline bool WorkDescriptor::isRecoverable() const { return _flags.is_recoverable; }
 
 #endif
 

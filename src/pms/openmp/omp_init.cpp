@@ -44,7 +44,10 @@ namespace nanos
          cfg.setOptionsSection("OpenMP specific","OpenMP related options");
 
          // OMP_NUM_THREADS
-         cfg.registerAlias("num_threads","omp-threads","Configures the number of OpenMP Threads to use");
+         _numThreads = -1;
+         _numThreadsOMP = -1;
+         cfg.registerConfigOption( "omp-threads", NEW Config::PositiveVar( _numThreadsOMP ),
+                             "Configures the number of OpenMP Threads to use" );
          cfg.registerEnvOption("omp-threads","OMP_NUM_THREADS");
 
          // OMP_SCHEDULE
@@ -76,7 +79,11 @@ namespace nanos
 
          TaskICVs & icvs = globalState->getICVs();
          icvs.setSchedule(LoopSchedule(omp_sched_static));
-         icvs.setNumThreads(sys.getNumThreads());
+
+         _numThreads = _numThreadsOMP == -1 ? sys.getSMPPlugin()->getNumPEs() : _numThreadsOMP;
+
+         icvs.setNumThreads(_numThreads);
+         sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
 
          _description = std::string("OpenMP");
          _malleable = false;
@@ -161,7 +168,7 @@ namespace nanos
        */
       void OpenMPInterface::getCpuMask( cpu_set_t *cpu_set )
       {
-         sys.getCpuMask( cpu_set );
+         sys.getSMPPlugin()->getCpuMask( cpu_set );
       }
 
       /*!
@@ -174,7 +181,7 @@ namespace nanos
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set );
+         sys.getSMPPlugin()->setCpuMask( cpu_set );
       }
 
       /*!
@@ -188,7 +195,7 @@ namespace nanos
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set );
+         sys.getSMPPlugin()->addCpuMask( cpu_set );
       }
 
 
@@ -201,6 +208,23 @@ namespace nanos
       {
          // Base class start()
          OpenMPInterface::start();
+
+         int num_threads = sys.getSMPPlugin()->getRequestedWorkersOMPSS();
+         if ( _numThreadsOMP != -1 ) {
+            std::cerr << "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recomended way to set the number of worker smp threads is using the flag --smp-workers." << std::endl;
+            if ( num_threads == -1 ) {
+               std::cerr << "Option --smp-workers not set, will use OMP_NUM_THREADS instead, value: " << _numThreads << "." << std::endl;
+               num_threads = _numThreadsOMP;
+            } else if ( num_threads != _numThreadsOMP ) {
+               std::cerr << "Option --smp-workers set (value: " << num_threads << "), and OMP_NUM_THREADS is also set (value: " << _numThreads << "), will use the value of --smp-workers." << std::endl;
+            }
+            
+         }
+         _numThreads = num_threads;
+
+         TaskICVs & icvs = globalState->getICVs();
+         icvs.setNumThreads( _numThreads );
+         sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
 
          // Overwrite custom values
          _description = std::string("OmpSs");
@@ -255,7 +279,13 @@ namespace nanos
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( nthreads );
 
-         sys.updateActiveWorkers( nthreads );
+         sys.getSMPPlugin()->updateActiveWorkers( nthreads );
+      }
+
+      void OmpSsInterface::setNumThreads_globalState ( int nthreads )
+      {
+         TaskICVs & icvs = globalState->getICVs();
+         icvs.setNumThreads( nthreads );
       }
 
       /*!
@@ -269,7 +299,7 @@ namespace nanos
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set );
+         sys.getSMPPlugin()->setCpuMask( cpu_set );
       }
 
       /*!
@@ -284,7 +314,7 @@ namespace nanos
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set );
+         sys.getSMPPlugin()->addCpuMask( cpu_set );
       }
    };
 }

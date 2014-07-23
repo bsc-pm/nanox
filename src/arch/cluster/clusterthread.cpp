@@ -72,7 +72,7 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
 }
 
 //ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
-ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( w, pe, parent ), _clusterNode( device ), _lock(), _pendingInitWD( NULL ) {
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( (unsigned int) -1, w, pe, parent ), _clusterNode( device ), _lock(), _pendingInitWD( NULL ) {
    setCurrentWD( w );
 }
 
@@ -138,6 +138,7 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       memcpy( &dimensions[ dimensionIndex ], wd.getCopies()[i].getDimensions(), sizeof( nanos_region_dimension_internal_t ) * wd.getCopies()[i].getNumDimensions());
       newCopies[i].setDimensions( ( nanos_region_dimension_internal_t const *  ) dimensionIndex ); // This is the index because it makes no sense to send an address over the network
       newCopies[i].setHostBaseAddress( (uint64_t) wd.getCopies()[i].getBaseAddress() );
+      newCopies[i].setRemoteHost( true );
       //newCopies[i].setBaseAddress( (void *) ( wd._ccontrol.getAddress( i ) - wd.getCopies()[i].getOffset() ) );
       newCopies[i].setBaseAddress( (void *) wd._mcontrol.getAddress( i ) );
       newCopies[i].setHostRegionId( wd._mcontrol._memCacheCopies[i]._reg.id );
@@ -301,11 +302,16 @@ bool ClusterThread::hasWaitingDataWDs() const {
 WD *ClusterThread::getWaitingDataWD() {
    WD *wd = _waitingDataWDs.front();
    _waitingDataWDs.pop_front();
-std::cerr << "popped a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
+//std::cerr << "popped a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
    return wd;
 }
 
 void ClusterThread::addWaitingDataWD( WD *wd ) {
    _waitingDataWDs.push_back( wd );
-std::cerr << "Added a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
+//std::cerr << "Added a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
 }
+
+void ClusterThread::setupSignalHandlers() {
+   std::cerr << __FUNCTION__ << ": unimplemented in ClusterThread." << std::endl;
+}
+

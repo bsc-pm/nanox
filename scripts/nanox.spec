@@ -99,3 +99,4 @@ make -j%{threads}
 %{_libdir}/performance/*
 %{_includedir}/*
 %{_datarootdir}/doc/nanox/*
+%{_usrsrc}/arch/mpi/*

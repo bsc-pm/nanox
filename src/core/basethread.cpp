@@ -22,6 +22,7 @@
 #include "system.hpp"
 #include "synchronizedcondition.hpp"
 #include "wddeque.hpp"
+#include "smpthread.hpp"
 
 using namespace nanos;
 
@@ -67,12 +68,14 @@ void BaseThread::associate ()
    myThread = this;
    setCurrentWD( _threadWD );
 
-   if ( sys.getBinding() ) bind();
+   if ( sys.getSMPPlugin()->getBinding() ) bind();
 
+   _threadWD._mcontrol.preInit();
+   _threadWD._mcontrol.initialize( *runningOn() );
    _threadWD.init();
    _threadWD.start(WD::IsNotAUserLevelThread);
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false) );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false); )
 }
 
 bool BaseThread::singleGuard ()
@@ -113,7 +116,34 @@ BaseThread * nanos::getMyThreadSafe()
 {
    return myThread;
 }
-
 void BaseThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
    fatal0( "::notifyOutlinedCompletionDependent() not available for this thread type." );
+}
+
+int BaseThread::getCpuId() const {
+   ensure( _parent != NULL, "Wrong call to getCpuId" ) 
+   return _parent->getCpuId();
+}
+
+bool BaseThread::tryWakeUp() {
+   bool result = false;
+   if ( !this->hasTeam() && this->isWaiting() ) {
+      // recheck availability with exclusive access
+      this->lock();
+      if ( this->hasTeam() || !this->isWaiting() ) {
+         // we lost it
+         this->unlock();
+      } else {
+         this->reserve(); // set team flag only
+         this->wakeup();
+         this->unlock();
+
+         result = true;
+      }
+   }
+   return result;
+}
+
+unsigned int BaseThread::getOsId() const {
+   return ( _parent != NULL ) ? _parent->getOsId() : _osId;
 }

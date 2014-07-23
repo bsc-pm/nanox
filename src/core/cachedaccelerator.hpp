@@ -27,17 +27,17 @@
 
 using namespace nanos;
 
-inline CachedAccelerator::CachedAccelerator( int newId, const Device *arch, int uid,
-   const Device *subArch, memory_space_id_t addressSpace ) :
-   Accelerator( newId, arch, uid, subArch ), _addressSpaceId( addressSpace ) {
-}
-
-inline CachedAccelerator::~CachedAccelerator() {
-}
-
-inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
-{
-   while ( !wd._mcontrol.isDataReady( wd ) ) { myThread->idle(); } 
-}
+//inline CachedAccelerator::CachedAccelerator( const Device *arch,
+//   const Device *subArch, memory_space_id_t addressSpace ) :
+//   Accelerator( arch, subArch ), _addressSpaceId( addressSpace ) {
+//}
+//
+//inline CachedAccelerator::~CachedAccelerator() {
+//}
+//
+//inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
+//{
+//   while ( !wd._mcontrol.isDataReady( wd ) ) { myThread->idle(); } 
+//}
 
 #endif

@@ -34,14 +34,16 @@ EXTRA_DIST= \
 	armv71/stack_asm.s \
 	tile64/stack.cpp \
 	tile64/stack_asm.s \
-   smp_ult.hpp \
+	smp_ult.hpp \
 	$(END)
 
 devinclude_HEADERS = \
 	smpdevice.hpp \
 	smpdd.hpp \
 	smpprocessor.hpp \
+	smpprocessor_fwd.hpp \
 	smpthread.hpp \
+	smpthread_fwd.hpp \
 	$(END) 
 
 common_libadd=\
@@ -53,6 +55,7 @@ ult_sources= \
    @SMP_ARCH@/stack_asm.s \
    $(END)
 
+
 ult_flags=-DSMP_SUPPORTS_ULT
 
 smp_numa_flags=-DSMP_NUMA
@@ -62,8 +65,10 @@ smp_sources = \
 	smpdd.hpp \
 	smpdd.cpp \
 	smpprocessor.hpp \
+	smpprocessor_fwd.hpp \
 	smpprocessor.cpp \
 	smpthread.hpp \
+	smpthread_fwd.hpp \
 	smpthread.cpp \
 	$(END)
 
@@ -84,7 +89,7 @@ noinst_LTLIBRARIES += debug/libsmp.la
 debug_LTLIBRARIES = debug/libnanox-pe-smp.la
 debug_LTLIBRARIES += debug/libnanox-pe-smp-numa.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(smp_ult_flags) -DLOL
+nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(smp_ult_flags)
 
 debug_libsmp_la_CXXFLAGS=$(nanos_debug_cxxflags)
 debug_libsmp_la_CCASFLAGS=$(nanos_debug_cxxflags)

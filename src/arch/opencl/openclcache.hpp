@@ -40,6 +40,8 @@
 
 #include <cassert>
 
+#define ALLOCATOR_START_ADDR 17179869184
+
 namespace nanos {
 namespace ext {
 
@@ -63,7 +65,7 @@ public:
    
    void initialize();
    
-   void *allocate( size_t size, uint64_t tag);
+   void *allocate( size_t size, uint64_t tag, uint64_t offset);
 
    void *reallocate( void* addr, size_t size, size_t ceSize );
 

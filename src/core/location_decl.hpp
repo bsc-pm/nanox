@@ -1,29 +1,32 @@
 #ifndef LOCATION_DECL_H
 #define LOCATION_DECL_H
 
-#include <vector>
+//#include <vector>
 
 namespace nanos {
    class Location {
-      unsigned int _nodeId;
-      unsigned int _memorySpaceId;
-      unsigned int _socketId;
-      unsigned int _coreId;
+         unsigned int _clusterNode;
+         unsigned int _numaNode;
+         unsigned int _socket;
+         bool         _inNumaNode;
+         bool         _inSocket;
 
-      public:
          Location ();
          Location ( Location const &l );
          Location &operator=( Location const &l );
-         unsigned int getNodeId() const;
-         void setNodeId( unsigned int nodeId );
-         unsigned int getMemorySpaceId() const;
-         void setMemorySpaceId( unsigned int memId );
-         unsigned int getSocketId() const;
-         void setSocketId( unsigned int socketId );
-         unsigned int getCoreId() const;
-         void setCoreId( unsigned int coreId );
+      public:
+         Location ( unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket );
+         unsigned int getClusterNode() const;
+         //void setClusterNode( unsigned int clusterNode );
+         unsigned int getNumaNode() const;
+         //void setNumaNode( unsigned int numaNode );
+         bool isInNumaNode() const;
+         unsigned int getSocket() const;
+         //void setSocket( unsigned int socket );
+         bool isInSocket() const;
    };
 
+   /*
    class LocationDirectory {
       std::vector< Location > _locations;
 
@@ -35,6 +38,7 @@ namespace nanos {
          void initialize( unsigned int numLocs );
          Location &operator[]( unsigned int locationId );
    };
+   */
 }
 
 #endif /* LOCATION_DECL_H */

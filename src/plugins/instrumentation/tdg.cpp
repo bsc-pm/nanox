@@ -1,4 +1,4 @@
-#include "graph_utils_new.hpp"
+#include "tdg_utils.hpp"
 
 #include "instrumentation.hpp"
 #include "instrumentationcontext_decl.hpp"
@@ -9,8 +9,9 @@
 
 #include <cassert>
 #include <cmath>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <limits>
 #include <map>
 #include <math.h>
 #include <stdlib.h>
@@ -26,12 +27,20 @@ namespace nanos {
 const int64_t concurrent_min_id = 1000000;
 static unsigned int cluster_id = 1;
 
-class InstrumentationNewGraphInstrumentation: public Instrumentation
+class InstrumentationTDGInstrumentation: public Instrumentation
 {
-    private:
+public:
+    // public static data-members
+    static std::string _nodeSizeFunc;
+    
+private:
     std::set<Node*> _graph_nodes;                           /*!< relation between a wd id and its node in the graph */
+    Lock _graph_nodes_lock;
     std::map<int64_t, std::string> _funct_id_to_decl_map;   /*!< relation between a task id and its name */
-    double _time_avg;
+    Lock _funct_id_to_decl_map_lock;
+    double _min_time;
+    double _total_time;
+    double _min_diam;
     
     int64_t _next_tw_id;
     int64_t _next_conc_id;
@@ -70,13 +79,23 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         }
         
         // Get the size of the node
-        if(_time_avg == 0.0) {
+        if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "constant" || _total_time == 0.0)
+        {
             node_attrs += "\", width=\"1\", height=\"1\"";
         }
-        else {
-            double size = std::max(0.01, (double)n->get_total_time() / _time_avg);
-            std::stringstream ss; ss << size;
-            node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+        else
+        {
+            double diam = std::sqrt(n->get_total_time() / M_PI) * 2;
+            if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "linear")
+            {
+                std::stringstream ss; ss << diam / _min_diam;
+                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+            }
+            else if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "log")
+            {
+                std::stringstream ss; ss << std::log((diam / _min_diam) * M_E);
+                node_attrs += "\", width=\"" + ss.str() + "\", height=\"" + ss.str() + "\"";
+            }
         }
         
         // Build and return the whole node info
@@ -108,10 +127,10 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     inline std::string print_nested_nodes(Node* n, std::string indentation) {
         std::string nested_nodes_info = "";
         // Find all nodes which parent is 'n' and the edges connecting them is a 'Nesting' edge
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) 
+        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) 
         {
-            std::vector<Edge*> entries = (*it)->get_entries();
-            for(std::vector<Edge*>::iterator it2 = entries.begin(); it2 != entries.end(); ++it2)
+            std::vector<Edge*> const &entries = (*it)->get_entries();
+            for(std::vector<Edge*>::const_iterator it2 = entries.begin(); it2 != entries.end(); ++it2)
             {
                 if(((*it2)->get_source() == n) && (*it2)->is_nesting())
                 {   // This is a nested relation!
@@ -175,7 +194,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         
         int id = 1;
         std::set<std::string> printed_funcs;
-        for(std::map<int64_t, std::string>::iterator it = _funct_id_to_decl_map.begin(); it != _funct_id_to_decl_map.end() ; ++it)
+        for(std::map<int64_t, std::string>::const_iterator it = _funct_id_to_decl_map.begin(); it != _funct_id_to_decl_map.end() ; ++it)
         {
             if(printed_funcs.find(it->second) == printed_funcs.end())
             {
@@ -184,10 +203,10 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 nodes_legend += "    subgraph {\n";
                 nodes_legend += "      rank=same;\n";
                 // Print the transparent node with the name of the function
-                nodes_legend += "      " + _funct_id_to_decl_map[it->first] + "[color=\"white\", margin=\"0.0,0.0\"];\n";
+                nodes_legend += "      " + it->second + "[color=\"white\", margin=\"0.0,0.0\"];\n";
                 // Print one node for each function id that has the same name as the current function name
                 int last_id = 0;
-                for(std::map<int64_t, std::string>::iterator it2 = _funct_id_to_decl_map.begin(); 
+                for(std::map<int64_t, std::string>::const_iterator it2 = _funct_id_to_decl_map.begin(); 
                      it2 != _funct_id_to_decl_map.end(); ++it2)
                 {
                     if(it2->second == it->second)
@@ -213,7 +232,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         // We want the pairs of <task_set, task_name> to be shown vertically
         // To achieve it, we create edges between each two consecutive pair subgraph
         std::set<std::string>::iterator it2;
-        for(std::set<std::string>::iterator it = printed_funcs.begin(); it != printed_funcs.end(); ++it)
+        for(std::set<std::string>::const_iterator it = printed_funcs.begin(); it != printed_funcs.end(); ++it)
         {
             it2 = it; it2++;
             if(it2 != printed_funcs.end())
@@ -225,9 +244,9 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         return nodes_legend;
     }
     
-    inline Node* find_node_from_wd_id(int64_t wd_id) {
+    inline Node* find_node_from_wd_id(int64_t wd_id) const {
         Node* result = NULL;
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
             if((*it)->get_wd_id() == wd_id) {
                 result = *it;
                 break;
@@ -258,7 +277,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     }
     
     inline int get_cluster_id(std::map<int, int>& node_to_cluster, int cluster_inner_node_id, 
-                              std::vector<Edge*> edges_to_from_cluster, bool cluster_is_source)
+                              std::vector<Edge*> const &edges_to_from_cluster, bool cluster_is_source)
     {
         int current_cluster_id;
         std::map<int, int>::const_iterator cluster_inner_node_it = node_to_cluster.find(cluster_inner_node_id);
@@ -274,10 +293,10 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             
             // Insert in the map the relation between all brothers of cluster_inner_node_id and the new cluster id
             if(cluster_is_source)
-                for(std::vector<Edge*>::iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
+                for(std::vector<Edge*>::const_iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
                     node_to_cluster[(*e)->get_source()->get_wd_id()] = current_cluster_id;
             else
-                for(std::vector<Edge*>::iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
+                for(std::vector<Edge*>::const_iterator e = edges_to_from_cluster.begin(); e != edges_to_from_cluster.end(); ++e)
                     node_to_cluster[(*e)->get_target()->get_wd_id()] = current_cluster_id;
         }
         
@@ -286,7 +305,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     
     inline std::string print_clustered_subgraph(int64_t current_wd, bool cluster_is_source, bool cluster_is_concurrent,
                                                  const std::vector<Edge*>& cluster_edges,
-                                                 std::map<int, int>& node_to_cluster, std::vector<Edge*> cluster_exits) {
+                                                 std::map<int, int>& node_to_cluster, std::vector<Edge*> const &cluster_exits) {
         std::string result = "";
         // Get the identifier of the cluster if it has been previously created or create a new identifier otherwise
         int cluster_inner_node_id = (cluster_is_source ? cluster_edges[0]->get_source()->get_wd_id() : 
@@ -311,11 +330,11 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         }
         result += "  }\n";
         
-        for(std::vector<Edge*>::iterator it = cluster_exits.begin(); it != cluster_exits.end(); ++it)
+        for(std::vector<Edge*>::const_iterator it = cluster_exits.begin(); it != cluster_exits.end(); ++it)
         {
             std::vector<Edge*> actual_exits;
             if((*it)->get_target()->is_commutative() || (*it)->get_target()->is_concurrent())
-                actual_exits = (*it)->get_target()->get_exits();
+                actual_exits = (*it)->get_target()->get_exits(); //copy assign operator
             else
                 actual_exits.push_back(*it);
             for(std::vector<Edge*>::iterator e = actual_exits.begin(); e != actual_exits.end(); ++e) {
@@ -336,6 +355,44 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         return result;
     }
     
+    inline bool has_virtual_sync_parent(Node* n)
+    {
+        std::vector<Edge*> const &entries = n->get_entries();
+        for(std::vector<Edge*>::const_iterator it = entries.begin(); it != entries.end(); ++it)
+            if((*it)->get_source()->is_concurrent() || (*it)->get_source()->is_commutative())
+                return true;
+            return false;
+    }
+    
+    inline Node* get_virtual_sync_parent(Node* n)
+    {
+        std::vector<Edge*> const &entries = n->get_entries();
+        for(std::vector<Edge*>::const_iterator it = entries.begin(); it != entries.end(); ++it)
+            if((*it)->get_source()->is_concurrent() || (*it)->get_source()->is_commutative())
+                return (*it)->get_source();
+            fatal("No concurrent|commutative parent found for a node that is meant to have a virtual synchronization node as parent.\n");
+        return NULL;
+    }
+    
+    inline bool has_virtual_sync_child(Node* n)
+    {
+        std::vector<Edge*> const &exits = n->get_exits();
+        for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
+            if((*it)->get_target()->is_concurrent() || (*it)->get_target()->is_commutative())
+                return true;
+            return false;
+    }
+    
+    inline Node* get_virtual_sync_child(Node* n)
+    {
+        std::vector<Edge*> const &exits = n->get_exits();
+        for(std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
+            if((*it)->get_target()->is_concurrent() || (*it)->get_target()->is_commutative())
+                return (*it)->get_target();
+            fatal("No concurrent|commutative child found for a node that is meant to have a virtual synchronization node as child.\n");
+        return NULL;
+    }
+    
     inline std::string print_full_graph(std::string partial_file_name) {
         // Generate the name of the dot file from the name of the binary
         std::string result = partial_file_name + "_full";
@@ -348,10 +405,18 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             exit(EXIT_FAILURE);
         
         // Compute the time average to print the nodes size accordingly
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
-            _time_avg += (*it)->get_total_time();
+        if(InstrumentationTDGInstrumentation::_nodeSizeFunc != "constant")
+        {
+            for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+                if((*it)->is_task())
+                {
+                    _min_time = std::min(_min_time, (*it)->get_total_time()); 
+                    _total_time += (*it)->get_total_time();
+                }
+            }
+            _min_diam = std::sqrt(_min_time/M_PI) * 2;
+            
         }
-        _time_avg /= _graph_nodes.size();
         
         // Print the graph
         std::map<int, int> node_to_cluster;
@@ -359,7 +424,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             // Print attributes of the graph
             dot_file << "  graph[compound=true];\n";
             // Print the graph nodes
-            for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it)
+            for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it)
             {
                 if((*it)->is_printed())
                     continue;
@@ -369,10 +434,8 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     continue;
                 }
                 
-                std::vector<Edge*> entries = (*it)->get_entries();
-                std::vector<Edge*> exits = (*it)->get_exits();
-                if((entries.size() == 1) && (entries[0]->is_concurrent_dep() || entries[0]->is_commutative_dep()) && 
-                   (exits.size() == 1) && (exits[0]->is_concurrent_dep() || exits[0]->is_commutative_dep()))
+                std::vector<Edge*> const &exits = (*it)->get_exits();
+                if(has_virtual_sync_parent(*it) && has_virtual_sync_child(*it))
                 {
                     /* This happens when we treat either T1 or T2, whichever is the first in _graph_nodes:
                      *       C
@@ -381,20 +444,22 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                      *     \   /        -> And the edges may be collapsed in one only entry edge and one only exit edge
                      *       C
                      */
-                    std::vector<Edge*> edges_to_clustered_tasks = entries[0]->get_source()->get_exits();
+                    Node* virtual_sync_parent = get_virtual_sync_parent(*it);
+                    std::vector<Edge*> const &edges_to_clustered_tasks = virtual_sync_parent->get_exits();
                     dot_file << print_clustered_subgraph((*it)->get_wd_id(), /*cluster_is_source*/ false, 
-                                                          /*cluster_is_concurrent*/ entries[0]->is_concurrent_dep(),
+                                                         /*cluster_is_concurrent*/ virtual_sync_parent->is_concurrent(),
                                                           edges_to_clustered_tasks, node_to_cluster, exits);
-                } else if((exits.size() == 1) && (exits[0]->is_concurrent_dep() || exits[0]->is_commutative_dep())) {
+                } else if(has_virtual_sync_child(*it)) {
                     /* This happens when:
                      *    ...               -> Tasks may have some entry, but it is not a concurrent|commutative node
                      * T1     T2            -> T1 and T2 do not have any previous dependency
                      *   \   /                 so the first case of the IfElseStatement never occurs
                      *     C
                      */
-                    std::vector<Edge*> edges_from_clustered_tasks = exits[0]->get_target()->get_entries();
+                    Node* virtual_sync_child = get_virtual_sync_child(*it);
+                    std::vector<Edge*> const &edges_from_clustered_tasks = virtual_sync_child->get_entries();
                     dot_file << print_clustered_subgraph((*it)->get_wd_id(), /*cluster_is_source*/ true, 
-                                                          /*cluster_is_concurrent*/ exits[0]->is_concurrent_dep(),
+                                                         /*cluster_is_concurrent*/ virtual_sync_child->is_concurrent(),
                                                           edges_from_clustered_tasks, node_to_cluster, exits);
                 } else {
                     // Print the node and its nested nodes
@@ -402,7 +467,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     
                     // Print the exit edges (outside the rank, so they are displayed top-bottom)
                     std::set<Node*> nodes_in_same_cluster_to_avoid;
-                    for(std::vector<Edge*>::iterator edge = exits.begin(); edge != exits.end(); ++edge) {
+                    for(std::vector<Edge*>::const_iterator edge = exits.begin(); edge != exits.end(); ++edge) {
                         if(!(*edge)->is_nesting()) 
                         {   // nesting edges have been printed previously in 'print_nested_nodes'
                             if(!(*edge)->get_target()->is_concurrent() && !(*edge)->get_target()->is_commutative() && 
@@ -456,35 +521,26 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                                      *   \   /
                                      *     C
                                      */
-                                    std::stringstream ssc;
-                                    if(node_to_cluster.find((*edge)->get_target()->get_wd_id()) != node_to_cluster.end()) {
-                                        // Get the identifier of the cluster that has already been printed
-                                        ssc << node_to_cluster[(*edge)->get_target()->get_wd_id()];
-                                    } else {
-                                        // Otherwise, we assign a cluster id for the new cluster that will be created, so we can link it now
+                                    if(node_to_cluster.find((*edge)->get_target()->get_wd_id()) == node_to_cluster.end()) {
+                                        // Assign a cluster id for the new cluster that will be created
                                         int current_cluster_id;
                                         lock.acquire();
                                         current_cluster_id = cluster_id++;
                                         lock.release();
-                                        for(std::vector<Edge*>::iterator e = exits.begin(); e != exits.end(); ++e) {
-                                            if(((*e)->get_target()->get_exits().size() == 1) && 
-                                                ((*e)->get_target()->get_exits()[0]->get_target()->is_concurrent() || 
-                                                  (*e)->get_target()->get_exits()[0]->get_target()->is_commutative())) 
+                                        for(std::vector<Edge*>::const_iterator e = exits.begin(); e != exits.end(); ++e) {
+                                            if(has_virtual_sync_child((*e)->get_target())) 
                                             {
                                                 node_to_cluster[(*e)->get_target()->get_wd_id()] = current_cluster_id;
                                             }
                                         }
-                                        ssc << current_cluster_id;
                                     }
                                     // Print the node in the dot file
                                     std::stringstream sss; sss << (*it)->get_wd_id();
                                     std::stringstream sst; sst << (*edge)->get_target()->get_wd_id();
-                                    dot_file << "  " << sss.str() + " -> " + sst.str() + "[lhead=\"cluster_" + ssc.str() + "\", style=\"solid\", color=\"black\"];\n";
+                                    dot_file << "  " << sss.str() + " -> " + sst.str() + "[style=\"solid\", color=\"black\"];\n";
                                     // The rest of nodes in the same cluster must not be connected
-                                    for(std::vector<Edge*>::iterator e = exits.begin(); e != exits.end(); ++e) {
-                                        if(((*e)->get_target()->get_exits().size() == 1) && 
-                                            ((*e)->get_target()->get_exits()[0]->get_target()->is_commutative() || 
-                                              (*e)->get_target()->get_exits()[0]->get_target()->is_concurrent()))
+                                    for(std::vector<Edge*>::const_iterator e = exits.begin(); e != exits.end(); ++e) {
+                                        if(has_virtual_sync_child((*e)->get_target()))
                                         {
                                             nodes_in_same_cluster_to_avoid.insert((*e)->get_target());
                                         }
@@ -506,15 +562,16 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     }
     
 #ifndef NANOS_INSTRUMENTATION_ENABLED
-    public:
+public:
     // constructor
-    InstrumentationNewGraphInstrumentation() : Instrumentation(),
-                                               _graph_nodes(), _funct_id_to_decl_map(), 
-                                               _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+    InstrumentationTDGInstrumentation() : Instrumentation(),
+                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                                          _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
-    ~InstrumentationNewGraphInstrumentation() {}
+    ~InstrumentationTDGInstrumentation() {}
 
     // low-level instrumentation interface (mandatory functions)
     void initialize(void) {}
@@ -527,15 +584,17 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
     void threadStart(BaseThread &thread) {}
     void threadFinish (BaseThread &thread) {}
 #else
-    public:
+public:
+    
     // constructor
-    InstrumentationNewGraphInstrumentation() : Instrumentation(*new InstrumentationContextDisabled()),
-                                               _graph_nodes(), _funct_id_to_decl_map(), 
-                                               _time_avg(0.0), _next_tw_id(0), _next_conc_id(0)
+    InstrumentationTDGInstrumentation() : Instrumentation(*new InstrumentationContextDisabled()),
+                                          _graph_nodes(), _funct_id_to_decl_map(), 
+                                          _min_time(HUGE_VAL), _total_time(0.0), _min_diam(1.0),
+                                          _next_tw_id(0), _next_conc_id(0)
     {}
     
     // destructor
-    ~InstrumentationNewGraphInstrumentation () {}
+    ~InstrumentationTDGInstrumentation () {}
 
     // low-level instrumentation interface (mandatory functions)
     void initialize(void) 
@@ -546,16 +605,19 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
         // So far, taskwaits have been synchronized with the tasks created previously
         // But those tasks created after a given taskwait have not been connected to the taskwait
         // Note: The wd of a taskwait is always a negative number!
-        for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+        for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
             if(!(*it)->is_previous_synchronized()) {
                 // The task has no parent, look for a taskwait|barrier suitable to be its parent
                 int64_t wd_id = (*it)->get_wd_id() - (((*it)->is_concurrent() || (*it)->is_commutative()) ? concurrent_min_id : 0);
                 Node* it_parent = (*it)->get_parent_task();
                 Node* last_taskwait_sync = NULL;
-                for(std::set<Node*>::iterator it2 = _graph_nodes.begin(); it2 != _graph_nodes.end(); ++it2) {
+                for(std::set<Node*>::const_iterator it2 = _graph_nodes.begin(); it2 != _graph_nodes.end(); ++it2) {
+                    if((*it)->get_wd_id()==(*it2)->get_wd_id())
+                        continue;
                     if((it_parent == (*it2)->get_parent_task()) &&                  // The two nodes are in the same region
-                        (!(*it2)->is_task()) &&                                      // The potential last sync is a taskwait|barrier|concurrent
-                        (std::abs(wd_id) > std::abs((*it2)->get_wd_id()))) {    // The potential last sync was created before
+                        (!(*it2)->is_task()) &&                                     // The potential last sync is a taskwait|barrier|concurrent
+                        (std::abs(wd_id) >= std::abs((*it2)->get_wd_id())) &&       // The potential last sync was created before
+                        !(*it)->is_connected_with(*it2) ) {                         // Make sure we don't connect with our own child
                         if((last_taskwait_sync == NULL) || 
                             (last_taskwait_sync->get_wd_id() > (*it2)->get_wd_id())) {
                             // From all suitable previous syncs. we want the one created the latest
@@ -668,7 +730,9 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 _next_conc_id = wd_id + 1;
                 // Create the new node
                 Node* new_node = new Node(wd_id, funct_id, TaskNode);
+                _graph_nodes_lock.acquire();
                 _graph_nodes.insert(new_node);
+                _graph_nodes_lock.release();
                 
                 // Connect the task with its parent task, if exists
                 if(current_parent != NULL) {
@@ -678,12 +742,14 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
             else if (e.getKey() == user_funct_location)
             {   // A user function has been called
                 int64_t func_id = e.getValue();
+                _funct_id_to_decl_map_lock.acquire();
                 if(func_id != 0 && _funct_id_to_decl_map.find(func_id) == _funct_id_to_decl_map.end()) {
                     std::string description = iD->getValueDescription(user_funct_location, func_id);
                     int pos2 = description.find_first_of("(");
                     int pos1 = description.find_last_of (" ", pos2);
                     _funct_id_to_decl_map[ func_id ] = '\"' + description.substr(pos1+1, pos2-pos1-1) + '\"';
                 }
+                _funct_id_to_decl_map_lock.release();
             }
             else if (e.getKey() == dependence)
             {  // A dependence occurs
@@ -739,13 +805,17 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     // Create the new sender node, if necessary
                     if(sender == NULL) {
                         sender = new Node(sender_wd_id, 0, nt);
+                        _graph_nodes_lock.acquire();
                         _graph_nodes.insert(sender);
+                        _graph_nodes_lock.release();
                     }
                     
                     // Create the new receiver node, if necessary
                     if(receiver == NULL) {
                         receiver = new Node(receiver_wd_id, 0, nt);
+                        _graph_nodes_lock.acquire();
                         _graph_nodes.insert(receiver);
+                        _graph_nodes_lock.release();
                     }
                 }
                 Node::connect_nodes(sender, receiver, Dependency, dep_type);
@@ -756,7 +826,8 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                 Node* new_node = new Node(_next_tw_id, -1, TaskwaitNode);
                 --_next_tw_id;
                 // First synchronize the tasks
-                for(std::set<Node*>::iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
+                _graph_nodes_lock.acquire();
+                for(std::set<Node*>::const_iterator it = _graph_nodes.begin(); it != _graph_nodes.end(); ++it) {
                     // Synchronization nodes will be connected, if necessary, when 'finalize' is called
                     if(!(*it)->is_next_synchronized() && (*it)->is_task()) {
                         Node* parent_task = (*it)->get_parent_task();
@@ -766,6 +837,7 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
                     }
                 }
                 _graph_nodes.insert(new_node);
+                _graph_nodes_lock.release();
             }
         }
     }
@@ -778,18 +850,34 @@ class InstrumentationNewGraphInstrumentation: public Instrumentation
 
 };
 
+std::string InstrumentationTDGInstrumentation::_nodeSizeFunc = "log";
+
 namespace ext {
     
-    class InstrumentationNewGraphInstrumentationPlugin : public Plugin {
+    class InstrumentationTDGInstrumentationPlugin : public Plugin {
     public:
-        InstrumentationNewGraphInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
-        ~InstrumentationNewGraphInstrumentationPlugin () {}
+        InstrumentationTDGInstrumentationPlugin () : Plugin("Instrumentation which print the graph to a dot file.",1) {}
+        ~InstrumentationTDGInstrumentationPlugin () {}
         
-        void config(Config &cfg) {}
+        void config(Config &cfg) 
+        {
+            cfg.setOptionsSection("Task Dependency Graph Plugin ", "TDG plugin specific options" );
+            cfg.registerConfigOption("node-size",  NEW Config::StringVar(InstrumentationTDGInstrumentation::_nodeSizeFunc),
+                                     "Defines the size of the nodes depending on the execution time of the related task" );
+            cfg.registerArgOption("node-size", "node-size");
+        }
         
         void init ()
         {
-            sys.setInstrumentation(new InstrumentationNewGraphInstrumentation());
+            if((InstrumentationTDGInstrumentation::_nodeSizeFunc != "constant") &&
+               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "linear") && 
+               (InstrumentationTDGInstrumentation::_nodeSizeFunc != "log"))
+            {
+                std::cerr << "Invalid node-size value \'" << InstrumentationTDGInstrumentation::_nodeSizeFunc << "\'. "
+                          << "One of the following expected: \'constant\', \'linear\' and \'log\'. "
+                          << "Using default \'log\'." << std::endl;
+            }
+            sys.setInstrumentation(new InstrumentationTDGInstrumentation());
         }
     };
     
@@ -797,4 +885,4 @@ namespace ext {
 
 } // namespace nanos
 
-DECLARE_PLUGIN("intrumentation-new-graph",nanos::ext::InstrumentationNewGraphInstrumentationPlugin);
+DECLARE_PLUGIN("intrumentation-tdg",nanos::ext::InstrumentationTDGInstrumentationPlugin);

@@ -56,7 +56,7 @@ private:
   //static std::vector<cl_platform_id> _plats;
   static std::map<cl_device_id, cl_context>* _devicesPtr;
   static unsigned int _currNumDevices;
-  static bool _allocWide; //! Use wide allocation policy for the region cache
+  static bool _disableAllocWide; //! Use wide allocation policy for the region cache
 
   // These properties manages mutable state.
 

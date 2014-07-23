@@ -568,9 +568,41 @@ namespace nanos {
             /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data in");
             /* 47 */ registerEventKey("sched-affinity-constraint","Constraint used by affinity scheduler");
 
-            /* 44 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
-            /* 45 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
-            /* 46 */ registerEventKey("concurrent-tasks", "Number of concurrent tasks in the ready queue", false);
+            /* 48 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 49 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+            /* 50 */ registerEventKey("concurrent-tasks", "Number of concurrent tasks in the ready queue", false);
+                     
+            /* 51*/ registerEventKey("in-mpi-runtime","Inside MPI runtime", true);
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_ALLOC_EVENT", "malloc()" );                                     /* 1 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_FREE_EVENT", "free()" );                                         /* 2 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT", "deep_booster_alloc(...)" );                            /* 3 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_COPYIN_SYNC_EVENT", "MPI Copy data to remote node" );                                /* 4 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_COPYOUT_SYNC_EVENT", "MPI copy data from remote node" );                      /* 5 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_COPYDEV2DEV_SYNC_EVENT", "MPI copy data between two nodes" );                      /* 6 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_DEEP_BOOSTER_FREE_EVENT", "deep_booster_free(...)" );                      /* 7 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_INIT_EVENT", "nanos_mpi_init()" );                      /* 8 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_FINALIZE_EVENT", "nanos_mpi_finalize()" );                      /* 9 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_SEND_EVENT", "nanos mpi_send()" );                      /* 10 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RECV_EVENT", "nanos mpi_recv()" );                      /* 11 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_SSEND_EVENT", "nanos mpi_ssend()" );                      /* 12 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_COPYLOCAL_SYNC_EVENT", "MPI Copy local inside node" );                      /* 13 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_REALLOC_EVENT", "MPI Realloc data inside node" );                      /* 14 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_WAIT_FOR_COPIES_EVENT", "MPI remote node task waiting for copyIns before starting" );   /* 15 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_COPYIN_EVENT", "MPI remote node cache doing copy in" );  /* 16 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_COPYOUT_EVENT", "MPI remote node cache doing copy out" );            /* 17 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_DEV2DEV_IN_EVENT", "MPI remote node cache doing device to device copy in" );   /* 18 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT", "MPI remote node cache doing device to device copy outg" );  /* 19 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_ALLOC_EVENT", "MPI remote node cache doing allocation" );   /* 20 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_REALLOC_EVENT", "MPI remote node cache doing reallocation" );  /* 21 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_FREE_EVENT", "MPI remote node cache doing free of previous allocated chunk" ); /* 22 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_RNODE_COPYLOCAL_EVENT", "MPI remote node cache doing copy local" );  /* 23 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_IRECV_EVENT", "Async recv" ); /* 24 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_ISEND_EVENT", "Async send" );  /* 25 */
+            registerEventValue("in-mpi-runtime", "NANOS_MPI_GENERIC_EVENT", "MPI generic event" );                /* 26 */
+
+            /* 52 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 53 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+            /* 54 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
@@ -652,20 +684,34 @@ namespace nanos {
 
 //! \class Instrumentation
 //! \brief Instrumentation main class is the core of the insrumentation behaviour.
-/*! \description This class implements several type of methods: methods to create events, methods to raise event, WorkDescriptor context swhich methods and finally, specific Instrumentation methods which are actually defined into each derived class (plugins). Specific Instrumentation methods are (ideally) the ones that have to be implemented in each derived Instrumentation class.
+/*! \description This class implements several methods: methods to create events, methods to raise event, WorkDescriptor context swhitch methods. Instrumentation plugins will be derived classes of this class. These plugins must implement (at least) a subset of these methods will determine their specific behaviour. This is called the instrumentation plugin interface:
  *
- *  They are:
+ * \subsubsection instrumentation_api Instrumentation API
  *
  *  - initialize(): this method is executed at runtime startup and can be used to create buffers, auxiliary structures, initialize values (e.g. time stamp), etc.
  *  - finalize(): this method is executed at runtime shutdown and can be used to dump remaining data into a file or standard output, post-process trace information, delete buffers and auxiliary structures, etc.
  *  - addEventList(): this method is executed each time the runtime raises an event. It receives a list of events (EventList) and the specific instrumentation class has to deal with each event in this list in order to generate (or not) a valid output.
+ *  - disable(): this method disables instrumentation until enable method is call again. Disable method will inform plugin to stop instrumenting but runtime's core will continue generating events, so it is suposed that the plugin will ignore or keep them to stay in a consistent state.
+ *  - enable(): this method enables again the instrumentation, previously disabled by disable method.
+ *  - threadStart(): this method is executed each time a new thread starts.
+ *  - threadFinish(): this method is executed each time a new thread finishes.
+ *  - addResumeTask(): this method is executed each time a task is resumed in the current thread
+ *  - addSuspendTask(): this method is executed each time a task is suspended in the current thread
+ *  - incrementMaxThreads() this method is executed each time we increase the number of threads
  *
- *  The Instrumentation object implementation is based in the concept of plugins which allow that several implementations based on its interface can be used without having to modify the runtime library. As we can see in the class diagram we have a generic class which defines all the instrumentation interface and several specific classes which defines the specific output format. But specific Instrumentation programmers can also overload other base methods in order to get an specific behavior when the plugin is invoked. Derived classes have to define (at least) the three previously mentioned virtual methods:
+ *  The Instrumentation object implementation is based in the concept of plugins which allow that several implementations based on its interface can be used without having to modify the runtime library. As we can see in the class diagram we have a generic class which defines all the instrumentation interface and several specific classes which defines the specific output format. But specific Instrumentation programmers can also overload other base methods in order to get an specific behavior when the plugin is invoked. Derived classes have to define (at least) the previously mentioned virtual methods:
  *
  *  \code
  *  void initialize( void );
  *  void finalize( void );
  *  void addEventList(  unsigned int count, Event *events );
+ *  void enable( void );
+ *  void disable ( void );
+ *  void threadStart ( BaseThread &thread ) = 0;
+ *  void threadFinish ( BaseThread &thread ) = 0;
+ *  void addResumeTask( WorkDescriptor &w ) = 0 ;
+ *  void addSuspendTask( WorkDescriptor &w, bool last = false ) = 0 ;
+ *  void incrementMaxThreads( void ) {}
  *  \endcode
  *
  *  Instrumentation also specify as virtual functions some generic services which can be used at runtime code. These services are grouped in:

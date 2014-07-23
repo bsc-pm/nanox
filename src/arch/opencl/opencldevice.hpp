@@ -30,11 +30,18 @@ using namespace nanos::ext;
 
 OpenCLDevice::OpenCLDevice( const char *name ) : Device( name ) { }
 
-void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr) const
+void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const
 { 
    nanos::ProcessingElement * pe = &(mem.getPE());
-   if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
-      return proc->allocate( size , targetHostAddr);
+   if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) ) {
+       CopyData cdata=wd.getCopies()[copyIdx];
+       //If we are on allocWide mode and we have the complete size (aka we are allocating the whole structure), do offset = 0
+       if (nanos::ext::OpenCLConfig::getAllocWide() && cdata.getSize()!=cdata.getMaxSize()) {
+         return proc->allocate( size , cdata.getAddress(), 0);
+       } else {
+         return proc->allocate( size , cdata.getAddress(), cdata.getOffset());
+       }
+   }
 
 
    fatal( "Can allocate only on OpenCLProcessor" );
@@ -66,13 +73,6 @@ void OpenCLDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len
    nanos::ProcessingElement * pe = &(mem.getPE());
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
    {
-      // Current thread is not the device owner: instead of doing the copy, add
-      // it to the pending transfer list.
-//      if( myThread->runningOn() != pe )
-//         return proc->asyncCopyIn( localDst, remoteSrc, size );
-//
-//      // We can do a synchronous copy.
-//      else
         proc->copyIn( devAddr, hostAddr, len, ops );
    }
 }
@@ -82,13 +82,6 @@ void OpenCLDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t le
    nanos::ProcessingElement * pe = &(mem.getPE());
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) )
    {
-      // Current thread is not the device owner: instead of doing the copy, add
-      // it to the pending transfer list.
-//      if( myThread->runningOn() != pe )
-//         return proc->asyncCopyOut( remoteDst, localSrc, size );
-//
-//      // We can do a synchronous copy.
-//      else
         proc->copyOut( hostAddr, devAddr, len, ops );
    }
 }

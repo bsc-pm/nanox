@@ -23,23 +23,7 @@ extern "C" {
 
    unsigned int nanos_extrae_get_max_threads ( void )
    {
-#ifdef GPU_DEV
-#ifdef CLUSTER_DEV
-      /* GPU_DEV & CLUSTER_DEV */
-      return sys.getMaxThreads() + nanos::ext::GPUConfig::getGPUCount() + sys.getNetwork()->getExtraPEsCount();
-#else
-      /* GPU_DEV & no CLUSTER_DEV */
-      return sys.getMaxThreads() + nanos::ext::GPUConfig::getGPUCount();
-#endif
-#else
-#ifdef CLUSTER_DEV
-      /* no GPU_DEV & CLUSTER_DEV */
-      return sys.getMaxThreads() + sys.getNetwork()->getExtraPEsCount();
-#else
-      /* no GPU_DEV & no CLUSTER_DEV */
-      return sys.getMaxThreads();
-#endif
-#endif
+      return sys.getSMPPlugin()->getNumThreads();
    }
 
    unsigned int nanos_ompitrace_get_max_threads ( void )
@@ -49,12 +33,7 @@ extern "C" {
 
    unsigned int nanos_extrae_get_thread_num ( void )
    { 
-      if ( myThread == NULL )
-         return 0;
-      else if ( myThread->getParent() != NULL )
-         return myThread->getParent()->getId();
-      else
-         return myThread->getId(); 
+      return myThread == NULL ? 0 : myThread->getOsId();
    }
 
    unsigned int nanos_ompitrace_get_thread_num ( void )

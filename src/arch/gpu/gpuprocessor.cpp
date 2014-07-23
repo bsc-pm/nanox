@@ -32,9 +32,10 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId, int uid, memory_space_id_t memId, GPUMemorySpace &gpuMem ) : CachedAccelerator( id, &GPU, uid, NULL, memId ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), /*_gpuProcessorTransfers(),*/
-      _initialized( false ), _gpuMemory( gpuMem ) /*, _allocator(), _inputPinnedMemoryBuffer()*/
+GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) :
+      ProcessingElement( &GPU, NULL, memId, 0 /* local node */, core->getNumaNode() /* numa */, true, 0 /* socket: n/a */, false ),
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(),
+      _initialized( false ), _gpuMemory( gpuMem ), _core( core )
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
@@ -159,7 +160,7 @@ BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread 
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *NEW GPUThread( helper, this, parent, _gpuDevice );
+   GPUThread &th = *NEW GPUThread( helper, this, _core, _gpuDevice );
 
    return th;
 }
@@ -247,6 +248,16 @@ void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
          warning( "Error while destroying the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
       }
    }
+}
+
+BaseThread &GPUProcessor::startGPUThread() {
+   WD & worker = getWorkerWD();
+
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+   NANOS_INSTRUMENT (icd->setStartingWD(true) );
+
+   return _core->startThread( *this, worker, NULL );
 }
 //bool GPUProcessor::supportsDirectTransfersWith(ProcessingElement const &pe) const {
 //   return ( &GPU == pe.getCacheDeviceType() );

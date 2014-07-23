@@ -22,13 +22,19 @@ inline std::size_t AllocatedChunk::getSize() const {
    return _size;
 }
 
-inline void AllocatedChunk::addReference() {
+inline void AllocatedChunk::addReference( int wdId, unsigned int loc ) {
    _refs++;
+   _refWdId[wdId]++;
+   _refLoc[wdId].insert(loc);
    //std::cerr << "add ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
 }
 
-inline void AllocatedChunk::removeReference() {
+inline void AllocatedChunk::removeReference( int wdId ) {
    _refs--;
+   _refWdId[wdId]--;
+   if ( _refWdId[wdId] == 0 ) {
+      _refLoc[wdId].clear();
+   }
    
    //std::cerr << "del ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
    //if ( _refs == (unsigned int) -1 ) {
@@ -75,27 +81,6 @@ inline unsigned int RegionCache::getLruTime() const {
 
 inline void RegionCache::increaseLruTime() {
    _lruTime += 1;
-}
-
-inline bool RegionCache::pin( global_reg_t const &hostMem ) {
-   bool result = false;
-   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
-   if ( entry ) {
-      entry->addReference();
-      entry->unlock();
-      result = true;
-   }
-   return result;
-}
-
-inline void RegionCache::unpin( global_reg_t const &hostMem ) {
-   AllocatedChunk *entry = this->getAllocatedChunk( hostMem );
-   if ( entry ) {
-      entry->removeReference();
-      entry->unlock();
-   } else {
-      fprintf(stderr, "could not get a CacheEntry!\n");
-   }
 }
 
 inline unsigned int RegionCache::getSoftInvalidationCount() const {

@@ -49,7 +49,7 @@ void CopyData::getFitDimensions( nanos_region_dimension_internal_t *outDimension
 std::ostream& nanos::operator<< (std::ostream &o, CopyData const &cd) {
    o << "CopyData" << std::endl;
    o << "\tAddtess: " << cd.address << std::endl;
-   o << "\tHostBaseAddtess: " << cd.host_base_address << std::endl;
+   o << "\tHostBaseAddtess (" << (void*) &cd.host_base_address << " ): " << cd.host_base_address << std::endl;
    o << "\tOffset: " << cd.offset << std::endl;
    o << "\tDimensions: " << cd.dimension_count << std::endl;
    for ( int i = 0; i < cd.dimension_count; i++) {

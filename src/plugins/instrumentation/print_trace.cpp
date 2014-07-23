@@ -46,7 +46,7 @@ class InstrumentationPrintTrace: public Instrumentation
       void addSuspendTask( WorkDescriptor &w, bool last ) {
          fprintf(stderr,"NANOS++: (WD's) %s task %d in thread %d\n",last?"Finishing":"Suspending",w.getId(), myThread->getId());
       }
-
+      
       void addEventList ( unsigned int count, Event *events )
       {
          // Getting instrumented key's
@@ -147,6 +147,12 @@ class InstrumentationPrintTrace: public Instrumentation
                      std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
                      fprintf(stderr,"NANOS++: (TASK) Finishing %s function location\n", description.c_str() );
                   }
+                  break;
+               case NANOS_PTP_START:
+                  fprintf(stderr,"NANOS++: (P2P Start) Start p2p with key %u, %u, %llu\n", (unsigned int) e.getKey() , (unsigned int) e.getDomain(), (long long) e.getId() );                   
+                  break;
+               case NANOS_PTP_END:      
+                  fprintf(stderr,"NANOS++: (P2P End) end p2p with key %u, %u, %llu\n", (unsigned int) e.getKey() , (unsigned int) e.getDomain(), (long long) e.getId() );                   
                   break;
                default:
                   break;

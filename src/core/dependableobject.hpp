@@ -89,7 +89,7 @@ inline int DependableObject::increasePredecessors ( )
 
 inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking, DependableObject *predecessor )
 {
-   if ( predecessor != NULL && getWD() != NULL ) {
+   if ( predecessor != NULL && getWD() != NULL && predecessor->getWD() ) {
       getWD()->predecessorFinished( predecessor->getWD() );
    }
    int  numPred = --_numPredecessors; 

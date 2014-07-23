@@ -35,6 +35,10 @@
 #endif
 #include "wddeque.hpp"
 #include "resourcemanager.hpp"
+#include "smpthread.hpp"
+#include "nanos-int.h"
+
+#include <iostream>
 
 using namespace nanos;
 
@@ -173,7 +177,9 @@ void Scheduler::updateExitStats ( WD &wd )
 
 struct TestInputs {
    static void call( ProcessingElement *pe, WorkDescriptor *wd ) {
-      pe->testInputs( *wd );
+      if ( wd->_mcontrol.isMemoryAllocated() ) {
+         pe->testInputs( *wd );
+      }
    }
 };
 
@@ -223,8 +229,8 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
-   current->setIdle();
    sys.getSchedulerStats()._idleThreads++;
+   myThread->setIdle( true );
 
    for ( ; ; ) {
       BaseThread *thread = getMyThreadSafe();
@@ -298,7 +304,6 @@ inline void Scheduler::idleLoop ()
       } 
 
       if ( next ) {
-         sys.getSchedulerStats()._idleThreads--;
 
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
@@ -319,10 +324,16 @@ inline void Scheduler::idleLoop ()
 
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
 
+         myThread->setIdle( false );
+         sys.getSchedulerStats()._idleThreads--;
+
          behaviour::switchWD(thread, current, next);
 
          thread = getMyThreadSafe();
+         thread->step();
+
          sys.getSchedulerStats()._idleThreads++;
+         myThread->setIdle( true );
 
          NANOS_INSTRUMENT (total_spins = 0; )
          NANOS_INSTRUMENT (total_blocks = 0; )
@@ -389,8 +400,8 @@ inline void Scheduler::idleLoop ()
          spins = init_spins;
       }
    }
+   myThread->setIdle(false);
    sys.getSchedulerStats()._idleThreads--;
-   current->setReady();
    //current->~WorkDescriptor();
 
    //// This is actually a free(current) but dressed up as C++
@@ -454,9 +465,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    WD * current = myThread->getCurrentWD();
 
-   sys.getSchedulerStats()._idleThreads++;
    current->setSyncCond( condition );
-   current->setIdle();
+   sys.getSchedulerStats()._idleThreads++;
+   myThread->setIdle( true );
    
    BaseThread *thread = getMyThreadSafe();
 
@@ -508,7 +519,6 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             if ( !next) next = (WD *) &(myThread->runningOn()->getWorkerWD());
 
             if ( next ) {
-               sys.getSchedulerStats()._idleThreads--;
 
 #if 0
                NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
@@ -530,9 +540,22 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
 #endif
-               switchTo ( next );
-               thread = getMyThreadSafe();
+
+
+// FIXME: this code should be active
 #if 0
+               myThread->setIdle( false );
+               sys.getSchedulerStats()._idleThreads--;
+
+               switchTo ( next );
+
+               thread = getMyThreadSafe();
+#endif
+
+
+#if 0
+               thread->step();
+
                NANOS_INSTRUMENT ( total_spins = 0; )
 
                NANOS_INSTRUMENT ( total_yields = 0; )
@@ -545,6 +568,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 #endif
                sys.getSchedulerStats()._idleThreads++;
 #if 0
+               myThread->setIdle( true );
+
                spins = init_spins;
 #endif
             }
@@ -633,6 +658,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    }
 
    current->setSyncCond( NULL );
+   myThread->setIdle( false );
    sys.getSchedulerStats()._idleThreads--;
    if ( !current->isReady() ) {
       current->setReady();
@@ -1022,7 +1048,7 @@ struct WorkerBehaviour
         Scheduler::switchTo(next);
       }
       else {
-        if ( Scheduler::inlineWork ( next /*jb merge , true*/ ) ) {
+        if ( Scheduler::inlineWork ( next /*jb merge */, true ) ) {
           next->~WorkDescriptor();
           delete[] (char *)next;
         }
@@ -1118,7 +1144,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
    bool result = false;
    BaseThread *thread = getMyThreadSafe();
 
-   if ( wd->_mcontrol.allocateInputMemory() ) {
+   if ( wd->_mcontrol.allocateTaskMemory() ) {
       //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
@@ -1226,13 +1252,16 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    // Initializing wd if necessary
    // It will be started later in inlineWorkDependent call
    
-   wd->_mcontrol.initialize( *(thread->runningOn()) );
-   bool result;
-   do {
-      result = wd->_mcontrol.allocateInputMemory();
-   } while( result == false );
-
-   if ( !wd->started() ) wd->init();
+   if ( !wd->started() ) { 
+      if ( !wd->_mcontrol.isMemoryAllocated() ) {
+         wd->_mcontrol.initialize( *(thread->runningOn()) );
+         bool result;
+         do {
+            result = wd->_mcontrol.allocateTaskMemory();
+         } while( result == false );
+      }
+      wd->init();
+   }
 
    // This ensures that when we return from the inlining is still the same thread
    // and we don't violate rules about tied WD
@@ -1243,15 +1272,15 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    /* Instrumenting context switch: wd enters cpu (last = n/a) */
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
 
-   const bool done = thread->inlineWorkDependent(*wd);
+   bool done = thread->inlineWorkDependent(*wd);
 
    // reload thread after running WD due wd may be not tied to thread if
    // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
-   wd->finish();
-
    if ( done ) {
+      wd->finish();
+
       finishWork( wd, schedule );
       /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
@@ -1311,7 +1340,7 @@ void Scheduler::switchTo ( WD *to )
          to->_mcontrol.initialize( *(myThread->runningOn()) );
          bool result;
          do {
-            result = to->_mcontrol.allocateInputMemory();
+            result = to->_mcontrol.allocateTaskMemory();
          } while( result == false );
 
          to->init();
@@ -1399,7 +1428,7 @@ void Scheduler::exitTo ( WD *to )
        to->_mcontrol.initialize( *(myThread->runningOn()) );
        bool result;
        do {
-          result = to->_mcontrol.allocateInputMemory();
+          result = to->_mcontrol.allocateTaskMemory();
        } while( result == false );
 
        to->init();

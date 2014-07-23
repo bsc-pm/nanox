@@ -1,5 +1,4 @@
-
-AC_INIT([nanox], [0.8a], [pmtools@bsc.es])
+AC_INIT([nanox], [0.8a], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
@@ -86,18 +85,18 @@ fi
 # Memtracker support
 AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
 AC_ARG_ENABLE([memtracker],
-  AS_HELP_STRING([--disable-memtracker], [Disables Memtracker module]),
+  AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module]),
   [
-    memtracker_disabled=yes
-    AC_MSG_RESULT([yes])
+    memtracker_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
-    memtracker_disabled=no
+    memtracker_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$memtracker_disabled = xno; then
+if test x$memtracker_enabled = xyes; then
 	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
 	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
 fi
@@ -189,6 +188,7 @@ else
     fi
 fi
 
+# Check for programs
 # Override all the options if we're compiling for BG/Q
 if test x$use_bgq = xyes; then
     if test x$use_xlc = xyes; then
@@ -218,7 +218,61 @@ if test x$use_bgq = xyes; then
     AC_DEFINE([IS_BGQ_MACHINE], [1], [Defined if this machine is a BGQ machine])
 fi
 
-# Check for programs
+# Check for architecture
+ARCHITECTURES=
+OS=
+
+mpi_enabled=no
+mpi_valid=no
+#mpi support
+AC_ARG_WITH([mpi],
+AS_HELP_STRING([--with-mpi=dir], [Directory of mpi installation]),
+	[
+		MPIPATH="${withval}"
+		mpi_enabled=yes
+	],
+	[
+		MPIPATH=""
+	]
+)
+
+AC_MSG_CHECKING([if MPI Offload architecture was requested])
+AC_ARG_ENABLE([mpi],
+    AS_HELP_STRING([--enable-mpi], [Enables mpi offload support/architecture]),
+    [
+        if test x$enableval = xyes -o x$enableval = x;
+        then
+            mpi_enabled="yes"
+            AC_MSG_RESULT([yes])
+        else if test x$enableval = xno;
+            then
+                AC_MSG_RESULT([no])
+                mpi_enabled="no"
+             else
+                AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+             fi
+        fi
+    ],
+    [
+        mpi_enabled="yes"
+        AC_MSG_RESULT([yes])
+    ]
+)
+
+if test x$mpi_enabled = xyes; then
+	ARCHITECTURES="$ARCHITECTURES mpi"
+	CFLAGS="$CFLAGS -DMPI_DEV"
+	CXXFLAGS="$CXXFLAGS -DMPI_DEV"	
+	NANOX_MPI_PREFIX=$prefix
+	AC_SUBST([NANOX_MPI_PREFIX])
+	AC_SUBST([NANOX_OFFL_FLAGS])
+	mpi_valid=yes
+fi
+
+AC_SUBST([mpi_valid])
+
+
+# Check for programs (every compiler change should be done before this line)
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_LIBTOOL
 AC_PROG_CC([$CC])
@@ -245,7 +299,7 @@ if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
 fi
 
 if test x$use_gnu = xyes; then
-    if test x$use_bgq = xno; then
+    if test x$use_bgq = xno -a x$use_icc = xno; then
         CFLAGS="$CFLAGS -Wredundant-decls"
         CXXFLAGS="$CXXFLAGS -Wredundant-decls"
     fi
@@ -284,9 +338,6 @@ AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
-# Check for architecture
-ARCHITECTURES=
-OS=
 OPTIONS=
 
 AC_SUBST([ARCHITECTURES])
@@ -297,7 +348,12 @@ AC_SUBST([SMP_ARCH])
 AC_CHECK_SIZEOF([size_t])
 
 #AC_MSG_CHECKING([for architecture])
-smp_ult=yes
+AC_ARG_ENABLE([ult],
+  AS_HELP_STRING([--disable-ult], [Disables user level threads]),
+  [smp_ult=no],
+  [smp_ult=yes]
+)
+
 case $host in
   i?86-*-linux*)
     OS=unix-os
@@ -314,10 +370,16 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
-  armv71-*-linux*)
+  arm*-*-gnueabi*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=armv71
+    ;;
+  aarch64-*-linux-gnu)
+    smp_ult=no
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=aarch64
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
@@ -571,9 +633,9 @@ if test x$gpu_enabled = xyes ; then
 fi
 
 if test x$gpu_valid = xyes; then
-	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
-	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
-        LDFLAGS="$LDFLAGS $CUDA_RPATH"
+	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
+        LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
@@ -744,10 +806,12 @@ AC_MSG_CHECKING([for architecture])
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
-	NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
-	NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
-	NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
-	NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
+   if test x"$arch" != x"mpi"; then
+      NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
+      NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
+   fi
 done
 NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
 NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"
@@ -759,6 +823,7 @@ AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
 USED_VERSION=""
+VERSIONS=""
 
 # Enable instrumentation-debug version
 instrumentation_debug_disabled="yes"
@@ -771,6 +836,7 @@ AC_ARG_ENABLE([instrumentation-debug],
         instrumentation_debug_disabled="no"
         AC_MSG_RESULT([yes])
         USED_VERSION="instrumentation-debug"
+        VERSIONS+=" instrumentation-debug"
     else if test x$enableval = xno;
          then
             AC_MSG_RESULT([no])
@@ -795,15 +861,16 @@ AC_MSG_CHECKING([if instrumentation version was disabled])
 AC_ARG_ENABLE([instrumentation],
   AS_HELP_STRING([--disable-instrumentation], [Disables generation of instrumentation version]),
   [
-    if test x$disableval = xyes -o x$disableval = x;
+    if test x$disableval = xyes -o x$enableval = xno;
     then
         instrumentation_disabled="yes"
         AC_MSG_RESULT([yes])
-    else if test x$disableval = xno;
+    else if test x$disableval = xno -o x$disableval = x;
          then
             AC_MSG_RESULT([no])
             instrumentation_disabled="no"
             USED_VERSION="instrumentation"
+            VERSIONS+=" instrumentation"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
@@ -813,6 +880,7 @@ AC_ARG_ENABLE([instrumentation],
       AC_MSG_RESULT([no])
       instrumentation_disabled="no"
       USED_VERSION="instrumentation"
+      VERSIONS+=" instrumentation"
   ]
 )
 
@@ -825,15 +893,16 @@ AC_MSG_CHECKING([if debug version was disabled])
 AC_ARG_ENABLE([debug],
   AS_HELP_STRING([--disable-debug], [Disables generation of debug version]),
   [
-    if test x$disableval = xyes -o x$disableval = x;
+    if test x$disableval = xyes -o x$enableval = xno;
     then
         debug_disabled="yes"
         AC_MSG_RESULT([yes])
-    else if test x$disableval = xno;
+    else if test x$disableval = xno -o x$disableval = x;
          then
             AC_MSG_RESULT([no])
             debug_disabled="no"
             USED_VERSION="debug"
+            VERSIONS+=" debug"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
@@ -843,6 +912,7 @@ AC_ARG_ENABLE([debug],
       AC_MSG_RESULT([no])
       debug_disabled="no"
       USED_VERSION="debug"
+      VERSIONS+=" debug"
   ]
 )
 
@@ -855,15 +925,16 @@ AC_MSG_CHECKING([if performance version was disabled])
 AC_ARG_ENABLE([performance],
   AS_HELP_STRING([--disable-performance], [Disables generation of performance version]),
   [
-    if test x$disableval = xyes -o x$disableval = x;
+    if test x$disableval = xyes -o x$enableval = xno;
     then
         performance_disabled="yes"
         AC_MSG_RESULT([yes])
-    else if test x$disableval = xno;
+    else if test x$disableval = xno -o x$disableval = x;
          then
             AC_MSG_RESULT([no])
             performance_disabled="no"
             USED_VERSION="performance"
+            VERSIONS+=" performance"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
@@ -873,6 +944,7 @@ AC_ARG_ENABLE([performance],
       AC_MSG_RESULT([no])
       performance_disabled="no"
       USED_VERSION="performance"
+      VERSIONS+=" performance"
   ]
 )
 
@@ -1049,6 +1121,29 @@ AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_s
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
 
+# Task-level resiliency support
+AC_MSG_CHECKING([if task resiliency is enabled])
+AC_ARG_ENABLE([resiliency],
+  AS_HELP_STRING([--disable-resiliency], [Disables task-level resiliency]),
+  [
+    resiliency=no
+    AC_MSG_RESULT([no])
+  ],
+  [
+    AC_MSG_RESULT([yes])
+    AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],[resiliency=yes],[resiliency=no],[-Werror])
+    if test "x$resiliency" = "xno";
+    then
+        AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])
+    fi
+  ]
+)
+
+
+AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
+AC_SUBST([resiliency])
+
+
 # Output files
 AC_CONFIG_HEADERS([config.h])
 
@@ -1067,6 +1162,7 @@ AC_CONFIG_FILES([Makefile
 		 src/arch/gpu/Makefile
 		 src/arch/cluster/Makefile
 		 src/arch/opencl/Makefile
+		 src/arch/mpi/Makefile
 		 src/utils/Makefile
 		 scripts/Makefile
 		 tests/Makefile
@@ -1082,7 +1178,19 @@ echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
 echo "Host arch:" $SMP_ARCH
+echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
+echo "Configured versions:" $VERSIONS
+if test x$memtracker_enabled = xyes ; then
+   echo "Memory tracker: enabled"
+else
+   echo "Memory tracker: disabled"
+fi
+if test x$allocator_disabled = xno ; then
+   echo "Memory allocator: enabled"
+else
+   echo "Memory allocator: disabled"
+fi
 if test x$cluster_enabled = xyes ; then
    echo "With cluster/gasnet conduits:" $CONDUITS
    if test x$have_C_mpi = xyes ; then

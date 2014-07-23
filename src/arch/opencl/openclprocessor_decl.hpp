@@ -50,6 +50,13 @@ public:
 public:
    void initialize(cl_device_id dev);
 
+   /**
+    * Allocs OpenCL buffer
+    * @param size size of the buffer
+    * @param host_ptr hostPtr (only used in CPU/mappedMem devices)
+    * @param buf buffer object
+    * @return return code of OpenCL call
+    */
    cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
@@ -61,7 +68,7 @@ public:
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
    cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
    size_t getSizeFromCache(size_t addr);
-   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size);   
+   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size, void* hostPtr);   
    void freeAddr(void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
    
@@ -98,6 +105,8 @@ public:
 
    // TODO: replace with new APIs.
    size_t getGlobalSize();
+   
+   std::string getDeviceName();
    
    void waitForEvents();
    
@@ -169,10 +178,10 @@ private:
    bool _useHostPtrs;
 };
 
-class OpenCLProcessor : public CachedAccelerator
+class OpenCLProcessor : public ProcessingElement
 {
 public:        
-   OpenCLProcessor( int id , int devId, int uid, memory_space_id_t memId, SeparateMemoryAddressSpace &mem );
+   OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.
@@ -198,6 +207,8 @@ public:
 
    bool supportsUserLevelThreads () const { return false; }
    bool isGPU () const { return true; }
+
+   BaseThread &startOpenCLThread();
 
    OpenCLAdapter::ProgramCache& getProgCache() {
        return _openclAdapter.getProgCache();
@@ -228,9 +239,9 @@ public:
    
    void cleanUp();
      
-   void *allocate( size_t size, uint64_t tag )
+   void *allocate( size_t size, uint64_t tag, uint64_t offset )
    {
-      return _cache.allocate( size, tag );
+      return _cache.allocate( size, tag, offset );
    }
    
    void *realloc( void *address, size_t size, size_t ceSize )
@@ -301,6 +312,7 @@ public:
     }
 
 private:
+   SMPProcessor *_core;
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
    int _devId;

@@ -24,32 +24,36 @@
 #include "globalregt_decl.hpp"
 #include "deviceops_decl.hpp"
 #include "workdescriptor_fwd.hpp"
+#include "processingelement_fwd.hpp"
 
 namespace nanos
 {
    class NewNewDirectoryEntryData : public Version {
       private:
-         int _writeLocation;
+         //int _writeLocation;
          //int _invalidated;
          DeviceOps _ops;
          std::set< memory_space_id_t > _location;
+         std::set< ProcessingElement *> _pes;
          bool _rooted;
          Lock _setLock;
+         ProcessingElement * _firstWriterPE;
       public:
          NewNewDirectoryEntryData();
          NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de );
          ~NewNewDirectoryEntryData();
          NewNewDirectoryEntryData & operator= ( NewNewDirectoryEntryData &de );
-         bool hasWriteLocation() const ;
-         int getWriteLocation() const ;
-         void setWriteLocation( int id ) ;
-         void addAccess( int id, unsigned int version ); 
-         void addRootedAccess( int id, unsigned int version ); 
-         bool delAccess( int id ); 
+         // bool hasWriteLocation() const ;
+         // int getWriteLocation() const ;
+         // void setWriteLocation( int id ) ;
+         void addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version );
+         void addRootedAccess( memory_space_id_t loc, unsigned int version );
+         bool delAccess( memory_space_id_t id );
          //void invalidate(); 
          //bool hasBeenInvalidated() const; 
-         bool isLocatedIn( int id, unsigned int version );
-         bool isLocatedIn( int id );
+         bool isLocatedIn( ProcessingElement *pe, unsigned int version );
+         bool isLocatedIn( ProcessingElement *pe );
+         bool isLocatedIn( memory_space_id_t loc );
          void setRooted();
          bool isRooted() const;
          //void merge( const NewNewDirectoryEntryData &de ) ;
@@ -57,6 +61,7 @@ namespace nanos
          //bool equal( const NewNewDirectoryEntryData &d ) const ;
          //bool contains( const NewNewDirectoryEntryData &d ) const ;
          int getFirstLocation();
+         ProcessingElement *getFirstWriterPE() const;
          int getNumLocations();
          void setOps( DeviceOps *ops );
          std::set< memory_space_id_t > const &getLocations() const;
@@ -71,8 +76,16 @@ namespace nanos
    class NewNewRegionDirectory
    {
       private:
-         std::map< uint64_t, GlobalRegionDictionary * > _objects;
-         Lock _lock;
+         //struct __attribute__((aligned(64))) HashBucket {
+         struct HashBucket {
+            Lock _lock;
+            std::map< uint64_t, GlobalRegionDictionary * > _bobjects;
+            HashBucket();
+            HashBucket( HashBucket const & hb );
+            HashBucket &operator=( HashBucket const &hb );
+         };
+
+         std::vector< HashBucket > _objects;
 
       private:
 
@@ -95,7 +108,7 @@ namespace nanos
          RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd ) const;
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd );
-         void synchronize( bool flushData, WD const &wd );
+         void synchronize( WD &wd );
          reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
 
          /*! \brief NewDirectory default constructor
@@ -117,16 +130,18 @@ namespace nanos
 
          static reg_t _getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static reg_t tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
-         static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc, unsigned int version );
-         static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, unsigned int loc );
-         static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );
-         static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
+         static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version );
+         static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );
+         static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc );
+         //static bool hasWriteLocation( RegionDirectoryKey dict, reg_t id );
+         //static unsigned int getWriteLocation( RegionDirectoryKey dict, reg_t id );
          static unsigned int getVersion( RegionDirectoryKey dict, reg_t id, bool increaseVersion );
-         static void addAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
-         static void addRootedAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
+         static void addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version );
+         static void addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version );
          //static void addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version );
-         static bool delAccess( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId );
-         static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId );
+         static bool delAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t memorySpaceId );
+         static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );
+         static bool isOnlyLocated( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc );
          static void invalidate( RegionDirectoryKey dict, reg_t id );
          static bool hasBeenInvalidated( RegionDirectoryKey dict, reg_t id );
          static void updateFromInvalidated( RegionDirectoryKey dict, reg_t id, reg_t from );

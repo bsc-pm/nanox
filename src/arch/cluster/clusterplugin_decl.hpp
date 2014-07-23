@@ -3,12 +3,13 @@
 
 #include "plugin.hpp"
 #include "system_decl.hpp"
+#include "clusternode_decl.hpp"
 #include "gasnetapi_decl.hpp"
 
 namespace nanos {
 namespace ext {
 
-class ClusterPlugin : public Plugin
+class ClusterPlugin : public ArchPlugin
 {
       GASNetAPI _gasnetApi;
 
@@ -22,6 +23,9 @@ class ClusterPlugin : public Plugin
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
+      std::vector<ext::ClusterNode *> *_nodes;
+      ext::SMPProcessor *_cpu;
+      ext::SMPMultiThread *_clusterThread;
 
    public:
       ClusterPlugin();
@@ -35,15 +39,25 @@ class ClusterPlugin : public Plugin
       void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
       void * getPinnedSegmentAddr( unsigned int idx );
       std::size_t getPinnedSegmentLen( unsigned int idx );
-      unsigned int getExtraPEsCount();
-      void setExtraPEsCount( unsigned int num );
       std::size_t getNodeMem();
       int getGpuPresend();
       int getSmpPresend();
-      void setUpCache();
       System::CachePolicyType getCachePolicy ( void );
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
       bool getAllocWide();
+
+
+      virtual void startSupportThreads();
+      virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers);
+      virtual void finalize();
+
+      virtual ProcessingElement * createPE( unsigned id, unsigned uid );
+      virtual unsigned getNumThreads() const; 
+      void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const;
+      virtual unsigned int getNumPEs() const;
+      virtual unsigned int getMaxPEs() const;
+      virtual unsigned int getNumWorkers() const;
+      virtual unsigned int getMaxWorkers() const;
 };
 
 }

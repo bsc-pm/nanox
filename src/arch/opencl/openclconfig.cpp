@@ -26,7 +26,7 @@ using namespace nanos::ext;
 
 bool OpenCLConfig::_enableOpenCL = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
-bool OpenCLConfig::_allocWide = true;
+bool OpenCLConfig::_disableAllocWide = false;
 bool OpenCLConfig::_disableOCLdev2dev = false;
 size_t OpenCLConfig::_devCacheSize = 0;
 bool OpenCLConfig::_forceShMem = false;
@@ -59,12 +59,11 @@ cl_context OpenCLConfig::getContextDevice(cl_device_id dev) {
 }
 
 bool OpenCLConfig::getAllocWide() {
-   return _allocWide;
+   return !_disableAllocWide;
 }
 
 void OpenCLConfig::prepare( Config &cfg )
 {
-   cfg.setOptionsSection( "OpenCL Arch", "OpenCL specific options" );
 
    // Enable/disable OpenCL.
    cfg.registerConfigOption( "enable-opencl",
@@ -99,7 +98,7 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerEnvOption( "opencl-max-devices", "NX_OPENCL_MAX_DEVICES" );
    cfg.registerArgOption( "opencl-max-devices", "opencl-max-devices" );
 
-   cfg.registerConfigOption( "opencl-alloc-wide", NEW Config::FlagOption( _allocWide ),
+   cfg.registerConfigOption( "opencl-alloc-wide", NEW Config::FlagOption( _disableAllocWide ),
                                 "Do not alloc full objects in the cache." );
    cfg.registerEnvOption( "opencl-alloc-wide", "NX_OPENCL_DISABLE_ALLOCWIDE" );
    cfg.registerArgOption( "opencl-alloc-wide", "opencl-disable-alloc-wide" );
@@ -121,7 +120,7 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
     //Auto-enable CUDA if it was not done before
     if (!_enableOpenCL) {
         //ompss_uses_opencl pointer will be null (is extern) if the compiler did not fill it
-        _enableOpenCL = ((&ompss_uses_opencl) != 0);
+        _enableOpenCL = ((&ompss_uses_opencl) != NULL);
     }
     if (_forceDisableOpenCL || !_enableOpenCL)
         return;
@@ -155,7 +154,7 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
     std::transform(_devTy.begin(), _devTy.end(), _devTy.begin(), ::toupper);
     // Parse the requested device type.
     if (_devTy == "" || _devTy.find("ALL") != std::string::npos)
-        devTy = CL_DEVICE_TYPE_ALL;
+            devTy = CL_DEVICE_TYPE_ALL;
     else {
         if (_devTy.find("CPU") != std::string::npos)
             devTy |= CL_DEVICE_TYPE_CPU;
@@ -223,8 +222,18 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
         for (cl_device_id *j = avaiableDevs, *f = avaiableDevs + devicesToUse; j != f; ++j) {
             _devices.insert(std::make_pair(*j, ctx));
         }
-        _currNumDevices = _devices.size();
 
         delete [] devs;
+    }   
+    _currNumDevices = _devices.size();
+    
+    if ( _currNumDevices == 0 ) {
+       bool mercuriumHasTasks = ((&ompss_uses_opencl) != NULL);
+       if ( mercuriumHasTasks ) {
+          message0( " OpenCL tasks were compiled and no OpenCL devices were found, execution"
+                  " could have unexpected behavior and can even hang" );
+       } else {
+           message0( " OpenCL plugin was enabled and no OpenCL devices were found " );
+       }
     }
 }

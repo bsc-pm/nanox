@@ -113,7 +113,7 @@ memory_space_id_t global_reg_t::getFirstLocation() const {
 
 unsigned int global_reg_t::getHostVersion( bool increaseVersion ) const {
    unsigned int version = 0;
-   if ( NewNewRegionDirectory::isLocatedIn( key, id, 0 ) ) {
+   if ( NewNewRegionDirectory::isLocatedIn( key, id, (memory_space_id_t) 0 ) ) {
       version = NewNewRegionDirectory::getVersion( key, id, increaseVersion );
    }
    return version;
@@ -162,8 +162,8 @@ void global_reg_t::initializeGlobalEntryIfNeeded() const {
    }
 }
 
-void global_reg_t::setLocationAndVersion( memory_space_id_t loc, unsigned int version ) const {
-   NewNewRegionDirectory::addAccess( key, id, loc, version );
+void global_reg_t::setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const {
+   NewNewRegionDirectory::addAccess( key, id, pe, loc, version );
 }
 
 DeviceOps *global_reg_t::getDeviceOps() const {
@@ -190,6 +190,7 @@ unsigned int global_reg_t::getVersion() const {
 
 void global_reg_t::fillCopyData( CopyData &cd ) const {
    cd.setBaseAddress( 0 );
+   cd.setRemoteHost( true );
    cd.setHostBaseAddress( key->getKeyBaseAddress() );
    cd.setNumDimensions( key->getNumDimensions() );
 }
@@ -225,4 +226,10 @@ unsigned int global_reg_t::getNumLocations() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    return entry->getLocations().size();
+}
+
+ProcessingElement *global_reg_t::getFirstWriterPE() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   return entry->getFirstWriterPE();
 }

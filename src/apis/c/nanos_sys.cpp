@@ -20,11 +20,16 @@
  *  \brief 
  */
 #include "nanos.h"
+#include "config.h"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
 
 using namespace nanos;
 
+NANOS_API_DEF(const char *, nanos_get_runtime_version, () )
+{
+   return PACKAGE_VERSION;
+}
 NANOS_API_DEF(const char *, nanos_get_default_architecture, ())
 {
    return (sys.getDefaultArch()).c_str();
@@ -38,7 +43,7 @@ NANOS_API_DEF(const char *, nanos_get_pm, ())
 NANOS_API_DEF(nanos_err_t, nanos_get_default_binding, ( bool *res ))
 {
    try {
-      *res = sys.getBinding();
+      *res = sys.getSMPPlugin()->getBinding();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -81,7 +86,7 @@ NANOS_API_DEF(nanos_err_t, nanos_finish, ())
 NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
 {
    try {
-      sys.setCurrentSocket( socket );
+      sys.setUserDefinedNUMANode( socket );
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }
@@ -92,7 +97,7 @@ NANOS_API_DEF(nanos_err_t, nanos_current_socket, (int socket ))
 NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
 {
    try {
-      *num_sockets = sys.getNumAvailSockets();
+      *num_sockets = sys.getNumNumaNodes();
    } catch ( ... ) {
       return NANOS_UNKNOWN_ERR;
    }

@@ -22,7 +22,10 @@
 
 #include "smpdd.hpp"
 #include "basethread.hpp"
+#include <nanos-int.h>
+#include "smpprocessor.hpp"
 #include <pthread.h>
+#include <signal.h>
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
@@ -37,6 +40,7 @@ namespace ext
          friend class SMPProcessor;
 
       private:
+         SMPProcessor *_core;
          pthread_t   _pth;
          size_t      _stackSize;
          bool        _useUserThreads;
@@ -53,8 +57,8 @@ namespace ext
         
       public:
          // constructor
-         SMPThread( WD &w, PE *pe, SMPMultiThread *parent=NULL ) :
-               BaseThread( w, pe, parent ), _stackSize(0), _useUserThreads(true)
+         SMPThread( WD &w, PE *pe, SMPProcessor * core, SMPMultiThread *parent=NULL ) :
+               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, parent ),_core(core), _stackSize(0), _useUserThreads(true)
                {
                   // Master initialization
                   if (!parent) {
@@ -123,7 +127,7 @@ namespace ext
           * \brief Unset the flag and signal
           */
          virtual void wakeup();
-
+         
          /*!
           * \brief Set the flag
           */
@@ -136,6 +140,11 @@ namespace ext
          
          /*! \brief Signals the thread to stop waiting. */
          virtual void unblock();
+#ifdef NANOS_RESILIENCY_ENABLED
+         virtual void setupSignalHandlers();
+#endif
+
+         virtual int getCpuId() const;
    };
 
    class SMPMultiThread : public SMPThread
@@ -153,15 +162,7 @@ namespace ext
 
       public:
          // constructor
-         SMPMultiThread( WD &w, PE *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
-            setCurrentWD( w );
-            _threads.reserve( representingPEsCount );
-            for ( unsigned int i = 0; i < representingPEsCount; i++ )
-            {
-               _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
-            }
-         }
-
+         SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs );
          // destructor
          virtual ~SMPMultiThread() { }
 
@@ -184,5 +185,7 @@ namespace ext
 }
 
 void * smp_bootthread ( void *arg );
+
+
 
 #endif

@@ -98,6 +98,7 @@ namespace nanos
          static const char *getEnvironmentVariable( const std::string &variable );
 
          static void * loadDL( const std::string &dir, const std::string &name );
+         static void * loadLocalDL( );
          static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
          static void * dlFindSymbol( void *dlHandler, const char *symbolName );
          // too-specific?

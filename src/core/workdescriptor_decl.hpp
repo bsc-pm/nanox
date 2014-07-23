@@ -79,18 +79,18 @@ namespace nanos
           */
          const char * getName ( void ) const { return _name; }
 
-         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, uint64_t targetHostAddr = 0 ) const { return (void *) 0xdeadbeef; }
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const { return (void *) 0xdeadbeef; }
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const {  std::cerr << "wrong memFree" <<std::endl; }
          virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const { std::cerr << "wrong canAllocate" <<std::endl; }
          virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const { std::cerr << "wrong getMemCapacity" <<std::endl; return 0; }
 
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyDevToDev" <<std::endl; return false; }
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) { std::cerr << "wrong copyIn" <<std::endl; }
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) { std::cerr << "wrong copyOut" <<std::endl; }
-         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyDevToDev" <<std::endl; return false; }
-         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const { std::cerr << "wrong _getFreeMemoryChunksList()" <<std::endl; }
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong/non-implemented in device copyIn" <<std::endl; }
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong/non-implemented in device copyOut" <<std::endl; }
+         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong/non-implemented in device copyDevToDev" <<std::endl; return false; }
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) { std::cerr << "wrong/non-implemented in device copyIn strided" <<std::endl; }
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) { std::cerr << "wrong/non-implemented in device copyOut strided"  <<std::endl; }
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const { std::cerr << "wrong copyDevToDev/non-implemented in device strided" <<std::endl; return false; }
+         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const { std::cerr << "wrong/non-implemented in device _getFreeMemoryChunksList()" <<std::endl; }
    };
 
   /*! \brief This class holds the specific data for a given device
@@ -98,7 +98,7 @@ namespace nanos
    */
    class DeviceData
    {
-      private:
+      protected:
          /**Use pointers for this as is this fastest way to compare architecture compatibility */
          const Device *_architecture; /**< Related Device (architecture). */
 
@@ -136,7 +136,15 @@ namespace nanos
           *  \param[in] arch is the Device which we have to compare to.
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
-         bool isCompatible ( const Device &arch );
+         bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
+         
+         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
+          * **REQUERIMENT** If pe == NULL, this function must return true
+          *
+          *  \param[pe] pe is the ProcessingElement which we have to compare to.
+          *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
+          */
+         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */
@@ -196,12 +204,15 @@ namespace nanos
             bool is_submitted:1;     //!< Has this WD been submitted to the Scheduler?
             bool is_configured:1;    //!< Has this WD been configured to the Scheduler?
             bool is_implicit;        //!< Is the WD an implicit task (in a team)?
+            bool is_recoverable:1;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
+            bool is_invalid:1;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
          } WDFlags;
          typedef int PriorityType;
-         typedef enum { INIT, START, READY, IDLE, BLOCKED } State;
+         typedef enum { INIT, START, READY, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
+         int                           _hostId;                 //!< Work descriptor identifier @ host
          Atomic<int>                   _components;             //!< Number of components (children, direct descendants)
          components_sync_cond_t        _componentsSyncCond;     //!< Synchronize condition on components
          WorkDescriptor               *_parent;                 //!< Parent WD in task hierarchy
@@ -234,7 +245,7 @@ namespace nanos
          PriorityType                  _priority;               //!< Task priority
          CommutativeOwnerMap          *_commutativeOwnerMap;    //!< Map from commutative target address to owner pointer
          WorkDescriptorPtrList        *_commutativeOwners;      //!< Array of commutative target owners
-         int                           _socket;                 //!< FIXME:scheduler data. The socket this WD was assigned to
+         int                           _numaNode;               //!< FIXME:scheduler data. The NUMA node this WD was assigned to
          unsigned int                  _wakeUpQueue;            //!< FIXME:scheduler data. Queue to wake up to
          bool                          _copiesNotInChunk;       //!< States whether the buffer of the copies is allocated in the chunk of the WD
          char                         *_description;            //!< WorkDescriptor description, usually user function name
@@ -315,6 +326,8 @@ namespace nanos
          }
 
          int getId() const { return _id; }
+         int getHostId() const { return _hostId; }
+         void setHostId( int id ) { _hostId = id; }
          /*! \brief Has this WorkDescriptor ever run?
           */
          bool started ( void ) const;
@@ -354,7 +367,7 @@ namespace nanos
           */
          size_t getDataAlignment () const;
 
-         WorkDescriptor * getParent();
+         WorkDescriptor * getParent() const;
 
          void forceParent ( WorkDescriptor * p );
 
@@ -394,10 +407,6 @@ namespace nanos
 
          void setTotalSize ( size_t size );
 
-         bool isIdle () const;
-
-         void setIdle ();
-
          void setBlocked ();
 
          bool isReady () const;
@@ -417,7 +426,7 @@ namespace nanos
          unsigned getDepth() const;
 
          /* device related methods */
-         bool canRunIn ( const Device &device ) const;
+         bool canRunIn ( const Device &device , const ProcessingElement * pe = NULL) const;
          bool canRunIn ( const ProcessingElement &pe ) const;
          DeviceData & activateDevice ( const Device &device );
          DeviceData & activateDevice ( unsigned int deviceIdx );
@@ -441,17 +450,17 @@ namespace nanos
 
          nanos_translate_args_t getTranslateArgs() const;
 
-         /*! \brief Returns the socket that this WD was assigned to.
+         /*! \brief Returns the NUMA node that this WD was assigned to.
           * 
-          * \see setSocket
+          * \see NUMANodet
           */
-         int getSocket() const;
+         int getNUMANode() const;
 
-         /*! \brief Changes the socket this WD is assigned to.
+         /*! \brief Changes the NUMA node this WD is assigned to.
           *
-          * \see getSocket
+          * \see getNUMANode
           */
-         void setSocket( int socket );
+         void setNUMANode( int node );
          
          /*! \brief Returns the queue this WD should wake up in.
           *  This will be used by the socket-aware schedule policy.
@@ -657,7 +666,7 @@ namespace nanos
          //!
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
-         void convertToRegularWD();
+         void convertToRegularWD( void );
 
          bool resourceCheck( BaseThread const &thd, bool considerInvalidations ) const;
 
@@ -665,6 +674,23 @@ namespace nanos
 
          void setRemoteAddr( void *addr );
          void *getRemoteAddr() const;
+         
+         /*! \brief Sets a WorkDescriptor to an invalid state or not depending on the flag value.
+             If invalid (flag = true) it propagates upwards to the ancestors until
+             no more ancestors exist or a recoverable task is found.
+             \param A flag that indicates whether this task is being invalidated or not.
+             \return A boolean value that indicates if either the task itself is recoverable or a recoverable ancestor was found.
+         */
+         bool setInvalid ( bool flag );
+
+         //! \brief Returns whether a WorkDescriptor is invalid or not.
+         bool isInvalid ( void ) const;
+
+         //! \brief Marks the WorkDescriptor as recoverable. If the execution of this task is invalid, it will try to re-execute.
+         void setRecoverable( bool flag );
+
+         //!brief Returns whether a WorkDescriptor is able to re-execute from the beginning if an error is detected.
+         bool isRecoverable ( void ) const;
    };
 
    typedef class WorkDescriptor WD;

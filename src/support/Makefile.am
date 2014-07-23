@@ -20,8 +20,6 @@
 include ../common.am
 
 devinclude_HEADERS = \
-	allocator_fwd.hpp\
-	config_fwd.hpp\
 	containeradapter_fwd.hpp \
 	bitcounter_fwd.hpp \
 	region_fwd.hpp \
@@ -32,10 +30,9 @@ devinclude_HEADERS = \
 	regiontreenode_fwd.hpp \
 	resourcemanager.hpp\
 	new_decl.hpp\
-	new.cpp\
+	allocator_fwd.hpp\
 	allocator_decl.hpp\
 	allocator.hpp\
-	allocator.cpp\
 	atomic_decl.hpp\
 	atomic.hpp\
 	lazy.hpp\
@@ -44,47 +41,61 @@ devinclude_HEADERS = \
 	queue_decl.hpp\
 	queue.hpp\
 	debug.hpp\
+	config_fwd.hpp\
 	config_decl.hpp\
 	config.hpp\
-	config.cpp \
 	functors_decl.hpp \
 	functors.hpp \
 	plugin_decl.hpp \
 	plugin.hpp \
-	plugin.cpp \
 	archplugin_decl.hpp \
 	archplugin.hpp \
-	archplugin.cpp \
 	xstring.hpp \
+	simpleallocator_fwd.hpp \
 	simpleallocator_decl.hpp \
 	simpleallocator.hpp \
-	simpleallocator.cpp \
 	list_decl.hpp \
 	list.hpp \
+	hashfunction_decl.hpp \
 	hashmap.hpp \
 	hashmap_decl.hpp \
 	copydescriptor.hpp \
 	copydescriptor_decl.hpp \
 	malign.hpp \
+	memorymap_decl.hpp \
+	memorymap.hpp \
+	packer_decl.hpp \
+	containeradapter_fwd.hpp \
 	containeradapter_decl.hpp \
 	containeradapter.hpp \
 	containertraits.hpp \
+	bitcounter_fwd.hpp \
 	bitcounter_decl.hpp \
 	bitcounter.hpp \
+	region_fwd.hpp \
 	region_decl.hpp \
 	region.hpp \
-	region.cpp \
+	regionbuilder_fwd.hpp \
 	regionbuilder_decl.hpp \
 	regionbuilder.hpp \
-	regionbuilder.cpp \
+	regioncollection_fwd.hpp \
 	regioncollection_decl.hpp \
 	regioncollection.hpp \
+	regionpart_fwd.hpp \
 	regionpart_decl.hpp \
 	regionpart.hpp \
+	regiontree_fwd.hpp \
 	regiontree_decl.hpp \
 	regiontree.hpp \
+	regiontreenode_fwd.hpp \
 	regiontreenode_decl.hpp \
 	regiontreenode.hpp \
+	functor_decl.hpp \
+	requestqueue_decl.hpp \
+	requestqueue.hpp \
+	printbt_decl.hpp \
+        smpbaseplugin_decl.hpp \
+	pinnedallocator_decl.hpp \
 	$(END) 
 
 support_sources = \

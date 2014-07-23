@@ -35,8 +35,6 @@ namespace ext
       private:
          int                           _gpuDevice; // Assigned GPU device Id
          bool                          _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
-         unsigned int                  _executedWDs;
-         unsigned int                  _prefetchedWDs;
          void *                        _cublasHandle; //! Context pointer for CUBLAS library
 
          // disable copy constructor and assignment operator
@@ -53,8 +51,8 @@ namespace ext
          
       public:
          // constructor
-         GPUThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _gpuDevice( device ),
-               _wdClosingEvents( false ), _executedWDs( 0 ), _prefetchedWDs( 0 ), _cublasHandle( NULL ) { setCurrentWD( w ); }
+         GPUThread( WD &w, PE *pe, SMPProcessor *core, int device ) : SMPThread( w, pe, core ), _gpuDevice( device ),
+               _wdClosingEvents( false ), _cublasHandle( NULL ) { setCurrentWD( w ); }
 
          // destructor
          ~GPUThread() {}

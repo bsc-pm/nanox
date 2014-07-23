@@ -52,8 +52,8 @@ namespace nanos
 
    };
 
-#define fatal(msg)  throw nanos::FatalError(msg,getMyThreadSafe()->getId());
-#define fatal0(msg)  throw nanos::FatalError(msg);
+#define fatal(msg) { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str(),getMyThreadSafe()->getId()); }
+#define fatal0(msg)  { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str()); }
 #define fatal_cond(cond,msg) if ( cond ) fatal(msg);
 #define fatal_cond0(cond,msg) if ( cond ) fatal0(msg);
 

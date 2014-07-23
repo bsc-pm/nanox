@@ -28,7 +28,9 @@
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
 #include <set>
+#include <fstream>
 #include "wddeque_decl.hpp"
+#include "taskexecutionexception_decl.hpp"
 
 namespace nanos
 {
@@ -116,11 +118,13 @@ namespace nanos
    {
       friend class Scheduler;
       private:
+         typedef void (*callback_t)(void);
          typedef struct StatusFlags_t{
             bool is_main_thread:1;
             bool has_started:1;
             bool must_stop:1;
             bool must_sleep:1;
+            bool is_idle:1;
             bool is_paused:1;
             bool has_team:1;
             bool has_joined:1;
@@ -130,6 +134,7 @@ namespace nanos
       private:
          // Thread info/status
          unsigned short          _id;            /**< Thread identifier */
+         unsigned int            _osId;          /**< OS Thread identifier */
          unsigned short          _maxPrefetch;   /**< Maximum number of tasks that the thread can be running simultaneously */
          volatile StatusFlags    _status;        /**< BaseThread status flags */
          ext::SMPMultiThread    *_parent;
@@ -150,6 +155,9 @@ namespace nanos
          std::string             _description;   /**< Thread description */
          // Allocator:
          Allocator               _allocator;     /**< Per thread allocator */
+         unsigned short          _steps;         //!< Number of scheduler steps (zero means infinite)
+         callback_t              _bpCallBack;    //!< Break point callback. We call it after _steps scheduler ops
+         
 
       private:
          virtual void initializeDependent () = 0;
@@ -169,23 +177,19 @@ namespace nanos
           */ 
          void joined ( void ); 
       private:
-        /*! \brief BaseThread default constructor (private)
-         */
+         //! \brief BaseThread default constructor (private)
          BaseThread ();
-        /*! \brief BaseThread copy constructor (private)
-         */
+         //! \brief BaseThread copy constructor (private)
          BaseThread( const BaseThread & );
-        /*! \brief BaseThread copy assignment operator (private)
-         */
+         //! \brief BaseThread copy assignment operator (private)
          const BaseThread & operator= ( const BaseThread & );
       public:
+         std::ostream          *_file;
          std::set<void *> _pendingRequests;
-        /*! \brief BaseThread constructor
-         */
-         BaseThread ( WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
+         //! \brief BaseThread constructor
+         BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
 
-        /*! \brief BaseThread destructor
-         */
+         //! \brief BaseThread destructor
          virtual ~BaseThread()
          {
             finish();
@@ -272,12 +276,14 @@ namespace nanos
          bool isPaused () const;
 
          ProcessingElement * runningOn() const;
-
+         
+         void setRunningOn(ProcessingElement* element);
+         
          void associate();
 
          int getId() const;
 
-         int getCpuId() const;
+         virtual int getCpuId() const;
 
          bool singleGuard();
          bool enterSingleBarrierGuard ();
@@ -322,6 +328,27 @@ namespace nanos
          /*! \brief Set Status: Main Thread
           */
          void setMainThread ( bool v = true );
+
+#ifdef NANOS_RESILIENCY_ENABLED
+         /*! \brief Change the action taken by default if some specified signals are received.
+          */
+         virtual void setupSignalHandlers() = 0;
+
+#endif
+         bool tryWakeUp();
+
+         unsigned int getOsId() const;
+
+         //! \brief Change thread state idle to value ( true by default )
+         void setIdle ( bool value = true ) ;
+         //! \brief Inquiry thread state idle
+         bool isIdle ( void ) const;
+         //! \brief Basethread step.
+         void step( void );
+         //! \brief Set break point steps 
+         void setSteps( unsigned short s );
+         //! \brief Set break point callback
+         void setCallBack( callback_t cb );
    };
 
    extern __thread BaseThread *myThread;
@@ -329,5 +356,10 @@ namespace nanos
    BaseThread * getMyThreadSafe();
 
 }
+
+#ifdef NANOS_RESILIENCY_ENABLED
+void taskExecutionHandler(int sig, siginfo_t* si, void* context)
+    throw (TaskExecutionException);
+#endif
 
 #endif

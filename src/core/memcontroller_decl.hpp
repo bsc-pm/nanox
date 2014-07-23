@@ -7,33 +7,46 @@
 #include "addressspace_decl.hpp"
 #include "memoryops_decl.hpp"
 #include "memcachecopy_decl.hpp"
+#include "regionset_decl.hpp"
 
 namespace nanos {
 
 class MemController {
    bool                        _initialized;
    bool                        _preinitialized;
-   WD const                   &_wd;
-   memory_space_id_t           _memorySpaceId;
    bool                        _inputDataReady;
+   bool                        _outputDataReady;
+   bool                        _memoryAllocated;
+   bool                        _mainWd;
+   WD                         &_wd;
+   ProcessingElement          *_pe;
    Lock                        _provideLock;
-   std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
+   //std::map< NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > > _providedRegions;
+   RegionSet _providedRegions;
    BaseAddressSpaceInOps      *_inOps;
    SeparateAddressSpaceOutOps *_outOps;
-   std::size_t _affinityScore;
-   std::size_t _maxAffinityScore;
+   std::size_t                 _affinityScore;
+   std::size_t                 _maxAffinityScore;
+   RegionSet _ownedRegions;
+   RegionSet _parentRegions;
 
 public:
-   MemCacheCopy * _memCacheCopies;
-   MemController( WD const &wd );
+   enum MemControllerPolicy {
+      WRITE_BACK,
+      WRITE_THROUGH,
+      NO_CACHE
+   };
+   MemCacheCopy *_memCacheCopies;
+   MemController( WD &wd );
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );
    void preInit();
    void initialize( ProcessingElement &pe );
-   bool allocateInputMemory();
+   bool allocateTaskMemory();
    void copyDataIn();
-   void copyDataOut();
+   void copyDataOut( MemControllerPolicy policy );
    bool isDataReady( WD const &wd );
+   bool isOutputDataReady( WD const &wd );
    uint64_t getAddress( unsigned int index ) const;
    bool canAllocateMemory( memory_space_id_t memId, bool considerInvalidations ) const;
    void setAffinityScore( std::size_t score );
@@ -43,6 +56,12 @@ public:
    std::size_t getAmountOfTransferredData() const;
    std::size_t getTotalAmountOfData() const;
    bool isRooted( memory_space_id_t &loc ) const ;
+   void setMainWD();
+   void synchronize();
+   bool isMemoryAllocated() const;
+   void setCacheMetaData();
+   bool ownsRegion( global_reg_t const &reg );
+   bool hasObjectOfRegion( global_reg_t const &reg );
 };
 
 }

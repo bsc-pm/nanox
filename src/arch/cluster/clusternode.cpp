@@ -28,15 +28,21 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-ClusterNode::ClusterNode( int id, int nodeId, memory_space_id_t memId ) : CachedAccelerator( id, &SMP, id,
+ClusterNode::ClusterNode( int nodeId, memory_space_id_t memId ) : 
+   ProcessingElement( &SMP,
 #ifdef GPU_DEV
    &GPU,
 #else
    NULL,
 #endif
-   memId ), _clusterNode ( nodeId ),
-   _memSegment( ( uintptr_t ) sys.getNetwork()->getSegmentAddr( id ),
-   sys.getNetwork()->getSegmentLen( id ) ), _executedWorkDesciptors ( 0 ) {
+   memId,
+   nodeId,
+   0, /* TODO: should be NumaNode, use HWLoc to get the correct value (NIC numa node) */
+   true,
+   0,
+   false ),
+   _clusterNode ( nodeId ),
+   _executedWorkDesciptors ( 0 ) {
 }
 
 ClusterNode::~ClusterNode() {
@@ -84,9 +90,9 @@ unsigned int ClusterNode::getClusterNodeNum() const {
    return _clusterNode;
 }
 
-SimpleAllocator & ClusterNode::getAllocator( void ) {
-   return _memSegment;
-}
+//SimpleAllocator & ClusterNode::getAllocator( void ) {
+//   return _memSegment;
+//}
 
 void ClusterNode::incExecutedWDs() {
    _executedWorkDesciptors++;

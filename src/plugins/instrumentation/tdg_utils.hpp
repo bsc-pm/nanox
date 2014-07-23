@@ -1,6 +1,7 @@
 #include <vector>
 #include <stdint.h>
 #include <string>
+#include "atomic.hpp"
 
 #define HASH_SIZE 655
 
@@ -39,59 +40,59 @@ namespace nanos {
             : _kind( kind ), _dep_type( dep_type ), _source( source ), _target( target )
         {}
         
-        Node* get_source( ) {
+        Node* get_source( ) const {
             return _source;
         }
         
-        Node* get_target( ) {
+        Node* get_target( ) const {
             return _target;
         }
         
-        EdgeKind get_kind( ) {
+        EdgeKind get_kind( ) const {
             return _kind;
         }
         
-        bool is_nesting( ) {
+        bool is_nesting( ) const {
             return _kind == Nesting;
         }
         
-        bool is_synchronization( ) {
+        bool is_synchronization( ) const {
             return _kind == Synchronization;
         }
         
-        bool is_dependency( ) {
+        bool is_dependency( ) const {
             return _kind == Dependency;
         }
         
-        DependencyType get_dependency_type( ) {
+        DependencyType get_dependency_type( ) const {
             return _dep_type;
         }
         
-        bool is_true_dependency( ) {
+        bool is_true_dependency( ) const {
             return ( ( _kind == Dependency ) && 
                      ( ( _dep_type == True ) || ( _dep_type == InConcurrent ) || ( _dep_type == InCommutative ) || ( _dep_type == InAny ) ) );
         }
         
-        bool is_anti_dependency( ) {
+        bool is_anti_dependency( ) const {
             return ( ( _kind == Dependency ) && ( _dep_type == Anti ) );
         }
         
-        bool is_output_dependency( ) {
+        bool is_output_dependency( ) const {
             return ( ( _kind == Dependency ) && 
                      ( ( _dep_type == Output ) || ( _dep_type == OutConcurrent ) || ( _dep_type == OutCommutative ) || ( _dep_type == OutAny ) ) );
         }
         
-        bool is_concurrent_dep( ) {
+        bool is_concurrent_dep( ) const {
             return ( ( _kind == Dependency ) && 
                      ( ( _dep_type == InConcurrent ) || ( _dep_type == OutConcurrent ) ) );
         }
         
-        bool is_commutative_dep( ) {
+        bool is_commutative_dep( ) const {
             return ( ( _kind == Dependency ) && 
                      ( ( _dep_type == InCommutative ) || ( _dep_type == OutCommutative ) ) );
         }
         
-        bool is_any_dep( ) {
+        bool is_any_dep( ) const {
             return ( ( _kind == Dependency ) && 
                      ( ( _dep_type == InAny ) || ( _dep_type == OutAny ) ) );
         }
@@ -114,6 +115,8 @@ namespace nanos {
         std::vector<Edge*> _exit_edges;
         double _total_time;
         double _last_time;
+        Lock _entry_lock;
+        Lock _exit_lock;
         
         bool _printed;
         
@@ -124,23 +127,23 @@ namespace nanos {
               _total_time( 0.0 ), _last_time( 0.0 ), _printed( false )
         {}
         
-        int64_t get_wd_id( ) {
+        int64_t get_wd_id( ) const {
             return _wd_id;
         }
         
-        int get_funct_id( ) {
+        int get_funct_id( ) const {
             return _func_id;
         }
         
-        std::vector<Edge*> get_entries( ) {
+        std::vector<Edge*> const &get_entries( ) {
             return _entry_edges;
         }
         
-        std::vector<Edge*> get_exits( ) {
+        std::vector<Edge*> const &get_exits( ) {
             return _exit_edges;
         }
         
-        double get_last_time( ) {
+        double get_last_time( ) const {
             return _last_time;
         }
         
@@ -148,7 +151,7 @@ namespace nanos {
             _last_time = time;
         }
         
-        double get_total_time( ) {
+        double get_total_time( ) const {
             return _total_time;
         }
         
@@ -158,18 +161,21 @@ namespace nanos {
         
         Node* get_parent_task( ) {
             Node* res = NULL;
-            for( std::vector<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
+            _entry_lock.acquire();
+            for( std::vector<Edge*>::const_iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
                 if( (*it)->is_nesting( ) ) {
                     res = (*it)->get_source( );
                     break;
                 }
             }
+            _entry_lock.release();
             return res;
         }
         
-        bool is_connected_with( Node* target ) {
+        //called in finalize, and connect_nodes (with _exit_lock acquired)
+        bool is_connected_with( Node* target ) const {
             bool res = false;
-            for( std::vector<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::const_iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->get_target( ) == target ) {
                     res = true;
                     break;
@@ -177,10 +183,11 @@ namespace nanos {
             }
             return res;
         }
-        
-        Edge* get_connection( Node* target ) {
+       
+        //called in connect_nodes (with _exit_lock acquired)
+        Edge* get_connection( Node* target ) const {
             Edge* result = NULL;
-            for( std::vector<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::const_iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->get_target( ) == target ) {
                     result = *it;
                     break;
@@ -189,9 +196,10 @@ namespace nanos {
             return result;
         }
         
-        bool is_previous_synchronized( ) {
+        //only called in finalize
+        bool is_previous_synchronized( ) const {
             bool res = false;
-            for( std::vector<Edge*>::iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
+            for( std::vector<Edge*>::const_iterator it = _entry_edges.begin( ); it != _entry_edges.end( ); ++it ) {
                 if( (*it)->is_dependency( ) || (*it)->is_synchronization( ) ) {
                     res = true;
                     break;
@@ -202,48 +210,54 @@ namespace nanos {
         
         bool is_next_synchronized( ) {
             bool res = false;
-            for( std::vector<Edge*>::iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
+            _exit_lock.acquire();
+            for( std::vector<Edge*>::const_iterator it = _exit_edges.begin( ); it != _exit_edges.end( ); ++it ) {
                 if( (*it)->is_dependency( ) || (*it)->is_synchronization( ) ) {
                     res = true;
                     break;
                 }
             }
+            _exit_lock.release();
             return res;
         }
         
         //! Only connect the nodes if they are not previously connected or 
         //! the new type of connection is different from the existing one
         static void connect_nodes( Node* source, Node* target, EdgeKind kind, DependencyType dep_type = Null ) {
+            source->_exit_lock.acquire();
             if( !source->is_connected_with( target ) || 
                 ( source->get_connection( target )->get_kind( ) != kind ) ||
                 ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
                 Edge* new_edge = new Edge( kind, dep_type, source, target );
                 source->_exit_edges.push_back( new_edge );
+                target->_entry_lock.acquire();
                 target->_entry_edges.push_back( new_edge );
+                target->_entry_lock.release();
             }
+            source->_exit_lock.release();
         }
         
-        bool is_task( ) {
+        bool is_task( ) const {
             return _type == TaskNode;
         }
         
-        bool is_taskwait( ) {
+        bool is_taskwait( ) const {
             return _type == TaskwaitNode;
         }
         
-        bool is_barrier( ) {
+        bool is_barrier( ) const {
             return _type == BarrierNode;
         }
         
-        bool is_concurrent( ) {
+        bool is_concurrent( ) const {
             return _type == ConcurrentNode;
         }
         
-        bool is_commutative( ) {
+        bool is_commutative( ) const {
             return _type == CommutativeNode;
         }
         
-        bool is_printed( ) {
+        bool is_printed( ) const {
             return _printed;
         }
         
@@ -386,7 +400,7 @@ namespace nanos {
         "yellow1", "yellow2", "yellow3", "yellow4", "yellowgreen"
     };
 
-    inline std::string wd_to_color_hash( int64_t wd_id )
+    inline std::string &wd_to_color_hash( int64_t wd_id )
     {
         return node_colors[ wd_id % HASH_SIZE ];
     }

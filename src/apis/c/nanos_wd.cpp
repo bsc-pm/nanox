@@ -36,13 +36,6 @@
 
 using namespace nanos;
 
-// Internal definition for const
-struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag 
-{
-   // C++ doesn't support C99 flexible array
-   nanos_device_t devices[1];
-};
-
 
 /*! \brief Returns the WD of the current task.
  *
@@ -273,9 +266,9 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       wd.forceParent( myThread->getCurrentWD() );
       
       // Set WD's socket
-      wd.setSocket( sys.getCurrentSocket() );
+      wd.setNUMANode( sys.getUserDefinedNUMANode() );
       
-      if ( wd.getSocket() >= sys.getNumSockets() )
+      if ( wd.getNUMANode() >= (int)sys.getNumNumaNodes() )
          throw NANOS_INVALID_PARAM;
 
       // set properties

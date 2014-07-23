@@ -33,7 +33,9 @@ EXTRA_DIST=\
 	$(END)
 
 dist_bin_SCRIPTS=\
-	extrae_post_process.sh\
+	extrae_post_process.sh \
+	offload_slave_launch.sh \
+	offload_instrumentation.sh \
 	nanox\
 	$(END)
 

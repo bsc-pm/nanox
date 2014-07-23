@@ -33,7 +33,7 @@
 namespace nanos {
    namespace ext {
 
-      class ClusterNode : public CachedAccelerator
+      class ClusterNode : public ProcessingElement
       {
 
          private:
@@ -45,12 +45,12 @@ namespace nanos {
             ClusterNode( const ClusterNode &pe );
             const ClusterNode & operator= ( const ClusterNode &pe );
 
-            SimpleAllocator _memSegment;
+            //SimpleAllocator _memSegment;
             unsigned int _executedWorkDesciptors;
 
          public:
             // constructors
-            ClusterNode( int id, int nodeId, memory_space_id_t memId );
+            ClusterNode( int nodeId, memory_space_id_t memId );
 
             virtual ~ClusterNode();
 

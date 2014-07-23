@@ -182,7 +182,6 @@ namespace nanos {
          RegionsForwarded *_forwardedRegions;
          int _gpuPresend;
          int _smpPresend;
-         int _extraPEs;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -271,8 +270,6 @@ namespace nanos {
          void setSmpPresend(int p);
          int getGpuPresend() const;
          int getSmpPresend() const;
-         int getExtraPEsCount() const;
-         void setExtraPEsCount( int e) ;
    };
 }
 

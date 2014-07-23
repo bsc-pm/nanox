@@ -482,7 +482,7 @@ std::size_t Network::SentWDData::getSentData( unsigned int wdId ) {
 void Network::notifyWork(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq) {
    if ( _recvWdData.getReceivedWDsCount() == delayedSeq )
    {
-      _recvWdData.addWD( delayedWD->getId(), delayedWD, expectedData );
+      _recvWdData.addWD( delayedWD->getHostId(), delayedWD, expectedData );
       checkDeferredWorkReqs();
    } else { //not expected seq number, enqueue
       _deferredWorkReqsLock.acquire();
@@ -506,7 +506,7 @@ void Network::checkDeferredWorkReqs()
          if (dwd.first == _recvWdData.getReceivedWDsCount() ) 
          {
             _deferredWorkReqsLock.release();
-            _recvWdData.addWD( dwd.second.first->getId(), dwd.second.first, dwd.second.second );
+            _recvWdData.addWD( dwd.second.first->getHostId(), dwd.second.first, dwd.second.second );
             checkDeferredWorkReqs();
          } else {
             _deferredWorkReqs.push_back( dwd );
@@ -696,7 +696,7 @@ void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::siz
 
    if ( reg.isRegistered() ) {
       if ( reg.getFirstLocation() != 0 ) {
-         reg.setLocationAndVersion( 0, reg.getVersion() );
+         reg.setLocationAndVersion( NULL, 0, reg.getVersion() );
       }
    }
 }
@@ -707,7 +707,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
 
    if ( thisReg.isRegistered() ) {
       if ( thisReg.getFirstLocation() != 0 ) {
-         SeparateAddressSpaceOutOps outOps( false, false );
+         SeparateAddressSpaceOutOps outOps( myThread->runningOn(), false, false );
 
          std::list< std::pair< reg_t, reg_t > > missingParts;
          unsigned int version = 0;
@@ -720,11 +720,11 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
                if ( thisOps->addCacheOp( /* debug: */ &myThread->getThreadWD() ) ) {
                   NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
                   if ( /*_VERBOSE_CACHE*/ 0 ) {
-                     std::cerr << " SYNC REGION! "; reg.key->printRegion( reg.id );
+                     std::cerr << " SYNC REGION! "; reg.key->printRegion( std::cerr, reg.id );
                      if ( entry ) std::cerr << " " << *entry << std::endl;
                      else std::cerr << " nil " << std::endl; 
                   }
-                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL );
+                  outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, myThread->getThreadWD(), (unsigned int)0xdeadbeef ); // OutOp Network::getDataFromDevice
                   outOps.insertOwnOp( thisOps, reg, reg.getVersion(), 0 );
                } else {
                   outOps.getOtherOps().insert( thisOps );
@@ -797,7 +797,7 @@ void GetRequestStrided::clear() {
 
 void Network::notifyRegionMetaData( CopyData *cd ) {
    global_reg_t reg;
-   sys.getHostMemory().getRegionId( *cd, reg );
+   sys.getHostMemory().getRegionId( *cd, reg, *((WD *)0), 0 );
 }
 
 void Network::addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize ) {
@@ -838,10 +838,4 @@ int Network::getGpuPresend() const {
 
 int Network::getSmpPresend() const {
    return _smpPresend;
-}
-void Network::setExtraPEsCount(int e) {
-   _extraPEs = e;
-}
-int Network::getExtraPEsCount() const {
-   return _extraPEs;
 }

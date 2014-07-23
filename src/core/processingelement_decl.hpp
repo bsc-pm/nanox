@@ -25,6 +25,7 @@
 #include "functors_decl.hpp"
 #include "basethread_fwd.hpp"
 #include "schedule_fwd.hpp"
+#include "location_decl.hpp"
 
 namespace nanos
 {
@@ -32,7 +33,7 @@ namespace nanos
    class SMPMultiThread;
    };
 
-   class ProcessingElement
+   class ProcessingElement : public Location
    {
       private:
          typedef std::vector<BaseThread *>    ThreadList;
@@ -45,7 +46,6 @@ namespace nanos
          const Device *                       _subDeviceNo;
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
-         int                                  _numaNode;
 
       private:
          /*! \brief ProcessingElement default constructor
@@ -61,9 +61,12 @@ namespace nanos
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
          virtual WorkDescriptor & getMultiWorkerWD () const = 0;
+         ThreadList &getThreads();
+
          /*! \brief ProcessingElement constructor
           */
-         ProcessingElement ( int newId, const Device *arch, int uniqueId,  const Device *subArch, unsigned int memSpaceId ) : _id ( newId ), _uid( uniqueId ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ), _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ), _numaNode( 0 ) {}
+         ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId,
+            unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
 
          /*! \brief ProcessingElement destructor
           */
@@ -72,25 +75,17 @@ namespace nanos
          /* get/put methods */
          int getId() const;
          
-         //! \brief Returns a unique ID that no other PE will have.
-         int getUId() const;
-         
-         //! \brief Returns the socket this thread is running on.
-         int getNUMANode() const;
-         
-         //! \brief Sets the socket this thread is running on.
-         void setNUMANode( int node );
-
          const Device * getDeviceType () const;
          const Device * getSubDeviceType () const;
          virtual const Device * getCacheDeviceType () const;
 
          BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
+         BaseThread & startThread ( ProcessingElement &representedPE, WD &work, ext::SMPMultiThread *parent );
          BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
          virtual BaseThread & createThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL ) = 0;
          virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs ) = 0;
 
-         BaseThread & associateThisThread ( bool untieMain=true );
+         //BaseThread & associateThisThread ( bool untieMain=true );
 
          BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
@@ -146,6 +141,7 @@ namespace nanos
          virtual BaseThread* getActiveThread();
 
          virtual BaseThread* getSleepingThread();
+         std::size_t getNumThreads() const;
    };
 
    typedef class ProcessingElement PE;

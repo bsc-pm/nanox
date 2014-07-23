@@ -40,6 +40,9 @@
 #    endif /*------------------------------------------------- version 2.3.x */
 
 #  endif /*--------------------------------------------------- version 2.x.x */
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 3 /************* version 3.x.x */
+#      define extrae_size_t unsigned int
+#  endif /*--------------------------------------------------- version 3.x.x */
 #endif
 
 #ifdef NANOX_EXTRAE_SUPPORTED_VERSION
@@ -253,10 +256,19 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_taskid_function ( nanos_extrae_node_id );
         Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
-
-        /* OMPItrace initialization */
-        OMPItrace_init();
-
+#ifdef MPI_DEV
+        char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
+        if (offload_trace_on != NULL){ 
+           //MPI plugin init will initialize extrae...
+           sys.loadPlugin("arch-mpi");
+        } else {
+#endif
+            /* Regular SMP OMPItrace initialization */      
+            OMPItrace_init();      
+#ifdef MPI_DEV
+        }
+#endif
+        
         Extrae_register_codelocation_type( 9200011, 9200021, "User Function Name", "User Function Location" );
 
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
@@ -272,7 +284,7 @@ class InstrumentationExtrae: public Instrumentation
         }
 
         /* Keep current number of threads */
-        _maxThreads = sys.getNumThreads();
+        _maxThreads = sys.getSMPPlugin()->getNumPEs();
       }
       void doLs(std::string dest)
       {
@@ -385,7 +397,11 @@ class InstrumentationExtrae: public Instrumentation
             Extrae_define_event_type( (extrae_type_t *) &_eventSubState, (char *) "Thread sub-state", &nval, values, val_desc );
          }
 
-         OMPItrace_fini();
+         //If offloading, MPI will finish the trace
+         char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
+         if (offload_trace_on == NULL){ 
+            OMPItrace_fini();
+         }
 
          if ( sys.usingCluster() ) {
             copyFilesToMaster();

@@ -38,6 +38,7 @@ devinclude_HEADERS = \
 	gputhread_decl.hpp \
 	gputhread.hpp \
 	gpuutils.hpp \
+	gpuprocessor_fwd.hpp \
 	$(END) 
 
 gpu_api_sources = \
@@ -80,11 +81,12 @@ gpu_cublas_sources = \
 	
 gpu_api_flags = -I$(srcdir)/../../apis/c
 
-gpu_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
-gpu_includes = -I @CUDA_INC@
+gpu_ldflags = -lcublas
+#995 Already included in CFLAGS
+gpu_includes = 
 
-gpu_cublas_ldflags = -L@CUDA_LIB@ -lcudart -lcublas
-gpu_cublas_includes = -I @CUDA_INC@
+gpu_cublas_ldflags = -lcublas
+gpu_cublas_includes =
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
@@ -96,7 +98,7 @@ if DEBUG_VERSION
 noinst_LTLIBRARIES += debug/libgpu.la
 debug_LTLIBRARIES += debug/libnanox-gpu-api.la debug/libnanox-pe-gpu.la debug/libnanox-gpu-cublas.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(gpu_includes)
+nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(gpu_includes) 
 
 debug_libgpu_la_CXXFLAGS=$(nanos_debug_cxxflags)
 debug_libgpu_la_LDFLAGS=$(gpu_ldflags)

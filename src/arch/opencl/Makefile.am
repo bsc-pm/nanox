@@ -30,6 +30,7 @@ devinclude_HEADERS = \
     openclconfig.hpp \
     opencldd.hpp \
     opencldevice_decl.hpp \
+    openclprocessor_fwd.hpp \
     opencldevice.hpp \
     openclprocessor_decl.hpp \
     openclprocessor.hpp \

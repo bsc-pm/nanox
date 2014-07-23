@@ -126,6 +126,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    // Setting state to ready
    _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
+   _mcontrol.setCacheMetaData();
 }
 
 
@@ -163,6 +164,7 @@ bool WorkDescriptor::isInputDataReady() {
 
       // Setting state to ready
       setReady();
+      _mcontrol.setCacheMetaData();
    }
    return result;
 }
@@ -211,15 +213,15 @@ DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
    return *_devices[_activeDeviceIdx];
 }
 
-bool WorkDescriptor::canRunIn( const Device &device ) const
+bool WorkDescriptor::canRunIn( const Device &device , const ProcessingElement * pe) const
 {
-   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
+   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device , pe);
 
    unsigned int i;
    for ( i = 0; i < _numDevices; i++ ) {
-      if ( _devices[i]->isCompatible( device ) ) {
-         return true;
-      }
+       if (_devices[i]->isCompatible( device , pe)){
+            return true;           
+       }
    }
 
    return false;
@@ -230,10 +232,10 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    bool result;
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
 
-   if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType() );
-   else result = canRunIn( *pe.getDeviceType() ) ;
+   if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
+   else result = canRunIn( *pe.getDeviceType(), &pe ) ;
 
-   return result;
+   return result;   
    //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));
 }
 
@@ -260,8 +262,12 @@ void WorkDescriptor::submit( bool force_queue )
 void WorkDescriptor::finish ()
 {
    // At that point we are ready to copy data out
-   if ( getNumCopies() > 0 )
-      _mcontrol.copyDataOut();
+   if ( getNumCopies() > 0 ) {
+      _mcontrol.copyDataOut( MemController::WRITE_BACK );
+      while ( !_mcontrol.isOutputDataReady( *this ) ) {
+         myThread->idle();
+      }
+   }
 
    // Getting execution time
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
@@ -333,6 +339,7 @@ void WorkDescriptor::predecessorFinished( WorkDescriptor *predecessorWd )
    //_myGraphRepList.value()->push_back( getGE() );
    //if (predecessorWd != NULL) predecessorWd->listed();
 
+   //*(myThread->_file) << "I'm " << getId() << " : " << getDescription() << " my predecessor " << predecessorWd->getId() << " : " << predecessorWd->getDescription() << " has finished." << std::endl;
    _mcontrol.getInfoFromPredecessor( predecessorWd->_mcontrol ); 
 }
 
@@ -454,6 +461,8 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
         } else {
             _copies[i].dimensions = NULL;
         }
+        _copies[i].setHostBaseAddress( 0 );
+        _copies[i].setRemoteHost( false );
     }
 
    new ( &_mcontrol ) MemController( *this );
@@ -462,7 +471,9 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    _componentsSyncCond.waitConditionAndSignalers();
-   sys.getHostMemory().synchronize( !avoidFlush, *this );
+   if ( !avoidFlush ) {
+      _mcontrol.synchronize();
+   }
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )
@@ -497,4 +508,3 @@ bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalida
 //   while ( ! _myGraphRepList.cswap( myList, NULL ) );
 //   return myList;
 //}
-
