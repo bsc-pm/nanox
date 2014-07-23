@@ -122,7 +122,7 @@ namespace ext
 
          virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
          {
-            fatal( "ClusterNode is not allowed to create MultiThreads" );
+            fatal( "GPUProcessor is not allowed to create MultiThreads" );
          }
 
          //! Capability query functions

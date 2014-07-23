@@ -47,7 +47,6 @@ devinclude_HEADERS = \
 	$(END) 
 
 common_libadd=\
-        -lpthread \
         $(END)
 
 ult_sources= \
