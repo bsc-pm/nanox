@@ -275,7 +275,10 @@ inline void Scheduler::idleLoop ()
 
       }//thread going to sleep, thread waiking up
 
-      if ( !thread->isRunning() && !behaviour::exiting() ) break;
+      if ( !thread->isRunning() ) {
+        if ( !behaviour::exiting() ) break;
+        else behaviour::switchWD(thread, current, &(thread->getThreadWD()));
+      }
 
 
       myThread->getNextWDQueue().iterate<TestInputs>();
@@ -516,7 +519,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                      // This code is forcing a context switch but I am not quite sure about other
                      // side efects produced by forcing it with WD that has been inlined on top
                      // of a ThreadWD
-            if ( !next) next = (WD *) &(myThread->runningOn()->getWorkerWD());
+            if ( !next ) next = &(myThread->getThreadWD());
 
             if ( next ) {
 
@@ -541,21 +544,17 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
 #endif
 
-
-// FIXME: this code should be active
-#if 0
                myThread->setIdle( false );
                sys.getSchedulerStats()._idleThreads--;
 
                switchTo ( next );
 
                thread = getMyThreadSafe();
-#endif
 
 
-#if 0
                thread->step();
 
+#if 0
                NANOS_INSTRUMENT ( total_spins = 0; )
 
                NANOS_INSTRUMENT ( total_yields = 0; )
@@ -1044,6 +1043,7 @@ struct WorkerBehaviour
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
    {
+#if 0
       if (next->started()){
         Scheduler::switchTo(next);
       }
@@ -1053,6 +1053,9 @@ struct WorkerBehaviour
           delete[] (char *)next;
         }
       }
+#else
+        Scheduler::switchTo(next);
+#endif
    }
    static bool checkThreadRunning( WD *current) { return true; }
    static bool exiting() { return false; }
@@ -1326,7 +1329,7 @@ void Scheduler::switchHelper (WD *oldWD, WD *newWD, void *arg)
       oldWD->setBlocked();
       syncCond->addWaiter( oldWD );
       syncCond->unlock();
-   } else {
+   } else if ( &(myThread->getThreadWD()) != oldWD ) {
       myThread->getTeam()->getSchedulePolicy().queue( myThread, *oldWD );
    }
    myThread->setCurrentWD( *newWD );
@@ -1372,6 +1375,7 @@ void Scheduler::yield ()
       myThread->unpause();
       
       WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
+      if ( !next ) next = &(myThread->getThreadWD());
       if ( next ) {
          switchTo(next);
       }
@@ -1414,7 +1418,19 @@ struct ExitBehaviour
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
    {
+#if 0
       Scheduler::exitTo(next);
+#else
+      if (next->started()){
+        Scheduler::exitTo(next);
+      }
+      else {
+        if ( Scheduler::inlineWork ( next /*jb merge */, true ) ) {
+          next->~WorkDescriptor();
+          delete[] (char *)next;
+        }
+      }
+#endif
    }
    static bool exiting() { return true; }
 };

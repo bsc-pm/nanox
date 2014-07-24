@@ -279,7 +279,7 @@ namespace nanos
          
          void setRunningOn(ProcessingElement* element);
          
-         void associate();
+         void associate( WD *wd = NULL );
 
          int getId() const;
 

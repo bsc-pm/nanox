@@ -61,21 +61,22 @@ WDDeque &BaseThread::getNextWDQueue() {
    return _nextWDs;
 }
 
-void BaseThread::associate ()
+void BaseThread::associate ( WD *wd )
 {
+   WD * current = wd? wd:&_threadWD;
    _status.has_started = true;
 
    myThread = this;
-   setCurrentWD( _threadWD );
+   setCurrentWD( *current );
 
    if ( sys.getSMPPlugin()->getBinding() ) bind();
 
-   _threadWD._mcontrol.preInit();
-   _threadWD._mcontrol.initialize( *runningOn() );
-   _threadWD.init();
-   _threadWD.start(WD::IsNotAUserLevelThread);
+   current->_mcontrol.preInit();
+   current->_mcontrol.initialize( *runningOn() );
+   current->init();
+   current->start(WD::IsNotAUserLevelThread);
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, current, false); )
 }
 
 bool BaseThread::singleGuard ()
