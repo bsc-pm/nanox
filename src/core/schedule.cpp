@@ -516,10 +516,12 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   }
                }
             }
-                     // This code is forcing a context switch but I am not quite sure about other
-                     // side efects produced by forcing it with WD that has been inlined on top
-                     // of a ThreadWD
-            if ( !next ) next = &(myThread->getThreadWD());
+            // This code is forcing a context switch but I am not quite sure about other
+            // side efects produced by forcing it with WD that has been inlined on top
+            // of a ThreadWD.
+            // FIXME: the whole fucntion need some refactor in order to check the following if
+            // expresion more according with previous evaluated expressions
+            if ( !next && myThread->runningOn()->supportsUserLevelThreads() && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(myThread->getThreadWD());
 
             if ( next ) {
 
@@ -547,8 +549,18 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                myThread->setIdle( false );
                sys.getSchedulerStats()._idleThreads--;
 
+//FIXME:xteruel optimisation
+#if 0
+      if ( next->started() || next->getParent() != current ){
                switchTo ( next );
-
+      }
+      else if ( Scheduler::inlineWork ( next, false ) ) {
+          next->~WorkDescriptor();
+          delete[] (char *)next;
+      }
+#else
+               switchTo ( next );
+#endif
                thread = getMyThreadSafe();
 
 
