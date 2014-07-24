@@ -1375,10 +1375,7 @@ void Scheduler::yield ()
       myThread->unpause();
       
       WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
-      if ( !next ) next = &(myThread->getThreadWD());
-      if ( next ) {
-         switchTo(next);
-      }
+      if ( next ) switchTo(next);
    }
    else {
       // Pause this thread
@@ -1389,7 +1386,22 @@ void Scheduler::yield ()
 void Scheduler::switchToThread ( BaseThread *thread )
 {
    while ( getMyThreadSafe() != thread )
-        yield();
+   {
+      NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+      // If the scheduler is running
+      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is not paused, mark it as so
+         myThread->unpause();
+
+         WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
+         if ( next == NULL ) next = &(myThread->getThreadWD());
+         if ( next ) switchTo(next);
+      }
+      else {
+         // Pause this thread
+         myThread->pause();
+      }
+   }
 }
 
 void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
