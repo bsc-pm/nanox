@@ -98,19 +98,23 @@ namespace nanos
    */
    class DeviceData
    {
+      public:
+         typedef void ( *work_fct ) ( void *self );
       protected:
          /**Use pointers for this as is this fastest way to compare architecture compatibility */
          const Device *_architecture; /**< Related Device (architecture). */
+      private:
+         work_fct       _work;
 
       public:
 
          /*! \brief DeviceData constructor
           */
-         DeviceData ( const Device *arch ) : _architecture ( arch ) {}
+         DeviceData ( const Device *arch, work_fct w ) : _architecture ( arch ), _work(w) {}
 
          /*! \brief DeviceData copy constructor
           */
-         DeviceData ( const DeviceData &dd ) : _architecture ( dd._architecture )  {}
+         DeviceData ( const DeviceData &dd ) : _architecture ( dd._architecture ), _work( dd._work )  {}
 
          /*! \brief DeviceData destructor
           */
@@ -122,6 +126,7 @@ namespace nanos
          {
             // self-assignment: ok
             _architecture = dd._architecture;
+            _work         = dd._work;
             return *this;
          }
 
@@ -130,6 +135,9 @@ namespace nanos
           *  \return the Device pointer.
           */
          const Device * getDevice () const;
+
+         //! \brief Retuns work
+         work_fct getWorkFct() const;
 
          /*! \brief Indicates if DeviceData is compatible with a given Device
           *
