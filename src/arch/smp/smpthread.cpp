@@ -74,7 +74,7 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
    lock();
-   _pthread.mutex_lock();
+   _pthread.mutexLock();
 
    ThreadTeam *team = getTeam();
 
@@ -91,7 +91,7 @@ void SMPThread::wait()
       BaseThread::wait();
 
       unlock();
-      _pthread.cond_wait();
+      _pthread.condWait();
 
       //! \note Then we call base thread wakeup, which just mark thread as active
       lock();
@@ -102,7 +102,7 @@ void SMPThread::wait()
       unlock();
    }
 
-   _pthread.mutex_unlock();
+   _pthread.mutexUnlock();
 
    NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
    NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )

@@ -116,17 +116,17 @@ void PThread::yield()
       warning("sched_yield call returned an error");
 }
 
-void PThread::mutex_lock()
+void PThread::mutexLock()
 {
    pthread_mutex_lock( &_mutexWait );
 }
 
-void PThread::mutex_unlock()
+void PThread::mutexUnlock()
 {
    pthread_mutex_unlock( &_mutexWait );
 }
 
-void PThread::cond_wait()
+void PThread::condWait()
 {
    pthread_cond_wait( &_condWait, &_mutexWait );
 }
