@@ -62,10 +62,10 @@ namespace nanos {
 
          virtual void yield();
 
-         virtual void mutex_lock();
-         virtual void mutex_unlock();
+         virtual void mutexLock();
+         virtual void mutexUnlock();
 
-         virtual void cond_wait();
+         virtual void condWait();
 
          virtual void wakeup();
 
