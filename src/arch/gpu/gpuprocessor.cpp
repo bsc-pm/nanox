@@ -21,6 +21,7 @@
 #include "gpumemoryspace_decl.hpp"
 #include "debug.hpp"
 #include "gpudd.hpp"
+#include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "simpleallocator.hpp"
 

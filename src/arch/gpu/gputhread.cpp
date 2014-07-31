@@ -23,6 +23,7 @@
 #include "instrumentationmodule_decl.hpp"
 #include "schedule.hpp"
 #include "system.hpp"
+#include "wddeque.hpp"
 
 #include <cuda_runtime.h>
 #ifdef NANOS_GPU_USE_CUDA32

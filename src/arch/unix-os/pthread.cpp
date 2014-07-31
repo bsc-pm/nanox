@@ -96,8 +96,9 @@ void PThread::join ()
       fatal( "Thread cannot be joined" );
 }
 
-void PThread::bind( int cpu_id )
+void PThread::bind()
 {
+   int cpu_id = _core->getBindingId();
    cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );

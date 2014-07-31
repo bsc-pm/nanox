@@ -21,10 +21,12 @@
 #define _NANOS_PTHREAD
 
 #include "pthread_decl.hpp"
+#include "smpprocessor.hpp"
 
 
 using namespace nanos;
 
+inline int PThread::getCpuId() const { return _core->getBindingId(); }
 
 inline size_t PThread::getStackSize () { return _stackSize; }
 
