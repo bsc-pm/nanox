@@ -22,7 +22,9 @@
 
 #include "smpdd.hpp"
 #include "basethread.hpp"
-#include <pthread.h>
+#include <nanos-int.h>
+#include "smpprocessor.hpp"
+#include "pthread.hpp"
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
@@ -36,15 +38,9 @@ namespace ext
          friend class SMPProcessor;
 
       private:
-         pthread_t   _pth;
-         size_t      _stackSize;
-         bool        _useUserThreads;
-
-         pthread_cond_t          _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
-         static pthread_mutex_t  _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
-        
-         pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
-         pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
+         SMPProcessor * _core;
+         bool           _useUserThreads;
+         PThread        _pthread;
 
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
@@ -52,10 +48,11 @@ namespace ext
         
       public:
          // constructor
-         SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+         SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
+               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _core( core ), _useUserThreads( true ), _pthread() {}
 
          // named parameter idiom
-         SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
+         SMPThread & stackSize( size_t size ) { _pthread.setStackSize( size ); return *this; }
          SMPThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
@@ -63,9 +60,6 @@ namespace ext
 
          void setUseUserThreads( bool value=true ) { _useUserThreads = value; }
 
-         virtual void start();
-         virtual void finish();
-         virtual void join();
          virtual void initializeDependent( void ) {}
          virtual void runDependent ( void );
 
@@ -76,30 +70,38 @@ namespace ext
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
 
-         virtual void bind( void );
-         
+         virtual void idle( bool debug = false );
 
-         /** \brief SMP specific yield implementation
-         */
-         virtual void yield();
+         virtual void switchToNextThread() {
+            fatal( "SMPThread does not support switchToNextThread()" );
+         }
+         virtual BaseThread *getNextThread()
+         {
+            return this;
+         }
+         virtual bool isCluster() { return false; }
 
-         /*!
-          * \brief Blocks the thread if it still has enabled the sleep flag
-          */
+         //virtual int checkStateDependent( int numPe ) {
+         //   fatal( "SMPThread does not support checkStateDependent()" );
+         //}
+
+         virtual int getCpuId() const;
+
+         // PThread functions
+         virtual void start() { _pthread.start( this ); }
+         virtual void finish() { _pthread.finish(); BaseThread::finish(); }
+         virtual void join() { _pthread.join(); joined(); }
+         virtual void bind() { _pthread.bind( getCpuId() ); }
+         /** \brief SMP specific yield implementation */
+         virtual void yield() { _pthread.yield(); }
+         /** \brief Blocks the thread if it still has enabled the sleep flag */
          virtual void wait();
-
-         /*!
-          * \brief Unset the flag
-          */
+         /** \brief Unset the flag */
          virtual void wakeup();
-
-         /*!
-          * \brief Waits on a condition.
-          */
-         virtual void block();
-         
-         /*! \brief Signals the thread to stop waiting. */
-         virtual void unblock();
+         virtual void block() { _pthread.block(); }
+#ifdef NANOS_RESILIENCY_ENABLED
+         virtual void setupSignalHandlers() { _pthread.setupSignalHandlers(); }
+#endif
    };
 
 

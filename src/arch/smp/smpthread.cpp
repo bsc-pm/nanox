@@ -27,65 +27,11 @@
 #include <unistd.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
-
+//#include "clusterdevice_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-pthread_mutex_t SMPThread::_mutexWait = PTHREAD_MUTEX_INITIALIZER;
-
-void * smp_bootthread ( void *arg )
-{
-   SMPThread *self = static_cast<SMPThread *>( arg );
-
-   self->run();
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-
-
-   self->BaseThread::finish();
-   pthread_exit ( 0 );
-
-   // We should never get here!
-   return NULL;
-}
-
-// TODO: detect at configure
-#ifndef PTHREAD_STACK_MIN
-#define PTHREAD_STACK_MIN 16384
-#endif
-
-void SMPThread::start ()
-{
-   pthread_attr_t attr;
-   pthread_attr_init(&attr);
-
-   // user-defined stack size
-   if ( _stackSize > 0 ) {
-     if ( _stackSize < PTHREAD_STACK_MIN ) {
-       warning("specified thread stack too small, adjusting it to minimum size");
-       _stackSize = PTHREAD_STACK_MIN;
-     }
-
-     if (pthread_attr_setstacksize( &attr, _stackSize ) )
-       warning("couldn't set pthread stack size stack");
-   }
-
-   if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
-      fatal( "couldn't create thread" );
-
-   if ( pthread_cond_init( &_condWait, NULL ) < 0 )
-      fatal( "couldn't create pthread condition wait" );
-}
-
-void SMPThread::finish ()
-{
-   if ( pthread_cond_destroy( &_condWait ) < 0 )
-      fatal( "couldn't destroy pthread condition wait" );
-}
 
 void SMPThread::runDependent ()
 {
@@ -97,32 +43,27 @@ void SMPThread::runDependent ()
    dd.getWorkFct()( work.getData() );
 }
 
-void SMPThread::join ()
+void SMPThread::idle( bool debug )
 {
-   if ( pthread_join( _pth, NULL ) ) fatal("Thread cannot be joined");
-   joined(); 
-}
+   if ( sys.getNetwork()->getNumNodes() > 1 ) {
+      sys.getNetwork()->poll(0);
 
-void SMPThread::bind( void )
-{
-   int cpu_id = getCpuId();
-
-   cpu_set_t cpu_set;
-   CPU_ZERO( &cpu_set );
-   CPU_SET( cpu_id, &cpu_set );
-   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   OS::bindThread( &cpu_set );
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-}
-
-void SMPThread::yield()
-{
-   if (sched_yield() != 0)
-      warning("sched_yield call returned an error");
+      if ( !_pendingRequests.empty() ) {
+         std::set<void *>::iterator it = _pendingRequests.begin();
+         while ( it != _pendingRequests.end() ) {
+            GetRequest *req = (GetRequest *) (*it);
+            if ( req->isCompleted() ) {
+               std::set<void *>::iterator toBeDeletedIt = it;
+               it++;
+               _pendingRequests.erase(toBeDeletedIt);
+               req->clear();
+               delete req;
+            } else {
+               it++;
+            }
+         }
+      }
+   }
 }
 
 void SMPThread::wait()
@@ -133,7 +74,7 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
    lock();
-   pthread_mutex_lock( &_mutexWait );
+   _pthread.mutex_lock();
 
    ThreadTeam *team = getTeam();
 
@@ -150,7 +91,7 @@ void SMPThread::wait()
       BaseThread::wait();
 
       unlock();
-      pthread_cond_wait( &_condWait, &_mutexWait );
+      _pthread.cond_wait();
 
       //! \note Then we call base thread wakeup, which just mark thread as active
       lock();
@@ -161,7 +102,7 @@ void SMPThread::wait()
       unlock();
    }
 
-   pthread_mutex_unlock( &_mutexWait );
+   _pthread.mutex_unlock();
 
    NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
    NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
@@ -176,24 +117,9 @@ void SMPThread::wakeup()
    //! \note If thread is not marked as waiting, just ignore wakeup
    if ( !isSleeping() || !isWaiting() ) return;
 
-   pthread_mutex_lock( &_mutexWait );
-   pthread_cond_signal( &_condWait );
-   pthread_mutex_unlock( &_mutexWait );
+   _pthread.wakeup();
 }
 
-void SMPThread::block()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_wait( &_completionWait, &_completionMutex );
-   pthread_mutex_unlock( &_completionMutex );
-}
-
-void SMPThread::unblock()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_signal( &_completionWait );
-   pthread_mutex_unlock( &_completionMutex );
-}
 
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
@@ -246,3 +172,15 @@ void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
       ( void * ) helper );
 }
 
+int SMPThread::getCpuId() const {
+   return _core->getBindingId();
+}
+
+SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
+   setCurrentWD( w );
+   _threads.reserve( representingPEsCount );
+   for ( unsigned int i = 0; i < representingPEsCount; i++ )
+   {
+      _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
+   }
+}

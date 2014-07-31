@@ -35,7 +35,41 @@ EXTRA_DIST= \
 	armv71/stack.cpp \
 	armv71/stack.s \
 	tile64/stack.cpp \
-	tile64/stack.s \
-   smp_ult.hpp \
+	tile64/stack_asm.s \
+	smp_ult.hpp \
+	$(END)
+
+devinclude_HEADERS = \
+	smpdevice.hpp \
+	smpdd.hpp \
+	smpprocessor.hpp \
+	smpprocessor_fwd.hpp \
+	smpthread.hpp \
+	smpthread_fwd.hpp \
+	$(END) 
+
+common_libadd=\
+        $(END)
+
+ult_sources= \
+   @SMP_ARCH@/stack.cpp \
+   @SMP_ARCH@/stack_asm.s \
+   $(END)
+
+
+ult_flags=-DSMP_SUPPORTS_ULT
+
+smp_numa_flags=-DSMP_NUMA
+
+smp_sources = \
+	smpdevice.hpp \
+	smpdd.hpp \
+	smpdd.cpp \
+	smpprocessor.hpp \
+	smpprocessor_fwd.hpp \
+	smpprocessor.cpp \
+	smpthread.hpp \
+	smpthread_fwd.hpp \
+	smpthread.cpp \
 	$(END)
 

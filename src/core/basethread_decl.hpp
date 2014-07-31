@@ -28,7 +28,6 @@
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
 #include "wddeque_decl.hpp"
-#include "copydescriptor_decl.hpp"
 
 namespace nanos
 {
