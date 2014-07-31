@@ -1,6 +1,7 @@
 
 #include "openclprocessor.hpp"
 #include "openclthread.hpp"
+#include "smpprocessor.hpp"
 #include "os.hpp"
 #include <iostream>
 

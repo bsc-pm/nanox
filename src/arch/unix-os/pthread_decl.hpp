@@ -20,6 +20,7 @@
 #ifndef _NANOS_PTHREAD_DECL
 #define _NANOS_PTHREAD_DECL
 
+#include "smpprocessor_fwd.hpp"
 #include "taskexecutionexception_decl.hpp"
 #include <pthread.h>
 #include <signal.h>
@@ -29,7 +30,11 @@ namespace nanos {
 
    class PThread
    {
+      friend class ext::SMPProcessor;
+
       private:
+         ext::SMPProcessor * _core;
+
          pthread_t   _pth;
          size_t      _stackSize;
 
@@ -45,10 +50,12 @@ namespace nanos {
 
       public:
          // constructor
-         PThread() : _pth( pthread_self() ), _stackSize( 0 ) {}
+         PThread( ext::SMPProcessor * core ) : _core( core ), _pth( pthread_self() ), _stackSize( 0 ) {}
 
          // destructor
          virtual ~PThread() {}
+
+         int getCpuId() const;
 
          size_t getStackSize ();
          void setStackSize( size_t size );
@@ -57,7 +64,7 @@ namespace nanos {
          virtual void finish();
          virtual void join();
 
-         virtual void bind( int cpu_id );
+         virtual void bind();
 
 
          virtual void yield();

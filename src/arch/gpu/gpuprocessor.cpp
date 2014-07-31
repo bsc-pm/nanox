@@ -21,6 +21,7 @@
 #include "debug.hpp"
 #include "gpudd.hpp"
 #include "gpuutils.hpp"
+#include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "simpleallocator.hpp"
 

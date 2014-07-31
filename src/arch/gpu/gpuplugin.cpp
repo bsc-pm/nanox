@@ -21,6 +21,8 @@
 #include "archplugin.hpp"
 #include "gpuconfig.hpp"
 #include "gpuprocessor.hpp"
+#include "gpumemoryspace_decl.hpp"
+#include "smpprocessor.hpp"
 #include "system_decl.hpp"
 #include <fstream>
 #include <sstream>

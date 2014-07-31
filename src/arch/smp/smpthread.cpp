@@ -19,6 +19,7 @@
 
 #include "os.hpp"
 #include "smpprocessor.hpp"
+#include "pthread.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
@@ -32,6 +33,12 @@
 using namespace nanos;
 using namespace nanos::ext;
 
+
+SMPThread & SMPThread::stackSize( size_t size )
+{
+   _pthread.setStackSize( size );
+   return *this;
+}
 
 void SMPThread::runDependent ()
 {
@@ -173,7 +180,7 @@ void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
 }
 
 int SMPThread::getCpuId() const {
-   return _core->getBindingId();
+   return _pthread.getCpuId();
 }
 
 SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
