@@ -493,6 +493,7 @@ class SMPPlugin : public SMPBasePlugin
             }
             counter--;
          }
+         ++it;
       }
       return target;
    }
