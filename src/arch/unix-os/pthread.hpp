@@ -17,56 +17,17 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_GPU_WD
-#define _NANOS_GPU_WD
+#ifndef _NANOS_PTHREAD
+#define _NANOS_PTHREAD
 
-#include "gpudevice_decl.hpp"
-#include "workdescriptor.hpp"
+#include "pthread_decl.hpp"
 
-namespace nanos {
-namespace ext
-{
 
-   extern GPUDevice GPU;
+using namespace nanos;
 
-   class GPUPlugin;
 
-   class GPUDD : public DD
-   {
-      friend class GPUPlugin;
+inline size_t PThread::getStackSize () { return _stackSize; }
 
-      public:
-         // constructors
-         GPUDD( work_fct w ) : DD( &GPU, w ) {}
-
-         GPUDD() : DD( &GPU, NULL ) {}
-
-         // copy constructors
-         GPUDD( const GPUDD &dd ) : DD( dd ) {}
-
-         // assignment operator
-         const GPUDD & operator= ( const GPUDD &wd );
-
-         // destructor
-         virtual ~GPUDD() { }
-
-         virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
-         virtual size_t size ( void ) { return sizeof(GPUDD); }
-         virtual GPUDD *copyTo ( void *toAddr );
-         virtual GPUDD *clone () const { return NEW GPUDD ( *this); }
-   };
-
-   inline const GPUDD & GPUDD::operator= ( const GPUDD &dd )
-   {
-      // self-assignment: ok
-      if ( &dd == this ) return *this;
-
-      DD::operator= ( dd );
-
-      return *this;
-   }
-
-}
-}
+inline void PThread::setStackSize( size_t size ) { _stackSize = size; }
 
 #endif

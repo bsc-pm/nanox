@@ -30,7 +30,6 @@
 #include <set>
 #include <fstream>
 #include "wddeque_decl.hpp"
-#include "taskexecutionexception_decl.hpp"
 
 namespace nanos
 {
@@ -356,10 +355,5 @@ namespace nanos
    BaseThread * getMyThreadSafe();
 
 }
-
-#ifdef NANOS_RESILIENCY_ENABLED
-void taskExecutionHandler(int sig, siginfo_t* si, void* context)
-    throw (TaskExecutionException);
-#endif
 
 #endif

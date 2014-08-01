@@ -21,6 +21,8 @@ include ../../common.am
 
 devinclude_HEADERS = \
 	os.hpp \
+	pthread_decl.hpp \
+	pthread.hpp \
 	$(END) 
 
 os_sources = \
@@ -28,11 +30,15 @@ os_sources = \
 	os.cpp \
 	osallocator_decl.hpp \
 	osallocator.cpp \
+	pthread_decl.hpp \
+	pthread.hpp \
+	pthread.cpp \
 	$(END) 
 
 common_libadd = \
 	-lrt \
 	-ldl \
+	-lpthread \
 	$(END)
 
 noinst_LTLIBRARIES =

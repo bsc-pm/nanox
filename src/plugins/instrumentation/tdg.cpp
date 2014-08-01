@@ -720,7 +720,7 @@ public:
                 
                 // Get the identifier of the task function
                 WorkDescriptor *wd = (WorkDescriptor *) e.getValue();
-                int64_t funct_id = (int64_t) ((ext::SMPDD &)(wd->getActiveDevice())).getWorkFct();
+                int64_t funct_id = (int64_t) wd->getActiveDevice().getWorkFct();
                 
                 // Get the identifier of the wd
                 e = events[--i];

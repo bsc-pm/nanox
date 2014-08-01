@@ -316,11 +316,12 @@ namespace nanos
                   case NANOS_POINT:
                      if ( e.getKey( ) == create_wd_ptr && ompt_nanos_event_task_begin )
                      { 
+                        WorkDescriptor *wd = (WorkDescriptor *) e.getValue();
                         ompt_nanos_event_task_begin(
                               (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
                               NULL,  // FIXME: task frame
-                              (ompt_task_id_t) ((WorkDescriptor *)e.getValue())->getId(),
-                              NULL   // FIXME: outlined function
+                              (ompt_task_id_t) wd->getId(),
+                              (void *) wd->getActiveDevice().getWorkFct()
                               );
                      }
                      break;
@@ -348,7 +349,7 @@ namespace nanos
                                  (ompt_frame_t) NULL,    // FIXME: frame data of parent task
                                  (ompt_parallel_id_t) 0, // FIXME: parallel_id
                                  (uint32_t) team_size,
-                                 (void *) parallel_fct   // FIXME: outlined function
+                                 (void *) parallel_fct  
                                  );
                         } else if ( val == api_end_team && ompt_nanos_event_parallel_end ) {
                            ompt_nanos_event_parallel_end (

@@ -623,6 +623,7 @@ namespace nanos
          void createDependence( WD* pred, WD* succ);
          unsigned int getNumClusterNodes() const;
          unsigned int getNumNumaNodes() const;
+         //! Return INT_MIN if physicalNode does not have a mapping.
          int getVirtualNUMANode( int physicalNode ) const;
          std::set<unsigned int> const &getClusterNodeSet() const;
          memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;

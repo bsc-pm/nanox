@@ -173,8 +173,8 @@ namespace nanos
          static bool copyDevToDev( void * addrDst, CopyDescriptor& dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
 
 
-         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const;
-         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx );
+         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem );
          virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const;
          virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const;
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const;

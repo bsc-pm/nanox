@@ -62,27 +62,19 @@ class OpenCLDD : public DD
    {
     
       public:
-         typedef void ( *work_fct ) ( void *self );
-
-      private:
-         work_fct       _work;
-
-      public:
          // constructors
-         OpenCLDD( work_fct w ) : DD( &OpenCLDev ), _work( w ) {}
+         OpenCLDD( work_fct w ) : DD( &OpenCLDev, w ) {}
 
-         OpenCLDD() : DD( &OpenCLDev ), _work( 0 ) {}
+         OpenCLDD() : DD( &OpenCLDev, NULL ) {}
 
          // copy constructors
-         OpenCLDD( const OpenCLDD &dd ) : DD( dd ), _work( dd._work ) {}
+         OpenCLDD( const OpenCLDD &dd ) : DD( dd ) {}
 
          // assignment operator
          const OpenCLDD & operator= ( const OpenCLDD &wd );
 
          // destructor
          virtual ~OpenCLDD() { }
-
-         work_fct getWorkFct() const { return _work; }
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(OpenCLDD); }
@@ -96,7 +88,6 @@ class OpenCLDD : public DD
       if ( &dd == this ) return *this;
 
       DD::operator= ( dd );
-      _work = dd._work;
 
       return *this;
    }

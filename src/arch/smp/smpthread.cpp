@@ -30,13 +30,20 @@
 #include <assert.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
-#include "clusterdevice_decl.hpp"
+//<<<<<<< HEAD
+#if 0
+//#include "clusterdevice_decl.hpp"
 #include "resourcemanager.hpp"
 #include "taskexecutionexception_decl.hpp"
+#endif
+//=======
+//>>>>>>> master
 
 using namespace nanos;
 using namespace nanos::ext;
 
+//<<<<<<< HEAD
+#if 0
 void * smp_bootthread ( void *arg )
 {
    SMPThread *self = static_cast<SMPThread *>( arg );
@@ -95,6 +102,9 @@ void SMPThread::finish ()
    if ( pthread_cond_destroy( &_condWait ) < 0 )
       fatal( "couldn't destroy pthread condition wait" );
 }
+#endif
+//=======
+//>>>>>>> master
 
 void SMPThread::runDependent ()
 {
@@ -104,34 +114,6 @@ void SMPThread::runDependent ()
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
    dd.execute( work );
-}
-
-void SMPThread::join ()
-{
-   if ( pthread_join( _pth, NULL ) ) fatal("Thread cannot be joined");
-   joined();
-}
-
-void SMPThread::bind( void )
-{
-   int cpu_id = getCpuId();
-
-   cpu_set_t cpu_set;
-   CPU_ZERO( &cpu_set );
-   CPU_SET( cpu_id, &cpu_set );
-   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   OS::bindThread( _pth, &cpu_set );
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-}
-
-void SMPThread::yield()
-{
-   if (sched_yield() != 0)
-      warning("sched_yield call returned an error");
 }
 
 void SMPThread::idle( bool debug )
@@ -170,7 +152,7 @@ void SMPThread::wait()
     * Locking _mutexWait assures us that the sleep flag is still set when we get here
     */
    lock();
-   pthread_mutex_lock( &_mutexWait );
+   _pthread.mutex_lock();
 
    if ( isSleeping() ) {
 
@@ -185,6 +167,10 @@ void SMPThread::wait()
       BaseThread::wait();
 
       unlock();
+//<<<<<<< HEAD
+//=======
+      _pthread.cond_wait();
+//>>>>>>> master
 
       NANOS_INSTRUMENT( InstrumentState state_stop(NANOS_STOPPED) );
 
@@ -201,8 +187,14 @@ void SMPThread::wait()
       BaseThread::resume();
       unlock();
 
+//<<<<<<< HEAD
       /* Whether the thread should wait for the cpu to be free before doing some work */
+#if 0
       ResourceManager::waitForCpuAvailability();
+#endif
+//=======
+   _pthread.mutex_unlock();
+//>>>>>>> master
 
       if ( isSleeping() ) wait();
       else {
@@ -219,6 +211,8 @@ void SMPThread::wait()
 
 void SMPThread::wakeup()
 {
+//<<<<<<< HEAD
+#if 0
    pthread_mutex_lock( &_mutexWait );
    BaseThread::wakeup();
    pthread_cond_signal( &_condWait );
@@ -237,14 +231,18 @@ void SMPThread::block()
    pthread_mutex_lock( &_completionMutex );
    pthread_cond_wait( &_completionWait, &_completionMutex );
    pthread_mutex_unlock( &_completionMutex );
+#endif
+//=======
+   //! \note This function has to be in free race condition environment or externally
+   // protected, when called, with the thread common lock: lock() & unlock() functions.
+
+   //! \note If thread is not marked as waiting, just ignore wakeup
+   if ( !isSleeping() || !isWaiting() ) return;
+
+   _pthread.wakeup();
+//>>>>>>> master
 }
 
-void SMPThread::unblock()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_signal( &_completionWait );
-   pthread_mutex_unlock( &_completionMutex );
-}
 
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
@@ -300,43 +298,6 @@ void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
       ( void * ) dd.getState(),
       ( void * ) helper );
 }
-
-#ifdef NANOS_RESILIENCY_ENABLED
-
-void SMPThread::setupSignalHandlers ()
-{
-   /* Set up the structure to specify task-recovery. */
-   struct sigaction recovery_action;
-   recovery_action.sa_sigaction = &taskExecutionHandler;
-   sigemptyset(&recovery_action.sa_mask);
-   recovery_action.sa_flags = SA_SIGINFO // Provides context information to the handler.
-                            | SA_RESTART; // Resume system calls interrupted by the signal.
-
-   debug0("Resiliency: handling synchronous signals raised in tasks' context.");
-   /* Program synchronous signals to use the default recovery handler.
-    * Synchronous signals are: SIGILL, SIGTRAP, SIGBUS, SIGFPE, SIGSEGV, SIGSTKFLT (last one is no longer used)
-    */
-   fatal_cond0(sigaction(SIGILL, &recovery_action, NULL) != 0, "Signal setup (SIGILL) failed");
-   fatal_cond0(sigaction(SIGTRAP, &recovery_action, NULL) != 0, "Signal setup (SIGTRAP) failed");
-   fatal_cond0(sigaction(SIGBUS, &recovery_action, NULL) != 0, "Signal setup (SIGBUS) failed");
-   fatal_cond0(sigaction(SIGFPE, &recovery_action, NULL) != 0, "Signal setup (SIGFPE) failed");
-   fatal_cond0(sigaction(SIGSEGV, &recovery_action, NULL) != 0, "Signal setup (SIGSEGV) failed");
-
-}
-
-void taskExecutionHandler ( int sig, siginfo_t* si, void* context ) throw(TaskExecutionException)
-{
-   /*
-    * In order to prevent the signal to be raised inside the handler,
-    * the kernel blocks it until the handler returns.
-    *
-    * As we are exiting the handler before return (throwing an exception),
-    * we must unblock the signal or that signal will not be available to catch
-    * in the future (this is done in at the catch clause).
-    */
-   throw TaskExecutionException(getMyThreadSafe()->getCurrentWD(), *si, *(ucontext_t*)context);
-}
-#endif
 
 int SMPThread::getCpuId() const {
    return _core->getBindingId();
