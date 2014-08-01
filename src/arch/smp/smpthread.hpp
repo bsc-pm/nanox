@@ -36,24 +36,9 @@ namespace ext
    class SMPThread : public BaseThread
    {
       private:
-//<<<<<<< HEAD
-#if 0
-         SMPProcessor *_core;
-         pthread_t   _pth;
-         size_t      _stackSize;
-         bool        _useUserThreads;
-
-         pthread_cond_t    _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
-         pthread_mutex_t   _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
-        
-         pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
-         pthread_mutex_t         _completionMutex;        //! Mutex to access the completion 
-#endif
-//=======
          SMPProcessor * _core;
          bool           _useUserThreads;
          PThread        _pthread;
-//>>>>>>> master
 
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
@@ -61,24 +46,6 @@ namespace ext
         
       public:
          // constructor
-//<<<<<<< HEAD
-#if 0
-         SMPThread( WD &w, PE *pe, SMPProcessor * core, SMPMultiThread *parent=NULL ) :
-               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, parent ),_core(core), _stackSize(0), _useUserThreads(true)
-               {
-                  // Master initialization
-                  if (!parent) {
-                     _pth = pthread_self();
-
-                     if ( pthread_cond_init( &_condWait, NULL ) < 0 )
-                        fatal( "couldn't create pthread condition wait" );
-
-                     if ( pthread_mutex_init( &_mutexWait, NULL ) < 0 )
-                        fatal( "couldn't create pthread mutex wait" );
-                  }
-               }
-#endif
-//=======
          SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
                BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _core( core ), _useUserThreads( true ), _pthread() {}
 
@@ -118,27 +85,10 @@ namespace ext
          //   fatal( "SMPThread does not support checkStateDependent()" );
          //}
 
-//<<<<<<< HEAD
-#if 0
-         /*!
-          * \brief Unset the flag and signal
-          */
-         virtual void wakeup();
-         
          /*!
           * \brief Set the flag
           */
          virtual void sleep();
-
-         /*!
-          * \brief Waits on a condition.
-          */
-         virtual void block();
-         
-         /*! \brief Signals the thread to stop waiting. */
-         virtual void unblock();
-#endif
-//=======
          // PThread functions
          virtual void start() { _pthread.start( this ); }
          virtual void finish() { _pthread.finish(); BaseThread::finish(); }
@@ -150,8 +100,10 @@ namespace ext
          virtual void wait();
          /** \brief Unset the flag */
          virtual void wakeup();
-         virtual void block() { _pthread.block(); }
-//>>>>>>> master
+         /*!
+          * \brief Waits on a condition.
+          */
+         virtual void block();
 
          virtual int getCpuId() const;
 #ifdef NANOS_RESILIENCY_ENABLED

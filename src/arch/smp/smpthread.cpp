@@ -31,81 +31,12 @@
 #include <assert.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
-//<<<<<<< HEAD
-#if 0
 //#include "clusterdevice_decl.hpp"
 #include "resourcemanager.hpp"
-#include "taskexecutionexception_decl.hpp"
-#endif
-//=======
-//>>>>>>> master
+//#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
-
-//<<<<<<< HEAD
-#if 0
-void * smp_bootthread ( void *arg )
-{
-   SMPThread *self = static_cast<SMPThread *>( arg );
-#ifdef NANOS_RESILIENCY_ENABLED
-   self->setupSignalHandlers();
-#endif
-
-   self->run();
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-
-
-   self->BaseThread::finish();
-   pthread_exit ( 0 );
-
-   // We should never get here!
-   return NULL;
-}
-
-// TODO: detect at configure
-#ifndef PTHREAD_STACK_MIN
-#define PTHREAD_STACK_MIN 16384
-#endif
-
-void SMPThread::start ()
-{
-   pthread_attr_t attr;
-   pthread_attr_init(&attr);
-
-   // user-defined stack size
-   if ( _stackSize > 0 ) {
-     if ( _stackSize < PTHREAD_STACK_MIN ) {
-       warning("specified thread stack too small, adjusting it to minimum size");
-       _stackSize = PTHREAD_STACK_MIN;
-     }
-
-     if (pthread_attr_setstacksize( &attr, _stackSize ) )
-       warning("couldn't set pthread stack size stack");
-   }
-
-   if ( pthread_create( &_pth, &attr, smp_bootthread, this ) )
-      fatal( "couldn't create thread" );
-
-   if ( pthread_cond_init( &_condWait, NULL ) < 0 )
-      fatal( "couldn't create pthread condition wait" );
-
-   if ( pthread_mutex_init( &_mutexWait, NULL ) < 0 )
-      fatal( "couldn't create pthread mutex wait" );
-}
-
-void SMPThread::finish ()
-{
-   if ( pthread_cond_destroy( &_condWait ) < 0 )
-      fatal( "couldn't destroy pthread condition wait" );
-}
-#endif
-//=======
-//>>>>>>> master
 
 SMPThread & SMPThread::stackSize( size_t size )
 {
@@ -174,10 +105,8 @@ void SMPThread::wait()
       BaseThread::wait();
 
       unlock();
-//<<<<<<< HEAD
-//=======
+
       _pthread.cond_wait();
-//>>>>>>> master
 
       NANOS_INSTRUMENT( InstrumentState state_stop(NANOS_STOPPED) );
 
@@ -194,14 +123,8 @@ void SMPThread::wait()
       BaseThread::resume();
       unlock();
 
-//<<<<<<< HEAD
-      /* Whether the thread should wait for the cpu to be free before doing some work */
-#if 0
       ResourceManager::waitForCpuAvailability();
-#endif
-//=======
-   _pthread.mutex_unlock();
-//>>>>>>> master
+      _pthread.mutex_unlock();
 
       if ( isSleeping() ) wait();
       else {
@@ -218,12 +141,13 @@ void SMPThread::wait()
 
 void SMPThread::wakeup()
 {
-//<<<<<<< HEAD
-#if 0
-   pthread_mutex_lock( &_mutexWait );
-   BaseThread::wakeup();
-   pthread_cond_signal( &_condWait );
-   pthread_mutex_unlock( &_mutexWait );
+   //! \note This function has to be in free race condition environment or externally
+   // protected, when called, with the thread common lock: lock() & unlock() functions.
+
+   //! \note If thread is not marked as waiting, just ignore wakeup
+   if ( !isSleeping() || !isWaiting() ) return;
+
+   _pthread.wakeup();
 }
 
 void SMPThread::sleep()
@@ -238,16 +162,6 @@ void SMPThread::block()
    pthread_mutex_lock( &_completionMutex );
    pthread_cond_wait( &_completionWait, &_completionMutex );
    pthread_mutex_unlock( &_completionMutex );
-#endif
-//=======
-   //! \note This function has to be in free race condition environment or externally
-   // protected, when called, with the thread common lock: lock() & unlock() functions.
-
-   //! \note If thread is not marked as waiting, just ignore wakeup
-   if ( !isSleeping() || !isWaiting() ) return;
-
-   _pthread.wakeup();
-//>>>>>>> master
 }
 
 
