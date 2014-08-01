@@ -24,6 +24,7 @@
 #include "gpumemoryspace_decl.hpp"
 #include "gpuprocessor.hpp"
 #include "gpumemoryspace_decl.hpp"
+#include "smpprocessor.hpp"
 #include "system_decl.hpp"
 #include <fstream>
 #include <sstream>

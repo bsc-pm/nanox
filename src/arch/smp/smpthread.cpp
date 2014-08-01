@@ -20,6 +20,7 @@
 
 #include "os.hpp"
 #include "smpprocessor.hpp"
+#include "pthread.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "system.hpp"
@@ -106,6 +107,12 @@ void SMPThread::finish ()
 //=======
 //>>>>>>> master
 
+SMPThread & SMPThread::stackSize( size_t size )
+{
+   _pthread.setStackSize( size );
+   return *this;
+}
+
 void SMPThread::runDependent ()
 {
    WD &work = getThreadWD();
@@ -152,7 +159,7 @@ void SMPThread::wait()
     * Locking _mutexWait assures us that the sleep flag is still set when we get here
     */
    lock();
-   _pthread.mutex_lock();
+   _pthread.mutexLock();
 
    if ( isSleeping() ) {
 
@@ -300,7 +307,7 @@ void SMPThread::exitTo ( WD *wd, SchedulerHelper *helper)
 }
 
 int SMPThread::getCpuId() const {
-   return _core->getBindingId();
+   return _pthread.getCpuId();
 }
 
 SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {

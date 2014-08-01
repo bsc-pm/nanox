@@ -26,6 +26,7 @@
 #include "archplugin.hpp"
 #include "openclprocessor.hpp"
 #include "openclthread_decl.hpp"
+#include "smpprocessor.hpp"
 
 #include <dlfcn.h>
 

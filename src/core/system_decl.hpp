@@ -351,6 +351,8 @@ namespace nanos
          int nextThreadId ();
          unsigned int nextPEId ();
 
+         bool isSummaryEnabled() const;
+         
          /*!
           * \brief Returns whether DLB is enabled
           */

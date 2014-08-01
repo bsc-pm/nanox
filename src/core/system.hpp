@@ -60,6 +60,8 @@ inline bool System::getVerbose () const { return _verboseMode; }
 
 inline void System::setVerbose ( bool value ) { _verboseMode = value; }
 
+inline bool System::isSummaryEnabled() const{ return _summary; }
+
 inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode = mode; }
 
 inline System::InitialMode System::getInitialMode() const { return _initialMode; }

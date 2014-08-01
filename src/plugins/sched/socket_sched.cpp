@@ -466,6 +466,37 @@ namespace nanos {
                
                computeDistanceInfo();
                
+               if ( sys.isSummaryEnabled() ){
+                  message0( "====================== NUMA Summary ======================" );
+                  message0( "=== Worker binding:" );
+                  for ( int i = 0; i < sys.getNumWorkers(); ++i )
+                  {
+                     const BaseThread * w = sys.getWorker( i );
+                     
+                     message0( "===  | Worker " << w->getId() << ", cpu id: " << w->getCpuId() << ", NUMA node " << w->runningOn()->getNumaNode() );
+                  }
+                  
+                  std::stringstream ss;
+                  std::ostream_iterator<int> outIt (ss ,", ");
+                  std::copy( _gpuNodes.begin(), _gpuNodes.end(), outIt );
+                  message0( "=== CUDA devices in:     " << ss.str() );
+                  
+                  // Clear stringstream to reuse it
+                  ss.str( std::string() );
+                  
+                  ss     << "=== NUMA node mapping:   ";
+                  for ( int i = 0; i < sys.getSMPPlugin()->getNumSockets(); ++i )
+                  {
+                     int vNode = sys.getVirtualNUMANode( i );
+                     // If this real node has a valid virtual mapping
+                     if ( vNode != INT_MIN )
+                        ss << vNode << "->" << i << ", ";
+                  }
+                  message0( ss.str() );
+                  
+                  message0( "=========================================================" );
+               }
+               
                // Create 2 queues per socket plus one for the global queue.
                return NEW TeamData( sys.getNumNumaNodes() );
             }

@@ -23,8 +23,8 @@
 #include "smpdd.hpp"
 #include "basethread.hpp"
 #include <nanos-int.h>
-#include "smpprocessor.hpp"
-#include "pthread.hpp"
+#include "smpprocessor_fwd.hpp"
+#include "pthread_decl.hpp"
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
@@ -35,9 +35,6 @@ namespace ext
 
    class SMPThread : public BaseThread
    {
-
-         friend class SMPProcessor;
-
       private:
 //<<<<<<< HEAD
 #if 0
@@ -84,10 +81,9 @@ namespace ext
 //=======
          SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
                BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _core( core ), _useUserThreads( true ), _pthread() {}
-//>>>>>>> master
 
          // named parameter idiom
-         SMPThread & stackSize( size_t size ) { _pthread.setStackSize( size ); return *this; }
+         SMPThread & stackSize( size_t size );
          SMPThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
@@ -122,8 +118,6 @@ namespace ext
          //   fatal( "SMPThread does not support checkStateDependent()" );
          //}
 
-         virtual int getCpuId() const;
-
 //<<<<<<< HEAD
 #if 0
          /*!
@@ -149,7 +143,7 @@ namespace ext
          virtual void start() { _pthread.start( this ); }
          virtual void finish() { _pthread.finish(); BaseThread::finish(); }
          virtual void join() { _pthread.join(); joined(); }
-         virtual void bind() { _pthread.bind( getCpuId() ); }
+         virtual void bind() { _pthread.bind(); }
          /** \brief SMP specific yield implementation */
          virtual void yield() { _pthread.yield(); }
          /** \brief Blocks the thread if it still has enabled the sleep flag */
@@ -158,6 +152,8 @@ namespace ext
          virtual void wakeup();
          virtual void block() { _pthread.block(); }
 //>>>>>>> master
+
+         virtual int getCpuId() const;
 #ifdef NANOS_RESILIENCY_ENABLED
          virtual void setupSignalHandlers() { _pthread.setupSignalHandlers(); }
 #endif
@@ -165,8 +161,6 @@ namespace ext
 
    class SMPMultiThread : public SMPThread
    {
-      friend class SMPProcessor;
-
       private:
          std::vector< BaseThread * > _threads;
          unsigned int _current;
