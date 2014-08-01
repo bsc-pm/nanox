@@ -451,9 +451,9 @@ if test x$gpu_enabled = xyes ; then
 fi
 
 if test x$gpu_valid = xyes; then
-	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
-	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version"
-        LDFLAGS="$LDFLAGS $CUDA_RPATH"
+	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
+	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
+        LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
 	ARCHITECTURES="$ARCHITECTURES gpu"
 fi
 
