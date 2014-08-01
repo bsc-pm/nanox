@@ -54,14 +54,14 @@ void SchedulerConf::config (Config &cfg)
                              "Thread block on idle and condition waits (default is disabled)" );
    cfg.registerArgOption( "block-opt", "enable-block" );
 
-   cfg.registerConfigOption ( "num-spins", NEW Config::UintVar( _numSpins ), "Set number of spins before yield (default = 1)" );
+   cfg.registerConfigOption ( "num-spins", NEW Config::UintVar( _numSpins ), "Set number of spins on Idle before yield (default = 1)" );
    cfg.registerArgOption ( "num-spins", "spins" );
 
-   cfg.registerConfigOption ( "num-checks", NEW Config::UintVar( _numChecks ), "Set number of checks before schedule on wait conditions (default = 1)" );
-   cfg.registerArgOption ( "num-checks", "checks" );
-
-   cfg.registerConfigOption ( "num-yields", NEW Config::UintVar( _numYields ), "Set number of yields before block (default = 1)" );
+   cfg.registerConfigOption ( "num-yields", NEW Config::UintVar( _numYields ), "Set number of yields on Idle before block (default = 1)" );
    cfg.registerArgOption ( "num-yields", "yields" );
+
+   cfg.registerConfigOption ( "num-checks", NEW Config::UintVar( _numChecks ), "Set number of checks before Idle (default = 1)" );
+   cfg.registerArgOption ( "num-checks", "checks" );
 
 }
 
@@ -357,16 +357,12 @@ inline void Scheduler::idleLoop ()
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
 
-         /* DLB:
-           The master will return cpus
-           claimed by another process
-         */
+         //! Resource Manager may ask to return cpus claimed by another process
          ResourceManager::returnClaimedCpus();
-         if ( sys.getPMInterface().isMalleable() )
-            ResourceManager::acquireResourcesIfNeeded();
+
+         if ( sys.getPMInterface().isMalleable() ) ResourceManager::acquireResourcesIfNeeded();
 
          if ( yields == 0 || !use_yield ) {
-
             if ( use_block ) {
                ResourceManager::releaseCpu();
                /* FIXME DLB
@@ -413,86 +409,29 @@ inline void Scheduler::idleLoop ()
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-#if 0
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-
-   NANOS_INSTRUMENT ( static nanos_event_key_t total_spins_key  = ID->getEventKey("num-spins"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t total_blocks_key = ID->getEventKey("num-blocks"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t total_scheds_key  = ID->getEventKey("num-scheds"); )
-
-   NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t time_blocks_key = ID->getEventKey("time-blocks"); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t time_scheds_key = ID->getEventKey("time-scheds"); )
-
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[7]; )
-
-   NANOS_INSTRUMENT ( Keys[0] = total_spins_key; )
-   NANOS_INSTRUMENT ( Keys[1] = total_yields_key; )
-   NANOS_INSTRUMENT ( Keys[2] = total_blocks_key; )
-   NANOS_INSTRUMENT ( Keys[3] = total_scheds_key; )
-
-   NANOS_INSTRUMENT ( Keys[4] = time_yields_key; )
-   NANOS_INSTRUMENT ( Keys[5] = time_blocks_key; )
-   NANOS_INSTRUMENT ( Keys[6] = time_scheds_key; )
-
-   NANOS_INSTRUMENT ( unsigned event_start; )
-   NANOS_INSTRUMENT ( unsigned event_num; )
-#endif
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
-#if 0
-   NANOS_INSTRUMENT ( unsigned long total_spins = 0; ) /* Number of spins by idle phase*/
-   NANOS_INSTRUMENT ( unsigned long total_yields = 0; ) /* Number of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_blocks = 0; ) /* Number of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_scheds= 0; ) /* Number of schedulers by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_blocks = 0; ) /* Time of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_yields = 0; ) /* Time of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of sched by idle phase */
-#endif
 
    if (condition->check()) return;
-#if 0
-   const int init_spins = sys.getSchedulerConf().getNumSpins();
-   const int init_checks = sys.getSchedulerConf().getNumChecks();
-   const int init_yields = sys.getSchedulerConf().getNumYields();
 
-   const bool use_yield = sys.getSchedulerConf().getUseYield();
-   const bool use_block = sys.getSchedulerConf().getUseBlock();
-
-   unsigned int checks = init_checks; 
-   unsigned int spins = init_spins;
-   unsigned int yields = init_yields;
-#else
    unsigned int checks = (unsigned int) sys.getSchedulerConf().getNumChecks();
-#endif
 
    WD * current = myThread->getCurrentWD();
-
    current->setSyncCond( condition );
-   sys.getSchedulerStats()._idleThreads++;
-   myThread->setIdle( true );
    
    BaseThread *thread = getMyThreadSafe();
+   bool supportULT = thread->runningOn()->supportsUserLevelThreads();
 
-   while ( !condition->check() && thread->isRunning() ) {
-      checks--;
-      
-      // Non-safe point
-      //ResourceManager::returnMyCpuIfClaimed();
-
+   while ( !condition->check() /* FIXME:xteruel do we needed? && thread->isRunning() */) {
       if ( checks == 0 ) {
-#if 0
-         checks = init_checks;
-#endif
-
          condition->lock();
          if ( !( condition->check() ) ) {
-#if 0
-            //! Init of schedule phase
-            spins--;
-#endif
+
+            //! If condition is not acomplished yet, release wd and get more work to do
+
+            //! First checking prefetching queue
             WD * next = myThread->getNextWD();
 
+            //! Second calling scheduler policy at block
             if ( !next ) {
                memoryFence();
                if ( sys.getSchedulerStats()._readyTasks > 0 ) {
@@ -500,15 +439,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
                      // The thread is not paused, mark it as so
                      thread->unpause();
-#if 0                     
-                     NANOS_INSTRUMENT ( total_scheds++; )
-                     NANOS_INSTRUMENT ( unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-#endif
                      next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
-#if 0
-                     NANOS_INSTRUMENT ( unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                     NANOS_INSTRUMENT ( time_scheds += ( end_sched - begin_sched ); )
-#endif
                   }
                   else {
                      // Pause this thread
@@ -516,187 +447,31 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   }
                }
             }
-            // This code is forcing a context switch but I am not quite sure about other
-            // side efects produced by forcing it with WD that has been inlined on top
-            // of a ThreadWD.
-            // FIXME: the whole fucntion need some refactor in order to check the following if
-            // expresion more according with previous evaluated expressions
-            if ( !next && myThread->runningOn()->supportsUserLevelThreads() && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(myThread->getThreadWD());
 
+            //! Finally coming back to our Thread's WD idle task
+            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(myThread->getThreadWD());
+
+            //! If found a wd to switch to, execute it
             if ( next ) {
-
-#if 0
-               NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
-
-               NANOS_INSTRUMENT ( total_spins+= spins; )
-               NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
-               NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-               NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
-               NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) total_scheds; )
-
-               NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) time_yields; )
-               NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) time_blocks; )
-               NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
-
-               NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
-               NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
-               NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
-               NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
-
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
-#endif
-
-               myThread->setIdle( false );
-               sys.getSchedulerStats()._idleThreads--;
-
-//FIXME:xteruel optimisation
-#if 0
-      if ( next->started() || next->getParent() != current ){
-               switchTo ( next );
-      }
-      else if ( Scheduler::inlineWork ( next, false ) ) {
-          next->~WorkDescriptor();
-          delete[] (char *)next;
-      }
-#else
-               switchTo ( next );
-#endif
-               thread = getMyThreadSafe();
-
-
-               thread->step();
-
-#if 0
-               NANOS_INSTRUMENT ( total_spins = 0; )
-
-               NANOS_INSTRUMENT ( total_yields = 0; )
-               NANOS_INSTRUMENT ( total_blocks = 0; )
-               NANOS_INSTRUMENT ( total_scheds = 0; )
-
-               NANOS_INSTRUMENT ( time_blocks = 0; ) 
-               NANOS_INSTRUMENT ( time_yields = 0; )
-               NANOS_INSTRUMENT ( time_scheds = 0; )
-#endif
-               sys.getSchedulerStats()._idleThreads++;
-#if 0
-               myThread->setIdle( true );
-
-               spins = init_spins;
-#endif
-            }
-
-            condition->unlock();
-
-#if 0
-            if ( spins == 0 ) {
-               NANOS_INSTRUMENT ( total_spins+= init_spins; )
-
-               /* DLB:
-                 The master will return cpus
-                 claimed by another process
-               */
-               ResourceManager::returnClaimedCpus();
-               if ( sys.getPMInterface().isMalleable() )
-                  ResourceManager::acquireResourcesIfNeeded();
-
-               if ( yields == 0 || !use_yield ) {
-
-                  if ( use_block ) {
-                     sys.getSchedulerStats()._idleThreads--;
-                     switchTo ( &worker );
-                     thread = getMyThreadSafe();
-                     sys.getSchedulerStats()._idleThreads++;
-                     // releaseCpu temporarily disabled in waitOnCondition
-                     //ResourceManager::releaseCpu();
-                     /* FIXME DLB
-                        condition->lock();
-                        if ( !condition->check() ) {
-                        WD * currentWD = thread->getCurrentWD();
-                     // If it's not tied to the current thread, tie it until the thread is resumed
-                     bool tiedTemporally = false;
-                     if ( currentWD->isTiedTo() == NULL )
-                     {
-                     currentWD->tieTo( *thread );
-                     tiedTemporally = true;
-                     }
-
-                     // Unblock other threads so that they can work
-                     for ( int t = 0; t < sys.getNumWorkers(); ++t )
-                     {
-                     BaseThread * worker = sys.getWorker( t );
-                     if ( worker == thread ) continue;
-                     // wake up, Neo
-                     worker->unblock();
-                     }
-
-                     currentWD->setBlocked();   // Very important
-                     condition->addWaiter( currentWD );
-                     condition->unlock(); // FIXME: may cause race condition
-
-                     NANOS_INSTRUMENT ( total_blocks++; )
-                     NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                     thread->block(); //FIXME:xteruel
-                     NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                     NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-
-                     // Having reached this point, if we temporally tied the wd to the thread, undo it
-                     if ( tiedTemporally )
-                     currentWD->untie();
-                     }
-                     else {
-                     condition->unlock();                        
-                     }
-                     */
+               if ( next->started() || next->getParent() != current ){
+                  switchTo ( next );
+               } else {
+                  condition->unlock();
+                  if ( Scheduler::inlineWork ( next, false ) ) {
+                     next->~WorkDescriptor();
+                     delete[] (char *)next;
                   }
-
-                  yields = init_yields;
-               } else if ( use_yield ) {
-                  NANOS_INSTRUMENT ( total_yields++; )
-                  NANOS_INSTRUMENT ( unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                  thread->yield();
-                  NANOS_INSTRUMENT ( unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                  NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
-                  if ( use_block ) yields--;
                }
-               spins = init_spins;
-            }
-#endif
-         } else {
-            condition->unlock();
-         }
-      }
-      thread->idle();
+               thread = getMyThreadSafe();
+               supportULT = thread->runningOn()->supportsUserLevelThreads();
+               thread->step();
+            } else condition->unlock();
+         } else condition->unlock();
+      } else checks--;
    }
 
    current->setSyncCond( NULL );
-   myThread->setIdle( false );
-   sys.getSchedulerStats()._idleThreads--;
-   if ( !current->isReady() ) {
-      current->setReady();
-   }
-
-#if 0
-   NANOS_INSTRUMENT ( total_spins+= (init_spins - spins); )
-
-   NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
-
-   NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_spins; )
-   NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) total_yields; )
-   NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
-   NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) total_scheds; )
-
-   NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) time_yields; )
-   NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) time_blocks; )
-   NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
-
-   NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
-   NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
-   NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
-   NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
-
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
-#endif
-
+   if ( !current->isReady() ) current->setReady();
 }
 
 void Scheduler::wakeUp ( WD *wd )

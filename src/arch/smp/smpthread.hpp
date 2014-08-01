@@ -36,7 +36,6 @@ namespace ext
    class SMPThread : public BaseThread
    {
       private:
-         SMPProcessor * _core;
          bool           _useUserThreads;
          PThread        _pthread;
 
@@ -47,7 +46,7 @@ namespace ext
       public:
          // constructor
          SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
-               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _core( core ), _useUserThreads( true ), _pthread() {}
+               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _useUserThreads( true ), _pthread(core) {}
 
          // named parameter idiom
          SMPThread & stackSize( size_t size );

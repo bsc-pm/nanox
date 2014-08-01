@@ -77,6 +77,51 @@ void SMPThread::idle( bool debug )
    }
 }
 
+
+void SMPThread::wait()
+{
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+
+   lock();
+   _pthread.mutexLock();
+
+   ThreadTeam *team = getTeam();
+
+   if ( hasNextWD() ) {
+      WD *next = getNextWD();
+      next->untie();
+      team->getSchedulePolicy().queue( this, *next );
+   }
+   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+
+   if ( team != NULL ) leaveTeam();
+
+   if ( isSleeping() ) {
+      BaseThread::wait();
+
+      unlock();
+      _pthread.condWait();
+
+      //! \note Then we call base thread wakeup, which just mark thread as active
+      lock();
+      BaseThread::resume();
+      BaseThread::wakeup();
+      unlock();
+   } else {
+      unlock();
+   }
+
+   _pthread.mutexUnlock();
+
+   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+}
+#if 0
 void SMPThread::wait()
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
@@ -138,6 +183,7 @@ void SMPThread::wait()
       unlock();
    }
 }
+#endif
 
 void SMPThread::wakeup()
 {
@@ -152,16 +198,14 @@ void SMPThread::wakeup()
 
 void SMPThread::sleep()
 {
-   pthread_mutex_lock( &_mutexWait );
+   _pthread.mutexLock();
    BaseThread::sleep();
-   pthread_mutex_unlock( &_mutexWait );
+   _pthread.mutexUnlock();
 }
 
 void SMPThread::block()
 {
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_wait( &_completionWait, &_completionMutex );
-   pthread_mutex_unlock( &_completionMutex );
+   _pthread.block();
 }
 
 
