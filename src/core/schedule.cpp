@@ -364,27 +364,28 @@ inline void Scheduler::idleLoop ()
 
          if ( yields == 0 || !use_yield ) {
             if ( use_block ) {
-               ResourceManager::releaseCpu();
-               /* FIXME DLB
-               WD * currentWD = thread->getCurrentWD();
+//TODO: do we actually need to tie wd before release thread? (see below)
+#if 0
                // If it's not tied to the current thread, tie it until the thread is resumed
+               WD * currentWD = thread->getCurrentWD();
                bool tiedTemporally = false;
-               if ( currentWD->isTiedTo() == NULL )
-               {
+               if ( currentWD->isTiedTo() == NULL ) {
                   currentWD->tieTo( *thread );
                   tiedTemporally = true;
                }
-               
+#endif
                NANOS_INSTRUMENT ( total_blocks++; )
                NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-               thread->block(); //FIXME:xteruel
+               ResourceManager::releaseCpu();
                NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-                     
+
+//TODO: do we actually need to tie wd before release thread? (see above)
+#if 0
                // Having reached this point, if we temporally tied the wd to the thread, undo it
-               if ( tiedTemporally )
-                  currentWD->untie();
-                  */
+               if ( tiedTemporally ) currentWD->untie();
+#endif
+
             }
             yields = init_yields;
 

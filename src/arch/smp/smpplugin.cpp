@@ -446,6 +446,7 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
+
    virtual ext::SMPProcessor *getLastFreeSMPProcessorAndReserve() {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
@@ -620,11 +621,11 @@ class SMPPlugin : public SMPBasePlugin
    void applyCpuMask()
    {
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-         NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-         NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveSet ) )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveSet ) )
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-         BaseThread *thread;
+      BaseThread *thread;
       ThreadTeam *team = myThread->getTeam();
       unsigned int active_cpus = 0;
 
@@ -717,21 +718,38 @@ class SMPPlugin : public SMPBasePlugin
    virtual void updateActiveWorkers ( int nthreads )
    {
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-         NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-         NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-         BaseThread *thread;
+      BaseThread *thread;
       //! \bug Team variable must be received as a function parameter
       ThreadTeam *team = myThread->getTeam();
 
       int num_threads = nthreads - team->getFinalSize();
+      int new_workers = nthreads - _workers.size();
 
       while ( !(team->isStable()) ) memoryFence();
 
       if ( num_threads < 0 ) team->setStable(false);
 
       team->setFinalSize(nthreads);
+
+
+      //FIXME:xteruel Creating new workers
+      ensure( _cpus != NULL, "Uninitialized SMP plugin.");
+      std::vector<ext::SMPProcessor *>::const_iterator it;
+      for ( it = _cpus->begin(); it != _cpus->end() && new_workers > 0; it++ ) {
+         if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
+            ext::SMPProcessor *target = *it;
+            target->reserve();
+            if ( !target->isActive() ) target->setActive();
+            BaseThread *thd = &target->startWorker();
+            _workers.push_back( (SMPThread *) thd );
+            // FIXME: still need to update mask and other counters
+            new_workers--;
+         }
+      }
 
       //! \note If requested threads are more than current increase number of threads
       while ( num_threads > 0 ) {
