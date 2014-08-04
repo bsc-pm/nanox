@@ -338,7 +338,11 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, n
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
 
+#ifdef _MF03
+NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, ptrdiff_t n));
+#else
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
+#endif
 
 // scheduling interface
 NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());
