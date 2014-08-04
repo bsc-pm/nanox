@@ -28,6 +28,17 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
+inline void GPUMemoryTransfer::completeTransfer()
+{
+   _hostAddress._ops->completeOp();
+   if ( _hostAddress._functor ) {
+      ( *_hostAddress._functor ) ();
+   }
+
+   delete this;
+}
+
+
 inline GPUMemoryTransferOutList::~GPUMemoryTransferOutList()
 {
    if ( !_pendingTransfersAsync.empty() ) {
@@ -38,16 +49,18 @@ inline GPUMemoryTransferOutList::~GPUMemoryTransferOutList()
 
 inline void GPUMemoryTransferOutList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
 {
+   GPUMemoryTransfer * mt = NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size );
    _lock.acquire();
-   _pendingTransfersAsync.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+   _pendingTransfersAsync.push_back( mt );
    _lock.release();
 }
 
 
 inline void GPUMemoryTransferOutAsyncList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
 {
+   GPUMemoryTransfer * mt = NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size );
    _lock.acquire();
-   _pendingTransfersAsync.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+   _pendingTransfersAsync.push_back( mt );
    _lock.release();
 }
 
@@ -70,8 +83,9 @@ inline GPUMemoryTransferInAsyncList::~GPUMemoryTransferInAsyncList()
 
 inline void GPUMemoryTransferInAsyncList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
 {
+   GPUMemoryTransfer * mt = NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size );
    _lock.acquire();
-   _requestedTransfers.push_back( *NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size ) );
+   _requestedTransfers.push_back( mt );
    _lock.release();
 }
 

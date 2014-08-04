@@ -82,7 +82,7 @@ namespace nanos {
              */
             void successorFound( DependableObject *predecessor, DependableObject *successor )
             {
-               debug( "Scheduler::successorFound" );
+               //debug( "Scheduler::successorFound" );
 
                if ( ! _useSmartPriority ) return;
 

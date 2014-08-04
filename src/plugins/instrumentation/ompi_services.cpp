@@ -1,7 +1,9 @@
 #include "system.hpp"
+#include "smpthread.hpp"
 #ifdef GPU_DEV
 #include "gpuconfig.hpp"
 #endif
+#include "network_decl.hpp"
 
 namespace nanos {
 
@@ -21,7 +23,7 @@ extern "C" {
 
    unsigned int nanos_extrae_get_max_threads ( void )
    {
-      return sys.getMaxThreads();
+      return sys.getSMPPlugin()->getNumThreads();
    }
 
    unsigned int nanos_ompitrace_get_max_threads ( void )
@@ -31,15 +33,13 @@ extern "C" {
 
    unsigned int nanos_extrae_get_thread_num ( void )
    { 
-      if ( myThread == NULL ) return 0;
-      else return myThread->getId(); 
+      return myThread == NULL ? 0 : myThread->getOsId();
    }
 
    unsigned int nanos_ompitrace_get_thread_num ( void )
    {
       return nanos_extrae_get_thread_num();
    }
-
 
    void nanos_extrae_instrumentation_barrier ( void )
    {

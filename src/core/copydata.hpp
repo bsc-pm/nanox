@@ -21,10 +21,11 @@
 #define _NANOS_COPYDATA
 
 #include "copydata_decl.hpp"
+//#include "system_decl.hpp"
 
 using namespace nanos;
 
-inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off )
+inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off, uint64_t hostBaseAddress, memory_space_id_t hostRegionId )
 {
    address = (void *) addr;
    sharing = nxSharing;
@@ -33,7 +34,8 @@ inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input
    dimension_count = numDimensions;
    dimensions = dims;
    offset = off;
-   cpDesc = ( void * ) new CopyDescriptor( addr, 0, false, false );
+   host_base_address = hostBaseAddress;
+   host_region_id = hostRegionId;
 }
 
 inline CopyData::CopyData ( const CopyData &cd )
@@ -45,7 +47,8 @@ inline CopyData::CopyData ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
-   cpDesc = ( void * ) new CopyDescriptor( *( ( CopyDescriptor * ) ( cd.cpDesc ) ) );
+   host_base_address = cd.host_base_address;
+   host_region_id = cd.host_region_id;
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
@@ -58,7 +61,8 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    dimension_count = cd.dimension_count;
    dimensions = cd.dimensions;
    offset = cd.offset;
-   cpDesc = ( void * ) new CopyDescriptor( *( ( CopyDescriptor * ) ( cd.cpDesc ) ) );
+   host_base_address = cd.host_base_address;
+   host_region_id = cd.host_region_id;
    return *this;
 }
 
@@ -95,10 +99,19 @@ inline void CopyData::setOutput( bool b )
 inline std::size_t CopyData::getSize() const
 {
    std::size_t size = 0;
-   ensure( dimension_count >= 1, "Wrong dimension_count ");
+   //ensure( dimension_count >= 1, "Wrong dimension_count ");
    size = dimensions[0].accessed_length;
    for ( int i = 1; i < dimension_count; i += 1 )
       size *= dimensions[i].accessed_length;
+   return size;
+}
+inline std::size_t CopyData::getMaxSize() const
+{
+   std::size_t size = 0;
+   //ensure( dimension_count >= 1, "Wrong dimension_count ");
+   size = dimensions[0].size;
+   for ( int i = 1; i < dimension_count; i += 1 )
+      size *= dimensions[i].size;
    return size;
 }
 
@@ -122,6 +135,10 @@ inline std::size_t CopyData::getNumDimensions() const
    return dimension_count;
 }
 
+inline void CopyData::setNumDimensions(std::size_t ndims) {
+   dimension_count = ndims;
+}
+
 inline nanos_region_dimension_internal_t const *CopyData::getDimensions() const
 {
    return dimensions;
@@ -137,29 +154,35 @@ inline uint64_t CopyData::getAddress() const
    return ( (uint64_t) address ); 
 }
 
-inline void CopyData::initCopyDescriptor()
+inline uint64_t CopyData::getOffset() const
 {
-   cpDesc = ( void * ) new CopyDescriptor( 0, 0, false, false );
+   return (uint64_t) offset; 
 }
 
-inline CopyDescriptor * CopyData::getCopyDescriptor()
+inline std::size_t CopyData::getFitSize() const
 {
-   if ( cpDesc == NULL ) 
-      cpDesc = ( void * ) new CopyDescriptor( 0, 0, false, false );
-
-   return ( CopyDescriptor * ) cpDesc;
+   return getFitSizeRecursive( dimension_count - 1 );
 }
 
-inline void CopyData::setCopyDescriptor( CopyDescriptor * cpd )
+inline uint64_t CopyData::getFitAddress() const
 {
-   if ( cpDesc == NULL ) {
-      cpDesc = new CopyDescriptor( *cpd );
-   } else {
-      ( ( CopyDescriptor * ) cpDesc )->_tag = cpd->_tag;
-      ( ( CopyDescriptor * ) cpDesc )->_dirVersion = cpd->_dirVersion;
-      ( ( CopyDescriptor * ) cpDesc )->_copying = cpd->_copying;
-      ( ( CopyDescriptor * ) cpDesc )->_flushing = cpd->_flushing;
-   }
+   return ( (uint64_t) getBaseAddress() ) + getFitOffsetRecursive( dimension_count - 1 );
+}
+
+inline uint64_t CopyData::getHostBaseAddress() const {
+   return host_base_address;
+}
+
+inline void CopyData::setHostBaseAddress( uint64_t addr ) {
+   host_base_address = addr;
+}
+
+inline memory_space_id_t CopyData::getHostRegionId() const {
+   return host_region_id;
+}
+
+inline void CopyData::setHostRegionId( memory_space_id_t id ) {
+   host_region_id = id;
 }
 
 #endif

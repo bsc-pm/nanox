@@ -22,6 +22,7 @@
 #include "nanos.h"
 #include "allocator.hpp"
 #include "memtracker.hpp"
+#include "osallocator_decl.hpp"
 #include "instrumentation_decl.hpp"
 #include "instrumentationmodule_decl.hpp"
 
@@ -47,6 +48,52 @@ NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *fi
       *p = nanos::getAllocator().allocate ( size );
 #endif
    } catch ( nanos_err_t e) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *file, int line ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","memalign",NANOS_RUNTIME ) );
+
+   try 
+   {
+      nanos::OSAllocator tmp_allocator;
+      *p = tmp_allocator.allocate ( size );
+   } catch ( nanos_err_t e ) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
+
+NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int node, const char *file, int line ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","cmalloc",NANOS_RUNTIME ) );
+
+   try 
+   {
+      nanos::OSAllocator tmp_allocator;
+      *p = tmp_allocator.allocate_none( size );
+      sys.registerNodeOwnedMemory(node, *p, size);
+   } catch ( nanos_err_t e ) {
+      return e;
+   }
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ))
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","stick_to_producer",NANOS_RUNTIME ) );
+
+   try 
+   {
+      sys.stickToProducer(p, size);
+   } catch ( nanos_err_t e ) {
       return e;
    }
 

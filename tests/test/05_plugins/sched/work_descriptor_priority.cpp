@@ -28,6 +28,7 @@ test_schedule="bf --schedule-priority"
 #include "nanos.h"
 #include "atomic.hpp"
 #include <iostream>
+#include <unistd.h>
 #include "smpprocessor.hpp"
 #include "system.hpp"
 #include <unistd.h>

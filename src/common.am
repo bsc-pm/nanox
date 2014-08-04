@@ -8,14 +8,22 @@ common_includes= \
 	-I$(top_srcdir)/src/arch/smp \
 	-I$(top_srcdir)/src/arch/spu \
 	-I$(top_srcdir)/src/arch/gpu \
+	-I$(top_srcdir)/src/arch/cluster \
 	-I$(top_srcdir)/src/arch/opencl \
+	-I$(top_srcdir)/src/arch/mpi \
 	$(END)
 
 devincludedir = $(prefix)/include/nanox-dev
 
-if HWLOC
-hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@
-hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc
+if HWLOC 
+hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@ 
+hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc 
+endif 
+
+
+if RESILIENCY
+ft_cxxflags = -fnon-call-exceptions -DNANOS_RESILIENCY_ENABLED
+ft_fcflags = -fnon-call-exceptions
 endif
 
 if GNU_C
@@ -25,7 +33,7 @@ no_inline_flag= -fno-inline
 endif
 
 if IBM_C
-common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags)
+common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS)
 common_fcflags= -qPIC -DPIC
 no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs

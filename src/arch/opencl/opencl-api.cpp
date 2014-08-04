@@ -38,34 +38,21 @@ NANOS_API_DEF(void*, nanos_create_current_kernel, (const char* kernel_name,const
 }
 
 NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, const void* pointer)){
-   try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
-      pe->setKernelBufferArg(opencl_kernel, arg_num, pointer);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
+   pe->setKernelBufferArg(opencl_kernel, arg_num, pointer);
    return NANOS_OK;
 }
 
 NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_num, size_t size, const void* pointer)){
-    try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
-      pe->setKernelArg(opencl_kernel, arg_num, size, pointer);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
+   pe->setKernelArg(opencl_kernel, arg_num, size, pointer);
 
    return NANOS_OK;
 }
 
 NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size)){
-    try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
-      pe->execKernel(opencl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
+   pe->execKernel(opencl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
 
    return NANOS_OK;
 }

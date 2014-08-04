@@ -22,6 +22,7 @@
 #include "gpuprocessor.hpp"
 #include "gpuutils.hpp"
 #include "gpucallback.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "os.hpp"
 #include "schedule.hpp"
@@ -41,45 +42,43 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-
-void * nanos::ext::gpu_bootthread ( void *arg )
+void GPUThread::runDependent ()
 {
-   GPUThread *self = static_cast<GPUThread *>( arg );
+   WD &work = getThreadWD();
+   setCurrentWD( work );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
-   self->run();
+   while ( getTeam() == NULL ) {}
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+   if ( getTeam() == NULL ) {
+      warning( "This GPUThread needs a team to work, but no team was found. The thread will exit.");
+      return;
+   }
 
-   self->BaseThread::finish();
-   pthread_exit ( 0 );
-}
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   // CUDA callback to enable instrumentation in CUDA's thread
+   cudaEvent_t evtk1;
+   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_EVENT_RECORD_EVENT );
+   cudaEventCreate( &evtk1, 0 );
+   cudaEventRecord( evtk1, 0 );
+   cudaStreamWaitEvent( 0, evtk1, 0 );
+   GPUCallbackData * cbd = NEW GPUCallbackData( this );
+   cudaStreamAddCallback( 0, registerCUDAThreadCallback, ( void * ) cbd, 0 );
+   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
-void GPUThread::start()
-{
-   pthread_attr_t attr;
-   pthread_attr_init( &attr );
+#endif
 
-   if ( pthread_create( &_pth, &attr, gpu_bootthread, this ) )
-      fatal( "couldn't create thread" );
-}
+   dd.execute( work );
 
-void GPUThread::bind( void )
-{
-   int cpu_id = getCpuId();
+   if ( GPUConfig::isCUBLASInitDefined() ) {
+#ifdef NANOS_GPU_USE_CUDA32
+      cublasShutdown();
+#else
+      cublasDestroy( ( cublasHandle_t ) _cublasHandle );
+#endif
+   }
 
-   cpu_set_t cpu_set;
-   CPU_ZERO( &cpu_set );
-   CPU_SET( cpu_id, &cpu_set );
-   verbose( " Binding thread " << getId() << " to cpu " << cpu_id );
-   OS::bindThread( &cpu_set );
-
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+   ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
 void GPUThread::join()
@@ -96,8 +95,63 @@ void GPUThread::join()
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 #endif
 
-   pthread_join( _pth, NULL );
+   _pthread.join();
    joined();
+}
+
+void GPUThread::wait()
+{
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+
+   lock();
+   _pthread.mutexLock();
+
+   ThreadTeam *team = getTeam();
+
+   if ( hasNextWD() ) {
+      WD *next = getNextWD();
+      next->untie();
+      team->getSchedulePolicy().queue( this, *next );
+   }
+   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+
+   if ( team != NULL ) leaveTeam();
+
+   if ( isSleeping() ) {
+      BaseThread::wait();
+
+      unlock();
+      _pthread.condWait();
+
+      //! \note Then we call base thread wakeup, which just mark thread as active
+      lock();
+      BaseThread::resume();
+      BaseThread::wakeup();
+      unlock();
+   } else {
+      unlock();
+   }
+
+   _pthread.mutexUnlock();
+
+   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+}
+
+void GPUThread::wakeup()
+{
+   //! \note This function has to be in free race condition environment or externally
+   // protected, when called, with the thread common lock: lock() & unlock() functions.
+
+   //! \note If thread is not marked as waiting, just ignore wakeup
+   if ( !isSleeping() || !isWaiting() ) return;
+
+   _pthread.wakeup();
 }
 
 void GPUThread::switchTo( WD *work, SchedulerHelper *helper )
@@ -113,8 +167,6 @@ void GPUThread::switchHelperDependent( WD* oldWD, WD* newWD, void *arg )
 {
    fatal("A GPUThread cannot call switchHelperDependent function.");
 }
-
-
 
 void GPUThread::initializeDependent ()
 {
@@ -143,15 +195,9 @@ void GPUThread::initializeDependent ()
    if ( err != cudaSuccess )
       warning( "Couldn't set the GPU device for the thread: " << cudaGetErrorString( err ) );
 
-   // Initialize GPUProcessor
-   ( ( GPUProcessor * ) myThread->runningOn() )->init();
-
-   // Warming up GPU's...
-   if ( GPUConfig::isGPUWarmupDefined() ) {
-      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_FREE_EVENT );
-      cudaFree(0);
-      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-   }
+   // WARNING: Since GPUProcessor::init() allocates almost all the GPU memory, CUBLAS must be initialized before
+   // this happens. Otherwise, it may happen that cublasCreate() fails because there is not enough GPU memory
+   // (the given error for this situation does not help finding out the problem: CUBLAS_STATUS_NOT_INITIALIZED)
 
 #ifndef NANOS_GPU_USE_CUDA32
    // Initialize CUBLAS handle in case of potentially using CUBLAS
@@ -179,6 +225,16 @@ void GPUThread::initializeDependent ()
    }
 #endif
 
+   // Initialize GPUProcessor
+   ( ( GPUProcessor * ) myThread->runningOn() )->init();
+
+   // Warming up GPU's...
+   if ( GPUConfig::isGPUWarmupDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_FREE_EVENT );
+      cudaFree(0);
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+   }
+
    // Reset CUDA errors that may have occurred inside the runtime initialization
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT );
    err = cudaGetLastError();
@@ -190,44 +246,6 @@ void GPUThread::initializeDependent ()
    // Add one to also count current workdescriptor
    setMaxPrefetch( GPUConfig::getNumPrefetch() + 1 );
 }
-
-void GPUThread::runDependent ()
-{
-   WD &work = getThreadWD();
-   setCurrentWD( work );
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
-
-   if ( getTeam() == NULL ) {
-      warning( "This GPUThread needs a team to work, but no team was found. The thread will exit.");
-      return;
-   }
-
-#ifdef NANOS_INSTRUMENTATION_ENABLED
-   // CUDA callback to enable instrumentation in CUDA's thread
-   cudaEvent_t evtk1;
-   NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_EVENT_RECORD_EVENT );
-   cudaEventCreate( &evtk1, 0 );
-   cudaEventRecord( evtk1, 0 );
-   cudaStreamWaitEvent( 0, evtk1, 0 );
-   GPUCallbackData * cbd = NEW GPUCallbackData( this );
-   cudaStreamAddCallback( 0, registerCUDAThreadCallback, ( void * ) cbd, 0 );
-   NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
-
-#endif
-
-   dd.getWorkFct()( work.getData() );
-
-   if ( GPUConfig::isCUBLASInitDefined() ) {
-#ifdef NANOS_GPU_USE_CUDA32
-      cublasShutdown();
-#else
-      cublasDestroy( ( cublasHandle_t ) _cublasHandle );
-#endif
-   }
-
-   ( ( GPUProcessor * ) myThread->runningOn() )->cleanUp();
-}
-
 
 //bool GPUThread::inlineWorkDependent ( WD &wd )
 bool GPUThread::runWDDependent( WD &wd )
@@ -311,9 +329,19 @@ void GPUThread::yield()
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->executeMemoryTransfers();
 
    AsyncThread::yield();
+
+   _pthread.yield();
 }
 
-void GPUThread::idle()
+struct TestInputsGPU {
+   static void call( ProcessingElement *pe, WorkDescriptor *wd ) {
+      if ( wd->_mcontrol.isMemoryAllocated() ) {
+         pe->testInputs( *wd );
+      }
+   }
+};
+
+void GPUThread::idle( bool debug )
 {
    //cudaFree(0);
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();

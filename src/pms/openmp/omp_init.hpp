@@ -38,6 +38,8 @@ namespace nanos
          protected:
             std::string ws_names[NANOS_OMP_WS_TSIZE];
             nanos_ws_t  ws_plugins[NANOS_OMP_WS_TSIZE];
+            int _numThreads;
+            int _numThreadsOMP;
             virtual void start () ;
 
          private:
@@ -76,6 +78,7 @@ namespace nanos
             virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
             virtual void setNumThreads( int nthreads );
+            virtual void setNumThreads_globalState ( int nthreads );
             virtual void setCpuMask( const cpu_set_t *cpu_set );
             virtual void addCpuMask( const cpu_set_t *cpu_set );
       };

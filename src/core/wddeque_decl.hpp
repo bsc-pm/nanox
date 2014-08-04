@@ -78,9 +78,9 @@ namespace nanos
          virtual bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next ) = 0;
 
          template <typename Constraints>
-         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popFrontWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
-         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popBackWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
          
@@ -146,9 +146,9 @@ namespace nanos
          void push_back( WD** wds, size_t numElems );
 
          template <typename Constraints>
-         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popFrontWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
-         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popBackWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
@@ -159,6 +159,9 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+         void transferElemsFrom( WDDeque &dq );
+         template <typename Test>
+         void iterate ();
    };
 
    class WDLFQueue : public WDPool

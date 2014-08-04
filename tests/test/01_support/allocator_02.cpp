@@ -53,7 +53,7 @@ void deallocate ( void *ptr )
 
 void allocate( void *args )
 {
-   int num_pes = sys.getNumPEs();
+   int num_pes = sys.getSMPPlugin()->getNumWorkers();
    int id = *((int *) args);
 
     WD *wg = getMyThreadSafe()->getCurrentWD();
@@ -98,7 +98,7 @@ void allocate( void *args )
 
 int main ( int argc, char **argv )
 {
-   int num_pes = sys.getNumPEs();
+   int num_pes = sys.getSMPPlugin()->getNumWorkers();
    int id[num_pes];
 
    //cout << "Starting test... " << endl;

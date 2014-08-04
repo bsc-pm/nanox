@@ -23,6 +23,7 @@
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
+#include "gpuprocessor_fwd.hpp"
 
 namespace nanos
 {
@@ -39,25 +40,29 @@ namespace nanos
 
          /*! \brief copy in when the thread invoking this function belongs to pe
           */
-         static bool isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
+         void isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const ;
+
 
          /*! \brief copy in when the thread invoking this function does not belong to pe
           *         In this case, the information about the copy is added to a list, and the appropriate
           *         thread (which is periodically checking the list) will perform the copy and notify
           *         the cache when it has finished
           */
-         static bool isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
+         void isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
+
 
          /*! \brief copy out when the thread invoking this function belongs to pe
           */
-         static bool isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
+         void isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
+
 
          /*! \brief copy out when the thread invoking this function does not belong to pe
           *         In this case, the information about the copy is added to a list, and the appropriate
           *         thread (which is periodically checking the list) will perform the copy and notify
           *         the cache when it has finished
           */
-         static bool isNotMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
+         void isNotMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
+
 
          /*! \brief GPUDevice copy constructor
           */
@@ -103,14 +108,16 @@ namespace nanos
          static void free( void *address, ProcessingElement *pe );
 
          /* \brief Copy from remoteSrc in the host to localDst in the device
-          *        Returns true if the operation is synchronous
+          *        This operation can either be synchronous or asynchronous
           */
-         static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops,
+               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
 
          /* \brief Copy from localSrc in the device to remoteDst in the host
-          *        Returns true if the operation is synchronous
+          *        This operation can either be synchronous or asynchronous
           */
-         static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe );
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops,
+               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
 
          /* \brief Copy locally in the device from src to dst
           */
@@ -168,7 +175,30 @@ namespace nanos
          /* \brief Copy from addrSrc in peSrc device to addrDst in peDst device
           *        Returns true if the operation is synchronous
           */
-         static bool copyDevToDev( void * addrDst, CopyDescriptor& dstCd, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc );
+         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest,
+               SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const ;
+
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const;
+
+         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
+
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const;
+
+         virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const;
+
+         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const;
+
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld,
+               SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) ;
+
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld,
+               SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) ;
+
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count,
+               std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops,
+               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
+
+         void syncTransfer( uint64_t hostAddress, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
    };
 }
 

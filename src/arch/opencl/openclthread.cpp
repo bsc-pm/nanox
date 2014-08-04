@@ -54,9 +54,10 @@ bool OpenCLThread::inlineWorkDependent(WD &wd) {
    
    OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
    myProc->waitForEvents();
-
+   
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
+   
    
    NANOS_INSTRUMENT ( raiseWDClosingEvents() );
    return true;

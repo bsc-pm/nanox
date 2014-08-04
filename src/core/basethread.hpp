@@ -30,6 +30,8 @@
 #include "atomic.hpp"
 #include "system.hpp"
 #include "wddeque.hpp"
+#include "printbt_decl.hpp"
+#include <stdio.h>
 
 namespace nanos
 {
@@ -103,11 +105,20 @@ namespace nanos
       return next;
    }
 
-   inline BaseThread::BaseThread ( WD &wd, ProcessingElement *creator ) :
-      _id( sys.nextThreadId() ), _maxPrefetch( 1 ), _status( ), _pe( creator ), _mlock( ),
+   inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
+      _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
       _threadWD( wd ), _currentWD( NULL ), _nextWDs( /* enableDeviceCounter */ false ), _canGetWork( true ),
       _teamData( NULL ), _nextTeamData( NULL ),
-      _name( "Thread" ), _description( "" ), _allocator( ) { }
+      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL )
+   {
+         if ( sys.getSplitOutputForThreads() ) {
+            char tmpbuf[64];
+            sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
+            _file = NEW std::ofstream(tmpbuf);
+         } else {
+            _file = &std::cerr;
+         }
+   }
 
    inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
 
@@ -146,6 +157,8 @@ namespace nanos
       sys.unpausedThread();
    }
  
+   inline void BaseThread::processTransfers () { this->idle(); }
+
    // set/get methods
    inline void BaseThread::setCurrentWD ( WD &current ) { _currentWD = &current; }
  
@@ -161,6 +174,8 @@ namespace nanos
 
    inline bool BaseThread::hasNextWD () const { return !_nextWDs.empty(); }
  
+   inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
+
    // team related methods
    inline void BaseThread::reserve() { _status.has_team = true; }
  
@@ -231,10 +246,12 @@ namespace nanos
    inline bool BaseThread::isPaused () const { return _status.is_paused; }
  
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
+   
+   inline void BaseThread::setRunningOn(ProcessingElement* element) { _pe=element; }
  
    inline int BaseThread::getId() const { return _id; }
  
-   inline int BaseThread::getCpuId() const { return _pe->getId(); }
+   //inline int BaseThread::getCpuId() const { return _pe->getId(); }
  
    inline bool BaseThread::isStarring ( const ThreadTeam *t ) const
    {
@@ -260,7 +277,7 @@ namespace nanos
         _description.append("-");
  
         /* adding device type */
-        _description.append( _pe->getDeviceType().getName() );
+        _description.append( /*_pe->getDeviceType()->getName()*/"" );
         _description.append("-");
  
         /* adding global id */
@@ -270,25 +287,20 @@ namespace nanos
      return _description;
    }
 
-   inline void BaseThread::synchronize( CopyDescriptor &cd )
-   {
-      _pe->synchronize( cd );
-   }
+   inline void BaseThread::setIdle ( bool value ) { _status.is_idle = value; }
 
-   inline void BaseThread::copyDataIn( WorkDescriptor &work )
-   {
-      _pe->copyDataIn( work );
-   }
+   inline bool BaseThread::isIdle ( void ) const { return _status.is_idle; }
 
-   inline void BaseThread::waitInputs( WD &work )
+   inline void BaseThread::step ( void )
    {
-      _pe->waitInputs( work );
+      if ( _steps && _bpCallBack ) {
+         if ( --_steps == 0 ) _bpCallBack();
+      }
    }
+   inline void BaseThread::setCallBack ( callback_t cb ) { _bpCallBack = cb; }
 
-   inline void BaseThread::copyDataOut( WD &work )
-   {
-      _pe->copyDataOut( work );
-   }
+   inline void BaseThread::setSteps ( unsigned short s ) { _steps = s; }
+
 }
 
 #endif

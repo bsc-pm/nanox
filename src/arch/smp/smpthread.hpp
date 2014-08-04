@@ -31,6 +31,7 @@
 namespace nanos {
 namespace ext
 {
+   class SMPMultiThread;
 
    class SMPThread : public BaseThread
    {
@@ -60,6 +61,8 @@ namespace ext
          virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent( WD &work );
+         virtual void preOutlineWorkDependent( WD &work ) { fatal( "SMPThread does not support preOutlineWorkDependent()" ); }
+         virtual void outlineWorkDependent( WD &work ) { fatal( "SMPThread does not support outlineWorkDependent()" ); }
          virtual void switchTo( WD *work, SchedulerHelper *helper );
          virtual void exitTo( WD *work, SchedulerHelper *helper );
 
@@ -71,10 +74,12 @@ namespace ext
          virtual void switchToNextThread() {
             fatal( "SMPThread does not support switchToNextThread()" );
          }
+
          virtual BaseThread *getNextThread()
          {
             return this;
          }
+
          virtual bool isCluster() { return false; }
 
          //virtual int checkStateDependent( int numPe ) {
@@ -116,9 +121,22 @@ namespace ext
          // destructor
          virtual ~SMPMultiThread() { }
 
-}
-}
+         std::vector< BaseThread * >& getThreadVector() { return _threads; }
 
-void * smp_bootthread ( void *arg );
+         virtual BaseThread * getNextThread()
+         {
+            if ( _totalThreads == 0 )
+               return this;
+            _current = ( _current == ( _totalThreads - 1 ) ) ? 0 : _current + 1;
+            return _threads[ _current ];
+         }
+
+         unsigned int getNumThreads() const
+         {
+            return _totalThreads;
+         }
+   };
+}
+}
 
 #endif

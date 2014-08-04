@@ -22,7 +22,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "memtracker.hpp"
-#include "cache.hpp"
+//#include "cache.hpp"
 
 namespace nanos {
    namespace ext {
@@ -83,7 +83,7 @@ namespace nanos {
             virtual ScheduleTeamData * createTeamData ()
             {
                /* Queue 0 will be the global one */
-               _numQueues = sys.getCacheMap().getSize() + 1;
+               _numQueues = sys.getNumMemorySpaces() + 1;
 
                _memSpaces = NEW ThreadData *[_numQueues];
 
@@ -191,6 +191,7 @@ namespace nanos {
                       if ( !copies[i].isPrivate() && copies[i].isOutput() ) {
                          WorkDescriptor* parent = wd.getParent();
                          if ( parent != NULL ) {
+#if 0
                             Directory *dir = parent->getDirectory();
                             if ( dir != NULL ) {
                                DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
@@ -209,6 +210,7 @@ namespace nanos {
                                   }
                                }
                             }
+#endif
                          }
                       }
                    }
@@ -349,7 +351,7 @@ namespace nanos {
                return wd;
             }
 
-            for ( unsigned int i = data._cacheId; i < sys.getCacheMap().getSize(); i++ ) {
+            for ( unsigned int i = data._cacheId; i < sys.getNumMemorySpaces(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
                   wd = tdata._readyQueues[i+1].pop_back( thread );
                   return wd;

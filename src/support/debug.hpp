@@ -52,8 +52,8 @@ namespace nanos
 
    };
 
-#define fatal(msg)  throw nanos::FatalError(msg,getMyThreadSafe()->getId());
-#define fatal0(msg)  throw nanos::FatalError(msg);
+#define fatal(msg) { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str(),getMyThreadSafe()->getId()); }
+#define fatal0(msg)  { std::stringstream sts; sts<<msg ; throw nanos::FatalError(sts.str()); }
 #define fatal_cond(cond,msg) if ( cond ) fatal(msg);
 #define fatal_cond0(cond,msg) if ( cond ) fatal0(msg);
 
@@ -64,6 +64,11 @@ namespace nanos
    std::cerr << "MSG: [" << getMyThreadSafe()->getId() << "] " << msg << std::endl;
 #define message0(msg) \
    std::cerr << "MSG: [?] " << msg << std::endl;
+
+#define messageMaster(msg) \
+   do { if (sys.getNetwork()->getNodeNum() == 0) { std::cerr << "MSG: m:[" << getMyThreadSafe()->getId() << "] " << msg << std::endl; } } while (0)
+#define message0Master(msg) \
+   do { if (sys.getNetwork()->getNodeNum() == 0) { std::cerr << "MSG: m:[?] " << msg << std::endl; } } while (0)
 
 #ifdef NANOS_DEBUG_ENABLED
 #define ensure(cond,msg) if ( !(cond) ) throw nanos::FailedAssertion(__FILE__, __LINE__ , #cond, msg, getMyThreadSafe()->getId());

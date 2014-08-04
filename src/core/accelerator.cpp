@@ -28,97 +28,23 @@
 
 using namespace nanos;
 
-#if LOCK_TRANSFER
-Lock Accelerator::_transferLock;
-#endif
-
-
-void Accelerator::copyDataIn( WorkDescriptor &work )
-{
-#if LOCK_TRANSFER
-   _transferLock.acquire();
-#endif
-   CopyData *copies = work.getCopies();
-   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-      CopyData & cd = copies[i];
-      cd.initCopyDescriptor();
-      uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
-      if ( cd.isInput() ) {
-         NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-in") );
-         NANOS_INSTRUMENT( static nanos_event_value_t value = (nanos_event_value_t) cd.getSize() );
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &key, &value ) );
-      }
-
-      if ( cd.isPrivate() ) {
-         this->registerPrivateAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag );
-      } else {
-         this->registerCacheAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag );
-      }
-   }
-#if LOCK_TRANSFER
-   _transferLock.release();
-#endif
-}
-
-void Accelerator::waitInputs( WorkDescriptor &work )
-{
-   CopyData *copies = work.getCopies();
-   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-      CopyData & cd = copies[i];
-      uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long)cd.getAddress()) : cd.getAddress();
-      if ( cd.isInput() ) {
-           this->waitInputDependent( tag );
-      }
-   }
-}
-
-void Accelerator::copyDataOut( WorkDescriptor& work )
-{
-#if LOCK_TRANSFER
-   _transferLock.acquire();
-#endif
-   CopyData *copies = work.getCopies();
-   for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-      CopyData & cd = copies[i];
-      cd.initCopyDescriptor();
-      uint64_t tag = (uint64_t) cd.isPrivate() ? ((uint64_t) work.getData() + (unsigned long) cd.getAddress()) : cd.getAddress();
-      if ( cd.isOutput() ) {
-         NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-out") );
-         NANOS_INSTRUMENT( static nanos_event_value_t value = (nanos_event_value_t) cd.getSize() );
-		NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &key, &value ) );
-      }
-      if ( cd.isPrivate() ) {
-         this->unregisterPrivateAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag );
-      } else {
-         this->unregisterCacheAccessDependent( *(work.getParent()->getDirectory(true)), cd, tag, cd.isOutput() );
-/*
-         // FIXME: This part is commented out because it is redundant with the next step. Just keep it in case the change has to be reverted
-         if ( cd.isOutput() && (work.getDirectory(false) != NULL) ) {
-            work.getParent()->getDirectory(false)->updateCurrentDirectory( tag, *(work.getDirectory(true)) );
-         }
-*/
-         // We need to create the directory in parent's parent if it does not exist. Otherwise, applications with
-         // at least 3-level nesting tasks with the inner-most level being from a device with separate memory space
-         // will fail because parent's parent directory is NULL
-         if ( work.getParent()->getParent() != work.getParent() && work.getParent()->getParent()!= NULL ) {
-            Directory * dir = work.getParent()->getParent()->getDirectory( true );
-            dir->updateCurrentDirectory( tag, *(work.getParent()->getDirectory( true ) ) );
-         }
-      }
-   }
-#if LOCK_TRANSFER
-   _transferLock.release();
-#endif
-}
-
-void* Accelerator::getAddress( WorkDescriptor &wd, uint64_t tag, nanos_sharing_t sharing )
-{
-   uint64_t actualTag = (uint64_t) ( sharing == NANOS_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
-   return getAddressDependent( actualTag );
-}
-
-void Accelerator::copyTo( WorkDescriptor &wd, void *dst, uint64_t tag, nanos_sharing_t sharing, size_t size )
-{
-   uint64_t actualTag = (uint64_t) ( sharing == NANOS_PRIVATE ? (uint64_t) wd.getData() + (unsigned long) tag : tag );
-   copyToDependent( dst, actualTag, size );
-}
+//#if LOCK_TRANSFER
+//Lock Accelerator::_transferLock;
+//#endif
+//
+//Accelerator::Accelerator ( const Device *arch, const Device *subArch, memory_space_id_t memId ) : ProcessingElement( arch, subArch, memId ) {}
+//
+//void Accelerator::waitInputs( WorkDescriptor &work )
+//{
+//   this->waitInputsDependent( work );
+//}
+//
+//void Accelerator::copyDataOut( WorkDescriptor& work )
+//{
+//#if LOCK_TRANSFER
+//   _transferLock.acquire();
+//#endif
+//#if LOCK_TRANSFER
+//   _transferLock.release();
+//#endif
+//}

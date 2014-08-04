@@ -26,7 +26,6 @@
 #include "system.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
-#include "directory.hpp"
 
 using namespace nanos;
 
@@ -35,8 +34,10 @@ void DOSubmit::dependenciesSatisfied ( )
    if ( needsSubmission() ) {
       DependenciesDomain::decreaseTasksInGraph();
       dependenciesSatisfiedNoSubmit();
-      _submittedWD->submit( true );
+      getWD()->submit( true );
    }
+   DependenciesDomain::decreaseTasksInGraph();
+   dependenciesSatisfiedNoSubmit();
 }
 
 void DOSubmit::dependenciesSatisfiedNoSubmit( )
@@ -45,12 +46,12 @@ void DOSubmit::dependenciesSatisfiedNoSubmit( )
 
 bool DOSubmit::canBeBatchReleased ( ) const
 {
-   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( _submittedWD ) && needsSubmission();
+   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( getWD() ) && needsSubmission();
 }
 
 unsigned long DOSubmit::getDescription ( )
 {
-   return (unsigned long) ((nanos::ext::SMPDD &) _submittedWD->getActiveDevice()).getWorkFct();
+   return (unsigned long) ((nanos::ext::SMPDD &) getWD()->getActiveDevice()).getWorkFct();
 }
 
 void DOSubmit::instrument ( DependableObject &successor )
@@ -91,11 +92,10 @@ int DOWait::decreasePredecessors ( std::list<uint64_t>const * flushDeps,  Depend
 
    if ( blocking ) {
       _syncCond.wait();
-
-      Directory *d = _waitDomainWD->getDirectory(false);
-      if ( d != NULL ) {
-         d->synchronizeHost( *flushDeps );
-      }
+      //Directory *d = _waitDomainWD->getDirectory(false);
+      //if ( d != NULL ) {
+      //   d->synchronizeHost( *flushDeps );
+      //}
    }
 
    return retval;

@@ -35,7 +35,17 @@ inline unsigned int CacheMap::getSize() const
 
 inline CacheAccessMap::CacheAccessMap( unsigned int size ) : _size(size)
 {
-   _cacheAccessesById = NEW Atomic<unsigned int>[size];
+   //ensure( size > 0, "Can not create a CacheAccessMap with size=0.")
+   if ( size > 0 ) /* this if statement should be removed, we should assume size is never <= 0 */
+   {
+      _cacheAccessesById = NEW Atomic<unsigned int>[size];
+      for ( unsigned int i = 0; i < size; i += 1 )
+         _cacheAccessesById[ i ] = 0;
+   }
+   else
+   {
+      _cacheAccessesById = NULL;
+   }
 }
 
 inline CacheAccessMap::~CacheAccessMap()
@@ -47,9 +57,15 @@ inline CacheAccessMap::CacheAccessMap( const CacheAccessMap &map ) : _size( map.
 {
    if ( this == &map )
       return;
-   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
-   for ( unsigned int i = 0; i < _size; i++ ) {
-      _cacheAccessesById[i] = map._cacheAccessesById[i];
+   //ensure( _size > 0, "Can not create a CacheAccessMap with size=0.")
+   if ( _size > 0 )
+   {
+      _cacheAccessesById = NEW Atomic<unsigned int>[map._size];
+      for ( unsigned int i = 0; i < map._size; i++ ) {
+         _cacheAccessesById[i] = map._cacheAccessesById[i];
+      }
+   } else {
+      _cacheAccessesById = NULL;
    }
 }
 
@@ -58,20 +74,30 @@ inline const CacheAccessMap& CacheAccessMap::operator= ( const CacheAccessMap &m
    if ( this == &map )
       return *this;
    _size = map._size;
-   _cacheAccessesById = NEW Atomic<unsigned int>[_size];
-   for ( unsigned int i = 0; i < _size; i++ ) {
-      _cacheAccessesById[i] = map._cacheAccessesById[i];
+   //ensure( _size > 0, "Can not create a CacheAccessMap with size=0.")
+   if ( _size > 0 )
+   {
+      _cacheAccessesById = NEW Atomic<unsigned int>[_size];
+      for ( unsigned int i = 0; i < _size; i++ ) {
+         _cacheAccessesById[i] = map._cacheAccessesById[i];
+      }
+   } else {
+      _cacheAccessesById = NULL;
    }
    return *this;
 }
 
 inline Atomic<unsigned int>& CacheAccessMap::operator[] ( unsigned int cacheId )
 {
+   ensure( cacheId != 0, "Checking an invalid CacheAccessMap id = 0")
+   ensure( cacheId <= _size, "Checking an invalid CacheAccessMap id > size.")
    return _cacheAccessesById[cacheId - 1];
 }
 
 inline unsigned int CacheAccessMap::getAccesses( unsigned int cacheId )
 {
+   ensure( cacheId != 0, "Checking an invalid CacheAccessMap id = 0")
+   ensure( cacheId <= _size, "Checking an invalid CacheAccessMap id > size.")
    return _cacheAccessesById[cacheId - 1].value();
 }
 

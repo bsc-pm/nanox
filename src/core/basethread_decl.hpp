@@ -27,6 +27,8 @@
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
 #include "allocator_decl.hpp"
+#include <set>
+#include <fstream>
 #include "wddeque_decl.hpp"
 
 namespace nanos
@@ -107,15 +109,21 @@ namespace nanos
          bool isCreator ( void ) const;
    };
 
+   namespace ext {
+   class SMPMultiThread;
+   };
+
    class BaseThread
    {
       friend class Scheduler;
       private:
+         typedef void (*callback_t)(void);
          typedef struct StatusFlags_t{
             bool is_main_thread:1;
             bool has_started:1;
             bool must_stop:1;
             bool must_sleep:1;
+            bool is_idle:1;
             bool is_paused:1;
             bool has_team:1;
             bool has_joined:1;
@@ -125,8 +133,10 @@ namespace nanos
       private:
          // Thread info/status
          unsigned short          _id;            /**< Thread identifier */
+         unsigned int            _osId;          /**< OS Thread identifier */
          unsigned short          _maxPrefetch;   /**< Maximum number of tasks that the thread can be running simultaneously */
          volatile StatusFlags    _status;        /**< BaseThread status flags */
+         ext::SMPMultiThread    *_parent;
          // Relationships:
          ProcessingElement      *_pe;            /**< Threads are binded to a PE for its life-time */
          // Thread synchro:
@@ -145,6 +155,9 @@ namespace nanos
          std::string             _description;   /**< Thread description */
          // Allocator:
          Allocator               _allocator;     /**< Per thread allocator */
+         unsigned short          _steps;         //!< Number of scheduler steps (zero means infinite)
+         callback_t              _bpCallBack;    //!< Break point callback. We call it after _steps scheduler ops
+         
 
       private:
          virtual void initializeDependent () = 0;
@@ -154,6 +167,8 @@ namespace nanos
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual bool inlineWorkDependent (WD &work) = 0;
+         virtual void outlineWorkDependent (WD &work) = 0;
+         virtual void preOutlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
@@ -162,21 +177,19 @@ namespace nanos
           */ 
          void joined ( void ); 
       private:
-        /*! \brief BaseThread default constructor (private)
-         */
+         //! \brief BaseThread default constructor (private)
          BaseThread ();
-        /*! \brief BaseThread copy constructor (private)
-         */
+         //! \brief BaseThread copy constructor (private)
          BaseThread( const BaseThread & );
-        /*! \brief BaseThread copy assignment operator (private)
-         */
+         //! \brief BaseThread copy assignment operator (private)
          const BaseThread & operator= ( const BaseThread & );
       public:
-        /*! \brief BaseThread constructor
-         */
-         BaseThread ( WD &wd, ProcessingElement *creator = NULL );
-        /*! \brief BaseThread destructor
-         */
+         std::ostream          *_file;
+         std::set<void *> _pendingRequests;
+         //! \brief BaseThread constructor
+         BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
+
+         //! \brief BaseThread destructor
          virtual ~BaseThread()
          {
             finish();
@@ -201,8 +214,8 @@ namespace nanos
          void pause ();
          void unpause ();
 
-         virtual void idle() {};
-         virtual void processTransfers() {}
+         virtual void idle( bool debug = false ) {};
+         virtual void processTransfers();
          virtual void yield() {};
 
          virtual void join() = 0;
@@ -229,6 +242,9 @@ namespace nanos
          // Set whether the thread will schedule WDs or not used by getImmediateSuccessor()
          // If so, WD's dependencies should be kept till WD is finished
          virtual bool keepWDDeps() { return false; }
+
+         ext::SMPMultiThread *getParent() ;
+         virtual BaseThread *getNextThread() = 0;
 
          // team related methods
          void reserve();
@@ -271,12 +287,14 @@ namespace nanos
          void disableGettingWork ();
 
          ProcessingElement * runningOn() const;
-
+         
+         void setRunningOn(ProcessingElement* element);
+         
          void associate();
 
          int getId() const;
 
-         int getCpuId() const;
+         virtual int getCpuId() const;
 
          bool singleGuard();
          bool enterSingleBarrierGuard ();
@@ -307,6 +325,11 @@ namespace nanos
           */
          const std::string &getDescription ( void );
 
+         virtual void switchToNextThread() = 0;
+         virtual void notifyOutlinedCompletionDependent( WD *completedWD );
+         virtual bool isCluster() = 0;
+         WDDeque &getNextWDQueue();
+
          /*! \brief Get Status: Main Thread
           */
          bool isMainThread ( void ) const;
@@ -317,24 +340,26 @@ namespace nanos
           */
          void setMainThread ( bool v = true );
 
-
-         // Methods related to WD's copies
-
-         /*! /brief Call thread's PE to synchronize data
+#ifdef NANOS_RESILIENCY_ENABLED
+         /*! \brief Change the action taken by default if some specified signals are received.
           */
-         virtual void synchronize( CopyDescriptor &cd );
+         virtual void setupSignalHandlers() = 0;
 
-         /*! /brief Call thread's PE to copy input data
-          */
-         virtual void copyDataIn( WD &work );
+#endif
+         bool tryWakeUp();
 
-         /*! /brief Call thread's PE to wait for input data to be copied
-          */
-         virtual void waitInputs( WD &work );
+         unsigned int getOsId() const;
 
-         /*! /brief Call thread's PE to copy output data
-          */
-         virtual void copyDataOut( WD &work );
+         //! \brief Change thread state idle to value ( true by default )
+         void setIdle ( bool value = true ) ;
+         //! \brief Inquiry thread state idle
+         bool isIdle ( void ) const;
+         //! \brief Basethread step.
+         void step( void );
+         //! \brief Set break point steps 
+         void setSteps( unsigned short s );
+         //! \brief Set break point callback
+         void setCallBack( callback_t cb );
    };
 
    extern __thread BaseThread *myThread;

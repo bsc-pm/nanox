@@ -232,6 +232,38 @@ namespace nanos
    }
 
 
+
+   /* !\brief Action that calls a member function with no parameters, class pointer version
+    */
+   template <typename Class>
+   struct ActionPtrMemFunPtr0 : public Action
+   {
+      public:
+         typedef void ( Class::*PtrMemFunPtr0 )();
+
+      private:
+         PtrMemFunPtr0 _fptr;
+         Class *_obj;
+
+      public:
+         ActionPtrMemFunPtr0 ( PtrMemFunPtr0 fptr, Class *obj ) : _fptr( fptr ), _obj( obj ) {}
+         virtual void run() { ( _obj->*_fptr )(); }
+
+   };
+
+   /* !\brief Wrapper for member functions with no parameters, class pointer version
+    */
+   template <typename Class>
+   Action* new_action( void ( Class::*fun )(), Class *obj );
+
+   template <typename Class>
+   Action* new_action( void ( Class::*fun )(), Class *obj )
+   {
+      return NEW ActionPtrMemFunPtr0<Class>( fun, obj );
+   }
+
+
+
    /* !\brief Action that calls a member function with 1 parameter, class pointer version
     */
    template <typename Class, typename T>

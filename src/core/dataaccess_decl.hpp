@@ -80,8 +80,8 @@ namespace nanos
          void * getAddress() const;
          
         /*! \brief Obtain the dependency's address address
-	 */
-	 ptrdiff_t getOffset() const;
+    */
+    ptrdiff_t getOffset() const;
          
         /*! \brief Compute the address of the first element
          * (address + offset)

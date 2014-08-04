@@ -24,6 +24,7 @@
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "instrumentationmodule_decl.hpp"
+#include "instrumentation_decl.hpp"
 
 using namespace nanos;
 
@@ -45,12 +46,29 @@ using namespace nanos;
  *  \sa ThreadTeam
  */
 NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_t sp, unsigned int *nthreads,
-                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info ))
+                               nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info, nanos_const_wd_definition_t *const_data_ext ))
 {
-   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, (nanos_event_value_t *) nthreads); )
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","create_team",NANOS_RUNTIME) );
+   unsigned i = 0;
+
+   NANOS_INSTRUMENT( nanos_const_wd_definition_internal_t *const_data = reinterpret_cast<nanos_const_wd_definition_internal_t*>(const_data_ext); )
+
+   NANOS_INSTRUMENT( static Instrumentation *INS = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = INS->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT( static nanos_event_key_t api_key = ID->getEventKey("api"); )
+   NANOS_INSTRUMENT( static nanos_event_value_t api_value = ID->getEventValue("api","create_team"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t threads_key = ID->getEventKey("set-num-threads"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t parallel_ol_key = ID->getEventKey("parallel-outline-fct"); )
+
+   NANOS_INSTRUMENT( Instrumentation::Event events[4]; )
+   NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
+   NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], threads_key, (nanos_event_value_t ) *nthreads ); )
+   NANOS_INSTRUMENT ( if ( const_data != NULL ) { )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) ((nanos_smp_args_t *)(const_data->devices[0].arg))->outline ); )
+   NANOS_INSTRUMENT ( } else { )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) NULL ) ; )
+   NANOS_INSTRUMENT ( } )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
       if ( *team ) warning( "pre-allocated team not supported yet" );
@@ -64,7 +82,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
 
       *nthreads = new_team->size();
 
-      for ( unsigned i = 0; i < new_team->size(); i++ )
+      for ( i = 0; i < new_team->size(); i++ )
          info[i] = ( nanos_thread_t ) &( *new_team )[i];
    } catch ( nanos_err_t e) {
       return e;
@@ -225,7 +243,7 @@ NANOS_API_DEF(nanos_err_t, nanos_admit_current_thread, (void))
 {
 
    try {
-       sys.admitCurrentThread( );
+       sys.admitCurrentThread( true );
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -237,7 +255,7 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 {
 
    try {
-       sys.expelCurrentThread( );
+       sys.expelCurrentThread( true );
    } catch ( nanos_err_t e) {
       return e;
    }

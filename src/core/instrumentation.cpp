@@ -241,6 +241,7 @@ void Instrumentation::raiseCloseBurstEvent ( nanos_event_key_t key, nanos_event_
 void Instrumentation::raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner )
 {
    if ( _emitPtPEvents == false ) return;
+   if ( ! ( domain == NANOS_XFER_DATA || domain == NANOS_XFER_REQ || domain == NANOS_XFER_WAIT_REQ_PUT || domain == NANOS_AM_WORK || domain == NANOS_AM_WORK_DONE || domain == NANOS_XFER_FREE_TMP_BUFF || domain == NANOS_WD_REMOTE || domain == NANOS_WAIT || domain == NANOS_WD_DEPENDENCY || domain == NANOS_WD_DOMAIN ) ) return;
 
    Event e; /* Event */
 
@@ -253,6 +254,7 @@ void Instrumentation::raiseOpenPtPEvent ( nanos_event_domain_t domain, nanos_eve
 void Instrumentation::raiseClosePtPEvent ( nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key, nanos_event_value_t val, unsigned int partner )
 {
    if ( _emitPtPEvents == false ) return;
+   if ( ! ( domain == NANOS_XFER_DATA || domain == NANOS_XFER_REQ || domain == NANOS_XFER_WAIT_REQ_PUT || domain == NANOS_AM_WORK || domain == NANOS_AM_WORK_DONE || domain == NANOS_XFER_FREE_TMP_BUFF || domain == NANOS_WD_REMOTE || domain == NANOS_WAIT || domain == NANOS_WD_DEPENDENCY || domain == NANOS_WD_DOMAIN ) ) return;
 
    Event e; /* Event */
 
@@ -397,11 +399,14 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       /* Creating a starting PtP event (if needed) */
       if (!last && _emitPtPEvents ) ASSIGN_EVENT( e[i++] , PtP , (true,  NANOS_WD_DOMAIN, (nanos_event_id_t) oldWD->getId(), 0, 0) );
 
+      ensure0(i == oldPtP, "Final point-to-point events doesn't fit with computed.");
+
       /* Creating State event's */
       InstrumentationContextData::ConstStateIterator it_s;
       for ( it_s = _instrumentationContext.beginState( old_icd ); it_s != _instrumentationContext.endState( old_icd ); it_s++ ) {
          ASSIGN_EVENT( e[i++] ,  State , (NANOS_STATE_END, *it_s) );
       }
+      ensure0(i == oldPtP + oldStates, "Final state events doesn't fit with computed value.");
 
       if ( csEvent ) {
          ASSIGN_EVENT( e[i++] , State , ( NANOS_STATE_START, NANOS_CONTEXT_SWITCH ) );
@@ -416,7 +421,11 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       }
    }
 
+
    /* Creating entering wd events */
+   //if ( oldWD != NULL ) {
+   //   std::cerr << "Thread " << myThread->getId() << " exitign wd " << oldWD->getId() << " new_icd is " << (void *) new_icd << std::endl;
+   //}
    if ( new_icd != NULL) {
       /* Creating PtP event */
       if ( _emitPtPEvents ) ASSIGN_EVENT( e[i++] , PtP , (false, NANOS_WD_DOMAIN, (nanos_event_id_t) newWD->getId(), 0, 0) );
@@ -450,6 +459,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
    }
    
+
    ensure0( i == numEvents , "Computed number of events doesn't fit with number of real events");
 
    /* Spawning 'numEvents' events: specific instrumentation call */
@@ -476,13 +486,24 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
 
    /* Calling array event's destructor: cleaning events */
    for ( i = 0; i < numEvents; i++ ) e[i].~Event();
-
-   /* Cpuid event is protected by system flags */
-   if ( !sys.getBinding() && sys.isCpuidEventEnabled() )  {
-      static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary();
-      static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid");
-      nanos_event_value_t cpuid_value =  (nanos_event_value_t) sched_getcpu() + 1;
-      sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value);
-   }
 }
+
+Instrumentation::PtP::PtP ( bool start, nanos_event_domain_t domain, nanos_event_id_t id, nanos_event_key_t key,  nanos_event_value_t value, unsigned int partner )
+                   : Event ( start ? NANOS_PTP_START : NANOS_PTP_END , key, value, domain, id, partner ) {
+                     //if ( sys.getNetwork()->getNodeNum() == 0 ) {
+                     //   if ( domain == NANOS_WD_DOMAIN  ) {
+                     //      if ( start ) {
+                     //         fprintf(stderr, "[%d] >>> Open DOMAIN with id %lld (key: %x value: %llx partner: %d) \n",
+                     //            ((myThread!=NULL)?myThread->getId():-1), id, key, value, partner );
+                     //      } else {
+                     //         fprintf(stderr, "[%d] <<< Close DOMAIN with id %lld (key: %x value: %llx partner: %d) \n",
+                     //            ((myThread!=NULL)?myThread->getId():-1), id, key, value, partner );
+                     //      }
+                     //      //if ( ((myThread!=NULL)?myThread->getId():-1) == 2 ) {
+                     //         sys.printBt();
+                     //      //}
+                     //   }
+                     //}
+                   }
+
 #endif

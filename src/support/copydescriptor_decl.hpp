@@ -21,6 +21,8 @@
 #define _NANOS_COPY_DESCRIPTOR_DECL
 
 #include "compatibility.hpp"
+#include "regioncache_decl.hpp"
+#include "functor_decl.hpp"
 
 #include <stdint.h>
 
@@ -28,23 +30,21 @@ namespace nanos {
 
    /*! \breif Class representing a copy used to synchronize the device with the cache */
    class CopyDescriptor {
-      public:
-         uint64_t     _tag;
+      private:
+         uint64_t _tag;
          unsigned int _dirVersion;
-         bool         _copying;
-         bool         _flushing;
 
       public:
+         DeviceOps *_ops;
+         Functor *_functor;
         /*! \brief Default constructor
          */
-         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0, bool copy = false, bool flush = false ) :
-               _tag( tag ), _dirVersion( dirVersion ), _copying( copy ), _flushing( flush ) {}
+         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0 ): _tag(tag), _dirVersion(dirVersion), _ops (NULL), _functor( NULL ){}
 
         /*! \brief Copy constructor
          *  \param Another CopyDescriptor
          */
-         CopyDescriptor( const CopyDescriptor &cd ) : _tag( cd._tag ), _dirVersion( cd._dirVersion ),
-               _copying( cd._copying ), _flushing( cd._flushing ) {}
+         CopyDescriptor( const CopyDescriptor &cd ): _tag( cd._tag ), _dirVersion( cd._dirVersion ), _ops( cd._ops ) , _functor( cd._functor ) {}
 
         /* \brief Destructor
          */
@@ -57,15 +57,12 @@ namespace nanos {
             if ( this == &cd ) return *this;
             this->_tag = cd._tag;
             this->_dirVersion = cd._dirVersion;
-            this->_copying = cd._copying;
-            this->_flushing = cd._flushing;
+            this->_ops = cd._ops;
             return *this;
          }
 
          uint64_t getTag() const;
          unsigned int getDirectoryVersion() const;
-         bool isCopying () const;
-         bool isFlushing () const;
    };
 }
 

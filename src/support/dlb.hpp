@@ -43,7 +43,7 @@ namespace nanos {
             DLB_ReturnClaimedCpus();
 
          if ( sys.getPMInterface().isMalleable() ) {
-            int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getNumThreads();
+            int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getSMPPlugin()->getNumWorkers();
             if ( needed_resources > 0 )
                DLB_UpdateResources_max( needed_resources );
 

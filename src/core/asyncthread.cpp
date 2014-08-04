@@ -21,6 +21,7 @@
 
 #include "schedule_decl.hpp"
 #include "processingelement.hpp"
+#include "workdescriptor_decl.hpp"
 //#include "system.hpp"
 //#include "synchronizedcondition.hpp"
 #include <unistd.h>
@@ -46,12 +47,14 @@ typedef enum {
    ASYNC_THREAD_RUN_EVENT,                   /* 3 */
    ASYNC_THREAD_POST_RUN_EVENT,              /* 4 */
    ASYNC_THREAD_WAIT_INPUTS_EVENT,           /* 5 */
-   ASYNC_THREAD_CP_DATA_IN_EVENT,            /* 6 */
-   ASYNC_THREAD_CP_DATA_OUT_EVENT,           /* 7 */
-   ASYNC_THREAD_CHECK_EVTS_EVENT,            /* 8 */
-   ASYNC_THREAD_PROCESS_EVT_EVENT,           /* 9 */
-   ASYNC_THREAD_SYNCHRONIZE_EVENT,          /* 10 */
-   ASYNC_THREAD_SCHEDULE_EVENT              /* 11 */
+   ASYNC_THREAD_CHECK_WD_INPUTS_EVENT,       /* 6 */
+   ASYNC_THREAD_CHECK_WD_OUTPUTS_EVENT,      /* 7 */
+   ASYNC_THREAD_CP_DATA_IN_EVENT,            /* 8 */
+   ASYNC_THREAD_CP_DATA_OUT_EVENT,           /* 9 */
+   ASYNC_THREAD_CHECK_EVTS_EVENT,           /* 10 */
+   ASYNC_THREAD_PROCESS_EVT_EVENT,          /* 11 */
+   ASYNC_THREAD_SYNCHRONIZE_EVENT,          /* 12 */
+   ASYNC_THREAD_SCHEDULE_EVENT              /* 13 */
 } AsyncThreadState_t;
 
 bool AsyncThread::inlineWorkDependent( WD &work )
@@ -152,25 +155,126 @@ void AsyncThread::idle()
    ASYNC_THREAD_CLOSE_EVENT;
 }
 
+bool AsyncThread::processNonAllocatedWDData ( WD * wd )
+{
+   GenericEvent * event;
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+   event = NEW GenericEvent( wd, "Data allocation failed" );
+#else
+   event = NEW GenericEvent( wd );
+#endif
+
+   Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::preRunWD, *this, wd );
+   event->addNextAction( action );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   event->setDescription( event->getDescription() + " action:AsyncThread::preRunWD" );
+#endif
+
+   event->setRaised();
+
+   addEvent( event );
+
+   return true;
+}
 
 void AsyncThread::preRunWD ( WD * wd )
 {
    debug( "[Async] Prerunning WD " << wd << " : " << wd->getId() );
 
    _previousWD = this->getCurrentWD();
-
    this->setCurrentWD( *wd );
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_PRE_RUN_EVENT );
 
-   // This will start WD's copies
-   wd->init();
+   GenericEvent * evt = this->createPreRunEvent( wd );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   evt->setDescription( evt->getDescription() + " AsyncThread::preRunWD" );
+#endif
+   evt->setCreated();
+
+   if ( !wd->started() ) {
+      if ( !wd->_mcontrol.isMemoryAllocated() ) {
+         wd->_mcontrol.initialize( *( this->runningOn() ) );
+         if ( wd->_mcontrol.allocateTaskMemory() == false ) {
+            // Data could not be allocated
+            if ( processNonAllocatedWDData( wd ) ) {
+               // Will try it later
+               ASYNC_THREAD_CLOSE_EVENT;
+               this->setCurrentWD( *_previousWD );
+               return;
+            }
+         }
+      }
+      // This will start WD's copies
+      wd->init();
+      wd->preStart( WD::IsNotAUserLevelThread );
+   }
+
+   evt->setPending();
+
+   Action * check = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::checkWDInputs, *this, wd );
+   evt->addNextAction( check );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   evt->setDescription( lastEvt->getDescription() + " action:AsyncThread::checkWDInputs" );
+#endif
+
+   addEvent( evt );
 
    ASYNC_THREAD_CLOSE_EVENT;
 
    this->setCurrentWD( *_previousWD );
 }
 
+
+void AsyncThread::checkWDInputs( WD * wd )
+{
+   // Check if WD's inputs have already been copied
+
+   _previousWD = this->getCurrentWD();
+   this->setCurrentWD( *wd );
+
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_WD_INPUTS_EVENT );
+
+   // Should never find a non-raised event
+   for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
+      GenericEvent * evt = *it;
+      if ( evt->getWD() == wd && !( evt->isRaised() || evt->isCompleted() ) ) {
+         // May not be an error in the case of GPUs since CUDA events are only checked every 100 times
+         //warning( "Found a non-raised event! For WD " << evt->getWD()->getId() << " about " << evt->getDescription() );
+         evt->waitForEvent();
+      }
+   }
+
+
+   if ( wd->isInputDataReady() ) {
+      // Input data has been copied, we can run the WD
+      runWD( wd );
+   } else {
+      // Input data is not ready yet, we must wait
+      GenericEvent * evt;
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt = NEW GenericEvent( wd, "Checking WD inputs" );
+#else
+      evt = NEW GenericEvent( wd );
+#endif
+
+      Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::checkWDInputs, *this, wd );
+      evt->addNextAction( action );
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt->setDescription( evt->getDescription() + " action:AsyncThread::checkWDInputs" );
+#endif
+
+      evt->setRaised();
+
+      addEvent( evt );
+   }
+
+   ASYNC_THREAD_CLOSE_EVENT;
+
+   this->setCurrentWD( *_previousWD );
+}
 
 bool AsyncThread::processDependentWD ( WD * wd )
 {
@@ -212,9 +316,6 @@ void AsyncThread::runWD ( WD * wd )
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_RUN_EVENT );
 
-   // This will wait for WD's inputs
-   wd->start( WD::IsNotAUserLevelThread );
-
    GenericEvent * evt = this->createRunEvent( wd );
 #ifdef NANOS_GENERICEVENT_DEBUG
    evt->setDescription( evt->getDescription() + " First event after WD is executed" );
@@ -231,6 +332,36 @@ void AsyncThread::runWD ( WD * wd )
    evt->setDescription( evt->getDescription() + " action:closeUsrFuncInstr" );
 #endif
 
+   Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::checkWDOutputs, this, wd );
+   evt->addNextAction( action );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   evt->setDescription( evt->getDescription() + " action:AsyncThread::checkWDOutputs" );
+#endif
+
+   addEvent( evt );
+
+   ASYNC_THREAD_CLOSE_EVENT;
+}
+
+
+void AsyncThread::checkWDOutputs( WD * wd )
+{
+   // Check if WD's outputs have already been copied (if needed)
+   _previousWD = this->getCurrentWD();
+   this->setCurrentWD( *wd );
+
+   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_WD_OUTPUTS_EVENT );
+
+   GenericEvent * evt = this->createPostRunEvent( wd );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   evt->setDescription( evt->getDescription() + " AsyncThread::checkWDOutputs" );
+#endif
+   evt->setCreated();
+
+   wd->preFinish();
+
+   evt->setPending();
+
    Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::postRunWD, this, wd );
    evt->addNextAction( action );
 #ifdef NANOS_GENERICEVENT_DEBUG
@@ -240,6 +371,8 @@ void AsyncThread::runWD ( WD * wd )
    addEvent( evt );
 
    ASYNC_THREAD_CLOSE_EVENT;
+
+   this->setCurrentWD( *_previousWD );
 }
 
 
@@ -249,8 +382,32 @@ void AsyncThread::postRunWD ( WD * wd )
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_POST_RUN_EVENT );
 
-   wd->finish();
+   if ( !wd->isOutputDataReady() ) {
+      // Output data is not ready yet, we must wait
+      GenericEvent * evt;
 
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt = NEW GenericEvent( wd, "Checking WD outputs" );
+#else
+      evt = NEW GenericEvent( wd );
+#endif
+
+      Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::postRunWD, *this, wd );
+      evt->addNextAction( action );
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt->setDescription( evt->getDescription() + " action:AsyncThread::checkWDOutputs" );
+#endif
+
+      evt->setRaised();
+
+      addEvent( evt );
+
+      ASYNC_THREAD_CLOSE_EVENT;
+
+      return;
+   }
+
+   // Reaching this point means that output data has been copied, we can clean-up the WD
    _runningWDs.remove( wd );
    _runningWDsCounter--;
 
@@ -267,226 +424,11 @@ void AsyncThread::postRunWD ( WD * wd )
    std::cout << s.str();
 #endif
 
-   ASYNC_THREAD_CLOSE_EVENT;
-}
-
-
-
-void AsyncThread::copyDataIn( WorkDescriptor& work )
-{
-   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CP_DATA_IN_EVENT );
-
-   // WD has no copies
-   if ( work.getNumCopies() == 0 ) {
-      GenericEvent * evt = this->createPreRunEvent( &work );
-#ifdef NANOS_GENERICEVENT_DEBUG
-      evt->setDescription( evt->getDescription() + " No inputs, event triggers runWD" );
-#endif
-     evt->setCreated();
-
-     addEvent( evt );
-
-     Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, this, &work );
-     evt->addNextAction( action );
-#ifdef NANOS_GENERICEVENT_DEBUG
-     evt->setDescription( evt->getDescription() + " action:AsyncThread::runWD" );
-#endif
-
-     evt->setPending();
-     evt->setRaised();
-
-   } else {
-      GenericEvent * lastEvt = NULL;
-
-      // Approach with less events: better for older GPUs, but calls to Cache's synchronize are a bit delayed
-      GenericEvent * evt = this->createPreRunEvent( &work );
-#ifdef NANOS_GENERICEVENT_DEBUG
-      evt->setDescription( evt->getDescription() + " copy inputs: " );
-#endif
-
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         cd.initCopyDescriptor();
-         CopyDescriptor * cpdesc = cd.getCopyDescriptor();
-         uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
-
-         // Approach with more events: older GPUs run slower, but calls to Cache's synchronize are more accurate
-         //GenericEvent * evt = this->createPreRunEvent( &work );
-#ifdef NANOS_GENERICEVENT_DEBUG
-         evt->setDescription( evt->getDescription() + " " + toString<uint64_t>( tag ) );
-         //evt->setDescription( evt->getDescription() + " copy input " + toString<uint64_t>( tag ) );
-#endif
-         evt->setCreated();
-
-         if ( cd.isInput() ) {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-in") );
-            NANOS_INSTRUMENT( static nanos_event_value_t value = (nanos_event_value_t) cd.getSize() );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &key, &value ) );
-         }
-
-         if ( cd.isPrivate() ) {
-            runningOn()->registerPrivateAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag  );
-         } else {
-            runningOn()->registerCacheAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag );
-         }
-
-         //evt->setPending();
-
-         if ( cpdesc->_copying || cpdesc->_flushing ) {
-            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, *( cd.getCopyDescriptor() ) );
-            evt->addNextAction( action );
-#ifdef NANOS_GENERICEVENT_DEBUG
-            evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
-#endif
-         }
-
-         //addEvent( evt );
-
-         lastEvt = evt;
-      }
-
-      if ( lastEvt ) {
-         Action * check = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::checkEvents, *this, &work );
-         lastEvt->addNextAction( check );
-#ifdef NANOS_GENERICEVENT_DEBUG
-         lastEvt->setDescription( lastEvt->getDescription() + " action:AsyncThread::checkEventsWD" );
-#endif
-         Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, &work );
-         lastEvt->addNextAction( action );
-#ifdef NANOS_GENERICEVENT_DEBUG
-        lastEvt->setDescription( lastEvt->getDescription() + " action:AsyncThread::runWD" );
-#endif
-      }
-
-      evt->setPending();
-      addEvent( evt );
-   }
+   Scheduler::finishWork( wd, canGetWork() );
 
    ASYNC_THREAD_CLOSE_EVENT;
 }
 
-void AsyncThread::waitInputs( WorkDescriptor &work )
-{
-   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_WAIT_INPUTS_EVENT );
-
-   // Should never find a non-raised event
-   for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
-      GenericEvent * evt = *it;
-      if ( evt->getWD() == &work && !( evt->isRaised() || evt->isCompleted() ) ) {
-         // May not be an error in the case of GPUs since CUDA events are only checked every 100 times
-         //warning( "Found a non-raised event! For WD " << evt->getWD()->getId() << " about " << evt->getDescription() );
-         evt->waitForEvent();
-      }
-   }
-
-   ASYNC_THREAD_CLOSE_EVENT;
-}
-
-void AsyncThread::copyDataOut( WorkDescriptor& work )
-{
-   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CP_DATA_OUT_EVENT );
-
-   // WD has no copies
-   if ( work.getNumCopies() == 0 ) {
-      GenericEvent * evt = this->createPostRunEvent( &work );
-#ifdef NANOS_GENERICEVENT_DEBUG
-      evt->setDescription( evt->getDescription() + " No outputs, event triggers finishWork" );
-#endif
-      evt->setCreated();
-
-      addEvent( evt );
-
-      Action * action = new_action( ( ActionFunPtr2<WD *, bool>::FunPtr2 ) &Scheduler::finishWork, &work, false );
-      evt->addNextAction( action );
-#ifdef NANOS_GENERICEVENT_DEBUG
-      evt->setDescription( evt->getDescription() + " action:Scheduler::finishWork" );
-#endif
-
-      evt->setPending();
-      evt->setRaised();
-
-   } else {
-      GenericEvent * lastEvt = NULL;
-      // Approach with less events: better for older GPUs, but calls to Cache's synchronize are a bit delayed
-      GenericEvent * evt = this->createPostRunEvent( &work );
-#ifdef NANOS_GENERICEVENT_DEBUG
-      evt->setDescription( evt->getDescription() + " copy outputs " );
-#endif
-
-      CopyData *copies = work.getCopies();
-      for ( unsigned int i = 0; i < work.getNumCopies(); i++ ) {
-         CopyData & cd = copies[i];
-         cd.initCopyDescriptor();
-         CopyDescriptor * cpdesc = cd.getCopyDescriptor();
-         uint64_t tag = ( uint64_t ) cd.isPrivate() ? ( ( uint64_t ) work.getData() + ( unsigned long ) cd.getAddress() ) : cd.getAddress();
-
-         // Approach with more events: older GPUs run slower, but calls to Cache's synchronize are more accurate
-         //GenericEvent * evt = this->createPostRunEvent( &work );
-#ifdef NANOS_GENERICEVENT_DEBUG
-         evt->setDescription( evt->getDescription() + " " + toString<uint64_t>( tag ) );
-         //evt->setDescription( evt->getDescription() + " copy output" );
-#endif
-         evt->setCreated();
-
-         if ( cd.isOutput() ) {
-            NANOS_INSTRUMENT( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("copy-out") );
-            NANOS_INSTRUMENT( static nanos_event_value_t value = (nanos_event_value_t) cd.getSize() );
-            NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &key, &value ) );
-         }
-
-         if ( cd.isPrivate() ) {
-            runningOn()->unregisterPrivateAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag );
-         } else {
-            runningOn()->unregisterCacheAccessDependent( *( work.getParent()->getDirectory( true ) ), cd, tag, cd.isOutput() );
-
-            // We need to create the directory in parent's parent if it does not exist. Otherwise, applications with
-            // at least 3-level nesting tasks with the inner-most level being from a device with separate memory space
-            // will fail because parent's parent directory is NULL
-            if ( work.getParent()->getParent() != work.getParent() && work.getParent()->getParent() != NULL ) {
-               Directory * dir = work.getParent()->getParent()->getDirectory( true );
-               dir->updateCurrentDirectory( tag, *( work.getParent()->getDirectory( true ) ) );
-            }
-         }
-
-         //evt->setPending();
-
-         if ( cpdesc->_copying || cpdesc->_flushing ) {
-            Action * action = new_action( ( ActionPtrMemFunPtr1<AsyncThread, CopyDescriptor>::PtrMemFunPtr1 ) &AsyncThread::synchronize, this, *( cd.getCopyDescriptor() ) );
-            evt->addNextAction( action );
-#ifdef NANOS_GENERICEVENT_DEBUG
-            evt->setDescription( evt->getDescription() + " action:AsyncThread::synchronize" );
-#endif
-         }
-
-         //addEvent( evt );
-
-         lastEvt = evt;
-      }
-
-      if ( lastEvt ) {
-         WorkDescriptor * actionWD = &work;
-         Action * action = new_action( ( ActionFunPtr2<WD *, bool>::FunPtr2 ) &Scheduler::finishWork, actionWD, false );
-         lastEvt->addNextAction( action );
-#ifdef NANOS_GENERICEVENT_DEBUG
-         lastEvt->setDescription( lastEvt->getDescription() + " action:Scheduler::finishWork" );
-#endif
-      }
-
-      evt->setPending();
-      addEvent( evt );
-   }
-
-   ASYNC_THREAD_CLOSE_EVENT;
-}
-
-
-void AsyncThread::synchronize( CopyDescriptor cd )
-{
-   //ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_SYNCHRONIZE_EVENT );
-   runningOn()->synchronize( cd );
-   //ASYNC_THREAD_CLOSE_EVENT;
-}
 
 void AsyncThread::addEvent( GenericEvent * evt )
 {

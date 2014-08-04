@@ -20,6 +20,7 @@
 #ifndef _NANOS_LIST
 #define _NANOS_LIST
 
+#include "list_decl.hpp"
 #include "atomic.hpp"
 #include <list>
 #include <limits.h>

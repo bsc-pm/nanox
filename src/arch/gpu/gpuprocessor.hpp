@@ -39,6 +39,8 @@ namespace ext
 
          // Memory
          size_t         _maxMemoryAvailable;
+         void          *_baseAddress;
+         std::size_t    _memoryAlignment;
 
          // Transfers
          cudaStream_t   _inTransferStream;
@@ -126,7 +128,34 @@ namespace ext
 
 #endif
 
+         void setBaseAddress( void *addr ) {
+            _baseAddress = addr;
+         }
+         
+         void setMemoryAlignment( size_t align ) {
+            _memoryAlignment = align;
+         }
+
+         void *getBaseAddress() const {
+            return _baseAddress;
+         }
+
+         size_t getMemoryAlignment() const {
+            return _memoryAlignment;
+         }
    };
+
+
+inline GPUMemoryTransferList * GPUProcessor::getInTransferList ()
+{
+   return _gpuProcessorTransfers._pendingCopiesIn;
+}
+
+inline GPUMemoryTransferList * GPUProcessor::getOutTransferList ()
+{
+   return _gpuProcessorTransfers._pendingCopiesOut;
+}
+
 }
 }
 

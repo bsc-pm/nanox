@@ -34,15 +34,4 @@ inline unsigned int CopyDescriptor::getDirectoryVersion() const
    return _dirVersion;
 }
 
-inline bool CopyDescriptor::isCopying () const
-{
-   return _copying;
-}
-
-inline bool CopyDescriptor::isFlushing () const
-{
-   return _flushing;
-}
-
 #endif
-

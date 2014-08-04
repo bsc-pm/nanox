@@ -21,9 +21,26 @@
 #define _NANOS_OpenCL_UTILS
 
 #include <unistd.h>
+#include "openclconfig.hpp"
 
 namespace nanos {
 namespace ext {
+    
+    
+inline std::string getKernelName(void* opencl_kernel) {
+        size_t retSize;
+        clGetKernelInfo((cl_kernel)opencl_kernel, CL_KERNEL_FUNCTION_NAME, 
+                0, NULL, &retSize);
+        char* retName=new char[retSize];
+        clGetKernelInfo((cl_kernel)opencl_kernel, CL_KERNEL_FUNCTION_NAME, 
+                retSize, retName, NULL);
+        std::string retNameStr(retName);
+        delete[] retName;
+        return retNameStr;
+}
+
+#define fatal0kernelName(opencl_kernel,msg)  { std::stringstream sts; sts << "Error in kernel " << getKernelName((cl_kernel) opencl_kernel) << ": "; sts<<msg ; throw nanos::FatalError(sts.str()); }
+#define fatal0kernelNameErr(opencl_kernel,msg,errCode)  { std::stringstream sts; sts << "Error in kernel " << getKernelName((cl_kernel) opencl_kernel) << ": "; sts<<msg ; sts << ", ErrCode = " << errCode; throw nanos::FatalError(sts.str()); }
 
 inline size_t getPageSize() { return getpagesize(); }
 

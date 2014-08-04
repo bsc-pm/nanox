@@ -17,7 +17,9 @@ common_includes="
         -I\$SRC/core \
         -I\$SRC/arch/smp \
         -I\$SRC/arch/gpu \
+        -I\$SRC/arch/opencl \
         -I\$SRC/arch/spu \
+        -I\$SRC/arch/cluster \
 	-I/opt/amd64/cuda/include"
 
 common_cflags=""
@@ -25,7 +27,7 @@ common_cflags=""
 test_CFLAGS="\$common_includes \$common_cflags"
 test_CXXFLAGS="\$common_includes \$common_cflags"
 
-test_LDFLAGS="\$BUILD/core/.libs/libnanox.so \$BUILD/apis/c/.libs/libnanox-c.so -L/opt/amd64/cuda/lib64 -lcudart"
+test_LDFLAGS="\$BUILD/core/.libs/libnanox.so \$BUILD/apis/.libs/libnanox-c.so -L/opt/amd64/cuda/lib64 -lcudart"
 test_ENV_performance="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/arch/gpu/performance/.libs:$LD_LIBRARY_PATH"
 test_ENV_debug="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/arch/gpu/debug/.libs:$LD_LIBRARY_PATH"
 test_ENV_instrumentation="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/arch/gpu/instrumentation/.libs:$LD_LIBRARY_PATH"

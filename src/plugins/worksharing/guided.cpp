@@ -106,4 +106,4 @@ class WorkSharingGuidedForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::WorkSharingGuidedForPlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::WorkSharingGuidedForPlugin );

@@ -125,7 +125,13 @@ inline void WDDeque::push_back( WD** wds, size_t numElems )
 
 struct NoConstraints
 {
-   static inline bool check ( WD &wd, BaseThread &thread ) { return true; }
+#ifdef CLUSTER_DEV
+   //static inline bool check ( WD &wd, BaseThread &thread ) { return ( !thread.isCluster() || wd.getDepth() == 1 ) ; }
+   //static inline bool check ( WD &wd, BaseThread &thread ) { return (sys.getNetwork()->getNodeNum() > 0) || ( !thread.isCluster() && !( wd.getDepth() == 1  && !(thread.getId() == 0) )) || ( thread.isCluster() && wd.getDepth() == 1) ; }
+   static inline bool check ( WD &wd, BaseThread const &thread ) { return true; }
+#else
+   static inline bool check ( WD &wd, BaseThread const &thread ) { return true; }
+#endif
 };
 
 inline WorkDescriptor * WDDeque::pop_front ( BaseThread *thread )
@@ -144,14 +150,14 @@ inline bool WDDeque::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDe
 }
 
 template <typename Constraints>
-inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
+inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thread )
 {
    WorkDescriptor *found = NULL;
 
    if ( _dq.empty() )
       return NULL;
 
-   if ( _deviceCounter && _ndevs[ &( thread->runningOn()->getDeviceType() )].value() == 0 )
+   if ( _deviceCounter && _ndevs[ ( thread->runningOn()->getDeviceType() )].value() == 0 )
       return NULL;
 
    {
@@ -189,17 +195,38 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread *thread )
    return found;
 }
 
+template <typename Test>
+inline void WDDeque::iterate ()
+{
+   if ( _dq.empty() )
+      return;
+
+   {
+      LockBlock lock( _lock );
+
+      memoryFence();
+
+      if ( !_dq.empty() ) {
+         WDDeque::BaseContainer::iterator it;
+
+         for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+            Test::call( myThread->runningOn(), *it );
+         }
+      }
+   }
+}
+
 
 // Only ensures tie semantics
 template <typename Constraints>
-inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread *thread )
+inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread const *thread )
 {
    WorkDescriptor *found = NULL;
 
    if ( _dq.empty() )
       return NULL;
 
-   if ( _deviceCounter && _ndevs[ &( thread->runningOn()->getDeviceType() )].value() == 0 )
+   if ( _deviceCounter && _ndevs[ ( thread->runningOn()->getDeviceType() )].value() == 0 )
       return NULL;
 
    {
@@ -289,6 +316,22 @@ inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
    NANOS_INSTRUMENT( nanos_event_value_t nb =  (nanos_event_value_t ) tasks );
    NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents(1, &key, &nb );)
    _nelems -= decrement;
+}
+
+inline void WDDeque::transferElemsFrom( WDDeque &dq )
+{
+   LockBlock lock( _lock );
+   memoryFence();
+   WDDeque::BaseContainer::iterator it;
+
+   while( !dq._dq.empty() )
+   {
+      _dq.push_back( dq._dq.front() );
+      dq._dq.pop_front();
+   }
+   _nelems = dq._nelems;
+   dq._nelems = 0;
+   memoryFence();
 }
 
 /***********

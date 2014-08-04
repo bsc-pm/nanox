@@ -21,7 +21,6 @@
 #define _NANOS_OpenCL_CACHE
 
 #include "basethread_decl.hpp"
-#include "cache_decl.hpp"
 #include "copydescriptor_decl.hpp"
 #include "simpleallocator.hpp"
 #include "system_decl.hpp"
@@ -40,6 +39,8 @@
 
 
 #include <cassert>
+
+#define ALLOCATOR_START_ADDR 17179869184
 
 namespace nanos {
 namespace ext {
@@ -64,15 +65,15 @@ public:
    
    void initialize();
    
-   void *allocate( size_t size, uint64_t tag);
+   void *allocate( size_t size, uint64_t tag, uint64_t offset);
 
    void *reallocate( void* addr, size_t size, size_t ceSize );
 
    void free( void* addr );
 
-   bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size );
+   bool copyIn( uint64_t devAddr, uint64_t hostAddr, size_t size, DeviceOps* ops );
 
-   bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size );
+   bool copyOut( uint64_t hostAddr, uint64_t devAddr, size_t size, DeviceOps* ops );
    
    cl_mem getBuffer( void *localSrc, size_t size );
    
@@ -86,6 +87,16 @@ public:
    size_t getSize() const { return _devCacheSize; }
    
    cl_mem toMemoryObjSS( const void * addr );
+   
+   SimpleAllocator& getAllocator()
+   {
+       return _devAllocator;
+   }
+
+   SimpleAllocator const &getConstAllocator() const
+   {
+       return _devAllocator;
+   }
 
 private:   
    cl_mem _mainBuffer;    
@@ -95,9 +106,9 @@ private:
 
    OpenCLAdapter &_openclAdapter;
   
-   Atomic<unsigned int>    _bytesIn;
-   Atomic<unsigned int>    _bytesOut;
-   Atomic<unsigned int>    _bytesDevice;
+   Atomic<size_t>    _bytesIn;
+   Atomic<size_t>    _bytesOut;
+   Atomic<size_t>    _bytesDevice;
 };
 
 } // End namespace ext.

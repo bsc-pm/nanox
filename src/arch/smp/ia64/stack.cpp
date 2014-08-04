@@ -62,7 +62,7 @@ extern "C"
    void startHelper ();
 }
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                           void *cleanup, void *cleanupArg )
 {
    // stack grows down
@@ -72,7 +72,7 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
    state -= 68;
 
    // argument
-   state[60] = ( intptr_t ) userArg;
+   state[60] = ( intptr_t ) wd;
 
    // return pointer
    // The union here avoids breaking strict C aliasing rules for type-punning
@@ -101,7 +101,7 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
    // r6 (pt)
    state[50] = ( intptr_t ) cleanupArg;
    // r7 (userf)
-   state[49] = ( intptr_t ) userFunction;
+   state[49] = ( intptr_t ) wrapperFunction;
    // ar.unat (callee)
    state[48] = ( intptr_t ) 0;
    // ar.fpsr

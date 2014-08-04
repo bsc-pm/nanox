@@ -22,7 +22,11 @@
 
 #include "plugin_decl.hpp"
 #include "processingelement_fwd.hpp"
+#include "basethread_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include <vector>
+#include <map>
+#include <iostream>
 
 namespace nanos
 {
@@ -31,34 +35,9 @@ namespace nanos
     */
    class ArchPlugin : public Plugin
    {
-
-      private:
-         //! ProcessingElement list
-         typedef std::vector<unsigned> PEList;
-         
-         //! PE Binding list for this arch
-         PEList _bindings;
-         
       public:
          /** \brief Constructs the plugin and registers itself in System. */
          ArchPlugin( const char *name, int version );
-         
-         /** \brief Adds a CPU id to a list to bind this arch to it later.
-          */
-         void addBinding ( unsigned cpu_id );
-
-         /** \brief Returns the cpu id the given PE should be binded to.
-          *  \param pe The index processing element that you want to create.
-          *  This index is relative to the architecture. That means it takes
-          *  a value between 0 and getNumPEs() - 1.
-          */
-         PEList::value_type getBinding( unsigned index );
-         
-         /** \brief Returns the number of PEs that this plugin will try to
-          * create in a given NUMA node.
-          *  \param node Node number.
-          */
-         //virtual unsigned getPEsInNode( unsigned node ) const = 0;
          
          /** \brief Returns the number of helper PEs this plugin requires.
           * This number is added to the number of SMP PEs.
@@ -95,6 +74,16 @@ namespace nanos
           *  the PEs vector.
           */
          virtual ProcessingElement * createPE( unsigned id, unsigned uid ) = 0;
+
+         virtual void initialize();
+         virtual void finalize();
+         virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const;
+         virtual void addDevices( DeviceList &devices ) const;
+         virtual void startSupportThreads();
+         virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers );
+         virtual unsigned int getMaxPEs() const;
+         virtual unsigned int getNumWorkers() const;
+         virtual unsigned int getMaxWorkers() const;
    };
 }
 

@@ -31,7 +31,6 @@ void DependableObject::finished ( )
 
       // This step guarantees that any Object that wants to add depObj as a successor has done it
       // before we continue or, alternatively, won't do it.
-      //DependableObject::RegionContainer const &outs = depObj.getWrittenRegions();
       TargetVector const &outs = depObj.getWrittenTargets();
       DependenciesDomain *domain = depObj.getDependenciesDomain();
       if ( domain != 0 && outs.size() > 0 ) {
@@ -56,6 +55,18 @@ void DependableObject::finished ( )
 
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
 
+
+      //*(myThread->_file) << "Successors for wd " << this->getWD()->getId() << " : " << ( this->getWD()->getDescription() != NULL ? this->getWD()->getDescription() : "[no description]" ) << " { " ;
+      //for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
+      //   WD *wd = (*it)->getWD();
+      //   if ( wd != NULL ) {
+      //      *(myThread->_file) << "[" << wd->getId() << " : "<< ( wd->getDescription() != NULL ? wd->getDescription() : "[no description]" ) << " ]";
+      //   } else {
+      //      *(myThread->_file) << "[null succ]";
+      //   }
+      //}
+      //*(myThread->_file) << " }" << std::endl;
+
       // See if it's worth batch releasing.
       // The idea here is to prevent initialising the vector unless we will
       // use it.
@@ -71,7 +82,7 @@ void DependableObject::finished ( )
             // If this dependable object can't be released in batch
             if ( !(*it)->canBeBatchReleased() )
             {
-               (*it)->decreasePredecessors( NULL, this );
+               (*it)->decreasePredecessors( NULL, false, this );
                continue;
             }
             
@@ -105,7 +116,7 @@ void DependableObject::finished ( )
       {
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
             NANOS_INSTRUMENT ( instrument ( *(*it) ); )
-            (*it)->decreasePredecessors( NULL, this );
+            (*it)->decreasePredecessors( NULL, false, this );
          }
       }
    }
@@ -148,6 +159,13 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      found->setSubmission( false );
                      succ.insert( found );
                   }
+
+                  //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<
+                  //   ( this->getWD()->getDescription() != NULL ? this->getWD()->getDescription() : "[no description]" ) <<
+                  //   " { " << found->getWD()->getId() << 
+                  //   " : " << ( found->getWD()->getDescription() != NULL ? found->getWD()->getDescription() : "[no description]" ) <<
+                  //   " }" << std::endl;
+
                   break;
                }
             }

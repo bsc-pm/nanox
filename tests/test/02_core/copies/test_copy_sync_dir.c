@@ -19,6 +19,10 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
+exec_versions="smp_shared_mem smp_private_mem"
+
+declare test_ENV_smp_private_mem="NX_SMP_PRIVATE_MEMORY=true"
+
 </testinfo>
 */
 
@@ -30,7 +34,8 @@ test_generator=gens/api-generator
 #include <nanos.h>
 
 typedef struct {
-   int a;
+   //int a;
+   int *a;
    char *b;
 } my_args;
 
@@ -40,22 +45,22 @@ void first( void *ptr )
 
    my_args *args = (my_args *)ptr;
    my_args local;
-   nanos_copy_value( &local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 0, (void **)&local.a, nanos_current_wd() );
    nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
-   if ( args->a != local.a ) {
-      printf( "Error private argument is incorrect, %d in args and %d through the copies  FAIL\n", args->a, local.a );
+   if ( *(local.a) != 42 ) {
+      printf( "Error in argument is incorrect, received %d and it should be 42  FAIL\n", *(local.a) );
       abort();
    } else {
-      printf( "Checking private argument ...          PASS\n" );
+      printf( "Checking in argument ...               PASS\n" );
    }
 
-   printf(    "Checking for shared argument ...");
+   printf(    "Checking for inout argument ...");
 
    if ( strcmp(args->b, local.b) == 0) {
-      printf(                                 "       PASS\n");
+      printf(                                "        PASS\n");
    } else {
-      printf(                                 "       FAIL\n");
+      printf(                                "        FAIL\n");
       printf( "Argument is '%s' while the copy is '%s'\n", args->b, local.b );
       abort();
    }
@@ -69,22 +74,22 @@ void second( void *ptr )
 
    my_args *args = (my_args *)ptr;
    my_args local;
-   nanos_copy_value( &local.a, 0, nanos_current_wd() );
+   nanos_get_addr( 0, (void **)&local.a, nanos_current_wd() );
    nanos_get_addr( 1, (void **)&local.b, nanos_current_wd() );
 
-   if ( args->a != local.a ) {
-      printf( "Error private argument is incorrect, %d in args and %d through the copies  FAIL\n", args->a, local.a );
+   if ( *(local.a) != 24 ) {
+      printf( "Error in argument is incorrect, received %d and it should be 24  FAIL\n", *(local.a) );
       abort();
    } else {
-      printf( "Checking private argument ...          PASS\n" );
+      printf( "Checking in argument ...               PASS\n" );
    }
 
-   printf(    "Checking for shared argument ...");
+   printf(    "Checking for inout argument ...");
 
    if ( strcmp(args->b, local.b) == 0) {
-      printf(                                 "       PASS\n");
+      printf(                                "        PASS\n");
    } else {
-      printf(                                 "       FAIL\n");
+      printf(                                "        FAIL\n");
       printf( "Argument is '%s' while the copy is '%s'\n", args->b, local.b );
       abort();
    }
@@ -137,12 +142,16 @@ struct nanos_const_wd_definition_1 const_data2 =
    }
 };
 
+int int_arg_1 = 42;
+int int_arg_2 = 24;
+
 int main ( int argc, char **argv )
 {
    char text[10] = "123456789";
    char text2[10] = "987654321";
    char* dummy1 = text;
    int i;
+
    
    my_args* args = 0;
    nanos_wd_props_t props = {
@@ -157,13 +166,15 @@ int main ( int argc, char **argv )
    nanos_region_dimension_internal_t *dims = 0;
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data1.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd, &dims) );
 
-   args->a = 1;
+   args->a = &int_arg_1;
    args->b = dummy1;
+   nanos_region_dimension_t dimensions[1] = {{strlen(args->b)+1, 0, strlen(args->b)+1}};
+   nanos_data_access_t data_accesses[1] = {{args->b, {1,1,0,0,0}, 1, dimensions}};
 
-   dims[0] = (nanos_region_dimension_internal_t) {sizeof(args->a), 0, sizeof(args->a)};
+   dims[0] = (nanos_region_dimension_internal_t) {sizeof(int), 0, sizeof(int)};
    dims[1] = (nanos_region_dimension_internal_t) {sizeof(char)*10, 0, sizeof(char)*10};
 
-   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, 1, &dims[0], 0};
+   cd[0] = (nanos_copy_data_t) {(uint64_t)args->a, NANOS_SHARED, {true, false}, 1, &dims[0], 0};
    cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, 1, &dims[1], 0}; 
 
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
@@ -175,16 +186,19 @@ int main ( int argc, char **argv )
    args = 0;
    cd = 0;
    wd1=0;
-   dims = 0;
+   dims=0;
    NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data2.base, &dyn_props, sizeof(my_args), (void**)&args, nanos_current_wd(), &cd, &dims) );
 
-   args->a = 1;
+   args->a = &int_arg_2;
    args->b = dummy1;
 
-   dims[0] = (nanos_region_dimension_internal_t) {sizeof(args->a), 0, sizeof(args->a)};
+
+   dims[0] = (nanos_region_dimension_internal_t) {sizeof(int), 0, sizeof(int)};
    dims[1] = (nanos_region_dimension_internal_t) {sizeof(char)*10, 0, sizeof(char)*10};
-   cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, 1, &dims[0], 0};
+
+   cd[0] = (nanos_copy_data_t) {(uint64_t)args->a, NANOS_SHARED, {true, false}, 1, &dims[0], 0};
    cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, 1, &dims[1], 0}; 
+
 
    NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
 

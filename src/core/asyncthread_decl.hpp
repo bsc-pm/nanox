@@ -68,7 +68,8 @@ namespace nanos
       public:
         /*! \brief AsyncThread constructor
          */
-         AsyncThread ( WD &wd, ProcessingElement *creator=0 ) : BaseThread( wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
+         AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0 ) :
+            BaseThread( osId, wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
          _pendingEvents(), _pendingEventsCounter( 0 ), _previousWD( NULL ) {}
 
         /*! \brief AsyncThread destructor
@@ -100,13 +101,11 @@ namespace nanos
          virtual void runWD ( WD * wd );
          virtual void postRunWD ( WD * wd );
 
-         virtual void copyDataIn( WD &work );
-         virtual void waitInputs( WD &work );
-         virtual void copyDataOut( WD &work );
+         virtual void checkWDInputs( WD * wd );
+         virtual void checkWDOutputs( WD * wd );
 
+         virtual bool processNonAllocatedWDData ( WD * wd );
          virtual bool processDependentWD ( WD * wd );
-
-         virtual void synchronize( CopyDescriptor cd );
 
          virtual GenericEvent * createPreRunEvent( WD * wd ) = 0;
          virtual GenericEvent * createRunEvent( WD * wd ) = 0;

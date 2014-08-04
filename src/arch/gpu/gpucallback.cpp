@@ -107,7 +107,7 @@ void CUDART_CB nanos::ext::registerCUDAThreadCallback( cudaStream_t stream, cuda
 {
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
 
-   sys.admitCurrentThread();
+   sys.admitCurrentThread( false );
 
    thread->setCUDAThreadInst( myThread );
 }
@@ -119,6 +119,6 @@ void CUDART_CB nanos::ext::unregisterCUDAThreadCallback( cudaStream_t stream, cu
 
    myThread = ( BaseThread * ) thread->getCUDAThreadInst();
 
-   sys.expelCurrentThread();
+   sys.expelCurrentThread( false );
    myThread->leaveTeam();
 }

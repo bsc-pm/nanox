@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "mpiprocessor.hpp"
+#include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "config.hpp"

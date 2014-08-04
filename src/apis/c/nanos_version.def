@@ -1,6 +1,7 @@
-master=5026
+master=5027
 worksharing=1000
 deps_api=1001
-copies_api=1002
+copies_api=1003
 openmp=8
 instrumentation_api=1001
+resiliency=1000

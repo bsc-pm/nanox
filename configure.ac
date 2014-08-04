@@ -1,5 +1,4 @@
-
-AC_INIT([nanox], [0.7a], [pmtools@bsc.es])
+AC_INIT([nanox], [0.8a], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
@@ -12,7 +11,7 @@ AC_CANONICAL_SYSTEM
 AC_CANONICAL_TARGET
 
 # Automake initialization
-AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability])
+AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl Enable silent rules if available
@@ -86,18 +85,18 @@ fi
 # Memtracker support
 AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
 AC_ARG_ENABLE([memtracker],
-  AS_HELP_STRING([--disable-memtracker], [Disables Memtracker module]),
+  AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module]),
   [
-    memtracker_disabled=yes
-    AC_MSG_RESULT([yes])
+    memtracker_enabled=$enableval
+    AC_MSG_RESULT([$enableval])
   ],
   [
-    memtracker_disabled=no
+    memtracker_enabled=no
     AC_MSG_RESULT([no])
   ]
 )
 
-if test x$memtracker_disabled = xno; then
+if test x$memtracker_enabled = xyes; then
 	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
 	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
 fi
@@ -189,6 +188,7 @@ else
     fi
 fi
 
+# Check for programs
 # Override all the options if we're compiling for BG/Q
 if test x$use_bgq = xyes; then
     if test x$use_xlc = xyes; then
@@ -214,9 +214,66 @@ if test x$use_bgq = xyes; then
     if test x$BGQ_FC = xno; then
         AC_MSG_ERROR([No BG/Q Fortran cross-compiler can be found. Please update your PATH.])
     fi
+
+    AC_DEFINE([IS_BGQ_MACHINE], [1], [Defined if this machine is a BGQ machine])
 fi
 
-# Check for programs
+# Check for architecture
+ARCHITECTURES=
+OS=
+
+mpi_enabled=no
+mpi_valid=no
+#mpi support
+AC_ARG_WITH([mpi],
+AS_HELP_STRING([--with-mpi=dir], [Directory of mpi installation]),
+	[
+		MPIPATH="${withval}"
+		mpi_enabled=yes
+	],
+	[
+		MPIPATH=""
+	]
+)
+
+AC_MSG_CHECKING([if MPI Offload architecture was requested])
+AC_ARG_ENABLE([mpi],
+    AS_HELP_STRING([--enable-mpi], [Enables mpi offload support/architecture]),
+    [
+        if test x$enableval = xyes -o x$enableval = x;
+        then
+            mpi_enabled="yes"
+            AC_MSG_RESULT([yes])
+        else if test x$enableval = xno;
+            then
+                AC_MSG_RESULT([no])
+                mpi_enabled="no"
+             else
+                AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+             fi
+        fi
+    ],
+    [
+        mpi_enabled="yes"
+        AC_MSG_RESULT([yes])
+    ]
+)
+
+if test x$mpi_enabled = xyes; then
+	ARCHITECTURES="$ARCHITECTURES mpi"
+	CFLAGS="$CFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"
+	CXXFLAGS="$CXXFLAGS -DMPI_DEV -DMPICH_IGNORE_CXX_SEEK"	
+	NANOX_OFFL_FLAGS="$NANOX_OFFL_FLAGS -DMPICH_IGNORE_CXX_SEEK"
+	NANOX_MPI_PREFIX=$prefix
+	AC_SUBST([NANOX_MPI_PREFIX])
+	AC_SUBST([NANOX_OFFL_FLAGS])
+	mpi_valid=yes
+fi
+
+AC_SUBST([mpi_valid])
+
+
+# Check for programs (every compiler change should be done before this line)
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 AC_PROG_LIBTOOL
 AC_PROG_CC([$CC])
@@ -243,7 +300,7 @@ if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
 fi
 
 if test x$use_gnu = xyes; then
-    if test x$use_bgq = xno; then
+    if test x$use_bgq = xno -a test x$use_icc = xno; then
         CFLAGS="$CFLAGS -Wredundant-decls"
         CXXFLAGS="$CXXFLAGS -Wredundant-decls"
     fi
@@ -261,7 +318,6 @@ fi
 AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
 AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
 AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
-AM_CONDITIONAL([BGQ], [test x$use_bgq = xyes])
 
 # Check for libraries
 
@@ -283,9 +339,6 @@ AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
-# Check for architecture
-ARCHITECTURES=
-OS=
 OPTIONS=
 
 AC_SUBST([ARCHITECTURES])
@@ -296,7 +349,12 @@ AC_SUBST([SMP_ARCH])
 AC_CHECK_SIZEOF([size_t])
 
 #AC_MSG_CHECKING([for architecture])
-smp_ult=yes
+AC_ARG_ENABLE([ult],
+  AS_HELP_STRING([--disable-ult], [Disables user level threads]),
+  [smp_ult=no],
+  [smp_ult=yes]
+)
+
 case $host in
   i?86-*-linux*)
     OS=unix-os
@@ -313,10 +371,16 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
     ;;
-  armv71-*-linux*)
+  arm*-*-gnueabi*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=armv71
+    ;;
+  aarch64-*-linux-gnu)
+    smp_ult=no
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=aarch64
     ;;
   powerpc-*-linux* | powerpc64-*-linux*)
     OS=unix-os
@@ -374,6 +438,125 @@ case $host in
     ;;
 esac
 
+#check for cluster enable option
+AC_MSG_CHECKING([if Cluster architecture was requested])
+AC_ARG_ENABLE([cluster],
+    AS_HELP_STRING([--enable-cluster], [Enables cluster architecture]),
+    [
+        if test x$enableval = xyes -o x$enableval = x;
+        then
+            cluster_enabled="yes"
+            AC_MSG_RESULT([yes])
+        else if test x$enableval = xno;
+            then
+                AC_MSG_RESULT([no])
+                cluster_enabled="no"
+             else
+                AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+             fi
+        fi
+    ],
+    [
+        cluster_enabled="no"
+        AC_MSG_RESULT([yes])
+    ]
+)
+with_mpi_conduit="no"
+with_udp_conduit="no"
+with_smp_conduit="no"
+with_ibv_conduit="no"
+with_mpi_conduit_dbg="no"
+with_udp_conduit_dbg="no"
+with_smp_conduit_dbg="no"
+with_ibv_conduit_dbg="no"
+if test x$cluster_enabled = xyes ; then
+
+    m4_include(lx_find_mpi.m4)
+
+    CFLAGS="$CFLAGS -DCLUSTER_DEV"
+    CXXFLAGS="$CXXFLAGS -DCLUSTER_DEV"
+    ARCHITECTURES="$ARCHITECTURES cluster"
+
+    AC_ARG_WITH([gasnet],
+          AS_HELP_STRING([--with-gasnet=dir], [Directory of GASNet installation]),
+          [
+    	GASNET_DIR="${withval}"
+          ],
+          [
+    	GASNET_DIR=/opt/gasnet
+          ])
+
+    AC_ARG_WITH([gasnet-dbg],
+          AS_HELP_STRING([--with-gasnet-dbg=dir], [Directory of GASNet installation with debug options enabled]),
+          [
+    	GASNET_DBG_DIR="${withval}"
+          ],
+          [
+    	GASNET_DBG_DIR=$GASNET_DIR
+          ])
+
+    AC_SUBST([GASNET_DIR])
+    AC_SUBST([GASNET_DBG_DIR])
+    AC_SUBST([MPI_CLDFLAGS])
+    CONDUITS=`ls -d $GASNET_DIR/include/*-conduit | sed -e "s#$GASNET_DIR/include/##" | cut -d - -f 1`
+    for this_conduit in $CONDUITS ; do
+        if test x$this_conduit = xmpi ; then
+            with_mpi_conduit="yes"
+            #AC_LANG_PUSH([C++])
+            export MP_CXX=gcc
+            LX_FIND_MPI()
+            #AC_LANG_POP([C++])
+            #echo have_C_mpi is $have_C_mpi : MPICC is $MPICC / MPI_CFLAGS is $MPI_CFLAGS / MPI_CLDFLAGS is $MPI_CLDFLAGS
+            #echo have_CXX_mpi is $have_CXX_mpi : MPICXX is $MPICXX / MPI_CXXFLAGS is $MPI_CXXFLAGS / MPI_CXXLDFLAGS is $MPI_CXXLDFLAGS
+        fi
+
+        if test x$this_conduit = xudp ; then
+            with_udp_conduit="yes"
+        fi
+
+        if test x$this_conduit = xsmp ; then
+            with_smp_conduit="yes"
+        fi
+
+        if test x$this_conduit = xibv ; then
+            with_ibv_conduit="yes"
+        fi
+    done
+    if test x$GASNET_DIR != x$GASNET_DBG_DIR ; then
+       CONDUITS_DBG=`ls -d $GASNET_DBG_DIR/include/*-conduit | sed -e "s#$GASNET_DBG_DIR/include/##" | cut -d - -f 1`
+       for this_conduit in $CONDUITS_DBG ; do
+           if test x$this_conduit = xmpi ; then
+               with_mpi_conduit_dbg="yes"
+               #AC_LANG_PUSH([C++])
+               export MP_CXX=gcc
+               LX_FIND_MPI()
+               #AC_LANG_POP([C++])
+               #echo have_C_mpi is $have_C_mpi : MPICC is $MPICC / MPI_CFLAGS is $MPI_CFLAGS / MPI_CLDFLAGS is $MPI_CLDFLAGS
+               #echo have_CXX_mpi is $have_CXX_mpi : MPICXX is $MPICXX / MPI_CXXFLAGS is $MPI_CXXFLAGS / MPI_CXXLDFLAGS is $MPI_CXXLDFLAGS
+           fi
+
+           if test x$this_conduit = xudp ; then
+               with_udp_conduit_dbg="yes"
+           fi
+
+           if test x$this_conduit = xsmp ; then
+               with_smp_conduit_dbg="yes"
+           fi
+
+           if test x$this_conduit = xibv ; then
+               with_ibv_conduit_dbg="yes"
+           fi
+       done
+    fi
+fi
+AM_CONDITIONAL([CONDUIT_MPI], [test x$with_mpi_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_UDP], [test x$with_udp_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_SMP], [test x$with_smp_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_IBV], [test x$with_ibv_conduit = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_MPI], [test x$with_mpi_conduit_dbg = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_UDP], [test x$with_udp_conduit_dbg = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
+AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no
@@ -624,10 +807,12 @@ AC_MSG_CHECKING([for architecture])
 
 # Add architecture libraries
 for arch in $ARCHITECTURES; do
-	NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
-	NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
-	NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
-	NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
+   if test x"$arch" != x"mpi"; then
+      NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
+      NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
+   fi
 done
 NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
 NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"
@@ -639,6 +824,7 @@ AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
 USED_VERSION=""
+VERSIONS=""
 
 # Enable instrumentation-debug version
 instrumentation_debug_disabled="yes"
@@ -651,6 +837,7 @@ AC_ARG_ENABLE([instrumentation-debug],
         instrumentation_debug_disabled="no"
         AC_MSG_RESULT([yes])
         USED_VERSION="instrumentation-debug"
+        VERSIONS+=" instrumentation-debug"
     else if test x$enableval = xno;
          then
             AC_MSG_RESULT([no])
@@ -667,7 +854,7 @@ AC_ARG_ENABLE([instrumentation-debug],
 )
 
 AM_CONDITIONAL([INSTRUMENTATION_DEBUG_VERSION], [test x$instrumentation_debug_disabled = xno])
-AC_SUBST([instrdebugdir],['${libdir}/instrumentation-debug'])
+AC_SUBST([instrumentation_debugdir],['${libdir}/instrumentation-debug'])
 
 # Enable instrumentation version
 instrumentation_disabled="no"
@@ -675,15 +862,16 @@ AC_MSG_CHECKING([if instrumentation version was disabled])
 AC_ARG_ENABLE([instrumentation],
   AS_HELP_STRING([--disable-instrumentation], [Disables generation of instrumentation version]),
   [
-    if test x$disableval = xyes -o x$disableval = x;
+    if test x$disableval = xyes -o x$enableval = xno;
     then
         instrumentation_disabled="yes"
         AC_MSG_RESULT([yes])
-    else if test x$disableval = xno;
+    else if test x$disableval = xno -o x$disableval = x;
          then
             AC_MSG_RESULT([no])
             instrumentation_disabled="no"
             USED_VERSION="instrumentation"
+            VERSIONS+=" instrumentation"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
@@ -693,6 +881,7 @@ AC_ARG_ENABLE([instrumentation],
       AC_MSG_RESULT([no])
       instrumentation_disabled="no"
       USED_VERSION="instrumentation"
+      VERSIONS+=" instrumentation"
   ]
 )
 
@@ -705,15 +894,16 @@ AC_MSG_CHECKING([if debug version was disabled])
 AC_ARG_ENABLE([debug],
   AS_HELP_STRING([--disable-debug], [Disables generation of debug version]),
   [
-    if test x$disableval = xyes -o x$disableval = x;
+    if test x$disableval = xyes -o x$enableval = xno;
     then
         debug_disabled="yes"
         AC_MSG_RESULT([yes])
-    else if test x$disableval = xno;
+    else if test x$disableval = xno -o x$disableval = x;
          then
             AC_MSG_RESULT([no])
             debug_disabled="no"
             USED_VERSION="debug"
+            VERSIONS+=" debug"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
@@ -723,6 +913,7 @@ AC_ARG_ENABLE([debug],
       AC_MSG_RESULT([no])
       debug_disabled="no"
       USED_VERSION="debug"
+      VERSIONS+=" debug"
   ]
 )
 
@@ -735,15 +926,16 @@ AC_MSG_CHECKING([if performance version was disabled])
 AC_ARG_ENABLE([performance],
   AS_HELP_STRING([--disable-performance], [Disables generation of performance version]),
   [
-    if test x$disableval = xyes -o x$disableval = x;
+    if test x$disableval = xyes -o x$enableval = xno;
     then
         performance_disabled="yes"
         AC_MSG_RESULT([yes])
-    else if test x$disableval = xno;
+    else if test x$disableval = xno -o x$disableval = x;
          then
             AC_MSG_RESULT([no])
             performance_disabled="no"
             USED_VERSION="performance"
+            VERSIONS+=" performance"
          else
             AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
          fi
@@ -753,6 +945,7 @@ AC_ARG_ENABLE([performance],
       AC_MSG_RESULT([no])
       performance_disabled="no"
       USED_VERSION="performance"
+      VERSIONS+=" performance"
   ]
 )
 
@@ -901,121 +1094,55 @@ AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_s
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
 
+# Task-level resiliency support
+AC_MSG_CHECKING([if task resiliency is enabled])
+AC_ARG_ENABLE([resiliency],
+  AS_HELP_STRING([--disable-resiliency], [Disables task-level resiliency]),
+  [
+    resiliency=no
+    AC_MSG_RESULT([no])
+  ],
+  [
+    AC_MSG_RESULT([yes])
+    AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],[resiliency=yes],[resiliency=no],[-Werror])
+    if test "x$resiliency" = "xno";
+    then
+        AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])
+    fi
+  ]
+)
+
+
+AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
+AC_SUBST([resiliency])
+
+
 # Output files
 AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/core/Makefile
-                 src/core/performance/Makefile
-                 src/core/debug/Makefile
-                 src/core/instrumentation/Makefile
-                 src/core/instrumentation-debug/Makefile
 		 src/support/Makefile
-		 src/support/performance/Makefile
-		 src/support/debug/Makefile
-		 src/support/instrumentation/Makefile
-		 src/support/instrumentation-debug/Makefile
 		 src/plugins/Makefile
-		 src/plugins/sched/Makefile
-		 src/plugins/sched/performance/Makefile
-		 src/plugins/sched/debug/Makefile
-		 src/plugins/sched/instrumentation/Makefile
-		 src/plugins/sched/instrumentation-debug/Makefile
-		 src/plugins/throttle/Makefile
-		 src/plugins/throttle/performance/Makefile
-		 src/plugins/throttle/debug/Makefile
-		 src/plugins/throttle/instrumentation/Makefile
-		 src/plugins/throttle/instrumentation-debug/Makefile
-		 src/plugins/barr/Makefile
-		 src/plugins/barr/performance/Makefile
-		 src/plugins/barr/debug/Makefile
-		 src/plugins/barr/instrumentation/Makefile
-		 src/plugins/barr/instrumentation-debug/Makefile
-		 src/plugins/slicers/Makefile
-		 src/plugins/slicers/performance/Makefile
-		 src/plugins/slicers/debug/Makefile
-		 src/plugins/slicers/instrumentation/Makefile
-		 src/plugins/slicers/instrumentation-debug/Makefile
-		 src/plugins/instrumentation/Makefile
-		 src/plugins/instrumentation/performance/Makefile
-		 src/plugins/instrumentation/debug/Makefile
-		 src/plugins/instrumentation/instrumentation/Makefile
-		 src/plugins/instrumentation/instrumentation-debug/Makefile
-		 src/plugins/worksharing/Makefile
-		 src/plugins/worksharing/performance/Makefile
-		 src/plugins/worksharing/debug/Makefile
-		 src/plugins/worksharing/instrumentation/Makefile
-		 src/plugins/worksharing/instrumentation-debug/Makefile
-		 src/plugins/deps/Makefile
-		 src/plugins/deps/performance/Makefile
-		 src/plugins/deps/debug/Makefile
-		 src/plugins/deps/instrumentation/Makefile
-		 src/plugins/deps/instrumentation-debug/Makefile
 		 src/apis/Makefile
-		 src/apis/c/Makefile
-		 src/apis/c/performance/Makefile
-		 src/apis/c/debug/Makefile
-		 src/apis/c/instrumentation/Makefile
-		 src/apis/c/instrumentation-debug/Makefile
 		 src/pms/Makefile
-		 src/pms/openmp/Makefile
-		 src/pms/openmp/performance/Makefile
-		 src/pms/openmp/debug/Makefile
-		 src/pms/openmp/instrumentation/Makefile
-		 src/pms/openmp/instrumentation-debug/Makefile
-		 src/pms/ss/Makefile
-		 src/pms/ss/performance/Makefile
-		 src/pms/ss/debug/Makefile
-		 src/pms/ss/instrumentation/Makefile
-		 src/pms/ss/instrumentation-debug/Makefile
-		 src/pms/chapel/Makefile
-		 src/pms/chapel/performance/Makefile
-		 src/pms/chapel/debug/Makefile
-		 src/pms/chapel/instrumentation/Makefile
-		 src/pms/chapel/instrumentation-debug/Makefile
-                 src/arch/Makefile
+       src/arch/Makefile
 		 src/arch/unix-os/Makefile
-		 src/arch/unix-os/performance/Makefile
-		 src/arch/unix-os/debug/Makefile
-		 src/arch/unix-os/instrumentation/Makefile
-		 src/arch/unix-os/instrumentation-debug/Makefile
 		 src/arch/smp/Makefile
-		 src/arch/smp/performance/Makefile
-		 src/arch/smp/debug/Makefile
-		 src/arch/smp/instrumentation/Makefile
-		 src/arch/smp/instrumentation-debug/Makefile
 		 src/arch/fpga/Makefile
-		 src/arch/fpga/performance/Makefile
-		 src/arch/fpga/debug/Makefile
-		 src/arch/fpga/instrumentation/Makefile
-		 src/arch/fpga/instrumentation-debug/Makefile
 		 src/arch/spu/Makefile
-		 src/arch/spu/performance/Makefile
-		 src/arch/spu/debug/Makefile
-		 src/arch/spu/instrumentation/Makefile
-		 src/arch/spu/instrumentation-debug/Makefile
 		 src/arch/gpu/Makefile
-		 src/arch/gpu/performance/Makefile
-		 src/arch/gpu/debug/Makefile
-		 src/arch/gpu/instrumentation/Makefile
-		 src/arch/gpu/instrumentation-debug/Makefile
+		 src/arch/cluster/Makefile
 		 src/arch/opencl/Makefile
-		 src/arch/opencl/performance/Makefile
-		 src/arch/opencl/debug/Makefile
-		 src/arch/opencl/instrumentation/Makefile
-		 src/arch/opencl/instrumentation-debug/Makefile
+		 src/arch/mpi/Makefile
 		 src/utils/Makefile
-		 src/utils/performance/Makefile
-		 src/utils/instrumentation/Makefile
-		 src/utils/debug/Makefile
-		 src/utils/instrumentation-debug/Makefile
 		 scripts/Makefile
 		 tests/Makefile
 		 tests/gens/Makefile
 		 doc/Makefile
-                 doc/doxy-nanox
-                 ])
+       doc/doxy-nanox
+       ])
 
 AC_OUTPUT
 
@@ -1023,6 +1150,28 @@ echo ""
 echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
+echo "Host arch:" $SMP_ARCH
+echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
+echo "Configured versions:" $VERSIONS
+if test x$memtracker_enabled = xyes ; then
+   echo "Memory tracker: enabled"
+else
+   echo "Memory tracker: disabled"
+fi
+if test x$allocator_disabled = xno ; then
+   echo "Memory allocator: enabled"
+else
+   echo "Memory allocator: disabled"
+fi
+if test x$cluster_enabled = xyes ; then
+   echo "With cluster/gasnet conduits:" $CONDUITS
+   if test x$have_C_mpi = xyes ; then
+      echo "MPI_CLDFLAGS: " $MPI_CLDFLAGS
+   fi
+   if test x$GASNET_DIR != x$GASNET_DBG_DIR ; then
+      echo "GASNet was configured also with a debug installation, with these conduits: " $CONDUITS_DBG
+   fi
+fi
 echo ""
 echo "Extra options:" $OPTIONS

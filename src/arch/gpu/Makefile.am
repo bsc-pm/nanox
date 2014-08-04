@@ -17,10 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
-
-include $(top_srcdir)/src/common.am
-
+include ../../common.am
 
 EXTRA_DIST= \
 	$(END)
@@ -50,6 +47,8 @@ gpu_api_sources = \
 	$(END)
 		
 gpu_sources = \
+	gpucallback.cpp \
+	gpucallback.hpp \
 	gpuconfig.cpp \
 	gpuconfig.hpp \
 	gpudevice_decl.hpp \
@@ -57,6 +56,8 @@ gpu_sources = \
 	gpudevice.cpp \
 	gpudd.hpp \
 	gpudd.cpp \
+	gpuevent_decl.hpp \
+	gpuevent.hpp \
 	gpumemorytransfer_decl.hpp \
 	gpumemorytransfer.hpp \
 	gpumemorytransfer.cpp \

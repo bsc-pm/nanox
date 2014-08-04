@@ -89,20 +89,26 @@ namespace nanos
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
          volatile bool            _submitted;
          bool                     _needsSubmission; /**< Does this DependableObject need to be submitted? */
+         WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
 
       public:
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
             :  _id ( 0 ), _numPredecessors ( 0 ), _references( 1 ), _predecessors(), _successors(), _domain( NULL ), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted( false ), _needsSubmission( false ) {}
+               _readObjects(), _objectLock(), _submitted( false ), _needsSubmission( false ), _wd( NULL ) {}
+
+         DependableObject ( WorkDescriptor *wd ) 
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references( 1 ), _predecessors(), _successors(), _domain( NULL ), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted( false ), _needsSubmission( false ), _wd( wd ) {}
+
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
               _predecessors ( depObj._predecessors ), _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(),
-              _objectLock(), _submitted( false ), _needsSubmission( false ) {}
+              _objectLock(), _submitted( false ), _needsSubmission( false ), _wd( depObj._wd ) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -234,6 +240,7 @@ namespace nanos
          */
          void addReadTarget ( BaseDependency const &readObj );
          
+         
         /*! \brief Get the list of read objects.
          *  \sa TrackableObject
          */
@@ -278,7 +285,9 @@ namespace nanos
             return it
          */
          DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition, bool keepDeps );
-         
+
+         void setWD( WorkDescriptor *wd );
+         WorkDescriptor * getWD( void ) const;
    };
 
 };

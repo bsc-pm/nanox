@@ -25,9 +25,9 @@ using namespace nanos;
 
 void WDDeque::initDeviceList()
 {
-   System::DeviceList devs = sys.getSupportedDevices();
+   DeviceList devs = sys.getSupportedDevices();
 
-   for ( System::DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
+   for ( DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
       const Device * dev = *it;
       Atomic<unsigned int> num = 0;
       _ndevs.insert( std::make_pair( dev, num ) );

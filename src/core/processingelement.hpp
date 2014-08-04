@@ -23,7 +23,7 @@
 #include <string.h>
 #include "functors.hpp"
 #include "processingelement_decl.hpp"
-#include "workdescriptor.hpp"
+#include "workdescriptor_decl.hpp"
 
 using namespace nanos;
 
@@ -37,19 +37,21 @@ inline int ProcessingElement::getId() const
    return _id;
 }
 
-inline int ProcessingElement::getUId() const
-{
-   return _uid;
+inline ProcessingElement::ThreadList &ProcessingElement::getThreads() {
+   return _threads;
 }
 
-inline const Device & ProcessingElement::getDeviceType () const
+inline const Device * ProcessingElement::getDeviceType () const
 {
-   return *_device;
+   return _device;
+}
+
+inline const Device * ProcessingElement::getSubDeviceType () const
+{
+   return _subDevice;
 }
  
-inline int ProcessingElement::getNUMANode() const{ return _numaNode; }
-
-inline void ProcessingElement::setNUMANode( int node ){ _numaNode = node; }
+inline std::size_t ProcessingElement::getNumThreads() const { return _threads.size(); }
 
 #endif
 

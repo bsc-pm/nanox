@@ -53,7 +53,7 @@ extern "C"
  * \sa switchStacks
  */
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
+intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                           void *cleanup, void *cleanupArg )
 {
    // stack grows down
@@ -68,9 +68,9 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
    state[60] = 0;
       
    // (r14) userf
-   state[6] = (intptr_t) userFunction;
+   state[6] = (intptr_t) wrapperFunction;
    // (r15) data
-   state[7] = (intptr_t) userArg;
+   state[7] = (intptr_t) wd;
    // (r16) cleanup
    state[8] = (intptr_t) cleanup;
    // (r17) cleanup arg

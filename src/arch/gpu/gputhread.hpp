@@ -25,6 +25,7 @@
 #include "gpudd.hpp"
 #include "gpuevent.hpp"
 #include "gpuprocessor.hpp"
+#include "pthread.hpp"
 
 
 namespace nanos {
@@ -34,6 +35,11 @@ namespace ext
 int GPUThread::getGPUDevice ()
 {
    return _gpuDevice;
+}
+
+int GPUThread::getCpuId() const
+{
+   return _pthread.getCpuId();
 }
 
 GenericEvent * GPUThread::createPreRunEvent( WD * wd )

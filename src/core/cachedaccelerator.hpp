@@ -22,88 +22,22 @@
 
 #include "cachedaccelerator_decl.hpp"
 #include "accelerator_decl.hpp"
-#include "cache.hpp"
+#include "regioncache.hpp"
+#include "system.hpp"
 
 using namespace nanos;
 
-
-template <class Device>
-void CachedAccelerator<Device>::configureCache( size_t cacheSize, System::CachePolicyType cachePolicy )
-{
-   if ( _cache == NULL )
-      _cache = NEW DeviceCache<Device>( cacheSize, NULL, this );
-
-   switch ( cachePolicy ) {
-      case System::NONE:
-         _cachePolicy = NEW NoCache( *_cache );
-         break;
-      case System::WRITE_THROUGH:
-         _cachePolicy = NEW WriteThroughPolicy( *_cache );
-         break;
-      case System::WRITE_BACK:
-         _cachePolicy = NEW WriteBackPolicy( *_cache );
-         break;
-      default:
-         // We should not get here with the System::DEFAULT value
-         fatal0( "Unknown cache policy" );
-         break;
-   }
-
-   _cache->setPolicy( _cachePolicy );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::registerCacheAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag )
-{
-   _cache->registerCacheAccess( dir, cpdata, tag );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::unregisterCacheAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag, bool output )
-{
-   _cache->unregisterCacheAccess( dir, cpdata, tag, output );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::registerPrivateAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag )
-{
-   _cache->registerPrivateAccess( dir, cpdata, tag );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::unregisterPrivateAccessDependent( Directory& dir, CopyData &cpdata, uint64_t tag )
-{
-   _cache->unregisterPrivateAccess( dir, cpdata, tag );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::synchronize( CopyDescriptor &cd )
-{
-   _cache->synchronize( cd );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::synchronize( std::list<CopyDescriptor> &cds )
-{
-   _cache->synchronize( cds );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::waitInputDependent( uint64_t tag )
-{
-   _cache->waitInput( tag );
-}
-
-template <class Device>
-inline void* CachedAccelerator<Device>::getAddressDependent( uint64_t tag )
-{
-   return _cache->getAddress( tag );
-}
-
-template <class Device>
-inline void CachedAccelerator<Device>::copyToDependent( void *dst, uint64_t tag, size_t size )
-{
-   _cache->copyTo( dst, tag, size );
-}
+//inline CachedAccelerator::CachedAccelerator( const Device *arch,
+//   const Device *subArch, memory_space_id_t addressSpace ) :
+//   Accelerator( arch, subArch ), _addressSpaceId( addressSpace ) {
+//}
+//
+//inline CachedAccelerator::~CachedAccelerator() {
+//}
+//
+//inline void CachedAccelerator::waitInputsDependent( WorkDescriptor &wd )
+//{
+//   while ( !wd._mcontrol.isDataReady( wd ) ) { myThread->idle(); } 
+//}
 
 #endif

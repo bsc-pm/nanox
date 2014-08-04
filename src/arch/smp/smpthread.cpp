@@ -1,21 +1,22 @@
-/*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
-/*                                                                                   */
-/*      This file is part of the NANOS++ library.                                    */
-/*                                                                                   */
-/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/**************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                    */
+/*      Copyright 2009 Barcelona Supercomputing Center                    */
+/*                                                                        */
+/*      This file is part of the NANOS++ library.                         */
+/*                                                                        */
+/*      NANOS++ is free software: you can redistribute it and/or modify   */
 /*      it under the terms of the GNU Lesser General Public License as published by  */
-/*      the Free Software Foundation, either version 3 of the License, or            */
-/*      (at your option) any later version.                                          */
-/*                                                                                   */
-/*      NANOS++ is distributed in the hope that it will be useful,                   */
-/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
-/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
-/*      GNU Lesser General Public License for more details.                          */
-/*                                                                                   */
-/*      You should have received a copy of the GNU Lesser General Public License     */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
-/*************************************************************************************/
+/*      the Free Software Foundation, either version 3 of the License, or  */
+/*      (at your option) any later version.                               */
+/*                                                                        */
+/*      NANOS++ is distributed in the hope that it will be useful,        */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of    */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the     */
+/*      GNU Lesser General Public License for more details.               */
+/*                                                                        */
+/*      You should have received a copy of the GNU Lesser General Public License  */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.  */
+/**************************************************************************/
 
 #include "os.hpp"
 #include "smpprocessor.hpp"
@@ -26,6 +27,8 @@
 #include <iostream>
 #include <sched.h>
 #include <unistd.h>
+#include <signal.h>
+#include <assert.h>
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 //#include "clusterdevice_decl.hpp"
@@ -47,7 +50,7 @@ void SMPThread::runDependent ()
 
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
-   dd.getWorkFct()( work.getData() );
+   dd.execute( work );
 }
 
 void SMPThread::idle( bool debug )
@@ -111,8 +114,9 @@ void SMPThread::wait()
 
    _pthread.mutexUnlock();
 
-   NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
@@ -145,7 +149,11 @@ bool SMPThread::inlineWorkDependent ( WD &wd )
    NANOS_INSTRUMENT ( static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("user-code") );
    NANOS_INSTRUMENT ( nanos_event_value_t val = wd.getId() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateAndBurst ( NANOS_RUNNING, key, val ) );
-   ( dd.getWorkFct() )( wd.getData() );
+
+   //if ( sys.getNetwork()->getNodeNum() > 0 ) std::cerr << "Starting wd " << wd.getId() << std::endl;
+   
+   dd.execute( wd );
+
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateAndBurst ( key, val ) );
    return true;
 }

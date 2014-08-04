@@ -63,6 +63,7 @@ namespace ext
          static bool                      _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
          static bool                      _initCublas; //! Init CUBLAS library during runtime startup
          static void *                    _gpusProperties; //! Array of structs of cudaDeviceProp
+         static bool                      _allocWide; //! Use wide allocation policy for the region cache
 
          /*! Parses the GPU user options */
          static void prepare ( Config &config );
@@ -103,8 +104,9 @@ namespace ext
 
          static void getGPUsProperties( int device, void * deviceProps );
 
-         static void printConfiguration( void );
+         static bool getAllocWide( void );
 
+         static void printConfiguration( void );
    };
 }
 }

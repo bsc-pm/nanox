@@ -1,3 +1,21 @@
+/*************************************************************************************/
+/*      Copyright 2014 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
 
 #include "openclprocessor.hpp"
 #include "openclthread.hpp"
@@ -18,19 +36,20 @@ OpenCLAdapter::~OpenCLAdapter()
 
   errCode = clReleaseCommandQueue( _queue );
   if( errCode != CL_SUCCESS )
-     fatal0( "Unable to release the command queue" );
-
-  errCode = clReleaseContext( _ctx );
+     warning0( "Unable to release the command queue" );
   
-  //Invalid context means it was already released by another thread
-  if( errCode != CL_SUCCESS && errCode != CL_INVALID_CONTEXT){
-     fatal0( "Unable to release the context" );
-  }
   for( ProgramCache::iterator i = _progCache.begin(),
                               e = _progCache.end();
                               i != e;
                               ++i )
     clReleaseProgram( i->second );
+
+  errCode = clReleaseContext( _ctx );
+  
+  //Invalid context means it was already released by another thread
+  if( errCode != CL_SUCCESS && errCode != CL_INVALID_CONTEXT){
+     warning0( "Unable to release the context" );
+  }
 }
 
 void OpenCLAdapter::initialize(cl_device_id dev)
@@ -40,17 +59,13 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _dev = dev;
    
    //Save OpenCL device type
-   cl_device_type devType;
-   clGetDeviceInfo( _dev, CL_DEVICE_TYPE, sizeof( cl_device_type ),&devType, NULL );
-   _useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
-// char buffer[200];
-//	clGetDeviceInfo( _dev, CL_DEVICE_NAME, sizeof(buffer), buffer, NULL);
-//   std::string devName(buffer);
-//   if (devName.find("Mali-T6")!=std::string::npos) {
-//     _useHostPtrs=true;
-//   }
-   _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
+   //cl_device_type devType;
+   //clGetDeviceInfo( _dev, CL_DEVICE_TYPE, sizeof( cl_device_type ),&devType, NULL );
+   //_useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
+   _useHostPtrs= false;
    
+   _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
+
    // Create the context.
    _ctx = nanos::ext::OpenCLConfig::getContextDevice(_dev);   
    
@@ -94,7 +109,8 @@ void* OpenCLAdapter::allocSharedMemBuffer( size_t size )
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT );
    void* addr= clEnqueueMapBuffer(_queue, buff, CL_TRUE, CL_MAP_READ  | CL_MAP_WRITE, 0, size, 0, NULL, NULL, &err);   
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-   _bufCache[(void*)((size_t)addr+1)]=buff;
+   _bufCache[std::make_pair((uint64_t)addr,size)]=buff;
+   _sizeCache[(uint64_t)addr]=size;
    return addr;
 }
 
@@ -103,7 +119,8 @@ cl_int OpenCLAdapter::freeBuffer( cl_mem &buf )
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_FREE_EVENT );
    cl_int ret= clReleaseMemObject( buf );   
    if (ret!=CL_SUCCESS){
-       warning0("Failed to free OpenCL memory");
+       //warning0("Failed to free OpenCL memory");
+       //std::cerr << "Error number: " << ret << "," << buf << "\n";
    }
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    return ret;
@@ -111,106 +128,176 @@ cl_int OpenCLAdapter::freeBuffer( cl_mem &buf )
 
 void OpenCLAdapter::freeSharedMemBuffer( void* addr )
 {
-    freeBuffer(_bufCache.find(addr)->second);
-    _bufCache.erase(_bufCache.find(addr)); 
+    //Right now is the same
+    freeAddr(addr);
 }
 
 
-void OpenCLAdapter::freeAddr( void* addr )
+void OpenCLAdapter::freeAddr(void* addrin )
 {
-    //Protecting against nanox cache freeing already user-freed shared memory address
-    if (_bufCache.count(addr)>0) {
-        freeBuffer(_bufCache.find(addr)->second);
-        _bufCache.erase(_bufCache.find(addr)); 
-    }
+   uint64_t addr=(uint64_t)addrin;
+   size_t old_size=_sizeCache[(uint64_t)addr];    
+  
+   BufferCache::iterator iter=_bufCache.begin();
+   //Search OCL cache looking for the buffer and also sub-buffers
+   while (iter != _bufCache.end())
+   {
+       uint64_t addr_cache=iter->first.first;
+       size_t size_cache=iter->first.second;
+       
+       if (addr <= addr_cache && addr+old_size >= addr_cache+size_cache ) {
+           freeBuffer(iter->second);
+           _bufCache.erase(iter++);
+           _sizeCache.erase(addr_cache);
+       } else {
+           ++iter;
+       }
+   }
 }
 
+size_t OpenCLAdapter::getSizeFromCache(size_t addr){
+    return _sizeCache[addr];
+}
 
-cl_mem OpenCLAdapter::getBuffer( cl_mem parentBuf,
-                               size_t offset,
+cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
+                               size_t devAddr,
                                size_t size)
 {
-   size_t baseAddress=0;
-   //Cache buffers so we dont create a subBuffer everytime
-   if (_bufCache.count((void*) offset)!=0){
-       return _bufCache[(void*)offset];
+   std::pair<uint64_t,size_t> cacheKey= std::make_pair(devAddr,size);
+   //If this exact buffer is in cache, return
+   if (_bufCache.count(cacheKey)!=0){
+       return _bufCache[cacheKey];
    } 
-   //If shared memory and not in the buffer cache, it must be a subbuffer
-   if (OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) offset, size)) {
-       //Search the baseAddress (addres when it was allocated)
-       baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) offset, size);
-       if (_bufCache.count((void*) ((size_t)offset+1))!=0){
-         return _bufCache[(void*) ((size_t)offset+1)];
-       } 
-       parentBuf=_bufCache[(void*)(baseAddress+1)];
-       
-       //Offset is address - baseAddress
-       offset=offset-baseAddress;
+   
+   bool isSharedMem=OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) devAddr, size);
+   
+   //If there is a buffer which covers this buffer (same base address but bigger), return it
+   uint64_t baseAddress;
+   if (isSharedMem) {       
+      baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) devAddr, size) ;
+   } else {
+      //If there is a buffer which covers this buffer (same base address but bigger), return it
+      baseAddress=allocator.getBasePointer(devAddr, size);     
    }
    
+   if (baseAddress==devAddr && size<=_sizeCache[baseAddress]){
+       cacheKey= std::make_pair(devAddr,_sizeCache[baseAddress]);
+       return _bufCache[cacheKey];
+   }
+   
+   //Free the current buffer if it's the same pointer and different size
+   //Except when it's not a subbuffer (main cache controls these)
+   //The second part of this if shouldn't be needed (two previous ifs cover the 
+   //case of new_size < buffSize and new_size == buffSize, so nanox cache should have reallocated this)
+   if (_sizeCache.count(devAddr)!=0 && baseAddress!=devAddr && baseAddress!= 0 )  {
+       freeAddr((void*)devAddr);
+   }
+
+   
+   size_t old_size=_sizeCache[baseAddress];       
+   parentBuf=_bufCache[std::make_pair(baseAddress,old_size)];
+   //Get the offset from the baseaddress (-1 in case shared mem)
+   devAddr=devAddr-baseAddress;
+   
+   //Now create the subbuffer (either from sharedMemory, mainBuffer when in prealloc mode, or from its "baseBuffer" in normal mode)
    if (parentBuf!=NULL){
        cl_int errCode;
        NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_SUBBUFFER_EVENT );
        cl_buffer_region regInfo;
-       regInfo.origin=offset;
+       regInfo.origin=devAddr;
        regInfo.size=size;
        cl_mem buf = clCreateSubBuffer(parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
-       _bufCache[(void*)(offset+baseAddress+1)]=buf;
+       _bufCache[std::make_pair(devAddr+baseAddress,size)]=buf;
+       _sizeCache[devAddr+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-       if (errCode != CL_SUCCESS) {        
+       if (errCode != CL_SUCCESS) {      
            return NULL;
        }    
 
        //Buf is a pointer, so this should be safe
        return buf;
+   } else {       
+       fatal0("Error in OpenCL cache, tried to get a buffer which was not allocated before");
+   }
+}
+
+
+cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
+                               size_t devAddr,
+                               size_t size,
+                               void* hostPtr)
+{
+   //Preallote whole memory mode
+   if (parentBuf!=NULL){
+       cl_int errCode;
+       NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_CREATE_SUBBUFFER_EVENT );
+       cl_buffer_region regInfo;
+       regInfo.origin=devAddr-ALLOCATOR_START_ADDR;
+       regInfo.size=size;
+       cl_mem buf = clCreateSubBuffer(parentBuf,
+                CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
+                &regInfo, &errCode);
+       _bufCache[std::make_pair(devAddr,size)]=buf;
+       _sizeCache[devAddr]=size;      
+       NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+       if (errCode != CL_SUCCESS) {  
+           warning("Error when creating subBuffer from preallocated memory " << errCode);
+           return NULL;
+       }    
+
+       //Buf is a pointer, so this should be safe
+       return buf;
+   //If not in preallocation mode
    } else {
        cl_mem buf;
-       allocBuffer(size,(void*)offset,buf);
-       _bufCache[(void*)offset]=buf;
+       allocBuffer(size, hostPtr, buf);
+       _bufCache[std::make_pair(devAddr,size)]=buf;
+       _sizeCache[devAddr]=size;
        return buf;
    }
 }
 
-cl_int OpenCLAdapter::readBuffer( cl_mem buf,
-                               void *dst,
-                               size_t offset,
-                               size_t size )
-{
-   cl_int ret;
-   if (_useHostPtrs) {
-      ret=mapBuffer(buf,dst,offset,size);
-   } else {
-      cl_int exitStatus;
-      cl_event ev;
+cl_int OpenCLAdapter::readBuffer(cl_mem buf,
+        void *dst,
+        size_t offset,
+        size_t size,
+        Atomic<size_t>* globalSizeCounter) {
+    cl_int ret;
+    if (_useHostPtrs || OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) ((uint64_t)dst+offset), size)) {
+        if (_useHostPtrs) *globalSizeCounter += size;
+        ret = mapBuffer(buf, dst, offset, size);
+    } else {
+        cl_int exitStatus;
+        cl_event ev;
 
-      NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMREAD_SYNC_EVENT );
-      ret = clEnqueueReadBuffer( _queue,
-                                         buf,
-                                         CL_TRUE,
-                                         offset,
-                                         size,
-                                         dst,
-                                         0,
-                                         NULL,
-                                         &ev
-                                       );
-      NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+        NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT(ext::NANOS_OPENCL_MEMREAD_SYNC_EVENT);
+        ret = clEnqueueReadBuffer(_queue,
+                buf,
+                CL_TRUE,
+                offset,
+                size,
+                dst,
+                0,
+                NULL,
+                &ev
+                );
+        *globalSizeCounter+=size;
+        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
-      if( ret != CL_SUCCESS )
-         return ret;
+        if (ret != CL_SUCCESS)
+            return ret;
 
-      ret = clGetEventInfo( ev,
-                                    CL_EVENT_COMMAND_EXECUTION_STATUS,
-                                    sizeof(cl_int),
-                                    &exitStatus,
-                                    NULL
-                                  );   
-
-      clReleaseEvent( ev );
-   }
-   return ret;
+        ret = clGetEventInfo(ev,
+                CL_EVENT_COMMAND_EXECUTION_STATUS,
+                sizeof (cl_int),
+                &exitStatus,
+                NULL
+                );
+        clReleaseEvent(ev);
+    }
+    return ret;
 }
 
 cl_int OpenCLAdapter::mapBuffer( cl_mem buf,
@@ -218,8 +305,8 @@ cl_int OpenCLAdapter::mapBuffer( cl_mem buf,
                                size_t offset,
                                size_t size )
 {
+   cl_int errCode;
    _unmapedCache.erase(buf);
-   cl_int errCode, exitStatus;
    cl_event ev;
 
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT );
@@ -238,13 +325,11 @@ cl_int OpenCLAdapter::mapBuffer( cl_mem buf,
    
    if( errCode != CL_SUCCESS )
       return errCode;
-
-   errCode = clGetEventInfo( ev,
-                               CL_EVENT_COMMAND_EXECUTION_STATUS,
-                               sizeof(cl_int),
-                               &exitStatus,
-                               NULL
-                             );   
+   
+   errCode = clWaitForEvents(1, &ev); 
+   if( errCode != CL_SUCCESS ){
+      return errCode;
+   }
 
    clReleaseEvent( ev );
 
@@ -254,10 +339,12 @@ cl_int OpenCLAdapter::mapBuffer( cl_mem buf,
 cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                 void *src,
                                 size_t offset,
-                                size_t size )
+                                size_t size,
+                                Atomic<size_t>* globalSizeCounter)
 {
    cl_int ret;
-   if (_useHostPtrs) {
+   if (_useHostPtrs || OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) ((uint64_t)src+offset), size)) {
+       if (_useHostPtrs) *globalSizeCounter += size;
        ret=unmapBuffer(buf,src,offset,size);
    } else {
        cl_event ev;
@@ -265,7 +352,7 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
        NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_MEMWRITE_SYNC_EVENT );
        ret = clEnqueueWriteBuffer( _queue,
                                           buf,
-                                          CL_FALSE,
+                                          CL_TRUE,
                                           offset,
                                           size,
                                           src,
@@ -273,66 +360,55 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                           NULL,
                                           &ev
                                         );
-       _pendingEvents.push_back(ev);
+        *globalSizeCounter += size;
+        //_pendingEvents.push_back(ev);
         NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    }
    return ret;
 }
 
-cl_int OpenCLAdapter::unmapBuffer( cl_mem buf,
-                                void *src,
-                                size_t offset,
-                                size_t size )
-{    
-   if (_unmapedCache.count(buf)!=0) {
-       return CL_SUCCESS;
-   }
-   cl_event ev;
-   cl_int errCode;
-
-   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT );
-   errCode= clEnqueueUnmapMemObject( _queue,
-                                     buf,
-                                     src,
-                                     0,
-                                     NULL,
-                                     &ev
-                                   );
-   //This is a dirty trick to fake OpenCL driver which only accepts unmaps of previously mapped values
-   //mapping something which is on the CPU should not do anything bad.
-   //basically we map the buffer and then unmap it.
-   if (errCode == CL_INVALID_VALUE) {
-            mapBuffer( buf,src,offset,size );       
-            errCode= clEnqueueUnmapMemObject( _queue,
-                                     buf,
-                                     src,
-                                     0,
-                                     NULL,
-                                     &ev
-                                   );
-   }
-    errCode = clWaitForEvents(1, &ev); 
-    if( errCode != CL_SUCCESS ){
-        fatal0("Error waiting for events");
+cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
+        void *src,
+        size_t offset,
+        size_t size) {
+    
+    if (_unmapedCache.count(buf) != 0) {
+        return CL_SUCCESS;
     }
+    cl_int errCode;
 
-    cl_int exitStatus;
-    errCode = clGetEventInfo( ev,
-                                CL_EVENT_COMMAND_EXECUTION_STATUS,
-                                sizeof(cl_int),
-                                &exitStatus,
-                                NULL
-                              );
-    if( errCode != CL_SUCCESS ){
-        fatal0("Error waiting for events");
+    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT(ext::NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT);
+
+    errCode = clEnqueueUnmapMemObject(_queue,
+            buf,
+            src,
+            0,
+            NULL,
+            NULL
+            );
+
+    //This is a dirty trick to fake OpenCL driver which only accepts unmaps of previously mapped values
+    //mapping something which is on the CPU should not do anything bad.
+    //basically we map the buffer and then unmap it.
+    if (errCode == CL_INVALID_VALUE) {
+        mapBuffer(buf, src, offset, size);
+        errCode = clEnqueueUnmapMemObject(_queue,
+                buf,
+                src,
+                0,
+                NULL,
+                NULL
+                );
+         if (errCode != CL_SUCCESS) {
+             fatal0("Errror unmapping buffer");
+         }
     }
-
-    clReleaseEvent( ev );
-    _unmapedCache.insert(std::make_pair<cl_mem,int>(buf,0));
-   
+    
     NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
-    return errCode;
+    _unmapedCache.insert(std::make_pair<cl_mem, int>(buf, 0));
+
+    return CL_SUCCESS;
 }
 
 cl_int OpenCLAdapter::copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buf, size_t offset_remotebuff, size_t size ){    
@@ -356,6 +432,7 @@ cl_int OpenCLAdapter::copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offs
    }
    
    _pendingEvents.push_back(ev);
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    
 //   errCode = clWaitForEvents(1, &ev); 
 //   if( errCode != CL_SUCCESS ){
@@ -370,7 +447,7 @@ cl_int OpenCLAdapter::copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offs
 //                             );
 //   
 //   clReleaseEvent( ev );
-
+   
    return errCode;
    
 }
@@ -378,7 +455,7 @@ cl_int OpenCLAdapter::copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offs
 cl_int OpenCLAdapter::buildProgram( const char *src,
                                  const char *compilerOpts,
                                  cl_program &prog,
-	                         const std::string& filename )
+                                 const std::string& filename )
 {
    cl_int errCode;
 
@@ -406,6 +483,7 @@ cl_int OpenCLAdapter::buildProgram( const char *src,
       // No matter if this call fails, the relevant error code is the first.
       clReleaseProgram( prog );
    }
+#if 0 /* master version */
    else if( OpenCLConfig::isSaveKernelEnabled() )
    {
       std::string binaryFilename = filename.substr( 0, filename.find(".cl") ) + ".bin";
@@ -430,6 +508,7 @@ cl_int OpenCLAdapter::buildProgram( const char *src,
 
        fclose( fp );
    }
+#endif
    return errCode;
 }
 
@@ -438,12 +517,10 @@ cl_int OpenCLAdapter::destroyProgram( cl_program &prog )
   return clReleaseProgram( prog );
 }
 
-// TODO: use a fixed cache size.
 cl_int OpenCLAdapter::putProgram( cl_program &prog )
 {
    return clReleaseProgram( prog );
 }
-
 
 void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_code_file,const char *compilerOpts)        
 {
@@ -601,7 +678,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       // Don't worry about exit code, we are cleaning an error.
       clReleaseKernel( openclKernel );
       processOpenCLError(errCode);
-      fatal0("Error launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error launching OpenCL kernel",errCode);
    }
 
    // Wait for its termination.
@@ -612,7 +689,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );      
       processOpenCLError(errCode);
-      fatal0("Error launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error launching OpenCL kernel",errCode);
    }
 
    // Check if any errors has occurred.
@@ -628,7 +705,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
       processOpenCLError(errCode);
-      fatal0("Error waiting for events after launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error waiting for events after launching OpenCL kernel",errCode);
    }
 
    // Free the event.
@@ -639,7 +716,7 @@ cl_int OpenCLAdapter::execKernel(void* oclKernel,
       clReleaseEvent( ev );
       clReleaseKernel( openclKernel );
       processOpenCLError(errCode);
-      fatal0("Error waiting for events after launching OpenCL kernel");
+      fatal0kernelNameErr(oclKernel,"Error waiting for events after launching OpenCL kernel",errCode);
    }
 
    // Free the kernel.
@@ -846,6 +923,17 @@ cl_int OpenCLAdapter::getPlatformName( std::string &name )
    return errCode;
 }
 
+std::string OpenCLAdapter::getDeviceName(){ 
+   char* value;
+   size_t valueSize;
+   clGetDeviceInfo(_dev, CL_DEVICE_NAME, 0, NULL, &valueSize);
+   value = (char*) malloc(valueSize);
+   clGetDeviceInfo(_dev, CL_DEVICE_NAME, valueSize, value, NULL);
+   std::string ret(value);
+   free(value);
+   return ret;
+}
+
 void  OpenCLAdapter::waitForEvents(){
     cl_int errCode,exitStatus;
     std::vector<cl_event>::iterator iter;
@@ -879,8 +967,9 @@ void  OpenCLAdapter::waitForEvents(){
 
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
-OpenCLProcessor::OpenCLProcessor( int id, int devId, int uid ) :
-   CachedAccelerator<OpenCLDevice>( id, &OpenCLDev, uid ),
+OpenCLProcessor::OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem ) :
+   ProcessingElement( &OpenCLDev, NULL, memId, 0 /* local node */, 0 /* FIXME: numa */, true, 0 /* socket: n/a? */, false ),
+   _core( core ),
    _openclAdapter(),
    _cache( _openclAdapter ),
    _devId ( devId ) { }
@@ -894,9 +983,7 @@ void OpenCLProcessor::initialize()
 
    // Initialize the caching subsystem.
    _cache.initialize();
-
-   // Register this device as cache-aware.
-   configureCache( _cache.getSize(), OpenCLConfig::getCachePolicy());
+   
 }
 
 WD &OpenCLProcessor::getWorkerWD() const
@@ -911,30 +998,34 @@ WD & OpenCLProcessor::getMasterWD() const {
    fatal("Attempting to create a OpenCL master thread");
 }
 
-BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd )
+BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd, SMPMultiThread *parent )
 {
 
-   OpenCLThread &thr = *NEW OpenCLThread( wd, this );
+   OpenCLThread &thr = *NEW OpenCLThread( wd, this, _core );
 
    return thr;
 }
 
-void OpenCLProcessor::setKernelBufferArg(void* openclKernel, int argNum,const void* pointer)
+void OpenCLProcessor::setKernelBufferArg(void* openclKernel, int argNum, const void* pointer)
 {
     cl_mem buffer=_cache.toMemoryObjSS( pointer );
     //Set buffer as arg
     cl_int errCode= clSetKernelArg( (cl_kernel) openclKernel, argNum, sizeof(cl_mem), &buffer ); 
     if( errCode != CL_SUCCESS )
     {
-         fatal0("Error setting kernel buffer arg");
+        fatal0kernelNameErr(openclKernel,"Error in setKernelArg with copies/buffer ", errCode);    
     }
 }
 
-void OpenCLProcessor::setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer){
-    cl_int errCode= clSetKernelArg( (cl_kernel) opencl_kernel, arg_num, size, pointer );
+void OpenCLProcessor::setKernelArg(void* openclKernel, int argNum, size_t size,const void* pointer){
+    cl_int errCode= clSetKernelArg( (cl_kernel) openclKernel, argNum, size, pointer );
     if( errCode != CL_SUCCESS )
     {
-         fatal0("Error setting kernel arg");
+        if ( errCode == CL_INVALID_ARG_INDEX) {
+            fatal0kernelName(openclKernel,"error setting kernel arg, make sure your task declaration"
+                    " and OpenCL kernel definition have the same number of arguments");            
+        }
+        fatal0kernelNameErr(openclKernel,"Error in setKernelArg ", errCode);    
     }
 }
 
@@ -950,7 +1041,7 @@ void OpenCLProcessor::execKernel(void* openclKernel,
                             ndrGlobalSize);
      if( errCode != CL_SUCCESS )
     {
-         fatal0("Error executing kernel");
+        fatal0kernelNameErr(openclKernel,"Error executing kernel ", errCode);  
     }
 }
 
@@ -998,10 +1089,11 @@ static inline std::string bytesToHumanReadable ( size_t bytes )
 void OpenCLProcessor::printStats ()
 {
    waitForEvents();
+   
    if (_openclAdapter.getUseHostPtr()) {
-      message("OpenCL dev" << _devId << " TRANSFER STATISTICS (using Shared/Mapped memory)");       
+      message("OpenCL " << _openclAdapter.getDeviceName() << " TRANSFER STATISTICS (using Shared/Mapped memory)");       
    } else {       
-      message("OpenCL dev" << _devId << " TRANSFER STATISTICS");
+      message("OpenCL " << _openclAdapter.getDeviceName() << " TRANSFER STATISTICS");
    }
    message("    Total input transfers: " << bytesToHumanReadable( _cache._bytesIn.value() ) );
    message("    Total output transfers: " << bytesToHumanReadable( _cache._bytesOut.value() ) );
@@ -1019,5 +1111,15 @@ void* OpenCLProcessor::allocateSharedMemory( size_t size ){
 }
 
 void OpenCLProcessor::freeSharedMemory( void* addr ){    
-    _openclAdapter.freeSharedMemBuffer((void*)((size_t)addr+1));
+    _openclAdapter.freeSharedMemBuffer((void*)((size_t)addr));
+}
+
+BaseThread &OpenCLProcessor::startOpenCLThread() {
+   WD & worker = getWorkerWD();
+
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+   NANOS_INSTRUMENT (icd->setStartingWD(true) );
+
+   return _core->startThread( *this, worker, NULL );
 }

@@ -47,8 +47,14 @@ namespace nanos
          static void idleLoop (void);
 
       public:
+         static bool tryPreOutlineWork ( WD *work );
+         static void preOutlineWork ( WD *work );
+         static void prePreOutlineWork ( WD *work );
+         static void preOutlineWorkWithThread ( BaseThread *thread, WD *work );
+         static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
          static bool inlineWork ( WD *work, bool schedule = false );
          static bool inlineWorkAsync ( WD *wd, bool schedule = false );
+         static void outlineWork( BaseThread *currentThread, WD *wd ); 
 
          static void submit ( WD &wd, bool force_queue = false  );
          /*! \brief Submits a set of wds. It only calls the policy's queue()
@@ -62,6 +68,7 @@ namespace nanos
 
          static void workerLoop ( void );
          static void asyncWorkerLoop ( void );
+         static void workerClusterLoop ( void );
          static void yield ( void );
 
          static void exit ( void );
@@ -75,7 +82,8 @@ namespace nanos
          static void updateCreateStats ( WD &wd );
 
          /*! \brief checks if a WD is elegible to run in a given thread */
-         static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
+         static bool checkBasicConstraints ( WD &wd, BaseThread const &thread );
+	 static WD * getClusterWD( BaseThread *thread, int inGPU );
    };
 
    class SchedulerConf
@@ -249,6 +257,7 @@ namespace nanos
          virtual WD * atWakeUp      ( BaseThread *thread, WD &wd );
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
          virtual void atCreate      ( DependableObject &depObj );
+         virtual void atSupport     ( BaseThread *thread );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          /*! \brief Batch processing version.
