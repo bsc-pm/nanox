@@ -48,8 +48,9 @@ unsigned int nanos_get_opencl_num_devices (void);
 void * nanos_malloc_opencl ( size_t size );
 void nanos_free_opencl ( void * address ) ;
 void nanos_get_opencl_num_devices_ (int* numret);
-void nanos_opencl_allocate_fortran_ ( int* size, void** ptr ); 
-void nanos_opencl_deallocate_fortran_ ( void ** address ) ;
+
+NANOS_API_DECL(void, nanos_opencl_allocate_fortran, ( ptrdiff_t size, void* ptr )); // ptr is a void **
+NANOS_API_DECL(void, nanos_opencl_deallocate_fortran, ( void * address ));
 
 #ifdef _MERCURIUM_OPENCL_
 //unsigned get_work_dim();

@@ -48,7 +48,7 @@ void SharedMemAllocator::initialize(){
             if( nanos::ext::OpenCLProcessor *myPE = dynamic_cast<nanos::ext::OpenCLProcessor *>( bt->runningOn() ) ){
                 cl_device_type devType;
                 myPE->getOpenCLDeviceType(devType);
-                if (devType==CL_DEVICE_TYPE_GPU) _allocatingDevice=myPE;
+                if (devType==CL_DEVICE_TYPE_CPU) _allocatingDevice=myPE;
             }
         }
     }
