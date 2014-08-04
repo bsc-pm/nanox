@@ -186,7 +186,9 @@ namespace nanos {
                   for ( unsigned to = 0; to < (unsigned) sys.getSMPPlugin()->getNumSockets(); ++to )
                   {
                      //fprintf( stderr, "Distance from %d to %d: %d\n", from, to, distances[to] );
-                     if ( to == from )
+                     // If the target node is different than the origin
+                     // or it's not in the valid list, jump
+                     if ( to == from || sys.getVirtualNUMANode( to ) == INT_MIN )
                         continue;
                      row.push_back( to );
                   }
@@ -318,8 +320,8 @@ namespace nanos {
                      // If the next one is uncommented, stream initialisation tasks will not work
                      //ro_copies += (  copies[idx].isInput() && !copies[idx].isOutput() );
                      //wo_copies += ( !copies[idx].isInput() &&  copies[idx].isOutput() );
-                     if ( wd._mcontrol._memCacheCopies[ idx ].getVersion() == 1 )
-                        createdDataSize += ( !copies[idx].isInput() && copies[idx].isOutput() ) * copies[idx].getSize();
+                     if ( wd._mcontrol._memCacheCopies[ idx ].getVersion() == 1 && copies[idx].isOutput() )
+                        createdDataSize += copies[idx].getSize();
                   }
                }
                
@@ -350,7 +352,8 @@ namespace nanos {
                   
                   // FIXME
                   tdata._next = ( winner+1 ) % sys.getNumNumaNodes();
-                  //fprintf(stderr, "[socket] WD %d (%s) is init task, assigned to NUMA node %d\n", wd.getId(), wd.getDescription(), winner );
+                  verbose0( toString( "[NUMA] wd ") + toString( wd.getId() ) + toString( "(" ) + toString( wd.getDescription() )
+                     + toString(")") + toString( " is init task, assigned to NUMA node " ) + toString( winner ) );
                   //fprintf( stderr, "[socket] Round.robbin next = %d\n", tdata._next.value() );
                }
                else
@@ -432,11 +435,6 @@ namespace nanos {
                //int coresPerSocket = sys.getCoresPerSocket();
                
                //fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
-
-               if ( steal && sys.getSMPPlugin()->getNumSockets() == 1 )
-               {
-                  fatal0( "Steal can not be enabled with just one socket" );
-               }
                
                // Check config
                // gmiranda: disabled temporary since NumPES < numWorkers when using GPUS
@@ -457,10 +455,47 @@ namespace nanos {
 
             virtual ScheduleTeamData * createTeamData ()
             {
+               if ( _steal && sys.getNumNumaNodes() == 1 )
+               {
+                  message0( "[NUMA] Stealing can not be enabled with just one NUMA node available, disabling it" );
+                  _steal = false;
+               }
+               
                // Now we can find GPU nodes since the workers will have been created
                findGPUNodes();
                
                computeDistanceInfo();
+               
+               if ( sys.isSummaryEnabled() ){
+                  message0( "====================== NUMA Summary ======================" );
+                  message0( "=== Worker binding:" );
+                  for ( int i = 0; i < sys.getNumWorkers(); ++i )
+                  {
+                     const BaseThread * w = sys.getWorker( i );
+                     
+                     message0( "===  | Worker " << w->getId() << ", cpu id: " << w->getCpuId() << ", NUMA node " << w->runningOn()->getNumaNode() );
+                  }
+                  
+                  std::stringstream ss;
+                  std::ostream_iterator<int> outIt (ss ,", ");
+                  std::copy( _gpuNodes.begin(), _gpuNodes.end(), outIt );
+                  message0( "=== CUDA devices in:     " << ss.str() );
+                  
+                  // Clear stringstream to reuse it
+                  ss.str( std::string() );
+                  
+                  ss     << "=== NUMA node mapping:   ";
+                  for ( int i = 0; i < sys.getSMPPlugin()->getNumSockets(); ++i )
+                  {
+                     int vNode = sys.getVirtualNUMANode( i );
+                     // If this real node has a valid virtual mapping
+                     if ( vNode != INT_MIN )
+                        ss << vNode << "->" << i << ", ";
+                  }
+                  message0( ss.str() );
+                  
+                  message0( "=========================================================" );
+               }
                
                // Create 2 queues per socket plus one for the global queue.
                return NEW TeamData( sys.getNumNumaNodes() );

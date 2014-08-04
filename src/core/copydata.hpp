@@ -36,6 +36,7 @@ inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input
    offset = off;
    host_base_address = hostBaseAddress;
    host_region_id = hostRegionId;
+   remote_host = false;
 }
 
 inline CopyData::CopyData ( const CopyData &cd )
@@ -49,6 +50,7 @@ inline CopyData::CopyData ( const CopyData &cd )
    offset = cd.offset;
    host_base_address = cd.host_base_address;
    host_region_id = cd.host_region_id;
+   remote_host = cd.remote_host;
 }
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
@@ -63,6 +65,7 @@ inline const CopyData & CopyData::operator= ( const CopyData &cd )
    offset = cd.offset;
    host_base_address = cd.host_base_address;
    host_region_id = cd.host_region_id;
+   remote_host = cd.remote_host;
    return *this;
 }
 
@@ -183,6 +186,14 @@ inline memory_space_id_t CopyData::getHostRegionId() const {
 
 inline void CopyData::setHostRegionId( memory_space_id_t id ) {
    host_region_id = id;
+}
+
+inline bool CopyData::isRemoteHost() const {
+   return remote_host;
+}
+
+inline void CopyData::setRemoteHost( bool value ) {
+   remote_host = value;
 }
 
 #endif

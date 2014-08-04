@@ -59,6 +59,7 @@ class SMPPlugin : public SMPBasePlugin
    int                          _bindingStride;
    bool                         _bindThreads;
    bool                         _smpPrivateMemory;
+   bool                         _smpAllocWide;
    int                          _smpHostCpus;
    int                          _smpPrivateMemorySize;
    bool                         _workersCreated;
@@ -95,7 +96,8 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindingStride( 1 )
                  , _bindThreads( true )
                  , _smpPrivateMemory( false )
-                 , _smpHostCpus( 1 )
+                 , _smpAllocWide( false )
+                 , _smpHostCpus( 0 )
                  , _smpPrivateMemorySize( 256 * 1024 * 1024 ) // 256 Mb
                  , _workersCreated( false )
                  , _numWorkers( 0 )
@@ -150,7 +152,12 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "smp-private-memory", "smp-private-memory" );
       cfg.registerEnvOption( "smp-private-memory", "NX_SMP_PRIVATE_MEMORY" );
 
-      cfg.registerConfigOption( "smp-host-cpus", NEW Config::PositiveVar( _smpHostCpus ),
+      cfg.registerConfigOption( "smp-alloc-wide", NEW Config::FlagOption( _smpAllocWide, true ),
+            "SMP devices use a private memory area." );
+      cfg.registerArgOption( "smp-alloc-wide", "smp-alloc-wide" );
+      cfg.registerEnvOption( "smp-alloc-wide", "NX_SMP_ALLOC_WIDE" );
+
+      cfg.registerConfigOption( "smp-host-cpus", NEW Config::IntegerVar( _smpHostCpus ),
             "When using SMP devices with private memory, set how many CPUs will work with the host memory. Minimum value is 1 (which is also the default)." );
       cfg.registerArgOption( "smp-host-cpus", "smp-host-cpus" );
       cfg.registerEnvOption( "smp-host-cpus", "NX_SMP_HOST_CPUS" );
@@ -262,9 +269,9 @@ class SMPPlugin : public SMPBasePlugin
          
          if ( _smpPrivateMemory && count >= _smpHostCpus ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, true );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
-            numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(1024*1024*1024*sizeof(char)), 1024*1024*1024*sizeof(char)  ) );
+            numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             numaMem.setNodeNumber( 0 );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
@@ -331,7 +338,7 @@ class SMPPlugin : public SMPBasePlugin
       }
 
       if ( _requestedWorkers > 0 ) {
-         count = std::min( _requestedWorkers, active_cpus - reserved_cpus );
+         count = std::min( ( _requestedWorkers - 1 /* main thd is already reserved */), active_cpus - reserved_cpus );
       } else {
          count = active_cpus - reserved_cpus;
       }
@@ -492,6 +499,7 @@ class SMPPlugin : public SMPBasePlugin
             }
             counter--;
          }
+         ++it;
       }
       return target;
    }

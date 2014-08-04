@@ -35,12 +35,7 @@ namespace ext
    
    class MPIDD : public DD
    {
-
-      public:
-         typedef void ( *work_fct ) ( void *self );
-
       private:
-         work_fct       _work;
          MPI_Comm _assignedComm;
          int _assignedRank;
          size_t uid;
@@ -50,9 +45,9 @@ namespace ext
       public:
        
          // constructors
-         MPIDD( work_fct w ) : DD( &MPI ),_work( w ), _assignedComm(MPI_COMM_WORLD),_assignedRank( CACHETHREADRANK ) {}
+         MPIDD( work_fct w ) : DD( &MPI, w ), _assignedComm(MPI_COMM_WORLD),_assignedRank( CACHETHREADRANK ) {}
 
-         MPIDD( work_fct w , MPI_Comm assignedComm, int assignedRank) : DD( &MPI ),_work( w ), _assignedComm(assignedComm) , _assignedRank(assignedRank) {
+         MPIDD( work_fct w , MPI_Comm assignedComm, int assignedRank) : DD( &MPI, w ), _assignedComm(assignedComm) , _assignedRank(assignedRank) {
              //if (_assignedRank==CACHETHREADRANK) fatal0("Error, rank value (-1) reserved for nanox");
              if (_assignedComm==MPI_COMM_NULL) fatal0("Error, you are trying to use a (MPI_COMM_NULL) commnicator, make sure that your deep_booster_alloc"
                      " call could allocate/had enough hosts to allocate the requested amount of nodes, if you application can work with"
@@ -64,10 +59,10 @@ namespace ext
              uid=uidGen++;
          }
 
-         MPIDD() : DD( &MPI ),_work( 0 ), _assignedRank( CACHETHREADRANK ) {}
+         MPIDD() : DD( &MPI, NULL ), _assignedRank( CACHETHREADRANK ) {}
 
          // copy constructors
-         MPIDD( const MPIDD &dd ) : DD( dd ), _work( dd._work ), _assignedComm(dd._assignedComm) , _assignedRank(dd._assignedRank) {}
+         MPIDD( const MPIDD &dd ) : DD( dd ), _assignedComm(dd._assignedComm) , _assignedRank(dd._assignedRank) {}
 
          // assignment operator
          const MPIDD & operator= ( const MPIDD &wd );
@@ -75,14 +70,10 @@ namespace ext
 
          virtual ~MPIDD() { }
 
-         work_fct getWorkFct() const { return _work; }
          MPI_Comm getAssignedComm() const { return _assignedComm; }
          int getAssignedRank() const { return _assignedRank; }
          static void setSpawnDone(bool _spawnDone);
          static bool getSpawnDone();
-
-         
-
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous){}
          virtual size_t size ( void ) { return sizeof(MPIDD); }
@@ -99,8 +90,6 @@ namespace ext
       if ( &dd == this ) return *this;
 
       DD::operator= ( dd );
-
-      _work = dd._work;
 
       return *this;
    }

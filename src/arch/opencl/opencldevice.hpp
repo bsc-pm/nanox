@@ -30,7 +30,7 @@ using namespace nanos::ext;
 
 OpenCLDevice::OpenCLDevice( const char *name ) : Device( name ) { }
 
-void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) const
+void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx)
 { 
    nanos::ProcessingElement * pe = &(mem.getPE());
    if( OpenCLProcessor *proc = dynamic_cast<OpenCLProcessor *>( pe ) ) {
@@ -57,7 +57,7 @@ void *OpenCLDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &m
 //   fatal( "Can reallocate only on OpenCLProcessor" );
 //}
 
-void OpenCLDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const
+void OpenCLDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem )
 {
     nanos::ProcessingElement * pe = &(mem.getPE());
 
@@ -116,6 +116,20 @@ void OpenCLDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &m
 std::size_t OpenCLDevice::getMemCapacity( SeparateMemoryAddressSpace const &mem ) const {
     nanos::ext::OpenCLProcessor const *pe = (nanos::ext::OpenCLProcessor const *)&(mem.getConstPE());
     return pe->getConstCacheAllocator().getCapacity();
+}
+
+void OpenCLDevice::_canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const { }
+
+void OpenCLDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+   fatal("Error: " << __PRETTY_FUNCTION__ << " is not implemented.");
+}
+
+void OpenCLDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+   fatal("Error: " << __PRETTY_FUNCTION__ << " is not implemented.");
+}
+
+bool OpenCLDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const {
+   fatal("Error: " << __PRETTY_FUNCTION__ << " is not implemented.");
 }
 
 #endif // _OpenCL_DEVICE

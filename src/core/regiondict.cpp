@@ -129,10 +129,10 @@ void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t reg
    RegionNode const *regNode = this->getRegionNode( region );
    global_reg_t reg( region, this );
    //fprintf(stderr, "%p:%d", this, region);
-   o << (void *) this << ":" << region;
+   o << (void *) this << ":" << std::dec << region;
    if ( regNode == NULL ) {
       //fprintf(stderr, "NULL LEAF !");
-      o << "NULL LEAD !";
+      o << "NULL LEAF !";
       return;
    }
    for ( int dimensionCount = this->getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {  
@@ -140,11 +140,11 @@ void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t reg
       regNode = regNode->getParent();
       std::size_t lowerBound = regNode->getValue();
       //fprintf(stderr, "[%zu;%zu]", lowerBound, accessedLength);
-      o << "[" << lowerBound << ";" << accessedLength << "]";
+      o << "[" << std::dec << lowerBound << ";" << std::dec << accessedLength << "]";
       regNode = regNode->getParent();
    }
    //fprintf(stderr, "{key %p : FAkey %p : Real %p : FAReal %p : %zu : %zu}", (void*)_keyBaseAddress, (void*)reg.getKeyFirstAddress(), (void*)_realBaseAddress, (void*) reg.getRealFirstAddress(), reg.getBreadth(), reg.getDataSize() );
-   o << "{key " << (void *) _keyBaseAddress << " : FAkey " << (void*)reg.getKeyFirstAddress() << " : Real " << (void*)_realBaseAddress << " : FAReal " << (void*) reg.getRealFirstAddress() << " : " << reg.getBreadth() << " : " <<  reg.getDataSize() << "}";
+   o << "{key " << (void *) _keyBaseAddress << " : FAkey " << (void*)reg.getKeyFirstAddress() << " : Real " << (void*)_realBaseAddress << " : FAReal " << (void*) reg.getRealFirstAddress() << " : Breadth " << std::dec << reg.getBreadth() << " : DataSize " << std::dec <<  reg.getDataSize() << "}";
 }
 
 
@@ -153,7 +153,7 @@ void RegionDictionary< ContainerSparse >::printRegion( std::ostream &o, reg_t re
    RegionNode const *regNode = this->getRegionNode( region );
    global_reg_t reg( region, &_orig );
    //fprintf(stderr, "%p:%d", &_orig, region);
-   o << "sparse> " << this << ":" << (void *) &_orig << ":" << region;
+   o << "sparse> " << this << ":" << (void *) &_orig << ":" << std::dec << region;
    if ( regNode == NULL ) {
       //fprintf(stderr, "NULL LEAF !");
       o << "NULL LEAD !";
@@ -164,11 +164,11 @@ void RegionDictionary< ContainerSparse >::printRegion( std::ostream &o, reg_t re
       regNode = regNode->getParent();
       std::size_t lowerBound = regNode->getValue();
       //fprintf(stderr, "[%zu;%zu]", lowerBound, accessedLength);
-      o << "[" << lowerBound << ";" << accessedLength << "]";
+      o << "[" << std::dec << lowerBound << ";" << std::dec << accessedLength << "]";
       regNode = regNode->getParent();
    }
    //fprintf(stderr, "{key %p : FAkey %p : Real %p : FAReal %p : %zu : %zu}", (void*)_keyBaseAddress, (void*)reg.getKeyFirstAddress(), (void*)_realBaseAddress, (void*) reg.getRealFirstAddress(), reg.getBreadth(), reg.getDataSize() );
-   o << "{key " << (void *) _keyBaseAddress << " : FAkey " << (void*)reg.getKeyFirstAddress() << " : Real " << (void*)_realBaseAddress << " : FAReal " << (void*) reg.getRealFirstAddress() << " : " << reg.getBreadth() << " : " <<  reg.getDataSize() << "}";
+   o << "{key " << (void *) _keyBaseAddress << " : FAkey " << (void*)reg.getKeyFirstAddress() << " : Real " << (void*)_realBaseAddress << " : FAReal " << (void*) reg.getRealFirstAddress() << " : Breadth " << std::dec << reg.getBreadth() << " : DataSize " << std::dec << reg.getDataSize() << "}";
 }
 
 }

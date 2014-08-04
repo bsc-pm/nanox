@@ -835,6 +835,11 @@ reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd, WD const
    if ( cd.getNumDimensions() != this->getNumDimensions() ) {
       std::cerr << "Error, invalid numDimensions" << std::endl;
    } else {
+      for ( unsigned int cidx = 0; cidx < cd.getNumDimensions(); cidx += 1 ) {
+         if ( this->getDimensionSizes()[ cidx ] != cd.getDimensions()[ cidx ].size ) {
+            fatal("Object with base address " << (void *)cd.getBaseAddress() << " was previously registered with a different size in dimension " << std::dec << cidx << " (previously was " << std::dec << this->getDimensionSizes()[ cidx ] << " now received size " << std::dec << cd.getDimensions()[ cidx ].size << ")." );
+         }
+      }
       id = this->addRegion( cd.getDimensions() );
    }
    return id;

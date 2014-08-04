@@ -486,6 +486,8 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
         } else {
             _copies[i].dimensions = NULL;
         }
+        _copies[i].setHostBaseAddress( 0 );
+        _copies[i].setRemoteHost( false );
     }
 
    new ( &_mcontrol ) MemController( *this );

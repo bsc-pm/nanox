@@ -62,6 +62,8 @@ inline bool System::getVerbose () const { return _verboseMode; }
 
 inline void System::setVerbose ( bool value ) { _verboseMode = value; }
 
+inline bool System::isSummaryEnabled() const{ return _summary; }
+
 inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode = mode; }
 
 inline System::InitialMode System::getInitialMode() const { return _initialMode; }
@@ -102,7 +104,7 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 //
 inline int System::getVirtualNUMANode( int physicalNode ) const
 {
-   return _numaNodeMap[ physicalNode ];
+   return ( physicalNode < (int)_numaNodeMap.size() ) ? _numaNodeMap[ physicalNode ] : INT_MIN;
 }
 //
 //inline int System::getCurrentSocket() const { return _currentSocket; }
@@ -531,6 +533,10 @@ inline ThreadTeam *System::getMainTeam() {
 
 inline bool System::getVerboseDevOps() const {
    return _verboseDevOps;
+}
+
+inline bool System::getVerboseCopies() const {
+   return _verboseCopies;
 }
 
 inline bool System::getSplitOutputForThreads() const {

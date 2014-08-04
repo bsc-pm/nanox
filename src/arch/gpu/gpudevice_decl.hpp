@@ -178,9 +178,9 @@ namespace nanos
          virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest,
                SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const ;
 
-         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const;
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx );
 
-         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const;
+         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem );
 
          virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const;
 

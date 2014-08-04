@@ -68,7 +68,6 @@ namespace nanos
          typedef enum { NONE, WRITE_THROUGH, WRITE_BACK, DEFAULT } CachePolicyType;
          typedef Config::MapVar<CachePolicyType> CachePolicyConfig;
 
-
          typedef void (*Init) ();
          //typedef std::vector<Accelerator *> AList;
 
@@ -240,6 +239,7 @@ namespace nanos
          Atomic<unsigned int> _affinityFailureCount;
          bool                      _createLocalTasks;
          bool _verboseDevOps;
+         bool _verboseCopies;
          bool _splitOutputForThreads;
          int _userDefinedNUMANode;
       public:
@@ -352,6 +352,8 @@ namespace nanos
          int nextThreadId ();
          unsigned int nextPEId ();
 
+         bool isSummaryEnabled() const;
+         
          /*!
           * \brief Returns whether DLB is enabled or not
           */
@@ -618,11 +620,13 @@ namespace nanos
          bool isSimulator() const;
          ThreadTeam *getMainTeam();
          bool getVerboseDevOps() const;
+         bool getVerboseCopies() const;
          bool getSplitOutputForThreads() const;
          RegionCache::CachePolicy getRegionCachePolicy() const;
          void createDependence( WD* pred, WD* succ);
          unsigned int getNumClusterNodes() const;
          unsigned int getNumNumaNodes() const;
+         //! Return INT_MIN if physicalNode does not have a mapping.
          int getVirtualNUMANode( int physicalNode ) const;
          std::set<unsigned int> const &getClusterNodeSet() const;
          memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;

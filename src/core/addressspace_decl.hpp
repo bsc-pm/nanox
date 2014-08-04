@@ -76,7 +76,7 @@ class HostAddressSpace {
    void getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
 
-   void synchronize( WD const &wd );
+   void synchronize( WD &wd );
    memory_space_id_t getMemorySpaceId() const;
    reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
    NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;

@@ -33,36 +33,29 @@ namespace ext
 
    class SMPDD : public DD
    {
-
-      public:
-         typedef void ( *work_fct ) ( void *self );
-
       private:
-         work_fct       _work;
          intptr_t *     _stack;
          intptr_t *     _state;
          static size_t     _stackSize;
 
       protected:
-         SMPDD( work_fct w, Device *dd ) : DD( dd ), _work( w ),_stack( 0 ),_state( 0 ) {}
-         SMPDD( Device *dd ) : DD( dd ), _work( 0 ),_stack( 0 ),_state( 0 ) {}
+         SMPDD( work_fct w, Device *dd ) : DD( dd, w ),_stack( 0 ),_state( 0 ) {}
+         SMPDD( Device *dd ) : DD( dd, NULL ), _stack( 0 ),_state( 0 ) {}
 
       public:
          // constructors
-         SMPDD( work_fct w ) : DD( &SMP ),_work( w ),_stack( 0 ),_state( 0 ) {}
+         SMPDD( work_fct w ) : DD( &SMP, w ), _stack( 0 ),_state( 0 ) {}
 
-         SMPDD() : DD( &SMP ),_work( 0 ),_stack( 0 ),_state( 0 ) {}
+         SMPDD() : DD( &SMP, NULL ), _stack( 0 ),_state( 0 ) {}
 
          // copy constructors
-         SMPDD( const SMPDD &dd ) : DD( dd ), _work( dd._work ), _stack( 0 ), _state( 0 ) {}
+         SMPDD( const SMPDD &dd ) : DD( dd ), _stack( 0 ), _state( 0 ) {}
 
          // assignment operator
          const SMPDD & operator= ( const SMPDD &wd );
          // destructor
 
          virtual ~SMPDD() { if ( _stack ) delete[] _stack; }
-
-         work_fct getWorkFct() const { return _work; }
 
          bool hasStack() { return _state != NULL; }
 
@@ -110,7 +103,6 @@ namespace ext
 
       DD::operator= ( dd );
 
-      _work = dd._work;
       _stack = 0;
       _state = 0;
 

@@ -299,7 +299,7 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
-void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) const
+void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx )
 {
    void * address = NULL;
 
@@ -311,7 +311,7 @@ void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem
    return address;
 }
 
-void GPUDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) const
+void GPUDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem )
 {
    // Check there are no pending copies to execute before we free the memory (and if there are, execute them)
    

@@ -220,7 +220,6 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_close_gpu_kernel_launch_event, ( voi
    return NANOS_OK;
 }
 
-
 NANOS_API_DEF(nanos_err_t, nanos_instrument_enable,())
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED

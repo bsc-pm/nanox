@@ -31,7 +31,7 @@ test_max_cpus=1
 using namespace std;
 using namespace nanos;
 
-#define SIZEOF_WD             128*sizeof(void *)
+#define SIZEOF_WD             256*sizeof(void *)
 #define SIZEOF_DOWAIT          40*sizeof(void *)
 #define SIZEOF_DOSUBMIT        32*sizeof(void *)
 #define SIZEOF_ICONTEXT        32*sizeof(void *)

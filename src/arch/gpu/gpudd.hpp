@@ -34,28 +34,21 @@ namespace ext
    class GPUDD : public DD
    {
       friend class GPUPlugin;
-      public:
-         typedef void ( *work_fct ) ( void *self );
-
-      private:
-         work_fct       _work;
 
       public:
          // constructors
-         GPUDD( work_fct w ) : DD( &GPU ), _work( w ) {}
+         GPUDD( work_fct w ) : DD( &GPU, w ) {}
 
-         GPUDD() : DD( &GPU ), _work( 0 ) {}
+         GPUDD() : DD( &GPU, NULL ) {}
 
          // copy constructors
-         GPUDD( const GPUDD &dd ) : DD( dd ), _work( dd._work ) {}
+         GPUDD( const GPUDD &dd ) : DD( dd ) {}
 
          // assignment operator
          const GPUDD & operator= ( const GPUDD &wd );
 
          // destructor
          virtual ~GPUDD() { }
-
-         work_fct getWorkFct() const { return _work; }
 
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(GPUDD); }
@@ -69,7 +62,6 @@ namespace ext
       if ( &dd == this ) return *this;
 
       DD::operator= ( dd );
-      _work = dd._work;
 
       return *this;
    }
