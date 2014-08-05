@@ -372,6 +372,12 @@ class SMPPlugin : public SMPBasePlugin
       }
    }
 
+   virtual void addDevices( DeviceList &devices ) const
+   {
+      if ( !_cpus->empty() )
+         devices.insert( ( *_cpus->begin() )->getDeviceType() );
+   }
+
    virtual void startSupportThreads() {
    }
 
