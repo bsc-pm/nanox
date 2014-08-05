@@ -425,8 +425,6 @@ void System::start ()
       verbose0("addPEs for arch: " << (*it)->getName()); 
       (*it)->addPEs( _pes );
    }
-
-   
    
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       _clusterNodes.insert( it->second->getClusterNode() );
@@ -514,9 +512,7 @@ void System::start ()
    myThread->setupSignalHandlers();
 #endif
 
-   if ( getSynchronizedStart() )
-      threadReady();
-
+   if ( getSynchronizedStart() ) threadReady();
 
    switch ( getInitialMode() )
    {
@@ -533,10 +529,7 @@ void System::start ()
          break;
    }
 
-   if ( usingCluster() )
-   {
-      _net.nodeBarrier();
-   }
+   if ( usingCluster() ) _net.nodeBarrier();
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
@@ -560,8 +553,7 @@ void System::start ()
       warning( "Unrecognised arguments: " << unrecog );
    Config::deleteOrphanOptions();
       
-   if ( _summary )
-      environmentSummary();
+   if ( _summary ) environmentSummary();
 
    ResourceManager::init();
 }
@@ -575,7 +567,7 @@ void System::finish ()
 {
    ResourceManager::finalize();
 
-   //! \note Instrumentation: first removing RUNNING state from top of the state statck
+   //! \note Instrumentation: first removing RUNNING state from top of the state stack
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
@@ -593,14 +585,24 @@ void System::finish ()
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    
-   ensure( getMyThreadSafe()->isMainThread(), "Main thread not finishing the application!");
+   ensure( getMyThreadSafe()->isMainThread(), "Main thread is not finishing the application!");
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
+#if 0
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       it->second->stopAllThreads();
    }
+#else
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      (*it)->stopAllThreads();
+   }   
+   
+#endif
    verbose ( "...thread has been joined" );
+
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
@@ -1539,6 +1541,11 @@ void System::expelCurrentThread ( void )
    int pe_id =  myThread->runningOn()->getId();
    _pes.erase( pe_id );
    _workers.erase ( myThread->getId() );
+}
+
+void System::updateActiveWorkers ( int nthreads )
+{
+   _smpPlugin->updateActiveWorkers( nthreads, _workers );
 }
 
 void System::environmentSummary( void )
