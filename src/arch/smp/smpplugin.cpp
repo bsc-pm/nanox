@@ -283,6 +283,7 @@ class SMPPlugin : public SMPBasePlugin
          (*_cpusByCpuId)[ *it ] = cpu;
          count += 1;
       }
+      //at this point _availableCores has a valid value
 
 #ifdef NANOS_DEBUG_ENABLED
       if ( sys.getVerbose() ) {
@@ -369,12 +370,6 @@ class SMPPlugin : public SMPBasePlugin
             pes.insert( std::make_pair( (*it)->getId(), *it ) );
          }
       }
-   }
-
-   virtual void addDevices( DeviceList &devices ) const 
-   {
-      if ( !_cpus->empty() )
-         devices.insert( ( *_cpus->begin() )->getDeviceType() );
    }
 
    virtual void startSupportThreads() {

@@ -94,6 +94,7 @@ namespace nanos
          /* \brief allocate a chunk of pinned memory of the host
           */
          static void * allocatePinnedMemory( size_t size );
+         static void * allocatePinnedMemory2( size_t size );
 
          /* \brief free the chunk of pinned host memory pointed by address
           */

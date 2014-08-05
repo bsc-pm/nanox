@@ -130,6 +130,18 @@ void * GPUDevice::allocatePinnedMemory( size_t size )
    return address;
 }
 
+void * GPUDevice::allocatePinnedMemory2( size_t size )
+{
+   void * address = 0;
+
+   cudaError_t err = cudaHostAlloc( &address, size, cudaHostAllocDefault );
+
+   fatal_cond( err != cudaSuccess, "Trying to allocate " +  toString<size_t>( size ) +
+         + " bytes of host memory with cudaHostAlloc(): " +  cudaGetErrorString( err ) );
+
+   return address;
+}
+
 void GPUDevice::freePinnedMemory( void * address )
 {
    // There are 2 possible ways of getting pinned memory:
@@ -162,6 +174,7 @@ void GPUDevice::copyInSyncToDevice ( void * dst, void * src, size_t size )
 
    NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::GPUUtils::NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT );
    cudaError_t err = cudaMemcpy( dst, src, size, cudaMemcpyHostToDevice );
+   //std::cerr <<"cudaMemCpy " << dst << " " << src << " "<<size <<std::endl;
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
    fatal_cond( err != cudaSuccess, "Trying to copy " + ext::GPUUtils::bytesToHumanReadable( size )
@@ -299,6 +312,11 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t size )
    NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 }
 
+//void *GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem ) {
+//   void *mem = allocate( size, &pe );
+//   //std::cerr << "GPU memAllocate( " << size << " )  returns: " << mem << std::endl;
+//   return mem;
+//}
 void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx )
 {
    void * address = NULL;
