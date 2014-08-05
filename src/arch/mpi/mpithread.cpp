@@ -227,7 +227,9 @@ void MPIThread::finish() {
     int resul;
     MPI_Finalized(&resul);
     if (!resul){
-        checkTaskEnd();
+        while (&_selfTotRunningWds!=0) {
+          checkTaskEnd();
+        }
         if ( _groupTotRunningWds == &_selfTotRunningWds ) {
             cacheOrder order;
             order.opId = OPID_FINISH;

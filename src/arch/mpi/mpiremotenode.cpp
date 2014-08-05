@@ -378,7 +378,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
             //Only owner will send kill signal to the worker
             if ( (*it)->getOwner() ) 
             {
-                nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
+                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
                 //After sending finalization signals, we are not the owners anymore
                 //This way we prevent finalizing them multiple times if more than one thread uses them
                 (*it)->setOwner(false);
@@ -393,11 +393,11 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     //If we despawned all the threads which used this communicator, free the communicator
     //If intercomm is null, do not do it, after all, it should be the final free
     if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {        
-       MPI_Comm_free(intercomm);
+       MPI_Comm_disconnect(intercomm);
     } else if (communicatorsToFree.size()>0) {
         for (std::vector<MPI_Comm>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
            MPI_Comm commToFree=*it;
-           MPI_Comm_free(&commToFree);            
+           MPI_Comm_disconnect(&commToFree);            
         }
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
