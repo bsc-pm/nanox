@@ -151,7 +151,7 @@ paraver_config_files = \
      paraver_configs/mpi/views/point2point/advanced/max_recBW_during_activity.cfg\
      paraver_configs/mpi/views/point2point/advanced/bytes_received_at_waits.cfg\
      paraver_configs/mpi/views/point2point/advanced/sending_not_receiving.cfg\
-     paraver_configs/mpi/views/point2point/advanced/exclusively_1_direction_transfers.cfg\
+     paraver_configs/mpi/views/point2point/advanced/exclusively_1dir_transfers.cfg\
      paraver_configs/mpi/views/point2point/advanced/physical_s_r_msgs.cfg\
      paraver_configs/mpi/views/point2point/advanced/destination_last_large_send.cfg\
      paraver_configs/mpi/views/point2point/advanced/physical_s_r_bandwidth.cfg\
