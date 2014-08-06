@@ -39,11 +39,13 @@ namespace nanos {
 
    inline void dlb_updateAvailableCpus ( void )
    {
+      static bool dlb_greedy = getenv("DLB_GREEDY") != NULL;
       if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
             DLB_ReturnClaimedCpus();
 
          if ( sys.getPMInterface().isMalleable() ) {
-            int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getNumThreads();
+            int ready_tasks = getMyThreadSafe()->getTeam()->getSchedulePolicy().getPotentiallyParallelWDs();
+            int needed_resources = dlb_greedy ? ready_tasks : ready_tasks - sys.getNumThreads();
             if ( needed_resources > 0 )
                DLB_UpdateResources_max( needed_resources );
 

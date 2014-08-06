@@ -155,5 +155,10 @@ inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *prede
    _obj.successorFound( predecessor, successor );
 }
 
+inline int SchedulePolicy::getPotentiallyParallelWDs ( void )
+{
+   return sys.getReadyNum();
+}
+
 #endif
 
