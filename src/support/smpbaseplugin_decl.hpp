@@ -46,7 +46,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void setCoresPerSocket ( int coresPerSocket ) = 0;
       virtual int getCoresPerSocket() const = 0;
       virtual unsigned int getNewSMPThreadId() = 0;
-      virtual void updateActiveWorkers ( int nthreads ) = 0;
+      virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual void setCpuMask ( const cpu_set_t *mask ) = 0;
       virtual void getCpuMask ( cpu_set_t *mask ) const = 0;
       virtual void addCpuMask ( const cpu_set_t *mask ) = 0;

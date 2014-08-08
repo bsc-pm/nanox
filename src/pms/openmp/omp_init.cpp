@@ -279,7 +279,7 @@ namespace nanos
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( nthreads );
 
-         sys.getSMPPlugin()->updateActiveWorkers( nthreads );
+         sys.updateActiveWorkers( nthreads );
       }
 
       void OmpSsInterface::setNumThreads_globalState ( int nthreads )

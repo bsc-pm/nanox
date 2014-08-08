@@ -133,7 +133,6 @@ namespace nanos
 
    inline void BaseThread::sleep() {
       if (!_status.must_sleep) {
-      _teamData->getTeam()->decreaseFinalSize();
       _status.must_sleep = true;
       }
    }

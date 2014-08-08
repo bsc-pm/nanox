@@ -587,20 +587,14 @@ void System::finish ()
    
    ensure( getMyThreadSafe()->isMainThread(), "Main thread is not finishing the application!");
 
+   ThreadTeam* team = getMyThreadSafe()->getTeam();
+   while ( !(team->isStable()) ) memoryFence();
+
    //! \note stopping all threads
    verbose ( "Joining threads..." );
-#if 0
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       it->second->stopAllThreads();
    }
-#else
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it )
-   {
-      (*it)->stopAllThreads();
-   }   
-   
-#endif
    verbose ( "...thread has been joined" );
 
 
@@ -670,8 +664,6 @@ void System::finish ()
    }
    
    //! \note  printing thread team statistics and deleting it
-   ThreadTeam* team = getMyThreadSafe()->getTeam();
-
    if ( team->getScheduleData() != NULL ) team->getScheduleData()->printStats();
 
    myThread->leaveTeam();

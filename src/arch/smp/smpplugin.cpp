@@ -264,7 +264,7 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
          bool active = ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) );
-         unsigned numaNode = active ? getNodeOfPE( *it ) : std::numeric_limits<unsigned>::max();
+         unsigned numaNode = getNodeOfPE( *it );
          unsigned socket = numaNode;   /* FIXME: socket */
          
          if ( _smpPrivateMemory && count >= _smpHostCpus ) {
@@ -365,9 +365,7 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         if ( (*it)->isActive() ) {
             pes.insert( std::make_pair( (*it)->getId(), *it ) );
-         }
       }
    }
 
@@ -667,9 +665,9 @@ class SMPPlugin : public SMPBasePlugin
       processCpuMask();
    }
 
-
    void processCpuMask( void )
    {
+#if 0
       // if _bindThreads is enabled, update _bindings adding new elements of _cpuActiveSet
       if ( getBinding() ) {
          std::ostringstream oss_cpu_idx;
@@ -700,6 +698,7 @@ class SMPPlugin : public SMPBasePlugin
             updateActiveWorkers( CPU_COUNT( &_cpuActiveSet ) );
          }
       }
+#endif
    }
 
    SMPThread * getInactiveWorker( void )
@@ -715,7 +714,7 @@ class SMPPlugin : public SMPBasePlugin
       return NULL;
    }
 
-   virtual void updateActiveWorkers ( int nthreads )
+   virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers )
    {
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
@@ -726,27 +725,33 @@ class SMPPlugin : public SMPBasePlugin
       //! \bug Team variable must be received as a function parameter
       ThreadTeam *team = myThread->getTeam();
 
+      //! \note Probably it can be relaxed, but at the moment running in a safe mode
+      //! waiting for the team to be stable
+
       int num_threads = nthreads - team->getFinalSize();
       int new_workers = nthreads - _workers.size();
 
       while ( !(team->isStable()) ) memoryFence();
-
       if ( num_threads < 0 ) team->setStable(false);
 
       team->setFinalSize(nthreads);
 
 
-      //FIXME:xteruel Creating new workers
+      //! \note Creating new workers (if needed)
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       std::vector<ext::SMPProcessor *>::const_iterator it;
       for ( it = _cpus->begin(); it != _cpus->end() && new_workers > 0; it++ ) {
          if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
             ext::SMPProcessor *target = *it;
             target->reserve();
-            if ( !target->isActive() ) target->setActive();
+            if ( !target->isActive() ) {
+               target->setActive();
+               // FIXME: still need to update mask?
+               // CPU_SET( target->getBindingId(), &_cpuActiveSet );
+            }
             BaseThread *thd = &target->startWorker();
             _workers.push_back( (SMPThread *) thd );
-            // FIXME: still need to update mask and other counters
+            workers.insert( std::make_pair( thd->getId(), thd ) );
             new_workers--;
          }
       }
@@ -756,7 +761,7 @@ class SMPPlugin : public SMPBasePlugin
          thread = getUnassignedWorker();
          if (!thread) thread = getInactiveWorker();
          if (thread) {
-            sys.acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+            sys.acquireWorker( team, thread, /* enter */ true, /* starring */ false, /* creator */ false );
             num_threads--;
          }
       }
@@ -770,7 +775,6 @@ class SMPPlugin : public SMPBasePlugin
             num_threads++;
          }
       }
-
 
    }
 
@@ -909,7 +913,7 @@ class SMPPlugin : public SMPBasePlugin
       }
       o << "]";
    }
-
+   
 };
 }
 }
