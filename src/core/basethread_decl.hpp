@@ -128,6 +128,8 @@ namespace nanos
             bool has_team:1;
             bool has_joined:1;
             bool is_waiting:1;
+            bool can_get_work:1;    /**< Set whether the thread can get more WDs to run or not */
+
             StatusFlags_t() { memset( this, 0, sizeof(*this)); }
          } StatusFlags;
       private:
@@ -145,7 +147,6 @@ namespace nanos
          WD                     &_threadWD;      /**< Thread implicit WorkDescriptor */
          WD                     *_currentWD;     /**< Current WorkDescriptor the thread is executing */
          WDDeque                 _nextWDs;       /**< Queue with all the tasks that the thread is being run simultaneously */
-         volatile bool           _canGetWork;    /**< Set whether the thread can get more WDs to run or not */
          // Thread's Team info:
          TeamData               *_teamData;      /**< Current team data, thread is registered and also it has entered to the team */
          TeamData               *_nextTeamData;  /**< Next team data, thread is already registered in a new team but has not enter yet */
