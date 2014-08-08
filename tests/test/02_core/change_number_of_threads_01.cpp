@@ -31,6 +31,14 @@ int main ( int argc, char *argv[])
    );
    if ( myThread->getTeam()->getFinalSize() != NTHREADS_PHASE_2 ) error++;
 
+   sys.updateActiveWorkers( NTHREADS_PHASE_1 );
+
+   fprintf(stdout,"Thread team final size is %d and %d is expected\n",
+      (int) myThread->getTeam()->getFinalSize(),
+      (int) NTHREADS_PHASE_1
+   );
+   if ( myThread->getTeam()->getFinalSize() != NTHREADS_PHASE_1 ) error++;
+
    fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
 
    return error;
