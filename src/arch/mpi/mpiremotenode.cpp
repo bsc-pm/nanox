@@ -378,7 +378,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
             //Only owner will send kill signal to the worker
             if ( (*it)->getOwner() ) 
             {
-                nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
+                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
                 //After sending finalization signals, we are not the owners anymore
                 //This way we prevent finalizing them multiple times if more than one thread uses them
                 (*it)->setOwner(false);
@@ -393,11 +393,11 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     //If we despawned all the threads which used this communicator, free the communicator
     //If intercomm is null, do not do it, after all, it should be the final free
     if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {        
-       MPI_Comm_free(intercomm);
+       MPI_Comm_disconnect(intercomm);
     } else if (communicatorsToFree.size()>0) {
         for (std::vector<MPI_Comm>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
            MPI_Comm commToFree=*it;
-           MPI_Comm_free(&commToFree);            
+           MPI_Comm_disconnect(&commToFree);            
         }
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -427,7 +427,7 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
     std::vector<int> hostInstances;      
     int totalNumberOfSpawns=0; 
     int spawnedHosts=0;
-    
+
     //Read hostlist
     buildHostLists(offset, number_of_hosts,tokensParams,tokensHost,hostInstances);
     
@@ -576,21 +576,19 @@ void MPIRemoteNode::callMPISpawn(
     
     /** Build spawn structures */
     //Number of spawns = max length (one instance per host)
-    char *arrOfCommands[availableHosts];
-    char **arrOfArgv[availableHosts];
-    MPI_Info arrOfInfo[availableHosts];
-    int nProcess[availableHosts];
+    char ** arrOfCommands=new char*[availableHosts];
+    char *** arrOfArgv=new char**[availableHosts];
+    MPI_Info* arrOfInfo=new MPI_Info[availableHosts];
+    int* nProcess=new int[availableHosts];
     
+    spawnedHosts=0;
     //This the real length of previously declared arrays, it will be equal to number_of_spawns when 
-    //hostfile/line only has one instance per host (aka no host:nInstances)
-    int hostCounter=-1;
-    while( spawnedHosts< availableHosts ) {
+    //hostfile/line only has one instance per host (aka no host:nInstances)    
+    for (int hostCounter=0; hostCounter < availableHosts; hostCounter++ ) {
         //Fill host
         MPI_Info info;
         MPI_Info_create(&info);
-        std::string host;
-        //Pick next host
-        hostCounter++;        
+        std::string host;   
         //Set number of instances this host can handle (depends if user specified, hostList specified or list specified)
         int currHostInstances;
         if (usePPHList) {
@@ -646,7 +644,7 @@ void MPIRemoteNode::callMPISpawn(
             nProcess[spawnedHosts]=currHostInstances;
             totalNumberOfSpawns+=currHostInstances;
             ++spawnedHosts;
-        }
+        } 
     }           
     #ifndef OPEN_MPI
     int fd=-1;
@@ -656,7 +654,7 @@ void MPIRemoteNode::callMPISpawn(
        fd=tryGetLock(const_cast<char*> (lockname.c_str()));
     }
     #endif
-    MPI_Comm_spawn_multiple(availableHosts,arrOfCommands, arrOfArgv, nProcess,
+    MPI_Comm_spawn_multiple(spawnedHosts, arrOfCommands, arrOfArgv, nProcess,
             arrOfInfo, 0, comm, intercomm, MPI_ERRCODES_IGNORE); 
     #ifndef OPEN_MPI
     if (!nanos::ext::MPIProcessor::isDisableSpawnLock() && !shared) {
@@ -671,7 +669,11 @@ void MPIRemoteNode::callMPISpawn(
             delete[] arrOfArgv[i][e];
         }
         delete[] arrOfArgv[i];
-    }    
+    }        
+    delete[] arrOfCommands;
+    delete[] arrOfArgv;
+    delete[] arrOfInfo;
+    delete[] nProcess;
 }
 
 

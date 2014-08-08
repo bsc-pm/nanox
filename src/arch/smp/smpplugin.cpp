@@ -433,7 +433,19 @@ class SMPPlugin : public SMPBasePlugin
    }
 
    virtual ext::SMPProcessor *getFirstSMPProcessor() const {
-      return ( _cpus != NULL ) ? (*_cpus)[ _bindingStart ] : NULL;
+      //ensure( _cpus != NULL, "Uninitialized SMP plugin.");
+      ext::SMPProcessor *target = NULL;
+      int bindingStart=_bindingStart%_cpus->size();
+      //Get the first (aka bindingStart) active processor
+      for ( std::vector<ext::SMPProcessor *>::const_iterator it = _cpus->begin();
+            it != _cpus->end() && bindingStart>=0 ;
+            it++ ) {
+         if ( (*it)->isActive() ) {
+            target = *it;
+            --bindingStart;
+         }
+      }
+      return target;
    }
 
    virtual cpu_set_t &getActiveSet() {
