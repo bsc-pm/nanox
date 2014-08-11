@@ -55,7 +55,7 @@ void GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
 
    GenericEvent * evt = thread->createPreRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG
-   evt->setDescription( evt->getDescription() + " copy input: " + toString<uint_64>( remoteSrc.getTag() ) );
+   evt->setDescription( evt->getDescription() + " copy input: " + toString<uint64_t>( remoteSrc.getTag() ) );
 #endif
    evt->setCreated();
 
@@ -112,7 +112,7 @@ void GPUDevice::isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t s
 
       GenericEvent * evt = thread->createPostRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG
-      evt->setDescription( evt->getDescription() + " copy output: " + toString<uint_64>( remoteDst.getTag() ) );
+      evt->setDescription( evt->getDescription() + " copy output: " + toString<uint64_t>( remoteDst.getTag() ) );
 #endif
       evt->setCreated();
 
