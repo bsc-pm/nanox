@@ -281,7 +281,6 @@ void MPIDevice::remoteNodeCacheWorker() {
         MPI_Status status;
         //short ans=1;
         cacheOrder order;  
-        int task_id;    
         int parentRank=0;
         int firstParent=-1;
         while(1) {
@@ -289,80 +288,84 @@ void MPIDevice::remoteNodeCacheWorker() {
                     int flag=0;
                     //When this is not the executer thread, perform async probes
                     //as performing sync probes will lock MPI implementation (at least @ IMPI)
-                    while (flag==0) {
-                        usleep(50000);
-                        MPI_Iprobe(MPI_ANY_SOURCE,MPI_ANY_TAG,parentcomm,&flag,&status);
+                    while (flag==0 && !nanos::ext::MPIRemoteNode::getDisconnectedFromParent()) {
+                        MPI_Iprobe(MPI_ANY_SOURCE,TAG_CACHE_ORDER,parentcomm,&flag,MPI_STATUS_IGNORE);
+                        if (flag==0) usleep(50000);
                     }
-                } else {
-                    MPI_Probe(MPI_ANY_SOURCE,MPI_ANY_TAG,parentcomm,&status);
                 }
+                
+                if (!nanos::ext::MPIRemoteNode::getDisconnectedFromParent())
+                    MPI_Recv(&order, 1, cacheStruct, MPI_ANY_SOURCE, TAG_CACHE_ORDER, parentcomm, &status);
+                else
+                    order.opId=OPID_FINISH;
+ 
                 parentRank=status.MPI_SOURCE;
-                if (status.MPI_TAG==TAG_INI_TASK) {
-                    //If our node is used by more than one parent
-                    //create the worker thread as we may have cache orders from
-                    //one node while executing tasks from the other node
-                    if (firstParent!=parentRank && !_createdExtraWorkerThread) {
-                        if (firstParent==-1) {
-                            firstParent=parentRank;
-                        } else {
+                switch (order.opId) {
+                    case OPID_TASK_INIT:
+                    {
+                        int task_id=(int)order.hostAddr; 
+                        //If our node is used by more than one parent
+                        //create the worker thread as we may have cache orders from
+                        //one node while executing tasks from the other node
+                        if (firstParent!=parentRank && !_createdExtraWorkerThread) {
+                            if (firstParent==-1) {
+                                firstParent=parentRank;
+                            } else {
+                                _createdExtraWorkerThread=true;  
+                                createExtraCacheThread();
+                                //Create extra thread which controls the cache, add current task to queue and become executor
+                                nanos::ext::MPIRemoteNode::addTaskToQueue(task_id,parentRank);
+                                nanos::ext::MPIRemoteNode::nanosMPIWorker();
+                                return;
+                            }
+                        }
+                        if (_createdExtraWorkerThread) {
+                            //Add task to execution queue
+                            nanos::ext::MPIRemoteNode::addTaskToQueue(task_id,parentRank);
+                        } else {                       
+                            //Execute the task in current thread
+                            nanos::ext::MPIRemoteNode::setCurrentTaskParent(parentRank);
+                            nanos::ext::MPIRemoteNode::executeTask(task_id);
+                        }
+                        break;
+                    }
+                    case OPID_CREATEAUXTHREAD: 
+                    {
+                        //Only create once (multiple requests may come
+                        //since different parents do not query the status of the thread)
+                        //ignore extra ones
+                        if (!_createdExtraWorkerThread) {
                             _createdExtraWorkerThread=true;  
                             createExtraCacheThread();
                             nanos::ext::MPIRemoteNode::nanosMPIWorker();
                             return;
                         }
+                        break;
                     }
-                    nanos::ext::MPIRemoteNode::nanosMPIRecvTaskinit(&task_id, 1, MPI_INT, parentRank, parentcomm, MPI_STATUS_IGNORE);
-                    if (_createdExtraWorkerThread) {
-                        //Add task to execution queue
-                        nanos::ext::MPIRemoteNode::addTaskToQueue(task_id,parentRank);
-                        nanos::ext::MPIRemoteNode::getTaskLock().release();
-                    } else {                       
-                        //Execute the task in current thread
-                        nanos::ext::MPIRemoteNode::setCurrentTaskParent(parentRank);
-                        nanos::ext::MPIRemoteNode::executeTask(task_id);
+                    case OPID_FINISH:    
+                    {
+                        if (_createdExtraWorkerThread) {
+                           //Add finish task to execution queue
+                           nanos::ext::MPIRemoteNode::addTaskToQueue(TASK_END_PROCESS,parentRank);   
+                           nanos::ext::MPIRemoteNode::getTaskLock().acquire(); 
+                           nanos::ext::MPIRemoteNode::getTaskLock().acquire(); 
+                        } else {							
+                           //Execute in current thread
+                           nanos::ext::MPIRemoteNode::setCurrentTaskParent(parentRank);
+                           nanos::ext::MPIRemoteNode::executeTask(TASK_END_PROCESS);   
+                        }
+                        return;
                     }
-                } else {
-                    MPI_Recv(&order, 1, cacheStruct, parentRank , TAG_CACHE_ORDER, parentcomm, MPI_STATUS_IGNORE);
-                    switch (order.opId) {
-                        case OPID_CREATEAUXTHREAD: 
-                        {
-                            //Only create once (multiple requests may come
-                            //since different parents do not query the status of the thread)
-                            //ignore extra ones
-                            if (!_createdExtraWorkerThread) {
-                                _createdExtraWorkerThread=true;  
-                                createExtraCacheThread();
-                                nanos::ext::MPIRemoteNode::nanosMPIWorker();
-                                return;
-                            }
-                            break;
-                        }
-                        case OPID_FINISH:    
-                        {
-                            if (_createdExtraWorkerThread) {
-                               //Add finish task to execution queue
-                               nanos::ext::MPIRemoteNode::addTaskToQueue(TASK_END_PROCESS,parentRank);   
-                               nanos::ext::MPIRemoteNode::getTaskLock().release();   
-                               //Wait until the extra worker thread has finished
-                               nanos::ext::MPIRemoteNode::getTaskLock().acquire(); 
-                               nanos::ext::MPIRemoteNode::getTaskLock().release();    
-                            } else {							
-                               //Execute in current thread
-                               nanos::ext::MPIRemoteNode::setCurrentTaskParent(parentRank);
-                               nanos::ext::MPIRemoteNode::executeTask(TASK_END_PROCESS);   
-                            }
-                            return;
-                        }
-                        case OPID_UNIFIED_MEM_REQ:
-                        {
-                            nanos::ext::MPIRemoteNode::unifiedMemoryMallocRemote(order, parentRank, parentcomm);
-                            break;
-                        }
-                        case OPID_COPYIN:
-                        {    
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);
-                            nanos::ext::MPIRemoteNode::nanosMPIRecv((void*) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_IN, parentcomm, MPI_STATUS_IGNORE );
-                            //                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+                    case OPID_UNIFIED_MEM_REQ:
+                    {
+                        nanos::ext::MPIRemoteNode::unifiedMemoryMallocRemote(order, parentRank, parentcomm);
+                        break;
+                    }
+                    case OPID_COPYIN:
+                    {    
+                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);
+                        nanos::ext::MPIRemoteNode::nanosMPIRecv((void*) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_IN, parentcomm, MPI_STATUS_IGNORE );
+                        //                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
 //                            if (ent != NULL) 
 //                            { 
 //                               if (ent->getOwner() != NULL) {
@@ -371,12 +374,12 @@ void MPIDevice::remoteNodeCacheWorker() {
 //                                  ent->increaseVersion();
 //                               }
 //                            }
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            break;
-                        }
-                        case OPID_COPYOUT:
-                        {
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYOUT_EVENT);
+                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                        break;
+                    }
+                    case OPID_COPYOUT:
+                    {
+                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYOUT_EVENT);
 //                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
 //                            if (ent != NULL) 
 //                            {
@@ -388,47 +391,47 @@ void MPIDevice::remoteNodeCacheWorker() {
 //                                     _masterDir->synchronizeHost( tagsToInvalidate );
 //                                  }
 //                            }
-                            nanos::ext::MPIRemoteNode::nanosMPISend((void *) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_OUT, parentcomm);
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            break;
+                        nanos::ext::MPIRemoteNode::nanosMPISend((void *) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_OUT, parentcomm);
+                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                        break;
+                    }
+                    case OPID_FREE:
+                    {
+                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
+                        std::free((char *) order.devAddr);
+                        //printf("Dir free%p\n",(char*) order.devAddr);    
+    //                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
+    //                    if (ent != NULL) 
+    //                    {
+    //                        ent->setInvalidated(true);
+    //                    }
+                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                        break;
+                    }
+                    case OPID_ALLOCATE:           
+                    {
+                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
+                        char* ptr;                        
+                        if (order.size<alignThreshold){
+                           ptr = (char*) malloc(order.size);
+                        } else {
+                           posix_memalign((void**)&ptr,alignment,order.size);
                         }
-                        case OPID_FREE:
-                        {
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
-                            std::free((char *) order.devAddr);
-                            //printf("Dir free%p\n",(char*) order.devAddr);    
-        //                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-        //                    if (ent != NULL) 
-        //                    {
-        //                        ent->setInvalidated(true);
-        //                    }
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            break;
+                        order.devAddr = (uint64_t) ptr;
+                        nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_ALLOC, parentcomm);
+                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                        break;
+                    }    
+                    case OPID_REALLOC:           
+                    {
+                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
+                        std::free((char *) order.devAddr);
+                        char* ptr;                        
+                        if (order.size<alignThreshold){
+                           ptr = (char*) malloc(order.size);
+                        } else {
+                           posix_memalign((void**)&ptr,alignment,order.size);
                         }
-                        case OPID_ALLOCATE:           
-                        {
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
-                            char* ptr;                        
-                            if (order.size<alignThreshold){
-                               ptr = (char*) malloc(order.size);
-                            } else {
-                               posix_memalign((void**)&ptr,alignment,order.size);
-                            }
-                            order.devAddr = (uint64_t) ptr;
-                            nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_ALLOC, parentcomm);
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            break;
-                        }    
-                        case OPID_REALLOC:           
-                        {
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
-                            std::free((char *) order.devAddr);
-                            char* ptr;                        
-                            if (order.size<alignThreshold){
-                               ptr = (char*) malloc(order.size);
-                            } else {
-                               posix_memalign((void**)&ptr,alignment,order.size);
-                            }
 //                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
 //                            if (ent != NULL) 
 //                            { 
@@ -437,32 +440,32 @@ void MPIDevice::remoteNodeCacheWorker() {
 //                                  ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
 //                               }
 //                            }
-                            order.devAddr = (uint64_t) ptr;
-                            nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_REALLOC, parentcomm);
+                        order.devAddr = (uint64_t) ptr;
+                        nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_REALLOC, parentcomm);
+                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                        break;
+                    }
+                    case OPID_COPYLOCAL:
+                    {
+                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYLOCAL_EVENT);
+                        memcpy((void*) order.devAddr, (void*) order.hostAddr, order.size);
+                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                        break;
+                    }
+                    //If not a fixed code, its a dev2dev copy where i act as the source
+                    default:
+                    {
+                        //Opid >= DEV2DEV (largest OPID) is dev2dev+rank
+                        if (order.opId>=OPID_DEVTODEV){
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT);
+                            //Get the rank
+                            int dstRank=order.opId-OPID_DEVTODEV;
+                            //MPI_Comm_get_parent(&parentcomm);
+                            nanos::ext::MPIRemoteNode::nanosMPISend((void *) order.hostAddr, order.size, MPI_BYTE, dstRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD);
                             NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            break;
-                        }
-                        case OPID_COPYLOCAL:
-                        {
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYLOCAL_EVENT);
-                            memcpy((void*) order.devAddr, (void*) order.hostAddr, order.size);
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            break;
-                        }
-                        //If not a fixed code, its a dev2dev copy where i act as the source
-                        default:
-                        {
-                            //Opid >= DEV2DEV (largest OPID) is dev2dev+rank
-                            if (order.opId>=OPID_DEVTODEV){
-                                NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT);
-                                //Get the rank
-                                int dstRank=order.opId-OPID_DEVTODEV;
-                                //MPI_Comm_get_parent(&parentcomm);
-                                nanos::ext::MPIRemoteNode::nanosMPISend((void *) order.hostAddr, order.size, MPI_BYTE, dstRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD);
-                                NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            //Opid <= 0 (largest OPID) is -rank (in a dev2dev communication)
-                            } else if (order.opId<=0) {
-                                NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_IN_EVENT);
+                        //Opid <= 0 (largest OPID) is -rank (in a dev2dev communication)
+                        } else if (order.opId<=0) {
+                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_IN_EVENT);
 //                                DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
 //                                if (ent != NULL) 
 //                                { 
@@ -472,15 +475,14 @@ void MPIDevice::remoteNodeCacheWorker() {
 //                                      ent->increaseVersion();
 //                                   }
 //                                }
-                                //Do the inverse operation of the host
-                                int srcRank=-order.opId;
+                            //Do the inverse operation of the host
+                            int srcRank=-order.opId;
 
-                                nanos::ext::MPIRemoteNode::nanosMPIRecv((void *) order.devAddr, order.size, MPI_BYTE, srcRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD, MPI_STATUS_IGNORE );                        
-                                NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                            }
-                            break;
-                      }
-                }
+                            nanos::ext::MPIRemoteNode::nanosMPIRecv((void *) order.devAddr, order.size, MPI_BYTE, srcRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD, MPI_STATUS_IGNORE );                        
+                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
+                        }
+                        break;
+                  }
            }
         }
     }

@@ -43,12 +43,14 @@ namespace nanos {
             static char* _bufferPtr;
             
             static bool _initialized;   
+            static bool _disconnectedFromParent;
             static Lock _taskLock;
-            static Lock _queueLock;
             static std::list<int> _pendingTasksQueue;
             static std::list<int> _pendingTaskParentsQueue;   
             static int _currentTaskParent;
             static int _currProcessor;
+            static pthread_cond_t          _taskWait;         //! Condition variable to wait for completion
+            static pthread_mutex_t         _taskMutex;        //! Mutex to access the completion 
             
 
             // disable copy constructor and assignment operator
@@ -75,8 +77,9 @@ namespace nanos {
             
             static void addTaskToQueue(int task_id, int parentId);
 
-            static void removeTaskFromQueue();            
+            static void removeTaskFromQueue();        
             
+            static bool getDisconnectedFromParent();            
             
             static bool executeTask(int taskId);
             
@@ -210,13 +213,23 @@ namespace nanos {
             /**
              * Wrappers for MPI functions
              */
+            
+            /**
+             * Send task init signal
+             * @param buf buffer pointing to an integer
+             * @param count 1
+             * @param datatype IGNORED
+             * @param dest
+             * @param comm
+             * @return 
+             */
             static int nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
                     MPI_Comm comm);
 
             static int nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
                     MPI_Comm comm, MPI_Status *status); 
 
-            static int nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int dest,
+            static int nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
                     MPI_Comm comm);
 
             static int nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,

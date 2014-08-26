@@ -43,7 +43,8 @@ extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[2U])();
 bool MPIRemoteNode::executeTask(int taskId) {    
     bool ret=false;
     if (taskId==TASK_END_PROCESS){
-       nanosMPIFinalize(); 
+       nanosMPIFinalize();   
+       nanos::ext::MPIRemoteNode::getTaskLock().release(); 
        ret=true;
     } else {                     
        void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId]; 
@@ -56,8 +57,6 @@ bool MPIRemoteNode::executeTask(int taskId) {
 
 int MPIRemoteNode::nanosMPIWorker(){
 	bool finalize=false;
-	//Acquire once
-   getTaskLock().acquire();
 	while(!finalize){
 		//Acquire twice and block until cache thread unlocks
       testTaskQueueSizeAndLock();
@@ -65,8 +64,6 @@ int MPIRemoteNode::nanosMPIWorker(){
 		finalize=executeTask(getQueueCurrTaskIdentifier());
       removeTaskFromQueue();
 	}     
-   //Release the lock so cache thread can finish
-	getTaskLock().release();
    return 0;
 }
 
@@ -393,7 +390,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     //If we despawned all the threads which used this communicator, free the communicator
     //If intercomm is null, do not do it, after all, it should be the final free
     if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {        
-       MPI_Comm_disconnect(intercomm);
+       MPI_Comm_disconnect(intercomm); 
     } else if (communicatorsToFree.size()>0) {
         for (std::vector<MPI_Comm>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
            MPI_Comm commToFree=*it;
@@ -767,9 +764,15 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
 }
 
 int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
-        MPI_Comm comm) {
+        MPI_Comm comm) {    
+    cacheOrder order;
+    order.opId = OPID_TASK_INIT;
+    int* intbuf=(int*)buf;
+    //Values of intbuf will be positive (using integer for conveniece with Fortran)
+    order.hostAddr = *intbuf;
+    //MPI_Status status;
     //Send task init order and pendingComms counter
-    return nanosMPISend(buf, count, datatype, dest, TAG_INI_TASK, comm);
+    return nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, dest, TAG_CACHE_ORDER, comm);
 }
 
 int MPIRemoteNode::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
@@ -777,10 +780,18 @@ int MPIRemoteNode::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datat
     return nanosMPIRecv(buf, count, datatype, source, TAG_INI_TASK, comm, status);
 }
 
-int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int dest,
+int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
         MPI_Comm comm) {
+    if (_disconnectedFromParent) return 0;
     //Ignore destination (as is always parent) and get currentParent
-    return nanosMPISend(buf, count, datatype, nanos::ext::MPIRemoteNode::getCurrentTaskParent(), TAG_END_TASK, comm);
+    int res= nanosMPISend(buf, count, datatype, nanos::ext::MPIRemoteNode::getCurrentTaskParent(), TAG_END_TASK, comm);
+    if (disconnect!=0) {      
+        MPI_Comm parent;
+        MPI_Comm_get_parent(&parent);   
+        _disconnectedFromParent=true;
+        MPI_Comm_disconnect(&parent);			
+    }
+    return res;
 }
 
 int MPIRemoteNode::nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,

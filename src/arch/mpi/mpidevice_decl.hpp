@@ -46,18 +46,17 @@ enum {
 //Because of DEV2DEV OPIDs <=0 are RESERVED, and OPIDs > OPID_DEVTODEV too
 enum {
     OPID_FINISH=1, OPID_COPYIN = 2, OPID_COPYOUT=3, OPID_FREE = 4, OPID_ALLOCATE =5 , OPID_COPYLOCAL = 6, OPID_REALLOC = 7, OPID_CONTROL = 8, 
-    OPID_CREATEAUXTHREAD=9, OPID_UNIFIED_MEM_REQ=10, /*Keep DEV2DEV value as highest in the OPIDs*/ OPID_DEVTODEV=999
+    OPID_CREATEAUXTHREAD=9, OPID_UNIFIED_MEM_REQ=10, OPID_TASK_INIT=11, /*Keep DEV2DEV value as highest in the OPIDs*/ OPID_DEVTODEV=999
 };
 //Assigned rank value for the Daemon Thread, so it doesn't get used by any DD
 #define CACHETHREADRANK -1
+#define TASK_END_PROCESS -1
 //When source or destination comes with this value, it means that the user
 //didn't specify any concrete device, runtime launchs in whatever it wants
 //so we have to override it's value with the PE value
 //WARNING: Keep this defines with the same value than the one existing in the compiler (nanox-mpi.hpp)
 #define UNKOWN_RANKSRCDST -95
 #define MASK_TASK_NUMBER 989
-
-#define TASK_END_PROCESS -1
 
 
 
