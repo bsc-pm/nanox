@@ -163,6 +163,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
             _cache.addReference( tag );
 
             if ( size != ce->getSize() ) {
+               // This code has bugs: only allow resizing when there is at most one memory space different from the host's memory space (1 host + 1 device)
+               ensure( sys.getCacheMap().getSize() < 2, "Resizing in cache is not supported for more than one device." );
+
                if ( ce->trySetToResizing() ) {
                   // Wait until it's only me using this entry
                   // FIXME: Multiple threads per cache not supported with this implementation
@@ -215,6 +218,9 @@ inline void CachePolicy::registerCacheAccess( Directory& dir, uint64_t tag, size
       } else {
          // Cache entry already exists in the cache
          if ( size != ce->getSize() ) {
+            // This code has bugs: only allow resizing when there is at most one memory space different from the host's memory space (1 host + 1 device)
+            ensure( sys.getCacheMap().getSize() < 2, "Resizing in cache is not supported for more than one device." );
+
             if ( ce->trySetToResizing() ) {
                // Wait until it's only me using this entry
                // FIXME: Multiple threads per cache not supported with this implementation
