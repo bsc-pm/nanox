@@ -5,8 +5,6 @@ then
 
 cat <<EOF
 
-test_CC="nvcc"
-
 SRC=@SRCDIR@/src
 BUILD=@BUILDDIR@/src
 
@@ -38,8 +36,8 @@ common_includes="
 
 compile_versions="@COMPILE_VERSIONS@"
 
-test_CC="nvcc"
-test_CXX="nvcc"
+test_CC=@CUDA_DIR@"/bin/nvcc"
+test_CXX=@CUDA_DIR@"/bin/nvcc"
 
 test_CFLAGS="\$common_includes"
 test_CXXFLAGS="\$common_includes"
