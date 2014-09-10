@@ -88,6 +88,10 @@ using namespace ext;
 
 #define _emitPtPEvents 1
 
+
+#define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
+
+
 GASNetAPI *GASNetAPI::_instance = 0;
 
 GASNetAPI *GASNetAPI::getInstance() {
@@ -184,7 +188,7 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
    NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
    while ( sent < _len )
    {
-      thisReqSize = ( ( _len - sent ) <= gasnet_AMMaxLongRequest() ) ? _len - sent : gasnet_AMMaxLongRequest();
+      thisReqSize = ( ( _len - sent ) <= MAX_LONG_REQUEST ) ? _len - sent : MAX_LONG_REQUEST;
 
       if ( _emitPtPEvents ) {
          NANOS_INSTRUMENT ( nanos_event_value_t xferSize = thisReqSize; )
@@ -1256,7 +1260,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
    {
       while ( sent < size )
       {
-         thisReqSize = ( ( size - sent ) <= gasnet_AMMaxLongRequest() ) ? size - sent : gasnet_AMMaxLongRequest();
+         thisReqSize = ( ( size - sent ) <= MAX_LONG_REQUEST ) ? size - sent : MAX_LONG_REQUEST;
 
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
@@ -1311,7 +1315,7 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
    {
       while ( sent < realSize )
       {
-         thisReqSize = ( ( realSize - sent ) <= gasnet_AMMaxLongRequest() ) ? realSize - sent : gasnet_AMMaxLongRequest();
+         thisReqSize = ( ( realSize - sent ) <= MAX_LONG_REQUEST ) ? realSize - sent : MAX_LONG_REQUEST;
 
          NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
          NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
