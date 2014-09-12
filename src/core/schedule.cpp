@@ -219,14 +219,14 @@ inline void Scheduler::idleLoop ()
    int spins = init_spins;
    int yields = init_yields;
 
-   NANOS_INSTRUMENT ( unsigned long total_spins = 0; )  /* Number of spins by idle phase*/
-   NANOS_INSTRUMENT ( unsigned long total_yields = 0; ) /* Number of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_blocks = 0; ) /* Number of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_scheds = 0; ) /* Number of scheds by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_spins = 0; )  /* Number of spins by idle phase*/
+   NANOS_INSTRUMENT ( unsigned long long total_yields = 0; ) /* Number of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_blocks = 0; ) /* Number of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_scheds = 0; ) /* Number of scheds by idle phase */
 
-   NANOS_INSTRUMENT ( unsigned long time_blocks = 0; ) /* Time of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_yields = 0; ) /* Time of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_blocks = 0; ) /* Time of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_yields = 0; ) /* Time of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_scheds = 0; ) /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
    sys.getSchedulerStats()._idleThreads++;
@@ -258,11 +258,11 @@ inline void Scheduler::idleLoop ()
          memoryFence();
          if ( sys.getSchedulerStats()._readyTasks > 0 ) {
             NANOS_INSTRUMENT ( total_scheds++; )
-            NANOS_INSTRUMENT ( unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long begin_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
 
             next = behaviour::getWD(thread,current);
 
-            NANOS_INSTRUMENT (  unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long end_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             NANOS_INSTRUMENT (time_scheds += ( end_sched - begin_sched ); )
          }
       } 
@@ -334,9 +334,9 @@ inline void Scheduler::idleLoop ()
                }
                
                NANOS_INSTRUMENT ( total_blocks++; )
-               NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+               NANOS_INSTRUMENT ( unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
                thread->block(); //FIXME:xteruel
-               NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+               NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
                NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
                      
                // Having reached this point, if we temporally tied the wd to the thread, undo it
@@ -346,9 +346,9 @@ inline void Scheduler::idleLoop ()
             yields = init_yields;
          } else if ( use_yield ) {
             NANOS_INSTRUMENT ( total_yields++; )
-            NANOS_INSTRUMENT ( unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             thread->yield();
-            NANOS_INSTRUMENT ( unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
             if ( use_block ) yields--;
          }
@@ -392,13 +392,13 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
 
-   NANOS_INSTRUMENT ( unsigned long total_spins = 0; ) /* Number of spins by idle phase*/
-   NANOS_INSTRUMENT ( unsigned long total_yields = 0; ) /* Number of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_blocks = 0; ) /* Number of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_scheds= 0; ) /* Number of schedulers by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_blocks = 0; ) /* Time of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_yields = 0; ) /* Time of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of sched by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_spins = 0; ) /* Number of spins by idle phase*/
+   NANOS_INSTRUMENT ( unsigned long long total_yields = 0; ) /* Number of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_blocks = 0; ) /* Number of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_scheds= 0; ) /* Number of schedulers by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_blocks = 0; ) /* Time of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_yields = 0; ) /* Time of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_scheds = 0; ) /* Time of sched by idle phase */
 
    if (condition->check()) {
        return;
@@ -444,11 +444,11 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                      thread->unpause();
                      
                      NANOS_INSTRUMENT ( total_scheds++; )
-                     NANOS_INSTRUMENT ( unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                     NANOS_INSTRUMENT ( unsigned long long begin_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
 
                      next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
 
-                     NANOS_INSTRUMENT ( unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                     NANOS_INSTRUMENT ( unsigned long long end_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
                      NANOS_INSTRUMENT ( time_scheds += ( end_sched - begin_sched ); )
                   }
                   else {
@@ -540,9 +540,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                         condition->unlock(); // FIXME: may cause race condition
                         
                         NANOS_INSTRUMENT ( total_blocks++; )
-                        NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                        NANOS_INSTRUMENT ( unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
                         thread->block(); //FIXME:xteruel
-                        NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                        NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
                         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
                         
                         // Having reached this point, if we temporally tied the wd to the thread, undo it
@@ -556,9 +556,9 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   yields = init_yields;
                } else if ( use_yield ) {
                   NANOS_INSTRUMENT ( total_yields++; )
-                  NANOS_INSTRUMENT ( unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                  NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
                   thread->yield();
-                  NANOS_INSTRUMENT ( unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+                  NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
                   NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
                   if ( use_block ) yields--;
                }
