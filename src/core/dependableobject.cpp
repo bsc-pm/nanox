@@ -72,7 +72,7 @@ void DependableObject::finished ( )
       // use it.
       if ( succ.size() > 1 )
       {
-         // Construct list of successors to be release immediately.
+         // Construct list of successors to be released immediately.
          // Allocate as many elements as we have in the successor list
          WD** immediateSucc = (WD**) alloca( sizeof(WD*) * succ.size() );
          WD** pIS = immediateSucc;
@@ -82,7 +82,7 @@ void DependableObject::finished ( )
             // If this dependable object can't be released in batch
             if ( !(*it)->canBeBatchReleased() )
             {
-               (*it)->decreasePredecessors( NULL, false, this );
+               (*it)->decreasePredecessors( NULL, this, false );
                continue;
             }
             
@@ -116,7 +116,7 @@ void DependableObject::finished ( )
       {
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
             NANOS_INSTRUMENT ( instrument ( *(*it) ); )
-            (*it)->decreasePredecessors( NULL, false, this );
+            (*it)->decreasePredecessors( NULL, this, false );
          }
       }
    }
@@ -140,9 +140,9 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
       for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); ) {
          // Is this an immediate successor? 
          if ( (*it)->numPredecessors() == 1 && condition(**it) && !((*it)->waits()) ) {
-            // remove it
-            found = *it;
             if ((*it)->isSubmitted()) {
+               // remove it
+               found = *it;
                succ.erase(it++);
                if ( found->numPredecessors() != 1 ) {
                   incorrectlyErased.insert( found );
@@ -156,7 +156,7 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      // This means that the WD related to this DO does not need to be submitted,
                      // because someone else will do it
                      // Keep the dependency to signal when the WD can actually be run respecting dependencies
-                     found->setSubmission( false );
+                     found->disableSubmission();
                      succ.insert( found );
                   }
 
@@ -168,6 +168,8 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
 
                   break;
                }
+            } else {
+               it++;
             }
          } else {
             it++;

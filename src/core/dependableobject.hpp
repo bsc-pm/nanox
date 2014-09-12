@@ -97,17 +97,18 @@ inline int DependableObject::increasePredecessors ( )
 
 inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred, bool blocking )
 {
-   if ( finishedPred != NULL && getWD() != NULL && finishedPred->getWD() ) {
-      getWD()->predecessorFinished( finishedPred->getWD() );
-   }
    int  numPred = --_numPredecessors; 
 
    if ( finishedPred != NULL ) {
       //remove the predecessor from the list!
       _predLock.acquire();
       DependableObjectVector::iterator it = _predecessors.find( finishedPred );
-      _predecessors.erase(it);
+      _predecessors.erase( it );
       _predLock.release();
+
+      if ( getWD() != NULL && finishedPred->getWD() != NULL ) {
+         getWD()->predecessorFinished( finishedPred->getWD() );
+      }
    }
 
    if ( numPred == 0 ) {
@@ -207,7 +208,7 @@ inline bool DependableObject::isSubmitted()
 inline void DependableObject::submitted()
 {
    _submitted = true;
-   setSubmission( true );
+   enableSubmission();
    memoryFence();
 }
 
@@ -216,9 +217,16 @@ inline bool DependableObject::needsSubmission() const
    return _needsSubmission;
 }
 
-inline void DependableObject::setSubmission( bool submission )
+inline void DependableObject::enableSubmission()
 {
-   _needsSubmission = submission;
+   _needsSubmission = true;
+}
+
+inline void DependableObject::disableSubmission()
+{
+   _needsSubmission = false;
+   _submitted = false;
+   memoryFence();
 }
 
 inline Lock& DependableObject::getLock()

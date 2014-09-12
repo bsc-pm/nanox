@@ -264,13 +264,17 @@ namespace nanos
 
          /*! \brief returns true if the DependableObject needs to be submitted in the domain
           */
-          bool needsSubmission() const;
+         bool needsSubmission() const;
 
-         /*! \brief sets the DO as it needs to be submitted
+         /*! \brief sets the DO to submitted
           */
-          void setSubmission( bool submission );
+         void enableSubmission();
 
-        /*! \brief returns a reference to the object's lock
+         /*! \brief sets the DO to not submitted
+          */
+         void disableSubmission();
+
+         /*! \brief returns a reference to the object's lock
          */
          Lock& getLock();
 
