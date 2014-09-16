@@ -90,8 +90,8 @@ namespace nanos {
 //               }               unsigned int vectorIdx = 0;
                unsigned int vectorIdx = 0;
                
-               DepsCacheMap::iterator itCache = _addressDependencyCache.find( target ); 
                getInstanceLock().acquire();
+               DepsCacheMap::iterator itCache = _addressDependencyCache.find( target ); 
                std::vector<TrackableObject* > * objs;
                unsigned int vectorEnd=_addressDependencyVector.size();
                //If object not in cache, its new, initialize empty cache
