@@ -9,7 +9,14 @@ uint64_t global_reg_t::getKeyFirstAddress() const {
 }
 
 uint64_t global_reg_t::getRealFirstAddress() const {
-   return getFirstAddress( key->getRealBaseAddress() );
+   uint64_t addr = 0;
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   addr = entry->getBaseAddress() == 0 ? key->getRealBaseAddress() : entry->getBaseAddress();
+   if ( addr != 0 ) {
+      addr = getFirstAddress( addr );
+   }
+   return addr;
 }
 
 uint64_t global_reg_t::getFirstAddress( uint64_t baseAddress ) const {
@@ -188,8 +195,8 @@ unsigned int global_reg_t::getVersion() const {
    return NewNewRegionDirectory::getVersion( key, id, false );
 }
 
-void global_reg_t::fillCopyData( CopyData &cd ) const {
-   cd.setBaseAddress( 0 );
+void global_reg_t::fillCopyData( CopyData &cd, uint64_t baseAddress ) const {
+   cd.setBaseAddress( (void *) baseAddress );
    cd.setRemoteHost( true );
    cd.setHostBaseAddress( key->getKeyBaseAddress() );
    cd.setNumDimensions( key->getNumDimensions() );

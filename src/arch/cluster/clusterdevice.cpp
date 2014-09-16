@@ -105,30 +105,43 @@ void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::
    ops->completeOp();
 }
 
-void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
    char * hostAddrPtr = (char *) hostAddr;
+   //std::cerr << "ClusterDevice::_copyOutStrided1D with count " << count << " and len " << len << " sys.getNetwork()->getMaxGetStridedLen() is " << sys.getNetwork()->getMaxGetStridedLen()<< std::endl;
+   std::size_t maxCount = ( ( len * count ) <= sys.getNetwork()->getMaxGetStridedLen() ) ? count : ( sys.getNetwork()->getMaxGetStridedLen() / len );
 
-   std::size_t maxCount = ( ( len * count ) <= sys.getNetwork()->getMaxGetStridedLen() ) ?
-      count : ( sys.getNetwork()->getMaxGetStridedLen() / len );
+   //if ( maxCount != count ) std::cerr <<"WARNING: maxCount("<< maxCount << ") != count(" << count <<") MaxGetStridedLen="<< sys.getNetwork()->getMaxGetStridedLen()<<std::endl;
+   if ( maxCount ) {
+      for ( unsigned int i = 0; i < count; i += maxCount ) {
+         unsigned int thisCount = ( i + maxCount > count ) ? count - i : maxCount; 
+         char * packedAddr = NULL;
+         do {
+            packedAddr = (char *) _packer.give_pack( hostAddr, len, thisCount );
+            if (!packedAddr ) {
+               myThread->idle( true );
+            }
+         } while ( packedAddr == NULL );
 
-   if ( maxCount != count ) std::cerr <<"WARNING: maxCount("<< maxCount << ") != count(" << count <<") MaxGetStridedLen="<< sys.getNetwork()->getMaxGetStridedLen()<<std::endl;
-   for ( unsigned int i = 0; i < count; i += maxCount ) {
-      unsigned int thisCount = ( i + maxCount > count ) ? count - i : maxCount; 
-      char * packedAddr = NULL;
-      do {
-         packedAddr = (char *) _packer.give_pack( hostAddr, len, thisCount );
-         if (!packedAddr ) {
-            myThread->idle( true );
+         if ( packedAddr != NULL) { 
+            GetRequestStrided *newreq = NEW GetRequestStrided( &hostAddrPtr[ i * ld ] , len, thisCount, ld, packedAddr, ops, f, &_packer );
+            myThread->_pendingRequests.insert( newreq );
+            ops->addOp();
+            sys.getNetwork()->getStrided1D( packedAddr, mem.getNodeNumber(), devAddr, devAddr + ( i * ld ), len, thisCount, ld, (volatile int *) newreq, hostObject, hostRegionId );
+         } else {
+            std::cerr << "copyOutStrdided ERROR!!! could not get a packet to gather data." << std::endl;
          }
-      } while ( packedAddr == NULL );
-
-      if ( packedAddr != NULL) { 
-         GetRequestStrided *newreq = NEW GetRequestStrided( &hostAddrPtr[ i * ld ] , len, thisCount, ld, packedAddr, ops, f, &_packer );
-         myThread->_pendingRequests.insert( newreq );
-         ops->addOp();
-         sys.getNetwork()->getStrided1D( packedAddr, mem.getNodeNumber(), devAddr, devAddr + ( i * ld ), len, thisCount, ld, (volatile int *) newreq, hostObject, hostRegionId );
-      } else {
-         std::cerr << "copyOutStrdided ERROR!!! could not get a packet to gather data." << std::endl;
+      }
+   } else {
+      /* len > sys.getNetwork()->getMaxGetStridedLen()
+       * use non strided gets
+       */
+      for ( unsigned int i = 0; i < count; i += 1) {
+         for ( std::size_t current_line_sent = 0; current_line_sent < len; current_line_sent += sys.getNetwork()->getMaxGetStridedLen() ) {
+            std::size_t current_len = ( current_line_sent + sys.getNetwork()->getMaxGetStridedLen() ) > len ? ( len - current_line_sent ) : sys.getNetwork()->getMaxGetStridedLen();
+            std::size_t current_offset = i * ld + current_line_sent;
+            //std::cerr << "copyOut offset: " << current_offset << " len " << current_len << std::endl;
+            this->_copyOut( hostAddr + current_offset , devAddr + current_offset, current_len, mem, ops, f, wd, hostObject, hostRegionId );
+         }
       }
    }
 }
