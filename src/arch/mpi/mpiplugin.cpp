@@ -27,7 +27,7 @@ namespace ext {
 class MPIPlugin : public ArchPlugin
 {
    //The three boleans below implement the initialization order
-   //First system will "pre-initialize" before initializing threads (not if extrae enabled)
+   //First system will "pre-initialize" before initializing threads (not if extrae enabled and only when we are slaves)
    //Then extrae will initialize
    //Then system will "post-initialice" as part of user main (ompss_nanox_main)
    bool _extraeInitialized;
@@ -54,11 +54,11 @@ class MPIPlugin : public ArchPlugin
        char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));       
        char* isSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE"));
               
-       if ( !_preinitialized )
+       if ( !_preinitialized && isSlave )
        {
           _preinitialized=true;
           //Do not initialize if we have extrae or we are not slaves
-          if( isSlave && offload_trace_on == NULL ) nanos::ext::MPIRemoteNode::preInit();
+          if( offload_trace_on == NULL ) nanos::ext::MPIRemoteNode::preInit();
           return;
        }   
        
