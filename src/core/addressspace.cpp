@@ -36,10 +36,6 @@ void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD co
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
    reg.id = reg.key->obtainRegionId( cd, wd, idx );
    //*(myThread->_file) << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
-   reg_t master_id = cd.getHostRegionId();
-   if ( master_id != 0 ) {
-      NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
-   }
 }
 
 void HostAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {

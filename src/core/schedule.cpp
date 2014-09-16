@@ -1096,7 +1096,7 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
 
    //std::cerr << "thd " << myThread->getId() << "exiting task(inlined) " << wd << ":" << wd->getId() <<
    //       " to " << oldwd << ":" << oldwd->getId() << std::endl;
-   debug( "exiting task(post outline) " << wd << ":" << wd->getId() << " to " << &(thread->getThreadWD()) << ":" << thread->getThreadWD().getId() );
+   debug( "exiting task(post outline) " << wd << ":" << std::dec << wd->getId() << " to " << &(thread->getThreadWD()) << ":" << std::dec << thread->getThreadWD().getId() );
 
    thread->setCurrentWD( thread->getThreadWD() );
 
@@ -1208,6 +1208,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
       /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    }
+   debug( "exiting(inlined) from task " << wd << ":" << wd->getId() <<
+          " to " << oldwd << ":" << oldwd->getId() << " at node " << sys.getNetwork()->getNodeNum() );
 
    thread->setCurrentWD( *oldwd );
 

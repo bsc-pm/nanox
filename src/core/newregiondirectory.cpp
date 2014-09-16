@@ -109,7 +109,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
 
    std::map< uint64_t, GlobalRegionDictionary * >::const_iterator it = hb._bobjects.lower_bound( objectAddr );
    if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( objectAddr, it->first) ) {
-     *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << std::endl;
+     *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << (void *) objectAddr << std::endl;
      printBt( *(myThread->_file) );
      fatal("can not continue");
    }
@@ -427,7 +427,7 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
 }
 
 void NewNewRegionDirectory::synchronize( WD &wd ) {
-   //std::cerr << "SYNC DIR" << std::endl;
+   //std::cerr << "SYNC DIR with wd " << wd.getId() << std::endl;
    //int c = 0;
    //print();
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
@@ -495,7 +495,8 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                // aggregate the locations, later, we will invalidate the full object from those locations
                locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
             } else {
-               objects_to_clear.insert( std::make_pair( it->first, &hb._bobjects ) ); //FIXME: objects may be added later
+               //objects_to_clear.insert( std::make_pair( it->first, &hb._bobjects ) ); //FIXME: objects may be added later
+               objects_to_clear.erase( it->first );
             }
          } else {
             global_reg_t region_shape( mit->first, it->second );
@@ -554,11 +555,18 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
       //clear objects from directory
       for ( std::map< uint64_t, std::map< uint64_t, GlobalRegionDictionary * > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+         GlobalRegionDictionary *obj = (*it->second)[it->first];
+         sys.getNetwork()->deleteDirectoryObject( obj );
          //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
-         delete (*it->second)[it->first]; 
+         //std::cerr << "delete and unregister dict (address) " << (void *) it->first << " (key) " << (void *) obj << std::endl;
+         delete obj; 
          it->second->erase( it->first );
       }
+      sys.getNetwork()->synchronizeDirectory();
    }
+   //std::cerr << "SYNC DIR DONE" << std::endl;
+   //print();
+   //std::cerr << "SYNC DIR & PRINT DONE" << std::endl;
 }
 
 DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
@@ -587,5 +595,7 @@ reg_t NewNewRegionDirectory::getLocalRegionId(void * hostObject, reg_t hostRegio
 //}
 
 void NewNewRegionDirectory::addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId ) {
+   //NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, localId );
+   //std::cerr << "Setting master region id " << masterId << " for reg [" << (void *) dict << " " << localId << "] regEntry: " << regEntry << std::endl;
    dict->addMasterRegionId( masterId, localId );
 }
