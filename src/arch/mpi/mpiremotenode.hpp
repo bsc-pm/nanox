@@ -38,9 +38,6 @@
 using namespace nanos;
 using namespace ext;
     
-
-size_t MPIRemoteNode::_bufferDefaultSize = 0;
-char* MPIRemoteNode::_bufferPtr = 0;
 Lock MPIRemoteNode::_taskLock;
 pthread_cond_t MPIRemoteNode::_taskWait;         //! Condition variable to wait for completion
 pthread_mutex_t MPIRemoteNode::_taskMutex;        //! Mutex to access the completion 

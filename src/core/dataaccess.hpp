@@ -133,6 +133,29 @@ inline void DataAccess::setCommutative( bool b )
    flags.commutative = b;
 }
 
+inline std::size_t DataAccess::getSize() const
+{
+   std::size_t size = 0;
+   //ensure( dimension_count >= 1, "Wrong dimension_count ");
+   size = dimensions[0].accessed_length;
+   for ( int i = 1; i < dimension_count; i += 1 )
+      size *= dimensions[i].size;
+   return size;
+}
+
+               
+/*! \brief gets the pointer of the dimensions
+  */
+inline nanos_region_dimension_internal_t const* DataAccess::getDimensions() const {
+    return dimensions;
+}
+
+/*! \brief gets the number of dimensions
+  */
+inline short DataAccess::getNumDimensions() const {
+    return dimension_count;
+}
+
 
 namespace nanos {
    namespace dependencies_domain_internal {

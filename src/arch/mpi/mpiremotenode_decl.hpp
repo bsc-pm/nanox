@@ -83,6 +83,15 @@ namespace nanos {
             
             static bool executeTask(int taskId);
             
+            /**
+             * Initialize OmpSs
+             * (Nanox MPI Init & slave sync offload structures with master)
+             */
+            static void preInit(); 
+            
+            /**
+             * Offload main's (receive tasks and exit)
+             */
             static void mpiOffloadSlaveMain();
             
             //Search function pointer and get index

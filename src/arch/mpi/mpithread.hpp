@@ -126,8 +126,10 @@ namespace ext
          
          void setGroupThreadList(std::vector<MPIThread*>* threadList);
          
+         std::vector<MPIThread*>* getGroupThreadList();
+         
          std::vector<MPIProcessor*>& getRunningPEs();
-
+         
    };
 
 

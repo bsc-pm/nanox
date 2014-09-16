@@ -64,7 +64,7 @@ void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem
     order.hostAddr = 0;
     order.size = size;
     //MPI_Status status;
-    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_M2S_ORDER, myPE->getCommunicator());
     nanos::ext::MPIRemoteNode::nanosMPIRecv(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ANSWER_ALLOC, myPE->getCommunicator(), MPI_STATUS_IGNORE );
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     //std::cerr << "Fin allocate\n";
@@ -88,7 +88,7 @@ void MPIDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
     order.size = 0;
     //short ans;
     //MPI_Status status;    
-    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_M2S_ORDER, myPE->getCommunicator());
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->getRank(), TAG_CACHE_ANSWER_FREE, myPE->_communicator, MPI_STATUS_IGNORE );
 
@@ -113,7 +113,7 @@ void * MPIDevice::realloc(void *address, size_t size, size_t old_size, Processin
     order.size = size;
     //order.old_size = old_size;
     //MPI_Status status;
-    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_M2S_ORDER, myPE->getCommunicator());
     nanos::ext::MPIRemoteNode::nanosMPIRecv(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ANSWER_REALLOC, myPE->getCommunicator(), MPI_STATUS_IGNORE );
 
     //std::cerr << "Fin realloc\n";
@@ -138,7 +138,7 @@ void MPIDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
     //MPI_Status status;
     MPI_Request req;
     //printf("Dir copyin host%p a device %p, size %lu\n",(void*) order.hostAddr,(void*) order.devAddr,order.size);
-    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_M2S_ORDER, myPE->getCommunicator());
     nanos::ext::MPIRemoteNode::nanosMPIIsend((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_IN, myPE->getCommunicator(), &req);
     //Free the request (we no longer care about when it finishes, offload process will take care of that)
     //MPI_Request_free(&req);
@@ -158,7 +158,7 @@ void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
     //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
     if (myPE->getCurrExecutingWd()!=NULL && !myPE->getHasWorkerThread()) {        
       order.opId = OPID_CREATEAUXTHREAD;
-      nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+      nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_M2S_ORDER, myPE->getCommunicator());
       myPE->setHasWorkerThread(true);
     }
     order.opId = OPID_COPYOUT;
@@ -167,7 +167,7 @@ void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
     order.size = len;
     //printf("Inicio copyout host %p %lu\n",(void*) order.hostAddr, order.size);
     //MPI_Status status;
-    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_CACHE_ORDER, myPE->getCommunicator());
+    nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, myPE->getRank(), TAG_M2S_ORDER, myPE->getCommunicator());
     nanos::ext::MPIRemoteNode::nanosMPIRecv((void*) order.hostAddr, order.size, MPI_BYTE, myPE->getRank(), TAG_CACHE_DATA_OUT, myPE->getCommunicator(), MPI_STATUS_IGNORE );
     //short ans;
     //nanos::ext::MPIProcessor::nanos_MPI_Recv(&ans, 1, MPI_SHORT, myPE->getRank(), TAG_CACHE_ANSWER_COUT, myPE->_communicator, MPI_STATUS_IGNORE );
@@ -207,7 +207,7 @@ bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
         //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
         if (src->getCurrExecutingWd()!=NULL && !src->getHasWorkerThread()) {        
           order.opId = OPID_CREATEAUXTHREAD;
-          nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, src->getRank(), TAG_CACHE_ORDER, src->getCommunicator());
+          nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, src->getRank(), TAG_M2S_ORDER, src->getCommunicator());
           src->setHasWorkerThread(true);
         }
         //Send the destination rank together with DEV2DEV OPID (we'll substract it on remote node)
@@ -218,10 +218,10 @@ bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
         //Send OPID_DEV2DEV (max OPID)+rank for one and -rank for the other
         //This way we can encode ranks inside OPID while keeping those OPID uniques
         //Send one to the source telling him what the send (+1) and to who
-        nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, src->getRank(), TAG_CACHE_ORDER, src->getCommunicator());
+        nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, src->getRank(), TAG_M2S_ORDER, src->getCommunicator());
         order.opId = -src->getRank();
         //Send one to the dst telling him who's the source  (-1) and where to store
-        nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, dst->getRank(), TAG_CACHE_ORDER, dst->getCommunicator());
+        nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, dst->getRank(), TAG_M2S_ORDER, dst->getCommunicator());
         ops->completeOp(); 
         if ( f ) {
            (*f)(); 
@@ -289,13 +289,13 @@ void MPIDevice::remoteNodeCacheWorker() {
                     //When this is not the executer thread, perform async probes
                     //as performing sync probes will lock MPI implementation (at least @ IMPI)
                     while (flag==0 && !nanos::ext::MPIRemoteNode::getDisconnectedFromParent()) {
-                        MPI_Iprobe(MPI_ANY_SOURCE,TAG_CACHE_ORDER,parentcomm,&flag,MPI_STATUS_IGNORE);
+                        MPI_Iprobe(MPI_ANY_SOURCE,TAG_M2S_ORDER,parentcomm,&flag,MPI_STATUS_IGNORE);
                         if (flag==0) usleep(50000);
                     }
                 }
                 
                 if (!nanos::ext::MPIRemoteNode::getDisconnectedFromParent())
-                    MPI_Recv(&order, 1, cacheStruct, MPI_ANY_SOURCE, TAG_CACHE_ORDER, parentcomm, &status);
+                    MPI_Recv(&order, 1, cacheStruct, MPI_ANY_SOURCE, TAG_M2S_ORDER, parentcomm, &status);
                 else
                     order.opId=OPID_FINISH;
  

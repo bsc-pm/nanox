@@ -131,7 +131,13 @@ void System::loadModules ()
 
    const OS::ModuleList & modules = OS::getRequestedModules();
    std::for_each(modules.begin(),modules.end(), LoadModule());
-
+   
+#ifdef MPI_DEV
+   //Plugin->init of MPI will initialize MPI when we are slaves so MPI spawn returns ASAP
+   //This plugin does not reserve any PE at initialization time, just perform MPI Init (sometimes) and other actions
+   sys.loadPlugin("arch-mpi");
+#endif
+   
    // load host processor module
    if ( _hostFactory == NULL ) {
      verbose0( "loading Host support" );
@@ -140,7 +146,7 @@ void System::loadModules ()
        fatal0 ( "Couldn't load host support" );
    }
    ensure0( _hostFactory,"No default host factory" );
-
+   
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
@@ -167,7 +173,7 @@ void System::loadModules ()
    _pmInterface->start();
 
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
-      fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );
+      fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );   
 
    // load default dependencies plugin
    verbose0( "loading " << getDefaultDependenciesManager() << " dependencies manager support" );

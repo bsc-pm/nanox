@@ -88,7 +88,7 @@ bool MPIThread::switchToPE(int rank, int uuid){
                 " and make sure that your request finished correctly");
     }
     //In multithread this "test&SetBusy" bust be safe
-    if (_runningPEs.at(rank)->testAndSetBusy(uuid)) {
+    if (_runningPEs.at(rank)->testAndSetBusy(uuid, _groupThreadList->size()>1)) {
         _currPe=rank;
         setRunningOn(_runningPEs.at(_currPe));
         ret=true;
@@ -140,6 +140,10 @@ void MPIThread::setGroupThreadList(std::vector<MPIThread*>* threadList){
     _groupThreadList=threadList;
 }
 
+std::vector<MPIThread*>* MPIThread::getGroupThreadList(){
+    return _groupThreadList;
+}
+
 bool MPIThread::deleteWd(WD* wd, bool markToDelete) {
     bool removable=false;
     if (_groupLock==NULL || _groupLock->tryAcquire()) {
@@ -185,24 +189,56 @@ void MPIThread::checkTaskEnd() {
     for (std::list<WD*>::iterator it=_wdMarkedToDelete.begin(), next ; it!=_wdMarkedToDelete.end(); it=next) {    
         next = it;
         ++next;
-        if ( deleteWd(*it,/*WD is already in the list */ false) ) {                
+        if ( deleteWd(*it,/*WD is already in the list */ false) ) {        
             _wdMarkedToDelete.erase(it);
         }
     }    
     int flag=1;
     MPI_Status status;
+    unsigned int spinCounter=0;
     //Receive every task end message and release dependencies for those tasks (only if there are tasks being executed)
     if (*_groupTotRunningWds!=0 && (_groupLock==NULL || _groupLock->tryAcquire())){ 
-        MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
-                   &status);
-        if (flag!=0) {            
-            MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
-            _currPe=status.MPI_SOURCE;
-            setRunningOn(finishedPE);
-            //If received something and not mine, stop until whoever is the owner gets it
-            freeCurrExecutingWD(finishedPE);
-        }
+        //If every node is busy, no need to search new tasks, we cam stay checking if any task finished
+        do {
+            MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
+                       &status);
+            if (flag!=0) {
+                MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
+                _currPe=status.MPI_SOURCE;
+                setRunningOn(finishedPE);
+                //If received something and not mine, stop until whoever is the owner gets it
+                freeCurrExecutingWD(finishedPE);
+            }
+            spinCounter++;    
+        } while ( _groupTotRunningWds->value()==getRunningPEs().size() && spinCounter<2000);
+        
+        spinCounter=0;
+        //If every node is busy, no need to search new tasks, we cam stay checking if any task finished
+        while ( _groupTotRunningWds->value()==getRunningPEs().size() ) {
+            MPI_Iprobe(MPI_ANY_SOURCE, TAG_END_TASK,((MPIProcessor *) myThread->runningOn())->getCommunicator(), &flag, 
+                       &status);
+            if (flag!=0) {
+                MPIProcessor* finishedPE=_runningPEs.at(status.MPI_SOURCE);
+                _currPe=status.MPI_SOURCE;
+                setRunningOn(finishedPE);
+                //If received something and not mine, stop until whoever is the owner gets it
+                freeCurrExecutingWD(finishedPE);
+            }
+            spinCounter++;
+            unsigned int usec=100*(spinCounter/50);
+            if (usec>500000) usec=500000;
+            usleep(usec);       
+        } 
         if (_groupLock!=NULL) _groupLock->release();
+    } else if (*_groupTotRunningWds!=0) {
+        //If every node is busy, no need to search new tasks, we cam stay checking if any task finished
+        //We only sleep here, as (if exists) other thread will be reciving tasks
+        while ( _groupTotRunningWds->value()==getRunningPEs().size() ) {
+            spinCounter++;
+            unsigned int usec=100*(spinCounter/50);
+            if (usec>500000) usec=500000;
+            usleep(usec);       
+        }        
     }
 }
 
@@ -238,7 +274,7 @@ void MPIThread::finish() {
                 //Only release if we are the owner of the process (once released, we are not the owner anymore)
                 if ( (*it)->getOwner() ) 
                 {
-                    nanos::ext::MPIRemoteNode::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, (*it)->getCommunicator());
+                    nanos::ext::MPIRemoteNode::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, (*it)->getCommunicator());
                     (*it)->setOwner(false);
                 }
             }

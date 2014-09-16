@@ -116,7 +116,6 @@ unset TMP_NUM_THREADS
 #################### END OMP BLOCK
 
 #################### NX_SMP BLOCK
-unset NX_SMP_WORKERS
 
 #OMP_NUM_THREADS ignored, OFFLOAD_OMP_NUM_THREADS used
 if [ "x$OFFL_NX_SMP_WORKERS" != "x" ]; then 
