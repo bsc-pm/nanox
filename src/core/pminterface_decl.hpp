@@ -40,6 +40,8 @@ namespace nanos
           */
          PMInterface& operator= ( PMInterface &pmi );
       public:
+         enum Interfaces{ OmpSs, OpenMP }; 
+      public:
          /*! \brief PMInterface default constructor
           */
          PMInterface() : _description(), _malleable(true) {}
@@ -70,6 +72,9 @@ namespace nanos
          virtual void getCpuMask( cpu_set_t *cpu_set ) {}
          virtual void setCpuMask( const cpu_set_t *cpu_set ) {}
          virtual void addCpuMask( const cpu_set_t *cpu_set ) {}
+
+         //! By default, OmpSs is assumed (required for the bare run in system.cpp)
+         virtual Interfaces getInterface() const { return PMInterface::OmpSs; }
    };
 }
 

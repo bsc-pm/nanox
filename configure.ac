@@ -637,11 +637,15 @@ if test x$gpu_valid = xyes; then
 	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
         LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
 	ARCHITECTURES="$ARCHITECTURES gpu"
+
+	# This path is used to compile CUDA tests
+	cuda_dir="$CUDADIR"
 fi
 
 AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
+AC_SUBST([cuda_dir])
 
 #only show warnings when the user tries to specify opencl folders
 opencl_showwarn="no"

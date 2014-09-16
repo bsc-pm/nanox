@@ -106,6 +106,7 @@ gpu-generator: gpu-generator.in
 	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
 	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
 	tmp_gpu_valid='$(gpu_valid)' ; \
+	tmp_cuda_dir='$(cuda_dir)' ; \
 	tmp_cc='"$(CC)"' ; \
 	tmp_cxx='"$(CXX)"' ; \
 	sed \
@@ -127,6 +128,7 @@ gpu-generator: gpu-generator.in
 		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
 		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		-e's,@GPU_VALID\@,'"$$tmp_gpu_valid"',g' \
+		-e's,@CUDA_DIR\@,'"$$tmp_cuda_dir"',g' \
 		$(srcdir)/gpu-generator.in > gpu-generator.tmp
 	mv gpu-generator.tmp gpu-generator
 	chmod 755 gpu-generator

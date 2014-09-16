@@ -197,6 +197,14 @@ namespace nanos
 
          sys.getSMPPlugin()->addCpuMask( cpu_set );
       }
+      
+      /*!
+       * \brief Returns the identifier of the interface, OpenMP
+       */
+      PMInterface::Interfaces OpenMPInterface::getInterface() const
+      {
+         return PMInterface::OpenMP;
+      }
 
 
       /*** OmpSs Interface ***/
@@ -318,6 +326,15 @@ namespace nanos
 
          sys.getSMPPlugin()->addCpuMask( cpu_set );
       }
+      
+      /*!
+       * \brief Returns the identifier of the interface, OpenMP
+       */
+      PMInterface::Interfaces OmpSsInterface::getInterface() const
+      {
+         return PMInterface::OmpSs;
+      }
+
    };
 }
 
