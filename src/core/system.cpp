@@ -133,7 +133,7 @@ void System::loadModules ()
    std::for_each(modules.begin(),modules.end(), LoadModule());
    
 #ifdef MPI_DEV
-   char* isOffloadSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE"));
+   char* isOffloadSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE")); 
    //Plugin->init of MPI will initialize MPI when we are slaves so MPI spawn returns ASAP in the master
    //This plugin does not reserve any PE at initialization time, just perform MPI Init and other actions
    if ( isOffloadSlave ) sys.loadPlugin("arch-mpi");
