@@ -31,8 +31,8 @@ class MPIPlugin : public ArchPlugin
    //Then extrae will initialize
    //Then system will "post-initialice" as part of user main (ompss_nanox_main)
    bool _extraeInitialized;
-   bool _preinitialized;
    bool _initialized;
+   bool _preinitialized;
    static Atomic<unsigned int> _numWorkers;
    static Atomic<unsigned int> _numPEs;
    

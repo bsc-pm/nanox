@@ -123,11 +123,11 @@ Lock* MPIThread::getSelfLock() {
     return &_selfLock;
 }
 
-Atomic<int>* MPIThread::getSelfCounter() {
+Atomic<unsigned int>* MPIThread::getSelfCounter() {
     return &_selfTotRunningWds;
 }
          
-void MPIThread::setGroupCounter(Atomic<int>* gCounter) {
+void MPIThread::setGroupCounter(Atomic<unsigned int>* gCounter) {
     _groupTotRunningWds=gCounter;
 }
 

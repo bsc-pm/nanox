@@ -45,8 +45,8 @@ namespace ext
          int _currPe;
          std::vector<MPIThread*>* _groupThreadList;
          Lock* _groupLock;
-         Atomic<int> _selfTotRunningWds;
-         Atomic<int>* _groupTotRunningWds;
+         Atomic<unsigned int> _selfTotRunningWds;
+         Atomic<unsigned int>* _groupTotRunningWds;
          std::list<WD*> _wdMarkedToDelete;
          
          //size_t      _stackSize;
@@ -118,9 +118,9 @@ namespace ext
          
          Lock* getSelfLock();
          
-         Atomic<int>* getSelfCounter();
+         Atomic<unsigned int>* getSelfCounter();
          
-         void setGroupCounter(Atomic<int>* gCounter);
+         void setGroupCounter(Atomic<unsigned int>* gCounter);
                   
          std::vector<MPIThread*>* getSelfThreadList();
          

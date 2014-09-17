@@ -722,7 +722,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     nanos::ext::MPIPlugin::addWorkerCount(numberOfThreads);    
     //Add all the PEs to the thread
     Lock* gLock=NULL;
-    Atomic<int>* gCounter=NULL;
+    Atomic<unsigned int>* gCounter=NULL;
     std::vector<MPIThread*>* threadList=NULL;
     for ( spawnedHosts=0; spawnedHosts<numberOfThreads; spawnedHosts++ ){ 
         MPIThread* mpiThread=(MPIThread*) threads[spawnedHosts];
