@@ -126,13 +126,6 @@ unsigned int global_reg_t::getHostVersion( bool increaseVersion ) const {
    return version;
 }
 
-bool global_reg_t::setCopying( SeparateMemoryAddressSpace &from ) const {
-   return true;
-}
-
-void global_reg_t::waitCopy( ) const {
-}
-
 uint64_t global_reg_t::getRealBaseAddress() const {
    return key->getRealBaseAddress();
 }

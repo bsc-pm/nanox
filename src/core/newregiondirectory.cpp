@@ -430,6 +430,9 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
    //std::cerr << "SYNC DIR with wd " << wd.getId() << std::endl;
    //int c = 0;
    //print();
+
+   if ( sys.getNumMemorySpaces() == 1 ) return;
+
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
    std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
    std::map< uint64_t, std::map< uint64_t, GlobalRegionDictionary * > * > objects_to_clear;

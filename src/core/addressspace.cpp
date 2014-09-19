@@ -17,11 +17,7 @@ HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
 }
 
 void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
-   if ( reg.setCopying( from ) ) {
-     from.copyOut( reg, version, ops, wd, copyIdx, inval );
-   } else {
-     reg.waitCopy();
-   } 
+   from.copyOut( reg, version, ops, wd, copyIdx, inval );
 }
 
 void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations ) {
