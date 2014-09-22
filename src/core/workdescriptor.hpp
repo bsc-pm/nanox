@@ -343,8 +343,8 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
       DOIsSchedulable predicate( thread );
       DependableObject * found = _doSubmit->releaseImmediateSuccessor( predicate, thread.keepWDDeps() );
       if ( found ) {
-         WD *successor = ( WD * ) found->getRelatedObject();
-         successor->predecessorFinished( this );
+         WD *successor = found->getWD();
+         //successor->predecessorFinished( this );
          return successor;
       } else {
          return NULL;
