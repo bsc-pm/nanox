@@ -202,7 +202,7 @@ typedef std::set<const Device *>  DeviceList;
    class WorkDescriptor
    {
       public: /* types */
-	      typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
+         typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {

@@ -279,7 +279,7 @@ bool GPUThread::runWDDependent( WD &wd )
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    // CUDA events and callbacks to instrument kernel execution on GPU
-  cudaEvent_t evtk2;
+   cudaEvent_t evtk2;
    cudaEventCreate( &evtk2, 0 );
    cudaEventRecord( evtk2, myGPU.getGPUProcessorInfo()->getKernelExecStream( _kernelStreamIdx ) );
 
