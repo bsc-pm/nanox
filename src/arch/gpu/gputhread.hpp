@@ -54,11 +54,13 @@ GenericEvent * GPUThread::createPreRunEvent( WD * wd )
 
 GenericEvent * GPUThread::createRunEvent( WD * wd )
 {
+   unsigned int streamIdx = ( wd->getCudaStreamIdx() != -1 ) ? wd->getCudaStreamIdx() : _kernelStreamIdx;
    GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+
 #ifdef NANOS_GENERICEVENT_DEBUG
-   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream(), "Run event" );
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream( streamIdx ), "Run event" );
 #else
-   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream() );
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream( streamIdx ) );
 #endif
 }
 
