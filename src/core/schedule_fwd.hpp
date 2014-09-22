@@ -24,6 +24,7 @@ namespace nanos
    class Scheduler;
    class SchedulerStats;
    class ScheduleTeamData;
+   class ScheduleWDData;
    class ScheduleThreadData;
    class SchedulePolicy;
    class SchedulePolicySuccessorFunctor;

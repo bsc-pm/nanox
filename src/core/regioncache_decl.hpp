@@ -75,7 +75,6 @@ namespace nanos {
          void clearRegions();
          void clearNewRegions( global_reg_t const &newAllocatedRegion );
          CacheRegionDictionary *getNewRegions();
-         bool isInvalidated() const;
          bool invalidate( RegionCache *targetCache, WD const &wd, unsigned int copyIdx, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess, std::set< NewNewRegionDirectory::RegionDirectoryKey > &alreadyLockedObjects );
 
          bool trylock();
@@ -91,7 +90,7 @@ namespace nanos {
          //void confirmCopyIn( reg_t id, unsigned int version );
          unsigned int getVersion( global_reg_t const &reg );
          //unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
-         void removeRegionAndMarkForChunkDeallocation( reg_t reg, WD const &wd, unsigned int copyIdx );
+         //void removeRegionAndMarkForChunkDeallocation( reg_t reg, WD const &wd, unsigned int copyIdx );
 
          DeviceOps *getDeviceOps( global_reg_t const &reg );
          void prepareRegion( reg_t reg, unsigned int version );

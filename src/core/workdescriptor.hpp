@@ -44,7 +44,8 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
+                                 _wdData ( NULL ), _scheduleData( NULL ),
+                                 _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
                                  _state( INIT ), _syncCond( NULL ),  _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
@@ -72,7 +73,8 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
+                                 _wdData ( NULL ), _scheduleData( NULL ),
+                                 _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
                                  _state( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ),
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
@@ -101,7 +103,8 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL), _forcedParent(wd._forcedParent),
                                  _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tiedTo ( wd._tiedTo ), _tiedToLocation( wd._tiedToLocation ),
+                                 _wdData ( NULL ), _scheduleData( NULL ),
+                                 _flags(), _tiedTo ( wd._tiedTo ), _tiedToLocation( wd._tiedToLocation ),
                                  _state ( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( wd._depth ),
                                  _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
                                  _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
@@ -125,6 +128,35 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
 
                                     _mcontrol.preInit();
                                  }
+
+inline WorkDescriptor::~WorkDescriptor()
+{
+    void *chunkLower = ( void * ) this;
+    void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
+
+    for ( unsigned char i = 0; i < _numDevices; i++ ) delete _devices[i];
+
+    //! Delete device vector 
+    if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
+       delete[] _devices;
+    } 
+
+    //! Delete Dependence Domain
+    delete _depsDomain;
+
+    //! Delete internal data (if any)
+    union { char* p; intptr_t i; } u = { (char*)_wdData };
+    bool internalDataOwned = (u.i & 1);
+    // Clear the own status if set
+    u.i &= ((~(intptr_t)0) << 1);
+
+    if (internalDataOwned
+            && (( (void*)u.p < chunkLower) || ( (void *) u.p > chunkUpper ) ))
+       delete[] u.p;
+
+    if (_copiesNotInChunk)
+        delete[] _copies;
+}
 
 /* DeviceData inlined functions */
 inline DeviceData::work_fct DeviceData::getWorkFct() const { return _work; }
@@ -232,6 +264,15 @@ inline void * WorkDescriptor::getInternalData () const {
     u.i &= ((~(intptr_t)0) << 1);
 
     return u.p;
+}
+
+inline void WorkDescriptor::setSchedulerData ( ScheduleWDData * data ) { 
+    fatal_cond( _scheduleData != NULL, "Trying to change the scheduler data of a WD that already has one" );
+    _scheduleData = data;
+}
+
+inline ScheduleWDData * WorkDescriptor::getSchedulerData () const { 
+    return _scheduleData;
 }
 
 inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }

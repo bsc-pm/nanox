@@ -29,8 +29,6 @@ struct global_reg_t {
    unsigned int getNumDimensions() const;
    void fillDimensionData( nanos_region_dimension_internal_t region[]) const;
    bool operator<( global_reg_t const &reg ) const;
-   bool setCopying( MemSpace<SeparateAddressSpace> &from ) const;
-   void waitCopy() const;
    memory_space_id_t getFirstLocation() const;
    unsigned int getVersion() const;
    unsigned int getHostVersion( bool increaseVersion ) const;

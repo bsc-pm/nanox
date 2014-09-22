@@ -41,6 +41,8 @@
 #include "dependenciesdomain_decl.hpp"
 #include "simpleallocator_decl.hpp"
 
+#include "schedule_fwd.hpp"   // ScheduleWDData
+
 namespace nanos
 {
 
@@ -230,6 +232,7 @@ namespace nanos
          void                         *_data;                   //!< WD data
          size_t                        _totalSize;              //!< Chunk total size, when allocating WD + extra data
          void                         *_wdData;                 //!< Internal WD data. Allowing higher layer to associate data to WD
+         ScheduleWDData               *_scheduleData;           //!< Data set by the scheduling policy
          WDFlags                       _flags;                  //!< WD Flags
          BaseThread                   *_tiedTo;                 //!< Thread is tied to base thread
          memory_space_id_t             _tiedToLocation;         //!< Thread is tied to a memory location
@@ -304,34 +307,7 @@ namespace nanos
           * All data will be allocated in a single chunk so only the destructors need to be invoked
           * but not the allocator
           */
-         virtual ~WorkDescriptor()
-         {
-             void *chunkLower = ( void * ) this;
-             void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
-
-             for ( unsigned char i = 0; i < _numDevices; i++ ) delete _devices[i];
-
-             //! Delete device vector 
-             if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
-                delete[] _devices;
-             } 
-
-             //! Delete Dependence Domain
-             delete _depsDomain;
-
-             //! Delete internal data (if any)
-             union { char* p; intptr_t i; } u = { (char*)_wdData };
-             bool internalDataOwned = (u.i & 1);
-             // Clear the own status if set
-             u.i &= ((~(intptr_t)0) << 1);
-
-             if (internalDataOwned
-                     && (( (void*)u.p < chunkLower) || ( (void *) u.p > chunkUpper ) ))
-                delete[] u.p;
-
-             if (_copiesNotInChunk)
-                 delete[] _copies;
-         }
+         virtual ~WorkDescriptor();
 
          int getId() const { return _id; }
          int getHostId() const { return _hostId; }
@@ -453,6 +429,14 @@ namespace nanos
          void setInternalData ( void *data, bool ownedByWD = true );
 
          void * getInternalData () const;
+         
+         /*! \brief Sets custom data for the scheduling policy
+          *  \param [in] data Pointer do the data. Ownership will be
+          *  changed to the WD, so that data will be destroyed with it.
+          */
+         void setSchedulerData( ScheduleWDData * data );
+         
+         ScheduleWDData* getSchedulerData() const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
 

@@ -135,6 +135,14 @@ namespace nanos {
                virtual ~ThreadData () {
                }
             };
+            
+            struct WDData : public ScheduleWDData
+            {
+               bool _initTask;
+               
+               WDData () : _initTask( false ) {}
+               virtual ~WDData() {}
+            };
          
             /** \brief Comparison functor used in distance computations.
              */
@@ -339,6 +347,7 @@ namespace nanos {
             inline unsigned getNode( BaseThread *thread, const WD& wd ) const
             {
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+               WDData & wdata = *dynamic_cast<WDData*>( wd.getSchedulerData() );
                
                const CopyData * copies = wd.getCopies();
                unsigned numNodes = sys.getNumNumaNodes();
@@ -347,7 +356,7 @@ namespace nanos {
                
                if( isInitTask( wd ) )
                {
-                  
+                  wdata._initTask = true;
                   winner = tdata._next.value();
                   
                   // FIXME
@@ -504,6 +513,13 @@ namespace nanos {
             virtual ScheduleThreadData * createThreadData ()
             {
                return NEW ThreadData();
+            }
+            
+            virtual size_t getWDDataSize () const { return sizeof( WDData ); }
+            virtual size_t getWDDataAlignment () const { return __alignof__( WDData ); }
+            virtual void initWDData ( void * data ) const
+            {
+               NEW (data)WDData();
             }
 
             virtual void queue ( BaseThread *thread, WD &wd )
