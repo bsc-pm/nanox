@@ -309,16 +309,17 @@ bool GPUThread::processDependentWD ( WD * wd )
       for ( DependableObject::DependableObjectVector::iterator it = preds.begin(); it != preds.end(); it++ ) {
          WD * wdPred = ( WD * ) ( *it )->getRelatedObject();
          if ( wdPred != NULL ) {
-            if ( wdPred->isTiedTo() == ( BaseThread * ) this ) {
+            if ( wdPred->isTiedTo() == NULL || wdPred->isTiedTo() == ( BaseThread * ) this ) {
                if ( wdPred->getCudaStreamIdx() != -1 ) {
                   wd->setCudaStreamIdx( wdPred->getCudaStreamIdx() );
+                  verbose( "Setting stream for WD " << wd->getId() << " index " << wdPred->getCudaStreamIdx()
+                        << " (from WD " << wdPred->getId() << ")" );
                   return false;
                }
             }
          }
       }
    }
-
    return AsyncThread::processDependentWD( wd );
 }
 
