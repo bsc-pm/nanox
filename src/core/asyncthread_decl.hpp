@@ -49,6 +49,8 @@ namespace nanos
          GenericEventList  _pendingEvents;
          unsigned int      _pendingEventsCounter;
 
+         unsigned int      _recursiveCounter;
+
          // Previous running WD, used for instrumentation only
          WD *              _previousWD; 
 
@@ -69,8 +71,9 @@ namespace nanos
         /*! \brief AsyncThread constructor
          */
          AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0 ) :
-            BaseThread( osId, wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
-         _pendingEvents(), _pendingEventsCounter( 0 ), _previousWD( NULL ) {}
+               BaseThread( osId, wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
+               _pendingEvents(), _pendingEventsCounter( 0 ), _recursiveCounter( 0 ),
+               _previousWD( NULL ) {}
 
         /*! \brief AsyncThread destructor
          */

@@ -29,6 +29,8 @@ namespace nanos
 
 inline void AsyncThread::checkEvents()
 {
+   _recursiveCounter++;
+
    // Save the event counter because the list of pending events can be increased over the loop
    // and we don't want to have an infinite loop if we keep adding events forever
    unsigned int max = _pendingEventsCounter;
@@ -61,11 +63,15 @@ inline void AsyncThread::checkEvents()
       }
    }
 
-   // Delete completed events
-   while ( _pendingEventsCounter && _pendingEvents.front()->isCompleted() ) {
-      _pendingEvents.pop_front();
-      _pendingEventsCounter--;
+   if ( _recursiveCounter == 1 ) {
+      // Delete completed events
+      while ( _pendingEventsCounter && _pendingEvents.front()->isCompleted() ) {
+         _pendingEvents.erase( _pendingEvents.begin() );
+         _pendingEventsCounter--;
+      }
    }
+
+   _recursiveCounter--;
 }
 
 inline void AsyncThread::checkEvents( WD * wd )
