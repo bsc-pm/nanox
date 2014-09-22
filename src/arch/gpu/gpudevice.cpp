@@ -375,6 +375,22 @@ bool GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
    ext::GPUProcessor *gpuOrig = gpuMemDataOrig->getGPU();
    ext::GPUProcessor *gpuDest = gpuMemDataDest->getGPU();
 
+
+
+   nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpuDest->getActiveThread();
+
+   GenericEvent * evt = thread->createPreRunEvent( thread->getCurrentWD() );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   evt->setDescription( evt->getDescription() + " copy dev2dev: " + toString<uint64_t>( devDestAddr ) );
+#endif
+   evt->setCreated();
+
+   Action * action = new_action( ( ActionMemFunPtr0<DeviceOps>::MemFunPtr0 ) &DeviceOps::completeOp, cd._ops );
+   evt->addNextAction( action );
+#ifdef NANOS_GENERICEVENT_DEBUG
+   evt->setDescription( evt->getDescription() + " action:DeviceOps::completeOp" );
+#endif
+
    ops->addOp();
 
    gpuOrig->transferDevice( len );
@@ -389,7 +405,9 @@ bool GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
    + ") to device #" + toString<int>( gpuDest->getDeviceId() ) + " ("
    + toString<uint64_t>( devDestAddr ) + ") with cudaMemcpy*(): " + cudaGetErrorString( err ) );
 
-   gpuDest->getInTransferList()->addMemoryTransfer( cd );
+   evt->setPending();
+
+   thread->addEvent( evt );
 
    return false;
 }
