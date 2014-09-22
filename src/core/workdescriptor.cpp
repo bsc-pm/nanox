@@ -144,6 +144,8 @@ void WorkDescriptor::preStart (ULTFlag isUserLevelThread, WorkDescriptor *previo
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
 
+   _mcontrol.setCacheMetaData();
+
 }
 
 bool WorkDescriptor::isInputDataReady() {
@@ -166,7 +168,7 @@ bool WorkDescriptor::isInputDataReady() {
 
       // Setting state to ready
       setReady();
-      _mcontrol.setCacheMetaData();
+      //_mcontrol.setCacheMetaData();
    }
    return result;
 }
