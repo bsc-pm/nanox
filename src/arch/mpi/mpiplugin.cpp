@@ -46,8 +46,10 @@ class MPIPlugin : public ArchPlugin
     }
 
     virtual bool configurable() { 
-        char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
-        return _preinitialized && ( offload_trace_on == NULL || _extraeInitialized );
+        char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION")); 
+        char* isSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE"));
+        //Non-slaves do not preInitialize
+        return ( _preinitialized || !isSlave ) && ( offload_trace_on == NULL || _extraeInitialized );
     }    
 
     virtual void init() {
