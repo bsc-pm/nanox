@@ -43,12 +43,15 @@ inline void AsyncThread::checkEvents()
          WD * wd = evt->getWD();
          this->setCurrentWD( *wd );
          evt->setCompleted();
+
          // Move to next step if WD's event is raised
-         while ( evt->hasNextAction() ) {
-            Action * action = evt->getNextAction();
-            action->run();
-            delete action;
-         }
+         //while ( evt->hasNextAction() ) {
+            //evt->processNextAction();
+            //Action * action = evt->getNextAction();
+            //action->run();
+            //delete action;
+         //}
+         evt->processActions();
 
          // finishWork() function will modify thread's current WD because the active WD will be deleted at that point.
          this->setCurrentWD( *_previousWD );

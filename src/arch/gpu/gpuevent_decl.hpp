@@ -49,9 +49,9 @@ namespace nanos
          /*! \brief GPUEvent constructor
           */
 #ifdef NANOS_GENERICEVENT_DEBUG
-         GPUEvent ( WD *wd, std::queue<Action *> next, cudaStream_t stream = 0, std::string desc = "" );
+         GPUEvent ( WD *wd, ActionList next, cudaStream_t stream = 0, std::string desc = "" );
 #else
-         GPUEvent ( WD *wd, std::queue<Action *> next, cudaStream_t stream = 0 );
+         GPUEvent ( WD *wd, ActionList next, cudaStream_t stream = 0 );
 #endif
 
         /*! \brief GPUEvent destructor

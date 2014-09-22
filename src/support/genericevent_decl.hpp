@@ -22,7 +22,7 @@
 
 
 #include <iostream>
-#include <queue>
+#include <list>
 #include <functional>
 
 #include "workdescriptor_fwd.hpp"
@@ -326,7 +326,7 @@ namespace nanos
       return NEW ActionConstMemFunPtr1<Class, Param>( fun, obj, p );
    }
 
-
+   typedef std::list< Action * > ActionList;
 
    class GenericEvent
    {
@@ -345,7 +345,7 @@ namespace nanos
 
          WD *                    _wd; //! WD related to the event
 
-         std::queue<Action *>    _nextActions; //! Actions that must be done after event's raise
+         ActionList              _nextActions; //! Actions that must be done after event's raise
 
 #ifdef NANOS_GENERICEVENT_DEBUG
          std::string             _description; //! Description of the event
@@ -363,7 +363,7 @@ namespace nanos
 
          /*! \brief GenericEvent constructor
           */
-         GenericEvent ( WD *wd, std::queue<Action *> next ) : _state( CREATED ), _wd( wd ), _nextActions( next )
+         GenericEvent ( WD *wd, ActionList next ) : _state( CREATED ), _wd( wd ), _nextActions( next )
 #ifdef NANOS_GENERICEVENT_DEBUG
          , _description()
 #endif
@@ -376,7 +376,7 @@ namespace nanos
 
          /*! \brief GenericEvent constructor
           */
-         GenericEvent ( WD *wd, std::queue<Action *> next, std::string desc ) :
+         GenericEvent ( WD *wd, ActionList next, std::string desc ) :
             _state( CREATED ), _wd( wd ), _nextActions( next ), _description( desc ) {}
 #endif
 
@@ -417,14 +417,144 @@ namespace nanos
          Action * getNextAction()
          {
             Action * next = _nextActions.front();
-            _nextActions.pop();
+            _nextActions.pop_front();
             return next;
          }
 
          void addNextAction( Action * action )
          {
-            _nextActions.push( action );
+            _nextActions.push_back( action );
          }
+
+         void processNextAction () {
+            Action * next = _nextActions.front();
+            next->run();
+            //delete next;
+            _nextActions.pop_front();
+         }
+
+         void processActions () {
+            for ( ActionList::iterator it = _nextActions.begin(); it != _nextActions.end(); it++ ) {
+               Action * next = ( *it );
+               next->run();
+            }
+         }
+
+         std::string stateToString() {
+            switch ( _state ) {
+               case CREATED:
+                  return "CREATED";
+                  break;
+               case PENDING:
+                  return "PENDING";
+                  break;
+               case RAISED:
+                  return "RAISED";
+                  break;
+               case COMPLETED:
+                  return "COMPLETED";
+                  break;
+               default:
+                  return "UNDEFINED";
+                  break;
+            }
+         }
+   };
+
+
+   /****** Condition definitions ******/
+
+   /* !\brief Condition virtual class
+    */
+   struct Condition
+   {
+      virtual bool check() = 0;
+      virtual ~Condition() {}
+   };
+
+
+   /* !\brief Condition that calls a member function with no parameters, class pointer version
+    */
+   template <typename Class>
+   struct ConditionPtrMemFunPtr0 : public Condition
+   {
+      public:
+         typedef bool ( Class::*PtrMemFunPtr0 )();
+
+      private:
+         PtrMemFunPtr0 _fptr;
+         Class *_obj;
+
+      public:
+         ConditionPtrMemFunPtr0 ( PtrMemFunPtr0 fptr, Class *obj ) : _fptr( fptr ), _obj( obj ) {}
+         virtual bool check() { return ( _obj->*_fptr )(); }
+
+   };
+
+   /* !\brief Wrapper for member functions with no parameters, class pointer version
+    */
+   template <typename Class>
+   Condition* new_condition( bool ( Class::*fun )(), Class *obj );
+
+   template <typename Class>
+   Condition* new_condition( bool ( Class::*fun )(), Class *obj )
+   {
+      return NEW ConditionPtrMemFunPtr0<Class>( fun, obj );
+   }
+
+
+   class CustomEvent : public GenericEvent
+   {
+      protected:
+         Condition * _cond;
+
+      public:
+         /*! \brief CustomEvent constructor
+          */
+         CustomEvent ( WD *wd, Condition * cond = NULL ) : GenericEvent( wd ), _cond( cond )
+         {}
+
+         /*! \brief CustomEvent constructor
+          */
+         CustomEvent ( WD *wd, ActionList next, Condition * cond = NULL ) : GenericEvent( wd, next ), _cond( cond )
+         {}
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+         /*! \brief CustomEvent constructor
+          */
+         CustomEvent ( WD *wd, std::string desc, Condition * cond = NULL ) : GenericEvent( wd, desc ), _cond( cond )
+         {}
+
+         /*! \brief CustomEvent constructor
+          */
+         CustomEvent ( WD *wd, ActionList next, std::string desc, Condition * cond = NULL ) :
+            GenericEvent( wd, next, desc ), _cond( cond )
+         {}
+#endif
+
+         /*! \brief CustomEvent destructor
+          */
+         virtual ~CustomEvent() {}
+
+         // set/get methods
+         virtual void setCondition( Condition * cond ) { _cond = cond; }
+         virtual Condition * getCondition() { return _cond; }
+
+         // event related methods
+         virtual bool isRaised()
+         {
+            if ( _state == RAISED ) return true;
+            if ( _state == COMPLETED ) return false;
+
+            if ( _cond->check() ) {
+               _state = RAISED;
+               return true;
+            }
+            return false;
+         }
+
+
+
    };
 }
 
