@@ -67,6 +67,8 @@ bool AsyncThread::inlineWorkDependent( WD &work )
    _runningWDs.push_back( &work );
    _runningWDsCounter++;
 
+   ensure( _runningWDsCounter == _runningWDs.size(), "Running WDs counter doesn't match runningWDs list size!!" );
+
 #if PRINT_LIST
    std::stringstream s;
    s << "[Async]@inlineWorkDependent Running WDs: | ";
@@ -98,6 +100,7 @@ void AsyncThread::idle()
    NANOS_INSTRUMENT( } )
 
    WD * last = ( _runningWDsCounter != 0 ) ? _runningWDs.back() : getCurrentWD();
+   WD * next = NULL;
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_SCHEDULE_EVENT );
 
@@ -111,9 +114,12 @@ void AsyncThread::idle()
       ASYNC_THREAD_CLOSE_EVENT;
       NANOS_INSTRUMENT( } )
 
+      if ( next == NULL ) {
+         last = ( _runningWDsCounter != 0 ) ? _runningWDs.back() : getCurrentWD();
+      }
 
       // Fill WD's queue until we get the desired number of prefetched WDs
-      WD * next = Scheduler::prefetch( ( BaseThread *) this, *last );
+      next = Scheduler::prefetch( ( BaseThread *) this, *last );
 
       if ( next != NULL ) {
          debug( "[Async] At idle, adding WD " << next << " : " << next->getId() << " to running WDs list" );
@@ -121,6 +127,8 @@ void AsyncThread::idle()
          // Add WD to the queue
          _runningWDs.push_back( next );
          _runningWDsCounter++;
+
+         ensure( _runningWDsCounter == _runningWDs.size(), "Running WDs counter doesn't match runningWDs list size!!" );
 
 #if PRINT_LIST
          std::stringstream s;
@@ -206,6 +214,7 @@ void AsyncThread::preRunWD ( WD * wd )
             }
          }
       }
+
       // This will start WD's copies
       wd->init();
       wd->preStart( WD::IsNotAUserLevelThread );
@@ -216,7 +225,7 @@ void AsyncThread::preRunWD ( WD * wd )
    Action * check = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::checkWDInputs, *this, wd );
    evt->addNextAction( check );
 #ifdef NANOS_GENERICEVENT_DEBUG
-   evt->setDescription( lastEvt->getDescription() + " action:AsyncThread::checkWDInputs" );
+   evt->setDescription( evt->getDescription() + " action:AsyncThread::checkWDInputs" );
 #endif
 
    addEvent( evt );
@@ -236,6 +245,7 @@ void AsyncThread::checkWDInputs( WD * wd )
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_WD_INPUTS_EVENT );
 
+#if 0
    // Should never find a non-raised event
    for ( GenericEventList::iterator it = _pendingEvents.begin(); it != _pendingEvents.end(); it++ ) {
       GenericEvent * evt = *it;
@@ -245,12 +255,13 @@ void AsyncThread::checkWDInputs( WD * wd )
          evt->waitForEvent();
       }
    }
-
+#endif
 
    if ( wd->isInputDataReady() ) {
       // Input data has been copied, we can run the WD
       runWD( wd );
    } else {
+#if 0
       // Input data is not ready yet, we must wait
       GenericEvent * evt;
 
@@ -269,6 +280,25 @@ void AsyncThread::checkWDInputs( WD * wd )
       evt->setRaised();
 
       addEvent( evt );
+#else
+      // Input data is not ready yet, we must wait
+      CustomEvent * evt;
+      Condition * cond = new_condition( ( ConditionPtrMemFunPtr0<WD>::PtrMemFunPtr0 ) &WD::isInputDataReady, wd );
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt = NEW CustomEvent( wd, "CustomEvt Checking WD inputs: WD::isInputDataReady", cond );
+#else
+      evt = NEW CustomEvent( wd, cond );
+#endif
+
+      Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD*>::MemFunPtr1 ) &AsyncThread::runWD, *this, wd );
+      evt->addNextAction( action );
+
+      evt->setPending();
+
+      addEvent( evt );
+
+#endif
    }
 
    ASYNC_THREAD_CLOSE_EVENT;
@@ -383,6 +413,7 @@ void AsyncThread::postRunWD ( WD * wd )
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_POST_RUN_EVENT );
 
    if ( !wd->isOutputDataReady() ) {
+#if 0
       // Output data is not ready yet, we must wait
       GenericEvent * evt;
 
@@ -405,11 +436,32 @@ void AsyncThread::postRunWD ( WD * wd )
       ASYNC_THREAD_CLOSE_EVENT;
 
       return;
+#else
+      CustomEvent * evt;
+      Condition * cond = new_condition( ( ConditionPtrMemFunPtr0<WD>::PtrMemFunPtr0 ) &WD::isOutputDataReady, wd );
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt = NEW CustomEvent( wd, "CustomEvt Checking WD outputs: WD::isOutputDataReady", cond );
+#else
+      evt = NEW CustomEvent( wd, cond );
+#endif
+
+      evt->setPending();
+
+      addEvent( evt );
+
+      ASYNC_THREAD_CLOSE_EVENT;
+
+      return;
+#endif
    }
 
    // Reaching this point means that output data has been copied, we can clean-up the WD
    _runningWDs.remove( wd );
    _runningWDsCounter--;
+   //_runningWDsCounter = _runningWDs.size();
+
+   ensure( _runningWDsCounter == _runningWDs.size(), "Running WDs counter doesn't match runningWDs list size!!" );
 
    debug( "[Async] Removing WD " << wd << " remaining WDs = " << _runningWDsCounter );
 
