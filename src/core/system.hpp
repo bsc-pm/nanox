@@ -454,9 +454,7 @@ inline Plugin * System::loadAndGetPlugin ( const std::string & name )
 }
 
 inline int System::getWgId() { return _atomicSeedWg++; }
-inline unsigned int System::getMemorySpaceId() { return _atomicSeedMemorySpace++; }
 inline unsigned int System::getRootMemorySpaceId() { return 0; }
-inline unsigned int System::getNumMemorySpaces() { return _atomicSeedMemorySpace.value(); }
 
 inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id ) {
    bool found = false;

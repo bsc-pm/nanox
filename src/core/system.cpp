@@ -86,7 +86,7 @@ System::System () :
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       , _enableEvents(), _disableEvents(), _instrumentDefault("default"), _enableCpuidEvent( false )
 #endif
-      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false),  _task_max_retries(1), _atomicSeedMemorySpace( 1 ), _affinityFailureCount( 0 )
+      , _lockPoolSize(37), _lockPool( NULL ), _mainTeam (NULL), _simulator(false),  _task_max_retries(1), _affinityFailureCount( 0 )
       , _createLocalTasks( false )
       , _verboseDevOps( false )
       , _verboseCopies( false )
