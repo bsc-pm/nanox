@@ -33,6 +33,7 @@
 #include "synchronizedcondition.hpp"
 #include "regioncache.hpp"
 #include <cmath>
+#include <climits>
 
 
 using namespace nanos;

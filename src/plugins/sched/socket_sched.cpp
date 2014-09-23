@@ -27,6 +27,8 @@
 #include <sstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
+
 #ifdef HWLOC
 #include <hwloc.h>
 #endif
@@ -139,8 +141,9 @@ namespace nanos {
             struct WDData : public ScheduleWDData
             {
                bool _initTask;
+               unsigned int _wakeUpQueue;
                
-               WDData () : _initTask( false ) {}
+               WDData () : _initTask( false ), _wakeUpQueue( std::numeric_limits<unsigned>::max() ) {}
                virtual ~WDData() {}
             };
          
@@ -539,10 +542,11 @@ namespace nanos {
              */
             void socketQueue ( BaseThread *thread, WD &wd, bool wakeUp )
             {
-               unsigned index = wd.getWakeUpQueue();
+               WDData & wdata = *dynamic_cast<WDData*>( wd.getSchedulerData() );
+               unsigned index = wdata._wakeUpQueue;
                // FIXME: use another variable to check this condition
                // If the WD has not been distributed yet, distribute it
-               if ( index == UINT_MAX )
+               if ( index == std::numeric_limits<unsigned>::max() )
                   return distribute( thread, wd );
                
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -586,9 +590,11 @@ namespace nanos {
              */
             virtual void distribute ( BaseThread *thread, WD &wd )
             {
+               WDData & wdata = *dynamic_cast<WDData*>( wd.getSchedulerData() );
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-               if( wd.getWakeUpQueue() != UINT_MAX )
-                  warning0( "WD already has a queue (" << wd.getWakeUpQueue() << ")" );
+               
+               if( wdata._wakeUpQueue != std::numeric_limits<unsigned>::max() )
+                  warning0( "WD already has a queue (" << wdata._wakeUpQueue << ")" );
                
                unsigned index;
                unsigned node;
@@ -620,7 +626,7 @@ namespace nanos {
                         fatal_cond( node >= sys.getNumNumaNodes(), "Invalid node selected" );
                         //index = (node % sys.getNumSockets())*2 + 1;
                         index = nodeToQueue( node, true );
-                        wd.setWakeUpQueue( index );
+                        wdata._wakeUpQueue = index;
                      }
                      
                      //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.getNUMANode() );
@@ -634,7 +640,7 @@ namespace nanos {
                      break;
                   default:
                      // Insert this in its parent's node
-                     index = wd.getParent()->getWakeUpQueue();
+                     index = wdata._wakeUpQueue;
                      
                      node = queueToNode( index );
                      // If this wd cannot run in this node
@@ -652,7 +658,7 @@ namespace nanos {
                         if ( index % 2 != 0 )
                            ++index;
                      }
-                     wd.setWakeUpQueue( index );
+                     wdata._wakeUpQueue = index;
                      
                      //fprintf( stderr, "Depth %d>1, inserting WD %d in queue number %d\n", wd.getDepth(), wd.getId(), index );
                      // Insert at the back
@@ -767,8 +773,9 @@ namespace nanos {
                      wd = tdata._readyQueues[index].pop_front( thread );
                   
                   if ( wd != NULL ){
+                     WDData & wdata = *dynamic_cast<WDData*>( wd->getSchedulerData() );
                      // Change queue
-                     wd->setWakeUpQueue( index );
+                     wdata._wakeUpQueue = index;
                      return wd;
                   }
                }
@@ -883,7 +890,8 @@ namespace nanos {
                   
                   // Reorder
                   TeamData &tdata = ( TeamData & ) *nanos::myThread->getTeam()->getScheduleData();
-                  unsigned index = pred->getWakeUpQueue();
+                  WDData & wdata = *dynamic_cast<WDData*>( pred->getSchedulerData() );
+                  unsigned index = wdata._wakeUpQueue;
                   // What happens if pred is not in any queue? Fatal.
                   if ( index < static_cast<unsigned>( sys.getSMPPlugin()->getNumSockets() ) )
                      tdata._readyQueues[ index ].reorderWD( pred );

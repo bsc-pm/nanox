@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <utility>
 #include <vector>
-#include <climits>
 #include "workdescriptor_decl.hpp"
 #include "dependableobjectwd.hpp"
 #include "copydata.hpp"
@@ -52,7 +51,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
                                  _translateArgs( translate_args ),
-                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
+                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
@@ -82,7 +81,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _translateArgs( translate_args ),
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
                                      _devices = new DeviceData*[1];
@@ -113,7 +112,6 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _wakeUpQueue( wd._wakeUpQueue ),
                                  _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
@@ -266,13 +264,23 @@ inline void * WorkDescriptor::getInternalData () const {
     return u.p;
 }
 
-inline void WorkDescriptor::setSchedulerData ( ScheduleWDData * data ) { 
+inline void WorkDescriptor::setSchedulerData ( ScheduleWDData * data, bool ownedByWD ) { 
     fatal_cond( _scheduleData != NULL, "Trying to change the scheduler data of a WD that already has one" );
-    _scheduleData = data;
+    
+    union { ScheduleWDData * p; intptr_t i; } u = { data };
+    // Set the own status
+    u.i |= int( ownedByWD );
+    
+    _scheduleData = u.p;
 }
 
 inline ScheduleWDData * WorkDescriptor::getSchedulerData () const { 
-    return _scheduleData;
+    union {ScheduleWDData* p; intptr_t i; } u = { _scheduleData };
+
+    // Clear the own status if set
+    u.i &= ((~(intptr_t)0) << 1);
+
+    return u.p;
 }
 
 inline void WorkDescriptor::setTranslateArgs( nanos_translate_args_t translateArgs ) { _translateArgs = translateArgs; }
@@ -288,16 +296,6 @@ inline int WorkDescriptor::getNUMANode() const
 inline void WorkDescriptor::setNUMANode( int node )
 {
    _numaNode = node;
-}
-
-inline unsigned int WorkDescriptor::getWakeUpQueue() const
-{
-   return _wakeUpQueue;
-}
-
-inline void WorkDescriptor::setWakeUpQueue( unsigned int queue )
-{
-   _wakeUpQueue = queue;
 }
 
 inline unsigned int WorkDescriptor::getNumDevices ( void ) const { return _numDevices; }

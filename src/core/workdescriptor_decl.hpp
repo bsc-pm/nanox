@@ -257,7 +257,6 @@ namespace nanos
          CommutativeOwnerMap          *_commutativeOwnerMap;    //!< Map from commutative target address to owner pointer
          WorkDescriptorPtrList        *_commutativeOwners;      //!< Array of commutative target owners
          int                           _numaNode;               //!< FIXME:scheduler data. The NUMA node this WD was assigned to
-         unsigned int                  _wakeUpQueue;            //!< FIXME:scheduler data. Queue to wake up to
          bool                          _copiesNotInChunk;       //!< States whether the buffer of the copies is allocated in the chunk of the WD
          char                         *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
@@ -432,9 +431,13 @@ namespace nanos
          
          /*! \brief Sets custom data for the scheduling policy
           *  \param [in] data Pointer do the data. Ownership will be
-          *  changed to the WD, so that data will be destroyed with it.
+          *  changed to the WD, so that data will be destroyed with it
+          *  \param [in] ownedByWD States if the pointer to scheduler
+          *  data will be owned by this WD.
+          *  If so, it means that it will be deallocated when the WD is
+          *  destroyed
           */
-         void setSchedulerData( ScheduleWDData * data );
+         void setSchedulerData( ScheduleWDData * data, bool ownedByWD = true );
          
          ScheduleWDData* getSchedulerData() const;
 
@@ -454,19 +457,6 @@ namespace nanos
           */
          void setNUMANode( int node );
          
-         /*! \brief Returns the queue this WD should wake up in.
-          *  This will be used by the socket-aware schedule policy.
-          *
-          *  \see setWakeUpQueue
-          */
-         unsigned int getWakeUpQueue() const;
-         
-         /*! \brief Sets the queue this WD should wake up in.
-          *
-          *  \see getWakeUpQueue
-          */
-         void setWakeUpQueue( unsigned int queue );
-
          /*! \brief Get the number of devices
           *
           *  This function return the number of devices for the current WD
