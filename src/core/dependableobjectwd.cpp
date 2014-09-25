@@ -36,8 +36,6 @@ void DOSubmit::dependenciesSatisfied ( )
       dependenciesSatisfiedNoSubmit();
       getWD()->submit( true );
    }
-   DependenciesDomain::decreaseTasksInGraph();
-   dependenciesSatisfiedNoSubmit();
 }
 
 void DOSubmit::dependenciesSatisfiedNoSubmit( )
