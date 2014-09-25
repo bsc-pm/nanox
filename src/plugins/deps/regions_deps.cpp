@@ -129,7 +129,7 @@ namespace nanos {
                depObj.submitted();
             
                // now everything is ready
-               depObj.decreasePredecessors( &flushDeps, NULL, true );
+               depObj.decreasePredecessors( &flushDeps, NULL, false, true );
             }
             
             /*! \brief Adds a region access of a DependableObject to the domains dependency system.

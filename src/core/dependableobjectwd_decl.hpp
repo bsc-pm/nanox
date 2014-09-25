@@ -133,7 +133,8 @@ namespace nanos
 
          /*! \brief
           */
-         int decreasePredecessors ( std::list<uint64_t>const * flushDeps,  DependableObject * finishedPred, bool blocking = false );
+         int decreasePredecessors ( std::list<uint64_t>const * flushDeps,  DependableObject * finishedPred,
+               bool batchRelease, bool blocking = false );
 
          /*! \brief TODO
           */

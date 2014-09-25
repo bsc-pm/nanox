@@ -179,7 +179,8 @@ namespace nanos
          *         method dependenciesSatisfied is invoked. It can be also a blocking
          *         call in some cases, if blocking is set to true.
          */
-         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred, bool blocking = false );
+         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
+               bool batchRelease, bool blocking = false );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */

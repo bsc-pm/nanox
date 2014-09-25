@@ -82,14 +82,14 @@ void DependableObject::finished ( )
             // If this dependable object can't be released in batch
             if ( !(*it)->canBeBatchReleased() )
             {
-               (*it)->decreasePredecessors( NULL, this, false );
+               (*it)->decreasePredecessors( NULL, this, false, false );
                continue;
             }
             
             // Release this Dependable Object without triggering submission
             DependableObject& dSucc = **it;
             // Decrease predecessors
-            int numPred = --dSucc._numPredecessors;
+            int numPred = dSucc.decreasePredecessors( NULL, this, true, false );
             
             // If after decreasing the predecessors it's not 0, fatal_cond
             fatal_cond( numPred != 0, "Num predecessors is not 0" );
@@ -116,7 +116,7 @@ void DependableObject::finished ( )
       {
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
             NANOS_INSTRUMENT ( instrument ( *(*it) ); )
-            (*it)->decreasePredecessors( NULL, this, false );
+            (*it)->decreasePredecessors( NULL, this, false, false );
          }
       }
    }

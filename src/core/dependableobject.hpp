@@ -92,26 +92,28 @@ inline unsigned int DependableObject::getId () const
 
 inline int DependableObject::increasePredecessors ( )
 {
-     return _numPredecessors++;
+   return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred, bool blocking )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
+      bool batchRelease, bool blocking )
 {
    int  numPred = --_numPredecessors; 
 
    if ( finishedPred != NULL ) {
+
+      if ( getWD() != NULL && finishedPred->getWD() != NULL ) {
+         getWD()->predecessorFinished( finishedPred->getWD() );
+      }
+
       //remove the predecessor from the list!
       _predLock.acquire();
       DependableObjectVector::iterator it = _predecessors.find( finishedPred );
       _predecessors.erase( it );
       _predLock.release();
-
-      if ( getWD() != NULL && finishedPred->getWD() != NULL ) {
-         getWD()->predecessorFinished( finishedPred->getWD() );
-      }
    }
 
-   if ( numPred == 0 ) {
+   if ( numPred == 0 && !batchRelease ) {
       dependenciesSatisfied( );
    }
 
