@@ -168,6 +168,9 @@ void AsyncThread::preRunWD ( WD * wd )
 #endif
    evt->setCreated();
 
+   // It should be already done, but just in case...
+   wd->_mcontrol.preInit();
+
    if ( !wd->started() ) {
       if ( !wd->_mcontrol.isMemoryAllocated() ) {
          wd->_mcontrol.initialize( *( this->runningOn() ) );
