@@ -57,6 +57,7 @@ typedef enum {
    ASYNC_THREAD_SCHEDULE_EVENT              /* 13 */
 } AsyncThreadState_t;
 
+
 bool AsyncThread::inlineWorkDependent( WD &work )
 {
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_INLINE_WORK_DEP_EVENT );
@@ -64,24 +65,7 @@ bool AsyncThread::inlineWorkDependent( WD &work )
    debug( "[Async] At inlineWorkDependent, adding WD " << &work << " : " << work.getId() << " to running WDs list" );
 
    // Add WD to the queue
-   _runningWDs.push_back( &work );
-   _runningWDsCounter++;
-
-   ensure( _runningWDsCounter == _runningWDs.size(), "Running WDs counter doesn't match runningWDs list size!!" );
-
-#if PRINT_LIST
-   std::stringstream s;
-   s << "[Async]@inlineWorkDependent Running WDs: | ";
-   for ( std::list<WD *>::iterator it = _runningWDs.begin(); it != _runningWDs.end(); it++ ) {
-      WD * w = *it;
-      s << w->getId() << " | ";
-   }
-   s << std::endl;
-   std::cout << s.str();
-#endif
-
-   // Start steps to run this WD
-   this->preRunWD( &work );
+   addNextWD( &work );
 
    ASYNC_THREAD_CLOSE_EVENT;
 
@@ -125,24 +109,7 @@ void AsyncThread::idle()
          debug( "[Async] At idle, adding WD " << next << " : " << next->getId() << " to running WDs list" );
 
          // Add WD to the queue
-         _runningWDs.push_back( next );
-         _runningWDsCounter++;
-
-         ensure( _runningWDsCounter == _runningWDs.size(), "Running WDs counter doesn't match runningWDs list size!!" );
-
-#if PRINT_LIST
-         std::stringstream s;
-         s << "[Async]@idle Running WDs: | ";
-         for ( std::list<WD *>::iterator it = _runningWDs.begin(); it != _runningWDs.end(); it++ ) {
-            WD * w = *it;
-            s << w->getId() << " | ";
-         }
-         s << std::endl;
-         std::cout << s.str();
-#endif
-
-         // Start steps to run this WD
-         this->preRunWD( next );
+         addNextWD( next );
 
          NANOS_INSTRUMENT( if ( _pendingEventsCounter > 0 ) { )
          ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_EVTS_EVENT );
@@ -488,16 +455,42 @@ void AsyncThread::addEvent( GenericEvent * evt )
    _pendingEventsCounter++;
 }
 
+
+void AsyncThread::addNextWD ( WD *next )
+{
+   if ( next != NULL ) {
+      debug( "[Async] Adding next WD " << next << " : " << next->getId() << " to running WDs list" );
+
+      // Add WD to the queue
+      _runningWDs.push_back( next );
+      _runningWDsCounter++;
+
+      ensure( _runningWDsCounter == _runningWDs.size(), "Running WDs counter doesn't match runningWDs list size!!" );
+
+#if PRINT_LIST
+      std::stringstream s;
+      s << "[" << getId() << "][Async]@addNextWD (just added " << next->getId() << ") Running WDs: | ";
+      for ( std::list<WD *>::iterator it = _runningWDs.begin(); it != _runningWDs.end(); it++ ) {
+         WD * w = *it;
+         s << w->getId() << " | ";
+      }
+      s << std::endl;
+      std::cout << s.str();
+#endif
+
+      // Start steps to run this WD
+      preRunWD( next );
+   }
+}
+
 WD * AsyncThread::getNextWD ()
 {
-   if ( canGetWork() ) return BaseThread::getNextWD();
-
+   //if ( canGetWork() ) return BaseThread::getNextWD();
    return NULL;
 }
 
 bool AsyncThread::hasNextWD ()
 {
-   if ( canGetWork() ) return BaseThread::hasNextWD();
-
+   //if ( canGetWork() ) return BaseThread::hasNextWD();
    return false;
 }

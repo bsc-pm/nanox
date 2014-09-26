@@ -236,7 +236,7 @@ namespace nanos
          int getMaxPrefetch () const;
          void setMaxPrefetch ( int max );
          bool canPrefetch () const;
-         void addNextWD ( WD *next );
+         virtual void addNextWD ( WD *next );
          virtual WD * getNextWD ();
          virtual bool hasNextWD () const;
 

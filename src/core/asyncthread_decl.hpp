@@ -137,6 +137,7 @@ namespace nanos
 
 
          // Additional checkings for next WDs
+         void addNextWD ( WD *next );
          WD * getNextWD ();
          bool hasNextWD ();
 
