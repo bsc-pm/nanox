@@ -87,7 +87,6 @@ namespace nanos {
 //               }               unsigned int vectorIdx = 0;
                unsigned int vectorIdx = 0;
                
-               getInstanceLock().acquire();
                DepsCacheMap::iterator itCache = _addressDependencyCache.find( target ); 
                std::vector<TrackableObject* > * objs;
                unsigned int vectorEnd=_addressDependencyVector.size();
@@ -106,7 +105,6 @@ namespace nanos {
                vectorIdx=cacheItem->getItNum();
                //Update cache position marker to the end of the vector
                cacheItem->setItNum(_addressDependencyVector.size());
-               getInstanceLock().release();
                
                //Search in dependency vector
                for ( ; vectorIdx < vectorEnd ; ++vectorIdx ) {
@@ -253,6 +251,7 @@ namespace nanos {
              */
             void submitDependableObjectDataAccess( DependableObject &depObj, DepsRegion const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback, TR1::unordered_map<TrackableObject*, bool>& statusMap )
             {
+               SyncRecursiveLockBlock lock1( getInstanceLock() );
                
                if ( accessType.concurrent || accessType.commutative ) {
                   if ( !( accessType.input && accessType.output ) || depObj.waits() ) {
