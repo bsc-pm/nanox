@@ -1162,7 +1162,7 @@ if test x$memtracker_enabled = xyes ; then
 else
    echo "Memory tracker: disabled"
 fi
-if test x$allocator_disabled = xno ; then
+if test x$allocator_enabled = xyes ; then
    echo "Memory allocator: enabled"
 else
    echo "Memory allocator: disabled"
