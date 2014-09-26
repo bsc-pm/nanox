@@ -92,7 +92,7 @@ inline void BaseDependenciesDomain::dependOnLastWriter ( DependableObject &depOb
 
          if ( lastWriter->addSuccessor( depObj ) ) {
             // new dependence lastWriter -> depObj
-            depObj.increasePredecessors();
+            //depObj.increasePredecessors();
             if ( callback != NULL ) {
                ( *callback )( lastWriter, &depObj );
             }
@@ -150,7 +150,7 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
 
       if ( predecessorReader->addSuccessor( depObj ) ) {
          // new dependence predecessorReader -> depObj
-         depObj.increasePredecessors();
+         //depObj.increasePredecessors();
          if ( callback != NULL ) {
             ( *callback )( predecessorReader, &depObj );
          }

@@ -139,6 +139,7 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
 {
    _predLock.acquire();
    bool inserted = _predecessors.insert ( &depObj ).second;
+   if ( inserted ) increasePredecessors();
    _predLock.release();
 
    return inserted;
