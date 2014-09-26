@@ -157,8 +157,8 @@ void AsyncThread::preRunWD ( WD * wd )
 {
    debug( "[Async] Prerunning WD " << wd << " : " << wd->getId() );
 
-   _previousWD = this->getCurrentWD();
-   this->setCurrentWD( *wd );
+   _previousWD = getCurrentWD();
+   setCurrentWD( *wd );
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_PRE_RUN_EVENT );
 
@@ -179,7 +179,7 @@ void AsyncThread::preRunWD ( WD * wd )
             if ( processNonAllocatedWDData( wd ) ) {
                // Will try it later
                ASYNC_THREAD_CLOSE_EVENT;
-               this->setCurrentWD( *_previousWD );
+               setCurrentWD( *_previousWD );
                return;
             }
          }
@@ -202,7 +202,7 @@ void AsyncThread::preRunWD ( WD * wd )
 
    ASYNC_THREAD_CLOSE_EVENT;
 
-   this->setCurrentWD( *_previousWD );
+   setCurrentWD( *_previousWD );
 }
 
 
@@ -210,8 +210,8 @@ void AsyncThread::checkWDInputs( WD * wd )
 {
    // Check if WD's inputs have already been copied
 
-   _previousWD = this->getCurrentWD();
-   this->setCurrentWD( *wd );
+   _previousWD = getCurrentWD();
+   setCurrentWD( *wd );
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_WD_INPUTS_EVENT );
 
@@ -273,7 +273,7 @@ void AsyncThread::checkWDInputs( WD * wd )
 
    ASYNC_THREAD_CLOSE_EVENT;
 
-   this->setCurrentWD( *_previousWD );
+   setCurrentWD( *_previousWD );
 }
 
 bool AsyncThread::processDependentWD ( WD * wd )
@@ -347,8 +347,8 @@ void AsyncThread::runWD ( WD * wd )
 void AsyncThread::checkWDOutputs( WD * wd )
 {
    // Check if WD's outputs have already been copied (if needed)
-   _previousWD = this->getCurrentWD();
-   this->setCurrentWD( *wd );
+   _previousWD = getCurrentWD();
+   setCurrentWD( *wd );
 
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_CHECK_WD_OUTPUTS_EVENT );
 
@@ -372,7 +372,7 @@ void AsyncThread::checkWDOutputs( WD * wd )
 
    ASYNC_THREAD_CLOSE_EVENT;
 
-   this->setCurrentWD( *_previousWD );
+   setCurrentWD( *_previousWD );
 }
 
 
@@ -437,7 +437,7 @@ void AsyncThread::postRunWD ( WD * wd )
 
 #if PRINT_LIST
    std::stringstream s;
-   s << "[Async]@postRunWD Running WDs: | ";
+   s << "[" << getId() << "][Async]@postRunWD Running WDs: | ";
    for ( std::list<WD *>::iterator it = _runningWDs.begin(); it != _runningWDs.end(); it++ ) {
       WD * w = *it;
       s << w->getId() << " | ";
