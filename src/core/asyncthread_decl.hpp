@@ -100,6 +100,8 @@ namespace nanos
 
          virtual void idle();
 
+         virtual void processTransfers ();
+
          virtual void preRunWD ( WD * wd );
          virtual void runWD ( WD * wd );
          virtual void postRunWD ( WD * wd );

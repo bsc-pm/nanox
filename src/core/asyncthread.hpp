@@ -100,6 +100,12 @@ inline void AsyncThread::checkEvents( WD * wd )
    // AsyncThread::checkEvents( WD * wd )
 }
 
+inline void AsyncThread::processTransfers ()
+{
+   disableGettingWork();
+   checkEvents();
+   enableGettingWork();
+}
 
 inline bool AsyncThread::canGetWork()
 {

@@ -356,7 +356,7 @@ void GPUThread::processTransfers()
    ( ( GPUProcessor * ) runningOn() )->getInTransferList()->executeMemoryTransfers();
    ( ( GPUProcessor * ) runningOn() )->getOutTransferList()->removeMemoryTransfer();
 
-   this->checkEvents();
+   AsyncThread::processTransfers();
 }
 
 
