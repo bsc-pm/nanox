@@ -141,6 +141,17 @@ namespace nanos
          virtual BaseThread* getActiveThread();
 
          virtual BaseThread* getSleepingThread();
+
+         /*!
+          * \brief Wake up all threads associated with the PE
+          */
+         virtual void wakeUpThreads();
+
+         /*!
+          * \brief Sleep up all threads associated with the PE
+          */
+         virtual void sleepThreads();
+
          std::size_t getNumThreads() const;
    };
 

@@ -294,19 +294,6 @@ namespace nanos
          */
          void setupWD( WD &work, WD *parent );
 
-         /*!
-          * \brief Add mas to the current system's _cpu_active_set
-          * \param[in] mask
-          */
-         void addCpuMask ( const cpu_set_t *mask );
-
-         /*!
-         * \brief Remove cpu from the current system's _cpu_active_set
-         * \param[in] cpu
-         */
-
-         void removeCpuFromMask ( const int cpu );
-
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
@@ -403,6 +390,24 @@ namespace nanos
           * \param[in] nthreads
           */
          void updateActiveWorkers ( int nthreads );
+
+         /*!
+          * \brief Get the current mask of active CPUs
+          * \param[out] mask
+          */
+         void getCpuMask ( cpu_set_t *mask ) const;
+
+         /*!
+          * \brief Set the mask of active CPUs
+          * \param[in] mask
+          */
+         void setCpuMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current mask of active CPUs
+          * \param[in] mask
+          */
+         void addCpuMask ( const cpu_set_t *mask );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

@@ -1438,22 +1438,6 @@ inline void System::applyCpuMask()
       }
    }
 }
-void System::getCpuMask ( cpu_set_t *mask ) const
-{
-   memcpy( mask, &_cpuActiveSet, sizeof(cpu_set_t) );
-}
-
-void System::setCpuMask ( const cpu_set_t *mask )
-{
-   memcpy( &_cpuActiveSet, mask, sizeof(cpu_set_t) );
-   sys.processCpuMask();
-}
-
-void System::addCpuMask ( const cpu_set_t *mask )
-{
-   CPU_OR( &_cpuActiveSet, &_cpuActiveSet, mask );
-   sys.processCpuMask();
-}
 
 void System::removeCpuFromMask ( const int cpu )
 {
@@ -1538,6 +1522,21 @@ void System::expelCurrentThread ( void )
 void System::updateActiveWorkers ( int nthreads )
 {
    _smpPlugin->updateActiveWorkers( nthreads, _workers );
+}
+
+void System::getCpuMask ( cpu_set_t *mask ) const
+{
+   _smpPlugin->getCpuMask( mask );
+}
+
+void System::setCpuMask ( const cpu_set_t *mask )
+{
+   _smpPlugin->setCpuMask( mask, _workers );
+}
+
+void System::addCpuMask ( const cpu_set_t *mask )
+{
+   _smpPlugin->addCpuMask( mask, _workers );
 }
 
 void System::environmentSummary( void )

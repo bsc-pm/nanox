@@ -140,10 +140,14 @@ void OS::bindThread( pthread_t pth, cpu_set_t *cpu_set )
 
 int OS::getMaxProcessors ( void )
 {
+#ifdef IS_BGQ_MACHINE
+   return (int) 64;
+#else
 #ifdef _SC_NPROCESSORS_ONLN
    return (int) sysconf(_SC_NPROCESSORS_CONF);
 #else
    return (int) 0;
+#endif
 #endif
 }
 

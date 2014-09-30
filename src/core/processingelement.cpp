@@ -214,3 +214,26 @@ BaseThread* ProcessingElement::getSleepingThread()
    }
    return NULL;
 }
+
+void ProcessingElement::wakeUpThreads()
+{
+   BaseThread *thread;
+   ThreadTeam *team = myThread->getTeam();
+   while ( (thread = getUnassignedThread()) != NULL ) {
+      sys.acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
+      thread->wakeup();
+      team->increaseFinalSize();
+   }
+}
+
+void ProcessingElement::sleepThreads()
+{
+   BaseThread *thread;
+   ThreadTeam *team = myThread->getTeam();
+   while ( (thread = getActiveThread()) != NULL ) {
+      thread->lock();
+      thread->sleep();
+      thread->unlock();
+      team->decreaseFinalSize();
+   }
+}

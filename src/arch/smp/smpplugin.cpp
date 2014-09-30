@@ -277,7 +277,9 @@ class SMPPlugin : public SMPBasePlugin
          } else {
             cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), active, numaNode, socket );
          }
-         CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
+         if ( active ) {
+            CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
+         }
          //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
          (*_cpus)[count] = cpu;
          (*_cpusByCpuId)[ *it ] = cpu;
@@ -614,91 +616,21 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
-
-   // Not thread-safe
-   void applyCpuMask()
-   {
-      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-      NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-      NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveSet ) )
-      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
-
-      BaseThread *thread;
-      ThreadTeam *team = myThread->getTeam();
-      unsigned int active_cpus = 0;
-
-      for ( unsigned cpu_id = 0; cpu_id < _cpus->size() || active_cpus < (size_t)CPU_COUNT( &_cpuActiveSet ); cpu_id += 1 ) {
-         int binding_id = (*_cpus)[ cpu_id ]->getBindingId();
-         if ( CPU_ISSET( binding_id, &_cpuActiveSet ) ) {
-            active_cpus += 1;
-            // This PE should be running FIXME: this code should be inside ProcessingElement (wakeupWorkers ?)
-            while ( (thread = (*_cpus)[cpu_id]->getUnassignedThread()) != NULL ) {
-               sys.acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-               team->increaseFinalSize();
-            }
-         } else {
-            // This PE should not FIXME: this code should be inside ProcessingElement (sleepWorkers ?)
-            while ( (thread = (*_cpus)[cpu_id]->getActiveThread()) != NULL ) {
-               thread->lock();
-               thread->sleep();
-               thread->unlock();
-               team->decreaseFinalSize();
-            }
-         }
-      }
-   }
-
    void getCpuMask ( cpu_set_t *mask ) const
    {
       ::memcpy( mask, &_cpuActiveSet , sizeof(cpu_set_t) );
    }
 
-   void setCpuMask ( const cpu_set_t *mask )
+   void setCpuMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       ::memcpy( &_cpuActiveSet , mask, sizeof(cpu_set_t) );
-      processCpuMask();
+      processCpuMask( workers );
    }
 
-   void addCpuMask ( const cpu_set_t *mask )
+   void addCpuMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       CPU_OR( &_cpuActiveSet , &_cpuActiveSet , mask );
-      processCpuMask();
-   }
-
-   void processCpuMask( void )
-   {
-#if 0
-      // if _bindThreads is enabled, update _bindings adding new elements of _cpuActiveSet
-      if ( getBinding() ) {
-         std::ostringstream oss_cpu_idx;
-         oss_cpu_idx << "[";
-         for ( int cpu=0; cpu<CPU_SETSIZE; cpu++) {
-            if ( cpu > OS::getMaxProcessors()-1 && !sys.isSimulator() ) {
-               CPU_CLR( cpu, &_cpuActiveSet );
-               debug("Trying to use more cpus than available is not allowed (do you forget --simulator option?)");
-               continue;
-            }
-            if ( CPU_ISSET( cpu, &_cpuActiveSet  ) ) {
-
-               //      if ( std::find( _bindings.begin(), _bindings.end(), cpu ) == _bindings.end() ) {
-               //         _bindings.push_back( cpu );
-               //      }
-
-               oss_cpu_idx << cpu << ", ";
-            }
-         }
-         oss_cpu_idx << "]";
-         verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-         if ( sys.getPMInterface().isMalleable() ) {
-            applyCpuMask();
-         }
-      } else {
-         verbose0( "PID[" << getpid() << "]. Changing number of threads: " << (int) myThread->getTeam()->getFinalSize() << " to " << (int) CPU_COUNT( &_cpuActiveSet ) );
-         if ( sys.getPMInterface().isMalleable() ) {
-            updateActiveWorkers( CPU_COUNT( &_cpuActiveSet ) );
-         }
-      }
-#endif
+      processCpuMask( workers );
    }
 
    SMPThread * getInactiveWorker( void )
@@ -742,16 +674,7 @@ class SMPPlugin : public SMPBasePlugin
       std::vector<ext::SMPProcessor *>::const_iterator it;
       for ( it = _cpus->begin(); it != _cpus->end() && new_workers > 0; it++ ) {
          if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
-            ext::SMPProcessor *target = *it;
-            target->reserve();
-            if ( !target->isActive() ) {
-               target->setActive();
-               // FIXME: still need to update mask?
-               // CPU_SET( target->getBindingId(), &_cpuActiveSet );
-            }
-            BaseThread *thd = &target->startWorker();
-            _workers.push_back( (SMPThread *) thd );
-            workers.insert( std::make_pair( thd->getId(), thd ) );
+            createWorker( (*it), workers );
             new_workers--;
          }
       }
@@ -901,7 +824,7 @@ class SMPPlugin : public SMPBasePlugin
       _workers.push_back( &thd );
       return thd;
    }
-   
+
    virtual int getRequestedWorkersOMPSS() const {
       return _requestedWorkersOMPSS;
    }
@@ -913,7 +836,83 @@ class SMPPlugin : public SMPBasePlugin
       }
       o << "]";
    }
-   
+
+private:
+
+   void processCpuMask( std::map<unsigned int, BaseThread *> &workers )
+   {
+      if ( sys.getPMInterface().isMalleable() ) {
+         if ( _bindThreads ) {
+#ifdef NANOS_DEBUG_ENABLED
+            std::ostringstream oss_cpu_idx;
+            oss_cpu_idx << "[";
+            for ( int cpu=0; cpu<_availableCores; cpu++) {
+               if ( CPU_ISSET( cpu, &_cpuActiveSet  ) ) {
+                  oss_cpu_idx << cpu << ", ";
+               }
+            }
+            oss_cpu_idx << "]";
+            verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
+#endif
+            applyCpuMask( workers );
+         } else {
+            verbose0( "PID[" << getpid() << "]. Changing number of threads: " <<
+                  myThread->getTeam()->getFinalSize() << " to " <<
+                  CPU_COUNT( &_cpuActiveSet ) );
+
+            sys.updateActiveWorkers( CPU_COUNT( &_cpuActiveSet ) );
+         }
+      }
+   }
+
+   void applyCpuMask ( std::map<unsigned int, BaseThread *> &workers )
+   {
+      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+      NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+      NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveSet ) )
+      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
+
+      unsigned int active_cpus = 0;
+
+      for ( unsigned cpu_id = 0; cpu_id < _cpus->size() || active_cpus < (size_t)CPU_COUNT( &_cpuActiveSet ); cpu_id += 1 ) {
+         ext::SMPProcessor *target = (*_cpus)[cpu_id];
+         int binding_id = target->getBindingId();
+         if ( CPU_ISSET( binding_id, &_cpuActiveSet ) ) {
+
+            /* Create a new worker if the target PE is empty */
+            if ( target->getNumThreads() == 0 && !target->isReserved() ) {
+               createWorker( target, workers );
+            }
+
+            active_cpus += 1;
+            target->wakeUpThreads();
+         } else {
+            target->sleepThreads();
+         }
+      }
+   }
+
+   void createWorker( ext::SMPProcessor *target, std::map<unsigned int, BaseThread *> &workers )
+   {
+      NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
+      target->reserve();
+      if ( !target->isActive() ) {
+         target->setActive();
+      }
+      BaseThread *thread = &(target->startWorker());
+      _workers.push_back( (SMPThread *) thread );
+      workers.insert( std::make_pair( thread->getId(), thread ) );
+
+      /* Set up internal data */
+      WD & threadWD = thread->getThreadWD();
+      if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+         char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
+         sys.getPMInterface().initInternalData( data );
+         threadWD.setInternalData( data );
+      }
+      sys.getPMInterface().setupWD( threadWD );
+   }
+
 };
 }
 }
