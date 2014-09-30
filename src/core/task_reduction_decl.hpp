@@ -27,9 +27,11 @@ class TaskReduction {
       typedef std::vector<char> storage_t;
    private: /* data members */
       void                            *_original;
+      void                            *_dependence;
       unsigned                         _depth;
       initializer_t                    _initializer;
       reducer_t                        _reducer;
+      reducer_t                        _reducer_orig_var;
       storage_t                        _storage;
       size_t                           _size;
       size_t                           _threads;
@@ -38,19 +40,23 @@ class TaskReduction {
    private: /* private methods */
       TaskReduction ( const TaskReduction &tr ) {}
    public: /* public methods */
-      TaskReduction ( void *orig, initializer_t init, reducer_t red, size_t size, size_t threads, unsigned depth ) : _original(orig), _depth(depth), _initializer(init), _reducer(red),
+      TaskReduction ( void *orig, void *dep, initializer_t init, reducer_t red, reducer_t red_orig_var, size_t size, size_t threads, unsigned depth ) : _original(orig), _dependence(dep), _depth(depth), _initializer(init), _reducer(red), _reducer_orig_var(red_orig_var),
                       _storage((size<<8)*threads), _size(size<<8), _threads(threads), _min(NULL), _max(NULL)
       {
          _min = & _storage[0];
          _max = & _storage[_size*threads];
          size_t i;
-         for ( i=0; i<threads; i++) _initializer( &_storage[i*_size], _original );
+         for ( i=0; i<threads; i++) {
+             //printf("storage thread[%d] = %p \n", (unsigned int)i,  &_storage[i*_size]);
+             _initializer( &_storage[i*_size], _original );
+         }
       }
 
      ~TaskReduction ( )
       {
       }
       void * have ( const void *ptr, size_t id ) ;
+      void * have_dependence ( const void *ptr, size_t id ) ;
       void * finalize ( void );
       unsigned getDepth(void) const ;
 };

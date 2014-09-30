@@ -74,7 +74,7 @@ void ThreadTeam::cleanUpReductionList( void )
    }
 }
 
-void ThreadTeam::registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *, void *), void (*p_reducer)( void *, void * ) )
+void ThreadTeam::registerTaskReduction( void *p_orig, void *p_dep, size_t p_size, void (*p_init)( void *, void *), void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) )
 {
    LockBlock Lock( _lockTaskReductions );
 
@@ -85,7 +85,7 @@ void ThreadTeam::registerTaskReduction( void *p_orig, size_t p_size, void (*p_in
    }
 
    if ( it == _taskReductions.end() ) {
-      _taskReductions.push_front( new TaskReduction( p_orig, p_init, p_reducer, p_size, _finalSize.value(), myThread->getCurrentWD()->getDepth() ) );
+      _taskReductions.push_front( new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var, p_size, _finalSize.value(), myThread->getCurrentWD()->getDepth() ) );
    }
 }
 
@@ -115,14 +115,14 @@ void * ThreadTeam::getTaskReductionThreadStorage( void *p_orig, size_t id )
    return NULL;
 }
 
-TaskReduction * ThreadTeam::getTaskReduction( const void *p_orig )
+TaskReduction * ThreadTeam::getTaskReduction( const void *p_dep )
 {
    LockBlock Lock( _lockTaskReductions );
 
    //! Check if orig is already registered
    task_reduction_list_t::iterator it;
    for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      void *ptr = (*it)->have( p_orig, 0 );
+      void *ptr = (*it)->have_dependence( p_dep, 0 );
       if ( ptr != NULL ) return (*it);
    }
    return NULL;

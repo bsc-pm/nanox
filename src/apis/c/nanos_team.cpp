@@ -244,13 +244,13 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 
    return NANOS_OK;
 }
-NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size, size_t align, void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) )
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, void *dep, size_t size, size_t align, void (*init)( void *, void * ), void (*reducer)( void *, void * ), void (*reducer_orig_var)( void *, void * ) ) )
 {
    try {
 #ifndef ON_TASK_REDUCTION
-       myThread->getTeam()->registerTaskReduction ( orig, size, init, reducer );
+       myThread->getTeam()->registerTaskReduction ( orig, dep, size, init, reducer, reducer_orig_var);
 #else
-       myThread->getCurrentWD()->registerTaskReduction ( orig, size, init, reducer );
+       myThread->getCurrentWD()->registerTaskReduction ( orig, dep, size, init, reducer, reducer_orig_var);
 #endif
    } catch ( nanos_err_t e) {
       return e;

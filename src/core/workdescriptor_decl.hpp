@@ -624,10 +624,12 @@ namespace nanos
          //! submit() and dequeue() when _slicer attribute is specified.
          void convertToRegularWD();
 
-         void registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) );
+         void registerTaskReduction( void *p_orig, void *dep, size_t p_size, void (*p_init)( void *, void * ),
+                 void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ));
+
          bool removeTaskReduction( void *p_orig, bool del = false );
          void * getTaskReductionThreadStorage( void *p_orig, size_t id );
-         TaskReduction * getTaskReduction( const void *p_orig );
+         TaskReduction * getTaskReduction( const void *p_dep );
          void copyReductions(WorkDescriptor *parent);
    };
 

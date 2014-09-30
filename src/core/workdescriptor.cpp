@@ -304,7 +304,7 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
-void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) )
+void WorkDescriptor::registerTaskReduction( void *p_orig, void *p_dep, size_t p_size, void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) )
 {
    //! Check if orig is already registered
    task_reduction_list_t::iterator it;
@@ -313,7 +313,7 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, void (*
    }
 
    if ( it == _taskReductions.end() ) {
-      _taskReductions.push_front( new TaskReduction( p_orig, p_init, p_reducer, p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+      _taskReductions.push_front( new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var, p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
    }
 }
 
@@ -322,7 +322,7 @@ bool WorkDescriptor::removeTaskReduction( void *p_orig, bool del )
    //! Check if orig is already registered
    task_reduction_list_t::iterator it;
    for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      if ( (*it)->have( p_orig, 0 ) ) break;
+      if ( (*it)->have_dependence( p_orig, 0 ) ) break;
    }
 
    if ( it != _taskReductions.end() ) {
@@ -344,12 +344,12 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_orig, size_t id )
    return NULL;
 }
 
-TaskReduction * WorkDescriptor::getTaskReduction( const void *p_orig )
+TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
 {
    //! Check if orig is already registered
    task_reduction_list_t::iterator it;
    for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      void *ptr = (*it)->have( p_orig, 0 );
+      void *ptr = (*it)->have_dependence( p_dep, 0 );
       if ( ptr != NULL ) return (*it);
    }
    return NULL;
