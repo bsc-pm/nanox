@@ -431,7 +431,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
    //int c = 0;
    //print();
 
-   if ( sys.getSeparateMemoryAddressSpacesCount() == 1 ) return;
+   if ( sys.getSeparateMemoryAddressSpacesCount() == 0 ) return;
 
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
    std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
