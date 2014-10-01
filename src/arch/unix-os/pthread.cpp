@@ -139,20 +139,6 @@ void PThread::wakeup()
    pthread_mutex_unlock( &_mutexWait );
 }
 
-void PThread::block()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_wait( &_completionWait, &_completionMutex );
-   pthread_mutex_unlock( &_completionMutex );
-}
-
-void PThread::unblock()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_signal( &_completionWait );
-   pthread_mutex_unlock( &_completionMutex );
-}
-
 
 #ifdef NANOS_RESILIENCY_ENABLED
 

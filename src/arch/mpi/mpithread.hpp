@@ -84,10 +84,6 @@ namespace ext
          void initializeDependent( void );
          
          void idle( bool debug = false );
-         
-         virtual void block();
-         
-         virtual void unblock();
 
          void addRunningPEs( MPIProcessor** pe, int nPes);
          

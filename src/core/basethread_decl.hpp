@@ -207,9 +207,7 @@ namespace nanos
          void stop();
          virtual void sleep();
          virtual void wakeup();
-         virtual void block() {};
-         virtual void unblock() {};
-         
+
          void pause ();
          void unpause ();
 

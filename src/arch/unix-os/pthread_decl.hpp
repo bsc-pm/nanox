@@ -76,13 +76,6 @@ namespace nanos {
 
          virtual void wakeup();
 
-         /*!
-          * \brief Waits on a condition.
-          */
-         virtual void block();
-
-         /*! \brief Signals the thread to stop waiting. */
-         virtual void unblock();
 #ifdef NANOS_RESILIENCY_ENABLED
          virtual void setupSignalHandlers();
 #endif

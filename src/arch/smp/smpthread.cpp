@@ -203,12 +203,6 @@ void SMPThread::sleep()
    _pthread.mutexUnlock();
 }
 
-void SMPThread::block()
-{
-   _pthread.block();
-}
-
-
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )
 {
