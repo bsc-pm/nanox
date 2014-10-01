@@ -49,8 +49,8 @@ void * ompss_opencl_malloc ( size_t size );
 void ompss_opencl_free ( void * address ) ;
 void nanos_get_opencl_num_devices_ (int* numret);
 // Deprecated
-__attribute__( (deprecated("Please use ompss_opencl_malloc")) )void * nanos_malloc_opencl( size_t size );
-__attribute__( (deprecated("Please use ompss_opencl_free")) )void nanos_free_opencl( void * address );
+__attribute__( (deprecated) )void * nanos_malloc_opencl( size_t size );
+__attribute__( (deprecated) )void nanos_free_opencl( void * address );
 
 NANOS_API_DECL(void, nanos_opencl_allocate_fortran, ( ptrdiff_t size, void* ptr )); // ptr is a void **
 NANOS_API_DECL(void, nanos_opencl_deallocate_fortran, ( void * address ));
