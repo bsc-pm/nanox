@@ -709,11 +709,6 @@ class SMPPlugin : public SMPBasePlugin
          thread = _workers[i];
          if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
-            // skip if the thread is not in the mask
-            if ( getBinding() && !CPU_ISSET( thread->getCpuId(), &_cpuActiveSet ) ) {
-               continue;
-            }
-
             // recheck availability with exclusive access
             thread->lock();
 

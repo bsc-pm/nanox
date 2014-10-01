@@ -579,7 +579,9 @@ void System::finish ()
 
    //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
    if ( _workers[0]->isSleeping() ) {
-      acquireWorker( myThread->getTeam(), _workers[0], true, false, false );
+      if ( !_workers[0]->hasTeam() ) {
+         acquireWorker( myThread->getTeam(), _workers[0], true, false, false );
+      }
       _workers[0]->wakeup();
    }
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
