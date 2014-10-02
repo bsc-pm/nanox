@@ -3,3 +3,4 @@ worksharing=1000
 deps_api=1001
 copies_api=1002
 openmp=8
+opencl=1000
