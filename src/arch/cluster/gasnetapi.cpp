@@ -91,6 +91,37 @@ using namespace ext;
 
 #define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
 
+GASNetAPI::WorkBufferManager::WorkBufferManager() : _buffers(), _lock() {
+}
+
+char * GASNetAPI::WorkBufferManager::_add(unsigned int wdId, unsigned int num, std::size_t totalLen, std::size_t thisLen, char *buff ) {
+   char *ret = NULL;
+   _lock.acquire();
+   std::map<unsigned int, char *>::iterator it = _buffers.lower_bound( wdId );
+   if ( it == _buffers.end() || _buffers.key_comp()( wdId, it->first ) ) {
+      it = _buffers.insert( it, std::make_pair( wdId, NEW char[ totalLen ] ) );
+   }
+   memcpy( &(it->second[ num * gasnet_AMMaxMedium() ]), buff, thisLen );
+   ret = it->second;
+   _lock.release();
+   return ret;
+}
+
+char *GASNetAPI::WorkBufferManager::get(unsigned int wdId, std::size_t totalLen, std::size_t thisLen, char *buff ) {
+   char *data = NULL;
+   if ( totalLen == thisLen ) {
+      /* message data comes in the work message, do not check for
+         entries because there will not be any. */
+      data = NEW char[ thisLen ];
+      memcpy( data, buff, thisLen );
+   } else {
+      /* num is the last message - 1 */
+      unsigned int num = totalLen / gasnet_AMMaxMedium();
+      /* assume we are done */
+      data = this->_add(wdId, num, totalLen, thisLen, buff);
+   }
+   return data;
+}
 
 GASNetAPI *GASNetAPI::_instance = 0;
 
@@ -101,7 +132,7 @@ GASNetAPI *GASNetAPI::getInstance() {
 GASNetAPI::GASNetAPI( ClusterPlugin &p ) : _plugin( p ), _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _packSegment( 0 ),
    _pinnedAllocators(), _pinnedAllocatorsLocks(),
    _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ),
-   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ) {
+   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ), _incomingWorkBuffers() {
    _instance = this;
 }
 
@@ -288,7 +319,11 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       gasnet_handlerarg_t rmwdHi,
       gasnet_handlerarg_t expectedDataLo,
       gasnet_handlerarg_t expectedDataHi,
-      unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch, unsigned int seq )
+      gasnet_handlerarg_t dataSize, /* this should be greater than 32bits */
+      gasnet_handlerarg_t wdId,
+      gasnet_handlerarg_t numPe,
+      gasnet_handlerarg_t arch,
+      gasnet_handlerarg_t seq )
 {
    void (*work)( void *) = (void (*)(void *)) MERGE_ARG( workHi, workLo );
    void (*xlate)( void *, void *) = (void (*)(void *, void *)) MERGE_ARG( xlateHi, xlateLo );
@@ -308,18 +343,20 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_AM_WORK, id, 0, 0, src_node ); )
    }
    char *work_data = NULL;
-   std::size_t work_data_len = 0;
+   //std::size_t work_data_len = 0;
 
-   if ( work_data == NULL )
-   {
-      work_data = NEW char[ argSize ];
-      memcpy( work_data, arg, argSize );
-   }
-   else
-   {
-      fatal0("Unsupported: work_data bigger than a max gasnet request.");
-      memcpy( &work_data[ work_data_len ], arg, argSize );
-   }
+   work_data = getInstance()->_incomingWorkBuffers.get(wdId, dataSize, argSize, (char *) arg);
+
+   // if ( work_data == NULL )
+   // {
+   //    work_data = NEW char[ argSize ];
+   //    memcpy( work_data, arg, argSize );
+   // }
+   // else
+   // {
+   //    fatal0("Unsupported: work_data bigger than a max gasnet request.");
+   //    memcpy( &work_data[ work_data_len ], arg, argSize );
+   // }
 
    nanos_smp_args_t smp_args;
    smp_args.outline = (void (*)(void *)) work;
@@ -397,23 +434,27 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 
    delete[] work_data;
    work_data = NULL;
-   work_data_len = 0;
+   //work_data_len = 0;
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amWorkData(gasnet_token_t token, void *buff, std::size_t len,
+      gasnet_handlerarg_t wdId,
       gasnet_handlerarg_t msgNum,
       gasnet_handlerarg_t totalLenLo,
       gasnet_handlerarg_t totalLenHi)
 {
    gasnet_node_t src_node;
+   std::size_t totalLen = (std::size_t) MERGE_ARG( totalLenHi, totalLenLo );
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error obtaining node information.\n");
    }
 
-   std::cerr<<"UNSUPPORTED FOR NOW"<<std::endl;
+   getInstance()->_incomingWorkBuffers._add(wdId, msgNum, totalLen, len, (char *) buff);
+
+   //std::cerr<<"UNSUPPORTED FOR NOW"<<std::endl;
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
 
@@ -1148,7 +1189,8 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
 
    while ( (argSize - sent) > gasnet_AMMaxMedium() )
    {
-      if ( gasnet_AMRequestMedium3( dest, 215, &arg[ sent ], gasnet_AMMaxMedium(),
+      if ( gasnet_AMRequestMedium4( dest, 215, &arg[ sent ], gasnet_AMMaxMedium(),
+               wdId,
                msgCount, 
                ARG_LO( argSize ),
                ARG_HI( argSize ) ) != GASNET_OK )

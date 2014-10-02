@@ -173,7 +173,7 @@ DeviceOps *global_reg_t::getDeviceOps() const {
 bool global_reg_t::contains( global_reg_t const &reg ) const {
    bool result = false;
    if ( key == reg.key ) {
-      if ( key->checkIntersect( id, reg.id ) && ( reg.id == key->computeIntersect( id, reg.id ) ) ) {
+      if ( id == reg.id || ( key->checkIntersect( id, reg.id ) && ( reg.id == key->computeIntersect( id, reg.id ) ) ) ) {
          result = true;
       }
    }

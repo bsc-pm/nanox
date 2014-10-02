@@ -6,6 +6,7 @@
 namespace nanos {
    class MemCacheCopy {
          unsigned int         _version;
+         unsigned int         _childrenProducedVersion;
       public:
          global_reg_t         _reg;
          NewLocationInfoList  _locations;
@@ -23,6 +24,8 @@ namespace nanos {
          void setVersion( unsigned int version );
          bool isRooted( memory_space_id_t &loc ) const;
          void printLocations( std::ostream &o) const;
+         unsigned int getChildrenProducedVersion() const;
+         void setChildrenProducedVersion( unsigned int version );
    };
 }
 #endif /* MEMCACHECOPY_DECL */

@@ -55,6 +55,16 @@ namespace ext {
          std::vector< Lock * > _pinnedAllocatorsLocks;
          Atomic<unsigned int> *_seqN;
 
+         class WorkBufferManager {
+            std::map<unsigned int, char *> _buffers;
+            Lock _lock;
+
+            public:
+            WorkBufferManager();
+            char *_add(unsigned int wdId, unsigned int num, std::size_t totalLen, std::size_t thisLen, char *buff );
+            char *get(unsigned int wdId, std::size_t totalLen, std::size_t thisLen, char *buff );
+         };
+
          class GASNetSendDataRequest : public SendDataRequest {
             protected:
             GASNetAPI *_gasnetApi;
@@ -145,6 +155,8 @@ namespace ext {
          void ** _segmentAddrList;
          std::size_t * _segmentLenList;
 
+         WorkBufferManager _incomingWorkBuffers;
+
       public:
          GASNetAPI( ClusterPlugin &p );
          ~GASNetAPI();
@@ -208,8 +220,13 @@ namespace ext {
                              gasnet_handlerarg_t rmwdHi,
                              gasnet_handlerarg_t expectedDataLo,
                              gasnet_handlerarg_t expectedDataHi,
-                             unsigned int dataSize, unsigned int wdId, unsigned int numPe, int arch, unsigned int seq );
+                             gasnet_handlerarg_t dataSize,
+                             gasnet_handlerarg_t wdId,
+                             gasnet_handlerarg_t numPe,
+                             gasnet_handlerarg_t arch,
+                             gasnet_handlerarg_t seq );
          static void amWorkData(gasnet_token_t token, void *buff, std::size_t len,
+               gasnet_handlerarg_t wdId,
                gasnet_handlerarg_t msgNum,
                gasnet_handlerarg_t totalLenLo,
                gasnet_handlerarg_t totalLenHi);
