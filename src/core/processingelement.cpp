@@ -177,7 +177,7 @@ BaseThread* ProcessingElement::getFirstStoppedThread_FIXME()
    return NULL;
 }
 
-BaseThread* ProcessingElement::getActiveThread()
+BaseThread* ProcessingElement::getActiveThread_FIXME()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
@@ -186,7 +186,7 @@ BaseThread* ProcessingElement::getActiveThread()
    }
    return NULL;
 }
-BaseThread* ProcessingElement::getUnassignedThread()
+BaseThread* ProcessingElement::getUnassignedThread_FIXME()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
@@ -204,7 +204,7 @@ BaseThread* ProcessingElement::getUnassignedThread()
    return NULL;
 }
 
-BaseThread* ProcessingElement::getSleepingThread()
+BaseThread* ProcessingElement::getSleepingThread_FIXME()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
@@ -217,23 +217,43 @@ BaseThread* ProcessingElement::getSleepingThread()
 
 void ProcessingElement::wakeUpThreads()
 {
-   BaseThread *thread;
-   ThreadTeam *team = myThread->getTeam();
-   while ( (thread = getUnassignedThread()) != NULL ) {
-      sys.acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-      thread->wakeup();
-      team->increaseFinalSize();
+   ThreadList::iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      BaseThread *thread = (*it);
+
+      // Thread is not sleeping
+      if ( thread->hasTeam() && !thread->isSleeping() ) {
+         continue;
+      }
+
+      thread->lock();
+      // Thread is already waiting
+      if ( !thread->hasTeam() ) {
+         thread->reserve();
+         thread->unlock();
+         ThreadTeam *team = myThread->getTeam();
+         sys.acquireWorker( team, thread, true, false, false );
+         thread->wakeup();
+         team->increaseFinalSize();
+      }
+      // Thread is only tagged to sleep
+      else if ( thread->isSleeping() ) {
+         thread->unlock();
+         thread->wakeup();
+      }
+      // Thread was waken up while acquiring the lock
+      else {
+         thread->unlock();
+      }
    }
 }
 
 void ProcessingElement::sleepThreads()
 {
-   BaseThread *thread;
-   ThreadTeam *team = myThread->getTeam();
-   while ( (thread = getActiveThread()) != NULL ) {
-      thread->lock();
+   ThreadList::iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      BaseThread *thread = (*it);
+      if ( !thread->isSleeping() ) thread->getTeam()->decreaseFinalSize();
       thread->sleep();
-      thread->unlock();
-      team->decreaseFinalSize();
    }
 }

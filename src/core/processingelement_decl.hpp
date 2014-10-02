@@ -134,13 +134,13 @@ namespace nanos
          /*!
           * \brief Returns the first thread of the PE that has no team or is tagged to sleep
           */
-         virtual BaseThread* getUnassignedThread();
+         virtual BaseThread* getUnassignedThread_FIXME();
          /*!
           * \brief Returns the first thread of the PE that is not tagged to sleep
           */
-         virtual BaseThread* getActiveThread();
+         virtual BaseThread* getActiveThread_FIXME();
 
-         virtual BaseThread* getSleepingThread();
+         virtual BaseThread* getSleepingThread_FIXME();
 
          /*!
           * \brief Wake up all threads associated with the PE

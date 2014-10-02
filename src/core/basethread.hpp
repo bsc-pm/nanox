@@ -131,16 +131,10 @@ namespace nanos
  
    inline void BaseThread::stop() { _status.must_stop = true; }
 
-   inline void BaseThread::sleep() {
-      if (!_status.must_sleep) {
-      _status.must_sleep = true;
-      }
-   }
+   inline void BaseThread::sleep() { _status.must_sleep = true; }
 
-   inline void BaseThread::wakeup() { 
-      _status.must_sleep = false; 
-   }
-   
+   inline void BaseThread::wakeup() { _status.must_sleep = false; }
+
    inline void BaseThread::pause ()
    {
       // If the thread was already paused, do nothing
@@ -229,8 +223,8 @@ namespace nanos
  
    inline bool BaseThread::isRunning () const { return _status.has_started && !_status.must_stop; }
 
-   inline bool BaseThread::isSleeping () const { return _status.must_sleep; }
-   
+   inline bool BaseThread::isSleeping () const { return _status.must_sleep && !_status.must_stop; }
+
    inline bool BaseThread::isTeamCreator () const { return _teamData->isCreator(); } 
 
    inline void BaseThread::wait ( void ) { _status.is_waiting = true; }
