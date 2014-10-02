@@ -77,51 +77,6 @@ void SMPThread::idle( bool debug )
    }
 }
 
-
-void SMPThread::wait()
-{
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-
-   lock();
-   _pthread.mutexLock();
-
-   ThreadTeam *team = getTeam();
-
-   if ( hasNextWD() ) {
-      WD *next = getNextWD();
-      next->untie();
-      team->getSchedulePolicy().queue( this, *next );
-   }
-   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
-
-   if ( team != NULL ) leaveTeam();
-
-   if ( isSleeping() ) {
-      BaseThread::wait();
-
-      unlock();
-      _pthread.condWait();
-
-      //! \note Then we call base thread wakeup, which just mark thread as active
-      lock();
-      BaseThread::resume();
-      BaseThread::wakeup();
-      unlock();
-   } else {
-      unlock();
-   }
-
-   _pthread.mutexUnlock();
-
-   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
-   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-}
-#if 0
 void SMPThread::wait()
 {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
@@ -132,7 +87,7 @@ void SMPThread::wait()
    ThreadTeam *team = getTeam();
 
    /* Put WD's from local to global queue, leave team, and set flag
-    * Locking _mutexWait assures us that the sleep flag is still set when we get here
+    * Locking pthread mutex assures us that the sleep flag is still set when we get here
     */
    lock();
    _pthread.mutexLock();
@@ -151,15 +106,15 @@ void SMPThread::wait()
 
       unlock();
 
-      _pthread.cond_wait();
-
       NANOS_INSTRUMENT( InstrumentState state_stop(NANOS_STOPPED) );
 
-      /* Wait on condition loop */
+      /* It is recommended to wait under a while loop to handle spurious wakeups
+       * http://pubs.opengroup.org/onlinepubs/009695399/functions/pthread_cond_wait.html
+       */
       while ( isSleeping() ) {
-         pthread_cond_wait( &_condWait, &_mutexWait );
+         _pthread.condWait();
       }
-      pthread_mutex_unlock( &_mutexWait );
+      _pthread.mutexUnlock();
 
       NANOS_INSTRUMENT( InstrumentState state_wake(NANOS_WAKINGUP) );
 
@@ -168,32 +123,28 @@ void SMPThread::wait()
       BaseThread::resume();
       unlock();
 
+      /* Whether the thread should wait for the cpu to be free before doing some work */
       ResourceManager::waitForCpuAvailability();
-      _pthread.mutex_unlock();
 
       if ( isSleeping() ) wait();
       else {
-         NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-         NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+         NANOS_INSTRUMENT ( if ( sys.getSMPPlugin()->getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+         NANOS_INSTRUMENT ( if ( !sys.getSMPPlugin()->getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
          NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
       }
    }
    else {
-      pthread_mutex_unlock( &_mutexWait );
+      _pthread.mutexUnlock();
       unlock();
    }
 }
-#endif
 
 void SMPThread::wakeup()
 {
-   //! \note This function has to be in free race condition environment or externally
-   // protected, when called, with the thread common lock: lock() & unlock() functions.
-
-   //! \note If thread is not marked as waiting, just ignore wakeup
-   if ( !isSleeping() || !isWaiting() ) return;
-
-   _pthread.wakeup();
+   _pthread.mutexLock();
+   BaseThread::wakeup();
+   _pthread.condSignal();
+   _pthread.mutexUnlock();
 }
 
 void SMPThread::sleep()

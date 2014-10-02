@@ -103,7 +103,7 @@ void PThread::bind()
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( " Binding thread " << getMyThreadSafe()->getId() << " to cpu " << cpu_id );
-   OS::bindThread( _pth, &cpu_set );
+   pthread_setaffinity_np( _pth, sizeof(cpu_set_t), &cpu_set );
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
@@ -132,11 +132,9 @@ void PThread::condWait()
    pthread_cond_wait( &_condWait, &_mutexWait );
 }
 
-void PThread::wakeup()
+void PThread::condSignal()
 {
-   pthread_mutex_lock( &_mutexWait );
    pthread_cond_signal( &_condWait );
-   pthread_mutex_unlock( &_mutexWait );
 }
 
 

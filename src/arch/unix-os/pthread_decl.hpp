@@ -66,15 +66,13 @@ namespace nanos {
 
          virtual void bind();
 
-
          virtual void yield();
 
          virtual void mutexLock();
          virtual void mutexUnlock();
 
          virtual void condWait();
-
-         virtual void wakeup();
+         virtual void condSignal();
 
 #ifdef NANOS_RESILIENCY_ENABLED
          virtual void setupSignalHandlers();

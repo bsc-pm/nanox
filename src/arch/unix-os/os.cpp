@@ -133,11 +133,6 @@ void OS::getProcessAffinity( cpu_set_t *cpu_set )
    memcpy( cpu_set, &_processMask, sizeof(cpu_set_t) );
 }
 
-void OS::bindThread( pthread_t pth, cpu_set_t *cpu_set )
-{
-   pthread_setaffinity_np( pth, sizeof(cpu_set_t), cpu_set );
-}
-
 int OS::getMaxProcessors ( void )
 {
 #ifdef IS_BGQ_MACHINE

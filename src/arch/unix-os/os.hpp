@@ -30,7 +30,6 @@
 #include <dlfcn.h>
 #include <time.h>
 #include <sched.h>
-#include <pthread.h>
 #include "nanos-int.h"
 
 namespace nanos
@@ -119,7 +118,6 @@ namespace nanos
          static const ModuleList & getRequestedModules () { return *_moduleList; }
 
          static void getProcessAffinity( cpu_set_t *cpu_set );
-         static void bindThread( pthread_t pth, cpu_set_t *cpu_set );
 
          static int getMaxProcessors ( void );
 
