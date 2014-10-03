@@ -319,9 +319,10 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       gasnet_handlerarg_t rmwdHi,
       gasnet_handlerarg_t expectedDataLo,
       gasnet_handlerarg_t expectedDataHi,
+      gasnet_handlerarg_t totalArgSizeLo,
+      gasnet_handlerarg_t totalArgSizeHi,
       gasnet_handlerarg_t dataSize, /* this should be greater than 32bits */
       gasnet_handlerarg_t wdId,
-      gasnet_handlerarg_t numPe,
       gasnet_handlerarg_t arch,
       gasnet_handlerarg_t seq )
 {
@@ -329,6 +330,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    void (*xlate)( void *, void *) = (void (*)(void *, void *)) MERGE_ARG( xlateHi, xlateLo );
    void *rmwd = (void *) MERGE_ARG( rmwdHi, rmwdLo );
    std::size_t expectedData = (std::size_t) MERGE_ARG( expectedDataHi, expectedDataLo );
+   std::size_t totalArgSize = (std::size_t) MERGE_ARG( totalArgSizeHi, totalArgSizeLo );
    gasnet_node_t src_node;
    unsigned int i;
    WorkDescriptor *rwg;
@@ -345,7 +347,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    char *work_data = NULL;
    //std::size_t work_data_len = 0;
 
-   work_data = getInstance()->_incomingWorkBuffers.get(wdId, dataSize, argSize, (char *) arg);
+   work_data = getInstance()->_incomingWorkBuffers.get(wdId, totalArgSize, argSize, (char *) arg);
 
    // if ( work_data == NULL )
    // {
@@ -1209,7 +1211,7 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_AM_WORK, id, 0, 0, dest ); )
    }
 
-   if (gasnet_AMRequestMedium13( dest, 205, &arg[ sent ], argSize - sent,
+   if (gasnet_AMRequestMedium14( dest, 205, &arg[ sent ], argSize - sent,
             ARG_LO( work ),
             ARG_HI( work ),
             ARG_LO( xlate ),
@@ -1218,7 +1220,12 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
             ARG_HI( remoteWdAddr ),
             ARG_LO( expectedData ),
             ARG_HI( expectedData ),
-            dataSize, wdId, numPe, arch, _seqN[dest]++ ) != GASNET_OK)
+            ARG_LO( argSize ),
+            ARG_HI( argSize ),
+            dataSize,
+            wdId,
+            arch,
+            _seqN[dest]++ ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
