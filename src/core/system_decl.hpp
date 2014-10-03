@@ -212,25 +212,6 @@ namespace nanos
          void loadModules();
          void unloadModules();
 
-         /*!
-          * \brief Creates a new PE and a new thread associated to it
-          * \param[in] p ID of the new PE
-          */
-         void createWorker( unsigned p );
-
-         /*!
-          * \brief Updates team members so that it matches with system's _cpu_active_set
-          */
-         void applyCpuMask();
-
-         /*!
-          * \brief Processes the system's _cpu_active_set for later update the threads
-          *
-          * Depending on the system binding configuration, this function will update _bindings to be able
-          * later to create new PE's or just update the raw number of threads if binding is disabled
-          */
-         void processCpuMask( void );
-         
          Atomic<int> _atomicSeedWg;
          Atomic<int> _atomicSeedMemorySpace;
          Atomic<unsigned int> _affinityFailureCount;
@@ -357,16 +338,6 @@ namespace nanos
          BaseThread * getUnassignedWorker ( void );
 
          /*!
-          * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
-          */
-         //BaseThread * getAssignedWorker ( ThreadTeam *team );
-
-         /*!
-          * \brief Returns, if any, the worker thread is inactive
-          */
-         //BaseThread * getInactiveWorker ( void );
-  
-         /*!
           * \brief Returns a new team of threads 
           * \param[in] nthreads Number of threads in the team.
           * \param[in] constraints This parameter is not used.
@@ -378,12 +349,6 @@ namespace nanos
          BaseThread * getWorker( unsigned int n );
 
          void endTeam ( ThreadTeam *team );
-
-         /*!
-          * \brief Releases a worker thread from its team
-          * \param[in,out] thread
-          */
-         void releaseWorker ( BaseThread * thread );
 
          /*!
           * \brief Updates the number of active worker threads and adds them to the main team

@@ -157,64 +157,6 @@ Device const *ProcessingElement::getCacheDeviceType() const {
    return NULL;
 }
 
-BaseThread* ProcessingElement::getFirstRunningThread_FIXME()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->hasTeam() && !(*it)->isSleeping() )
-         return (*it);
-   }
-   return NULL;
-}
-
-BaseThread* ProcessingElement::getFirstStoppedThread_FIXME()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() && (*it)->isSleeping() )
-         return (*it);
-   }
-   return NULL;
-}
-
-BaseThread* ProcessingElement::getActiveThread_FIXME()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->isSleeping() )
-         return (*it);
-   }
-   return NULL;
-}
-BaseThread* ProcessingElement::getUnassignedThread_FIXME()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() ) {
-         (*it)->lock();
-         if ( (*it)->hasTeam() ) {
-            (*it)->unlock();
-            continue;
-         }
-         (*it)->reserve();
-         (*it)->unlock();
-         return (*it);
-      }
-   }
-   return NULL;
-}
-
-BaseThread* ProcessingElement::getSleepingThread_FIXME()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->isSleeping() ) {
-         return (*it);
-      }
-   }
-   return NULL;
-}
-
 void ProcessingElement::wakeUpThreads()
 {
    ThreadList::iterator it;

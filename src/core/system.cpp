@@ -1123,28 +1123,6 @@ void System::inlineWork ( WD &work )
    else fatal ("System: Trying to execute inline a task violating basic constraints");
 }
 
-void System::createWorker( unsigned p )
-{
-   fatal0("Disabled");
-   //jb NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-   //jb PE *pe = createPE ( "smp", getBindingId( p ), _pes.size() );
-   //jb _pes.push_back ( pe );
-   //jb BaseThread *thread = &pe->startWorker();
-   //jb _workers.push_back( thread );
-   //jb ++_targetThreads;
-
-   //jb CPU_SET( getBindingId( p ), &_smpPlugin->getActiveSet() );
-
-   //jb //Set up internal data
-   //jb WD & threadWD = thread->getThreadWD();
-   //jb if ( _pmInterface->getInternalDataSize() > 0 ) {
-   //jb    char *data = NEW char[_pmInterface->getInternalDataSize()];
-   //jb    _pmInterface->initInternalData( data );
-   //jb    threadWD.setInternalData( data );
-   //jb }
-   //jb _pmInterface->setupWD( threadWD );
-}
-
 BaseThread * System::getUnassignedWorker ( void )
 {
    BaseThread *thread;
@@ -1259,17 +1237,6 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
 }
 
-void System::releaseWorker ( BaseThread * thread )
-{
-   ensure( myThread == thread, "Calling release worker from other thread context" );
-
-   //! \todo Destroy if too many?
-   debug("Releasing thread " << thread << " from team " << thread->getTeam() );
-
-   thread->sleep();
-
-}
-
 int System::getNumWorkers( DeviceData *arch )
 {
    int n = 0;
@@ -1336,154 +1303,6 @@ void System::endTeam ( ThreadTeam *team )
    
    delete team;
 }
-
-#if 0
-void System::updateActiveWorkers ( int nthreads )
-{
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
-
-   BaseThread *thread;
-   //! \bug Team variable must be received as a function parameter
-   ThreadTeam *team = myThread->getTeam();
-
-   int num_threads = nthreads - team->getFinalSize();
-
-   while ( !(team->isStable()) ) memoryFence();
-
-   if ( num_threads < 0 ) team->setStable(false);
-
-   team->setFinalSize(nthreads);
-
-   //! \bug We need to consider not only numThreads < nthreads but num_threads < availables?
-   while (  _numThreads < nthreads ) {
-      createWorker( _pes.size() );
-      _numThreads++;
-      _numPEs++;
-   }
-
-   //! \note If requested threads are more than current increase number of threads
-   while ( num_threads > 0 ) {
-      thread = getUnassignedWorker();
-      if (!thread) thread = getInactiveWorker();
-      if (thread) {
-         acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-         thread->wakeup();
-         num_threads--;
-      }
-   }
-
-   //! \note If requested threads are less than current decrease number of threads
-   while ( num_threads < 0 ) {
-      thread = getAssignedWorker( team );
-      if ( thread ) {
-         thread->sleep();
-         num_threads++;
-      }
-   }
-
-
-}
-
-// Not thread-safe
-inline void System::applyCpuMask()
-{
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveSet) )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
-
-   BaseThread *thread;
-   ThreadTeam *team = myThread->getTeam();
-   unsigned int _activePEs = 0;
-
-   for ( unsigned pe_id = 0; pe_id < _pes.size() || _activePEs < (size_t)CPU_COUNT(&_cpuActiveSet); pe_id++ ) {
-
-      // Create PE & Worker if it does not exist
-      if ( pe_id == _pes.size() ) {
-         createWorker( pe_id );
-         _numThreads++;
-         _numPEs++;
-      }
-
-      int pe_binding = getBindingId( pe_id );
-      if ( CPU_ISSET( pe_binding, &_cpuActiveSet) ) {
-         _activePEs++;
-         // This PE should be running
-         while ( (thread = _pes[pe_id]->getUnassignedThread()) != NULL ) {
-            acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-            thread->wakeup();
-            team->increaseFinalSize();
-         }
-         // In order to avoid race conditions, there still could be a situation where a thread is tagged to sleep
-         // but has not yet entered thread->wait().
-         while ( (thread = _pes[pe_id]->getSleepingThread()) != NULL ) {
-            // We must test again the Team because we can't get the lock in the above getSleepingThread function,
-            // so this flag could have changed.
-            thread->lock();
-            if ( !thread->hasTeam() ) {
-               thread->reserve();
-               thread->unlock();
-               acquireWorker( team, thread, /* enterOthers */ true, /* starringOthers */ false, /* creator */ false );
-               team->increaseFinalSize();
-            }
-            else thread->unlock();
-            thread->wakeup();
-         }
-      } else {
-         // This PE should not
-         while ( (thread = _pes[pe_id]->getActiveThread()) != NULL ) {
-            thread->sleep();
-         }
-      }
-   }
-}
-
-void System::removeCpuFromMask ( const int cpu )
-{
-   cpu_set_t mask;
-   memcpy( &mask, &_cpuActiveSet, sizeof(cpu_set_t) );
-   CPU_CLR(cpu, &mask);
-   memcpy( &_cpuActiveSet, &mask, sizeof(cpu_set_t) );
-}
-inline void System::processCpuMask( void )
-{
-
-   // if _bindThreads is enabled, update _bindings adding new elements of _cpuActiveSet
-   if ( sys.getBinding() ) {
-      std::ostringstream oss_cpu_idx;
-      oss_cpu_idx << "[";
-      for ( int cpu=0; cpu<CPU_SETSIZE; cpu++) {
-         if ( cpu > _maxCpus-1 && !_simulator ) {
-            CPU_CLR( cpu, &_cpuActiveSet);
-            debug("Trying to use more cpus than available is not allowed (do you forget --simulator option?)");
-            continue;
-         }
-         if ( CPU_ISSET( cpu, &_cpuActiveSet ) ) {
-
-            if ( std::find( _bindings.begin(), _bindings.end(), cpu ) == _bindings.end() ) {
-               _bindings.push_back( cpu );
-            }
-
-            oss_cpu_idx << cpu << ", ";
-         }
-      }
-      oss_cpu_idx << "]";
-      verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-      if ( _pmInterface->isMalleable() ) {
-         sys.applyCpuMask();
-      }
-   }
-   else {
-      verbose0( "PID[" << getpid() << "]. Changing number of threads: " << (int) myThread->getTeam()->getFinalSize() << " to " << (int) CPU_COUNT( &_cpuActiveSet ) );
-      if ( _pmInterface->isMalleable() ) {
-         sys.updateActiveWorkers( CPU_COUNT( &_cpuActiveSet ) );
-      }
-   }
-}
-#endif
 
 void System::waitUntilThreadsPaused ()
 {

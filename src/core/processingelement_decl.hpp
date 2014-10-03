@@ -122,27 +122,6 @@ namespace nanos
          BaseThread *getFirstThread() const { return _threads[0]; }
 
          /*!
-          * \brief Returns the first thread of the PE that has team and is not tagged to sleep
-          */
-         virtual BaseThread* getFirstRunningThread_FIXME();
-
-         /*!
-          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
-          */
-         virtual BaseThread* getFirstStoppedThread_FIXME();
-
-         /*!
-          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
-          */
-         virtual BaseThread* getUnassignedThread_FIXME();
-         /*!
-          * \brief Returns the first thread of the PE that is not tagged to sleep
-          */
-         virtual BaseThread* getActiveThread_FIXME();
-
-         virtual BaseThread* getSleepingThread_FIXME();
-
-         /*!
           * \brief Wake up all threads associated with the PE
           */
          virtual void wakeUpThreads();
