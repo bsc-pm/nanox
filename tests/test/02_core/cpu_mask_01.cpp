@@ -12,7 +12,6 @@
 test_generator=gens/mixed-generator
 test_max_cpus=1
 test_schedule="bf"
-test_ignore_fail=1
 </testinfo>
 */
 
@@ -45,6 +44,11 @@ void print_mask( const char *pre, cpu_set_t *mask )
 
 int main ( int argc, char *argv[])
 {
+   if ( OS::getMaxProcessors() < 2 ) {
+      fprintf(stdout, "Skiping %s test\n", argv[0]);
+      return 0;
+   }
+
    int error = 0;
    int max_procs = OS::getMaxProcessors();
 
@@ -64,7 +68,7 @@ int main ( int argc, char *argv[])
    CPU_SET( 1, &nanos_mask2 );
    sys.setCpuMask( &nanos_mask2 );
    sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask2 );
-   
+
    fprintf(stdout,"Thread team final size will be %d and %d is expected\n",
       (int) myThread->getTeam()->getFinalSize(),
             min(CPU_COUNT(&nanos_mask2),max_procs)
@@ -73,7 +77,7 @@ int main ( int argc, char *argv[])
 
 
    /* If binding is disabled further tests make no sense */
-   if ( !sys.getBinding() ) {
+   if ( !sys.getSMPPlugin()->getBinding() ) {
       fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
       return error;
    }

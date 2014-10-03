@@ -21,25 +21,26 @@
 <testinfo>
 test_generator=gens/mixed-generator
 test_max_cpus=1
-test_ignore_fail=1
 test_schedule="bf"
 </testinfo>
 */
 
 #include <sched.h>
+#include <cstdlib>
+#include <iostream>
 #include "config.hpp"
 #include "nanos.h"
 #include "os.hpp"
 #include "atomic.hpp"
-#include <iostream>
 #include "smpprocessor.hpp"
 #include "system.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
 
-#define NUM_ITERS     1000
+#define NUM_ITERS  1000
 #define NUM_RUNS   10
+#define MIN_PROCS  4
 
 #ifndef min
 #define min(x,y) ((x<y)?x:y)
@@ -51,8 +52,6 @@ typedef struct {
    nanos_loop_info_t loop_info;
 } main__loop_1_data_t;
 
-cpu_set_t master_cpu;
-cpu_set_t default_mask;
 
 void print_mask( const char *pre, cpu_set_t *mask );
 void set_random_mask( void );
@@ -81,18 +80,13 @@ void set_random_mask( void )
 {
    cpu_set_t new_mask;
    CPU_ZERO( &new_mask );
-   int max_procs = min ( 2,OS::getMaxProcessors()); // only checking 2 procs as maximun
 
    int i;
-   for (i=0; i<CPU_SETSIZE; i++) {
-      if ( CPU_ISSET( i, &default_mask ) ) {
-         if (rand()%max_procs) {
-            CPU_SET( i, &new_mask );
-         }
+   for (i=0; i<MIN_PROCS; i++) {
+      if (rand()%2) {
+         CPU_SET( i, &new_mask );
       }
    }
-   CPU_OR( &new_mask, &new_mask, &master_cpu );
-   //print_mask( "New mask: ", &new_mask );
    sys.setCpuMask( &new_mask );
 }
 
@@ -104,40 +98,33 @@ void main__loop_1 ( void *args )
 
 int main ( int argc, char **argv )
 {
-   if ( OS::getMaxProcessors() < 2 ) {
+   if ( OS::getMaxProcessors() < MIN_PROCS ) {
       fprintf(stdout, "Skiping %s test\n", argv[0]);
-      return 0;
+      return EXIT_SUCCESS;
    }
-
-   sys.setUntieMaster( false );
+   if ( !sys.getSMPPlugin()->getBinding() )
+      return EXIT_SUCCESS;
 
    int i;
    bool check = true;
 
    main__loop_1_data_t _loop_data;
 
-   CPU_ZERO( &default_mask );
-   CPU_SET( 0, &default_mask );
-   CPU_SET( 1, &default_mask );
-   CPU_SET( 2, &default_mask );
-   CPU_SET( 3, &default_mask );
-   CPU_ZERO( &master_cpu );
-   CPU_SET( 0, &master_cpu );
-
    // Repeat the test NUM_RUNS times
    for ( int testNumber = 0; testNumber < NUM_RUNS; ++testNumber ) {
       A = 0;
-   
-      WD *wg = getMyThreadSafe()->getCurrentWD();   
+
+      WD *wg = getMyThreadSafe()->getCurrentWD();
       // increment variable
       for ( i = 0; i < NUM_ITERS; i++ ) {
          // Work descriptor creation
-         WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ), __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
+         WD * wd = new WD( new SMPDD( main__loop_1 ), sizeof( _loop_data ),
+               __alignof__(nanos_loop_info_t), ( void * ) &_loop_data );
          wd->setPriority( 100 );
-   
+
          // Work Group affiliation
          wg->addWork( *wd );
-   
+
          // Work submission
          sys.submit( *wd );
 
@@ -145,7 +132,7 @@ int main ( int argc, char **argv )
       // barrier (kind of)
       wg->waitCompletion();
       set_random_mask();
-      
+
       /*
        * The verification criteria is that A is equal to the number of tasks
        * run. Should A be lower, that would indicate that not all tasks
@@ -153,15 +140,14 @@ int main ( int argc, char **argv )
        */
       if ( A.value() != NUM_ITERS ) check = false;
    }
-   sys.setCpuMask( &default_mask );
 
    if ( check ) {
       fprintf(stderr, "%s : %s\n", argv[0], "successful");
-      return 0;
+      return EXIT_SUCCESS;
    }
    else {
       fprintf(stderr, "%s: %s\n", argv[0], "unsuccessful");
-      return -1;
+      return EXIT_FAILURE;
    }
 }
 
