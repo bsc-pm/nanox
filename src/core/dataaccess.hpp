@@ -135,10 +135,8 @@ inline void DataAccess::setCommutative( bool b )
 
 inline std::size_t DataAccess::getSize() const
 {
-   std::size_t size = 0;
-   //ensure( dimension_count >= 1, "Wrong dimension_count ");
-   size = dimensions[0].accessed_length;
-   for ( int i = 1; i < dimension_count; i += 1 )
+   std::size_t size = dimensions[dimension_count-1].accessed_length;
+   for ( int i = 0; i < dimension_count-1 ; i++ )
       size *= dimensions[i].size;
    return size;
 }

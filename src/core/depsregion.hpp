@@ -42,10 +42,6 @@ inline bool DepsRegion::operator== ( const DepsRegion &obj ) const
 
 inline bool DepsRegion::overlap ( const DepsRegion &obj ) const
 {       
-//                     std::cout << "newStart:" << newStart << ",newEnd" << newEnd
-//                                << ",curStart" << currStart << ",currEnd" << _size << ",Resultado" << !( newEnd<currStart || newStart>currEnd ) 
-//                              << "\n";
-    
     return !( obj._endAddress<_address || obj._address>_endAddress );
 }
 

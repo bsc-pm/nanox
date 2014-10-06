@@ -913,7 +913,7 @@ void MPIRemoteNode::nanosSyncDevPointers(int* file_mask, unsigned int* file_name
                 }
                 func_pointers_arr+=task_per_file[e];
             }
-            fatal_cond0(!found,"File not found in device, please compile the code using exactly the same sources (same filename and size) for each architecture");
+            fatal_cond0(!found,"Executable version mismatch, please compile the code using exactly the same sources (same filename, mod. date and size) for every architecture");
         }
         memcpy(ompss_mpi_func_ptrs_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
         free(ompss_mpi_func_pointers_dev_out);
