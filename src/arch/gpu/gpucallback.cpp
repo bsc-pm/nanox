@@ -107,6 +107,8 @@ void CUDART_CB nanos::ext::registerCUDAThreadCallback( cudaStream_t stream, cuda
 {
    GPUThread * thread = ( ( GPUCallbackData * ) data )->_thread;
 
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->incrementMaxThreads(); )
+
    sys.admitCurrentThread( false );
 
    thread->setCUDAThreadInst( myThread );
