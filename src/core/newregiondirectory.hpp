@@ -33,6 +33,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
    , _rooted( false )
    , _setLock() 
    , _firstWriterPE( NULL )
+   , _baseAddress( 0 )
 {
    _location.insert(0);  
 }
@@ -45,6 +46,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectory
    , _rooted( de._rooted )
    , _setLock()
    , _firstWriterPE( de._firstWriterPE )
+   , _baseAddress( de._baseAddress )
 {
 }
 
@@ -62,6 +64,7 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
    _pes.insert( de._pes.begin(), de._pes.end() );
    _rooted = de._rooted;
    _firstWriterPE = de._firstWriterPE;
+   _baseAddress = de._baseAddress;
    de._setLock.release();
    _setLock.release();
    return *this;
@@ -253,6 +256,14 @@ inline bool NewNewDirectoryEntryData::isRooted() const{
 
 inline ProcessingElement *NewNewDirectoryEntryData::getFirstWriterPE() const {
    return _firstWriterPE;
+}
+
+inline void NewNewDirectoryEntryData::setBaseAddress(uint64_t addr) {
+   _baseAddress = addr;
+}
+
+inline uint64_t NewNewDirectoryEntryData::getBaseAddress() const {
+   return _baseAddress;
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {

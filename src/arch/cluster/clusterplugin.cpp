@@ -84,7 +84,11 @@ void ClusterPlugin::init()
          }
       }
       _cpu = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
-      _cpu->setNumFutureThreads( 1 );
+      if ( _cpu ) {
+         _cpu->setNumFutureThreads( 1 );
+      } else {
+         fatal0("Unable to get a cpu to run the cluster thread.");
+      }
    }
 }
 

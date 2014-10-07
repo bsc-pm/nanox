@@ -65,6 +65,8 @@ namespace nanos
 
          public:
             nanos_ws_t findWorksharing( nanos_omp_sched_t kind ) ;
+
+            virtual PMInterface::Interfaces getInterface() const;
       };
 
       class OmpSsInterface : public OpenMPInterface
@@ -81,6 +83,8 @@ namespace nanos
             virtual void setNumThreads_globalState ( int nthreads );
             virtual void setCpuMask( const cpu_set_t *cpu_set );
             virtual void addCpuMask( const cpu_set_t *cpu_set );
+         public:
+            virtual PMInterface::Interfaces getInterface() const;
       };
    }
 }

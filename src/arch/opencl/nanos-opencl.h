@@ -45,9 +45,12 @@ NANOS_API_DECL(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim
 #ifndef _MF03
 unsigned int nanos_get_opencl_num_devices (void);
 #endif
-void * nanos_malloc_opencl ( size_t size );
-void nanos_free_opencl ( void * address ) ;
+void * ompss_opencl_malloc ( size_t size );
+void ompss_opencl_free ( void * address ) ;
 void nanos_get_opencl_num_devices_ (int* numret);
+// Deprecated
+__attribute__( (deprecated) )void * nanos_malloc_opencl( size_t size );
+__attribute__( (deprecated) )void nanos_free_opencl( void * address );
 
 NANOS_API_DECL(void, nanos_opencl_allocate_fortran, ( ptrdiff_t size, void* ptr )); // ptr is a void **
 NANOS_API_DECL(void, nanos_opencl_deallocate_fortran, ( void * address ));

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,23 +16,12 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_SCHEDULE_FWD_H
-#define _NANOS_SCHEDULE_FWD_H
+#ifndef _NANOS_DEPSREGION_FWD_H
+#define _NANOS_DEPSREGION_FWD_H
 
 namespace nanos
 {
-   class Scheduler;
-   class SchedulerStats;
-   class ScheduleTeamData;
-   class ScheduleWDData;
-   class ScheduleThreadData;
-   class SchedulePolicy;
-   class SchedulePolicySuccessorFunctor;
-
-   class SchedulingGroup;
-   class SchedulingData;
-   class SchedulingConf;
+   class DepsRegion;
 };
 
 #endif
-

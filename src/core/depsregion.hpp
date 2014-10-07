@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,23 +16,59 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
-#ifndef _NANOS_SCHEDULE_FWD_H
-#define _NANOS_SCHEDULE_FWD_H
+#ifndef _NANOS_DEPSREGION_H
+#define _NANOS_DEPSREGION_H
 
-namespace nanos
+#include "depsregion_decl.hpp"
+
+using namespace nanos;
+
+inline const DepsRegion& DepsRegion::operator= ( const DepsRegion &obj )
 {
-   class Scheduler;
-   class SchedulerStats;
-   class ScheduleTeamData;
-   class ScheduleWDData;
-   class ScheduleThreadData;
-   class SchedulePolicy;
-   class SchedulePolicySuccessorFunctor;
+   _address = obj._address;
+   _endAddress = obj._endAddress; 
+   return *this;
+}
 
-   class SchedulingGroup;
-   class SchedulingData;
-   class SchedulingConf;
-};
+inline const DepsRegion::TargetType& DepsRegion::operator() () const
+{
+   return _address;
+}
+
+inline bool DepsRegion::operator== ( const DepsRegion &obj ) const
+{       
+    return _address==obj._address && _endAddress == obj._endAddress;
+}
+
+inline bool DepsRegion::overlap ( const DepsRegion &obj ) const
+{       
+    return !( obj._endAddress<_address || obj._address>_endAddress );
+}
+
+inline bool DepsRegion::operator< ( const DepsRegion &obj ) const
+{
+   return _address < obj._address;
+}
+
+inline BaseDependency* DepsRegion::clone() const
+{
+   return new DepsRegion( _address, _endAddress );
+}
+
+inline void * DepsRegion::getAddress () const
+{
+   return _address;
+}
+
+inline void * DepsRegion::getEndAddress () const
+{
+   return _endAddress;
+}
+
+
+inline size_t DepsRegion::getSize () const
+{
+   return (uint64_t)_endAddress-(uint64_t)_address;
+}
 
 #endif
-

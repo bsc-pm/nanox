@@ -416,7 +416,7 @@ void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
 }
 
-void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
    std::cerr << __FUNCTION__ << ": unimplemented" << std::endl;
 }
 

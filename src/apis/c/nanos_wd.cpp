@@ -292,6 +292,13 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
         wd.setInternalData(pmData, /* ownedByWD */ false);
       }
 
+      int schedDataSize = sys.getDefaultSchedulePolicy()->getWDDataSize();
+      char schedData[schedDataSize];
+      if ( schedDataSize  > 0 ) {
+         sys.getDefaultSchedulePolicy()->initWDData( schedData );
+         wd.setSchedulerData( reinterpret_cast<ScheduleWDData*>( schedData ), /* ownedByWD */ false );
+      }
+
       sys.setupWD( wd, myThread->getCurrentWD() );
 
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )

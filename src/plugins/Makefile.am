@@ -1039,12 +1039,27 @@ perfect_regions_sources = \
 	deps/basedependenciesdomain_decl.hpp \
 	deps/basedependenciesdomain.hpp \
 	$(END)
+		
+cregions_sources = \
+	deps/cregions_deps.cpp \
+	deps/basedependenciesdomain_decl.hpp \
+	deps/basedependenciesdomain.hpp \
+	$(END)
+	
+	
+cregions_nocache_sources = \
+	deps/cregions_deps_nocache.cpp \
+	deps/basedependenciesdomain_decl.hpp \
+	deps/basedependenciesdomain.hpp \
+	$(END)
 
 if DEBUG_VERSION
 debug_LTLIBRARIES += \
         debug/libnanox-deps-plain.la\
         debug/libnanox-deps-perfect-regions.la\
         debug/libnanox-deps-regions.la\
+        debug/libnanox-deps-cregions.la\
+        debug/libnanox-deps-cregions_nocache.la\
 	$(END)
 
 debug_libnanox_deps_plain_la_CXXFLAGS = $(nanos_debug_cxxflags)
@@ -1058,6 +1073,16 @@ debug_libnanox_deps_perfect_regions_la_SOURCES = $(perfect_regions_sources)
 debug_libnanox_deps_regions_la_CXXFLAGS = $(nanos_debug_cxxflags)
 debug_libnanox_deps_regions_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_deps_regions_la_SOURCES = $(regions_sources)
+
+debug_libnanox_deps_cregions_la_CXXFLAGS = $(nanos_debug_cxxflags)
+debug_libnanox_deps_cregions_la_LDFLAGS = $(ld_plugin_flags)
+debug_libnanox_deps_cregions_la_SOURCES = $(cregions_sources)
+
+
+debug_libnanox_deps_cregions_nocache_la_CXXFLAGS = $(nanos_debug_cxxflags)
+debug_libnanox_deps_cregions_nocache_la_LDFLAGS = $(ld_plugin_flags)
+debug_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_nocache_sources)
+
 endif
 
 if PERFORMANCE_VERSION
@@ -1065,6 +1090,8 @@ performance_LTLIBRARIES += \
 	performance/libnanox-deps-plain.la \
    performance/libnanox-deps-perfect-regions.la\
    performance/libnanox-deps-regions.la\
+   performance/libnanox-deps-cregions.la\
+   performance/libnanox-deps-cregions_nocache.la\
 	$(END)
 
 performance_libnanox_deps_plain_la_CXXFLAGS = $(nanos_perfo_cxxflags)
@@ -1078,6 +1105,15 @@ performance_libnanox_deps_perfect_regions_la_SOURCES = $(perfect_regions_sources
 performance_libnanox_deps_regions_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 performance_libnanox_deps_regions_la_LDFLAGS = $(ld_plugin_flags)
 performance_libnanox_deps_regions_la_SOURCES = $(regions_sources)
+
+performance_libnanox_deps_cregions_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+performance_libnanox_deps_cregions_la_LDFLAGS = $(ld_plugin_flags)
+performance_libnanox_deps_cregions_la_SOURCES = $(cregions_sources)
+
+performance_libnanox_deps_cregions_nocache_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+performance_libnanox_deps_cregions_nocache_la_LDFLAGS = $(ld_plugin_flags)
+performance_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_nocache_sources)
+
 endif
 
 if INSTRUMENTATION_VERSION
@@ -1085,6 +1121,8 @@ instrumentation_LTLIBRARIES += \
    instrumentation/libnanox-deps-plain.la\
    instrumentation/libnanox-deps-perfect-regions.la\
    instrumentation/libnanox-deps-regions.la\
+   instrumentation/libnanox-deps-cregions.la\
+   instrumentation/libnanox-deps-cregions_nocache.la\
 	$(END)
 
 instrumentation_libnanox_deps_plain_la_CXXFLAGS = $(nanos_instr_cxxflags)
@@ -1098,6 +1136,14 @@ instrumentation_libnanox_deps_perfect_regions_la_SOURCES = $(perfect_regions_sou
 instrumentation_libnanox_deps_regions_la_CXXFLAGS = $(nanos_instr_cxxflags)
 instrumentation_libnanox_deps_regions_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_deps_regions_la_SOURCES = $(regions_sources)
+
+instrumentation_libnanox_deps_cregions_la_CXXFLAGS = $(nanos_instr_cxxflags)
+instrumentation_libnanox_deps_cregions_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_libnanox_deps_cregions_la_SOURCES = $(cregions_sources)
+
+instrumentation_libnanox_deps_cregions_nocache_la_CXXFLAGS = $(nanos_instr_cxxflags)
+instrumentation_libnanox_deps_cregions_nocache_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_nocache_sources)
 endif
 
 if INSTRUMENTATION_DEBUG_VERSION
@@ -1105,6 +1151,8 @@ instrumentation_debug_LTLIBRARIES += \
    instrumentation-debug/libnanox-deps-plain.la\
    instrumentation-debug/libnanox-deps-perfect-regions.la\
    instrumentation-debug/libnanox-deps-regions.la\
+   instrumentation-debug/libnanox-deps-cregions.la\
+   instrumentation-debug/libnanox-deps-cregions_nocache.la\
 	$(END)
 
 instrumentation_debug_libnanox_deps_plain_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
@@ -1118,6 +1166,15 @@ instrumentation_debug_libnanox_deps_perfect_regions_la_SOURCES = $(perfect_regio
 instrumentation_debug_libnanox_deps_regions_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 instrumentation_debug_libnanox_deps_regions_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_debug_libnanox_deps_regions_la_SOURCES = $(regions_sources)
+
+instrumentation_debug_libnanox_deps_cregions_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+instrumentation_debug_libnanox_deps_cregions_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_debug_libnanox_deps_cregions_la_SOURCES = $(cregions_sources)
+
+instrumentation_debug_libnanox_deps_cregions_nocache_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+instrumentation_debug_libnanox_deps_cregions_nocache_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_debug_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_nocache_sources)
+
 endif
 ######################################################################################################
 ######################################################################################################

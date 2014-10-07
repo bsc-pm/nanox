@@ -24,16 +24,20 @@
 namespace nanos {
 namespace ext {
 
-
 class MPIPlugin : public ArchPlugin
 {
-   bool _initialized;
+   //The three boleans below implement the initialization order
+   //First system will "pre-initialize" before initializing threads (not if extrae enabled and only when we are slaves)
+   //Then extrae will initialize
+   //Then system will "post-initialice" as part of user main (ompss_nanox_main)
    bool _extraeInitialized;
+   bool _initialized;
+   bool _preinitialized;
    static Atomic<unsigned int> _numWorkers;
    static Atomic<unsigned int> _numPEs;
    
    public:
-    MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ), _initialized(false), _extraeInitialized(false) {}
+    MPIPlugin() : ArchPlugin( "MPI PE Plugin",1 ), _extraeInitialized(false),_initialized(false), _preinitialized(false) {}
 
     virtual void config ( Config& cfg )
     {
@@ -42,27 +46,39 @@ class MPIPlugin : public ArchPlugin
     }
 
     virtual bool configurable() { 
-       char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
-        return offload_trace_on == NULL || _extraeInitialized; 
-    }
+        char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION")); 
+        char* isSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE"));
+        //Non-slaves do not preInitialize
+        return ( _preinitialized || !isSlave ) && ( offload_trace_on == NULL || _extraeInitialized );
+    }    
 
     virtual void init() {
-       /* if MPITRAE_ON not defined, activate it */
-       int provided;
-       //MPI Init triggers extrae init
-       //If OmpSs has compiled MPI tasks, we assume we are in an offload environment
-       //if (sys.getOmpssUsesOffload()!=0){ //doesnt seem to be working...
-       char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));
+       char *offload_trace_on = getenv(const_cast<char*> ("NX_OFFLOAD_INSTRUMENTATION"));       
+       char* isSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE"));
+              
+       if ( !_preinitialized && isSlave )
+       {
+          _preinitialized=true;
+          //Do not initialize if we have extrae or we are not slaves
+          if( offload_trace_on == NULL ) nanos::ext::MPIRemoteNode::preInit();
+          return;
+       }   
+       
+       //If we have extrae, initialize it
        if (offload_trace_on != NULL && !_extraeInitialized){ 
-           _extraeInitialized=true;              
-           if (getenv("I_MPI_WAIT_MODE")==NULL) putenv( const_cast<char*> ("I_MPI_WAIT_MODE=1"));
-           MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
-           return;
+          _extraeInitialized=true;              
+          if (getenv("I_MPI_WAIT_MODE")==NULL) putenv( const_cast<char*> ("I_MPI_WAIT_MODE=1"));
+          int provided;
+          MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided);
+          return;
        }
 
-       if (!_initialized) {
-         _initialized=true;
-         nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
+       if (!_initialized && isSlave) {
+          _initialized=true;
+          //Extrae "mode" only initializes MPI, initialize everything else now
+          //Do not initialize if we have extrae or we are not slaves
+          if (_extraeInitialized) nanos::ext::MPIRemoteNode::preInit();
+          nanos::ext::MPIRemoteNode::mpiOffloadSlaveMain();
        }
     }
 

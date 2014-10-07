@@ -54,30 +54,19 @@ bool MPIDD::isCompatibleWithPE(const ProcessingElement *pe ) {
     nanos::ext::MPIThread * mpiThread = (nanos::ext::MPIThread *) myThread;
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) pe;
     if ((uintptr_t)_assignedComm!=0) MPI_Comm_compare(myPE->getCommunicator(),_assignedComm,&res);
-    
-    //TODO: (not sure if necessary or worths the overheads)
-    //If our remote node is shared and we are not bound to a rank (if we are, we don't care, we have to execute here
-    //Query the node to check if it's doing something
-//    if (_assignedRank  == UNKOWN_RANKSRCDST && myPE->getShared()){
-//        int err=-2;
-//        err=MPI_Rsend(&err, 1, MPI_INT, myPE->getRank(), TAG_INI_TASK, myPE->getCommunicator());
-//        printf("test %d\n",err);
-//        if (err!=MPI_SUCCESS) return false;
-//    }
-    
+        
     //If no assigned comm nor rank, it can run on any PE, if only has a unkown rank, match with comm
     //if has both rank and comm, only execute on his PE    
-    bool resul = (((uintptr_t)_assignedComm==0 && _assignedRank<(int)((nanos::ext::MPIThread *) myThread)->getRunningPEs().size())) 
+    bool resul = (((uintptr_t)_assignedComm==0 && _assignedRank<(int)mpiThread->getRunningPEs().size())) 
             || (_assignedRank == UNKOWN_RANKSRCDST && res == MPI_IDENT)
             || (myPE->getRank() == _assignedRank && res == MPI_IDENT);
     
     //If compatible, set the device as busy (if possible) and reserve it for this DD
-    resul = resul && myPE->testAndSetBusy(uid);
+    resul = resul && myPE->testAndSetBusy(uid, mpiThread->getGroupThreadList()->size() > 1);
     
     //If our current PE is not the right one for the task, check if the right one is free
-    if ( ( res == MPI_IDENT || 
-            ((uintptr_t)_assignedComm==0 && _assignedRank<(int)((nanos::ext::MPIThread *) myThread)->getRunningPEs().size()))
-            && !resul){  
+    if ( !resul && myPE->getRank()!=_assignedRank && ( res == MPI_IDENT || 
+            ((uintptr_t)_assignedComm==0 && _assignedRank<(int)mpiThread->getRunningPEs().size())) ){  
        if (_assignedRank==UNKOWN_RANKSRCDST) {
          resul=mpiThread->switchToNextFreePE(uid);      
        } else {

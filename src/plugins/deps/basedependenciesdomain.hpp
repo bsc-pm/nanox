@@ -324,6 +324,23 @@ inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( Dep
    dependOnReadersAndSetAsWriter( depObj, status, target, callback, accessType );
 }
 
+inline void BaseDependenciesDomain::submitDependableObjectOutputNoWriteDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
+{
+    finalizeReduction( status, target );    
+    dependOnReaders( depObj, status, target, callback, accessType );
+}
+
+inline void BaseDependenciesDomain::submitDependableObjectInputNoReadDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
+{
+   finalizeReduction( status, target );
+   dependOnLastWriter( depObj, status, target, callback, accessType );
+}
+
+
 }
 
 #endif
