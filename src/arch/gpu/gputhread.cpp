@@ -48,7 +48,7 @@ void GPUThread::runDependent ()
    setCurrentWD( work );
    SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
 
-   while ( getTeam() == NULL ) {}
+   while ( getTeam() == NULL ) { OS::nanosleep( 100 ); }
 
    if ( getTeam() == NULL ) {
       warning( "This GPUThread needs a team to work, but no team was found. The thread will exit.");
