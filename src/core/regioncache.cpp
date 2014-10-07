@@ -89,7 +89,7 @@ void AllocatedChunk::lock( bool setVerbose ) {
    //std::cerr << ": " << myThread->getId() <<" : Locked chunk " << (void *) this << std::endl;
    //_lock.acquire();
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->idle();
    }
    //sys.printBt();
    //std::cerr << "x " << myThread->getId() <<" x Locked chunk " << (void *) this << std::endl;
@@ -1355,7 +1355,7 @@ unsigned int RegionCache::getVersion( global_reg_t const &reg, WD const &wd, uns
 
 void RegionCache::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->idle();
    }
 
    for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
@@ -1395,7 +1395,7 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
    if ( total_allocatable_size <= _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) ) {
       //_lock.acquire();
       while ( !_lock.tryAcquire() ) {
-         myThread->idle();
+         //myThread->idle();
       }
       //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << std::endl;
       //attempt to allocate regions without triggering invalidations, this will reserve any chunk used by this WD
