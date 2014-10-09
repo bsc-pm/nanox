@@ -88,7 +88,7 @@ namespace nanos {
             virtual ScheduleTeamData * createTeamData ()
             {
                /* Queue 0 will be the global one */
-               _numQueues = sys.getCacheMap().getSize() + 1;
+               _numQueues = sys.getSeparateMemoryAddressSpacesCount() + 1;
 
                _memSpaces = NEW ThreadData *[_numQueues];
 

@@ -83,7 +83,7 @@ namespace nanos {
             virtual ScheduleTeamData * createTeamData ()
             {
                /* Queue 0 will be the global one */
-               _numQueues = sys.getNumMemorySpaces() + 1;
+               _numQueues = sys.getSeparateMemoryAddressSpacesCount() + 1;
 
                _memSpaces = NEW ThreadData *[_numQueues];
 
@@ -351,7 +351,7 @@ namespace nanos {
                return wd;
             }
 
-            for ( unsigned int i = data._cacheId; i < sys.getNumMemorySpaces(); i++ ) {
+            for ( unsigned int i = data._cacheId; i < sys.getSeparateMemoryAddressSpacesCount(); i++ ) {
                if ( tdata._readyQueues[i+1].size() > 1 ) {
                   wd = tdata._readyQueues[i+1].pop_back( thread );
                   return wd;
