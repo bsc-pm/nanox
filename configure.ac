@@ -83,7 +83,7 @@ if test x$allocator_enabled = xno; then
 fi
 
 # Memtracker support
-AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
+AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
 AC_ARG_ENABLE([memtracker],
   AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module]),
   [
