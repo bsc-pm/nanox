@@ -113,8 +113,11 @@ inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * 
       _predLock.release();
    }
 
-   if ( numPred == 0 && !batchRelease ) {
-      dependenciesSatisfied( );
+   if ( numPred == 0 ) {
+      if ( !_predecessors.empty() ) _predecessors.clear();
+      if ( !batchRelease ) {
+         dependenciesSatisfied( );
+      }
    }
 
    return numPred;

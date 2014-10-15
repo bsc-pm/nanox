@@ -55,7 +55,6 @@ void DependableObject::finished ( )
 
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
 
-
       //*(myThread->_file) << "Successors for wd " << this->getWD()->getId() << " : " << ( this->getWD()->getDescription() != NULL ? this->getWD()->getDescription() : "[no description]" ) << " { " ;
       //for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
       //   WD *wd = (*it)->getWD();
@@ -158,6 +157,9 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      // Keep the dependency to signal when the WD can actually be run respecting dependencies
                      found->disableSubmission();
                      succ.insert( found );
+                  } else {
+                     // We have removed the successor, so we need to decrease its predecessors
+                     found->decreasePredecessors( NULL, this, true /* do not submit WD! */, false );
                   }
 
                   //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<
