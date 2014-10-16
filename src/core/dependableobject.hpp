@@ -34,11 +34,12 @@ using namespace nanos;
 
 inline DependableObject::~DependableObject ( )
 {
-   _predLock.acquire();
-   for ( DependableObjectVector::iterator it = _predecessors.begin(); it != _predecessors.end(); it++ ) {
-      ( *it )->deleteSuccessor( *this );
+   {
+      SyncLockBlock lock( this->getLock() );
+      for ( DependableObjectVector::iterator it = _predecessors.begin(); it != _predecessors.end(); it++ ) {
+         ( *it )->deleteSuccessor( *this );
+      }
    }
-   _predLock.release();
 
    std::for_each(_outputObjects.begin(),_outputObjects.end(),deleter<BaseDependency>);
    std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
@@ -98,29 +99,40 @@ inline int DependableObject::increasePredecessors ( )
 inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
       bool batchRelease, bool blocking )
 {
-   int  numPred = --_numPredecessors; 
+   int  numPred = --_numPredecessors;
 
+   {
+      SyncLockBlock lock( this->getLock() );
+
+      decreasePredecessorsInLock( flushDeps, finishedPred, blocking, numPred );
+   }
+
+   if ( numPred == 0 && !batchRelease ) {
+      dependenciesSatisfied( );
+   }
+
+   return numPred;
+}
+
+inline void DependableObject::decreasePredecessorsInLock ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
+      bool blocking, int numPred )
+{
    if ( finishedPred != NULL ) {
-
       if ( getWD() != NULL && finishedPred->getWD() != NULL ) {
          getWD()->predecessorFinished( finishedPred->getWD() );
       }
 
       //remove the predecessor from the list!
-      _predLock.acquire();
-      DependableObjectVector::iterator it = _predecessors.find( finishedPred );
-      _predecessors.erase( it );
-      _predLock.release();
-   }
-
-   if ( numPred == 0 ) {
-      if ( !_predecessors.empty() ) _predecessors.clear();
-      if ( !batchRelease ) {
-         dependenciesSatisfied( );
+      if ( _predecessors.size() != 0 ) {
+         DependableObjectVector::iterator it = _predecessors.find( finishedPred );
+         if ( it != _predecessors.end() )
+            _predecessors.erase( it );
       }
    }
 
-   return numPred;
+   if ( numPred == 0 && !_predecessors.empty() ) {
+      _predecessors.clear();
+   }
 }
 
 inline int DependableObject::numPredecessors () const
@@ -140,9 +152,11 @@ inline DependableObject::DependableObjectVector & DependableObject::getSuccessor
 
 inline bool DependableObject::addPredecessor ( DependableObject &depObj )
 {
-   _predLock.acquire();
-   bool inserted = _predecessors.insert ( &depObj ).second;
-   _predLock.release();
+   bool inserted = false;
+   {
+      SyncLockBlock lock( this->getLock() );
+      inserted = _predecessors.insert ( &depObj ).second;
+   }
 
    return inserted;
 }

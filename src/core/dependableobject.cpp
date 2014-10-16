@@ -159,7 +159,8 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      succ.insert( found );
                   } else {
                      // We have removed the successor, so we need to decrease its predecessors
-                     found->decreasePredecessors( NULL, this, true /* do not submit WD! */, false );
+                     int  numPred = --_numPredecessors;
+                     found->decreasePredecessorsInLock( NULL, this, false, numPred );
                   }
 
                   //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<

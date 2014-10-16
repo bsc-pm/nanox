@@ -80,7 +80,6 @@ namespace nanos
          unsigned int             _id;              /**< DependableObject identifier */
          Atomic<unsigned int>     _numPredecessors; /**< Number of predecessors locking this object */
          unsigned int             _references;      /** References counter */
-         Lock                     _predLock;        /**< Lock to add/remove predecessors */
          DependableObjectVector   _predecessors;    /**< List of predecessors */
          DependableObjectVector   _successors;      /**< List of successors */
          DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
@@ -181,6 +180,12 @@ namespace nanos
          */
          virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
                bool batchRelease, bool blocking = false );
+
+         /*! \brief Auxiliar function of decreasePredecessors() that encapsulates the
+          *         mutual exclusion operations.
+          */
+          virtual void decreasePredecessorsInLock ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
+                bool blocking, int numPred );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */
