@@ -84,8 +84,7 @@ void ResourceManager::init( void )
          DLB_CheckCpuAvailability;
 #endif
 
-   // DLB is only manually initialized when Nanos has --enable-block (No MPI)
-   if ( _status.dlb_enabled && _status.block_enabled )
+   if ( _status.dlb_enabled )
       DLB_Init();
 
    _status.initialized = _status.dlb_enabled || _status.block_enabled;
