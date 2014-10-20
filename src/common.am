@@ -28,10 +28,10 @@ endif
 
 if DLB
 dlb_cppflags = -DDLB -I@DLB_INC@
-dlb_perfo_ldflags = -L@DLB_LIB@ -ldlb_nanos
-dlb_debug_ldflags = -L@DLB_LIB@ -ldlb_nanos_dbg
-dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_nanos_instr
-dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_nanos_instr_dbg
+dlb_perfo_ldflags = -L@DLB_LIB@ -ldlb
+dlb_debug_ldflags = -L@DLB_LIB@ -ldlb_dbg
+dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_instr
+dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
 endif
 
 if GNU_C

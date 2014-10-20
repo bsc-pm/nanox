@@ -1103,7 +1103,7 @@ AC_ARG_WITH([dlb],
 if test ${dlb_path} != "no" -a ${dlb_path} != "not_set" ; then
    DLB_INC="$dlb_path/include"
    DLB_LIB="$dlb_path/lib"
-   if test ! -d ${dlb_path} -o ! -f ${DLB_INC}/DLB_interface.h -o ! -f ${DLB_LIB}/libdlb_nanos.so ; then
+   if test ! -d ${dlb_path} -o ! -f ${DLB_INC}/DLB_interface.h -o ! -f ${DLB_LIB}/libdlb.so ; then
       AC_MSG_ERROR([Attention! You have passed an invalid DLB location.])
    fi
    dlb=yes
