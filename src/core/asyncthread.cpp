@@ -418,6 +418,12 @@ void AsyncThread::postRunWD ( WD * wd )
 
       evt->setPending();
 
+      Action * action = new_action( ( ActionMemFunPtr1<AsyncThread, WD *>::MemFunPtr1 ) &AsyncThread::postRunWD, this, wd );
+      evt->addNextAction( action );
+#ifdef NANOS_GENERICEVENT_DEBUG
+      evt->setDescription( evt->getDescription() + " action:AsyncThread::postRunWD" );
+#endif
+
       addEvent( evt );
 
       ASYNC_THREAD_CLOSE_EVENT;
