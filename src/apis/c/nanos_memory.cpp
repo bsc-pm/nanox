@@ -77,7 +77,11 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int 
    try 
    {
       nanos::OSAllocator tmp_allocator;
-      *p = tmp_allocator.allocate_none( size );
+      if ( node == 0 ) {
+         *p = tmp_allocator.allocate ( size );
+      } else {
+         *p = tmp_allocator.allocate_none( size );
+      }
       sys.registerNodeOwnedMemory(node, *p, size);
    } catch ( nanos_err_t e ) {
       return e;

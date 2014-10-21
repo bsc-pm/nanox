@@ -605,6 +605,7 @@ namespace nanos
          //It will act as an slave and call exit(0) when we need slave behaviour
          //in offload or cluster version
          void ompss_nanox_main ();         
+         void _registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len);
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
