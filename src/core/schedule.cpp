@@ -681,8 +681,8 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
             wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
             //if(wd!=NULL)std::cerr << "GN got a wd with depth " <<wd->getDepth() << std::endl;
          } else {
-           // thread->resetNextWD();
-            std::cerr << "FIXME" << std::endl;
+            //thread->resetNextWD();
+           // std::cerr << "FIXME" << std::endl;
          }
       } else {
          wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );

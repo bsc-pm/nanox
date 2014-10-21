@@ -1445,26 +1445,35 @@ void System::ompss_nanox_main(){
     #endif
 }
 
+void System::_registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len) {
+   CopyData cd;
+   nanos_region_dimension_internal_t dim;
+   dim.lower_bound = 0;
+   dim.size = len;
+   dim.accessed_length = len;
+   cd.setBaseAddress( addr );
+   cd.setDimensions( &dim );
+   cd.setNumDimensions( 1 );
+   global_reg_t reg;
+   getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
+   reg.setOwnedMemory(loc);
+   //not really needed.., *it->registerOwnedMemory( reg );
+}
+
 void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len) {
    memory_space_id_t loc = 0;
-   for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
-      if ( *it != NULL ) {
-         if ((*it)->getNodeNumber() == node) {
-            CopyData cd;
-            nanos_region_dimension_internal_t dim;
-            dim.lower_bound = 0;
-            dim.size = len;
-            dim.accessed_length = len;
-            cd.setBaseAddress( addr );
-            cd.setDimensions( &dim );
-            cd.setNumDimensions( 1 );
-            global_reg_t reg;
-            getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
-            reg.setOwnedMemory(loc);
-           //not really needed.., *it->registerOwnedMemory( reg );
+   if ( node == 0 ) {
+      _registerMemoryChunk( loc, addr, len );
+   } else {
+      //_separateAddressSpaces[0] is always NULL (because loc = 0 is the local node memory)
+      for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
+         if ( *it != NULL ) {
+            if ((*it)->getNodeNumber() == node) {
+               _registerMemoryChunk( loc, addr, len );
+            }
          }
+         loc++;
       }
-      loc++;
    }
 }
 
