@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.8a], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.8], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
