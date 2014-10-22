@@ -220,9 +220,10 @@ namespace ext {
                              gasnet_handlerarg_t rmwdHi,
                              gasnet_handlerarg_t expectedDataLo,
                              gasnet_handlerarg_t expectedDataHi,
+                             gasnet_handlerarg_t totalArgSizeLo,
+                             gasnet_handlerarg_t totalArgSizeHi,
                              gasnet_handlerarg_t dataSize,
                              gasnet_handlerarg_t wdId,
-                             gasnet_handlerarg_t numPe,
                              gasnet_handlerarg_t arch,
                              gasnet_handlerarg_t seq );
          static void amWorkData(gasnet_token_t token, void *buff, std::size_t len,
