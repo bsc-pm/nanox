@@ -43,7 +43,8 @@ extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[2U])();
 bool MPIRemoteNode::executeTask(int taskId) {    
     bool ret=false;
     if (taskId==TASK_END_PROCESS){
-       nanosMPIFinalize(); 
+       nanosMPIFinalize();   
+       nanos::ext::MPIRemoteNode::getTaskLock().release(); 
        ret=true;
     } else {                     
        void (* function_pointer)()=(void (*)()) ompss_mpi_func_pointers_dev[taskId]; 
@@ -56,8 +57,6 @@ bool MPIRemoteNode::executeTask(int taskId) {
 
 int MPIRemoteNode::nanosMPIWorker(){
 	bool finalize=false;
-	//Acquire once
-   getTaskLock().acquire();
 	while(!finalize){
 		//Acquire twice and block until cache thread unlocks
       testTaskQueueSizeAndLock();
@@ -65,22 +64,17 @@ int MPIRemoteNode::nanosMPIWorker(){
 		finalize=executeTask(getQueueCurrTaskIdentifier());
       removeTaskFromQueue();
 	}     
-   //Release the lock so cache thread can finish
-	getTaskLock().release();
    return 0;
 }
 
-
+void MPIRemoteNode::preInit(){
+    nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
+    nanos::ext::MPIRemoteNode::nanosSyncDevPointers(ompss_mpi_masks, ompss_mpi_filenames, ompss_mpi_file_sizes,ompss_mpi_file_ntasks,ompss_mpi_func_pointers_dev);
+}
 
 void MPIRemoteNode::mpiOffloadSlaveMain(){   
-    //If we are slave, turn on slave mode (which keeps working until shutdown) and exit
-    if (getenv("OMPSS_OFFLOAD_SLAVE")){    
-       nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
-       nanos::ext::MPIRemoteNode::nanosSyncDevPointers(ompss_mpi_masks, ompss_mpi_filenames, ompss_mpi_file_sizes,ompss_mpi_file_ntasks,ompss_mpi_func_pointers_dev);
-       //Start as worker and cache (same thread)
-       nanos::MPIDevice::remoteNodeCacheWorker();
-       exit(0);
-    }    
+    nanos::MPIDevice::remoteNodeCacheWorker();
+    exit(0);
 }
 
 int MPIRemoteNode::ompssMpiGetFunctionIndexHost(void* func_pointer){  
@@ -104,15 +98,18 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
     verbose0( "loading MPI support" );
     //Unless user specifies otherwise, enable blocking mode in MPI
     if (getenv("I_MPI_WAIT_MODE")==NULL) putenv(const_cast<char*> ("I_MPI_WAIT_MODE=1"));
-
-    if ( !sys.loadPlugin( "arch-mpi" ) )
-      fatal0 ( "Couldn't load MPI support" );
+   
+    //If we are not offload slaves, initialice MPI plugin
+    if (!getenv("OMPSS_OFFLOAD_SLAVE")){  
+        if ( !sys.loadPlugin( "arch-mpi" ) )
+          fatal0 ( "Couldn't load MPI support" );
+    } 
    
     _initialized=true;   
     int provided;
     //If user provided a null pointer, we'll a value for internal checks
     if (userProvided==NULL) userProvided=&provided;
-    //TODO: Try with multiple MPI thread
+
     int initialized;    
     MPI_Initialized(&initialized);
     //In case it was already initialized (shouldn't happen, since we theorically "rename" the calls with mercurium), we won't try to do so
@@ -127,10 +124,6 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
         MPI_Query_thread(userProvided);        
     }
     
-    if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
-        _bufferPtr = new char[_bufferDefaultSize];
-        MPI_Buffer_attach(_bufferPtr, _bufferDefaultSize);
-    }
     nanos::MPIDevice::initMPICacheStruct();
         
     MPI_Comm parentcomm; /* intercommunicator */
@@ -140,19 +133,6 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
 
 void MPIRemoteNode::nanosMPIFinalize() {    
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FINALIZE_EVENT);
-    if (_bufferDefaultSize != 0 && _bufferPtr != 0) {
-        int size;
-        void *ptr;
-        MPI_Buffer_detach(&ptr, &size);
-        if (ptr != _bufferPtr) {
-            warning0("Another MPI Buffer was attached instead of the one defined with"
-                    " nanox mpi buffer size, not releasing it, user should do it manually");
-            MPI_Buffer_attach(ptr, size);
-        } else {
-            MPI_Buffer_detach(&ptr, &size);
-        }
-        delete[] _bufferPtr;
-    }
     int resul;
     MPI_Finalized(&resul);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -378,7 +358,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
             //Only owner will send kill signal to the worker
             if ( (*it)->getOwner() ) 
             {
-                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_CACHE_ORDER, *intercomm);
+                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, *intercomm);
                 //After sending finalization signals, we are not the owners anymore
                 //This way we prevent finalizing them multiple times if more than one thread uses them
                 (*it)->setOwner(false);
@@ -393,7 +373,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     //If we despawned all the threads which used this communicator, free the communicator
     //If intercomm is null, do not do it, after all, it should be the final free
     if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {        
-       MPI_Comm_disconnect(intercomm);
+       MPI_Comm_disconnect(intercomm); 
     } else if (communicatorsToFree.size()>0) {
         for (std::vector<MPI_Comm>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
            MPI_Comm commToFree=*it;
@@ -405,9 +385,8 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
 
 void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, bool strict, int* provided, int offset, const int* pph_list) {  
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
-    //IF nanos MPI not initialized, do it
-    if (!_initialized)
-        nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
+    //Initialize nanos MPI
+    nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
     
         
     if (!MPIDD::getSpawnDone()) {
@@ -717,7 +696,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
                 cacheOrder order;
                 //if PE is busy, this means an extra cache-thread could be usefull, send creation signal
                 order.opId = OPID_CREATEAUXTHREAD;
-                nanos::ext::MPIRemoteNode::nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_CACHE_ORDER, *intercomm);
+                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_M2S_ORDER, *intercomm);
                 ((MPIProcessor*)pes[rank])->setHasWorkerThread(true);
             }
         } else {            
@@ -743,7 +722,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     nanos::ext::MPIPlugin::addWorkerCount(numberOfThreads);    
     //Add all the PEs to the thread
     Lock* gLock=NULL;
-    Atomic<int>* gCounter=NULL;
+    Atomic<unsigned int>* gCounter=NULL;
     std::vector<MPIThread*>* threadList=NULL;
     for ( spawnedHosts=0; spawnedHosts<numberOfThreads; spawnedHosts++ ){ 
         MPIThread* mpiThread=(MPIThread*) threads[spawnedHosts];
@@ -767,9 +746,14 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
 }
 
 int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
-        MPI_Comm comm) {
-    //Send task init order and pendingComms counter
-    return nanosMPISend(buf, count, datatype, dest, TAG_INI_TASK, comm);
+        MPI_Comm comm) {    
+    cacheOrder order;
+    order.opId = OPID_TASK_INIT;
+    int* intbuf=(int*)buf;
+    //Values of intbuf will be positive (using integer for conveniece with Fortran)
+    order.hostAddr = *intbuf;
+    //Send task init order (hostAddr=taskIdentifier)
+    return nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, dest, TAG_M2S_ORDER, comm);
 }
 
 int MPIRemoteNode::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,
@@ -777,10 +761,18 @@ int MPIRemoteNode::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datat
     return nanosMPIRecv(buf, count, datatype, source, TAG_INI_TASK, comm, status);
 }
 
-int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int dest,
+int MPIRemoteNode::nanosMPISendTaskend(void *buf, int count, MPI_Datatype datatype, int disconnect,
         MPI_Comm comm) {
+    if (_disconnectedFromParent) return 0;
     //Ignore destination (as is always parent) and get currentParent
-    return nanosMPISend(buf, count, datatype, nanos::ext::MPIRemoteNode::getCurrentTaskParent(), TAG_END_TASK, comm);
+    int res= nanosMPISend(buf, count, datatype, nanos::ext::MPIRemoteNode::getCurrentTaskParent(), TAG_END_TASK, comm);
+    if (disconnect!=0) {      
+        MPI_Comm parent;
+        MPI_Comm_get_parent(&parent);   
+        _disconnectedFromParent=true;
+        MPI_Comm_disconnect(&parent);			
+    }
+    return res;
 }
 
 int MPIRemoteNode::nanosMPIRecvTaskend(void *buf, int count, MPI_Datatype datatype, int source,
@@ -921,7 +913,7 @@ void MPIRemoteNode::nanosSyncDevPointers(int* file_mask, unsigned int* file_name
                 }
                 func_pointers_arr+=task_per_file[e];
             }
-            fatal_cond0(!found,"File not found in device, please compile the code using exactly the same sources (same filename and size) for each architecture");
+            fatal_cond0(!found,"Executable version mismatch, please compile the code using exactly the same sources (same filename, mod. date and size) for every architecture");
         }
         memcpy(ompss_mpi_func_ptrs_dev,ompss_mpi_func_pointers_dev_out,total_size*sizeof(void (*)()));
         free(ompss_mpi_func_pointers_dev_out);

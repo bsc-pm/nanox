@@ -38,14 +38,13 @@
 using namespace nanos;
 using namespace ext;
     
-
-size_t MPIRemoteNode::_bufferDefaultSize = 0;
-char* MPIRemoteNode::_bufferPtr = 0;
 Lock MPIRemoteNode::_taskLock;
-Lock MPIRemoteNode::_queueLock;
+pthread_cond_t MPIRemoteNode::_taskWait;         //! Condition variable to wait for completion
+pthread_mutex_t MPIRemoteNode::_taskMutex;        //! Mutex to access the completion 
 std::list<int> MPIRemoteNode::_pendingTasksQueue;
 std::list<int> MPIRemoteNode::_pendingTaskParentsQueue;
 bool MPIRemoteNode::_initialized=false;
+bool MPIRemoteNode::_disconnectedFromParent=false;
 int MPIRemoteNode::_currentTaskParent=-1;
 int MPIRemoteNode::_currProcessor=0;
 
@@ -74,27 +73,31 @@ int MPIRemoteNode::getCurrentProcessor() {
 }
 
 void MPIRemoteNode::testTaskQueueSizeAndLock() {    
-    _queueLock.acquire();    
+    pthread_mutex_lock( &_taskMutex ); 
     if (_pendingTasksQueue.size()==0) {
-      _queueLock.release();
-       getTaskLock().acquire();
-    } else {
-      _queueLock.release();
-    }
+        pthread_cond_wait( &_taskWait, &_taskMutex );
+    } 
+    pthread_mutex_unlock( &_taskMutex ); 
 }
 
 void MPIRemoteNode::addTaskToQueue(int task_id, int parentId) {
-    _queueLock.acquire();
+    pthread_mutex_lock( &_taskMutex ); 
     _pendingTasksQueue.push_back(task_id);
     _pendingTaskParentsQueue.push_back(parentId);
-    _queueLock.release();
+    pthread_cond_signal( &_taskWait );
+    pthread_mutex_unlock( &_taskMutex ); 
 }
 
 void MPIRemoteNode::removeTaskFromQueue() {
-    _queueLock.acquire();
+    pthread_mutex_lock( &_taskMutex ); 
     _pendingTasksQueue.pop_front();
     _pendingTaskParentsQueue.pop_front();
-    _queueLock.release();
+    pthread_mutex_unlock( &_taskMutex ); 
+}
+
+
+bool MPIRemoteNode::getDisconnectedFromParent(){
+    return _disconnectedFromParent; 
 }
 
 ////////////////////////////////

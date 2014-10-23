@@ -48,6 +48,8 @@ namespace ext
                      _hostAddress( mt._hostAddress ), _deviceAddress( mt._deviceAddress ), _size( mt._size ),
                      _requested( mt._requested ) {}
 
+         void completeTransfer();
+
          ~GPUMemoryTransfer() {}
    };
 
@@ -65,7 +67,6 @@ namespace ext
          virtual void checkAddressForMemoryTransfer ( void * address ) {}
          virtual void executeMemoryTransfers () {}
          virtual void requestTransfer( void * address ) {}
-         virtual void clearMemoryTransfers () {}
          virtual void clearRequestedMemoryTransfers () {}
    };
 
@@ -76,7 +77,7 @@ namespace ext
           *  A requested memory transfer means that someone else needs the data, so it should be
           *  copied out as soon as possible
           */
-         std::list<GPUMemoryTransfer>   _pendingTransfersAsync;
+         std::list<GPUMemoryTransfer *> _pendingTransfersAsync;
 
          Lock                           _lock;
 
@@ -89,7 +90,7 @@ namespace ext
           */
          virtual void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size );
 
-         virtual void removeMemoryTransfer ( GPUMemoryTransfer &mt ) {}
+         virtual void removeMemoryTransfer ( GPUMemoryTransfer * mt ) {}
 
          /*! \brief Execute one memory transfer from the list of pending transfers.
           *         Requested transfers have priority (synchronous or asynchronous)
@@ -114,7 +115,7 @@ namespace ext
 
          /*! \brief Execute the given memory transfer (synchronous)
           */
-         void removeMemoryTransfer ( GPUMemoryTransfer &mt );
+         void removeMemoryTransfer ( GPUMemoryTransfer * mt );
 
          /*! \brief Execute all the requested memory transfers (synchronous)
           */
@@ -132,17 +133,21 @@ namespace ext
           *  Each copy to the intermediate pinned buffer is overlapped with another copy
           *  from the device to host
           */
-         void executeMemoryTransfers ( std::list<GPUMemoryTransfer> &pendingTransfersAsync );
+         void executeMemoryTransfers ( std::list<GPUMemoryTransfer *> &pendingTransfersAsync );
 
       public:
          GPUMemoryTransferOutAsyncList() : GPUMemoryTransferOutList() {}
          ~GPUMemoryTransferOutAsyncList() {}
 
-         /*! \brief Execute the given memory transfer (asynchronous)
+         /*! \brief Add a new memory transfer to the list of pending transfers (asynchronous)
           */
-         void removeMemoryTransfer ( GPUMemoryTransfer &mt );
+         void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size );
 
-         /*! \brief Execute the memory transfer(s) associated to the given hostAddress (asynchronous)
+         /*! \brief Remove the given memory transfer (asynchronous)
+          */
+         void removeMemoryTransfer ( GPUMemoryTransfer * mt );
+
+         /*! \brief Remove the memory transfer related to the given address (asynchronous)
           */
          void removeMemoryTransfer ( CopyDescriptor &hostAddress );
 
@@ -165,7 +170,7 @@ namespace ext
 
          /*! Pending input transfers that somebody else has requested
           */
-         std::list<GPUMemoryTransfer>     _requestedTransfers;
+         std::list<GPUMemoryTransfer *>   _requestedTransfers;
 
          Lock                             _lock;
 
@@ -173,21 +178,14 @@ namespace ext
          GPUMemoryTransferInAsyncList() : GPUMemoryTransferList(), _lock() {}
          ~GPUMemoryTransferInAsyncList();
 
-         /*! \brief Add a new memory transfer to the list of pending transfers (asynchronous)
-          */
-         void addMemoryTransfer ( CopyDescriptor &address );
 
          /*! \brief Add a new memory transfer to the list of requested transfers (asynchronous)
           */
          void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size );
 
-         /*! \brief Notify that all the pending memory transfers have been executed (asynchronous)
-          */
-         void clearMemoryTransfers ();
-
          /*! \brief Execute the given memory transfer (asynchronous)
           */
-         void removeMemoryTransfer ( GPUMemoryTransfer &mt );
+         void removeMemoryTransfer ( GPUMemoryTransfer * mt );
 
          /*! \brief Execute all the requested memory transfers (asynchronous)
           */

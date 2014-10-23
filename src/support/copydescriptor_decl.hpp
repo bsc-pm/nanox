@@ -33,6 +33,7 @@ namespace nanos {
       private:
          uint64_t _tag;
          unsigned int _dirVersion;
+
       public:
          DeviceOps *_ops;
          Functor *_functor;

@@ -243,7 +243,7 @@ NANOS_API_DEF(nanos_err_t, nanos_admit_current_thread, (void))
 {
 
    try {
-       sys.admitCurrentThread( );
+       sys.admitCurrentThread( true );
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -255,7 +255,7 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 {
 
    try {
-       sys.expelCurrentThread( );
+       sys.expelCurrentThread( true );
    } catch ( nanos_err_t e) {
       return e;
    }

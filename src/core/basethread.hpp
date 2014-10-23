@@ -29,6 +29,7 @@
 #include "basethread_decl.hpp"
 #include "atomic.hpp"
 #include "system.hpp"
+#include "wddeque.hpp"
 #include "printbt_decl.hpp"
 #include <stdio.h>
 
@@ -106,7 +107,7 @@ namespace nanos
 
    inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
       _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
-      _threadWD( wd ), _currentWD( NULL), _nextWDs( ), _teamData( NULL ), _nextTeamData( NULL ),
+      _threadWD( wd ), _currentWD( NULL ), _nextWDs( /* enableDeviceCounter */ false ), _teamData( NULL ), _nextTeamData( NULL ),
       _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL )
    {
          if ( sys.getSplitOutputForThreads() ) {
@@ -116,6 +117,8 @@ namespace nanos
          } else {
             _file = &std::cerr;
          }
+
+         _status.can_get_work = true;
    }
 
    inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
@@ -155,6 +158,8 @@ namespace nanos
       sys.unpausedThread();
    }
  
+   inline void BaseThread::processTransfers () { this->idle(); }
+
    // set/get methods
    inline void BaseThread::setCurrentWD ( WD &current ) { _currentWD = &current; }
  
@@ -224,7 +229,13 @@ namespace nanos
    inline bool BaseThread::isRunning () const { return _status.has_started && !_status.must_stop; }
 
    inline bool BaseThread::isSleeping () const { return _status.must_sleep; }
-   
+
+   inline bool BaseThread::canGetWork () { return _status.can_get_work; }
+
+   inline void BaseThread::enableGettingWork () { _status.can_get_work = true; }
+
+   inline void BaseThread::disableGettingWork () { _status.can_get_work = false; }
+
    inline bool BaseThread::isTeamCreator () const { return _teamData->isCreator(); } 
 
    inline void BaseThread::wait ( void ) { _status.is_waiting = true; }

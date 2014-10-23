@@ -139,13 +139,14 @@ void SMPDD::execute ( WD &wd ) throw ()
                debug( e.what() );
             }
          } catch (std::exception& e) {
-            std::string s = "Uncaught exception ";
-            s += typeid(e).name();
-            s += ". Thrown in task ";
-            s += wd.getId();
-            s += ". \n";
-            s += e.what();
-            message(s);
+            std::stringstream ss;
+            ss << "Uncaught exception "
+               << typeid(e).name()
+               << ". Thrown in task "
+               << wd.getId()
+               << ". \n"
+               << e.what();
+            message(ss.str());
             // Unexpected error: terminate execution
             std::terminate();
          } catch (...) {

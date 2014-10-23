@@ -175,8 +175,8 @@ NANOS_API_DEF(int, nanos_mpi_send_taskinit, (void *buf, int count, int dest, MPI
         return nanos::ext::MPIRemoteNode::nanosMPISendTaskinit(buf,count,MPI_INT,dest,comm);
 }
 
-NANOS_API_DEF(int, nanos_mpi_send_taskend, (void *buf, int count, int dest, MPI_Comm comm)){
-        return nanos::ext::MPIRemoteNode::nanosMPISendTaskend(buf,count,MPI_INT,dest,comm);
+NANOS_API_DEF(int, nanos_mpi_send_taskend, (void *buf, int count, int disconnect, MPI_Comm comm)){
+        return nanos::ext::MPIRemoteNode::nanosMPISendTaskend(buf,count,MPI_INT,disconnect,comm);
 }
 NANOS_API_DEF(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm)){
         return nanos::ext::MPIRemoteNode::nanosMPISendDatastruct(buf,count,datatype,dest,comm);

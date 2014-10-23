@@ -32,8 +32,8 @@ devinclude_HEADERS = \
 	barrier_fwd.hpp \
 	barrier_decl.hpp \
 	barrier.hpp \
-   cachedaccelerator_decl.hpp \
-   cachedaccelerator.hpp \
+	cachedaccelerator_decl.hpp \
+	cachedaccelerator.hpp \
 	threadteam_fwd.hpp \
 	threadteam_decl.hpp \
 	threadteam.hpp \
@@ -92,6 +92,9 @@ devinclude_HEADERS = \
 	synchronizedcondition.hpp \
 	pminterface_decl.hpp  \
 	basethread_decl.hpp \
+	asyncthread_fwd.hpp \
+	asyncthread_decl.hpp \
+	asyncthread.hpp \
 	networkapi.hpp  \
 	network_decl.hpp  \
 	bitcounter.hpp \
@@ -124,6 +127,9 @@ devinclude_HEADERS = \
 	address_fwd.hpp \
 	address_decl.hpp \
 	address.hpp \
+	depsregion_fwd.hpp \
+	depsregion_decl.hpp \
+	depsregion.hpp \
 	basedependency_fwd.hpp \
 	basedependency_decl.hpp \
 	graphentry_decl.hpp \
@@ -131,7 +137,7 @@ devinclude_HEADERS = \
 	taskexecutionexception.hpp \
 	trackableobject_fwd.hpp \
 	trackableobject_decl.hpp \
-   trackableobject.hpp \
+	trackableobject.hpp \
 	hwloc_decl.hpp \
 	regionset_decl.hpp \
 	$(END)
@@ -142,8 +148,8 @@ common_sources=\
 	barrier_fwd.hpp \
 	barrier_decl.hpp \
 	barrier.hpp \
-   cachedaccelerator_decl.hpp \
-   cachedaccelerator.hpp \
+	cachedaccelerator_decl.hpp \
+	cachedaccelerator.hpp \
 	threadteam_fwd.hpp \
 	threadteam_decl.hpp \
 	threadteam.hpp \
@@ -152,6 +158,10 @@ common_sources=\
 	basethread_decl.hpp\
 	basethread.hpp\
 	basethread.cpp\
+	asyncthread_fwd.hpp \
+	asyncthread_decl.hpp \
+	asyncthread.hpp \
+	asyncthread.cpp \
 	processingelement_fwd.hpp \
 	processingelement_decl.hpp \
 	processingelement.hpp \
@@ -170,6 +180,7 @@ common_sources=\
 	wddeque_fwd.hpp \
 	wddeque_decl.hpp \
 	wddeque.hpp \
+	wddeque.cpp \
 	workdescriptor_fwd.hpp \
 	workdescriptor_decl.hpp \
 	workdescriptor.hpp \
@@ -254,6 +265,9 @@ common_sources=\
 	memoryops.cpp \
 	globalregt_decl.hpp \
 	globalregt.cpp \
+	address_fwd.hpp \
+	address_decl.hpp \
+	address.hpp \
 	address_fwd.hpp \
 	address_decl.hpp \
 	address.hpp \

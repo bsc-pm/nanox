@@ -283,6 +283,7 @@ class SMPPlugin : public SMPBasePlugin
          (*_cpusByCpuId)[ *it ] = cpu;
          count += 1;
       }
+      //at this point _availableCores has a valid value
 
 #ifdef NANOS_DEBUG_ENABLED
       if ( sys.getVerbose() ) {
@@ -369,6 +370,12 @@ class SMPPlugin : public SMPBasePlugin
             pes.insert( std::make_pair( (*it)->getId(), *it ) );
          }
       }
+   }
+
+   virtual void addDevices( DeviceList &devices ) const
+   {
+      if ( !_cpus->empty() )
+         devices.insert( ( *_cpus->begin() )->getDeviceType() );
    }
 
    virtual void startSupportThreads() {
@@ -820,14 +827,19 @@ class SMPPlugin : public SMPBasePlugin
       return NULL;
    }
 
-   virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers ) {
+   virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker ) {
 
       ext::SMPProcessor *cpu = getFirstFreeSMPProcessor();
 
+      if ( cpu == NULL ) cpu = getFirstSMPProcessor();
+
       //! \note Create a new Thread object and associate it to the current thread
       BaseThread *thread = &cpu->associateThisThread ( /* untie */ true ) ;
+
+      if ( !isWorker ) return;
+
       workers.insert( std::make_pair( thread->getId(), thread ) );
-      _workers.push_back( (SMPThread *) thread );
+      _workers.push_back( ( SMPThread * ) thread );
 
       //! \note Update current cpu active set mask
       CPU_SET( cpu->getBindingId(), &_cpuActiveSet );
@@ -842,6 +854,13 @@ class SMPPlugin : public SMPBasePlugin
 
       //! \note Include thread into main thread
       sys.acquireWorker( sys.getMainTeam(), thread, /* enter */ true, /* starring */ false, /* creator */ false );
+   }
+
+   virtual void expelCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker )
+   {
+      if ( isWorker ) {
+         workers.erase( myThread->getId() );
+      }
    }
 
    virtual int getCpuCount() const {

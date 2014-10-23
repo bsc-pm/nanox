@@ -88,6 +88,7 @@ devinclude_HEADERS = \
 	printbt_decl.hpp \
         smpbaseplugin_decl.hpp \
 	pinnedallocator_decl.hpp \
+	genericevent_decl.hpp \
 	$(END) 
 
 support_sources = \
@@ -169,6 +170,8 @@ support_sources = \
 	requestqueue.hpp \
 	printbt_decl.hpp \
 	printbt.cpp \
+	genericevent_decl.hpp \
+	genericevent.cpp \
 	$(END) 
 
 debug_sources = \

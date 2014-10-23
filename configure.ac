@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.8a], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.9a], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
@@ -83,7 +83,7 @@ if test x$allocator_enabled = xno; then
 fi
 
 # Memtracker support
-AC_MSG_CHECKING([if Nanos++ Memtracker has been disabled])
+AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
 AC_ARG_ENABLE([memtracker],
   AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module]),
   [
@@ -637,11 +637,15 @@ if test x$gpu_valid = xyes; then
 	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
         LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
 	ARCHITECTURES="$ARCHITECTURES gpu"
+
+	# This path is used to compile CUDA tests
+	cuda_dir="$CUDADIR"
 fi
 
 AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
 
 AC_SUBST([gpu_valid])
+AC_SUBST([cuda_dir])
 
 #only show warnings when the user tries to specify opencl folders
 opencl_showwarn="no"
@@ -682,6 +686,7 @@ AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
       CPPFLAGSBACKUP="$CPPFLAGS"
       CXXFLAGSBACKUP="$CXXFLAGS"
       LDFLAGSBACKUP="$LDFLAGS"
+      LIBSBACKUP="$LIBS"
 
       CFLAGS="$CFLAGS -L$OPENCLBASE/lib64/"
       CPPFLAGS="$CPPFLAGS -L$OPENCLBASE/lib64/"
@@ -696,6 +701,7 @@ AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
       CPPFLAGS="$CPPFLAGSBACKUP"
       CXXFLAGS="$CXXFLAGSBACKUP"
       LDFLAGS="$LDFLAGSBACKUP"
+      LIBS="$LIBSBACKUP"
       #endtest
 	]
 )
@@ -744,6 +750,7 @@ if test x"$opencl_enabled" = x"yes" ; then
 
     AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
     AC_CHECK_HEADER([OpenCL/opencl.h], [opencl_headers="yes"],[])
+    #this will add the correct library to LIBS var
     AC_SEARCH_LIBS([clGetPlatformIDs],
                    [OpenCL mali],
                    [opencl_libs="yes"],
@@ -776,8 +783,8 @@ fi
 if test x"$opencl_valid" = x"yes"; then
     OPENCL_LD=$OPENCL_LIB
     OPENCL_INC=$OPENCL_INC
-    CFLAGS="$CFLAGS -L$OPENCL_LIB -lOpenCL -isystem $OPENCL_INC -DOpenCL_DEV"
-    CXXFLAGS="$CXXFLAGS -L$OPENCL_LIB -lOpenCL -isystem $OPENCL_INC -DOpenCL_DEV"
+    CFLAGS="$CFLAGS -L$OPENCL_LIB -isystem $OPENCL_INC -DOpenCL_DEV"
+    CXXFLAGS="$CXXFLAGS -L$OPENCL_LIB -isystem $OPENCL_INC -DOpenCL_DEV"
     ARCHITECTURES="$ARCHITECTURES opencl"
     AC_SUBST([OPENCL_LD])
     AC_SUBST([OPENCL_INC])
@@ -1158,7 +1165,7 @@ if test x$memtracker_enabled = xyes ; then
 else
    echo "Memory tracker: disabled"
 fi
-if test x$allocator_disabled = xno ; then
+if test x$allocator_enabled = xyes ; then
    echo "Memory allocator: enabled"
 else
    echo "Memory allocator: disabled"

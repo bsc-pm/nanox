@@ -154,6 +154,12 @@ virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
    }
 }
 
+virtual void addDevices( DeviceList &devices ) const
+{
+   if ( !_opencls->empty() )
+      devices.insert( ( *_opencls->begin() )->getDeviceType() );
+}
+
 
 virtual void startSupportThreads() {
    for ( unsigned int openclC = 0; openclC < _opencls->size(); openclC += 1 ) {

@@ -133,6 +133,9 @@ namespace nanos
 
          PEList               _pes;
          ThreadList           _workers;
+
+         //! List of all supported architectures by _pes
+         DeviceList           _devices;
         
          /*! It counts how many threads have finalized their initialization */
          Atomic<unsigned int> _initializedThreads;
@@ -232,7 +235,6 @@ namespace nanos
          void processCpuMask( void );
          
          Atomic<int> _atomicSeedWg;
-         Atomic<int> _atomicSeedMemorySpace;
          Atomic<unsigned int> _affinityFailureCount;
          bool                      _createLocalTasks;
          bool _verboseDevOps;
@@ -293,6 +295,11 @@ namespace nanos
          * \param work WD to be set up
          */
          void setupWD( WD &work, WD *parent );
+
+         /*!
+          * \brief Method to get the device types of all the architectures running
+          */
+         DeviceList & getSupportedDevices();
 
          /*!
           * \brief Add mas to the current system's _cpu_active_set
@@ -514,9 +521,6 @@ namespace nanos
 
          PinnedAllocator& getPinnedAllocatorCUDA();
 #endif
-#ifdef MPI_DEV
-         bool isOffloadSlave();
-#endif
 
          void threadReady ();
          
@@ -529,9 +533,7 @@ namespace nanos
          Plugin * loadAndGetPlugin ( const char *name );
          Plugin * loadAndGetPlugin ( const std::string &name );
          int getWgId();
-         unsigned int getMemorySpaceId();
          unsigned int getRootMemorySpaceId();
-         unsigned int getNumMemorySpaces();
 
          HostMemoryAddressSpace &getHostMemory() { return _hostMemory; }
           
@@ -596,8 +598,8 @@ namespace nanos
 
          /*! \brief Active current thread (i.e. pthread ) and include it into the main team
           */
-         void admitCurrentThread ( void );
-         void expelCurrentThread ( void );
+         void admitCurrentThread ( bool isWorker );
+         void expelCurrentThread ( bool isWorker );
          
          //This main will do nothing normally
          //It will act as an slave and call exit(0) when we need slave behaviour

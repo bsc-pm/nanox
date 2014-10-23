@@ -141,7 +141,7 @@ namespace nanos {
                       
             //Try to reserve this PE, if the one who reserves it is the same
             //which already has the PE, return true
-            bool testAndSetBusy(int dduid);
+            bool testAndSetBusy(int dduid, bool multithreadedAccess);
             
             int getCurrExecutingDD() const;
 

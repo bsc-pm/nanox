@@ -35,4 +35,3 @@ inline unsigned int CopyDescriptor::getDirectoryVersion() const
 }
 
 #endif
-

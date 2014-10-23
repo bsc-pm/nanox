@@ -61,8 +61,8 @@ namespace ext
          virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent( WD &work );
-         virtual void preOutlineWorkDependent( WD &work ) {fatal( "SMPThread does not support preOutlineWorkDependent()" ); } ;
-         virtual void outlineWorkDependent( WD &work ) {fatal( "SMPThread does not support outlineWorkDependent()" ); } ;
+         virtual void preOutlineWorkDependent( WD &work ) { fatal( "SMPThread does not support preOutlineWorkDependent()" ); }
+         virtual void outlineWorkDependent( WD &work ) { fatal( "SMPThread does not support outlineWorkDependent()" ); }
          virtual void switchTo( WD *work, SchedulerHelper *helper );
          virtual void exitTo( WD *work, SchedulerHelper *helper );
 
@@ -74,10 +74,12 @@ namespace ext
          virtual void switchToNextThread() {
             fatal( "SMPThread does not support switchToNextThread()" );
          }
+
          virtual BaseThread *getNextThread()
          {
             return this;
          }
+
          virtual bool isCluster() { return false; }
 
          //virtual int checkStateDependent( int numPe ) {
@@ -136,9 +138,5 @@ namespace ext
    };
 }
 }
-
-void * smp_bootthread ( void *arg );
-
-
 
 #endif

@@ -46,6 +46,8 @@ class InternalAllocator
        typedef value_type& reference;
        typedef const value_type& const_reference;
        typedef std::size_t size_type;
+       typedef std::ptrdiff_t difference_type;
+
       /* \brief Convert an allocator<T> to allocator<U>
        */
        template<typename U>

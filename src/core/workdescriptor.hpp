@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <utility>
 #include <vector>
-#include <climits>
 #include "workdescriptor_decl.hpp"
 #include "dependableobjectwd.hpp"
 #include "copydata.hpp"
@@ -44,14 +43,18 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
+                                 _wdData ( NULL ), _scheduleData( NULL ),
+                                 _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
                                  _state( INIT ), _syncCond( NULL ),  _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( ndevices ), _devices ( devs ), _activeDeviceIdx( ndevices == 1 ? 0 : ndevices ),
+#ifdef GPU_DEV
+                                 _cudaStreamIdx( -1 ),
+#endif
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ),
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ), 
                                  _translateArgs( translate_args ),
-                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL), _wakeUpQueue( UINT_MAX ),
+                                 _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
@@ -72,15 +75,19 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
+                                 _wdData ( NULL ), _scheduleData( NULL ),
+                                 _flags(), _tiedTo ( NULL ), _tiedToLocation( (memory_space_id_t) -1 ),
                                  _state( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( 0 ),
                                  _numDevices ( 1 ), _devices ( NULL ), _activeDeviceIdx( 0 ),
+#ifdef GPU_DEV
+                                 _cudaStreamIdx( -1 ),
+#endif
                                  _numCopies( numCopies ), _copies( copies ), _paramsSize( 0 ),
                                  _versionGroupId( 0 ), _executionTime( 0.0 ), _estimatedExecTime( 0.0 ), 
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _translateArgs( translate_args ),
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _wakeUpQueue( UINT_MAX ), _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
                                      _devices = new DeviceData*[1];
@@ -101,16 +108,19 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL), _forcedParent(wd._forcedParent),
                                  _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
-                                 _wdData ( NULL ), _flags(), _tiedTo ( wd._tiedTo ), _tiedToLocation( wd._tiedToLocation ),
+                                 _wdData ( NULL ), _scheduleData( NULL ),
+                                 _flags(), _tiedTo ( wd._tiedTo ), _tiedToLocation( wd._tiedToLocation ),
                                  _state ( INIT ), _syncCond( NULL ), _myQueue ( NULL ), _depth ( wd._depth ),
                                  _numDevices ( wd._numDevices ), _devices ( devs ), _activeDeviceIdx( wd._numDevices == 1 ? 0 : wd._numDevices ),
+#ifdef GPU_DEV
+                                 _cudaStreamIdx( wd._cudaStreamIdx ),
+#endif
                                  _numCopies( wd._numCopies ), _copies( wd._numCopies == 0 ? NULL : copies ), _paramsSize( wd._paramsSize ),
                                  _versionGroupId( wd._versionGroupId ), _executionTime( wd._executionTime ),
                                  _estimatedExecTime( wd._estimatedExecTime ), _doSubmit(NULL), _doWait(),
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _wakeUpQueue( wd._wakeUpQueue ),
                                  _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
@@ -125,6 +135,35 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
 
                                     _mcontrol.preInit();
                                  }
+
+inline WorkDescriptor::~WorkDescriptor()
+{
+    void *chunkLower = ( void * ) this;
+    void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
+
+    for ( unsigned char i = 0; i < _numDevices; i++ ) delete _devices[i];
+
+    //! Delete device vector 
+    if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
+       delete[] _devices;
+    } 
+
+    //! Delete Dependence Domain
+    delete _depsDomain;
+
+    //! Delete internal data (if any)
+    union { char* p; intptr_t i; } u = { (char*)_wdData };
+    bool internalDataOwned = (u.i & 1);
+    // Clear the own status if set
+    u.i &= ((~(intptr_t)0) << 1);
+
+    if (internalDataOwned
+            && (( (void*)u.p < chunkLower) || ( (void *) u.p > chunkUpper ) ))
+       delete[] u.p;
+
+    if (_copiesNotInChunk)
+        delete[] _copies;
+}
 
 /* DeviceData inlined functions */
 inline DeviceData::work_fct DeviceData::getWorkFct() const { return _work; }
@@ -217,6 +256,12 @@ inline void WorkDescriptor::setActiveDeviceIdx( unsigned char idx ) { _activeDev
 
 inline unsigned char WorkDescriptor::getActiveDeviceIdx() const { return _activeDeviceIdx; }
 
+#ifdef GPU_DEV
+inline void WorkDescriptor::setCudaStreamIdx( int idx ) { _cudaStreamIdx = idx; }
+
+inline int WorkDescriptor::getCudaStreamIdx() const { return _cudaStreamIdx; }
+#endif
+
 inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) { 
     union { void* p; intptr_t i; } u = { data };
     // Set the own status
@@ -227,6 +272,25 @@ inline void WorkDescriptor::setInternalData ( void *data, bool ownedByWD ) {
 
 inline void * WorkDescriptor::getInternalData () const { 
     union { void* p; intptr_t i; } u = { _wdData };
+
+    // Clear the own status if set
+    u.i &= ((~(intptr_t)0) << 1);
+
+    return u.p;
+}
+
+inline void WorkDescriptor::setSchedulerData ( ScheduleWDData * data, bool ownedByWD ) { 
+    fatal_cond( _scheduleData != NULL, "Trying to change the scheduler data of a WD that already has one" );
+    
+    union { ScheduleWDData * p; intptr_t i; } u = { data };
+    // Set the own status
+    u.i |= int( ownedByWD );
+    
+    _scheduleData = u.p;
+}
+
+inline ScheduleWDData * WorkDescriptor::getSchedulerData () const { 
+    union {ScheduleWDData* p; intptr_t i; } u = { _scheduleData };
 
     // Clear the own status if set
     u.i &= ((~(intptr_t)0) << 1);
@@ -247,16 +311,6 @@ inline int WorkDescriptor::getNUMANode() const
 inline void WorkDescriptor::setNUMANode( int node )
 {
    _numaNode = node;
-}
-
-inline unsigned int WorkDescriptor::getWakeUpQueue() const
-{
-   return _wakeUpQueue;
-}
-
-inline void WorkDescriptor::setWakeUpQueue( unsigned int queue )
-{
-   _wakeUpQueue = queue;
 }
 
 inline unsigned int WorkDescriptor::getNumDevices ( void ) const { return _numDevices; }
@@ -282,6 +336,8 @@ inline double WorkDescriptor::getEstimatedExecutionTime() const { return _estima
 inline void WorkDescriptor::setEstimatedExecutionTime( double time ) { _estimatedExecTime = time; }
 
 inline DOSubmit * WorkDescriptor::getDOSubmit() { return _doSubmit; }
+
+inline int WorkDescriptor::getNumDepsPredecessors() { return ( _doSubmit == NULL ? 0 : _doSubmit->numPredecessors() ); }
 
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
 {
@@ -323,15 +379,15 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
 {
    if ( _doSubmit == NULL ) return NULL;
    else {
-        DOIsSchedulable predicate(thread);
-        DependableObject * found = _doSubmit->releaseImmediateSuccessor(predicate);
-        if ( found ) {
-           WD *successor = (WD *) found->getRelatedObject();
-           successor->predecessorFinished( this );
-           return successor;
-        } else {
-           return NULL;
-        }
+      DOIsSchedulable predicate( thread );
+      DependableObject * found = _doSubmit->releaseImmediateSuccessor( predicate, thread.keepWDDeps() );
+      if ( found ) {
+         WD *successor = found->getWD();
+         //successor->predecessorFinished( this );
+         return successor;
+      } else {
+         return NULL;
+      }
    }
 }
 

@@ -38,6 +38,7 @@ namespace nanos
          bool _rooted;
          Lock _setLock;
          ProcessingElement * _firstWriterPE;
+         uint64_t _baseAddress;
       public:
          NewNewDirectoryEntryData();
          NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de );
@@ -66,6 +67,8 @@ namespace nanos
          void setOps( DeviceOps *ops );
          std::set< memory_space_id_t > const &getLocations() const;
          DeviceOps *getOps() ;
+         void setBaseAddress(uint64_t addr);
+         uint64_t getBaseAddress() const;
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
    };
 
@@ -109,7 +112,6 @@ namespace nanos
          RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd );
          void synchronize( WD &wd );
-         reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
 
          /*! \brief NewDirectory default constructor
           */
@@ -156,6 +158,7 @@ namespace nanos
          static void addRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
          static reg_t getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t localId );
          static void addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
+         reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
    };
 }
 

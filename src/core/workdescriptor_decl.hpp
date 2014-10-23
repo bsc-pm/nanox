@@ -41,8 +41,12 @@
 #include "dependenciesdomain_decl.hpp"
 #include "simpleallocator_decl.hpp"
 
+#include "schedule_fwd.hpp"   // ScheduleWDData
+
 namespace nanos
 {
+
+typedef std::set<const Device *>  DeviceList;
 
    /*! \brief This class represents a device object
     */
@@ -88,7 +92,7 @@ namespace nanos
          virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const = 0;
          virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const = 0;
          virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
          virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const = 0;
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const = 0;
    };
@@ -200,7 +204,7 @@ namespace nanos
    class WorkDescriptor
    {
       public: /* types */
-	      typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
+         typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
@@ -230,6 +234,7 @@ namespace nanos
          void                         *_data;                   //!< WD data
          size_t                        _totalSize;              //!< Chunk total size, when allocating WD + extra data
          void                         *_wdData;                 //!< Internal WD data. Allowing higher layer to associate data to WD
+         ScheduleWDData               *_scheduleData;           //!< Data set by the scheduling policy
          WDFlags                       _flags;                  //!< WD Flags
          BaseThread                   *_tiedTo;                 //!< Thread is tied to base thread
          memory_space_id_t             _tiedToLocation;         //!< Thread is tied to a memory location
@@ -240,6 +245,9 @@ namespace nanos
          unsigned char                 _numDevices;             //!< Number of suported devices for this workdescriptor
          DeviceData                  **_devices;                //!< Supported devices for this workdescriptor
          unsigned char                 _activeDeviceIdx;        //!< In _devices, index where we can find the current active DeviceData (if any)
+#ifdef GPU_DEV
+         int                           _cudaStreamIdx;          //!< FIXME: Only used in CUDA tasks, should not be here...
+#endif
          size_t                        _numCopies;              //!< Copy-in / Copy-out data
          CopyData                     *_copies;                 //!< Copy-in / Copy-out data
          size_t                        _paramsSize;             //!< Total size of WD's parameters
@@ -254,7 +262,6 @@ namespace nanos
          CommutativeOwnerMap          *_commutativeOwnerMap;    //!< Map from commutative target address to owner pointer
          WorkDescriptorPtrList        *_commutativeOwners;      //!< Array of commutative target owners
          int                           _numaNode;               //!< FIXME:scheduler data. The NUMA node this WD was assigned to
-         unsigned int                  _wakeUpQueue;            //!< FIXME:scheduler data. Queue to wake up to
          bool                          _copiesNotInChunk;       //!< States whether the buffer of the copies is allocated in the chunk of the WD
          char                         *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
@@ -304,34 +311,7 @@ namespace nanos
           * All data will be allocated in a single chunk so only the destructors need to be invoked
           * but not the allocator
           */
-         virtual ~WorkDescriptor()
-         {
-             void *chunkLower = ( void * ) this;
-             void *chunkUpper = ( void * ) ( (char *) this + _totalSize );
-
-             for ( unsigned char i = 0; i < _numDevices; i++ ) delete _devices[i];
-
-             //! Delete device vector 
-             if ( ( (void*)_devices < chunkLower) || ( (void *) _devices > chunkUpper ) ) {
-                delete[] _devices;
-             } 
-
-             //! Delete Dependence Domain
-             delete _depsDomain;
-
-             //! Delete internal data (if any)
-             union { char* p; intptr_t i; } u = { (char*)_wdData };
-             bool internalDataOwned = (u.i & 1);
-             // Clear the own status if set
-             u.i &= ((~(intptr_t)0) << 1);
-
-             if (internalDataOwned
-                     && (( (void*)u.p < chunkLower) || ( (void *) u.p > chunkUpper ) ))
-                delete[] u.p;
-
-             if (_copiesNotInChunk)
-                 delete[] _copies;
-         }
+         virtual ~WorkDescriptor();
 
          int getId() const { return _id; }
          int getHostId() const { return _hostId; }
@@ -445,6 +425,11 @@ namespace nanos
          void setActiveDeviceIdx( unsigned char idx );
          unsigned char getActiveDeviceIdx() const;
 
+#ifdef GPU_DEV
+         void setCudaStreamIdx( int idx );
+         int getCudaStreamIdx() const;
+#endif
+
          /*! \brief Sets specific internal data of the programming model
           * \param [in] data Pointer to internal data
           * \param [in] ownedByWD States if the pointer to internal data will be owned by this WD. 
@@ -453,6 +438,18 @@ namespace nanos
          void setInternalData ( void *data, bool ownedByWD = true );
 
          void * getInternalData () const;
+         
+         /*! \brief Sets custom data for the scheduling policy
+          *  \param [in] data Pointer do the data. Ownership will be
+          *  changed to the WD, so that data will be destroyed with it
+          *  \param [in] ownedByWD States if the pointer to scheduler
+          *  data will be owned by this WD.
+          *  If so, it means that it will be deallocated when the WD is
+          *  destroyed
+          */
+         void setSchedulerData( ScheduleWDData * data, bool ownedByWD = true );
+         
+         ScheduleWDData* getSchedulerData() const;
 
          void setTranslateArgs( nanos_translate_args_t translateArgs );
 
@@ -470,19 +467,6 @@ namespace nanos
           */
          void setNUMANode( int node );
          
-         /*! \brief Returns the queue this WD should wake up in.
-          *  This will be used by the socket-aware schedule policy.
-          *
-          *  \see setWakeUpQueue
-          */
-         unsigned int getWakeUpQueue() const;
-         
-         /*! \brief Sets the queue this WD should wake up in.
-          *
-          *  \see getWakeUpQueue
-          */
-         void setWakeUpQueue( unsigned int queue );
-
          /*! \brief Get the number of devices
           *
           *  This function return the number of devices for the current WD
@@ -524,7 +508,10 @@ namespace nanos
          // headers
          void submit ( bool force_queue = false );
 
+         bool isOutputDataReady();
+
          void finish ();
+         void preFinish ();
 
          void done ();
 
@@ -570,6 +557,10 @@ namespace nanos
           */
          DOSubmit * getDOSubmit();
 
+         /*! \brief Returns DOSubmit's number of predecessors
+          */
+         int getNumDepsPredecessors();
+
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
           *  scheduler when its dependencies are satisfied.
@@ -584,7 +575,7 @@ namespace nanos
           */
          void waitOn( size_t numDeps, DataAccess* deps );
 
-         /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
+         /*! If this WorkDescriptor has an immediate successor (i.e., another WD that only depends on him)
              remove it from the dependence graph and return it. */
          WorkDescriptor * getImmediateSuccessor ( BaseThread &thread );
 

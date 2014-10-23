@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <cstring>
+#include "basethread_decl.hpp"
 #include "network_decl.hpp"
 #include "requestqueue.hpp"
 #include "schedule.hpp"
@@ -40,7 +41,7 @@ Network::Network () : _numNodes( 1 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _
 _checkForDataInOtherAddressSpaces( false ), _putRequestSequence( NULL ), _recvWdData(), _sentWdData(),
 _deferredWorkReqs(), _deferredWorkReqsLock(), _recvSeqN(0), _waitingPutRequestsLock(), _waitingPutRequests(),
 _receivedUnmatchedPutRequests(), _delayedBySeqNumberPutReqs(), _delayedBySeqNumberPutReqsLock(),
-_forwardedRegions(NULL),_gpuPresend(1), _smpPresend(1) {}
+_forwardedRegions(NULL),_gpuPresend(1), _smpPresend(1), _metadataSequenceNumbers( NULL ), _recvMetadataSeq(1) {}
 
 Network::~Network () {}
 
@@ -84,6 +85,12 @@ void Network::initialize()
    for ( unsigned int i = 0; i < getNumNodes(); i += 1 ) {
       new ( &_putRequestSequence[ i ] ) Atomic<unsigned int>( 0 );
    }
+
+   _metadataSequenceNumbers = NEW Atomic<unsigned int>[ getNumNodes()-1 ];
+   for ( unsigned int i = 0; i < getNumNodes()-1; i += 1 ) {
+      new ( &_metadataSequenceNumbers[ i ] ) Atomic<unsigned int>( 1 );
+   }
+
    _forwardedRegions = NEW RegionsForwarded[ getNumNodes()-1 ];
 }
 
@@ -170,20 +177,26 @@ void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAdd
 {
    if ( _api != NULL )
    {
+      unsigned int seq = 0;
       _sentWdData.addSentData( wdId, size );
       if ( !_forwardedRegions[remoteNode-1].isRegionForwarded( global_reg_t( hostRegId, (reg_key_t) hostObject ) ) ) {
          global_reg_t reg( hostRegId, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
          CopyData cd;
-         reg.fillCopyData( cd );
+         reg.fillCopyData( cd, remoteAddr - reg.getFirstAddress(0) );
          nanos_region_dimension_internal_t dims[cd.getNumDimensions()];
          reg.fillDimensionData( dims );
          cd.setDimensions(dims);
          cd.setHostRegionId( hostRegId );
 
-         _api->sendRegionMetadata( remoteNode, &cd );
+         seq = getMetadataSequenceNumber( remoteNode );
+         _api->sendRegionMetadata( remoteNode, &cd, seq );
+         seq += 1;
          _forwardedRegions[remoteNode-1].addForwardedRegion( reg );
+      } else {
+         seq = checkMetadataSequenceNumber( remoteNode );
       }
-      _api->put( remoteNode, remoteAddr, localAddr, size, wdId, wd, hostObject, hostRegId );
+      //std::cerr << " send put with seq " << seq << std::endl;
+      _api->put( remoteNode, remoteAddr, localAddr, size, wdId, wd, hostObject, hostRegId, seq );
    }
 }
 
@@ -191,8 +204,25 @@ void Network::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void 
 {
    if ( _api != NULL )
    {
+      unsigned int seq = 0;
       _sentWdData.addSentData( wdId, size * count );
-      _api->putStrided1D( remoteNode, remoteAddr, localAddr, localPack, size, count, ld, wdId, wd, hostObject, hostRegId );
+      if ( !_forwardedRegions[remoteNode-1].isRegionForwarded( global_reg_t( hostRegId, (reg_key_t) hostObject ) ) ) {
+         global_reg_t reg( hostRegId, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
+         CopyData cd;
+         reg.fillCopyData( cd, remoteAddr - reg.getFirstAddress(0) );
+         nanos_region_dimension_internal_t dims[cd.getNumDimensions()];
+         reg.fillDimensionData( dims );
+         cd.setDimensions(dims);
+         cd.setHostRegionId( hostRegId );
+
+         seq = getMetadataSequenceNumber( remoteNode );
+         _api->sendRegionMetadata( remoteNode, &cd, seq );
+         seq += 1;
+         _forwardedRegions[remoteNode-1].addForwardedRegion( reg );
+      } else {
+         seq = checkMetadataSequenceNumber( remoteNode );
+      }
+      _api->putStrided1D( remoteNode, remoteAddr, localAddr, localPack, size, count, ld, wdId, wd, hostObject, hostRegId, seq );
    }
 }
 
@@ -203,7 +233,7 @@ void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAdd
    {
       global_reg_t reg( hostRegId, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
       CopyData cd;
-      reg.fillCopyData( cd );
+      reg.fillCopyData( cd, remoteAddr - reg.getFirstAddress(0) );
       nanos_region_dimension_internal_t dims[cd.getNumDimensions()];
       reg.fillDimensionData( dims );
       cd.setDimensions(dims);
@@ -221,7 +251,7 @@ void Network::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t
    {
       global_reg_t reg( hostRegId, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
       CopyData cd;
-      reg.fillCopyData( cd );
+      reg.fillCopyData( cd, remoteAddr - reg.getFirstAddress(0) );
       nanos_region_dimension_internal_t dims[cd.getNumDimensions()];
       reg.fillDimensionData( dims );
       cd.setDimensions(dims);
@@ -331,7 +361,7 @@ void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, len );
-      _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd, f, hostObject, hostRegId );
+      _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd, f, hostObject, hostRegId, 0 );
    }
 }
 
@@ -340,15 +370,15 @@ void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, uns
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, len * count );
-      _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd, f, hostObject, hostRegId );
+      _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd, f, hostObject, hostRegId, 0 );
    }
 }
 
-void Network::sendRegionMetadata( unsigned int dest, CopyData *cd ) {
-   if ( _api != NULL ) {
-      _api->sendRegionMetadata(dest, cd );
-   }
-}
+// void Network::sendRegionMetadata( unsigned int dest, CopyData *cd ) {
+//    if ( _api != NULL ) {
+//       _api->sendRegionMetadata(dest, cd );
+//    }
+// }
 
 std::size_t Network::getTotalBytes()
 {
@@ -518,7 +548,13 @@ void Network::checkDeferredWorkReqs()
    }
 }
 
-void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag, void *hostObject, reg_t hostRegId ) {
+void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) {
+   if ( metaSeq ) {
+      //std::cerr << " entering " << __FUNCTION__ << " " << metaSeq << " with current " << _recvMetadataSeq.value() << std::endl;
+      while( _recvMetadataSeq < metaSeq ) {
+      }
+      //std::cerr << " processing " << __FUNCTION__ << " " << metaSeq << std::endl;
+   }
    if ( doIHaveToCheckForDataInOtherAddressSpaces() ) {
       invalidateDataFromDevice( (uint64_t) realTag, len, count, ld, hostObject, hostRegId );
    }
@@ -637,8 +673,8 @@ void Network::processRequestsDelayedBySeqNumber() {
    }
 }
 
-SendDataRequest::SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId ) :
-   _api( api ), _seqNumber( seqNumber ), _origAddr( origAddr ), _destAddr( destAddr ), _len( len ), _count( count ), _ld( ld ), _destination( dst ), _wdId( wdId ), _hostObject( hostObject ), _hostRegId( hostRegId ) {
+SendDataRequest::SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) :
+   _api( api ), _seqNumber( seqNumber ), _origAddr( origAddr ), _destAddr( destAddr ), _len( len ), _count( count ), _ld( ld ), _destination( dst ), _wdId( wdId ), _hostObject( hostObject ), _hostRegId( hostRegId ), _metaSeq( metaSeq ) {
 }
 
 SendDataRequest::~SendDataRequest() {
@@ -733,7 +769,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
             }
          }
          outOps.issue( *( (WD *) NULL ) );
-         while ( !outOps.isDataReady( myThread->getThreadWD()) ) { myThread->idle(); }
+         while ( !outOps.isDataReady( myThread->getThreadWD()) ) { myThread->processTransfers(); }
       }
    }
 }
@@ -748,6 +784,18 @@ unsigned int Network::checkPutRequestSequenceNumber( unsigned int dest ) const {
 
 bool Network::updatePutRequestSequenceNumber( unsigned int dest, unsigned int value ) {
    return _putRequestSequence[ dest ].cswap( value, value + 1 );
+}
+
+unsigned int Network::getMetadataSequenceNumber( unsigned int dest )  {
+   return _metadataSequenceNumbers[ dest-1 ]++;
+}
+
+unsigned int Network::checkMetadataSequenceNumber( unsigned int dest )  {
+   return _metadataSequenceNumbers[ dest-1 ].value();
+}
+
+unsigned int Network::updateMetadataSequenceNumber( unsigned int value )  {
+   return _recvMetadataSeq.cswap( value, value+1 );
 }
 
 GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops, Functor *f ) : _complete(0),
@@ -795,9 +843,22 @@ void GetRequestStrided::clear() {
    _ops->completeOp();
 }
 
-void Network::notifyRegionMetaData( CopyData *cd ) {
+void Network::notifyRegionMetaData( CopyData *cd, unsigned int seq ) {
    global_reg_t reg;
+   if ( seq ) {
+      while( _recvMetadataSeq < seq ) {
+      }
+      //std::cerr << " processing " << __FUNCTION__ << " " << seq << std::endl;
+   }
    sys.getHostMemory().getRegionId( *cd, reg, *((WD *)0), 0 );
+
+   reg_t master_id = cd->getHostRegionId();
+
+   if ( master_id != 0 ) {
+      NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
+   }
+
+   if ( seq ) updateMetadataSequenceNumber( seq );
 }
 
 void Network::addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize ) {
@@ -838,4 +899,30 @@ int Network::getGpuPresend() const {
 
 int Network::getSmpPresend() const {
    return _smpPresend;
+}
+
+void Network::deleteDirectoryObject( GlobalRegionDictionary const *obj ) {
+   global_reg_t reg( 1, obj );
+   for (unsigned int idx = 0; idx < getNumNodes()-1; idx += 1) {
+      _forwardedRegions[ idx ].removeForwardedRegion( reg );
+      //annotate wich metadata seq number we are, then those messages increasing the value should have the syncDir bool set
+   }
+}
+
+void Network::synchronizeDirectory() {
+   if ( this->getNodeNum() == 0 ) { //this is called by the slaves by the handler of this message, avoid the recursive call
+      if ( _api != NULL ) {
+         for (unsigned int idx = 1; idx < getNumNodes(); idx += 1) {
+            _api->synchronizeDirectory( idx );
+         }
+      }
+      this->nodeBarrier(); //slave node barrier is in notifySynchronizeDirectory
+   }
+}
+
+void Network::notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds ) {
+   for ( unsigned int idx = 0; idx < numWDs; idx += 1 ) {
+      sys.getHostMemory().synchronize( *(wds[idx]) );
+   }
+   this->nodeBarrier(); //mathes the call in synchronizeDirectory
 }

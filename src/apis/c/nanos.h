@@ -125,6 +125,9 @@
  *   - 5: Including nanos_omp_find_worksharing( omp_sched_t kind );
  *   - 6:
  *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+ * - nanos interface family: instrumentation_api
+ *   - 1000: Instrumentation API interface family created
+ *
  */
 
 #include <stddef.h>
@@ -335,6 +338,8 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_get_value, (const char *key, const 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, nanos_event_t events[] ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_close_user_fun_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_raise_gpu_kernel_launch_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_close_gpu_kernel_launch_event,());
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 

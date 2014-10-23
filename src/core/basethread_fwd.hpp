@@ -23,6 +23,8 @@ namespace nanos
 {
    class TeamData;
    class BaseThread;
+
+   extern __thread BaseThread *myThread;
 };
 
 #endif
