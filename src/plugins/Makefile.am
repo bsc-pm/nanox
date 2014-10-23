@@ -44,6 +44,10 @@ bf_sources = \
 	sched/bf_sched.cpp \
 	$(END)
 
+mpq_sources = \
+	sched/mpq_sched.cpp \
+	$(END)
+
 dbf_sources = \
 	sched/dbf_sched.cpp \
 	$(END)
@@ -67,6 +71,7 @@ socket_sources = \
 if DEBUG_VERSION
 debug_LTLIBRARIES += \
 	debug/libnanox-sched-bf.la \
+	debug/libnanox-sched-mpq.la \
 	debug/libnanox-sched-dbf.la \
  	debug/libnanox-sched-wf.la \
  	debug/libnanox-sched-affinity.la \
@@ -79,6 +84,10 @@ debug_LTLIBRARIES += \
 debug_libnanox_sched_bf_la_CXXFLAGS = $(nanos_debug_cxxflags)
 debug_libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_sched_bf_la_SOURCES = $(bf_sources)
+
+debug_libnanox_sched_mpq_la_CXXFLAGS = $(nanos_debug_cxxflags)
+debug_libnanox_sched_mpq_la_LDFLAGS = $(ld_plugin_flags)
+debug_libnanox_sched_mpq_la_SOURCES = $(mpq_sources)
 
 debug_libnanox_sched_dbf_la_CXXFLAGS = $(nanos_debug_cxxflags)
 debug_libnanox_sched_dbf_la_LDFLAGS = $(ld_plugin_flags)
@@ -108,6 +117,7 @@ endif
 if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-sched-bf.la \
+	instrumentation/libnanox-sched-mpq.la \
 	instrumentation/libnanox-sched-dbf.la \
  	instrumentation/libnanox-sched-wf.la \
  	instrumentation/libnanox-sched-affinity.la \
@@ -119,6 +129,10 @@ instrumentation_LTLIBRARIES += \
 instrumentation_libnanox_sched_bf_la_CXXFLAGS = $(nanos_instr_cxxflags)
 instrumentation_libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_sched_bf_la_SOURCES = $(bf_sources)
+
+instrumentation_libnanox_sched_mpq_la_CXXFLAGS = $(nanos_instr_cxxflags)
+instrumentation_libnanox_sched_mpq_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_libnanox_sched_mpq_la_SOURCES = $(mpq_sources)
 
 instrumentation_libnanox_sched_dbf_la_CXXFLAGS = $(nanos_instr_cxxflags)
 instrumentation_libnanox_sched_dbf_la_LDFLAGS = $(ld_plugin_flags)
@@ -148,6 +162,7 @@ endif
 if INSTRUMENTATION_DEBUG_VERSION
 instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-sched-bf.la \
+	instrumentation-debug/libnanox-sched-mpq.la \
 	instrumentation-debug/libnanox-sched-dbf.la \
  	instrumentation-debug/libnanox-sched-wf.la \
  	instrumentation-debug/libnanox-sched-affinity.la \
@@ -159,6 +174,10 @@ instrumentation_debug_LTLIBRARIES += \
 instrumentation_debug_libnanox_sched_bf_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 instrumentation_debug_libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_debug_libnanox_sched_bf_la_SOURCES = $(bf_sources)
+
+instrumentation_debug_libnanox_sched_mpq_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
+instrumentation_debug_libnanox_sched_mpq_la_LDFLAGS = $(ld_plugin_flags)
+instrumentation_debug_libnanox_sched_mpq_la_SOURCES = $(mpq_sources)
 
 instrumentation_debug_libnanox_sched_dbf_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
 instrumentation_debug_libnanox_sched_dbf_la_LDFLAGS = $(ld_plugin_flags)
@@ -188,6 +207,7 @@ endif
 if PERFORMANCE_VERSION
 performance_LTLIBRARIES += \
 	performance/libnanox-sched-bf.la \
+	performance/libnanox-sched-mpq.la \
 	performance/libnanox-sched-dbf.la \
  	performance/libnanox-sched-wf.la \
  	performance/libnanox-sched-affinity.la \
@@ -199,6 +219,10 @@ performance_LTLIBRARIES += \
 performance_libnanox_sched_bf_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 performance_libnanox_sched_bf_la_LDFLAGS = $(ld_plugin_flags)
 performance_libnanox_sched_bf_la_SOURCES = $(bf_sources)
+
+performance_libnanox_sched_mpq_la_CXXFLAGS = $(nanos_perfo_cxxflags)
+performance_libnanox_sched_mpq_la_LDFLAGS = $(ld_plugin_flags)
+performance_libnanox_sched_mpq_la_SOURCES = $(mpq_sources)
 
 performance_libnanox_sched_dbf_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 performance_libnanox_sched_dbf_la_LDFLAGS = $(ld_plugin_flags)
