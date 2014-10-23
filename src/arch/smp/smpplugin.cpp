@@ -387,30 +387,37 @@ class SMPPlugin : public SMPBasePlugin
       workers.insert( std::make_pair( _workers[0]->getId(), _workers[0] ) );
       //create as much workers as possible
       int available_cpus = 0; /* my cpu is unavailable, numthreads is 1 */
+      int active_cpus = 0;
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
          available_cpus += ( (*it)->getNumThreads() == 0 && (*it)->isActive() );
+         active_cpus += (*it)->isActive();
       }
 
-      int max_workers;  
-      if ( _requestedWorkers != -1 && (_requestedWorkers - 1) > available_cpus ) {
-         warning("SMPPlugin: requested number of workers (" << _requestedWorkers << ") is greater than the number of available cpus (" << available_cpus+1 << ") a total of " << available_cpus+1 << " workers will be created.");
-         if ( _availableCores > _currentCores ) {
-            warning("SMPPlugin: The system has more cpus available (" << _availableCores << ") but only " << _currentCores << " are being used. Try increasing the cpus available to Nanos++ using the --smp-cpus flag or the setting appropiate cpu mask (using the 'taskset' command). Please note that if both the --smp-cpus flag and the cpu mask are set, the most restrictive value will be considered.");
-         } else {
-            warning("SMPPlugin: All cpus are being used by Nanos++ (" << _availableCores << ") so you may have requested too many smp workers.");
-         }
-         max_workers = available_cpus + 1;
-      } else {
+      unsigned int max_thds_per_cpu = 0;
+      int max_workers = 0;
+
+      if ( available_cpus+1 >= _requestedWorkers ) {
+         /* we have plenty of cpus to create requested threads or the user
+          * did not request a specific amount of workers
+          */
          max_workers = ( _requestedWorkers == -1 ) ? available_cpus + 1 : _requestedWorkers;
+         max_thds_per_cpu = 1;
+      } else {
+         /* more workers than cpus available have been requested */
+         max_workers = _requestedWorkers;
+         max_thds_per_cpu = _requestedWorkers / active_cpus + 
+            ( _requestedWorkers % active_cpus == 0 ? 0 : 1 );
       }
-
+      //std::cerr << "Available cores: " << _availableCores <<
+      //   " available_cpus: " << available_cpus <<
+      //   " max_thds_per_cpu: " << max_thds_per_cpu <<
+      //   " active_cpus: " << active_cpus << std::endl;
       int current_workers = 1;
-
       int idx = _bindingStart + _bindingStride;
       while ( current_workers < max_workers ) {
          idx = idx % _cpus->size();
          SMPProcessor *cpu = (*_cpus)[idx];
-         if ( cpu->getNumThreads() == 0 && cpu->isActive() ) {
+         if ( cpu->getNumThreads() < max_thds_per_cpu && cpu->isActive() ) {
             BaseThread *thd = &cpu->startWorker();
             _workers.push_back( (SMPThread *) thd );
             workers.insert( std::make_pair( thd->getId(), thd ) );
@@ -420,6 +427,7 @@ class SMPPlugin : public SMPBasePlugin
             idx += 1;
          }
       }
+
       _numWorkers = _workers.size();
       _workersCreated = true;
 
