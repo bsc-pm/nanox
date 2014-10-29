@@ -631,6 +631,7 @@ namespace nanos {
 
             /* 55 */ registerEventKey("gpu-wd-id","GPU Work Descriptor id:", true, true, true);
 
+            /* 56 */ registerEventKey("wd-criticality","Work descriptor criticality");
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }

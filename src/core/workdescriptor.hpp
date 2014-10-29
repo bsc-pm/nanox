@@ -233,6 +233,7 @@ inline void WorkDescriptor::setReady ()
    NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) this; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
    NANOS_INSTRUMENT ( } )
+
    _flags.is_ready = true;
 }
 
@@ -533,6 +534,10 @@ inline bool WorkDescriptor::isInvalid() const { return _flags.is_invalid; }
 inline void WorkDescriptor::setRecoverable( bool flag ) { _flags.is_recoverable = flag; }
 
 inline bool WorkDescriptor::isRecoverable() const { return _flags.is_recoverable; }
+
+inline void WorkDescriptor::setCriticality ( int cr ) { _criticality = cr; }
+
+inline int  WorkDescriptor::getCriticality () const { return _criticality; }
 
 #endif
 
