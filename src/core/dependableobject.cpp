@@ -121,6 +121,60 @@ void DependableObject::finished ( )
    }
 }
 
+void DependableObject::releaseReadDependencies ()
+{
+   DependableObject& depObj = *this;
+   DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
+
+   // This step guarantees that any Object that wants to add depObj as a successor has done it
+   // before we continue or, alternatively, won't do it.
+   DependenciesDomain *domain = depObj.getDependenciesDomain();
+   DependableObject::TargetVector const &reads = depObj.getReadTargets();
+   DependableObject::TargetVector const &writes = depObj.getWrittenTargets();
+   //  Delete depObj from all trackableObjects it reads 
+   if ( domain != 0 ) {
+      for ( DependableObject::TargetVector::const_iterator it = reads.begin(); it != reads.end(); it++ ) {
+         BaseDependency const & target = *(*it);
+         //if ( target.getAddress() == addr ) {    
+            domain->deleteReader ( depObj, target );
+         //}
+      }
+   }
+
+   //Decrease predecessor for sucessor tasks
+   //Only decrease if they are NOT writing or reading something that we write
+   for ( DependableObject::DependableObjectVector::iterator currSucessorIt = succ.begin(); currSucessorIt != succ.end(); ) {
+      DependableObject::TargetVector const &sucessorWrites = (*currSucessorIt)->getWrittenTargets();
+      DependableObject::TargetVector const &sucessorReads = (*currSucessorIt)->getReadTargets();
+      bool canRemovePredecessor=true;
+      for ( DependableObject::TargetVector::const_iterator itCurrWrites = writes.begin(); itCurrWrites != writes.end() && canRemovePredecessor; itCurrWrites++ ) {
+         BaseDependency const & currWrite = *(*itCurrWrites);
+         for ( DependableObject::TargetVector::const_iterator it = sucessorWrites.begin(); it != sucessorWrites.end() && canRemovePredecessor; it++ ) {
+            BaseDependency const & succWrite = *(*it);            
+            //If address is the "released" or dependency is different, we can remove predecessor
+            canRemovePredecessor &= ( !currWrite.overlap(succWrite) );
+         }
+
+         for ( DependableObject::TargetVector::const_iterator it = sucessorReads.begin(); it != sucessorReads.end() && canRemovePredecessor; it++ ) {
+            BaseDependency const & succRead = *(*it);            
+            //If address is the "released" or dependency is different, we can remove predecessor
+            canRemovePredecessor &= ( !currWrite.overlap(succRead) );
+         }
+      }
+      if (canRemovePredecessor) {
+         //DependenciesDomain::decreaseTasksInGraph();
+         NANOS_INSTRUMENT ( instrument ( *(*currSucessorIt) ); ) 
+         (*currSucessorIt)->decreasePredecessors( NULL, this, false, false );
+         succ.erase(currSucessorIt++);
+      }
+      else 
+      {
+         currSucessorIt++;
+      }
+   }
+}
+
+
 bool DependableObject::canBeBatchReleased ( ) const
 {
    return false;

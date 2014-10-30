@@ -400,6 +400,13 @@ inline void WorkDescriptor::workFinished(WorkDescriptor &wd)
    }
 }
 
+inline void WorkDescriptor::releaseInputDependencies()
+{
+   if ( _doSubmit != NULL ){
+      _doSubmit->releaseReadDependencies();
+   }
+}
+
 inline DependenciesDomain & WorkDescriptor::getDependenciesDomain()
 {
    return *_depsDomain;

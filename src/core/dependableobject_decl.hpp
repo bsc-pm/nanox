@@ -290,6 +290,13 @@ namespace nanos
          *  \sa DependableObject
          */
          void finished ( );
+         
+         
+         
+        /*! \brief Release input dependencies
+         *  NOTE: this function is not thread safe
+         */
+         void releaseReadDependencies ();
 
         /*! If there is an object that only depends from this dependable object, then release it and
             return it

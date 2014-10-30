@@ -317,6 +317,26 @@ namespace nanos {
                submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
             }
             
+            bool haveDependencePendantWrites ( void *addr )
+            {
+               SyncRecursiveLockBlock lock1( getInstanceLock() );                
+               size_t additionalContribution = 0UL;               
+               Region region = RegionBuilder::build( (size_t) addr, 1UL, 1, additionalContribution);
+               
+               RegionMap::iterator_list_t subregions;
+               _regionMap.find( region, /* out */subregions );
+               for (
+                  RegionMap::iterator_list_t::iterator it = subregions.begin();
+                  it != subregions.end();
+                  it++
+               ) {
+                  RegionMap::iterator &accessor = *it;
+                  TrackableObject &status = *accessor;
+                  if (status.getLastWriter() != NULL) return true;
+               }
+               return false;
+            }
+            
          
       };
       

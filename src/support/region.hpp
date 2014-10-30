@@ -71,7 +71,14 @@ inline BaseDependency* Region::clone() const
 
 inline void * Region::getAddress () const
 {
-   return NULL;
+   return (void*) m_value;
 }
+
+inline bool Region::overlap ( const BaseDependency &obj ) const
+{
+    const Region& region( static_cast<const Region&>( obj ) );
+    return matches(region);
+}
+
 
 #endif // _NANOS_REGION

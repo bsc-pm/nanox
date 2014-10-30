@@ -41,6 +41,10 @@ namespace nanos
 
          //! \brief Returns dependency base address
          virtual void * getAddress () const = 0;
+                  
+        /*! \brief Check if two dependencies overlap/collide.
+         */
+         virtual bool overlap ( const BaseDependency &obj ) const = 0;
    };
 
 };

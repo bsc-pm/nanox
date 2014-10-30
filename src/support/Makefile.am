@@ -149,6 +149,8 @@ support_sources = \
 	region_decl.hpp \
 	region.hpp \
 	region.cpp \
+	depsregion.hpp \
+	depsregion_decl.hpp \
 	regionbuilder_fwd.hpp \
 	regionbuilder_decl.hpp \
 	regionbuilder.hpp \

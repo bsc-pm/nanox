@@ -717,6 +717,8 @@ namespace nanos
        */
       BaseDependency* clone() const;
       
+      virtual bool overlap ( const BaseDependency &obj ) const;
+      
       friend class RegionPart;
       friend std::ostream& operator<< (std::ostream& o, Region const &region);
 

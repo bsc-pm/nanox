@@ -583,6 +583,10 @@ typedef std::set<const Device *>  DeviceList;
           *  \paran wd Must be a wd created in this WD's context.
           */
          void workFinished(WorkDescriptor &wd);
+         
+         /*! \brief Early-release all the input dependencies of this WD
+          */
+         void releaseInputDependencies();
 
          /*! \brief Returns the DependenciesDomain object.
           */
