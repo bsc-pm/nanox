@@ -21,61 +21,190 @@
 #include "wddeque.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
+#include "os.hpp"
 #include "memtracker.hpp"
-//#include "cache.hpp"
+#include "clusterthread_decl.hpp"
+#include "regioncache.hpp"
+#include "newregiondirectory.hpp"
 
 namespace nanos {
    namespace ext {
 
-   bool _stealing = true;
-   unsigned int _numQueues = 1;
-   bool _order = true;
-
-
-      class CacheSchedPolicy : public SchedulePolicy
+      class ReadyCacheSchedPolicy : public SchedulePolicy
       {
+         class ThreadData;
+
+         public:
+            typedef std::set<ThreadData *> ThreadDataSet;
+
          private:
 
             struct TeamData : public ScheduleTeamData
             {
+               WDDeque            _globalReadyQueue;
                WDDeque*           _readyQueues;
-               WDDeque            _globalQueue;
+               size_t*            _createdData;
+               unsigned int       _numMemSpaces;
+               unsigned int      *_load;
+               ThreadDataSet      _teamThreadData;
 
-               TeamData ( unsigned int size ) : ScheduleTeamData(), _globalQueue( false )
+               TeamData ( unsigned int size ) : ScheduleTeamData(), _globalReadyQueue(), _teamThreadData()
                {
-                  _readyQueues = NEW WDDeque[size];
+                  // Also count the host memory space
+                  _numMemSpaces = sys.getSeparateMemoryAddressSpacesCount() + 1;
+
+                  if ( _numMemSpaces > 1 ) {
+                     _readyQueues = NEW WDDeque[_numMemSpaces];
+                     _createdData = NEW size_t[_numMemSpaces];
+                     for (unsigned int i = 0; i < _numMemSpaces; i += 1 ) {
+                        _createdData[i] = 0;
+                     }
+                  }
+
+                  _load = NEW unsigned int[_numMemSpaces];
+                  for (unsigned int i = 0; i < _numMemSpaces; i += 1) {
+                     _load[ i ] = 0;
+                  }
                }
 
-               ~TeamData () { delete[] _readyQueues; }
+               ~TeamData ()
+               {
+                  if (_numMemSpaces > 1 ) {
+                     delete[] _readyQueues;
+                     delete[] _createdData;
+                     delete[] _load;
+                  }
+                  /* TODO add delete for new members */
+               }
+
+               void addThreadData ( ThreadData * thdata )
+               {
+                  _teamThreadData.insert( thdata );
+               }
+
             };
 
             /** \brief Cache Scheduler data associated to each thread
               *
               */
-            struct ThreadData : public ScheduleThreadData
+            class ThreadData : public ScheduleThreadData
             {
+               public:
                /*! queue of ready tasks to be executed */
-               unsigned int _cacheId;
-               ProcessingElement * _pe;
-               bool _init;
+               bool         _init;
+               unsigned int _memId;
+               unsigned int _helped;
+               unsigned int _fetch;
+               PE         * _pe;
+               WDDeque      _localQueue;
 
-               ThreadData () : _cacheId(0), _pe( NULL ), _init(false) {}
-               virtual ~ThreadData () {
+               ThreadData () : _init( false ), _memId( 0 ), _helped( 0 ), _fetch( 0 ), _pe( NULL ), _localQueue( false ) {}
+
+               virtual ~ThreadData () {}
+
+               void init ( BaseThread *thread, TeamData &tdata )
+               {
+                  _pe = thread->runningOn();
+                  _memId = _pe->getMemorySpaceId();
+                  tdata.addThreadData( this );
+                  _init = true;
                }
             };
 
-            ThreadData ** _memSpaces;
+            template <class CondA, class CondB>
+            struct Or {
+               static inline bool check( WD &wd, BaseThread const &thread ) {
+                  return CondA::check( wd, thread ) || CondB::check( wd, thread );
+               }
+            };
 
-            /* disable copy and assignment */
-            explicit CacheSchedPolicy ( const CacheSchedPolicy & );
-            const CacheSchedPolicy & operator= ( const CacheSchedPolicy & );
+            template <class CondA, class CondB>
+            struct And {
+               static inline bool check( WD &wd, BaseThread const &thread ) {
+                  return CondA::check( wd, thread ) && CondB::check( wd, thread );
+               }
+            };
+
+            template <class Cond>
+            struct Not {
+               static inline bool check( WD &wd, BaseThread const &thread ) {
+                  return !Cond::check( wd, thread );
+               }
+            };
+
+            struct AlreadyInit {
+               static inline bool check( WD &wd, BaseThread const &thread ) {
+                  if ( wd.initialized() ) return true;
+                  else return false;
+               }
+            };
+
+            struct AlreadyDataInit {
+               static inline bool check( WD &wd, BaseThread const &thread ) {
+                  if ( wd.initialized() && wd._mcontrol.isDataReady( wd ) ) return true;
+                  else return false;
+               }
+            };
+
+            struct WouldNotTriggerInvalidation
+            {
+               static inline bool check( WD &wd, BaseThread const &thread ) {
+                  return wd.resourceCheck( thread, false );
+               }
+            };
+
+            struct WouldNotRunOutOfMemory
+            {
+               static inline bool check( WD &wd, BaseThread const &thread ) {
+                  return wd.resourceCheck( thread, true );
+               }
+            };
+
+            struct NoCopy
+            {
+               static inline bool check( WD &wd, BaseThread const &thread )
+               {
+                  CopyData * copies = wd.getCopies();
+                  for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
+                     if ( !copies[i].isPrivate() && copies[i].isInput() ) {
+                        NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
+                        if ( !locs.empty() ) {
+                           for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                              if ( ! NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->first, thread.runningOn()->getMemorySpaceId() ) ) {
+                                 return false;
+                              }
+                           }
+                        } else {
+                           if ( ! wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( thread.runningOn()->getMemorySpaceId() ) ) {
+                              return false;
+                           }
+                        }
+                     }
+                  }
+                  return true;
+               }
+            };
+
+
+            /* disable copy and assigment */
+            explicit ReadyCacheSchedPolicy ( const ReadyCacheSchedPolicy & );
+            const ReadyCacheSchedPolicy & operator= ( const ReadyCacheSchedPolicy & );
+
+
+            enum DecisionType { /* 0 */ NOCONSTRAINT,
+                                /* 1 */ NOCOPY,
+                                /* 2 */ SICOPY,
+                                /* 3 */ ALREADYINIT };
 
          public:
+            static bool _noSteal;
+            static bool _noInvalAware;
+            static bool _affinityInout;
             // constructor
-            CacheSchedPolicy() : SchedulePolicy ( "Cache-ready" ) {}
+            ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {}
 
             // destructor
-            virtual ~CacheSchedPolicy() {}
+            virtual ~ReadyCacheSchedPolicy() {}
 
             virtual size_t getTeamDataSize () const { return sizeof(TeamData); }
             virtual size_t getThreadDataSize () const { return sizeof(ThreadData); }
@@ -83,21 +212,18 @@ namespace nanos {
             virtual ScheduleTeamData * createTeamData ()
             {
                /* Queue 0 will be the global one */
-               _numQueues = sys.getSeparateMemoryAddressSpacesCount() + 1;
+               unsigned int numQueues = 0; // will be computed later
 
-               _memSpaces = NEW ThreadData *[_numQueues];
-
-               for ( unsigned int i = 0; i < _numQueues; i++ ) {
-                  _memSpaces[i] = NULL;
-               }
-
-               return NEW TeamData( _numQueues );
+               return NEW TeamData( numQueues );
             }
 
             virtual ScheduleThreadData * createThreadData ()
             {
                return NEW ThreadData();
             }
+
+            int computeAffinityScore( WD &wd, unsigned int numNodes, int *scores, size_t &maxPossibleScore );
+            void rankWD( BaseThread *thread, WD &wd );
 
             /*!
             *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
@@ -108,12 +234,16 @@ namespace nanos {
             virtual void queue ( BaseThread *thread, WD &wd )
             {
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-               if ( !data._init ) {
-                  data._cacheId = thread->runningOn()->getMemorySpaceId();
-                  data._pe = thread->runningOn();
-                  data._init = true;
-               }
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+
+               if ( !data._init ) {
+                  data.init( thread, tdata );
+               }
+
+               if ( tdata._numMemSpaces == 1 ) {
+                  tdata._globalReadyQueue.push_back( &wd );
+                  return;
+               }
 
                if ( wd.isTied() ) {
                    unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
@@ -125,25 +255,11 @@ namespace nanos {
                unsigned int executors = 0;
                int candidate = -1;
 
-               if ( _memSpaces[0] == NULL ) {
-                  for ( int w = 0; w < sys.getNumWorkers(); w++ ) {
-                     BaseThread * worker = sys.getWorker( w );
-                     ThreadData * wdata = ( ThreadData * ) worker->getTeamData()->getScheduleData();
-
-                     if ( !wdata->_init ) {
-                        wdata->_cacheId = worker->runningOn()->getMemorySpaceId();
-                        wdata->_pe = worker->runningOn();
-                        wdata->_init = true;
-                     }
-
-                     _memSpaces[wdata->_cacheId] = wdata;
-                  }
-               }
-
-               for ( unsigned int i = 0; i < _numQueues; i++ ) {
-                  if ( wd.canRunIn( *_memSpaces[i]->_pe ) ) {
+               for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
+                  ThreadData * thd = *it;
+                  if ( wd.canRunIn( * thd->_pe ) ) {
                      executors++;
-                     candidate = _memSpaces[i]->_cacheId;
+                     candidate = thd->_memId;
                   }
                }
 
@@ -153,104 +269,69 @@ namespace nanos {
                   return;
                }
 
-
-               tdata._globalQueue.push_back ( &wd );
+               tdata._globalReadyQueue.push_back ( &wd );
             }
 
+
             /*!
-            *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
-            *  \param thread pointer to the thread to which readyQueue the task must be appended
-            *  \param wd a reference to the work descriptor to be enqueued
-            *  \sa ThreadData, WD and BaseThread
-            */
+             *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
+             *  \param thread pointer to the thread to which readyQueue the task must be appended
+             *  \param wd a reference to the work descriptor to be enqueued
+             *  \sa ThreadData, WD and BaseThread
+             */
             virtual void affinity_queue ( BaseThread *thread, WD &wd )
             {
-                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-                if ( !data._init ) {
-                   data._cacheId = thread->runningOn()->getMemorySpaceId();
-                   data._pe = thread->runningOn();
-                   data._init = true;
-                }
-                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+               ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
-                if ( wd.isTied() ) {
-                    unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                    tdata._readyQueues[index].push_back ( &wd );
-                    return;
-                }
+               if ( !data._init ) {
+                  data.init( thread, tdata );
+               }
 
-                if ( wd.getNumCopies() > 0 ) {
-                   unsigned int numCaches = _numQueues - 1; //sys.getCacheMap().getSize();
-                   int ranks[numCaches];
-                   for (unsigned int i = 0; i < numCaches; i++ ) {
-                      ranks[i] = 0;
-                   }
-                   CopyData * copies = wd.getCopies();
-                   for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
-                      // Since getting the directory entry is slow, consider only outputs
-                      if ( !copies[i].isPrivate() && copies[i].isOutput() ) {
-                         WorkDescriptor* parent = wd.getParent();
-                         if ( parent != NULL ) {
-#if 0
-                            Directory *dir = parent->getDirectory();
-                            if ( dir != NULL ) {
-                               DirectoryEntry *de = dir->findEntry(copies[i].getAddress());
-                               if ( de != NULL ) {
-                                  Cache * cache = de->getOwner();
-                                  // Give extra points if the memory space is the data's owner
-                                  if ( cache != NULL && copies[i].isOutput() ) {
-                                     ranks[de->getOwner()->getId()] += copies[i].getSize();
-                                  }
+               if ( tdata._numMemSpaces == 1 ) {
+                  tdata._globalReadyQueue.push_back( &wd );
+                  return;
+               }
 
-                                  for ( unsigned int j = 0; j < numCaches; j++ ) {
-                                     if ( de->getAccess( j+1 ) > 0 ) {
-                                        ranks[j] += copies[i].isInput() ? copies[i].getSize() : 0;
-                                        ranks[j] += copies[i].isOutput() ? copies[i].getSize() : 0;
-                                     }
-                                  }
-                               }
-                            }
-#endif
-                         }
-                      }
-                   }
+               if ( wd.getNumCopies() > 0 ) {
+                  CopyData * copies = wd.getCopies();
+                  unsigned int wo_copies = 0, ro_copies = 0, rw_copies = 0;
+                  size_t createdDataSize = 0;
+                  for (unsigned int idx = 0; idx < wd.getNumCopies(); idx += 1)
+                  {
+                     if ( !copies[idx].isPrivate() ) {
+                        if ( copies[idx].isInput() &&  copies[idx].isOutput() ) {
+                           rw_copies += copies[idx].getSize() * 2;
+                        } else if ( copies[idx].isInput() ) {
+                           ro_copies += copies[idx].getSize();
+                        } else if ( copies[idx].isOutput() ) {
+                           wo_copies += copies[idx].getSize();
+                        }
+                        createdDataSize += ( !copies[idx].isInput() && copies[idx].isOutput() ) * copies[idx].getSize();
+                     }
+                  }
 
-                   // Do not consider those memory spaces where the WD cannot be run
-                   // due to its device type
-                   for (unsigned int i = 0; i < numCaches; i++ ) {
-                      if ( !wd.canRunIn( *_memSpaces[i]->_pe ) ) {
-                         ranks[i] = -1;
-                      }
-                   }
+                  if ( rw_copies == 0 ) /* init task */
+                  {
+                     int winner = tdata._numMemSpaces - 1;
+                     int start = 0 ;
 
-                   unsigned int winner;
-                   int maxRank = 0;
+                     for ( int i = winner - 1; i >= start; i -= 1 )
+                     {
+                        winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
+                     }
 
-                   // Alternate the visiting order (from first to last and from last to first)
-                   if ( _order ) {
-                      _order = false;
-                      winner = 0;
-                      for ( unsigned int i = 0; i < numCaches; i++ ) {
-                         if ( ranks[i] > maxRank ) {
-                            winner = i+1;
-                            maxRank = ranks[i];
-                         }
-                      }
-                   } else {
-                      _order = true;
-                      winner = numCaches - 1;
-                      for ( unsigned int i = numCaches; i > 0; i-- ) {
-                         if ( ranks[i-1] > maxRank ) {
-                            winner = i;
-                            maxRank = ranks[i-1];
-                         }
-                      }
-                   }
-                   tdata._readyQueues[winner].push_back( &wd );
-                } else {
-                   tdata._readyQueues[0].push_back ( &wd );
-                   //fatal( "Cannot call affinity_queue() with a 0-copy WD" );
-                }
+                     tdata._createdData[ winner ] += createdDataSize;
+                     tdata._readyQueues[ winner ].push_back( &wd );
+                  }
+                  else
+                  {
+                        rankWD( thread, wd );
+                     //        std::cerr << "END case, regular wd " << wd.getId() << std::endl;
+                  }
+               } else {
+                  tdata._readyQueues[ 0 ].push_back( &wd );
+               }
             }
 
             /*!
@@ -262,7 +343,7 @@ namespace nanos {
             */
             virtual WD * atSubmit ( BaseThread *thread, WD &newWD )
             {
-               queue(thread,newWD);
+               queue( thread,newWD );
 
                return 0;
             }
@@ -283,104 +364,277 @@ namespace nanos {
                if ( next != NULL ) return next;
 
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-               if ( !data._init ) {
-                  data._cacheId = thread->runningOn()->getMemorySpaceId();
-                  data._pe = thread->runningOn();
-                  data._init = true;
-               }
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
+               if ( !data._init ) {
+                  data.init( thread, tdata );
+               }
+
                // Try to schedule the thread with a task from its queue
-               next = tdata._readyQueues[data._cacheId].pop_front ( thread );
+               next = tdata._readyQueues[data._memId].pop_front ( thread );
 
                if ( next != NULL ) return next;
 
                return atIdle( thread );
             }
 
-            WD * atBeforeExit ( BaseThread *thread, WD &current )
+            WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
             {
-               return atPrefetch( thread, current );//current.getImmediateSuccessor(*thread);
+               if ( schedule ) {
+                  return atPrefetch( thread, current );
+               }
+               return NULL;
             }
+
+            WD *fetchWD ( BaseThread *thread, WD *current );
 
       };
 
-      WD *CacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
+      inline WD *ReadyCacheSchedPolicy::fetchWD( BaseThread *thread, WD *current )
+      {
+         WorkDescriptor * wd = NULL;
+
+         ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
+         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+
+         if ( !data._init ) {
+            data.init( thread, tdata );
+         }
+
+         NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+
+         if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
+            NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+            return wd;
+         }
+
+         if ( !_noInvalAware ) {
+            if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
+               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+               return wd;
+            }
+         }
+
+         if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, NoCopy > >( thread ) ) != NULL ) {
+            NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+            return wd;
+         }
+
+         if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< WouldNotRunOutOfMemory >( thread ) ) != NULL ) {
+            NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+            return wd;
+         }
+
+         if ( ( wd = tdata._readyQueues[data._memId].pop_front( thread ) ) != NULL ) {
+            NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+            return wd;
+         }
+
+         return wd;
+      }
+
+      WD *ReadyCacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
       {
          return atIdle( thread );
       }
 
       /*!
        */
-      WD * CacheSchedPolicy::atIdle ( BaseThread *thread )
+      WD * ReadyCacheSchedPolicy::atIdle ( BaseThread *thread )
       {
          WorkDescriptor * wd = NULL;
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-         if ( !data._init ) {
-            data._cacheId = thread->runningOn()->getMemorySpaceId();
-            data._pe = thread->runningOn();
-            data._init = true;
-         }
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
 
-         /*
-          *  First try to schedule the thread with a task from its queue
-          */
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
-            return wd;
-         } else {
-            /*
-             * Then try to get it from the global queue and assign it properly
-             */
-             wd = tdata._globalQueue.pop_front ( thread );
-
-             if ( wd != NULL ) affinity_queue( thread, *wd );
+         if ( !data._init ) {
+            data.init( thread, tdata );
          }
 
-         if ( ( wd = tdata._readyQueues[data._cacheId].pop_front ( thread ) ) != NULL ) {
+         if ( tdata._numMemSpaces == 1 ) {
+            wd = tdata._globalReadyQueue.pop_front( thread );
             return wd;
-         } else if ( _stealing ) {
+         }
 
-            wd = tdata._readyQueues[0].pop_front ( thread );
+         wd = fetchWD( thread, NULL );
 
-            if ( wd != NULL ) {
-               /*
-                * Try to get it from the general queue
-                */
-               return wd;
-            }
+         if ( wd != NULL ) return wd;
 
-            for ( unsigned int i = data._cacheId; i < sys.getSeparateMemoryAddressSpacesCount(); i++ ) {
-               if ( tdata._readyQueues[i+1].size() > 1 ) {
-                  wd = tdata._readyQueues[i+1].pop_back( thread );
-                  return wd;
-               }
-            }
-            for ( unsigned int i = 0; i < data._cacheId; i++ ) {
-               if ( tdata._readyQueues[i+1].size() > 1 ) {
-                  wd = tdata._readyQueues[i+1].pop_back( thread );
-                  return wd;
-               }
-            }
+         /*
+          * Try to get it from the global queue and assign it properly
+          */
+          wd = tdata._globalReadyQueue.pop_front ( thread );
+
+          if ( wd != NULL ) {
+             affinity_queue( thread, *wd );
+             wd = fetchWD( thread, NULL );
+
+             if ( wd != NULL ) return wd;
+          }
+
+          if ( !_noSteal )
+          {
+             for ( unsigned int i = data._memId + 1; i < tdata._numMemSpaces; i++ ) {
+                if ( tdata._readyQueues[i].size() > 1 ) {
+                   wd = tdata._readyQueues[i].pop_back( thread );
+                   return wd;
+                }
+             }
+             for ( unsigned int i = 0; i < data._memId; i++ ) {
+                if ( tdata._readyQueues[i].size() > 1 ) {
+                   wd = tdata._readyQueues[i].pop_back( thread );
+                   return wd;
+                }
+             }
+          }
+
+         if ( wd == NULL ) {
+            OS::nanosleep( 100 );
          }
 
          return wd;
       }
 
-      class CacheSchedPlugin : public Plugin
+      int ReadyCacheSchedPolicy::computeAffinityScore( WD &wd, unsigned int numMemSpaces, int *scores, size_t &maxPossibleScore )
+      {
+         CopyData * copies = wd.getCopies();
+
+         maxPossibleScore = 0;
+         for ( unsigned int i = 0; i < wd.getNumCopies(); i++ ) {
+            if ( !copies[i].isPrivate() && (
+                  ( !_affinityInout ) || ( copies[i].isInput() && copies[i].isOutput() && _affinityInout )
+            ) ) {
+               NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
+               maxPossibleScore += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+               if ( locs.empty() ) {
+                  // Data not fragmented between different memory spaces
+                  for ( unsigned int mem = 0; mem < numMemSpaces; mem++ ) {
+                     if ( scores[mem] != -1 ) {
+                        if ( wd._mcontrol._memCacheCopies[ i ]._reg.isLocatedIn( mem ) ) {
+                           scores[ mem ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                        }
+                     }
+                  }
+               } else {
+                  for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                     for ( unsigned int mem = 0; mem < numMemSpaces; mem++ ) {
+                        if ( scores[mem] != -1 ) {
+                           if ( NewNewRegionDirectory::isLocatedIn( wd._mcontrol._memCacheCopies[ i ]._reg.key, it->second, mem ) ) {
+                              scores[ mem ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                           }
+                        }
+                     }
+                  }
+               }
+            } //else { std::cerr << "ignored copy "<< std::endl; }
+         }
+
+         int winner = -1;
+         unsigned int start = 0;
+         int maxRank = 0;
+         for ( unsigned int i = start; i < numMemSpaces; i++ ) {
+            if ( scores[i] > maxRank ) {
+               winner = i;
+               maxRank = scores[i];
+            }
+         }
+
+         if ( winner == -1 )
+            winner = start;
+         return winner;
+      }
+
+      void ReadyCacheSchedPolicy::rankWD( BaseThread *thread, WD &wd )
+      {
+         TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+
+         int scores[ tdata._numMemSpaces ];
+
+         for ( unsigned int i = 0; i < tdata._numMemSpaces; i++ ) {
+            scores[i] = -1;
+         }
+
+         for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
+            ThreadData * thd = *it;
+            if ( scores[ thd->_memId ] == -1 && wd.canRunIn( * thd->_pe ) ) {
+               scores[ thd->_memId ] = 0;
+            }
+         }
+
+         //std::cerr << "RANKING WD " << wd.getId() << " numCopies " << wd.getNumCopies() << std::endl;
+         size_t max_possible_score = 0;
+         int winner = computeAffinityScore( wd, tdata._numMemSpaces, scores, max_possible_score );
+         unsigned int usage[ tdata._numMemSpaces ];
+         unsigned int ties = 0;
+         int maxRank = scores[ winner ];
+         unsigned int start = 0;
+
+         for ( unsigned int i = start; i < tdata._numMemSpaces; i++ ) {
+         //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< " this score "<< scores[i] << std::endl;
+            if ( scores[i] == maxRank ) {
+               usage[ ties ] = i;
+               ties += 1;
+            }
+         }
+         //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< std::endl;
+         if ( ties > 1 ) {
+            //    std::cerr << "I have to chose between :";
+            //for ( unsigned int ii = 0; ii < ties; ii += 1 ) fprintf(stderr, " %d", usage[ ii ] );
+            //std::cerr << std::endl;
+            unsigned int minLoad = usage[0];
+            for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
+               //     std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
+               //   std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
+               if ( tdata._readyQueues[ usage[ ii ] ].size() < tdata._readyQueues[ minLoad ].size() ) {
+                  minLoad = usage[ ii ];
+               }
+            }
+            //std::cerr << "Well winner is gonna be "<< minLoad << std::endl;
+            winner = minLoad;
+         }
+
+         wd._mcontrol.setAffinityScore( scores[ winner ] );
+         wd._mcontrol.setMaxAffinityScore( max_possible_score );
+
+         /* end of rank by cluster node */
+
+         tdata._readyQueues[winner].push_back( &wd );
+      }
+
+
+      bool ReadyCacheSchedPolicy::_noSteal = false;
+      bool ReadyCacheSchedPolicy::_noInvalAware = false;
+      bool ReadyCacheSchedPolicy::_affinityInout = false;
+
+      class ReadyCacheSchedPlugin : public Plugin
       {
          public:
-            CacheSchedPlugin() : Plugin( "Cache-guided scheduling Plugin",1 ) {}
+            ReadyCacheSchedPlugin() : Plugin( "Cache-guided scheduling Plugin for ready tasks",1 ) {}
 
-            virtual void config( Config& cfg ) {}
+            virtual void config( Config& cfg )
+            {
+               cfg.setOptionsSection( "Ready-Affinity module", "Data Affinity scheduling module at ready task time" );
+               cfg.registerConfigOption ( "affinity-no-steal", NEW Config::FlagOption( ReadyCacheSchedPolicy::_noSteal ), "Steal tasks from other threads");
+               cfg.registerArgOption( "affinity-no-steal", "affinity-no-steal" );
+
+               cfg.registerConfigOption ( "affinity-no-inval-aware", NEW Config::FlagOption( ReadyCacheSchedPolicy::_noInvalAware ), "Do not take into account invalidations");
+               cfg.registerArgOption( "affinity-no-inval-aware", "affinity-no-inval-aware" );
+
+               cfg.registerConfigOption ( "affinity-inout", NEW Config::FlagOption( ReadyCacheSchedPolicy::_affinityInout ), "Check affinity for inout data only");
+               cfg.registerArgOption( "affinity-inout", "affinity-inout" );
+            }
 
             virtual void init() {
-               sys.setDefaultSchedulePolicy(NEW CacheSchedPolicy());
+               sys.setDefaultSchedulePolicy(NEW ReadyCacheSchedPolicy());
             }
       };
 
    }
 }
 
-DECLARE_PLUGIN("sched-affinity-ready",nanos::ext::CacheSchedPlugin);
+DECLARE_PLUGIN("sched-affinity-ready",nanos::ext::ReadyCacheSchedPlugin);

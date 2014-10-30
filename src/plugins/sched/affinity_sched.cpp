@@ -672,12 +672,16 @@ namespace nanos {
          
             WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
             {
-//               return NULL;
-               WD * found = current.getImmediateSuccessor(*thread);
-               //if ( found ) {
-               //   found->_mcontrol.preInit();
-               //}
-               return found;
+               if ( schedule ) {
+                  //return NULL;
+                  WD * found = current.getImmediateSuccessor(*thread);
+                  //if ( found ) {
+                  //   found->_mcontrol.preInit();
+                  //}
+                  return found;
+               }
+
+               return NULL;
             }
 
             WD *fetchWD ( BaseThread *thread, WD *current );  
