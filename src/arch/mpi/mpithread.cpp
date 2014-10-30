@@ -55,8 +55,10 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
     
     (*_groupTotRunningWds)++;
     _runningPEs.at(_currPe)->setCurrExecutingWd(&wd);
+    _ranksWithPendingComms.push_back(_currPe);
     
-    (dd.getWorkFct())(wd.getData());
+    (dd.getWorkFct())(wd.getData());    
+    
     //Check if any task finished
     checkTaskEnd();
     
@@ -185,7 +187,26 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     (*_groupTotRunningWds)--;
 }
 
-void MPIThread::checkTaskEnd() {
+
+void MPIThread::checkCommunicationsCompletion() {  
+    //Check which tasks have already finished the communication and release dependencies
+    std::list<int>::iterator iter=_ranksWithPendingComms.begin();
+    while( iter!=_ranksWithPendingComms.end() ){
+      int rank=*iter;
+      if (_runningPEs[rank]->testAllRequests()) { 
+         iter=_ranksWithPendingComms.erase(iter);
+         WD* previousWD = getCurrentWD();
+         WD* wd=_runningPEs[rank]->getCurrExecutingWd();
+         setCurrentWD(*wd);
+         wd->releaseInputDependencies();
+         setCurrentWD(*previousWD);
+      } else {
+         ++iter;
+      }
+    }
+}
+
+void MPIThread::checkTaskEnd() {    
     for (std::list<WD*>::iterator it=_wdMarkedToDelete.begin(), next ; it!=_wdMarkedToDelete.end(); it=next) {    
         next = it;
         ++next;
@@ -226,7 +247,10 @@ void MPIThread::checkTaskEnd() {
             }
             spinCounter++;
             unsigned int usec=100*(spinCounter/50);
-            if (usec>500000) usec=500000;
+            if (usec>500000) { 
+                checkCommunicationsCompletion();
+                usec=500000;
+            }
             usleep(usec);       
         } 
         if (_groupLock!=NULL) _groupLock->release();
@@ -236,10 +260,14 @@ void MPIThread::checkTaskEnd() {
         while ( _groupTotRunningWds->value()==getRunningPEs().size() ) {
             spinCounter++;
             unsigned int usec=100*(spinCounter/50);
-            if (usec>500000) usec=500000;
+            if (usec>500000) {
+                checkCommunicationsCompletion();
+                usec=500000;
+            }
             usleep(usec);       
         }        
     }
+    checkCommunicationsCompletion();
 }
 
 void MPIThread::block()

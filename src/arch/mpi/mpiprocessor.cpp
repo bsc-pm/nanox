@@ -147,6 +147,19 @@ void MPIProcessor::clearAllRequests() {
     }
 }
 
+bool MPIProcessor::testAllRequests() {
+    //Wait and clear for all the requests
+    int ret=0;
+    if (!_pendingReqs.empty()) {
+        std::vector<MPI_Request> nodeVector(_pendingReqs.begin(), _pendingReqs.end());
+        MPI_Testall(_pendingReqs.size(),&nodeVector[0], &ret,MPI_STATUSES_IGNORE);
+        if (ret==1) {
+            _pendingReqs.clear();
+        }
+    }
+    return ret==1;
+}
+
 BaseThread &MPIProcessor::startMPIThread(WD* wd) {
    if (wd==NULL) wd=&getWorkerWD();
     

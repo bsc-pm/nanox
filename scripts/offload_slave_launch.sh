@@ -2,6 +2,13 @@
 #executable names MUST be compiled so they end in .ARCH (uname -p), for example: "a.out.x86_x64" or "a.x86_x64" or "nbody.x86_x64"
 #in case your architecture/OS doesn't support the "uname -p" command, you can setup a name for this architecture by giving a value manually
 CURR_ARCH=`uname -p`
+if [ "$NX_OFFL_DEBUG" = "1" ]; 
+then 
+    echo "NX_OFFL_DEBUG: Allocating offload worker at host "`hostname `
+elif [ "$NX_OFFL_DEBUG" = "2" ]; 
+then 
+    echo "NX_OFFL_DEBUG: Allocating offload worker at host \""`hostname `"\", architecture" $CURR_ARCH 
+fi
 #if -p didnt return a value
 if [ "$CURR_ARCH" = "unknown" ]; then CURR_ARCH=`uname -m`; fi
 #remove everything after last point (get the original filename without arch)
@@ -141,6 +148,21 @@ unset TMP_NX_SMP_WORKERS
 #################### END NX_SMP
 
 export OMPSS_OFFLOAD_SLAVE=1
+if [ "$NX_OFFL_DEBUG" = "3" ]; 
+then 
+    echo "NX_OFFL_DEBUG: Allocating offload worker at host \""`hostname `"\" with "`taskset -cp $$`", architecture" $CURR_ARCH 
+fi
+if [ "$NX_OFFL_DEBUG" = "4" ]; 
+then 
+   echo "NX_OFFL_DEBUG: Allocating offload worker at host \""`hostname `"\" with "`taskset -cp $$`
+	echo "Launching" exec $filename.$CURR_ARCH $ARG1 $ARG2
+fi
+if [ "$NX_OFFL_DEBUG" = "5" ]; 
+then 
+   echo "NX_OFFL_DEBUG: Allocating offload worker at host \""`hostname `"\" with "`taskset -cp $$`
+	echo "Launching exec $filename.$CURR_ARCH $ARG1 $ARG2"
+	env
+fi
 if [ ! -f $filename.$CURR_ARCH ]; then
 echo "WARNING: By convention, when offloading, your executable should be named as \"$filename.$CURR_ARCH\" if you want to offload to this architecture (NAME.ARCHITECTURE). Falling back to master executable ($original_filename)"
 exec $original_filename $ARG1 $ARG2
