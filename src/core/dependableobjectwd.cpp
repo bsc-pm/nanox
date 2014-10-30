@@ -31,9 +31,11 @@ using namespace nanos;
 
 void DOSubmit::dependenciesSatisfied ( )
 {
-   DependenciesDomain::decreaseTasksInGraph();
-   dependenciesSatisfiedNoSubmit();
-   getWD()->submit( true );
+   if ( needsSubmission() ) {
+      DependenciesDomain::decreaseTasksInGraph();
+      dependenciesSatisfiedNoSubmit();
+      getWD()->submit( true );
+   }
 }
 
 void DOSubmit::dependenciesSatisfiedNoSubmit( )
@@ -42,7 +44,7 @@ void DOSubmit::dependenciesSatisfiedNoSubmit( )
 
 bool DOSubmit::canBeBatchReleased ( ) const
 {
-   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( getWD() );
+   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( getWD() ) && needsSubmission();
 }
 
 unsigned long DOSubmit::getDescription ( )
@@ -82,9 +84,10 @@ void DOWait::init()
    _depsSatisfied = false;
 }
 
-int DOWait::decreasePredecessors ( std::list<uint64_t>const * flushDeps, bool blocking, DependableObject *predecessor )
+int DOWait::decreasePredecessors ( std::list<uint64_t>const * flushDeps,  DependableObject * finishedPred,
+      bool batchRelease, bool blocking )
 {
-   int retval = DependableObject::decreasePredecessors ( flushDeps, blocking );
+   int retval = DependableObject::decreasePredecessors ( flushDeps, finishedPred, batchRelease, blocking );
 
    if ( blocking ) {
       _syncCond.wait();

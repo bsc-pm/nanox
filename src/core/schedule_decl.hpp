@@ -53,6 +53,7 @@ namespace nanos
          static void preOutlineWorkWithThread ( BaseThread *thread, WD *work );
          static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
          static bool inlineWork ( WD *work, bool schedule = false );
+         static bool inlineWorkAsync ( WD *wd, bool schedule = false );
          static void outlineWork( BaseThread *currentThread, WD *wd ); 
 
          static void submit ( WD &wd, bool force_queue = false  );
@@ -66,6 +67,7 @@ namespace nanos
          static void finishWork( WD * wd, bool schedule = false );
 
          static void workerLoop ( void );
+         static void asyncWorkerLoop ( void );
          static void workerClusterLoop ( void );
          static void yield ( void );
 
@@ -210,6 +212,23 @@ namespace nanos
          virtual ~ScheduleThreadData() {}
    };
 
+   class ScheduleWDData {
+      private:
+         /*! \brief ScheduleWDData copy constructor (private)
+          */
+         ScheduleWDData( ScheduleWDData &std );
+         /*! \brief ScheduleWDData copy assignment operator (private) 
+          */
+         ScheduleWDData& operator= ( ScheduleWDData &std );
+      public:
+         /*! \brief ScheduleWDData default constructor
+          */
+         ScheduleWDData() {}
+         /*! \brief ScheduleWDData destructor
+          */
+         virtual ~ScheduleWDData() {}
+   };
+
    class SchedulePolicy
    {
       public:
@@ -246,6 +265,10 @@ namespace nanos
          virtual ScheduleTeamData * createTeamData () = 0;
          virtual ScheduleThreadData * createThreadData () = 0;
          
+         virtual size_t getWDDataSize () const { return 0; }
+         virtual size_t getWDDataAlignment () const { return 0; }
+         virtual void initWDData ( void * data ) const {}
+         
          virtual WD * atSubmit      ( BaseThread *thread, WD &wd ) = 0;
          virtual WD * atIdle        ( BaseThread *thread ) = 0;
          virtual WD * atBeforeExit  ( BaseThread *thread, WD &current, bool schedule );
@@ -254,6 +277,7 @@ namespace nanos
          virtual WD * atYield       ( BaseThread *thread, WD *current);
          virtual WD * atWakeUp      ( BaseThread *thread, WD &wd );
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
+         virtual void atCreate      ( DependableObject &depObj );
          virtual void atSupport     ( BaseThread *thread );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;

@@ -17,11 +17,7 @@ HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
 }
 
 void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
-   if ( reg.setCopying( from ) ) {
-     from.copyOut( reg, version, ops, wd, copyIdx, inval );
-   } else {
-     reg.waitCopy();
-   } 
+   from.copyOut( reg, version, ops, wd, copyIdx, inval );
 }
 
 void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations ) {
@@ -36,10 +32,6 @@ void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD co
    reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
    reg.id = reg.key->obtainRegionId( cd, wd, idx );
    //*(myThread->_file) << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
-   reg_t master_id = cd.getHostRegionId();
-   if ( master_id != 0 ) {
-      NewNewRegionDirectory::addMasterRegionId( reg.key, master_id, reg.id );
-   }
 }
 
 void HostAddressSpace::failToLock( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version ) {

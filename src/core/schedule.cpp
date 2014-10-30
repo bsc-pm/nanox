@@ -219,14 +219,14 @@ inline void Scheduler::idleLoop ()
    int spins = init_spins;
    int yields = init_yields;
 
-   NANOS_INSTRUMENT ( unsigned long total_spins = 0; )  /* Number of spins by idle phase*/
-   NANOS_INSTRUMENT ( unsigned long total_yields = 0; ) /* Number of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_blocks = 0; ) /* Number of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long total_scheds = 0; ) /* Number of scheds by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_spins = 0; )  /* Number of spins by idle phase*/
+   NANOS_INSTRUMENT ( unsigned long long total_yields = 0; ) /* Number of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_blocks = 0; ) /* Number of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long total_scheds = 0; ) /* Number of scheds by idle phase */
 
-   NANOS_INSTRUMENT ( unsigned long time_blocks = 0; ) /* Time of blocks by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_yields = 0; ) /* Time of yields by idle phase */
-   NANOS_INSTRUMENT ( unsigned long time_scheds = 0; ) /* Time of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_blocks = 0; ) /* Time of blocks by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_yields = 0; ) /* Time of yields by idle phase */
+   NANOS_INSTRUMENT ( unsigned long long time_scheds = 0; ) /* Time of yields by idle phase */
 
    WD *current = myThread->getCurrentWD();
    sys.getSchedulerStats()._idleThreads++;
@@ -276,32 +276,35 @@ inline void Scheduler::idleLoop ()
       }//thread going to sleep, thread waiking up
 
       if ( !thread->isRunning() ) {
+        // if behaviour is not exiting, it is the implicit one, and can break the loop
+        // otherwise we need to switch to implicit wd.
         if ( !behaviour::exiting() ) break;
         else behaviour::switchWD(thread, current, &(thread->getThreadWD()));
       }
 
-
-      myThread->getNextWDQueue().iterate<TestInputs>();
-      WD * next = myThread->getNextWD();
       // This should be ideally performed in getNextWD, but it's const...
       if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
          // The thread is paused, mark it as so
          myThread->pause();
+         continue;
       }
       else {
          // The thread is not paused, mark it as so
          myThread->unpause();
       }
 
+      myThread->getNextWDQueue().iterate<TestInputs>();
+      WD * next = myThread->getNextWD();
+
       if ( !next && thread->getTeam() != NULL ) {
          memoryFence();
          if ( sys.getSchedulerStats()._readyTasks > 0 ) {
             NANOS_INSTRUMENT ( total_scheds++; )
-            NANOS_INSTRUMENT ( unsigned long begin_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long begin_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
 
             next = behaviour::getWD(thread,current);
 
-            NANOS_INSTRUMENT (  unsigned long end_sched = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long end_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             NANOS_INSTRUMENT (time_scheds += ( end_sched - begin_sched ); )
          }
       } 
@@ -391,9 +394,9 @@ inline void Scheduler::idleLoop ()
 
          } else if ( use_yield ) {
             NANOS_INSTRUMENT ( total_yields++; )
-            NANOS_INSTRUMENT ( unsigned long begin_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             thread->yield();
-            NANOS_INSTRUMENT ( unsigned long end_yield = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+            NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
             if ( use_block ) yields--;
          }
@@ -849,9 +852,50 @@ struct WorkerBehaviour
    static bool exiting() { return false; }
 };
 
+struct AsyncWorkerBehaviour
+{
+   static WD * getWD ( BaseThread *thread, WD *current )
+   {
+      if ( !thread->canGetWork() ) return NULL;
+
+      if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
+         // The thread is not paused, mark it as so
+         thread->unpause();
+
+         return thread->getTeam()->getSchedulePolicy().atIdle( thread );
+      }
+      // Pause this thread
+      thread->pause();
+      return NULL;
+   }
+
+   static void switchWD ( BaseThread *thread, WD *current, WD *next )
+   {
+      if ( next->started() ) {
+         // Should not be started in general
+         Scheduler::switchTo( next );
+      }
+      else {
+         // Since this is the async behavior, set schedule to false:
+         // do not prefetch at this point, as the thread will be always prefetching
+         if ( Scheduler::inlineWorkAsync ( next, /* schedule */ false ) ) {
+            next->~WorkDescriptor();
+            delete[] ( char * ) next;
+         }
+      }
+   }
+
+   static bool exiting() { return false; }
+};
+
 void Scheduler::workerLoop ()
 {
    idleLoop<WorkerBehaviour>();
+}
+
+void Scheduler::asyncWorkerLoop ()
+{
+   idleLoop<AsyncWorkerBehaviour>();
 }
 
 void Scheduler::preOutlineWorkWithThread ( BaseThread * thread, WD *wd )
@@ -975,7 +1019,7 @@ void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
 
    //std::cerr << "thd " << myThread->getId() << "exiting task(inlined) " << wd << ":" << wd->getId() <<
    //       " to " << oldwd << ":" << oldwd->getId() << std::endl;
-   debug( "exiting task(post outline) " << wd << ":" << wd->getId() << " to " << &(thread->getThreadWD()) << ":" << thread->getThreadWD().getId() );
+   debug( "exiting task(post outline) " << wd << ":" << std::dec << wd->getId() << " to " << &(thread->getThreadWD()) << ":" << std::dec << thread->getThreadWD().getId() );
 
    thread->setCurrentWD( thread->getThreadWD() );
 
@@ -1076,6 +1120,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
       /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    }
+   debug( "exiting(inlined) from task " << wd << ":" << wd->getId() <<
+          " to " << oldwd << ":" << oldwd->getId() << " at node " << sys.getNetwork()->getNodeNum() );
 
    thread->setCurrentWD( *oldwd );
 
@@ -1104,6 +1150,53 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    ResourceManager::returnClaimedCpus();
    if ( sys.getPMInterface().isMalleable() )
       ResourceManager::acquireResourcesIfNeeded();
+
+  return done;
+}
+
+bool Scheduler::inlineWorkAsync ( WD *wd, bool schedule )
+{
+   BaseThread *thread = getMyThreadSafe();
+
+   // run it in the current frame
+   WD *oldwd = thread->getCurrentWD();
+
+   GenericSyncCond *syncCond = oldwd->getSyncCond();
+   if ( syncCond != NULL ) syncCond->unlock();
+
+   //debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
+   //       " to " << wd << ":" << wd->getId() );
+
+   // This ensures that when we return from the inlining is still the same thread
+   // and we don't violate rules about tied WD
+   if ( oldwd->isTiedTo() != NULL && ( wd->isTiedTo() == NULL ) ) wd->tieTo( *oldwd->isTiedTo() );
+
+   //thread->setCurrentWD( *wd );
+
+   /* Instrumenting context switch: wd enters cpu (last = n/a) */
+   //NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
+
+   // Will return false in general
+   const bool done = thread->inlineWorkDependent( *wd );
+
+   // reload thread after running WD because wd may be not tied to thread if
+   // both work descriptors were not tied to any thread
+   thread = getMyThreadSafe();
+
+   if ( schedule ) {
+      ThreadTeam *thread_team = thread->getTeam();
+      if ( thread_team ) {
+         thread->addNextWD( thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule ) );
+      }
+   }
+
+   if ( done )
+      finishWork( oldwd, wd );
+
+   //thread->setCurrentWD( *oldwd );
+
+   ensure( oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
+           "Violating tied rules " + toString<BaseThread*>( thread ) + "!=" + toString<BaseThread*>( oldwd->isTiedTo() ) );
 
   return done;
 }

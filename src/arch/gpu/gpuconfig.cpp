@@ -32,10 +32,11 @@ bool GPUConfig::_enableCUDA = false;
 bool GPUConfig::_forceDisableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
 System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
-bool GPUConfig::_prefetch = false;
-bool GPUConfig::_overlap = false;
-bool GPUConfig::_overlapInputs = false;
-bool GPUConfig::_overlapOutputs = false;
+int GPUConfig::_numPrefetch = 1;
+bool GPUConfig::_concurrentExec = true;
+bool GPUConfig::_overlap = true;
+bool GPUConfig::_overlapInputs = true;
+bool GPUConfig::_overlapOutputs = true;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
 bool GPUConfig::_gpuWarmup = true;
@@ -73,16 +74,23 @@ void GPUConfig::prepare( Config& config )
    config.registerEnvOption ( "gpu-cache-policy", "NX_GPU_CACHE_POLICY" );
    config.registerArgOption( "gpu-cache-policy", "gpu-cache-policy" );
 
-   // Enable / disable prefetching
-   config.registerConfigOption( "gpu-prefetch", NEW Config::FlagOption( _prefetch ),
-                                "Set whether data prefetching must be activated or not (disabled by default)" );
-   config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
-   config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
+   // Set #tasks for prefetching
+   config.registerConfigOption ( "gpu-prefetch", NEW Config::IntegerVar( _numPrefetch ),
+                                 "Defines the maximum number of tasks to prefetch (defaults to 1)" );
+   config.registerEnvOption ( "gpu-prefetch", "NX_GPUPREFETCH" );
+   config.registerArgOption ( "gpu-prefetch", "gpu-prefetch" );
+
+   // Enable / disable concurrent kernel execution
+   config.registerConfigOption( "gpu-concurrent-exec", NEW Config::FlagOption( _concurrentExec ),
+                                "Enable or disable concurrent kernel execution, if supported\n\
+                                     by the hardware (enabled by default)" );
+   config.registerEnvOption( "gpu-concurrent-exec", "NX_GPU_CONCURRENT_EXEC" );
+   config.registerArgOption( "gpu-concurrent-exec", "gpu-concurrent-exec" );
 
    // Enable / disable overlapping
    config.registerConfigOption( "gpu-overlap", NEW Config::FlagOption( _overlap ),
                                 "Set whether GPU computation should be overlapped with\n\
-                                     all data transfers, whenever possible, or not (disabled by default)" );
+                                     all data transfers, whenever possible, or not (enabled by default)" );
    config.registerEnvOption( "gpu-overlap", "NX_GPUOVERLAP" );
    config.registerArgOption( "gpu-overlap", "gpu-overlap" );
 
@@ -128,7 +136,7 @@ void GPUConfig::apply()
 {
    //Auto-enable CUDA if it was not done before
    if ( !_enableCUDA ) {
-       //ompss_uses_cuda pointer will be null (it's extern) if the compiler did not fill it
+      //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
       _enableCUDA = ( sys.getOmpssUsesCuda() != NULL );
    }
 
@@ -141,7 +149,8 @@ void GPUConfig::apply()
       }
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
-      _prefetch = false;
+      _numPrefetch = 0;
+      _concurrentExec = false;
       _overlap = false;
       _overlapInputs = false;
       _overlapOutputs = false;
@@ -160,7 +169,8 @@ void GPUConfig::apply()
          totalCount = 0;
          _numGPUs = 0;
          _cachePolicy = System::DEFAULT;
-         _prefetch = false;
+         _numPrefetch = 0;
+         _concurrentExec = false;
          _overlap = false;
          _overlapInputs = false;
          _overlapOutputs = false;
@@ -273,14 +283,15 @@ void GPUConfig::printConfiguration()
    verbose0( "--- GPUDD configuration ---" );
    verbose0( "  Number of GPU's: " << _numGPUs );
    verbose0( "  GPU cache policy: " << ( _cachePolicy == System::WRITE_THROUGH ? "write-through" : "write-back" ) );
-   verbose0( "  Prefetching: " << ( _prefetch ? "Enabled" : "Disabled" ) );
+   verbose0( "  Prefetching: " << _numPrefetch );
+   verbose0( "  Concurrent kernel execution: " << ( _concurrentExec ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping: " << ( _overlap ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping inputs: " << ( _overlapInputs ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping outputs: " << ( _overlapOutputs ? "Enabled" : "Disabled" ) );
    verbose0( "  Transfer mode: " << ( _transferMode == NANOS_GPU_TRANSFER_NORMAL ? "Sync" : "Async" ) );
    if ( _maxGPUMemory != 0 ) {
       if ( _maxGPUMemory > 100 ) {
-         verbose0( "  Limited memory: Enabled: " << bytesToHumanReadable( _maxGPUMemory ) );
+         verbose0( "  Limited memory: Enabled: " << GPUUtils::bytesToHumanReadable( _maxGPUMemory ) );
       } else {
          verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << "% of the total device memory" );
       }

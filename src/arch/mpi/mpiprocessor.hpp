@@ -153,13 +153,22 @@ void MPIProcessor::setBusy(bool busy) {
 
 //Try to reserve this PE, if the one who reserves it is the same
 //which already has the PE, return true
-bool MPIProcessor::testAndSetBusy(int dduid) {
+bool MPIProcessor::testAndSetBusy(int dduid, bool multithreadedAccess) {
     if (dduid==_currExecutingDD) return true;
-    Atomic<bool> expected = false;
-    Atomic<bool> value = true;
-    bool ret= _busy.cswap( expected, value );
-    if (ret){                    
-      _currExecutingDD=dduid;
+    bool ret=false;
+    if (multithreadedAccess) {
+        Atomic<bool> expected = false;
+        Atomic<bool> value = true;
+        ret= _busy.cswap( expected, value );
+        if (ret){                    
+          _currExecutingDD=dduid;
+        }
+    } else {
+        if (!_busy.value()) {
+            _currExecutingDD=dduid;
+            _busy=true;
+            ret=true;
+        }        
     }
     return ret;
 }     

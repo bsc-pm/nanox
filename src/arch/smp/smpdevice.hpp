@@ -94,7 +94,7 @@ namespace nanos
             }
          }
 
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
             for ( std::size_t count = 0; count < numChunks; count += 1) {
                ::memcpy( ((char *) hostAddr) + count * ld, ((char *) devAddr) + count * ld, len );
             }

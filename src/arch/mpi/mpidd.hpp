@@ -41,7 +41,7 @@ namespace ext
          size_t uid;
          static Atomic<int> uidGen;
          static bool _spawnDone;
-
+         
       public:
        
          // constructors

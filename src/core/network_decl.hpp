@@ -29,6 +29,7 @@
 #include "networkapi.hpp"
 #include "packer_decl.hpp"
 #include "deviceops_decl.hpp"
+#include "debug.hpp"
 
 namespace nanos {
 
@@ -45,8 +46,9 @@ namespace nanos {
          unsigned int _wdId;
          void *_hostObject;
          reg_t _hostRegId;
+         unsigned int _metaSeq;
       public:
-         SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId );
+         SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          virtual ~SendDataRequest();
          void doSend();
          void *getOrigAddr() const;
@@ -106,6 +108,15 @@ namespace nanos {
          std::set< reg_t >::iterator sit = it->second.lower_bound( reg.id );
          if ( sit == it->second.end() || it->second.key_comp()( reg.id, *sit ) ) {
             sit = it->second.insert( sit, reg.id );
+         }
+      }
+
+      void removeForwardedRegion( global_reg_t const &reg ) {
+         std::map< const_reg_key_t, std::set< reg_t > >::iterator it = _regions.lower_bound( reg.key );
+         if ( it == _regions.end() || _regions.key_comp()( reg.key, it->first ) ) {
+            //it can happen: fatal("Region not found @ _regions (by reg.key).");
+         } else {
+            _regions.erase( it );
          }
       }
    };
@@ -182,6 +193,8 @@ namespace nanos {
          RegionsForwarded *_forwardedRegions;
          int _gpuPresend;
          int _smpPresend;
+         Atomic<unsigned int> *_metadataSequenceNumbers;
+         Atomic<unsigned int> _recvMetadataSeq;
 
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
@@ -226,7 +239,7 @@ namespace nanos {
          void memFree ( unsigned int remoteNode, void *addr );
          void memRealloc ( unsigned int remoteNode, void *oldAddr, std::size_t oldSize, void *newAddr, std::size_t newSize );
          void nodeBarrier( void );
-         void sendRegionMetadata( unsigned int dest, CopyData *cd );
+         //void sendRegionMetadata( unsigned int dest, CopyData *cd );
 
          void setMasterHostname( char *name );
          //const std::string & getMasterHostname( void ) const;
@@ -250,11 +263,12 @@ namespace nanos {
          void freeReceiveMemory( void * addr );
 
          void notifyWork( std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq);
-         void notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag, void *hostObject, reg_t hostRegId );
+         void notifyPut( unsigned int from, unsigned int wdId, std::size_t len, std::size_t count, std::size_t ld, uint64_t realTag, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          void notifyWaitRequestPut( void *addr, unsigned int wdId, unsigned int seqNumber );
          void notifyRequestPut( SendDataRequest *req );
          void notifyGet( SendDataRequest *req );
-         void notifyRegionMetaData( CopyData *cd );
+         void notifyRegionMetaData( CopyData *cd, unsigned int seq );
+         void notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds );
          void invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
          void getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
          unsigned int getPutRequestSequenceNumber( unsigned int dest );
@@ -270,6 +284,11 @@ namespace nanos {
          void setSmpPresend(int p);
          int getGpuPresend() const;
          int getSmpPresend() const;
+         void deleteDirectoryObject( GlobalRegionDictionary const *obj );
+         unsigned int getMetadataSequenceNumber( unsigned int dest );
+         unsigned int checkMetadataSequenceNumber( unsigned int dest );
+         unsigned int updateMetadataSequenceNumber( unsigned int value );
+         void synchronizeDirectory();
    };
 }
 

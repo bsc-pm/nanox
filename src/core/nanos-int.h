@@ -20,7 +20,7 @@
 #define __NANOS_INT_H
 
 //! \file nanos_c_api_macros.h
-//! \brief 
+//! \brief
 //
 //! \defgroup core Nanos++ Core
 
@@ -293,7 +293,7 @@ typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_XFER_DATA
                NANOS_AM_WORK, NANOS_AM_WORK_DONE, NANOS_XFER_WAIT_REQ_PUT, NANOS_XFER_FREE_TMP_BUFF } nanos_event_domain_t; /**< Specifies a domain */
 
 typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
-  
+
 typedef struct {
    nanos_event_type_t   type;
    nanos_event_key_t    key;

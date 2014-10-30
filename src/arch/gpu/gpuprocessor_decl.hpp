@@ -30,6 +30,7 @@
 #include "malign.hpp"
 #include "simpleallocator_decl.hpp"
 #include "copydescriptor_decl.hpp"
+#include "smpprocessor.hpp"
 
 #include <map>
 
@@ -91,6 +92,7 @@ namespace ext
          volatile bool           _initialized; //! Object is initialized
          GPUMemorySpace         &_gpuMemory;
          SMPProcessor           *_core;
+         BaseThread             *_thread;
 
 
          //SimpleAllocator               _allocator;
@@ -170,13 +172,7 @@ namespace ext
          }
 
 
-         void printStats ()
-         {
-            message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
-            message("    Total input transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesIn.value() ) );
-            message("    Total output transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesOut.value() ) );
-            message("    Total device transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesDevice.value() ) );
-         }
+         void printStats ();
 
          void setInitialized ()
          {
@@ -189,7 +185,23 @@ namespace ext
          //virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
          std::size_t getMaxMemoryAvailable () const;
 
-         BaseThread &startGPUThread();
+      // Methods related to GPUThread management
+      protected:
+         ProcessingElement::ThreadList & getThreads() { return _core->getThreads(); }
+
+      public:
+         BaseThread & startGPUThread();
+
+         std::size_t getNumThreads() const { return _core->getNumThreads(); }
+         void stopAllThreads ();
+         BaseThread * getActiveThread();
+//xteruel
+#if 0
+         BaseThread * getFirstRunningThread_FIXME();
+         BaseThread * getFirstStoppedThread_FIXME();
+         BaseThread * getUnassignedThread();
+#endif
+
    };
 
 }

@@ -12,7 +12,7 @@ def cross(*args):
 def cpus(max_cpus):
 	ans=[]
 	for i in range(1,max_cpus+1):
-		ans = ans + ['--smp-cpus='+str(i)]
+		ans = ans + ['--smp-workers='+str(i)]
 	return ans
 
 test_mode=os.environ.get('NX_TEST_MODE')
@@ -24,6 +24,8 @@ if ( max_cpus == None ):
 	max_cpus=2
 
 test_schedule=os.environ.get('NX_TEST_SCHEDULE')
+
+test_architecture=os.environ.get('test_architecture')
 
 # Process program arguments (priority to env vars)
 from optparse import OptionParser
@@ -84,6 +86,9 @@ if test_schedule is not None:
    scheduling_performance=['--schedule='+test_schedule]
    scheduling_small=['--schedule='+test_schedule]
    scheduling_large=['--schedule='+test_schedule]
+
+if test_architecture is not None:
+   architecture=['--architecture='+test_architecture]
 
 if test_mode == 'performance':
 	configs=cross(*[cpus(max_cpus)]+[scheduling_performance]+addlist)

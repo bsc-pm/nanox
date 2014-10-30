@@ -33,6 +33,7 @@
 #include "synchronizedcondition.hpp"
 #include "regioncache.hpp"
 #include <cmath>
+#include <climits>
 
 
 using namespace nanos;
@@ -49,6 +50,8 @@ using namespace nanos;
 //inline int System::getNumThreads () const { return _numThreads; }
 
 //inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
+
+inline DeviceList & System::getSupportedDevices() { return _devices; }
 
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
@@ -453,9 +456,7 @@ inline Plugin * System::loadAndGetPlugin ( const std::string & name )
 }
 
 inline int System::getWgId() { return _atomicSeedWg++; }
-inline unsigned int System::getMemorySpaceId() { return _atomicSeedMemorySpace++; }
 inline unsigned int System::getRootMemorySpaceId() { return 0; }
-inline unsigned int System::getNumMemorySpaces() { return _atomicSeedMemorySpace.value(); }
 
 inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id ) {
    bool found = false;

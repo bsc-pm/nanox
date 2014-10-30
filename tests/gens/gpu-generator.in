@@ -1,40 +1,231 @@
 #!/bin/bash
 
-if [ x@gpu_valid@ = xyes ];
+if [ x@GPU_VALID@ = xyes ];
 then
 
 cat <<EOF
 
-test_CC="nvcc"
-
 SRC=@SRCDIR@/src
 BUILD=@BUILDDIR@/src
 
-common_includes=" 
-        -I\$SRC/apis/c \
-        -I\$SRC/arch/unix-os \
-        -I\$SRC/support \
-        -I\$SRC/core \
-        -I\$SRC/arch/smp \
-        -I\$SRC/arch/gpu \
-        -I\$SRC/arch/opencl \
-        -I\$SRC/arch/spu \
-        -I\$SRC/arch/cluster \
-	-I/opt/amd64/cuda/include"
+PERFO_CFLAGS=@PERFO_CFLAGS@
+PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
+DEBUG_CFLAGS=@DEBUG_CFLAGS@
+DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
+INSTR_CFLAGS=@INSTR_CFLAGS@
+INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
+INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
+INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
 
-common_cflags=""
+PLUGINS_performance=@PLUGINS_PERFORMANCE@
+PLUGINS_debug=@PLUGINS_DEBUG@
+PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
+PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
 
-test_CFLAGS="\$common_includes \$common_cflags"
-test_CXXFLAGS="\$common_includes \$common_cflags"
+common_includes="
+	-I\$SRC/apis/c \
+	-I\$BUILD/apis/c \
+	-I\$SRC/arch/unix-os \
+	-I\$SRC/support \
+	-I\$SRC/core \
+	-I\$SRC/arch/smp \
+	-I\$SRC/arch/gpu \
+	-I\$SRC/arch/spu \
+	-I\$SRC/arch/opencl \
+	-I\$SRC/arch/cluster"
 
-test_LDFLAGS="\$BUILD/core/.libs/libnanox.so \$BUILD/apis/.libs/libnanox-c.so -L/opt/amd64/cuda/lib64 -lcudart"
-test_ENV_performance="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/arch/gpu/performance/.libs:$LD_LIBRARY_PATH"
-test_ENV_debug="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/arch/gpu/debug/.libs:$LD_LIBRARY_PATH"
-test_ENV_instrumentation="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/arch/gpu/instrumentation/.libs:$LD_LIBRARY_PATH"
-test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\$BUILD/core/.libs:\$BUILD/arch/gpu/instrumentation-debug/.libs:$LD_LIBRARY_PATH"
+compile_versions="@COMPILE_VERSIONS@"
 
+test_CC=@CUDA_DIR@"/bin/nvcc"
+test_CXX=@CUDA_DIR@"/bin/nvcc"
 
-`@SRCDIR@/tests/gens/config.py -a '--gpus=1|--gpus=2 , --gpu-overlap --gpu-prefetch|--no-gpu-overlap --no-gpu-prefetch' -c 1`
+test_CFLAGS="\$common_includes"
+test_CXXFLAGS="\$common_includes"
+
+NV_PERFO_CFLAGS=""
+for i in \$PERFO_CFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_PERFO_CFLAGS="\$NV_PERFO_CFLAGS \$i"
+         ;;
+      -O*)
+         NV_PERFO_CFLAGS="\$NV_PERFO_CFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_PERFO_CFLAGS="\$NV_PERFO_CFLAGS -include \$inc"
+         ;;
+      *)
+         NV_PERFO_CFLAGS="\$NV_PERFO_CFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+NV_PERFO_CXXFLAGS=""
+for i in \$PERFO_CXXFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_PERFO_CXXFLAGS="\$NV_PERFO_CXXFLAGS \$i"
+         ;;
+      -O*)
+         NV_PERFO_CXXFLAGS="\$NV_PERFO_CXXFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_PERFO_CXXFLAGS="\$NV_PERFO_CXXFLAGS -include \$inc"
+         ;;
+      *)
+         NV_PERFO_CXXFLAGS="\$NV_PERFO_CXXFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+NV_DEBUG_CFLAGS=""
+for i in \$DEBUG_CFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_DEBUG_CFLAGS="\$NV_DEBUG_CFLAGS \$i"
+         ;;
+      -O*)
+         NV_DEBUG_CFLAGS="\$NV_DEBUG_CFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_DEBUG_CFLAGS="\$NV_DEBUG_CFLAGS -include \$inc"
+         ;;
+      *)
+         NV_DEBUG_CFLAGS="\$NV_DEBUG_CFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+NV_DEBUG_CXXFLAGS=""
+for i in \$DEBUG_CXXFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_DEBUG_CXXFLAGS="\$NV_DEBUG_CXXFLAGS \$i"
+         ;;
+      -O*)
+         NV_DEBUG_CXXFLAGS="\$NV_DEBUG_CXXFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_DEBUG_CXXFLAGS="\$NV_DEBUG_CXXFLAGS -include \$inc"
+         ;;
+      *)
+         NV_DEBUG_CXXFLAGS="\$NV_DEBUG_CXXFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+NV_INSTR_CFLAGS=""
+for i in \$INSTR_CFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_INSTR_CFLAGS="\$NV_INSTR_CFLAGS \$i"
+         ;;
+      -O*)
+         NV_INSTR_CFLAGS="\$NV_INSTR_CFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_INSTR_CFLAGS="\$NV_INSTR_CFLAGS -include \$inc"
+         ;;
+      *)
+         NV_INSTR_CFLAGS="\$NV_INSTR_CFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+NV_INSTR_CXXFLAGS=""
+for i in \$INSTR_CXXFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_INSTR_CXXFLAGS="\$NV_INSTR_CXXFLAGS \$i"
+         ;;
+      -O*)
+         NV_INSTR_CXXFLAGS="\$NV_INSTR_CXXFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_INSTR_CXXFLAGS="\$NV_INSTR_CXXFLAGS -include \$inc"
+         ;;
+      *)
+         NV_INSTR_CXXFLAGS="\$NV_INSTR_CXXFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+NV_INSTRDEBUG_CFLAGS=""
+for i in \$INSTRDEBUG_CFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_INSTRDEBUG_CFLAGS="\$NV_INSTRDEBUG_CFLAGS \$i"
+         ;;
+      -O*)
+         NV_INSTRDEBUG_CFLAGS="\$NV_INSTRDEBUG_CFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_INSTRDEBUG_CFLAGS="\$NV_INSTRDEBUG_CFLAGS -include \$inc"
+         ;;
+      *)
+         NV_INSTRDEBUG_CFLAGS="\$NV_INSTRDEBUG_CFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+NV_INSTRDEBUG_CXXFLAGS=""
+for i in \$INSTRDEBUG_CXXFLAGS
+do
+   case "\$i" in
+      -D*)
+         NV_INSTRDEBUG_CXXFLAGS="\$NV_INSTRDEBUG_CXXFLAGS \$i"
+         ;;
+      -O*)
+         NV_INSTRDEBUG_CXXFLAGS="\$NV_INSTRDEBUG_CXXFLAGS \$i"
+         ;;
+      -include*)
+         inc=\${i:8}
+         NV_INSTRDEBUG_CXXFLAGS="\$NV_INSTRDEBUG_CXXFLAGS -include \$inc"
+         ;;
+      *)
+         NV_INSTRDEBUG_CXXFLAGS="\$NV_INSTRDEBUG_CXXFLAGS --compiler-options \$i"
+         ;;
+   esac
+done
+
+cuda_lib_dir="--linker-options -rpath,"@CUDA_DIR@"/lib64"
+
+test_CFLAGS_performance="\$NV_PERFO_CFLAGS"
+test_CXXFLAGS_performance="\$NV_PERFO_CXXFLAGS -include new_decl.hpp"
+test_CFLAGS_debug="\$NV_DEBUG_CFLAGS"
+test_CXXFLAGS_debug="\$NV_DEBUG_CXXFLAGS -include new_decl.hpp"
+test_CFLAGS_instrumentation="\$NV_INSTR_CFLAGS"
+test_CXXFLAGS_instrumentation="\$NV_INSTR_CXXFLAGS -include new_decl.hpp"
+test_CFLAGS_instrumentation_debug="\$NV_INSTRDEBUG_CFLAGS"
+test_CXXFLAGS_instrumentation_debug="\$NV_INSTRDEBUG_CXXFLAGS -include new_decl.hpp"
+
+test_LDFLAGS_performance="\$BUILD/core/performance/.libs/libnanox.so \$BUILD/apis/performance/.libs/libnanox-c.so \$BUILD/arch/gpu/performance/.libs/libnanox-gpu-api.so -lcudart \$cuda_lib_dir"
+test_ENV_performance="LD_LIBRARY_PATH=\$BUILD/core/performance/.libs:\$BUILD/apis/performance/.libs/:\$PLUGINS_performance:$LD_LIBRARY_PATH"
+
+test_LDFLAGS_debug="\$BUILD/core/debug/.libs/libnanox.so \$BUILD/apis/debug/.libs/libnanox-c.so \$BUILD/arch/gpu/debug/.libs/libnanox-gpu-api.so -lcudart \$cuda_lib_dir"
+test_ENV_debug="LD_LIBRARY_PATH=\$BUILD/core/debug/.libs:\$BUILD/apis/debug/.libs/:\$PLUGINS_debug:$LD_LIBRARY_PATH"
+
+test_LDFLAGS_instrumentation="\$BUILD/core/instrumentation/.libs/libnanox.so \$BUILD/apis/instrumentation/.libs/libnanox-c.so \$BUILD/arch/gpu/instrumentation/.libs/libnanox-gpu-api.so -lcudart \$cuda_lib_dir"
+test_ENV_instrumentation="LD_LIBRARY_PATH=\$BUILD/core/instrumentation/.libs:\$BUILD/apis/instrumentation/.libs/:\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
+
+test_LDFLAGS_instrumentation_debug="\$BUILD/core/instrumentation-debug/.libs/libnanox.so \$BUILD/apis/instrumentation-debug/.libs/libnanox-c.so \$BUILD/arch/gpu/instrumentation-debug/.libs/libnanox-gpu-api.so -lcudart \$cuda_lib_dir"
+test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\$BUILD/arch/smp/instrumentation-debug/.libs:\$BUILD/core/instrumentation-debug/.libs:\$BUILD/apis/instrumentation-debug/.libs/:\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
+
+`@SRCDIR@/tests/gens/config.py -a '--smp-cpus=3 --gpu-max-memory 16777216 --gpus=2 , --gpu-overlap --gpu-prefetch 4|--gpu-overlap --gpu-prefetch 0' -c 1`
 EOF
 
 else

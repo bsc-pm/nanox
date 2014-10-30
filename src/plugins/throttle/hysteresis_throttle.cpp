@@ -51,8 +51,10 @@ namespace nanos {
 
       bool HysteresisThrottle::throttleIn ( void )
       {
+         // If it's OpenMP, first level tasks will have depth 1
+         unsigned maxDepth = ( sys.getPMInterface().getInterface() == PMInterface::OpenMP ) ? 2 : 1;
          // Only dealing with first level tasks
-         if ( ( (myThread->getCurrentWD())->getDepth() < 1 ) && ( sys.getTaskNum() > (_upper * sys.getNumWorkers()) ) ) _syncCond.wait();
+         if ( ( (myThread->getCurrentWD())->getDepth() < maxDepth ) && ( sys.getTaskNum() > (_upper * sys.getNumWorkers()) ) ) _syncCond.wait();
          return true;
       }
       void HysteresisThrottle::throttleOut ( void )

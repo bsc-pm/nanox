@@ -34,7 +34,7 @@ ProcessingElement::ProcessingElement ( const Device *arch, const Device *subArch
    unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
    Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
    _id ( sys.nextPEId() ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ),
-   _subDeviceNo ( NULL ), _memorySpaceId( memSpaceId ) {}
+   _subDeviceNo ( NULL ), _threads(), _memorySpaceId( memSpaceId ) {}
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
@@ -51,7 +51,7 @@ void ProcessingElement::waitInputs( WorkDescriptor &work )
    BaseThread * thread = getMyThreadSafe();
    //while ( !work._ccontrol.dataIsReady() ) { 
    while ( !work._mcontrol.isDataReady( work ) ) { 
-      thread->idle();
+      thread->processTransfers();
       thread->getTeam()->getSchedulePolicy().atSupport( thread ); 
    }
    //if( sys.getNetwork()->getNodeNum() == 0 && work._mcontrol.getMaxAffinityScore() > 0) {

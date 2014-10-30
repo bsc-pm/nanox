@@ -44,7 +44,7 @@ namespace nanos
          /*! \brief DOSubmit copy constructor
           *  \param dos another DOSubmit
           */
-         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos) { } 
+         DOSubmit ( const DOSubmit &dos ) : DependableObject( dos ) { }
 
          /*! \brief DOSubmit assignment operator, can be self-assigned.
           *  \param dos another DOSubmit
@@ -133,7 +133,8 @@ namespace nanos
 
          /*! \brief
           */
-         int decreasePredecessors ( std::list<uint64_t>const * flushDeps, bool blocking = false, DependableObject *predecessor = NULL );
+         int decreasePredecessors ( std::list<uint64_t>const * flushDeps,  DependableObject * finishedPred,
+               bool batchRelease, bool blocking = false );
 
          /*! \brief TODO
           */

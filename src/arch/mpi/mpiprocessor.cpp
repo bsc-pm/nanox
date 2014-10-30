@@ -102,7 +102,7 @@ void MPIProcessor::prepareConfig(Config &config) {
     
     config.registerConfigOption("offl-cache-threads", NEW Config::BoolVar(_useMultiThread), "Defines if offload processes will have an extra cache thread,"
         " this is good for applications which need data from other tasks so they don't have to wait until task in owner node finishes. "
-        "(Default: False, but if this kind of behaviour is detected, the thread will be created anyways)");
+        "(Default: False, but if this kind of behaviour is detected, the thread will be created)");
     config.registerArgOption("offl-cache-threads", "offl-cache-threads");
     config.registerEnvOption("offl-cache-threads", "NX_OFFL_CACHE_THREADS");
     

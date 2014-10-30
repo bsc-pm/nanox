@@ -125,6 +125,9 @@
  *   - 5: Including nanos_omp_find_worksharing( omp_sched_t kind );
  *   - 6:
  *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+ * - nanos interface family: instrumentation_api
+ *   - 1000: Instrumentation API interface family created
+ *
  */
 
 #include <stddef.h>
@@ -335,6 +338,8 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_get_value, (const char *key, const 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, nanos_event_t events[] ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_close_user_fun_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_raise_gpu_kernel_launch_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_close_gpu_kernel_launch_event,());
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 
@@ -353,7 +358,11 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, n
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
 
+#ifdef _MF03
+NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, ptrdiff_t n));
+#else
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
+#endif
 
 // scheduling interface
 NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());

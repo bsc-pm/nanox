@@ -47,6 +47,8 @@ gpu_api_sources = \
 	$(END)
 		
 gpu_sources = \
+	gpucallback.cpp \
+	gpucallback.hpp \
 	gpuconfig.cpp \
 	gpuconfig.hpp \
 	gpudevice_decl.hpp \
@@ -54,6 +56,8 @@ gpu_sources = \
 	gpudevice.cpp \
 	gpudd.hpp \
 	gpudd.cpp \
+	gpuevent_decl.hpp \
+	gpuevent.hpp \
 	gpumemorytransfer_decl.hpp \
 	gpumemorytransfer.hpp \
 	gpumemorytransfer.cpp \

@@ -9,7 +9,14 @@ uint64_t global_reg_t::getKeyFirstAddress() const {
 }
 
 uint64_t global_reg_t::getRealFirstAddress() const {
-   return getFirstAddress( key->getRealBaseAddress() );
+   uint64_t addr = 0;
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   addr = entry->getBaseAddress() == 0 ? key->getRealBaseAddress() : entry->getBaseAddress();
+   if ( addr != 0 ) {
+      addr = getFirstAddress( addr );
+   }
+   return addr;
 }
 
 uint64_t global_reg_t::getFirstAddress( uint64_t baseAddress ) const {
@@ -119,13 +126,6 @@ unsigned int global_reg_t::getHostVersion( bool increaseVersion ) const {
    return version;
 }
 
-bool global_reg_t::setCopying( SeparateMemoryAddressSpace &from ) const {
-   return true;
-}
-
-void global_reg_t::waitCopy( ) const {
-}
-
 uint64_t global_reg_t::getRealBaseAddress() const {
    return key->getRealBaseAddress();
 }
@@ -173,7 +173,7 @@ DeviceOps *global_reg_t::getDeviceOps() const {
 bool global_reg_t::contains( global_reg_t const &reg ) const {
    bool result = false;
    if ( key == reg.key ) {
-      if ( key->checkIntersect( id, reg.id ) && ( reg.id == key->computeIntersect( id, reg.id ) ) ) {
+      if ( id == reg.id || ( key->checkIntersect( id, reg.id ) && ( reg.id == key->computeIntersect( id, reg.id ) ) ) ) {
          result = true;
       }
    }
@@ -188,8 +188,8 @@ unsigned int global_reg_t::getVersion() const {
    return NewNewRegionDirectory::getVersion( key, id, false );
 }
 
-void global_reg_t::fillCopyData( CopyData &cd ) const {
-   cd.setBaseAddress( 0 );
+void global_reg_t::fillCopyData( CopyData &cd, uint64_t baseAddress ) const {
+   cd.setBaseAddress( (void *) baseAddress );
    cd.setRemoteHost( true );
    cd.setHostBaseAddress( key->getKeyBaseAddress() );
    cd.setNumDimensions( key->getNumDimensions() );

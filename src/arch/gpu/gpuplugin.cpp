@@ -179,7 +179,9 @@ class GPUPlugin : public ArchPlugin
 #else
                char pciDevice[20]; // 13 min
 
+               NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_GET_PCI_BUS_EVENT );
                cudaDeviceGetPCIBusId( pciDevice, 20, i );
+               NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
                // This is common code for cuda 4.0 and 4.1
                std::stringstream ss;
@@ -256,51 +258,57 @@ class GPUPlugin : public ArchPlugin
 //         
 //      }
 
-virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
-   for ( std::vector<GPUProcessor *>::const_iterator it = _gpus->begin(); it != _gpus->end(); it++ ) {
-      pes.insert( std::make_pair( (*it)->getId(), *it ) );
-   }
-}
-
-virtual void startSupportThreads() {
-   for ( unsigned int gpuC = 0; gpuC < _gpus->size(); gpuC += 1 ) {
-      GPUProcessor *gpu = (*_gpus)[gpuC];
-      (*_gpuThreads)[gpuC] = (ext::GPUThread *) &gpu->startGPUThread();
-   }
-}
-
-virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
-   for ( std::vector<GPUThread *>::iterator it = _gpuThreads->begin(); it != _gpuThreads->end(); it++ ) {
-      workers.insert( std::make_pair( (*it)->getId(), *it ) );
-   }
-}
-
-virtual unsigned int getNumPEs() const {
-   return _gpus->size();
-}
-virtual unsigned int getMaxPEs() const {
-   return _gpus->size();
-}
-virtual unsigned int getNumWorkers() const {
-   return _gpus->size();
-}
-virtual unsigned int getMaxWorkers() const {
-   return _gpus->size();
-}
-
-virtual void finalize() {
-   if ( _gpus ) {
-      int soft_inv = 0;
-      int hard_inv = 0;
-      for ( unsigned int idx = 0; idx < _gpus->size(); idx += 1 ) {
-         soft_inv += sys.getSeparateMemory( (*_gpus)[idx]->getMemorySpaceId() ).getSoftInvalidationCount();
-         hard_inv += sys.getSeparateMemory( (*_gpus)[idx]->getMemorySpaceId() ).getHardInvalidationCount();
+      virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const
+      {
+         for ( std::vector<GPUProcessor *>::const_iterator it = _gpus->begin(); it != _gpus->end(); it++ ) {
+            pes.insert( std::make_pair( (*it)->getId(), *it ) );
+         }
       }
-      message0("GPUs Soft invalidations: " << soft_inv);
-      message0("GPUs Hard invalidations: " << hard_inv);
-   }
-}
 
+      virtual void addDevices( DeviceList &devices ) const
+      {
+         if ( !_gpus->empty() )
+            devices.insert( ( *_gpus->begin() )->getDeviceType() );
+      }
+
+      virtual void startSupportThreads() {
+         for ( unsigned int gpuC = 0; gpuC < _gpus->size(); gpuC += 1 ) {
+            GPUProcessor *gpu = (*_gpus)[gpuC];
+            (*_gpuThreads)[gpuC] = (ext::GPUThread *) &gpu->startGPUThread();
+         }
+      }
+
+      virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
+         for ( std::vector<GPUThread *>::iterator it = _gpuThreads->begin(); it != _gpuThreads->end(); it++ ) {
+            workers.insert( std::make_pair( (*it)->getId(), *it ) );
+         }
+      }
+
+      virtual unsigned int getNumPEs() const {
+         return _gpus->size();
+      }
+      virtual unsigned int getMaxPEs() const {
+         return _gpus->size();
+      }
+      virtual unsigned int getNumWorkers() const {
+         return _gpus->size();
+      }
+      virtual unsigned int getMaxWorkers() const {
+         return _gpus->size();
+      }
+
+      virtual void finalize() {
+         if ( _gpus ) {
+            int soft_inv = 0;
+            int hard_inv = 0;
+            for ( unsigned int idx = 0; idx < _gpus->size(); idx += 1 ) {
+               soft_inv += sys.getSeparateMemory( (*_gpus)[idx]->getMemorySpaceId() ).getSoftInvalidationCount();
+               hard_inv += sys.getSeparateMemory( (*_gpus)[idx]->getMemorySpaceId() ).getHardInvalidationCount();
+            }
+            message0("GPUs Soft invalidations: " << soft_inv);
+            message0("GPUs Hard invalidations: " << hard_inv);
+         }
+      }
 
 };
 

@@ -100,23 +100,25 @@ void WorkDescriptor::notifyCopy()
 }
 
 // That function must be called from the thread it will execute it. This is important
-// from the point of view of tiedness and the device activation. Both operation will
-// involves current thread / pe
+// from the point of view of tiedness and the device activation. Both operations will
+// involve current thread / pe
 void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 {
    ensure ( _state == START , "Trying to start a wd twice or trying to start an uninitialized wd");
 
+   // If there is no active device, choose a compatible one
    ProcessingElement *pe = myThread->runningOn();
-
-
-   // If there are no active device, choose a compatible one
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *( pe->getDeviceType() ) );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
+   
+   ensure ( _activeDeviceIdx != _numDevices, "This WD has no active device. If you are using 'implements' feature, please use versioning scheduler." );
 
    // Waiting for copies
-   if ( getNumCopies() > 0 ) pe->waitInputs( *this );
+   if ( getNumCopies() > 0 ) {
+      pe->waitInputs( *this );
+   }
 
    // Tie WD to current thread
    if ( _flags.to_tie ) tieTo( *myThread );
@@ -136,11 +138,13 @@ void WorkDescriptor::preStart (ULTFlag isUserLevelThread, WorkDescriptor *previo
 
    ProcessingElement *pe = myThread->runningOn();
 
-   // If there are no active device, choose a compatible one
+   // If there is no active device, choose a compatible one
    if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
+
+   _mcontrol.setCacheMetaData();
 
 }
 
@@ -164,7 +168,7 @@ bool WorkDescriptor::isInputDataReady() {
 
       // Setting state to ready
       setReady();
-      _mcontrol.setCacheMetaData();
+      //_mcontrol.setCacheMetaData();
    }
    return result;
 }
@@ -172,6 +176,7 @@ bool WorkDescriptor::isInputDataReady() {
 
 void WorkDescriptor::prepareDevice ()
 {
+   // TODO: This function is never called, so we should remove it
    // Do nothing if there is already an active device
    if ( _activeDeviceIdx != _numDevices ) return;
 
@@ -265,12 +270,34 @@ void WorkDescriptor::finish ()
    if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );
       while ( !_mcontrol.isOutputDataReady( *this ) ) {
-         myThread->idle();
+         myThread->processTransfers();
       }
    }
 
    // Getting execution time
    _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+}
+
+void WorkDescriptor::preFinish ()
+{
+   // At that point we are ready to copy data out
+   if ( getNumCopies() > 0 ) {
+      _mcontrol.copyDataOut( MemController::WRITE_BACK );
+   }
+
+   // Getting execution time
+   _executionTime = ( _numDevices == 1 ? 0.0 : OS::getMonotonicTimeUs() - _executionTime );
+}
+
+
+bool WorkDescriptor::isOutputDataReady()
+{
+   // Test if copies have completed
+   if ( getNumCopies() > 0 ) {
+      return _mcontrol.isOutputDataReady( *this );
+   }
+
+   return true;
 }
 
 void WorkDescriptor::done ()

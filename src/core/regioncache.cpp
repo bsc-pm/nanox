@@ -89,7 +89,7 @@ void AllocatedChunk::lock( bool setVerbose ) {
    //std::cerr << ": " << myThread->getId() <<" : Locked chunk " << (void *) this << std::endl;
    //_lock.acquire();
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->idle();
    }
    //sys.printBt();
    //std::cerr << "x " << myThread->getId() <<" x Locked chunk " << (void *) this << std::endl;
@@ -882,7 +882,7 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
    }
 
    inval_ops.issue( wd );
-   while ( !inval_ops.isDataReady( wd, true ) ) { myThread->idle(); }
+   while ( !inval_ops.isDataReady( wd, true ) ) { myThread->processTransfers(); }
    if ( _VERBOSE_CACHE ) { std::cerr << "===> Invalidation complete at " << _memorySpaceId << " remove access for regs: "; }
    for ( std::set< global_reg_t >::iterator it = regions_to_remove_access.begin(); it != regions_to_remove_access.end(); it++ ) {
    if ( _VERBOSE_CACHE ) { std::cerr << it->id << " "; }
@@ -1149,7 +1149,7 @@ void RegionCache::_syncAndCopyIn( global_reg_t const &reg, unsigned int syncFrom
    origChunk->unlock();
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
    sys.getSeparateMemory( syncFrom ).getCache()._copyOut( reg, hostAddr, origDevAddr, len, cout, fsource, wd, fake );
-   while ( !cout->allCompleted() ){ myThread->idle(); }
+   while ( !cout->allCompleted() ){ myThread->processTransfers(); }
    delete cout;
    this->_copyIn( reg, devAddr, hostAddr, len, ops, (CompleteOpFunctor *) NULL, wd, fake );
 }
@@ -1162,7 +1162,7 @@ void RegionCache::_syncAndCopyInStrided1D( global_reg_t const &reg, unsigned int
    origChunk->unlock();
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
    sys.getSeparateMemory( syncFrom ).getCache()._copyOutStrided1D( reg, hostAddr, origDevAddr, len, numChunks, ld, cout, fsource, wd, fake );
-   while ( !cout->allCompleted() ){ myThread->idle(); }
+   while ( !cout->allCompleted() ){ myThread->processTransfers(); }
    delete cout;
    this->_copyInStrided1D( reg, devAddr, hostAddr, len, numChunks, ld, ops, (CompleteOpFunctor *) NULL, wd, fake );
 }
@@ -1355,7 +1355,7 @@ unsigned int RegionCache::getVersion( global_reg_t const &reg, WD const &wd, uns
 
 void RegionCache::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->idle();
    }
 
    for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
@@ -1395,7 +1395,7 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
    if ( total_allocatable_size <= _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) ) {
       //_lock.acquire();
       while ( !_lock.tryAcquire() ) {
-         myThread->idle();
+         //myThread->idle();
       }
       //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << std::endl;
       //attempt to allocate regions without triggering invalidations, this will reserve any chunk used by this WD

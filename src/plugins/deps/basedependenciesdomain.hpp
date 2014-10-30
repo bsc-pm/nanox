@@ -35,7 +35,7 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
       status.setLastWriter( *commDO );
       commDO->resetReferences();
       //! Finally decrease dummy dependence added in createCommutationDO
-      commDO->decreasePredecessors( NULL ); 
+      commDO->decreasePredecessors( NULL, NULL, false );
    }
 }
 
@@ -285,7 +285,7 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
    if ( initialCommDO != NULL ) {
-      initialCommDO->decreasePredecessors( NULL );
+      initialCommDO->decreasePredecessors( NULL, NULL, false );
    }
 }
 
@@ -323,6 +323,23 @@ inline void BaseDependenciesDomain::submitDependableObjectOutputDataAccess ( Dep
 
    dependOnReadersAndSetAsWriter( depObj, status, target, callback, accessType );
 }
+
+inline void BaseDependenciesDomain::submitDependableObjectOutputNoWriteDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
+{
+    finalizeReduction( status, target );    
+    dependOnReaders( depObj, status, target, callback, accessType );
+}
+
+inline void BaseDependenciesDomain::submitDependableObjectInputNoReadDataAccess ( DependableObject &depObj,
+   BaseDependency const &target, AccessType const &accessType, TrackableObject &status,
+   SchedulePolicySuccessorFunctor* callback )
+{
+   finalizeReduction( status, target );
+   dependOnLastWriter( depObj, status, target, callback, accessType );
+}
+
 
 }
 
