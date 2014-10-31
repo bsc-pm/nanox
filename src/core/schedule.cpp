@@ -68,15 +68,9 @@ void SchedulerConf::config (Config &cfg)
 void Scheduler::submit ( WD &wd, bool force_queue )
 {
    NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING) );
-#if 0
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t criticalityKey = ID->getEventKey("wd-criticality"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t wd_criticality; )
-#endif
    BaseThread *mythread = myThread;
 
    debug ( "submitting task " << wd.getId() );
-   fprintf(stderr, "submiting task %d FORCE Q\n", wd.getId());
    wd.submitted();
    wd.setReady();
 
@@ -87,11 +81,6 @@ void Scheduler::submit ( WD &wd, bool force_queue )
          wd_tiedto->addNextWD( &wd );
       } else {
          wd_tiedto->getTeam()->getSchedulePolicy().queue( wd_tiedto, wd );
-#if 0
-         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd.getSchedulerData()); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent ( criticalityKey, wd_criticality ); )
-         NANOS_INSTRUMENT ( fprintf(stderr, "Threw event! criticality = %d\n", (int)wd_criticality); )
-#endif
       }
       return;
    }
@@ -102,11 +91,6 @@ void Scheduler::submit ( WD &wd, bool force_queue )
       * it in our scheduler system. Global ready task queue will take care about task/thread
       * architecture, while local ready task queue will wait until stealing. */
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
-#if 0
-         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd.getSchedulerData()); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent ( criticalityKey, wd_criticality ); )
-         NANOS_INSTRUMENT ( fprintf(stderr, "Threw event! criticality = %d\n", (int)wd_criticality); )
-#endif
 
       return;
    }
@@ -117,11 +101,6 @@ void Scheduler::submit ( WD &wd, bool force_queue )
       mythread->pause();
       // Scheduler stopped, queue work.
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
-#if 0
-         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd.getSchedulerData()); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent ( criticalityKey, wd_criticality ); )
-         NANOS_INSTRUMENT ( fprintf(stderr, "Threw event! criticality = %d\n", (int)wd_criticality); )
-#endif
 
       return;
    }
@@ -129,11 +108,6 @@ void Scheduler::submit ( WD &wd, bool force_queue )
    myThread->unpause();
    // And go on
    WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
-#if 0
-         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd.getSchedulerData()); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent ( criticalityKey, wd_criticality ); )
-         NANOS_INSTRUMENT ( fprintf(stderr, "Threw event! criticality = %d\n", (int)wd_criticality); )
-#endif
 
    /* If SchedulePolicy have returned a 'next' value, we have to context switch to
       that WorkDescriptor */
@@ -143,11 +117,6 @@ void Scheduler::submit ( WD &wd, bool force_queue )
        * queue the remaining parts of 'next' */
       if ( !next->dequeue(&slice) ) {
          mythread->getTeam()->getSchedulePolicy().queue( mythread, *next );
-#if 0
-         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd.getSchedulerData()); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent ( criticalityKey, wd_criticality ); )
-         NANOS_INSTRUMENT ( fprintf(stderr, "Threw event! criticality = %d\n", (int)wd_criticality); )
-#endif
 
       }
       switchTo ( slice );
@@ -158,7 +127,6 @@ void Scheduler::submit ( WD &wd, bool force_queue )
 void Scheduler::submit ( WD ** wds, size_t numElems )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
-   fprintf(stderr, "submitting tasks %u\n", (unsigned int)numElems); 
    if ( numElems == 0 ) return;
    
    BaseThread *mythread = myThread;
@@ -1214,13 +1182,6 @@ void Scheduler::finishWork( WD * wd, bool schedule )
          }
       }
    }
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t criticalityKey = ID->getEventKey("wd-criticality"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t wd_criticality; )
-         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd->getSchedulerData()); )
-         NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseBurstEvent ( criticalityKey, wd_criticality ); )
-         NANOS_INSTRUMENT ( fprintf(stderr, "Closed event! criticality = %d\n", (int)wd_criticality); )
-
    wd->done();
    wd->clear();
 

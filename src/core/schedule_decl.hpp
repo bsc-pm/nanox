@@ -279,6 +279,7 @@ namespace nanos
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
          virtual void atCreate      ( DependableObject &depObj );
          virtual void atSupport     ( BaseThread *thread );
+         virtual void atShutdown    ( void );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          /*! \brief Batch processing version.

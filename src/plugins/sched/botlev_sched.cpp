@@ -26,22 +26,24 @@
 #include <fstream>
 #include <assert.h>
 
-#define SUPPORT_UPDATE 0 
+#define SUPPORT_UPDATE 1 
 
 namespace nanos {
    namespace ext {
-      static int   updateFreq;
-      static int   hpCores;
-      static int   numSpins;
-      static int   hpFrom;
-      static int   hpTo;
-      static int   hpSingle;
-      static int   steal;
-      static int   maxBL;
-      static int   strict;
-      static unsigned   threshold;
+      static int   updateFreq = 0;
+      static int   numSpins = 300;
+      static int   hpFrom = 0;
+      static int   hpTo = 0;
+      static int   hpSingle = 0;
+      static int   steal = 0;
+      static int   maxBL = 1;
+      static int   strict = 0;
       static int   taskNumber = 0;
-//      static unsigned numThreads;
+      NANOS_INSTRUMENT( static int   numCritical; )   //! The number of critical tasks (for instrumentation)
+
+      /* Helper class for the computation of bottom levels 
+         One instance of this class is stored inside each dependableObject.
+      */
       class BotLevDOData : public DOSchedulerData
       {
          public:
@@ -53,7 +55,9 @@ namespace nanos {
             bool              _isReady;       //! Is the task ready
             Lock              _lock;          //! Structure lock
             WD               *_wd;            //! Related WorkDescriptor
-            predecessors_t    _predecessors;  //! List of (dependable object botlev specific data) predecessors 
+            predecessors_t    _predecessors;  //! List of BotLevDOData predecessors 
+            short             _isCritical;    //! Is the task critical -- needed for reordering the ready queues
+
          public:
             BotLevDOData(int tnum, int blev) : _taskNumber(tnum), _botLevel(blev), _isReady(false), _lock(), _wd(NULL), _predecessors() { }
             ~BotLevDOData() { }
@@ -76,8 +80,11 @@ namespace nanos {
 
             bool getReady() const { return _isReady; }
             void setReady() { _isReady = true; }
+ 
+            void setCriticality( short c ) { _isCritical = c; }
+            short getCriticality()         { return _isCritical; }
 
-            WD *getWorkDescriptor() const { return _wd; }
+            WD* getWorkDescriptor() const { return _wd; }
             void setWorkDescriptor(WD *wd) { _wd = wd; }
 
             std::set<BotLevDOData *> *getPredecessors() { return &_predecessors; }
@@ -88,36 +95,22 @@ namespace nanos {
       {
          public:
             typedef std::stack<BotLevDOData *>   bot_lev_dos_t;
-            typedef std::set<DependableObject *> DependableObjectVector; /**< Type vector of successors  */
+            typedef std::set<DependableObject *> DepObjVector; /**< Type vector of successors  */
 
          private:
-            bot_lev_dos_t           _blStack;     //! tasks added, pending having their bottom level updated
-            DependableObjectVector  topSuccesors;
-            WD * topWD;
-            Lock              _lock;          //! Structure lock
-            Lock              botLevLock;
-            int               maxBotLev;
-            int               currMax;
-            Lock              fileLock;
-            unsigned int      numCritical;
+            bot_lev_dos_t     _blStack;       //! tasks added, pending having their bottom level updated
+            Lock              _stackLock;
+            DepObjVector      _topSuccesors;  //! Successors of the last maxPriority task
+            Lock              _botLevLock;    //! Lock used for topSuccessors and currMax
+            int               _currMax;       //! The priority of the last critical task
 
-            /** \brief DistributedBF Scheduler data associated to each thread
-              *
-              */
             struct TeamData : public ScheduleTeamData
             {
-               /*! queue of ready tasks to be executed */
+               /*! queues of ready tasks to be executed */
                WDPriorityQueue<> *_readyQueues;
                TeamData () : ScheduleTeamData()
                {
-                 _readyQueues = NEW WDPriorityQueue<>[3];
-                 hpCores = hpTo - hpFrom +1;
-//                 fprintf(stderr, "Num Threads in teamData(): %u\n",  myThread->getTeamData()->getTeam()->size());
-                 fprintf(stderr, "queue 0 size = %d, queue 1 size = %d\n", (int)_readyQueues[0].size(), (int)_readyQueues[1].size());
-                 fprintf(stderr, "queue 0 addr = %p queue 1 addr = %p\n", &_readyQueues[0], &_readyQueues[1]);
-                 fprintf(stderr, "numSpins = %d\n", numSpins);
-                 fprintf(stderr, "Running with %d HP cores\n", hpCores);
-                 fprintf(stderr, "hp from = %d hp to = %d \n", hpFrom, hpTo);
+                  _readyQueues = NEW WDPriorityQueue<>[3];
                }
                virtual ~TeamData () { delete[] _readyQueues; }
             };
@@ -136,15 +129,8 @@ namespace nanos {
          public:
             // constructor
             BotLev() : SchedulePolicy ( "BotLev" ) {
-               topWD = NULL;
-               maxBotLev = 0;
-               currMax = maxBL;
-               threshold = 2;
-             //  assert(myThread != NULL);
-               //numThreads = myThread->getTeamData()->getTeam()->getNumSupportingThreads();//->size();//sys.getNumNumaNodes();//getNumCreatedPEs();//getMainTeam()->size();//sys.getNumWorkers();
-//               fprintf(stderr, "Numworkers = %d\n", (int)numThreads);
-               numCritical = 0;
-               if(numSpins == 0) numSpins = 300;
+               _currMax = maxBL;
+               NANOS_INSTRUMENT( numCritical = 0; )
             }
 
             // destructor
@@ -178,7 +164,7 @@ namespace nanos {
                 // Find the priority
                 DependableObject *dos = wd.getDOSubmit();
                 BotLevDOData *dodata;
-                unsigned int priority = 0; //! \todo FIXME priority value is hardcoded
+                unsigned int priority = 0; 
                 short qId = -1;
                 if ( dos ){ //&& numThreads>1 ) {
                    dodata = (BotLevDOData *)dos->getSchedulerData();
@@ -186,7 +172,7 @@ namespace nanos {
                    priority = dodata->getBotLevel();
                 }
                 else {
-	           if(wd.getDepth() == 0 ) {  //fprintf(stderr, "Queueing implicit or main id %d\n", wd.getId());
+	           if(wd.getDepth() == 0 ) { 
                       wd.setPriority(0);
                       data._readyQueues[2].push_back( &wd ); //readyQueue number 2 is for the main and implicit tasks
                    }
@@ -201,78 +187,47 @@ namespace nanos {
                         ScheduleWDData *scData = wd.getSchedulerData(); 
                       scData = (ScheduleWDData*)criticality; 
                    }
-                   fprintf(stderr, "Botlevel submited wd %d criticality = %d\n", wd.getId(), *((int*)wd.getSchedulerData()));
 #endif
                    return;
                 }
-                 // Add it to the priority queue
                 wd.setPriority(priority);
-                if( wd.getPriority() >  currMax)//maxBotLev )
-                {
+                /* Critical tasks' consideration
+                   1st case: Detection of a new longest path (wdPriority > curMaxPriority)
+                   2nd case: Detection of the next critical task in the current lontest path (belongs in _topSuccessors)
+                */
+                if( ( (wd.getPriority() >  _currMax) || (!strict && (wd.getPriority() ==  _currMax) ) ) ||
+                     ( ((_topSuccesors.find( dos )) != (_topSuccesors.end()))
+                      && wd.getPriority() >= _currMax-1 ) ) {
+                   //The task is critical
                    {
-                      LockBlock l(botLevLock);
-                      maxBotLev = wd.getPriority();
-                      currMax = maxBotLev;
-                      topWD = &wd;
-                      topSuccesors = (dos->getSuccessors());
-                      numCritical++;
+                      LockBlock l(_botLevLock);
+                      _currMax = wd.getPriority();
+                      _topSuccesors = (dos->getSuccessors());
+                      NANOS_INSTRUMENT( numCritical++; )
                    }
-                   qId = 1;
-                   NANOS_INSTRUMENT ( *criticality = 1; )
-                }
-                else if (!strict && (wd.getPriority() ==  currMax) )
-                {
-                   {
-                      LockBlock l(botLevLock);
-                      maxBotLev = wd.getPriority();
-                      currMax = maxBotLev;
-                      topWD = &wd;
-                      topSuccesors = (dos->getSuccessors());
-                   }
+                   dodata->setCriticality(1);
                    qId = 1;
                    NANOS_INSTRUMENT ( *criticality = 1; )
                 }
                 else
                 {
-                   //bottom levels are computed dynamically so a successor botlevel may become greater than the botlevel of its predecessor
-                   if( ((topSuccesors.find( dos )) != (topSuccesors.end()))   
-                      && wd.getPriority() >= currMax-1 )            
-                   {
-                      //we are in the critical path!
-                      {
-                         LockBlock l(botLevLock);
-                         currMax = wd.getPriority();
-                         topWD = &wd; 
-                         topSuccesors = (dos->getSuccessors());
-                         numCritical++;
-                      }
-                      qId = 1;
-                      // FOR GRAPH REPRESENTATION: 
-                      // data._readyQueues[3].push_back( &wd );
-                      NANOS_INSTRUMENT ( *criticality = 1; )
-                   }
-                   else 
-                   {
-                      //Non-critical task
-                      qId = 0;
-                      NANOS_INSTRUMENT ( *criticality = 2; )
-                   }
+                   //Non-critical task
+                   dodata->setCriticality(2);
+                   qId = 0;
+                   NANOS_INSTRUMENT ( *criticality = 2; )
                 }
                 data._readyQueues[qId].push_back( &wd ); //queues 0 or 1
                 dodata->setReady();
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-                   if(wd.getSchedulerData() == NULL) {
-                       wd.setSchedulerData((ScheduleWDData*)criticality, true); }
-                   else {
-                        ScheduleWDData *scData = wd.getSchedulerData();
-                      scData = (ScheduleWDData*)criticality;
-                   }
-                   fprintf(stderr, "Botlevel submited wd %d criticality = %d\n", wd.getId(), *((int*)wd.getSchedulerData()));
+                if(wd.getSchedulerData() == NULL) 
+                   wd.setSchedulerData((ScheduleWDData*)criticality, true); 
+                else {
+                   ScheduleWDData *scData = wd.getSchedulerData();
+                   scData = (ScheduleWDData*)criticality;
+                }
       
 #endif
-                // FOR GRAPH REPRESENTATION:
-                //data._readyQueues[3].push_back( &wd );
                 return;
             }
 
@@ -282,6 +237,7 @@ namespace nanos {
                //! Set the bottom level, and add to the stack
                dodata->setBotLevel(botLev);
                stack.push_back(dodata);
+               //Task is ready so, there are no predecessors to be updated
                if( dodata->getReady() )  return;
                // A depth first traversal
                while ( !stack.empty() ) {
@@ -295,26 +251,22 @@ namespace nanos {
                   // Deal with the predecessors
                   std::set<BotLevDOData *> *preds = bd->getPredecessors();
                   
-                  for ( std::set<BotLevDOData *>::iterator pIter = preds->begin(); pIter != preds->end(); pIter++ )
-                  {
+                  for ( std::set<BotLevDOData *>::iterator pIter = preds->begin(); pIter != preds->end(); pIter++ ) {
                      BotLevDOData *pred = *pIter;
                      if(botLevNext > pred->getBotLevel()) {
                         changed = pred->setBotLevel( botLevNext );
                         stack.push_back( pred );
-                        if(changed) { }
                      }
 #if SUPPORT_UPDATE
-                     // update the priorities to the ready tasks
+                     //Reorder the readyQueues if the work descriptor with updated priority is ready
                      WD * predWD = pred->getWorkDescriptor();
                      if ( changed && pred->getReady() && predWD ) {
                            TeamData &data = ( TeamData & ) *myThread->getTeam()->getScheduleData();
-                           int criticality = *((int*)predWD->getSchedulerData());//predWD->getCriticality();
+                           short criticality = pred->getCriticality();
                            if(criticality == 1)
-                              data._readyQueues[2].update_priority( predWD, botLevNext);
+                              data._readyQueues[1].reorderWD(predWD);
                            else if(criticality == 2)
-                              data._readyQueues[0].update_priority( predWD, botLevNext);
-                           else if(criticality == 3)
-                              data._readyQueues[3].update_priority( predWD, botLevNext);
+                              data._readyQueues[0].reorderWD(predWD);
                      } 
 #endif
                   }
@@ -338,11 +290,9 @@ namespace nanos {
                //! Creating DO scheduler data
                BotLevDOData *dodata = new BotLevDOData(++taskNumber, 0);
                depObj.setSchedulerData( (DOSchedulerData*) dodata );
-               int iteration = 0;
-               //! Duplicating dependence info depObj -> dodata 
+
                std::set<DependableObject *> predecessors = depObj.getPredecessors();
                for ( std::set<DependableObject *>::iterator it = predecessors.begin(); it != predecessors.end(); it++ ) {
-                  iteration++;
                   DependableObject *pred = *it;
                   if (pred) {
                      BotLevDOData *predObj = (BotLevDOData *)pred->getSchedulerData();
@@ -354,24 +304,21 @@ namespace nanos {
 
                //! When reaching the threshold we need to update bottom levels,
                //! otherwise we push dodata in a temporal stack
-
-               //! \todo FIXME stack needs a thread safe mechanism
-#if 1 
                if ( _blStack.size() + 1 >= (unsigned int) updateFreq ) {
                   updateBottomLevels(dodata, 0);
                   while ( !_blStack.empty() ) {
                      BotLevDOData *dodata1 = _blStack.top();
-                     if (dodata1->getBotLevel() <= 0) updateBottomLevels(dodata1, 0);
-                     _blStack.pop();
+                     if (dodata1->getBotLevel() <= 0) 
+                        updateBottomLevels(dodata1, 0);
+                     {
+                         LockBlock l(_stackLock);
+                         _blStack.pop();
+                     }
                   }
                } else {
+                  LockBlock l(_stackLock);
                   _blStack.push( dodata );
                }
-#else
-               if ( _blStack.size() + 1 >= (unsigned int) updateFreq ) {
-                  updateBottomLevels(dodata, 0);
-               }
-#endif
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( wd_atCreate, wd_id ); )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( blev_overheads, 1 ); )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( blev_overheads_br, NANOS_SCHED_BLEV_ATCREATE ); )
@@ -387,8 +334,6 @@ namespace nanos {
             virtual WD * atSubmit ( BaseThread *thread, WD &newWD )
             {
                NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-               NANOS_INSTRUMENT( static nanos_event_key_t sched_overheads  = ID->getEventKey("sched-overheads"); )
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sched_overheads, 1 ); )
                NANOS_INSTRUMENT( static nanos_event_key_t blev_overheads  = ID->getEventKey("blev-overheads"); )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( blev_overheads, 1 ); )
                NANOS_INSTRUMENT( static nanos_event_key_t blev_overheads_br  = ID->getEventKey("blev-overheads-breakdown"); )
@@ -396,15 +341,17 @@ namespace nanos {
 
                queue(thread,newWD);
 
-               NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sched_overheads, 1 ); )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( blev_overheads, 1 ); )
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( blev_overheads_br, NANOS_SCHED_BLEV_ATSUBMIT ); )
 
                return 0;
             }
 
-            virtual WD *atIdle ( BaseThread *thread );
-            virtual void atShutdown();
+            virtual WD *atIdle( BaseThread *thread );
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+            virtual void atShutdown( );
+            virtual WD *atBeforeExit( BaseThread *thread, WD &current, bool schedule );
+#endif
       };
 
       /*! 
@@ -415,8 +362,6 @@ namespace nanos {
       WD * BotLev::atIdle ( BaseThread *thread )
       {
          NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-         NANOS_INSTRUMENT( static nanos_event_key_t sched_overheads  = ID->getEventKey("sched-overheads"); )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sched_overheads, 1 ); )
          NANOS_INSTRUMENT( static nanos_event_key_t blev_overheads  = ID->getEventKey("blev-overheads"); )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( blev_overheads, 1 ); )
          NANOS_INSTRUMENT( static nanos_event_key_t blev_overheads_br  = ID->getEventKey("blev-overheads-breakdown"); )
@@ -426,10 +371,10 @@ namespace nanos {
          TeamData &data = ( TeamData & ) *thread->getTeam()->getScheduleData();
          unsigned int spins = numSpins;
 
-         //fprintf(stderr, "Num threads = %u\n",  myThread->getTeamData()->getTeam()->size());
          //Separation of big and small cores - big cores execute from queue 1 - small cores execute from queue 2
-         if( ( myThread->getTeamData()->getTeam()->getNumSupportingThreads() > 1) && ((thread->runningOn()->getId() >= hpFrom && thread->runningOn()->getId() <= hpTo) || 
-             ( hpSingle && thread->runningOn()->getId() == hpSingle ))) {
+         if( ( myThread->getTeamData()->getTeam()->getNumSupportingThreads() > 1) && 
+                ((thread->runningOn()->getId() >= hpFrom && thread->runningOn()->getId() <= hpTo) || 
+                ( hpSingle && thread->runningOn()->getId() == hpSingle )) ) {
             //Big core
             wd = data._readyQueues[1].pop_front( thread );
             while( wd == NULL && spins )
@@ -456,28 +401,39 @@ namespace nanos {
             }
           
          }
-         NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sched_overheads, 1 ); )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( blev_overheads, 1 ); )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( blev_overheads_br, NANOS_SCHED_BLEV_ATIDLE ); )
 
-         if(!wd) wd = data._readyQueues[2].pop_front( thread );   //return wd;
-         //return  data._readyQueues[3].pop_front( thread );
+         if(!wd) wd = data._readyQueues[2].pop_front( thread ); 
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
          if(wd) {
             NANOS_INSTRUMENT ( static nanos_event_key_t criticalityKey = ID->getEventKey("wd-criticality"); )
             NANOS_INSTRUMENT ( nanos_event_value_t wd_criticality; )
             NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd->getSchedulerData()); )
             NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent ( criticalityKey, wd_criticality ); )
-            NANOS_INSTRUMENT ( fprintf(stderr, "Threw event! criticality = %d\n", (int)wd_criticality); )
          }
+#endif
          return wd;
       }
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
       void BotLev::atShutdown() {
+         fprintf(stderr, "\n\nTOTAL TASKS: %u\n", taskNumber);
          fprintf(stderr, "CRITICAL TASKS: %u\n", numCritical);
-         fprintf(stderr, "TOTAL TASKS: %u\n", taskNumber);
+         fprintf(stderr, "PERCENTAGE OF CRITICAL TASKS: %f %%\n", (numCritical*100)/(double)taskNumber);
       }
 
+      WD * BotLev::atBeforeExit(BaseThread *thread, WD &wd, bool schedule) {
+         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+         NANOS_INSTRUMENT ( static nanos_event_key_t criticalityKey = ID->getEventKey("wd-criticality"); )
+         NANOS_INSTRUMENT ( nanos_event_value_t wd_criticality; )
+         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd.getSchedulerData()); )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseBurstEvent ( criticalityKey, wd_criticality ); )
+         return NULL;
+      }
+
+#endif
       class BotLevSchedPlugin : public Plugin
       {
          public:
@@ -486,38 +442,34 @@ namespace nanos {
             virtual void config ( Config &config_ )
             {
                 config_.setOptionsSection( "Bottom level", "Bottom-level scheduling module" );
-                config_.registerConfigOption ( "update-freq", new Config::PositiveVar( updateFreq ), "Defines how often to update the bottom level" );
+                config_.registerConfigOption ( "update-freq", new Config::PositiveVar( updateFreq ), "Defines how often to update the bottom levels" );
                 config_.registerArgOption ( "update-freq", "update-freq" );
                 config_.registerEnvOption ( "update-freq", "NX_BL_FREQ" );
-
-                config_.registerConfigOption ( "hpcores", new Config::PositiveVar( hpCores ), "Defines how many big cores the system has" );
-                config_.registerArgOption ( "hpcores", "hpcores" );
-                config_.registerEnvOption ( "hpcores", "NX_HP_CORES" );
 
                 config_.registerConfigOption ( "numSpins", new Config::PositiveVar( numSpins ), "Defines the number of spins in atIdle (work stealing)" );
                 config_.registerArgOption ( "numSpins", "numSpins" );
                 config_.registerEnvOption ( "numSpins", "NX_NUM_SPINS" );
 
-                config_.registerConfigOption ( "from", new Config::PositiveVar( hpFrom ), "Defines the number of spins in atIdle (work stealing)" );
+                config_.registerConfigOption ( "from", new Config::PositiveVar( hpFrom ), "Sets the thread id of the first fast core" );
                 config_.registerArgOption ( "from", "from" );
                 config_.registerEnvOption ( "from", "NX_HP_FROM" );
 
-                config_.registerConfigOption ( "to", new Config::PositiveVar( hpTo ), "Defines the number of spins in atIdle (work stealing)" );
+                config_.registerConfigOption ( "to", new Config::PositiveVar( hpTo ), "Sets the thread id of the last fast core" );
                 config_.registerArgOption ( "to", "hpTo" );
                 config_.registerEnvOption ( "to", "NX_HP_TO" );
 
-                config_.registerConfigOption ( "single", new Config::IntegerVar( hpSingle ), "Defines the number of spins in atIdle (work stealing)" );
+                config_.registerConfigOption ( "single", new Config::IntegerVar( hpSingle ), "Sets the thread id of a single fast core" );
                 config_.registerArgOption ( "single", "hpSingle" );
 
                 config_.registerConfigOption ( "maxBlev", new Config::IntegerVar( maxBL ), "Defines the initial value of maximum bottom level" );
                 config_.registerArgOption ( "maxBlev", "maxBlev" );
                 config_.registerEnvOption ( "maxBlev", "NX_MAXB" );
 
-                config_.registerConfigOption ( "strict", new Config::IntegerVar( strict ), "Defines if we use strict policy or not" );
+                config_.registerConfigOption ( "strict", new Config::IntegerVar( strict ), "Defines whether we use strict policy. (Strict -- les crit. tasks, Flexible -- more crit. tasks)" );
                 config_.registerArgOption ( "strict", "strict" );
                 config_.registerEnvOption ( "strict", "NX_STRICTB" );
 
-                config_.registerConfigOption ( "steal", new Config::IntegerVar( steal ), "Defines if we use work stealing big <-- small" );
+                config_.registerConfigOption ( "steal", new Config::IntegerVar( steal ), "Defines if we use bi-directional work stealing fast <--> slow" );
                 config_.registerArgOption ( "steal", "steal" );
                 config_.registerEnvOption ( "steal", "NX_STEALB" );
             }
