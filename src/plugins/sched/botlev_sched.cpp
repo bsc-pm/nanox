@@ -149,6 +149,17 @@ namespace nanos {
                return 0;
             }
 
+            struct WDData : public ScheduleWDData
+            {
+               int _criticality;
+
+               void setCriticality( int cr ) { _criticality = cr; }
+               int getCriticality ( ) { return _criticality; }
+               WDData () : _criticality( 0 ) {}
+               virtual ~WDData() {}
+            };
+
+
             /*!
             *  \brief Enqueue a work descriptor in the readyQueue of the passed thread
             *  \param thread pointer to the thread to which readyQueue the task must be appended
@@ -158,7 +169,7 @@ namespace nanos {
             virtual void queue ( BaseThread *thread, WD &wd )
             {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-                int *criticality = (int*)malloc(sizeof(int)); 
+                int criticality; 
 #endif
                 TeamData &data = ( TeamData & ) *thread->getTeam()->getScheduleData();
                 // Find the priority
@@ -180,12 +191,15 @@ namespace nanos {
                       data._readyQueues[2].push_back( &wd );
                    }
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-                   *criticality = 3; 
+                   criticality = 3; 
                    if(wd.getSchedulerData() == NULL) { 
-                       wd.setSchedulerData((ScheduleWDData*)criticality, true); } 
+                       WDData * wddata = new WDData();
+                       wddata->setCriticality(criticality); 
+                       wd.setSchedulerData((ScheduleWDData*)wddata, true);
+                   } 
                    else { 
-                      ScheduleWDData *scData = wd.getSchedulerData(); 
-                      *scData = *((ScheduleWDData*)criticality); 
+                      WDData & scData = *dynamic_cast<WDData*>( wd.getSchedulerData() ); 
+                      scData.setCriticality(criticality); 
                    }
 #endif
                    return;
@@ -207,24 +221,28 @@ namespace nanos {
                    }
                    dodata->setCriticality(1);
                    qId = 1;
-                   NANOS_INSTRUMENT ( *criticality = 1; )
+                   NANOS_INSTRUMENT ( criticality = 1; )
                 }
                 else
                 {
                    //Non-critical task
                    dodata->setCriticality(2);
                    qId = 0;
-                   NANOS_INSTRUMENT ( *criticality = 2; )
+                   NANOS_INSTRUMENT ( criticality = 2; )
                 }
                 data._readyQueues[qId].push_back( &wd ); //queues 0 or 1
                 dodata->setReady();
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-                if(wd.getSchedulerData() == NULL) 
-                   wd.setSchedulerData((ScheduleWDData*)criticality, true); 
+                if(wd.getSchedulerData() == NULL) {
+                       WDData * wddata = new WDData();
+                       wddata->setCriticality(criticality);
+                       wd.setSchedulerData((ScheduleWDData*)wddata, true);
+
+                }
                 else {
-                   ScheduleWDData *scData = wd.getSchedulerData();
-                   *scData = *((ScheduleWDData*)criticality);
+                   WDData & scData = *dynamic_cast<WDData*>( wd.getSchedulerData() );
+                   scData.setCriticality(criticality);
                 }
       
 #endif
@@ -372,8 +390,7 @@ namespace nanos {
          unsigned int spins = numSpins;
 
          //Separation of big and small cores - big cores execute from queue 1 - small cores execute from queue 2
-         //if( ( myThread->getTeamData()->getTeam()->getNumSupportingThreads() > 1) && 
-               if( ((thread->runningOn()->getId() >= hpFrom && thread->runningOn()->getId() <= hpTo) || 
+         if( ((thread->runningOn()->getId() >= hpFrom && thread->runningOn()->getId() <= hpTo) || 
                 ( hpSingle && thread->runningOn()->getId() == hpSingle )) ) {
             //Big core
             wd = data._readyQueues[1].pop_front( thread );
@@ -410,7 +427,8 @@ namespace nanos {
          if(wd) {
             NANOS_INSTRUMENT ( static nanos_event_key_t criticalityKey = ID->getEventKey("wd-criticality"); )
             NANOS_INSTRUMENT ( nanos_event_value_t wd_criticality; )
-            NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd->getSchedulerData()); )
+            NANOS_INSTRUMENT ( WDData & wddata = *dynamic_cast<WDData*>( wd->getSchedulerData() ); )
+            NANOS_INSTRUMENT ( wd_criticality = wddata.getCriticality(); )
             NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenBurstEvent ( criticalityKey, wd_criticality ); )
          }
 #endif
@@ -428,7 +446,8 @@ namespace nanos {
          NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT ( static nanos_event_key_t criticalityKey = ID->getEventKey("wd-criticality"); )
          NANOS_INSTRUMENT ( nanos_event_value_t wd_criticality; )
-         NANOS_INSTRUMENT ( wd_criticality = *((nanos_event_value_t*)wd.getSchedulerData()); )
+         NANOS_INSTRUMENT ( WDData & wddata = *dynamic_cast<WDData*>( wd.getSchedulerData() ); )
+         NANOS_INSTRUMENT ( wd_criticality = wddata.getCriticality(); )
          NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseBurstEvent ( criticalityKey, wd_criticality ); )
          return NULL;
       }
