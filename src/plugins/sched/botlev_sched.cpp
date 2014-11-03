@@ -184,8 +184,8 @@ namespace nanos {
                    if(wd.getSchedulerData() == NULL) { 
                        wd.setSchedulerData((ScheduleWDData*)criticality, true); } 
                    else { 
-                        ScheduleWDData *scData = wd.getSchedulerData(); 
-                      scData = (ScheduleWDData*)criticality; 
+                      ScheduleWDData *scData = wd.getSchedulerData(); 
+                      *scData = *((ScheduleWDData*)criticality); 
                    }
 #endif
                    return;
@@ -224,7 +224,7 @@ namespace nanos {
                    wd.setSchedulerData((ScheduleWDData*)criticality, true); 
                 else {
                    ScheduleWDData *scData = wd.getSchedulerData();
-                   scData = (ScheduleWDData*)criticality;
+                   *scData = *((ScheduleWDData*)criticality);
                 }
       
 #endif
