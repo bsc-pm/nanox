@@ -51,7 +51,6 @@ class SMPPlugin : public SMPBasePlugin
    int                          _availableCores;
    int                          _currentCores;
    int                          _requestedWorkers;
-   int                          _requestedWorkersOMPSS;
    std::vector<SMPProcessor *> *_cpus;
    std::vector<SMPProcessor *> *_cpusByCpuId;
    std::vector<SMPThread *>     _workers;
@@ -88,7 +87,6 @@ class SMPPlugin : public SMPBasePlugin
                  , _availableCores( 0 )
                  , _currentCores( 0 )
                  , _requestedWorkers( -1 )
-                 , _requestedWorkersOMPSS( -1 )
                  , _cpus( NULL )
                  , _cpusByCpuId( NULL )
                  , _workers( 0, (SMPThread *) NULL )
@@ -120,7 +118,7 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption ( "smp-num-pes", "smp-cpus" );
       cfg.registerEnvOption( "smp-num-pes", "NX_SMP_CPUS" );
 
-      cfg.registerConfigOption ( "smp-workers", NEW Config::PositiveVar ( _requestedWorkersOMPSS ), "Worker threads requested." );
+      cfg.registerConfigOption ( "smp-workers", NEW Config::PositiveVar ( _requestedWorkers ), "Worker threads requested." );
       cfg.registerArgOption ( "smp-workers", "smp-workers" );
       cfg.registerEnvOption( "smp-workers", "NX_SMP_WORKERS" );
 
@@ -433,6 +431,10 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void setRequestedWorkers( int workers ) {
       _requestedWorkers = workers;
+   }
+
+   virtual int getRequestedWorkers( void ) const {
+      return _requestedWorkers;
    }
 
    virtual ext::SMPProcessor *getFirstSMPProcessor() const {
@@ -851,10 +853,6 @@ class SMPPlugin : public SMPBasePlugin
       SMPThread &thd = getFirstSMPProcessor()->associateThisThread( untie );
       _workers.push_back( &thd );
       return thd;
-   }
-
-   virtual int getRequestedWorkersOMPSS() const {
-      return _requestedWorkersOMPSS;
    }
 
    virtual void getBindingMaskString( std::ostream &o ) const {

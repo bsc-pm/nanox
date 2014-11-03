@@ -144,7 +144,7 @@ void GPUConfig::apply()
       bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != NULL );
 
       if ( mercuriumHasTasks ) {
-         fatal0( " CUDA tasks were compiled and CUDA was disabled, execution"
+         message0( " CUDA tasks were compiled and CUDA was disabled, execution"
                " could have unexpected behavior and can even hang, check configuration parameters" );
       }
       _numGPUs = 0;

@@ -53,7 +53,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void addCpuMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
       virtual void setRequestedWorkers( int workers ) = 0;
-      virtual int getRequestedWorkersOMPSS() const = 0;
+      virtual int getRequestedWorkers() const = 0;
       virtual void getBindingMaskString( std::ostream &o ) const = 0;
 };
 

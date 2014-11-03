@@ -450,7 +450,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                   switchTo ( next );
                } else {
                   condition->unlock();
-                  if ( Scheduler::inlineWork ( next, false ) ) {
+                  if ( Scheduler::inlineWork ( next, true ) ) {
                      next->~WorkDescriptor();
                      delete[] (char *)next;
                   }
@@ -460,6 +460,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                thread->step();
             } else condition->unlock();
          } else condition->unlock();
+         checks = (unsigned int) sys.getSchedulerConf().getNumChecks();
       } 
       checks--;
    }
