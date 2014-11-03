@@ -180,10 +180,12 @@ class SMPPlugin : public SMPBasePlugin
 
       if ( _availableCores == 0 ) {
          if ( available_cores_by_mask > 0 ) {
-            warning0("SMPPlugin: Unable to detect the number of processors in the system, using the value provided by the process cpu mask (" << available_cores_by_mask << ").");
+            warning0("SMPPlugin: Unable to detect the number of processors in the system.");
+            warning0("SMPPlugin: Using the value provided by the process cpu mask (" << available_cores_by_mask << ").");
             _availableCores = available_cores_by_mask;
          } else if ( _requestedCores > 0 ) {
-            warning0("SMPPlugin: Unable to detect the number of processors in the system and cpu mask not set, using the number of requested cpus (" << _requestedCores << ").");
+            warning0("SMPPlugin: Unable to detect the number of processors in the system and cpu mask not set");
+            warning0("Using the number of requested cpus (" << _requestedCores << ").");
             _availableCores = _requestedCores;
          } else {
             fatal0("SMPPlugin: Unable to detect the number of cpus of the system and --smp-cpus was unset or with a value less than 1.");
@@ -193,7 +195,8 @@ class SMPPlugin : public SMPBasePlugin
 
       if ( _requestedCores > 0 ) { //--smp-cpus flag was set
          if ( _requestedCores > available_cores_by_mask ) {
-            warning0("SMPPlugin: Requested number of cpus is greater than the cpu mask provided, using the value specified by the mask (" << available_cores_by_mask << ").");
+            warning0("SMPPlugin: Requested number of cpus is greater than the cpu mask provided.");
+            warning0("Using the value specified by the mask (" << available_cores_by_mask << ").");
             _currentCores = available_cores_by_mask;
          } else {
             _currentCores = _requestedCores;
@@ -517,7 +520,6 @@ class SMPPlugin : public SMPBasePlugin
       }
       return target;
    }
-
 
    void loadNUMAInfo ()
    {
