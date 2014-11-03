@@ -372,8 +372,8 @@ namespace nanos {
          unsigned int spins = numSpins;
 
          //Separation of big and small cores - big cores execute from queue 1 - small cores execute from queue 2
-         if( ( myThread->getTeamData()->getTeam()->getNumSupportingThreads() > 1) && 
-                ((thread->runningOn()->getId() >= hpFrom && thread->runningOn()->getId() <= hpTo) || 
+         //if( ( myThread->getTeamData()->getTeam()->getNumSupportingThreads() > 1) && 
+               if( ((thread->runningOn()->getId() >= hpFrom && thread->runningOn()->getId() <= hpTo) || 
                 ( hpSingle && thread->runningOn()->getId() == hpSingle )) ) {
             //Big core
             wd = data._readyQueues[1].pop_front( thread );
