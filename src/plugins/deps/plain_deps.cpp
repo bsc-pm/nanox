@@ -166,7 +166,7 @@ namespace nanos {
             
             inline void deleteLastWriter ( DependableObject &depObj, BaseDependency const &target )
             {
-               const Address& address( dynamic_cast<const Address&>( target ) );
+               const Address& address( static_cast<const Address&>( target ) );
                SyncRecursiveLockBlock lock1( getInstanceLock() );
                DepsMap::iterator it = _addressDependencyMap.find( address() );
                
@@ -180,7 +180,7 @@ namespace nanos {
             
             inline void deleteReader ( DependableObject &depObj, BaseDependency const &target )
             {
-               const Address& address( dynamic_cast<const Address&>( target ) );
+               const Address& address( static_cast<const Address&>( target ) );
                SyncRecursiveLockBlock lock1( getInstanceLock() );
                DepsMap::iterator it = _addressDependencyMap.find( address() );
                
@@ -196,7 +196,7 @@ namespace nanos {
             
             inline void removeCommDO ( CommutationDO *commDO, BaseDependency const &target )
             {
-               const Address& address( dynamic_cast<const Address&>( target ) );
+               const Address& address( static_cast<const Address&>( target ) );
                SyncRecursiveLockBlock lock1( getInstanceLock() );
                DepsMap::iterator it = _addressDependencyMap.find( address() );
                

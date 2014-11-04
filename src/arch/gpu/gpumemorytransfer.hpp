@@ -28,7 +28,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-inline void GPUMemoryTransfer::completeTransfer()
+void GPUMemoryTransfer::completeTransfer()
 {
    _hostAddress._ops->completeOp();
    if ( _hostAddress._functor ) {
@@ -38,8 +38,8 @@ inline void GPUMemoryTransfer::completeTransfer()
    delete this;
 }
 
-
-inline GPUMemoryTransferOutList::~GPUMemoryTransferOutList()
+ 
+GPUMemoryTransferOutList::~GPUMemoryTransferOutList()
 {
    if ( !_pendingTransfersAsync.empty() ) {
       warning ( "Attempting to delete the output pending transfers list with already "
@@ -47,7 +47,7 @@ inline GPUMemoryTransferOutList::~GPUMemoryTransferOutList()
    }
 }
 
-inline void GPUMemoryTransferOutList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
+void GPUMemoryTransferOutList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
 {
    GPUMemoryTransfer * mt = NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size );
    _lock.acquire();
@@ -56,7 +56,7 @@ inline void GPUMemoryTransferOutList::addMemoryTransfer ( CopyDescriptor &hostAd
 }
 
 
-inline void GPUMemoryTransferOutAsyncList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
+void GPUMemoryTransferOutAsyncList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
 {
    GPUMemoryTransfer * mt = NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size );
    _lock.acquire();
@@ -64,13 +64,13 @@ inline void GPUMemoryTransferOutAsyncList::addMemoryTransfer ( CopyDescriptor &h
    _lock.release();
 }
 
-inline void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
+void GPUMemoryTransferOutAsyncList::executeMemoryTransfers ()
 {
    executeMemoryTransfers( _pendingTransfersAsync );
 }
 
 
-inline GPUMemoryTransferInAsyncList::~GPUMemoryTransferInAsyncList()
+GPUMemoryTransferInAsyncList::~GPUMemoryTransferInAsyncList()
 {
    ensure( _pendingTransfersAsync.empty(),
          "Attempting to delete the input pending transfers list with already "
@@ -81,7 +81,7 @@ inline GPUMemoryTransferInAsyncList::~GPUMemoryTransferInAsyncList()
                      + toString<size_t>( _requestedTransfers.size() ) + " pending transfers to perform" );
 }
 
-inline void GPUMemoryTransferInAsyncList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
+void GPUMemoryTransferInAsyncList::addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size )
 {
    GPUMemoryTransfer * mt = NEW GPUMemoryTransfer ( hostAddress, deviceAddress, size );
    _lock.acquire();

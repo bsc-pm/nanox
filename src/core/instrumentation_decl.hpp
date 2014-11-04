@@ -633,6 +633,10 @@ namespace nanos {
 
             /* 55 */ registerEventKey("gpu-wd-id","GPU Work Descriptor id:", true, true, true);
 
+            /* 56 */ registerEventKey("wd-criticality","Work descriptor criticality");
+            /* 57 */ registerEventKey("blev-overheads", "Total overheads of botlev scheduler");
+            /* 58 */ registerEventKey("blev-overheads-breakdown", "Overheads of botlev scheduler broken down");
+
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }

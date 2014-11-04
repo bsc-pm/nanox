@@ -266,6 +266,7 @@ typedef std::set<const Device *>  DeviceList;
          char                         *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
+         int                           _criticality;
          //Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          //bool _listed;
          void                        (*_notifyCopy)( WD &wd, BaseThread const &thread);
@@ -583,6 +584,10 @@ typedef std::set<const Device *>  DeviceList;
           *  \paran wd Must be a wd created in this WD's context.
           */
          void workFinished(WorkDescriptor &wd);
+         
+         /*! \brief Early-release all the input dependencies of this WD
+          */
+         void releaseInputDependencies();
 
          /*! \brief Returns the DependenciesDomain object.
           */
@@ -690,6 +695,9 @@ typedef std::set<const Device *>  DeviceList;
 
          //!brief Returns whether a WorkDescriptor is able to re-execute from the beginning if an error is detected.
          bool isRecoverable ( void ) const;
+
+         void setCriticality ( int cr );
+         int getCriticality ( void ) const;
    };
 
    typedef class WorkDescriptor WD;

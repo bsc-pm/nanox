@@ -263,4 +263,13 @@ inline WorkDescriptor * DependableObject::getWD( void ) const
    return _wd;
 }
 
+inline DOSchedulerData* DependableObject::getSchedulerData ( )
+{
+   return _schedulerData;
+}
+
+inline void DependableObject::setSchedulerData ( DOSchedulerData* scData)
+{
+        _schedulerData = scData;
+}
 #endif
