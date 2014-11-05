@@ -194,8 +194,6 @@ void ProcessingElement::sleepThreads()
 {
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); ++it ) {
-      BaseThread *thread = (*it);
-      if ( !thread->isSleeping() ) thread->getTeam()->decreaseFinalSize();
-      thread->sleep();
+      (*it)->sleep();
    }
 }
