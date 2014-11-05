@@ -601,6 +601,7 @@ void System::finish ()
    if ( _workers[0]->isSleeping() ) _workers[0]->wakeup();
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
+   myThread->getTeam()->getSchedulePolicy().atShutdown();
    
    ensure( getMyThreadSafe()->isMainThread(), "Main thread not finishing the application!");
 

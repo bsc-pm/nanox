@@ -624,7 +624,15 @@ if test x$gpu_enabled = xyes ; then
                cuda_version=0
             fi
 
-            gpu_valid=yes
+            #if [ $cuda_version -lt 5000 ]
+            if test "$cuda_version" -lt 5000;
+            then
+               AC_MSG_ERROR([checking if CUDA library is compatible... no (CUDA >= 5.0 needed)])
+               gpu_valid=no
+            else
+               AC_MSG_RESULT([checking if CUDA library is compatible... yes])
+               gpu_valid=yes
+            fi
         fi
     else
              AC_MSG_WARN([Directory "$CUDADIR" does not exist. Disabling GPU Support])
