@@ -15,7 +15,7 @@ export EXTRAE_HOME_MIC=${EXTRAE_HOME_MIC:-/gpfs/scratch/bsc15/bsc15250/marenostr
 
 if [ ! -f $EXTRAE_HOME_MIC/bin/mpi2prv ]
 then
-	echo "Warning: $EXTRAE_HOME_MIC/bin/mpi2prv not found, please configure extrae path with EXTRAE_HOME_MIC env var if you want to trace sfor mics"
+	echo "Warning: $EXTRAE_HOME_MIC/bin/mpi2prv not found, please configure extrae path with EXTRAE_HOME_MIC env var if you want to traces for Xeon PHI"
 fi
 if [ ! -f $EXTRAE_HOME/bin/mpi2prv ]
 then
