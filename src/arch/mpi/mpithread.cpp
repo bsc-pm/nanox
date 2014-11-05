@@ -69,7 +69,7 @@ bool MPIThread::inlineWorkDependent(WD &wd) {
 //Switch to next PE (Round robin way of change PEs to query scheduler)
 bool MPIThread::switchToNextFreePE(int uuid){
    int startPE=_currPe;
-	int currPe=-1;
+	int currPe=_currPe;
 	bool switchedCorrectly=false;
 	
    do {        

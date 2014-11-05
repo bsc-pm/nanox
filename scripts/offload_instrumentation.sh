@@ -5,8 +5,8 @@
 #set EXTRAE_DIR to the same folder than ./extrae.xml one (if using XML)
 #Call this script before your program (for example, $NANOX_HOME/share/offload_instrumentation.sh mpirun -n 2 ./nbody.sh)
 
-AUTO_MERGE_EXTRAE_TRACES=yes
-CLEAR_EXTRAE_TMP_FILES=no
+AUTO_MERGE_EXTRAE_TRACES=${AUTO_MERGE_EXTRAE_TRACES:-yes}
+CLEAR_EXTRAE_TMP_FILES=${CLEAR_EXTRAE_TMP_FILES:-no}
 ulimit -c unlimited
 
 export EXTRAE_HOME=${EXTRAE_HOME:-/gpfs/scratch/bsc15/bsc15250/marenostrum/extrae3.0-host}
