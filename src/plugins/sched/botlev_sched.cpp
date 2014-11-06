@@ -364,13 +364,30 @@ namespace nanos {
 
                return 0;
             }
-
+            virtual void atSuccessor( DependableObject &depObj, DependableObject *pred, short mode, int numPred );
             virtual WD *atIdle( BaseThread *thread );
 #ifdef NANOS_INSTRUMENTATION_ENABLED
             virtual void atShutdown( );
             virtual WD *atBeforeExit( BaseThread *thread, WD &current, bool schedule );
 #endif
       };
+
+
+      void BotLev::atSuccessor( DependableObject &depObj, DependableObject *pred, short mode, int numPred )
+      {
+         if(!mode)
+            depObj.addPredecessor(*pred);
+         else if(mode == 1){ //lock and remove predecessor 
+    
+            SyncLockBlock lock( depObj.getLock() );
+
+            depObj.decreasePredecessorsInLock( pred, numPred );
+         }
+         else if(mode == 2) {  //remove without locking
+            depObj.decreasePredecessorsInLock( pred, numPred );
+         }
+         return;
+      }
 
       /*! 
        *  \brief Function called by the scheduler when a thread becomes idle to schedule it: implements the CILK-scheduler algorithm

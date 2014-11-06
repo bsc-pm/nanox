@@ -194,8 +194,7 @@ namespace nanos
          /*! \brief Auxiliar function of decreasePredecessors() that encapsulates the
           *         mutual exclusion operations.
           */
-          virtual void decreasePredecessorsInLock ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
-                bool blocking, int numPred );
+          virtual void decreasePredecessorsInLock (  DependableObject * finishedPred, int numPred );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */

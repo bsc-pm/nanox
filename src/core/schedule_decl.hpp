@@ -280,6 +280,7 @@ namespace nanos
          virtual void atCreate      ( DependableObject &depObj );
          virtual void atSupport     ( BaseThread *thread );
          virtual void atShutdown    ( void );
+         virtual void atSuccessor   ( DependableObject &depObj, DependableObject *pred, short mode, int numPred );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          /*! \brief Batch processing version.

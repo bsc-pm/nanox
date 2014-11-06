@@ -157,6 +157,11 @@ inline void SchedulePolicy::atShutdown   ( void )
    return;
 }
 
+inline void SchedulePolicy::atSuccessor  ( DependableObject &depObj, DependableObject *pred, short mode, int numPred )
+{
+   return;
+}
+
 inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t numElems )
 {
    for( size_t i = 0; i < numElems; ++i )
