@@ -689,9 +689,6 @@ class SMPPlugin : public SMPBasePlugin
       while ( !(team->isStable()) ) memoryFence();
       if ( num_threads < 0 ) team->setStable(false);
 
-      team->setFinalSize(nthreads);
-
-
       //! \note Creating new workers (if needed)
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       std::vector<ext::SMPProcessor *>::const_iterator it;
@@ -707,6 +704,7 @@ class SMPPlugin : public SMPBasePlugin
          thread = getUnassignedWorker();
          if (!thread) thread = getInactiveWorker();
          if (thread) {
+            team->increaseFinalSize();
             sys.acquireWorker( team, thread, /* enter */ true, /* starring */ false, /* creator */ false );
             num_threads--;
          }
