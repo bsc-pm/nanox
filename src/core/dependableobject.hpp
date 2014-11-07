@@ -118,7 +118,6 @@ inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * 
 inline void DependableObject::decreasePredecessorsInLock ( DependableObject * finishedPred,
        int numPred )
 {
-   fprintf(stderr, "Decreasing predecessors!\n");
    if ( finishedPred != NULL ) {
       if ( getWD() != NULL && finishedPred->getWD() != NULL ) {
          getWD()->predecessorFinished( finishedPred->getWD() );
@@ -158,7 +157,6 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
    {
       SyncLockBlock lock( this->getLock() );
       inserted = _predecessors.insert ( &depObj ).second;
-      fprintf(stderr, "Inserting a predecessor!\n");
    }
 
    return inserted;

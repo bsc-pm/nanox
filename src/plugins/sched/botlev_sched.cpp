@@ -309,7 +309,11 @@ namespace nanos {
                BotLevDOData *dodata = new BotLevDOData(++taskNumber, 0);
                depObj.setSchedulerData( (DOSchedulerData*) dodata );
 
-               std::set<DependableObject *> predecessors = depObj.getPredecessors();
+               std::set<DependableObject *> predecessors;
+               { 
+                  LockBlock l(depObj.getLock());
+                  predecessors = depObj.getPredecessors();
+               }
                for ( std::set<DependableObject *>::iterator it = predecessors.begin(); it != predecessors.end(); it++ ) {
                   DependableObject *pred = *it;
                   if (pred) {

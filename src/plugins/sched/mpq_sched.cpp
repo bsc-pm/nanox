@@ -125,24 +125,25 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void successorFound( DependableObject *predecessor, DependableObject *successor )
+//            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor, short mode, int numPred )
             {
                //debug( "Scheduler::successorFound" );
-
                // if ( ! _useSmartPriority ) return;
                return; //FIXME
+               if ( mode ) return;
 
 
-               if ( predecessor == NULL || successor == NULL ) return;
-               
+ //              if ( predecessor == NULL || successor == NULL ) return;
+
                WD *pred = ( WD* ) predecessor->getRelatedObject();
                if ( pred == NULL ) return;
 
-               WD *succ = ( WD* ) successor->getRelatedObject();
+               WD *succ = ( WD* ) successor.getRelatedObject();
                if ( succ == NULL ) {
                   fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
                }
-               
+
                debug ( "Propagating priority from "
                   << (void*)succ << ":" << succ->getId() << " to "
                   << (void*)pred << ":"<< pred->getId()
@@ -150,11 +151,11 @@ namespace nanos {
                   << ", new priority: " << std::max( pred->getPriority(),
                   succ->getPriority() )
                );
-               
+
                // Propagate priority
                if ( pred->getPriority() < succ->getPriority() ) {
                   pred->setPriority( succ->getPriority() );
-                  
+
                   // Reorder
                   TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
                   WDPriorityQueue<> *q = (WDPriorityQueue<> *) tdata._readyQueue[0];

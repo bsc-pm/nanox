@@ -98,7 +98,7 @@ namespace nanos
          volatile bool            _submitted;
          bool                     _needsSubmission; /**< Does this DependableObject need to be submitted? */
          WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
-         DOSchedulerData           *_schedulerData;  /**< Data needed for specific scheduling policies */
+         DOSchedulerData          *_schedulerData;  /**< Data needed for specific scheduling policies */
 
       public:
         /*! \brief DependableObject default constructor
