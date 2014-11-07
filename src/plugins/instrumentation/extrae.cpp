@@ -355,6 +355,8 @@ class InstrumentationExtrae: public Instrumentation
                }
             } else if (kD->getId() == usr_functName ) {
                // DO Nothing
+            } else if (kD->getId() == 0 ) {
+               // This event is disabled (key id not assigned): do nothing
             } else {
                extrae_value_t *values = (extrae_value_t *) alloca(sizeof(extrae_value_t) * nval);
                char **val_desc = (char **) alloca(sizeof(char *) * nval);

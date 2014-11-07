@@ -127,9 +127,6 @@ devinclude_HEADERS = \
 	address_fwd.hpp \
 	address_decl.hpp \
 	address.hpp \
-	depsregion_fwd.hpp \
-	depsregion_decl.hpp \
-	depsregion.hpp \
 	basedependency_fwd.hpp \
 	basedependency_decl.hpp \
 	graphentry_decl.hpp \

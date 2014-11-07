@@ -67,11 +67,10 @@ void SchedulerConf::config (Config &cfg)
 
 void Scheduler::submit ( WD &wd, bool force_queue )
 {
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+   NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
 
    debug ( "submitting task " << wd.getId() );
-
    wd.submitted();
    wd.setReady();
 
@@ -92,6 +91,7 @@ void Scheduler::submit ( WD &wd, bool force_queue )
       * it in our scheduler system. Global ready task queue will take care about task/thread
       * architecture, while local ready task queue will wait until stealing. */
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
+
       return;
    }
 
@@ -101,6 +101,7 @@ void Scheduler::submit ( WD &wd, bool force_queue )
       mythread->pause();
       // Scheduler stopped, queue work.
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
+
       return;
    }
    // The thread is not paused, mark it as so
@@ -116,6 +117,7 @@ void Scheduler::submit ( WD &wd, bool force_queue )
        * queue the remaining parts of 'next' */
       if ( !next->dequeue(&slice) ) {
          mythread->getTeam()->getSchedulePolicy().queue( mythread, *next );
+
       }
       switchTo ( slice );
    }
@@ -125,7 +127,6 @@ void Scheduler::submit ( WD &wd, bool force_queue )
 void Scheduler::submit ( WD ** wds, size_t numElems )
 {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
-   
    if ( numElems == 0 ) return;
    
    BaseThread *mythread = myThread;

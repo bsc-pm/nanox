@@ -152,6 +152,11 @@ inline void SchedulePolicy::atSupport    ( BaseThread *thread )
    return;
 }
 
+inline void SchedulePolicy::atShutdown   ( void )
+{
+   return;
+}
+
 inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t numElems )
 {
    for( size_t i = 0; i < numElems; ++i )

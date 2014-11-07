@@ -27,6 +27,7 @@ inline const DepsRegion& DepsRegion::operator= ( const DepsRegion &obj )
 {
    _address = obj._address;
    _endAddress = obj._endAddress; 
+   _trackable = obj._trackable;
    return *this;
 }
 
@@ -40,11 +41,12 @@ inline bool DepsRegion::operator== ( const DepsRegion &obj ) const
     return _address==obj._address && _endAddress == obj._endAddress;
 }
 
-inline bool DepsRegion::overlap ( const DepsRegion &obj ) const
+inline bool DepsRegion::overlap ( const BaseDependency &obj ) const
 {       
-    return !( obj._endAddress<_address || obj._address>_endAddress );
+   const DepsRegion& region( static_cast<const DepsRegion&>( obj ) );   
+   return !( region._endAddress<_address || region._address>_endAddress );
 }
-
+ 
 inline bool DepsRegion::operator< ( const DepsRegion &obj ) const
 {
    return _address < obj._address;
@@ -52,7 +54,7 @@ inline bool DepsRegion::operator< ( const DepsRegion &obj ) const
 
 inline BaseDependency* DepsRegion::clone() const
 {
-   return new DepsRegion( _address, _endAddress );
+   return new DepsRegion( _address, _endAddress, _trackable );
 }
 
 inline void * DepsRegion::getAddress () const

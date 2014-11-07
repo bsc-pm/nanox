@@ -21,6 +21,7 @@
 #define _NANOS_DEPSREGION_DECL_H
 
 #include "basedependency_decl.hpp"
+#include "trackableobject_decl.hpp"
 
 namespace nanos
 {
@@ -35,6 +36,7 @@ namespace nanos
       private:
          TargetType              _address; /**< Pointer to the dependency address */
          TargetType _endAddress;
+         TrackableObject* _trackable; /** Trackable which represents this region */
          short _dimensionCount;
          std::vector<nanos_region_dimension_internal_t> _dimensions;
       public:
@@ -42,8 +44,8 @@ namespace nanos
         /*! \brief DepsRegion default constructor
          *  Creates an DepsRegion with the given address associated.
          */
-         DepsRegion ( TargetType address = NULL, TargetType endAddress = NULL, short dimensionCount=0, const nanos_region_dimension_internal_t *dimensions = NULL )
-            : _address( address ) , _endAddress( endAddress ), _dimensionCount(dimensionCount), _dimensions() {
+         DepsRegion ( TargetType address = NULL, TargetType endAddress = NULL, TrackableObject* trackable = NULL, short dimensionCount=0, const nanos_region_dimension_internal_t *dimensions = NULL )
+            : _address( address ) , _endAddress( endAddress ), _trackable(trackable), _dimensionCount(dimensionCount), _dimensions() {
             if (_dimensionCount>0) {
                 _dimensions.reserve(_dimensionCount);
                 for (short i=0; i<dimensionCount; i++) {
@@ -56,8 +58,8 @@ namespace nanos
          *  \param obj another DepsRegion
          */
          DepsRegion ( const DepsRegion &obj ) 
-            :  BaseDependency(), _address ( obj._address ), _endAddress ( obj._endAddress ),
-            _dimensionCount( obj._dimensionCount ), _dimensions( obj._dimensions )  {}
+            :  BaseDependency(), _address ( obj._address ), _endAddress ( obj._endAddress ),  _trackable( obj._trackable ),
+            _dimensionCount( obj._dimensionCount ), _dimensions( obj._dimensions ) {}
 
         /*! \brief DepsRegion destructor
          */
@@ -82,7 +84,7 @@ namespace nanos
          
         /*! \brief Overlap regions operator.
          */
-         bool overlap ( const DepsRegion &obj ) const;
+         bool overlap ( const BaseDependency &obj ) const;
          
          bool operator< ( const DepsRegion &obj ) const;
 
@@ -94,8 +96,17 @@ namespace nanos
          
          //! \brief Returns size
          virtual size_t getSize() const;
-   };
+         
 
+         TrackableObject* getTrackable() const {
+            return _trackable;
+         }
+
+         void setTrackable(TrackableObject* trackable) {
+            _trackable = trackable;
+         }
+         
+   };
 };
 
 #endif

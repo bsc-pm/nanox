@@ -39,6 +39,12 @@ inline bool Address::operator== ( const Address &obj ) const
    return _address == obj._address;
 }
 
+inline bool Address::overlap ( const BaseDependency &obj ) const
+{
+   const Address& address( static_cast<const Address&>( obj ) );
+   return _address == address._address;
+}
+
 inline bool Address::operator< ( const Address &obj ) const
 {
    return _address < obj._address;

@@ -602,6 +602,7 @@ void System::finish ()
    }
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
+   myThread->getTeam()->getSchedulePolicy().atShutdown();
    
    ensure( getMyThreadSafe()->isMainThread(), "Main thread is not finishing the application!");
 

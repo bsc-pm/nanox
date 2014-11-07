@@ -214,7 +214,7 @@ namespace nanos {
                   // For every dependency processed earlier
                   for ( std::list<DataAccess *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {
                      DataAccess* currentDep = *current;                     
-                     if ( newDep.getDepAddress()  == currentDep->getDepAddress() ) {
+                     if ( newDep.getDepAddress()  == currentDep->getDepAddress() && newDep.getSize()  == currentDep->getSize() ) {
                         // Both dependencies use the same address, put them in common
                         currentDep->setInput( newDep.isInput() || currentDep->isInput() );
                         currentDep->setOutput( newDep.isOutput() || currentDep->isOutput() );
@@ -256,7 +256,7 @@ namespace nanos {
              *  \param accessType kind of region access
              *  \param callback Function to call if an immediate predecessor is found.
              */
-            void submitDependableObjectDataAccess( DependableObject &depObj, DepsRegion const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback, TR1::unordered_map<TrackableObject*, bool>& statusMap )
+            void submitDependableObjectDataAccess( DependableObject &depObj, DepsRegion &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback, TR1::unordered_map<TrackableObject*, bool>& statusMap )
             {
                SyncRecursiveLockBlock lock1( getInstanceLock() );
                
@@ -274,6 +274,7 @@ namespace nanos {
                lookupDependency( target, &objs );
                std::vector<TrackableObject*>::iterator it= objs.begin();
                TrackableObject &status = *(*it);
+               target.setTrackable(&status);
                
                //Adding as reader/writer in my "own" status (pos 0)
                if ( accessType.concurrent || accessType.commutative ) {
@@ -330,25 +331,17 @@ namespace nanos {
             
             inline void deleteLastWriter ( DependableObject &depObj, BaseDependency const &target )
             {
-               const DepsRegion& address( dynamic_cast<const DepsRegion&>( target ) );    
-               SyncRecursiveLockBlock lock1( getInstanceLock() );              
-               DepsCacheMap::iterator it= _addressDependencyCache.find(address);     
+               const DepsRegion& address( static_cast<const DepsRegion&>( target ) );    
                
-               //for ( std::vector<TrackableObject*>::iterator it= objs.begin(); it != objs.end(); ++it) {
-               TrackableObject &status = *(*(it->second->getTrackableObjs()->begin()));
+               TrackableObject &status = *address.getTrackable();
                status.deleteLastWriter(depObj);
-               //}
             }
             
             
             inline void deleteReader ( DependableObject &depObj, BaseDependency const &target )
             {
-               const DepsRegion& address( dynamic_cast<const DepsRegion&>( target ) );
-               SyncRecursiveLockBlock lock1( getInstanceLock() );
-               //TrackablesMap::iterator it= _trackableToRegionsMap.find(address);
-               DepsCacheMap::iterator it= _addressDependencyCache.find(address);
-               
-               TrackableObject &status = *(*(it->second->getTrackableObjs()->begin()));
+               const DepsRegion& address( static_cast<const DepsRegion&>( target ) );
+               TrackableObject &status = *address.getTrackable();
                {
                   SyncLockBlock lock2( status.getReadersLock() );
                   status.deleteReader(depObj);
@@ -357,11 +350,8 @@ namespace nanos {
             
             inline void removeCommDO ( CommutationDO *commDO, BaseDependency const &target )
             {
-               const DepsRegion& address( dynamic_cast<const DepsRegion&>( target ) );
-               SyncRecursiveLockBlock lock1( getInstanceLock() );
-               DepsCacheMap::iterator it= _addressDependencyCache.find(address);
-               
-               TrackableObject &status = *(*(it->second->getTrackableObjs()->begin()));
+               const DepsRegion& address( static_cast<const DepsRegion&>( target ) );
+               TrackableObject &status = *address.getTrackable();
                   
                if ( status.getCommDO ( ) == commDO ) {
                   status.setCommDO ( 0 );

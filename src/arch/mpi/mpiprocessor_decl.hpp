@@ -149,7 +149,14 @@ namespace nanos {
             
             void appendToPendingRequests(MPI_Request& req);
             
+            /**
+             * Waits or clears all Pending Requests
+             */
             void clearAllRequests();
+            /**
+             * Tests all pending requests
+             */
+            bool testAllRequests();
 
             BaseThread& startMPIThread(WD* work);
             
