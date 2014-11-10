@@ -1,5 +1,5 @@
-#ifndef OMP_CALLBACKS_H
-#define OMP_CALLBACKS_H
+#ifndef OMPT_CALLBACKS_H
+#define OMPT_CALLBACKS_H
 
 #include "ompt_types.h"
 
@@ -11,7 +11,7 @@ typedef ompt_interface_fn_t (*ompt_function_lookup_t)(
 
 /* threads */
 typedef void (*ompt_thread_callback_t) ( /* for thread */
-      ompt_thread_id_t thread_id /* ID of thread */
+               ompt_thread_id_t thread_id /* ID of thread */
       );
 typedef enum ompt_thread_type_e {
    ompt_thread_initial = 1,
@@ -52,6 +52,7 @@ typedef void (*ompt_task_switch_callback_t) ( /* for task switch */
       ompt_task_id_t suspended_task_id, /* ID of suspended task */
       ompt_task_id_t resumed_task_id /* ID of resumed task */
       );
+
 typedef void (*ompt_new_task_callback_t) ( /* for new tasks */
       ompt_task_id_t parent_task_id, /* ID of parent task */
       ompt_frame_t *parent_task_frame, /* frame data for parent task */
@@ -67,4 +68,12 @@ typedef void (*ompt_control_callback_t) ( /* for control */
 typedef void (*ompt_callback_t)( /* for shutdown */
       void
       );
+
+typedef void (*ompt_new_dependence_callback_t) ( /* for new dependence instrumentation */
+      ompt_task_id_t pred_task_id, /* ID of predecessor task */
+      ompt_task_id_t succ_task_id, /* ID of successor task */
+      ompt_dependence_type_t type, /* Type of dependence */
+      void *data                   /* Pointer to related data */
+      );
+
 #endif
