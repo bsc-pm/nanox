@@ -214,7 +214,7 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                   } else {
                      // We have removed the successor, so we need to decrease its predecessors
                      int  numPred = --_numPredecessors;
-                     sys.getDefaultSchedulePolicy()->atSuccessor( *found, this, 2, numPred );
+                     sys.getDefaultSchedulePolicy()->atSuccessor( *found, this, sys.getDefaultSchedulePolicy()->REMOVE, numPred );
 //                     found->decreasePredecessorsInLock( this, numPred );
                   }
 

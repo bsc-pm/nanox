@@ -126,12 +126,12 @@ namespace nanos {
              * propagated.
              */
 //            void successorFound( DependableObject *predecessor, DependableObject *successor )
-            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor, short mode, int numPred )
+            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor, atSuccessorFlag mode, int numPred )
             {
                //debug( "Scheduler::successorFound" );
                // if ( ! _useSmartPriority ) return;
                return; //FIXME
-               if ( mode ) return;
+               if ( mode != ADD ) return;
 
 
  //              if ( predecessor == NULL || successor == NULL ) return;

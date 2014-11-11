@@ -103,6 +103,7 @@ namespace nanos {
             DepObjVector      _topSuccesors;  //! Successors of the last maxPriority task
             Lock              _botLevLock;    //! Lock used for topSuccessors and currMax
             int               _currMax;       //! The priority of the last critical task
+            int               _maxBotLev;     //! The maximum priority of the tdg
 
             struct TeamData : public ScheduleTeamData
             {
@@ -129,7 +130,7 @@ namespace nanos {
          public:
             // constructor
             BotLev() : SchedulePolicy ( "BotLev" ) {
-               _currMax = maxBL;
+               _currMax = _maxBotLev = maxBL;
                NANOS_INSTRUMENT( numCritical = 0; )
             }
 
@@ -206,12 +207,26 @@ namespace nanos {
                 }
                 wd.setPriority(priority);
                 /* Critical tasks' consideration
-                   1st case: Detection of a new longest path (wdPriority > curMaxPriority)
+                   1st case: Detection of a new longest path (wdPriority > maxPriority)
                    2nd case: Detection of the next critical task in the current lontest path (belongs in _topSuccessors)
+                   3rd case: The remaining tasks are not critical
                 */
-                if( ( (wd.getPriority() >  _currMax) || (!strict && (wd.getPriority() ==  _currMax) ) ) ||
-                     ( ((_topSuccesors.find( dos )) != (_topSuccesors.end()))
-                      && wd.getPriority() >= _currMax-1 ) ) {
+                if( ( wd.getPriority() >  _maxBotLev ) || 
+                    ( !strict && (wd.getPriority() ==  _maxBotLev)) ) {
+                   //The task is critical
+                   {
+                      LockBlock l(_botLevLock);
+                      _maxBotLev = wd.getPriority();
+                      _currMax = _maxBotLev;
+                      _topSuccesors = (dos->getSuccessors());
+                      NANOS_INSTRUMENT( numCritical++; )
+                   }
+                   dodata->setCriticality(1);
+                   qId = 1;
+                   NANOS_INSTRUMENT ( criticality = 1; )
+                }
+                else if( ((_topSuccesors.find( dos )) != (_topSuccesors.end()))
+                         && wd.getPriority() >= _currMax-1 ) {
                    //The task is critical
                    {
                       LockBlock l(_botLevLock);
@@ -243,6 +258,16 @@ namespace nanos {
                 else {
                    WDData & scData = *dynamic_cast<WDData*>( wd.getSchedulerData() );
                    scData.setCriticality(criticality);
+                }
+                WDData & wddata = *dynamic_cast<WDData*>( wd.getSchedulerData() );
+                if(wddata.getCriticality() == 1) {
+                   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+                   NANOS_INSTRUMENT ( static nanos_event_key_t critical_wd_id = ID->getEventKey("critical-wd-id"); )
+                   NANOS_INSTRUMENT ( nanos_event_key_t crit_key[1]; )
+                   NANOS_INSTRUMENT ( nanos_event_value_t crit_value[1]; )
+                   NANOS_INSTRUMENT ( crit_key[0] = critical_wd_id; )
+                   NANOS_INSTRUMENT ( crit_value[0] = (nanos_event_value_t) wd.getId(); )
+                   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, crit_key, crit_value); )
                 }
       
 #endif
@@ -368,7 +393,7 @@ namespace nanos {
 
                return 0;
             }
-            virtual void atSuccessor( DependableObject &depObj, DependableObject *pred, short mode, int numPred );
+            virtual void atSuccessor( DependableObject &depObj, DependableObject *pred, atSuccessorFlag mode, int numPred );
             virtual WD *atIdle( BaseThread *thread );
 #ifdef NANOS_INSTRUMENTATION_ENABLED
             virtual void atShutdown( );
@@ -377,17 +402,17 @@ namespace nanos {
       };
 
 
-      void BotLev::atSuccessor( DependableObject &depObj, DependableObject *pred, short mode, int numPred )
+      void BotLev::atSuccessor( DependableObject &depObj, DependableObject *pred, atSuccessorFlag mode, int numPred )
       {
-         if(!mode)
+         if(mode == ADD)
             depObj.addPredecessor(*pred);
-         else if(mode == 1){ //lock and remove predecessor 
+         else if(mode == REMOVE_IN_LOCK){ //lock and remove predecessor 
     
             SyncLockBlock lock( depObj.getLock() );
 
             depObj.decreasePredecessorsInLock( pred, numPred );
          }
-         else if(mode == 2) {  //remove without locking
+         else if(mode == REMOVE) {  //remove without locking
             depObj.decreasePredecessorsInLock( pred, numPred );
          }
          return;

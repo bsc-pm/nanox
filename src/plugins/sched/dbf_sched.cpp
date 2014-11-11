@@ -80,11 +80,11 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor, short mode, int numPred )
+            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor,  atSuccessorFlag mode, int numPred )
             {
                //debug( "Scheduler::successorFound" );
 
-               if ( ! _useSmartPriority || mode ) return;
+               if ( ! _useSmartPriority || (mode != ADD) ) return;
 
 
  //              if ( predecessor == NULL || successor == NULL ) return;
