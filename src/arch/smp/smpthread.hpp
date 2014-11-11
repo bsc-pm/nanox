@@ -91,6 +91,7 @@ namespace ext
           */
          virtual void sleep();
          // PThread functions
+         virtual void initMain() { _pthread.initMain(); };
          virtual void start() { _pthread.start( this ); }
          virtual void finish() { _pthread.finish(); BaseThread::finish(); }
          virtual void join() { _pthread.join(); joined(); }

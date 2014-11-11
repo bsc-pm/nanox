@@ -658,6 +658,9 @@ void System::finish ()
       sys.getNetwork()->nodeBarrier();
    }
 
+   //! \note Master leaves team and finalizes thread structures (before insrumentation ends)
+   _workers[0]->finish();
+
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
@@ -685,10 +688,7 @@ void System::finish ()
    //! \note  printing thread team statistics and deleting it
    if ( team->getScheduleData() != NULL ) team->getScheduleData()->printStats();
 
-   myThread->leaveTeam();
-
    ensure(team->size() == 0, "Trying to finish execution, but team is still not empty");
-
    delete team;
 
    //! \note deleting processing elements (but main pe)

@@ -103,9 +103,10 @@ SMPThread &SMPProcessor::associateThisThread( bool untieMain ) {
    NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) master.getId(), 0, 0 ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = master.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
-   
+
    SMPThread &thread = (SMPThread &)createThread( worker );
 
+   thread.initMain();
    thread.setMainThread();
    thread.associate( &master );
 
