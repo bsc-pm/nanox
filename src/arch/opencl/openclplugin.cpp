@@ -79,7 +79,7 @@ public:
       for ( unsigned int openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {
          memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::OpenCLDev, nanos::ext::OpenCLConfig::getAllocWide() );
          SeparateMemoryAddressSpace &oclmemory = sys.getSeparateMemory( id );
-         oclmemory.setNodeNumber( 0 );
+         oclmemory.setAcceleratorNumber( sys.getNewAcceleratorId() );
 
          ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
          if ( core == NULL ) {

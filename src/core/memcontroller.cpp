@@ -209,7 +209,7 @@ bool MemController::allocateTaskMemory() {
       for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
          if ( _memCacheCopies[idx]._reg.key->getKeepAtOrigin() ) {
             //std::cerr << "WD " << _wd.getId() << " rooting to memory space " << _pe->getMemorySpaceId() << std::endl;
-            _memCacheCopies[idx]._reg.setRooted();
+            _memCacheCopies[idx]._reg.setOwnedMemory( _pe->getMemorySpaceId() );
          }
       }
    }
@@ -406,16 +406,20 @@ std::size_t MemController::getTotalAmountOfData() const {
 
 bool MemController::isRooted( memory_space_id_t &loc ) const {
    bool result = false;
-   unsigned int count = 0;
+   memory_space_id_t refLoc = (memory_space_id_t) -1;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-      //std::cout << "Copy " << index << " addr " << (void *) _wd.getCopies()[index].getBaseAddress() << std::endl;
-      if ( _memCacheCopies[ index ].isRooted( loc ) ) {
-         count += 1;
-         result = true; 
+      memory_space_id_t thisLoc;
+      if ( _memCacheCopies[ index ].isRooted( thisLoc ) ) {
+         thisLoc = thisLoc == 0 ? 0 : ( sys.getSeparateMemory( thisLoc ).getNodeNumber() != 0 ? thisLoc : 0 );
+         if ( refLoc == (memory_space_id_t) -1 ) {
+            refLoc = thisLoc;
+            result = true;
+         } else {
+            result = (refLoc == thisLoc);
+         }
       }
-      //std::cout << "Copy " << index << " addr " << (void *) _wd.getCopies()[index].getBaseAddress() << " count " << count << std::endl;
    }
-   ensure(count <= 1, "Invalid count of rooted copies! (> 1).");
+   if ( result ) loc = refLoc;
    return result;
 }
 
