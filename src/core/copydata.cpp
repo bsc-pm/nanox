@@ -1,4 +1,6 @@
 #include "copydata.hpp"
+#include "basethread.hpp"
+#include "debug.hpp"
 #include <ostream>
 
 using namespace nanos;
@@ -43,6 +45,69 @@ void CopyData::getFitDimensions( nanos_region_dimension_internal_t *outDimension
          outDimensions[ idx ].lower_bound = 0;
          outDimensions[ idx ].accessed_length = dimensions[ idx ].size;
       }
+   }
+}
+
+
+void CopyData::deductCd( CopyData const &ref, CopyData *out ) const {
+   if ( ref.getNumDimensions() < this->getNumDimensions() ) {
+      fatal("Can not deduct the region, provided reference has more " <<
+            "dimensions (" << this->getNumDimensions() << ") than registered " <<
+            "object (" << ref.getNumDimensions() << ").");
+   } else if ( ref.getNumDimensions() > this->getNumDimensions() ) {
+      unsigned int matching = 0;
+      std::size_t elemSize[ ref.getNumDimensions() ];
+      nanos_region_dimension_internal_t const *refDims = ref.getDimensions();
+      nanos_region_dimension_internal_t const *thisDims = this->getDimensions();
+      nanos_region_dimension_internal_t *outDims = out->getDimensions();
+      unsigned int dimIdx;
+      std::size_t current_elem_size = 1;
+      std::size_t current_offset = 0;
+      uint64_t off = (uint64_t)this->getBaseAddress() - (uint64_t)ref.getBaseAddress();
+      for ( dimIdx = 0; dimIdx < this->getNumDimensions(); dimIdx += 1) {
+         if ( refDims[ dimIdx ].size == thisDims[ dimIdx ].size ) {
+            matching += 1;
+            outDims[ dimIdx ].size = thisDims[ dimIdx ].size;
+            outDims[ dimIdx ].accessed_length = thisDims[ dimIdx ].accessed_length;
+            outDims[ dimIdx ].lower_bound = thisDims[ dimIdx ].lower_bound;
+            current_offset += thisDims[ dimIdx ].lower_bound * current_elem_size;
+            current_elem_size *= refDims[ dimIdx ].size;
+            elemSize[ dimIdx ] = current_elem_size;
+            if ( off % elemSize[dimIdx] != 0 ) { 
+               //for now, address must be aligned, if not, lower_bound must
+               //be used to adjust the offset
+               fatal("Address does not correspond with the provided lower_bound ("
+                     << thisDims[dimIdx].lower_bound << ") for dimension #"
+                     << dimIdx << ")." );
+            }
+         } else if ( refDims[ dimIdx ].size > thisDims[ dimIdx ].size ) {
+            fatal("can't deduct dimensions of registered object. Specified dimension "
+                  << dimIdx << " size (" << thisDims[dimIdx].size <<
+                  ") does not match with registered object dimension size ("<<
+                  refDims[dimIdx].size <<").");
+         } else { /* refDims[ dimIdx ].size < thisDims[ dimIdx ].size */
+            fatal("can't deduct dimensions of registered object. Specified dimension "
+                  << dimIdx << " size (" << thisDims[dimIdx].size <<
+                  ") does not match with registered object dimension size ("<<
+                  refDims[dimIdx].size <<").");
+         }
+      }
+      for ( ; dimIdx < ref.getNumDimensions(); dimIdx += 1 ) {
+         current_elem_size *= refDims[ dimIdx ].size;
+         elemSize[ dimIdx ] = current_elem_size;
+      }
+
+      for ( unsigned int idx = this->getNumDimensions(); idx < ref.getNumDimensions(); idx += 1 ) {
+         //uint64_t toff = ((off - current_offset) % elemSize[idx]) % elemSize[ idx-1 ];
+         //std::cerr << " offset: " << current_offset << " off: " << off << " elemSize(" << idx << "): " << elemSize[idx] << " elemSize(" << idx-1 << ") " << elemSize[idx-1]<< std::endl;
+         uint64_t lower_bound = (off % elemSize[idx]) / elemSize[ idx-1 ];
+         outDims[ idx ].size = refDims[ idx ].size;
+         outDims[ idx ].lower_bound = lower_bound;
+         outDims[ idx ].accessed_length = 1;
+         //std::cerr << idx << " this dim lower bound: " << lower_bound << " size: " << refDims[ idx ].size << " off: "<< current_offset << std::endl;
+      }
+   } else {
+      ::memcpy(out->getDimensions(), this->getDimensions(), sizeof(nanos_region_dimension_internal_t) * this->getNumDimensions());
    }
 }
 

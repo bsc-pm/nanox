@@ -79,7 +79,7 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes()
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0)
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -1502,4 +1502,10 @@ memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allo
    SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide );
    _separateAddressSpaces[ id ] = mem;
    return id;
+}
+
+void System::registerObject(int numObjects, nanos_copy_data_internal_t *obj) {
+   for ( int i = 0; i < numObjects; i += 1 ) {
+      _hostMemory.registerObject( &obj[i] );
+   }
 }

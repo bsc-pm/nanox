@@ -32,15 +32,42 @@ class MemoryChunk {
    public:
       typedef enum {
          NO_OVERLAP,
+            /* [_____ this _____]
+             *                     [_ target _]
+             */
          BEGIN_OVERLAP,
+            /*     [_____ this _____]
+             * [_ target _]
+             */
          END_OVERLAP,
+            /* [_____ this _____]
+             *             [_ target _]
+             */
          TOTAL_OVERLAP,
+            /*     [__ this __]
+             *  [____ target ____]
+             */
          SUBCHUNK_OVERLAP,
+            /* [_____ this _____]
+             *    [_ target _]
+             */
          TOTAL_BEGIN_OVERLAP,
+            /*  [__ this __]
+             *  [____ target ____]
+             */
          SUBCHUNK_BEGIN_OVERLAP,
+            /* [_____ this _____]
+             * [_ target _]
+             */
          TOTAL_END_OVERLAP,
+            /*        [__ this __]
+             *  [____ target ____]
+             */
          SUBCHUNK_END_OVERLAP
-       } OverlapType;
+            /* [_____ this _____]
+             *       [_ target _]
+             */
+      } OverlapType;
       
       static char const * strOverlap[];
 
@@ -69,9 +96,10 @@ class MemoryChunk {
 
 template <typename _Type>
 class MemoryMap : public std::map< MemoryChunk, _Type * > { 
+   using std::map< MemoryChunk, _Type *>::operator=;
+   //private:
+   //   const MemoryMap & operator=( const MemoryMap &mm ) { this->std::map< MemoryChunk}
    public:
-      MemoryMap( const MemoryMap &mm ) : std::map< MemoryChunk, _Type *> () { }
-      const MemoryMap & operator=( const MemoryMap &mm ) { }
       //typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
       typedef std::map< MemoryChunk, _Type * > BaseMap;
       typedef std::pair< const MemoryChunk *, _Type ** > MemChunkPair;
@@ -81,7 +109,8 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       typedef typename BaseMap::iterator iterator;
       typedef typename BaseMap::const_iterator const_iterator;
 
-      MemoryMap() { }
+      MemoryMap() : std::map< MemoryChunk, _Type * >() { }
+      MemoryMap( const MemoryMap &mm ) : std::map< MemoryChunk, _Type * >( mm ) { }
       ~MemoryMap() {
          for ( iterator it = this->begin(); it != this->end(); it++ ) {
             delete it->second;
@@ -93,7 +122,6 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
       void getWithOverlap( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
       void getWithOverlapNoExactKey( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
-
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void getOrAddChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
@@ -102,6 +130,10 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void print() const;
       bool canPack() const;
       void removeChunks( uint64_t addr, std::size_t len );
+      _Type **getExactInsertIfNotFound( uint64_t addr, std::size_t len );
+      _Type *getExactByAddress( uint64_t addr ) const;
+      void eraseByAddress( uint64_t addr );
+      _Type **getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact );
 };
 
 #if 1
@@ -128,6 +160,9 @@ class MemoryMap<uint64_t> : public std::map< MemoryChunk, uint64_t > {
       //void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       //void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       //void print() const;
+      uint64_t getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid );
+      uint64_t getExactInsertIfNotFound( uint64_t addr, std::size_t len, uint64_t valIfNotFound, uint64_t valIfNotValid );
+      uint64_t getExactByAddress( uint64_t addr, uint64_t valIfNotFound ) const;
 };
 #endif
 

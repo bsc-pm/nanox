@@ -3,7 +3,9 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <stdlib.h>
 #include "memorymap_decl.hpp"
+#include "printbt_decl.hpp"
 
 namespace nanos {
 
@@ -1589,6 +1591,123 @@ void MemoryMap< _Type >::removeChunks( uint64_t addr, std::size_t len ) {
       it_end++;
    }
    this->erase( it_begin, it_end );
+}
+
+template < typename _Type >
+_Type **MemoryMap< _Type >::getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact ) {
+   _Type **ptr = (_Type **) NULL;
+   MemoryChunk key( addr, len );
+   iterator it = this->lower_bound( key );
+   if ( it == this->end() )
+   {
+      /* not exact match found, check it-- */
+      if ( this->size() == 0 ) {
+         it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+         ptr = &( it->second );
+         exact = true;
+      } else {
+         it--;
+         MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
+         if ( ov == MemoryChunk::NO_OVERLAP ) {
+            it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+            ptr = &( it->second );
+            exact = true;
+         } else if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
+               ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
+               ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
+            ptr = &( it->second );
+            exact = false;
+         }
+      }
+   } else if ( this->key_comp()( key, it->first ) ) {
+      /* key less than it->first, not total overlap guaranteed */
+      ptr = NULL;
+      exact = false;
+   } else if ( it->first.getLength() != len ) {
+      /* same addr, wrong length */
+      MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
+      if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
+            ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
+            ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
+         ptr = &( it->second );
+         exact = false;
+      } else {
+         ptr = NULL;
+         exact = false;
+      }
+   } else {
+      /* exact address found */
+      ptr = &( it->second );
+      exact = true;
+   }
+   return ptr;
+}
+
+template < typename _Type >
+_Type **MemoryMap< _Type >::getExactInsertIfNotFound( uint64_t addr, std::size_t len ) {
+   _Type **ptr = (_Type **) NULL;
+   MemoryChunk key( addr, len );
+   iterator it = this->lower_bound( key );
+   if ( it == this->end() )
+   {
+      /* not exact match found, check it-- */
+      if ( this->size() == 0 ) {
+         it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+         ptr = &( it->second );
+      } else {
+         it--;
+         if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
+            it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+            ptr = &( it->second );
+         } else {
+            ptr = NULL;
+         }
+      }
+   } else if ( this->key_comp()( key, it->first ) ) {
+      /* less than addr */
+      if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
+         it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+         ptr = &( it->second );
+      } else {
+         ptr = NULL;
+      }
+   } else if ( it->first.getLength() != len ) {
+      /* same addr, wrong length */
+      ptr = NULL;
+   } else {
+      /* exact address found */
+      ptr = &( it->second );
+   }
+   return ptr;
+}
+
+template < typename _Type >
+_Type *MemoryMap< _Type >::getExactByAddress( uint64_t addr ) const {
+   _Type *ptr = (_Type *) NULL;
+   MemoryChunk key( addr, 0 );
+   const_iterator it = this->lower_bound( key );
+   if ( it == this->end() || this->key_comp()( key, it->first ) )
+   {
+      /* not exact match found */
+      ptr = NULL;
+   } else {
+      /* exact address found */
+      ptr = it->second;
+   }
+   return ptr;
+}
+
+template < typename _Type >
+void MemoryMap< _Type >::eraseByAddress( uint64_t addr ) {
+   MemoryChunk key( addr, 0 );
+   iterator it = this->lower_bound( key );
+   if ( it == this->end() || this->key_comp()( key, it->first ) )
+   {
+      std::cerr << "Could not erase, address not found." << std::endl;
+      exit(-1);
+   } else {
+      this->erase( it );
+   }
 }
 
 }

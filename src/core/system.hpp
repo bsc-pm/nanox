@@ -585,5 +585,13 @@ inline void System::setUserDefinedNUMANode( int nodeId ) {
    _userDefinedNUMANode = nodeId;
 }
 
+inline unsigned int System::getNumAccelerators() const {
+   return _acceleratorCount;
+}
+
+inline unsigned int System::getNewAcceleratorId() {
+   return _acceleratorCount++;
+}
+
 #endif
 

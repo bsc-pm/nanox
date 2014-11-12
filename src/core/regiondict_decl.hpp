@@ -71,6 +71,7 @@ typedef unsigned int reg_t;
       Lock                       _invalidationsLock;
       std::map< reg_t, reg_t >   _masterIdToLocalId;
       bool                       _keepAtOrigin;
+      CopyData                  *_registeredObject;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
@@ -92,6 +93,8 @@ typedef unsigned int reg_t;
       reg_t getLocalRegionIdFromMasterRegionId( reg_t masterId ) const;
       void setKeepAtOrigin( bool value );
       bool getKeepAtOrigin() const;
+      void setRegisteredObject( CopyData *cd );
+      CopyData *getRegisteredObject() const;
    };
 
    template < template <class> class > class RegionDictionary;
@@ -152,7 +155,7 @@ typedef unsigned int reg_t;
       reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t obtainRegionId( CopyData const &cd, WorkDescriptor const &wd, unsigned int idx );
       reg_t obtainRegionId( nanos_region_dimension_internal_t region[] );
-      reg_t tryObtainRegionId( CopyData const &cd );
+      //reg_t tryObtainRegionId( CopyData const &cd );
       void addLeaf( RegionNode *leaf );
 
       uint64_t getKeyBaseAddress() const;
