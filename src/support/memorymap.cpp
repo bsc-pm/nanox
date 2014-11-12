@@ -254,8 +254,14 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
       }
    } else if ( this->key_comp()( key, it->first ) ) {
       /* key less than it->first, not total overlap guaranteed */
-      val = valIfNotValid;
-      exact = false;
+      if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
+         it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+         val = it->second;
+         exact = true;
+      } else {
+         val = valIfNotValid;
+         exact = false;
+      }
    } else if ( it->first.getLength() != len ) {
       /* same addr, wrong length */
       MemoryChunk::OverlapType ov = it->first.checkOverlap( key );

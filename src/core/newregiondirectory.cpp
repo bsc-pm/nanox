@@ -85,8 +85,10 @@ uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len ) {
    uint64_t keyIfNotFound = ( _keysSeed + 1 == 0 ) ? 1 : _keysSeed + 1;
    uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0 );
    if ( key == 0 ) {
-   printBt(std::cerr);
+      printBt(std::cerr);
       fatal("invalid key, can not continue.");
+   } else if ( key == keyIfNotFound ) {
+      _keysSeed += 1;
    }
    _keysLock.release();
    return key;

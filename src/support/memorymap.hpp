@@ -1621,8 +1621,14 @@ _Type **MemoryMap< _Type >::getExactOrFullyOverlappingInsertIfNotFound( uint64_t
       }
    } else if ( this->key_comp()( key, it->first ) ) {
       /* key less than it->first, not total overlap guaranteed */
-      ptr = NULL;
-      exact = false;
+      if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
+         it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+         ptr = &( it->second );
+         exact = true;
+      } else {
+         ptr = NULL;
+         exact = false;
+      }
    } else if ( it->first.getLength() != len ) {
       /* same addr, wrong length */
       MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
