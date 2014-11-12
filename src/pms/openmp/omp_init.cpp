@@ -238,7 +238,7 @@ namespace nanos
          _description = std::string("OmpSs");
          _malleable = true;
          sys.setInitialMode( System::POOL );
-         sys.setUntieMaster(true);
+         sys.setUntieMaster(false);
       }
 
       /*! \brief Get the size of OmpSsData */
