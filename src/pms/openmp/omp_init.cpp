@@ -219,7 +219,7 @@ namespace nanos
 
          int num_threads = sys.getSMPPlugin()->getRequestedWorkersOMPSS();
          if ( _numThreadsOMP != -1 ) {
-            std::cerr << "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recomended way to set the number of worker smp threads is using the flag --smp-workers." << std::endl;
+            std::cerr << "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recommended way to set the number of worker smp threads is using the flag --smp-workers." << std::endl;
             if ( num_threads == -1 ) {
                std::cerr << "Option --smp-workers not set, will use OMP_NUM_THREADS instead, value: " << _numThreads << "." << std::endl;
                num_threads = _numThreadsOMP;

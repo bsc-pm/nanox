@@ -64,7 +64,7 @@ std::ostream & nanos::operator<< (std::ostream &o, nanos::NewNewDirectoryEntryDa
    return o;
 }
 
-NewNewRegionDirectory::HashBucket::HashBucket() : _lock(), _bobjects() { }
+NewNewRegionDirectory::HashBucket::HashBucket() : _lock(), _bobjects( NULL ) { }
 
 NewNewRegionDirectory::HashBucket::HashBucket( NewNewRegionDirectory::HashBucket const &hb ) : _lock(), _bobjects( hb._bobjects ) { }
 
@@ -72,30 +72,86 @@ NewNewRegionDirectory::HashBucket &NewNewRegionDirectory::HashBucket::operator=(
    _bobjects = hb._bobjects;
    return *this;
 }
+NewNewRegionDirectory::HashBucket::~HashBucket() { }
 
 #define HASH_BUCKETS 256
 
-NewNewRegionDirectory::NewNewRegionDirectory() : _objects( HASH_BUCKETS, HashBucket() ) {}
+NewNewRegionDirectory::NewNewRegionDirectory() : _keys(), _keysSeed( 1 ),
+   _keysLock(), _objects( HASH_BUCKETS, HashBucket() ) {}
+
+uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len ) {
+   bool exact;
+   _keysLock.acquire();
+   uint64_t keyIfNotFound = ( _keysSeed + 1 == 0 ) ? 1 : _keysSeed + 1;
+   uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0 );
+   if ( key == 0 ) {
+   printBt(std::cerr);
+      fatal("invalid key, can not continue.");
+   }
+   _keysLock.release();
+   return key;
+}
+
+uint64_t NewNewRegionDirectory::_getKey( uint64_t addr ) const {
+   uint64_t key = _keys.getExactByAddress( addr, 0 );
+   return key;
+}
 
 GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeeded( CopyData const &cd ) {
    uint64_t objectAddr = ( cd.getHostBaseAddress() == 0 ? ( uint64_t ) cd.getBaseAddress() : cd.getHostBaseAddress() );
-
+   std::size_t objectSize = cd.getMaxSize();
+#if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
+#else
+   uint64_t key = this->_getKey( objectAddr, objectSize );
+#endif
    HashBucket &hb = _objects[ key ];
+   GlobalRegionDictionary *dict = NULL;
 
    hb._lock.acquire();
-   std::map< uint64_t, GlobalRegionDictionary * >::iterator it = hb._bobjects.lower_bound( objectAddr );
-   if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( objectAddr, it->first) ) {
-      it = hb._bobjects.insert( it, std::map< uint64_t, GlobalRegionDictionary * >::value_type( objectAddr, NEW GlobalRegionDictionary( cd ) ) );
-      NewNewDirectoryEntryData *entry = getDirectoryEntry( *(it->second), 1 );
+
+#if 0
+   std::map< uint64_t, Object >::iterator it = hb._bobjects.lower_bound( key );
+   if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( key, it->first) ) {
+      it = hb._bobjects.insert( it, std::map< uint64_t, Object >::value_type( objectAddr, Object( NEW GlobalRegionDictionary( cd ) ) ) );
+      dict = it->second.getGlobalRegionDictionary();
+      NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
       if ( entry == NULL ) {
          entry = NEW NewNewDirectoryEntryData();
          //entry->addAccess( 0, 1 );
-         it->second->setRegionData( 1, entry );
+         dict->setRegionData( 1, entry );
       }
    }
+#endif
+   if ( hb._bobjects == NULL ) {
+      hb._bobjects = NEW MemoryMap< Object >();
+   }
+   bool exact = false;
+   Object **o = hb._bobjects->getExactOrFullyOverlappingInsertIfNotFound( objectAddr, objectSize, exact );
+   if ( o != NULL ) {
+      if ( *o == NULL ) {
+         *o = NEW Object( NEW GlobalRegionDictionary( cd ) );
+         dict = (*o)->getGlobalRegionDictionary();
+         NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
+         if ( entry == NULL ) {
+            entry = NEW NewNewDirectoryEntryData();
+            //entry->addAccess( 0, 1 );
+            dict->setRegionData( 1, entry );
+         }
+      } else {
+         /* already registered */
+         dict = (*o)->getGlobalRegionDictionary();
+         if ( (*o)->getRegisteredObject() != NULL ) {
+            /* object pre registered with CopyData */
+            dict->setRegisteredObject( (*o)->getRegisteredObject() );
+         }
+      }
+   } else {
+      /* not found and could not insert a new one */
+      fatal("Unable to register prorgam object: " << cd );
+   }
    hb._lock.release();
-   return it->second;
+   return dict;
 }
 
 GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( CopyData const &cd ) const {
@@ -104,16 +160,37 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( CopyData con
 }
 
 GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t objectAddr ) const {
+#if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
+#else
+   uint64_t key = this->_getKey( objectAddr );
+#endif
    HashBucket const &hb = _objects[ key ];
+   GlobalRegionDictionary *dict = NULL;
 
-   std::map< uint64_t, GlobalRegionDictionary * >::const_iterator it = hb._bobjects.lower_bound( objectAddr );
+#if 0
+   std::map< uint64_t, Object >::const_iterator it = hb._bobjects.lower_bound( objectAddr );
    if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( objectAddr, it->first) ) {
      *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << (void *) objectAddr << std::endl;
      printBt( *(myThread->_file) );
      fatal("can not continue");
    }
-   return it->second;
+#endif
+   if ( hb._bobjects == NULL ) {
+      *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << (void *) objectAddr << std::endl;
+      printBt( *(myThread->_file) );
+      fatal("can not continue");
+   } else {
+      Object *o = hb._bobjects->getExactByAddress( objectAddr );
+      if ( o == NULL ) {
+         *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << (void *) objectAddr << std::endl;
+         printBt( *(myThread->_file) );
+         fatal("can not continue");
+      } else {
+         dict = o->getGlobalRegionDictionary();
+      }
+   }
+   return dict;
 }
 
 // reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
@@ -132,6 +209,10 @@ void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, 
 
    if ( entry == NULL ) {
       entry = NEW NewNewDirectoryEntryData();
+      NewNewDirectoryEntryData *fullRegEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( 1 );
+      if ( fullRegEntry->isRooted() ) {
+         entry->addRootedAccess( fullRegEntry->getRootedLocation(), fullRegEntry->getVersion() );
+      }
       //entry->addAccess( 0, 1 );
       dict->setRegionData( reg, entry );
    }
@@ -359,22 +440,23 @@ void NewNewRegionDirectory::updateFromInvalidated( RegionDirectoryKey dict, reg_
 }
 
 void NewNewRegionDirectory::print() const {
-   for ( std::vector< HashBucket >::const_iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
-      HashBucket const &hb = *bit;
+   // for ( std::vector< HashBucket >::const_iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
+   //    HashBucket const &hb = *bit;
 
-   for ( std::map< uint64_t, GlobalRegionDictionary * >::const_iterator it = hb._bobjects.begin(); it != hb._bobjects.end(); it++ ) {
-      std::cerr <<"Object "<< (void*)it->second << std::endl;
-      for (reg_t i = 1; i < it->second->getMaxRegionId(); i++ ) {
-         NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) it->second->getRegionData( i );
-         if ( !entry ) {
-            std::cerr << "\t" << i << " "; it->second->printRegion( std::cerr, i ); std::cerr << " : null " << std::endl;
-         } else {
-            std::cerr << "\t" << i << " "; it->second->printRegion( std::cerr, i ); std::cerr << " : ("<< entry <<") "<< *entry << std::endl;
-         }
-      }
-   }
+   // for ( std::map< uint64_t, Object >::const_iterator it = hb._bobjects.begin(); it != hb._bobjects.end(); it++ ) {
+   //    GlobalRegionDictionary *dict = it->second.getGlobalRegionDictionary();
+   //    std::cerr <<"Object "<< (void*)dict << std::endl;
+   //    for (reg_t i = 1; i < dict->getMaxRegionId(); i++ ) {
+   //       NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( i );
+   //       if ( !entry ) {
+   //          std::cerr << "\t" << i << " "; dict->printRegion( std::cerr, i ); std::cerr << " : null " << std::endl;
+   //       } else {
+   //          std::cerr << "\t" << i << " "; dict->printRegion( std::cerr, i ); std::cerr << " : ("<< entry <<") "<< *entry << std::endl;
+   //       }
+   //    }
+   // }
 
-   }
+   //}
 }
 
 
@@ -435,29 +517,34 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
    std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
-   std::map< uint64_t, std::map< uint64_t, GlobalRegionDictionary * > * > objects_to_clear;
+   //std::map< uint64_t, std::map< uint64_t, Object > * > objects_to_clear;
+   std::map< uint64_t, MemoryMap< Object > * > objects_to_clear;
 
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
+      if ( hb._bobjects == NULL ) continue;
 
-   for ( std::map< uint64_t, GlobalRegionDictionary *>::iterator it = hb._bobjects.begin(); it != hb._bobjects.end(); it++ ) {
+   for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
+//   for ( std::map< uint64_t, Object >::iterator it = hb._bobjects.begin(); it != hb._bobjects.end(); it++ ) {
       //std::cerr << "==================  start object " << ++c << "("<< it->second <<") ================="<<std::endl;
       //if ( it->second->getKeepAtOrigin() ) {
       //   std::cerr << "Object " << it->second << " Keep " << std::endl;
       //}
-      if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, it->second ) ) ) {
+      GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
+      uint64_t objectAddr = it->first.getAddress();
+      if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, dict ) ) ) {
          if ( sys.getVerboseCopies() ) {
             std::ostream &o = (*myThread->_file);
-            o << "Not synchronizing this object! "; it->second->printRegion( o, 1 ); o << std::endl;
+            o << "Not synchronizing this object! "; dict->printRegion( o, 1 ); o << std::endl;
          }
          continue;
       }
-      if ( it->second->getKeepAtOrigin() ) continue;
+      if ( dict->getKeepAtOrigin() ) continue;
 
       std::list< std::pair< reg_t, reg_t > > missingParts;
       unsigned int version = 0;
       //double tini = OS::getMonotonicTime();
-      /*reg_t lol =*/ it->second->registerRegion(1, missingParts, version, true);
+      /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
       //double tfini = OS::getMonotonicTime();
       //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
       //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
@@ -466,12 +553,12 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       //}
       //std::cerr << "}"<<std::endl;
 
-      objects_to_clear.insert( std::make_pair( it->first, &hb._bobjects ) );
+      objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
 
       for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-         //std::cerr << "sync region " << mit->first << " : "<< ( void * ) it->second->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) it->second->getRegionData( mit->second )<< std::endl;
+         //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
          if ( mit->first == mit->second ) {
-            global_reg_t reg( mit->first, it->second );
+            global_reg_t reg( mit->first, dict );
             if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
                if ( !reg.isLocatedIn( 0 ) ) {
                   DeviceOps *thisOps = reg.getDeviceOps();
@@ -496,14 +583,14 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                // another mechanism to inval data: }
 
                // aggregate the locations, later, we will invalidate the full object from those locations
-               locations[it->second].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
+               locations[dict].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
             } else {
-               //objects_to_clear.insert( std::make_pair( it->first, &hb._bobjects ) ); //FIXME: objects may be added later
-               objects_to_clear.erase( it->first );
+               //objects_to_clear.insert( std::make_pair( objectAddr, &hb._bobjects ) ); //FIXME: objects may be added later
+               objects_to_clear.erase( objectAddr );
             }
          } else {
-            global_reg_t region_shape( mit->first, it->second );
-            global_reg_t data_source( mit->second, it->second );
+            global_reg_t region_shape( mit->first, dict );
+            global_reg_t data_source( mit->second, dict );
             if ( !data_source.isRooted() ) { //ignore regions rooted to a certain location
                if ( !data_source.isLocatedIn( 0 ) ) {
                   //std::cerr << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); std::cerr << std::endl;
@@ -526,7 +613,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                   //regEntry->addAccess( 0, regEntry->getVersion() );
                }
             } else {
-               objects_to_clear.erase( it->first );
+               objects_to_clear.erase( objectAddr );
             }
          }
       }
@@ -550,20 +637,26 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       //      }
       //   }
       //}
-      for ( std::map< uint64_t, std::map< uint64_t, GlobalRegionDictionary * > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+      //for ( std::map< uint64_t, std::map< uint64_t, Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+      for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
          for ( memory_space_id_t id = 1; id <= sys.getSeparateMemoryAddressSpacesCount(); id++ ) {
-            sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, (*it->second)[it->first] ) );
+            //sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, (*it->second)[it->first].getGlobalRegionDictionary() ) );
+            Object *o = it->second->getExactByAddress(it->first);
+            sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, o->getGlobalRegionDictionary() ) );
          }
       }
 
       //clear objects from directory
-      for ( std::map< uint64_t, std::map< uint64_t, GlobalRegionDictionary * > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
-         GlobalRegionDictionary *obj = (*it->second)[it->first];
-         sys.getNetwork()->deleteDirectoryObject( obj );
+      //for ( std::map< uint64_t, std::map< uint64_t, Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+      for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
+         //GlobalRegionDictionary *obj = (*it->second)[it->first].getGlobalRegionDictionary();
+         Object *o = it->second->getExactByAddress(it->first);
+         sys.getNetwork()->deleteDirectoryObject( o->getGlobalRegionDictionary() );
          //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
          //std::cerr << "delete and unregister dict (address) " << (void *) it->first << " (key) " << (void *) obj << std::endl;
-         delete obj; 
-         it->second->erase( it->first );
+         delete o->getGlobalRegionDictionary(); 
+         o->clearGlobalRegionDirectory();
+         it->second->eraseByAddress( it->first );
       }
       sys.getNetwork()->synchronizeDirectory();
    }
@@ -601,4 +694,53 @@ void NewNewRegionDirectory::addMasterRegionId( RegionDirectoryKey dict, reg_t ma
    //NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, localId );
    //std::cerr << "Setting master region id " << masterId << " for reg [" << (void *) dict << " " << localId << "] regEntry: " << regEntry << std::endl;
    dict->addMasterRegionId( masterId, localId );
+}
+
+void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
+   //allocate dimensions
+   nanos_region_dimension_internal_t *dimensions = 
+      NEW nanos_region_dimension_internal_t[obj->dimension_count];
+
+   ::memcpy(dimensions, obj->dimensions,
+         sizeof(nanos_region_dimension_internal_t) * obj->dimension_count);
+
+   CopyData *cd = NEW CopyData( (uint64_t)obj->address, obj->sharing,
+      obj->flags.input, obj->flags.output, obj->dimension_count, dimensions,
+      obj->offset, 0, 0 );
+
+   uint64_t objectAddr = (uint64_t)cd->getBaseAddress();
+   std::size_t objectSize = cd->getMaxSize();
+#if 0
+   unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
+#else
+   uint64_t key = this->_getKey( objectAddr, objectSize );
+#endif
+   HashBucket &hb = _objects[ key ];
+
+   hb._lock.acquire();
+#if 0
+   std::map< uint64_t, Object >::iterator it = hb._bobjects.lower_bound( objectAddr );
+   if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( objectAddr, it->first) ) {
+      it = hb._bobjects.insert( it, std::map< uint64_t, Object >::value_type( objectAddr, Object( cd ) ) );
+      message("Registered object " << *cd );
+   } else {
+      fatal("Object already registered (same base addr).");
+   }
+#endif
+   if ( hb._bobjects == NULL ) {
+      hb._bobjects = NEW MemoryMap< Object >();
+   }
+   Object **o = hb._bobjects->getExactInsertIfNotFound( objectAddr, objectSize );
+   if ( o != NULL ) {
+      if ( *o == NULL ) {
+         *o = NEW Object( NEW GlobalRegionDictionary( *cd ), cd );
+      } else {
+         /* already registered */
+         fatal("Object already registered (same base addr).");
+      }
+   } else {
+      /* not found and could not insert a new one */
+      fatal("Unable to register prorgam object: " << cd );
+   }
+   hb._lock.release();
 }

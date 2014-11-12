@@ -25,7 +25,7 @@
 
 using namespace nanos;
 
-inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t const *dims, ptrdiff_t off, uint64_t hostBaseAddress, memory_space_id_t hostRegionId )
+inline CopyData::CopyData ( uint64_t addr, nanos_sharing_t nxSharing, bool input, bool output, std::size_t numDimensions, nanos_region_dimension_internal_t *dims, ptrdiff_t off, uint64_t hostBaseAddress, memory_space_id_t hostRegionId )
 {
    address = (void *) addr;
    sharing = nxSharing;
@@ -142,12 +142,12 @@ inline void CopyData::setNumDimensions(std::size_t ndims) {
    dimension_count = ndims;
 }
 
-inline nanos_region_dimension_internal_t const *CopyData::getDimensions() const
+inline nanos_region_dimension_internal_t *CopyData::getDimensions() const
 {
    return dimensions;
 }
 
-inline void CopyData::setDimensions(nanos_region_dimension_internal_t const *dims)
+inline void CopyData::setDimensions(nanos_region_dimension_internal_t *dims)
 {
    dimensions = dims;
 }

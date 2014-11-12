@@ -42,8 +42,9 @@ struct global_reg_t {
    void fillCopyData( CopyData &cd, uint64_t baseAddress ) const;
    bool isRegistered() const;
    std::set< memory_space_id_t > const &getLocations() const;
-   void setRooted() const;
+   //void setRooted() const;
    bool isRooted() const;
+   memory_space_id_t getRootedLocation() const;
    void setOwnedMemory( memory_space_id_t loc ) const;
    unsigned int getNumLocations() const;
    ProcessingElement *getFirstWriterPE() const;

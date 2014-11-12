@@ -182,6 +182,8 @@ namespace nanos
 
          std::set<unsigned int>                        _clusterNodes;
          std::set<unsigned int>                        _numaNodes;
+
+         unsigned int                                  _acceleratorCount;
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>                              _numaNodeMap;
          
@@ -619,6 +621,10 @@ namespace nanos
          memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;
          int getUserDefinedNUMANode() const;
          void setUserDefinedNUMANode( int nodeId );
+         void registerObject( int numObjects, nanos_copy_data_internal_t *obj );
+
+         unsigned int getNumAccelerators() const;
+         unsigned int getNewAcceleratorId();
    };
 
    extern System sys;

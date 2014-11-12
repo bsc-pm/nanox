@@ -132,6 +132,12 @@ NANOS_API_DEF(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n)
     std::memcpy(dest, src, n);
     return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_register_object, (int num_objects, nanos_copy_data_t *obj))
+{
+   sys.registerObject( num_objects, obj );
+   return NANOS_OK;
+}
 /*!
  * \}
  */ 
