@@ -46,10 +46,9 @@ class SMPPlugin : public SMPBasePlugin
    typedef std::vector<int> Bindings;
 
    Atomic<unsigned int>         _idSeed;
-   int                          _requestedCores;
-   int                          _requestedCoresByMask;
-   int                          _availableCores;
-   int                          _currentCores;
+   int                          _requestedCPUs;
+   int                          _availableCPUs;
+   int                          _currentCPUs;
    int                          _requestedWorkers;
    std::vector<SMPProcessor *> *_cpus;
    std::vector<SMPProcessor *> *_cpusByCpuId;
@@ -71,7 +70,7 @@ class SMPPlugin : public SMPBasePlugin
 
    //! Physical NUMA nodes
    int                          _numSockets;
-   int                          _coresPerSocket;
+   int                          _CPUsPerSocket;
    //! The socket that will be assigned to the next WD
    int                          _currentSocket;
 
@@ -82,10 +81,9 @@ class SMPPlugin : public SMPBasePlugin
    public:
    SMPPlugin() : SMPBasePlugin( "SMP PE Plugin", 1 )
                  , _idSeed( 0 )
-                 , _requestedCores( 0 )
-                 , _requestedCoresByMask( 0 )
-                 , _availableCores( 0 )
-                 , _currentCores( 0 )
+                 , _requestedCPUs( 0 )
+                 , _availableCPUs( 0 )
+                 , _currentCPUs( 0 )
                  , _requestedWorkers( -1 )
                  , _cpus( NULL )
                  , _cpusByCpuId( NULL )
@@ -101,11 +99,12 @@ class SMPPlugin : public SMPBasePlugin
                  , _numWorkers( 0 )
                  , _cpuActiveSet()
                  , _numSockets( 0 )
-                 , _coresPerSocket( 0 )
+                 , _CPUsPerSocket( 0 )
                  , _bindings()
    {}
 
-   virtual unsigned int getNewSMPThreadId() {
+   virtual unsigned int getNewSMPThreadId()
+   {
       return _idSeed++;
    }
 
@@ -114,7 +113,7 @@ class SMPPlugin : public SMPBasePlugin
       cfg.setOptionsSection( "SMP Arch", "SMP specific options" );
       SMPProcessor::prepareConfig( cfg );
       SMPDD::prepareConfig( cfg );
-      cfg.registerConfigOption ( "smp-num-pes", NEW Config::PositiveVar ( _requestedCores ), "Cores requested." );
+      cfg.registerConfigOption ( "smp-num-pes", NEW Config::PositiveVar ( _requestedCPUs ), "CPUs requested." );
       cfg.registerArgOption ( "smp-num-pes", "smp-cpus" );
       cfg.registerEnvOption( "smp-num-pes", "NX_SMP_CPUS" );
 
@@ -122,9 +121,9 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption ( "smp-workers", "smp-workers" );
       cfg.registerEnvOption( "smp-workers", "NX_SMP_WORKERS" );
 
-      cfg.registerConfigOption( "cores-per-socket", NEW Config::PositiveVar( _coresPerSocket ),
-            "Number of cores per socket." );
-      cfg.registerArgOption( "cores-per-socket", "cores-per-socket" );
+      cfg.registerConfigOption( "cpus-per-socket", NEW Config::PositiveVar( _CPUsPerSocket ),
+            "Number of CPUs per socket." );
+      cfg.registerArgOption( "cpus-per-socket", "cpus-per-socket" );
 
       cfg.registerConfigOption( "num-sockets", NEW Config::PositiveVar( _numSockets ),
             "Number of sockets available." );
@@ -164,110 +163,75 @@ class SMPPlugin : public SMPBasePlugin
             "Set the size of SMP devices private memory area." );
       cfg.registerArgOption( "smp-private-memory-size", "smp-private-memory-size" );
       cfg.registerEnvOption( "smp-private-memory-size", "NX_SMP_PRIVATE_MEMORY_SIZE" );
-
    }
 
-   virtual void init() {
+   virtual void init()
+   {
       sys.setHostFactory( smpProcessorFactory );
       sys.setSMPPlugin( this );
 
+      //! \note Set initial CPU architecture variables
       OS::getProcessAffinity( &_cpuSet );
-      int available_cores_by_mask = CPU_COUNT( &_cpuSet );
-      _availableCores = OS::getMaxProcessors();
-      _requestedCoresByMask = available_cores_by_mask;
+      int available_cpus_by_mask = CPU_COUNT( &_cpuSet );
+      _availableCPUs = OS::getMaxProcessors();
 
-      if ( _availableCores == 0 ) {
-         if ( available_cores_by_mask > 0 ) {
+      if ( _availableCPUs == 0 ) {
+         if ( available_cpus_by_mask > 0 ) {
             warning0("SMPPlugin: Unable to detect the number of processors in the system.");
-            warning0("SMPPlugin: Using the value provided by the process cpu mask (" << available_cores_by_mask << ").");
-            _availableCores = available_cores_by_mask;
-         } else if ( _requestedCores > 0 ) {
+            warning0("SMPPlugin: Using the value provided by the process cpu mask (" << available_cpus_by_mask << ").");
+            _availableCPUs = available_cpus_by_mask;
+         } else if ( _requestedCPUs > 0 ) {
             warning0("SMPPlugin: Unable to detect the number of processors in the system and cpu mask not set");
-            warning0("Using the number of requested cpus (" << _requestedCores << ").");
-            _availableCores = _requestedCores;
+            warning0("Using the number of requested cpus (" << _requestedCPUs << ").");
+            _availableCPUs = _requestedCPUs;
          } else {
             fatal0("SMPPlugin: Unable to detect the number of cpus of the system and --smp-cpus was unset or with a value less than 1.");
          }
       }
-      //at this point _availableCores has a valid value
 
-      if ( _requestedCores > 0 ) { //--smp-cpus flag was set
-         if ( _requestedCores > available_cores_by_mask ) {
+      if ( _requestedCPUs > 0 ) { //--smp-cpus flag was set
+         if ( _requestedCPUs > available_cpus_by_mask ) {
             warning0("SMPPlugin: Requested number of cpus is greater than the cpu mask provided.");
-            warning0("Using the value specified by the mask (" << available_cores_by_mask << ").");
-            _currentCores = available_cores_by_mask;
+            warning0("Using the value specified by the mask (" << available_cpus_by_mask << ").");
+            _currentCPUs = available_cpus_by_mask;
          } else {
-            _currentCores = _requestedCores;
+            _currentCPUs = _requestedCPUs;
          }
-      } else if ( _requestedCores == 0 ) { //no cpus requested through --smp-cpus
-         _currentCores = available_cores_by_mask;
+      } else if ( _requestedCPUs == 0 ) { //no cpus requested through --smp-cpus
+         _currentCPUs = available_cpus_by_mask;
       } else {
          fatal0("Invalid number of requested cpus (--smp-cpus)");
       }
-      verbose0("requested cpus: " << _requestedCores << " available: " << _availableCores << " to be used: " << _currentCores);
+      verbose0("requested cpus: " << _requestedCPUs << " available: " << _availableCPUs << " to be used: " << _currentCPUs);
 
-
-      _bindings.reserve( _availableCores );
+      //! \note Fill _bindings vector with the active CPUs first, then the not active
+      _bindings.reserve( _availableCPUs );
       for ( unsigned int i=0; i<CPU_SETSIZE; i++ ) {
          if ( CPU_ISSET(i, &_cpuSet) ) {
             _bindings.push_back(i);
          }
       }
-
-      //add the cpus that were not in the mask
-      for ( int i = 0; i < _availableCores; i++ ) {
+      for ( int i = 0; i < _availableCPUs; i++ ) {
          if ( !CPU_ISSET(i, &_cpuSet) ) {
             _bindings.push_back(i);
          }
       }
-      //std::cerr << "[ ";
-      //for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
-      //   std::cerr << *it << " ";
-      //}
-      //std::cerr << "]" << std::endl;
 
-      // Set _bindings structure once we have the system mask and the binding info
-      // _bindings.reserve( _availableCores );
-      // for ( int i=0, collisions = 0; i < _availableCores; ) {
-
-      //    // The cast over cpu_affinity is needed because std::vector::size() returns a size_t type
-      //    //int pos = (_bindingStart + _bindingStride*i + collisions) % (int)cpu_affinity.size();
-      //    int pos = ( i + collisions) % (int)cpu_affinity.size();
-
-      //    // 'pos' may be negative if either bindingStart or bindingStride were negative
-      //    // this loop fixes that % operator is the remainder, not the modulo operation
-      //    while ( pos < 0 ) pos+=cpu_affinity.size();
-
-      //    if ( std::find( _bindings.begin(), _bindings.end(), cpu_affinity[pos] ) != _bindings.end() ) {
-      //       collisions++;
-      //       ensure( collisions != _availableCores, "Reached limit of collisions. We should never get here." );
-      //       continue;
-      //    }
-      //    _bindings.push_back( cpu_affinity[pos] );
-      //    i++;
-      // }
-
-      // std::cerr << "[ ";
-      // for ( Bindings::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
-      //    std::cerr << *it << " ";
-      // }
-      // std::cerr << "]" << std::endl;
-
-      CPU_ZERO( &_cpuActiveSet );
-
-      _cpus = NEW std::vector<SMPProcessor *>( _availableCores, (SMPProcessor *) NULL ); 
-      _cpusByCpuId = NEW std::vector<SMPProcessor *>( _availableCores, (SMPProcessor *) NULL ); 
-
-      // Load & check NUMA config
+      //! \note Load & check NUMA config
       loadNUMAInfo();
 
+      //! \note Create the SMPProcessors in _cpus array
+      _cpus = NEW std::vector<SMPProcessor *>( _availableCPUs, (SMPProcessor *) NULL );
+      _cpusByCpuId = NEW std::vector<SMPProcessor *>( _availableCPUs, (SMPProcessor *) NULL );
+
+      CPU_ZERO( &_cpuActiveSet );
       int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
-         bool active = ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) );
+         bool active = ( (count < _currentCPUs) && CPU_ISSET( *it, &_cpuSet) );
          unsigned numaNode = getNodeOfPE( *it );
          unsigned socket = numaNode;   /* FIXME: socket */
-         
+
          if ( _smpPrivateMemory && count >= _smpHostCpus ) {
             OSAllocator a;
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
@@ -286,7 +250,6 @@ class SMPPlugin : public SMPBasePlugin
          (*_cpusByCpuId)[ *it ] = cpu;
          count += 1;
       }
-      //at this point _availableCores has a valid value
 
 #ifdef NANOS_DEBUG_ENABLED
       if ( sys.getVerbose() ) {
@@ -303,15 +266,8 @@ class SMPPlugin : public SMPBasePlugin
       getFirstSMPProcessor()->setNumFutureThreads( 1 );
    }
 
-#if 0
-   virtual unsigned int getPEsInNode( unsigned node ) const
+   virtual unsigned int getEstimatedNumThreads() const
    {
-      // TODO (gmiranda): if HWLOC is available, use it.
-      return getCoresPerSocket();
-   }
-#endif
-
-   virtual unsigned int getEstimatedNumThreads() const {
       unsigned int count = 0;
       /* This function is called from getNumThreads() when no threads have been created,
        * which happens when the instrumentation plugin is initialized. At that point
@@ -361,13 +317,12 @@ class SMPPlugin : public SMPBasePlugin
       return NULL;
    }
 
-   virtual void initialize() {
-   }
+   virtual void initialize() { }
 
-   virtual void finalize() {
-   }
+   virtual void finalize() { }
 
-   virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+   virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const
+   {
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             pes.insert( std::make_pair( (*it)->getId(), *it ) );
       }
@@ -379,10 +334,10 @@ class SMPPlugin : public SMPBasePlugin
          devices.insert( ( *_cpus->begin() )->getDeviceType() );
    }
 
-   virtual void startSupportThreads() {
-   }
+   virtual void startSupportThreads() { }
 
-   virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
+   virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers )
+   {
       //associateThisThread( sys.getUntieMaster() );
       ensure( _workers.size() == 1, "Main thread should be the only worker created so far." );
       workers.insert( std::make_pair( _workers[0]->getId(), _workers[0] ) );
@@ -406,13 +361,9 @@ class SMPPlugin : public SMPBasePlugin
       } else {
          /* more workers than cpus available have been requested */
          max_workers = _requestedWorkers;
-         max_thds_per_cpu = _requestedWorkers / active_cpus + 
-            ( _requestedWorkers % active_cpus == 0 ? 0 : 1 );
+         max_thds_per_cpu = std::ceil( _requestedWorkers / static_cast<float>( active_cpus ) );
       }
-      //std::cerr << "Available cores: " << _availableCores <<
-      //   " available_cpus: " << available_cpus <<
-      //   " max_thds_per_cpu: " << max_thds_per_cpu <<
-      //   " active_cpus: " << active_cpus << std::endl;
+
       int current_workers = 1;
       int idx = _bindingStart + _bindingStride;
       while ( current_workers < max_workers ) {
@@ -433,19 +384,22 @@ class SMPPlugin : public SMPBasePlugin
       _workersCreated = true;
 
       //FIXME: this makes sense in OpenMP, also, in OpenMP this value is already set (see omp_init.cpp)
-      //       In OmpSs, this will make omp_get_max_threads to return the number of SMP worker threads. 
+      //       In OmpSs, this will make omp_get_max_threads to return the number of SMP worker threads.
       sys.getPMInterface().setNumThreads_globalState( _workers.size() );
    }
 
-   virtual void setRequestedWorkers( int workers ) {
+   virtual void setRequestedWorkers( int workers )
+   {
       _requestedWorkers = workers;
    }
 
-   virtual int getRequestedWorkers( void ) const {
+   virtual int getRequestedWorkers( void ) const
+   {
       return _requestedWorkers;
    }
 
-   virtual ext::SMPProcessor *getFirstSMPProcessor() const {
+   virtual ext::SMPProcessor *getFirstSMPProcessor() const
+   {
       //ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
       int bindingStart=_bindingStart%_cpus->size();
@@ -461,11 +415,8 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
-   virtual cpu_set_t &getActiveSet() {
-      return _cpuActiveSet;
-   }
-
-   virtual ext::SMPProcessor *getFirstFreeSMPProcessor() const {
+   virtual ext::SMPProcessor *getFirstFreeSMPProcessor() const
+   {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
       for ( std::vector<ext::SMPProcessor *>::const_iterator it = _cpus->begin();
@@ -479,7 +430,8 @@ class SMPPlugin : public SMPBasePlugin
    }
 
 
-   virtual ext::SMPProcessor *getLastFreeSMPProcessorAndReserve() {
+   virtual ext::SMPProcessor *getLastFreeSMPProcessorAndReserve()
+   {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
@@ -493,7 +445,8 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
-   virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node) {
+   virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node)
+   {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
       for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
@@ -507,7 +460,8 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
-   virtual ext::SMPProcessor *getSMPProcessorByNUMAnode(int node, unsigned int idx) const {
+   virtual ext::SMPProcessor *getSMPProcessorByNUMAnode(int node, unsigned int idx) const
+   {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
       std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
@@ -539,74 +493,18 @@ class SMPPlugin : public SMPBasePlugin
             unsigned int hwThreads = 0;
             sys._hwloc.getNumSockets(allowedNodes, _numSockets, hwThreads);
             if ( hwThreads == 0 ) hwThreads = _cpus->size(); //failed to read hwloc info
-            if( _coresPerSocket == 0 )
-               _coresPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
+            if( _CPUsPerSocket == 0 )
+               _CPUsPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
          } else {
             _numSockets = 1;
          }
       }
       ensure(_numSockets > 0, "Invalid number of sockets!");
-      if ( _coresPerSocket == 0 )
-         _coresPerSocket = std::ceil( _cpus->size() / static_cast<float>( _numSockets ) );
-      ensure(_coresPerSocket > 0, "Invalid number of cores per socket!");
-//#ifdef HWLOC
-//      hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
-//
-//      // Nodes that can be seen by hwloc
-//      unsigned allowedNodes = 0;
-//      // Hardware threads
-//      unsigned hwThreads = 0;
-//
-//      // Read the number of numa nodes if the user didn't set that value
-//      if ( _numSockets == 0 )
-//      {
-//         int depth = hwloc_get_type_depth( topology, HWLOC_OBJ_NODE );
-//
-//
-//         // If there are NUMA nodes in this machine
-//         if ( depth != HWLOC_TYPE_DEPTH_UNKNOWN ) {
-//            //hwloc_const_cpuset_t cpuset = hwloc_topology_get_online_cpuset( topology );
-//            //allowedNodes = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_NODE );
-//            //hwThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, cpuset, HWLOC_OBJ_PU );
-//            unsigned nodes = hwloc_get_nbobjs_by_depth( topology, depth );
-//            //hwloc_cpuset_t set = i
-//
-//            // For each node, count how many hardware threads there are below.
-//            for ( unsigned nodeIdx = 0; nodeIdx < nodes; ++nodeIdx )
-//            {
-//               hwloc_obj_t node = hwloc_get_obj_by_depth( topology, depth, nodeIdx );
-//               int localThreads = hwloc_get_nbobjs_inside_cpuset_by_type( topology, node->cpuset, HWLOC_OBJ_PU );
-//               // Increase hw thread count
-//               hwThreads += localThreads;
-//               // If this node has hw threads beneath, increase the number of viewable nodes
-//               if ( localThreads > 0 ) ++allowedNodes;
-//            }
-//            _numSockets = nodes;
-//         }
-//         // Otherwise, set it to 1
-//         else {
-//            allowedNodes = 1; 
-//            _numSockets = 1;
-//         }
-//      }
-//
-//      if( _coresPerSocket == 0 )
-//         _coresPerSocket = std::ceil( hwThreads / static_cast<float>( allowedNodes ) );
-//#else
-//      // Number of sockets can be read with
-//      // cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
-//      // Cores per socket:
-//      // cat /proc/cpuinfo | grep 'core id' | sort | uniq | wc -l
-//
-//      // Assume just 1 socket
-//      if ( _numSockets == 0 )
-//         _numSockets = 1;
-//
-//      // Same thing, just change the value if the user didn't provide one
-//      if ( _coresPerSocket == 0 )
-//         _coresPerSocket = std::ceil( _cpus->size() / static_cast<float>( _numSockets ) );
-//#endif
-      verbose0( toString( "[NUMA] " ) + toString( _numSockets ) + toString( " NUMA nodes, " ) + toString( _coresPerSocket ) + toString( " HW threads each." ) );
+      if ( _CPUsPerSocket == 0 )
+         _CPUsPerSocket = std::ceil( _cpus->size() / static_cast<float>( _numSockets ) );
+      ensure(_CPUsPerSocket > 0, "Invalid number of CPUs per socket!");
+      verbose0( toString( "[NUMA] " ) + toString( _numSockets ) + toString( " NUMA nodes, " ) +
+            toString( _CPUsPerSocket ) + toString( " HW threads each." ) );
    }
 
    unsigned getNodeOfPE ( unsigned pe )
@@ -614,12 +512,6 @@ class SMPPlugin : public SMPBasePlugin
       if ( sys._hwloc.isHwlocAvailable() ) {
          return sys._hwloc.getNumaNodeOfCpu( pe );
       } else {
-         // Dirty way, will not work with hyperthreading
-         // Use /sys/bus/cpu/devices/cpuX/
-         //return pe / getCoresPerSocket();
-
-         // Otherwise, return
-         // FIXME: return NUMA nodes -1
          return getNumSockets() - 1;
       }
    }
@@ -641,11 +533,17 @@ class SMPPlugin : public SMPBasePlugin
    virtual void setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 
    virtual int getCurrentSocket() const { return _currentSocket; }
+
    virtual void setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
 
-   virtual int getCoresPerSocket() const { return _coresPerSocket; }
+   virtual int getCPUsPerSocket() const { return _CPUsPerSocket; }
 
-   virtual void setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
+   virtual void setCPUsPerSocket ( int cpus_per_socket ) { _CPUsPerSocket = cpus_per_socket; }
+
+   virtual cpu_set_t &getActiveSet()
+   {
+      return _cpuActiveSet;
+   }
 
    void getCpuMask ( cpu_set_t *mask ) const
    {
@@ -777,7 +675,8 @@ class SMPPlugin : public SMPBasePlugin
       return NULL;
    }
 
-   virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker ) {
+   virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker )
+   {
 
       ext::SMPProcessor *cpu = getFirstFreeSMPProcessor();
 
@@ -813,19 +712,23 @@ class SMPPlugin : public SMPBasePlugin
       }
    }
 
-   virtual int getCpuCount() const {
+   virtual int getCpuCount() const
+   {
       return _cpus->size();
    }
 
-
-   virtual unsigned int getNumPEs() const {
-      return _currentCores;
-   }
-   virtual unsigned int getMaxPEs() const {
-      return _availableCores;
+   virtual unsigned int getNumPEs() const
+   {
+      return _currentCPUs;
    }
 
-   unsigned int getEstimatedNumWorkers() const {
+   virtual unsigned int getMaxPEs() const
+   {
+      return _availableCPUs;
+   }
+
+   unsigned int getEstimatedNumWorkers() const
+   {
       unsigned int count = 0;
       /*if a certain number of workers was requested, pick the minimum between that value
        * and the number of cpus and the support threads requested
@@ -847,21 +750,25 @@ class SMPPlugin : public SMPBasePlugin
       return count;
    }
 
-   virtual unsigned int getNumWorkers() const {
+   virtual unsigned int getNumWorkers() const
+   {
       return _workersCreated ? _numWorkers : getEstimatedNumWorkers();
    }
 
-   virtual unsigned int getMaxWorkers() const {
-      return _currentCores;
+   virtual unsigned int getMaxWorkers() const
+   {
+      return UINT_MAX;
    }
 
-   virtual SMPThread &associateThisThread( bool untie ) {
+   virtual SMPThread &associateThisThread( bool untie )
+   {
       SMPThread &thd = getFirstSMPProcessor()->associateThisThread( untie );
       _workers.push_back( &thd );
       return thd;
    }
 
-   virtual void getBindingMaskString( std::ostream &o ) const {
+   virtual void getBindingMaskString( std::ostream &o ) const
+   {
       o << "[ ";
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
          o << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
@@ -878,7 +785,7 @@ private:
 #ifdef NANOS_DEBUG_ENABLED
             std::ostringstream oss_cpu_idx;
             oss_cpu_idx << "[";
-            for ( int cpu=0; cpu<_availableCores; cpu++) {
+            for ( int cpu=0; cpu<_availableCPUs; cpu++) {
                if ( CPU_ISSET( cpu, &_cpuActiveSet  ) ) {
                   oss_cpu_idx << cpu << ", ";
                }
