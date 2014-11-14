@@ -24,6 +24,7 @@
 #include <sched.h>
 #include "smpprocessor_fwd.hpp"
 #include "smpthread_fwd.hpp"
+#include "threadteam_fwd.hpp"
 #include "archplugin_decl.hpp"
 
 namespace nanos {
@@ -47,7 +48,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void setCPUsPerSocket ( int cpus_per_socket ) = 0;
       virtual int getCPUsPerSocket() const = 0;
       virtual unsigned int getNewSMPThreadId() = 0;
-      virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team ) = 0;
       virtual void getCpuProcessMask ( cpu_set_t *mask ) const = 0;
       virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;

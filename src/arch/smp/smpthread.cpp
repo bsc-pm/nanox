@@ -110,10 +110,7 @@ void SMPThread::wait()
 
       /* It is recommended to wait under a while loop to handle spurious wakeups
        * http://pubs.opengroup.org/onlinepubs/009695399/functions/pthread_cond_wait.html
-       * XXX: But, for some reason this is causing deadlocks. I think the correct approach is to
-       * set the must_sleep flag to false just before the signal, but let's do a not conditional
-       * wakeup; that is, the woken up thread is setting itself the condition variable after
-       * returning from the condition wait.
+       * But, for some reason this is causing deadlocks.
        */
       //while ( isSleeping() ) {
       _pthread.condWait();
@@ -124,8 +121,6 @@ void SMPThread::wait()
       lock();
       /* Set waiting status flag */
       BaseThread::resume();
-      /* Set must_sleep, see XXX */
-      BaseThread::wakeup();
       unlock();
       _pthread.mutexUnlock();
 
@@ -148,9 +143,10 @@ void SMPThread::wait()
 void SMPThread::wakeup()
 {
    _pthread.mutexLock();
-   /* Do not set must_sleep, see XXX */
-   //BaseThread::wakeup();
-   _pthread.condSignal();
+   BaseThread::wakeup();
+   if ( isWaiting() ) {
+      _pthread.condSignal();
+   }
    _pthread.mutexUnlock();
 }
 

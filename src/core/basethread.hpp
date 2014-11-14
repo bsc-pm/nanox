@@ -187,12 +187,10 @@ namespace nanos
    inline void BaseThread::reserve() { _status.has_team = true; }
  
    inline void BaseThread::enterTeam( TeamData *data )
-   { 
-      lock();
+   {
       if ( data != NULL ) _teamData = data;
       else _teamData = _nextTeamData;
       _status.has_team = true;
-      unlock();
    }
  
    inline bool BaseThread::hasTeam() const { return _status.has_team; }

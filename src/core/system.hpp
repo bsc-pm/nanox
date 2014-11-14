@@ -589,7 +589,7 @@ inline void System::setUserDefinedNUMANode( int nodeId ) {
 inline void System::admitCurrentThread ( bool isWorker ) { _smpPlugin->admitCurrentThread( _workers, isWorker ); }
 inline void System::expelCurrentThread ( bool isWorker ) { _smpPlugin->expelCurrentThread( _workers, isWorker ); }
 
-inline void System::updateActiveWorkers ( int nthreads ) { _smpPlugin->updateActiveWorkers( nthreads, _workers ); }
+inline void System::updateActiveWorkers ( int nthreads ) { _smpPlugin->updateActiveWorkers( nthreads, _workers, myThread->getTeam() ); }
 
 inline void System::getCpuProcessMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuProcessMask( mask ); }
 inline void System::setCpuProcessMask ( const cpu_set_t *mask ) { _smpPlugin->setCpuProcessMask( mask, _workers ); }

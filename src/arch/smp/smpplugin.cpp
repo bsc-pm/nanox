@@ -61,7 +61,6 @@ class SMPPlugin : public SMPBasePlugin
    int                          _smpHostCpus;
    int                          _smpPrivateMemorySize;
    bool                         _workersCreated;
-   unsigned int                 _numWorkers; //must be updated if the number of workers increases after calling startWorkerThreads
 
    // Nanos++ scheduling domain
    cpu_set_t                    _cpuSystemMask;   /*!< \brief system's default cpu_set */
@@ -96,7 +95,6 @@ class SMPPlugin : public SMPBasePlugin
                  , _smpHostCpus( 0 )
                  , _smpPrivateMemorySize( 256 * 1024 * 1024 ) // 256 Mb
                  , _workersCreated( false )
-                 , _numWorkers( 0 )
                  , _cpuSystemMask()
                  , _cpuProcessMask()
                  , _cpuActiveMask()
@@ -382,8 +380,6 @@ class SMPPlugin : public SMPBasePlugin
             idx += 1;
          }
       }
-
-      _numWorkers = _workers.size();
       _workersCreated = true;
 
       //FIXME: this makes sense in OpenMP, also, in OpenMP this value is already set (see omp_init.cpp)
@@ -551,13 +547,13 @@ class SMPPlugin : public SMPBasePlugin
    void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       ::memcpy( &_cpuProcessMask , mask, sizeof(cpu_set_t) );
-      processCpuMask( workers );
+      applyCpuMask( workers );
    }
 
    void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       CPU_OR( &_cpuProcessMask , &_cpuProcessMask , mask );
-      processCpuMask( workers );
+      applyCpuMask( workers );
    }
 
    virtual cpu_set_t &getActiveSet()
@@ -573,15 +569,16 @@ class SMPPlugin : public SMPBasePlugin
    void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       ::memcpy( &_cpuActiveMask , mask, sizeof(cpu_set_t) );
-      processCpuMask( workers );
+      applyCpuMask( workers );
    }
 
    void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       CPU_OR( &_cpuActiveMask , &_cpuActiveMask , mask );
-      processCpuMask( workers );
+      applyCpuMask( workers );
    }
 
+#if 0
    SMPThread * getInactiveWorker( void )
    {
       SMPThread *thread;
@@ -594,37 +591,49 @@ class SMPPlugin : public SMPBasePlugin
       }
       return NULL;
    }
+#endif
 
-   virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers )
+   virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team )
    {
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
       NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-      BaseThread *thread;
-      //! \bug Team variable must be received as a function parameter
-      ThreadTeam *team = myThread->getTeam();
-
-      //! \note Probably it can be relaxed, but at the moment running in a safe mode
-      //! waiting for the team to be stable
-
       int num_threads = nthreads - team->getFinalSize();
       int new_workers = nthreads - _workers.size();
 
+      //! \note Probably it can be relaxed, but at the moment running in a safe mode
+      //! waiting for the team to be stable
       while ( !(team->isStable()) ) memoryFence();
       if ( num_threads < 0 ) team->setStable(false);
 
       //! \note Creating new workers (if needed)
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
-      std::vector<ext::SMPProcessor *>::const_iterator it;
-      for ( it = _cpus->begin(); it != _cpus->end() && new_workers > 0; it++ ) {
-         if ( (*it)->getNumThreads() == 0 && !(*it)->isReserved() ) {
-            createWorker( (*it), workers );
+      // FIXME: we are considering _cpus as the active ones. This will not be always right
+      unsigned int max_thds_per_cpu = std::ceil( nthreads / static_cast<float>(_cpus->size()) );
+      std::vector<ext::SMPProcessor *>::const_iterator cpu_it;
+      for ( cpu_it = _cpus->begin(); cpu_it != _cpus->end() && new_workers > 0; ++cpu_it ) {
+         if ( (*cpu_it)->getNumThreads() < max_thds_per_cpu ) {
+            createWorker( (*cpu_it), workers );
             new_workers--;
          }
       }
 
+      //! \note We can safely iterate over workers, since threads are created in a round-robin way per CPU
+      int active_threads_checked = 0;
+      std::vector<ext::SMPThread *>::const_iterator w_it;
+      for ( w_it = _workers.begin(); w_it != _workers.end(); ++w_it ) {
+         if ( active_threads_checked < nthreads ) {
+            (*w_it)->tryWakeUp( team );
+            active_threads_checked++;
+         } else {
+            (*w_it)->sleep();
+         }
+      }
+
+#if 0
+      BaseThread *thread;
       //! \note If requested threads are more than current increase number of threads
       while ( num_threads > 0 ) {
          thread = getUnassignedWorker();
@@ -645,9 +654,11 @@ class SMPPlugin : public SMPBasePlugin
             num_threads++;
          }
       }
+#endif
 
    }
 
+#if 0
    SMPThread * getUnassignedWorker ( void )
    {
       SMPThread *thread;
@@ -694,6 +705,7 @@ class SMPPlugin : public SMPBasePlugin
       //! \note If no thread has found, return NULL.
       return NULL;
    }
+#endif
 
    virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker )
    {
@@ -772,7 +784,7 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual unsigned int getNumWorkers() const
    {
-      return _workersCreated ? _numWorkers : getEstimatedNumWorkers();
+      return _workersCreated ? _workers.size() : getEstimatedNumWorkers();
    }
 
    virtual unsigned int getMaxWorkers() const
@@ -798,43 +810,18 @@ class SMPPlugin : public SMPBasePlugin
 
 private:
 
-   void processCpuMask( std::map<unsigned int, BaseThread *> &workers )
-   {
-      if ( sys.getPMInterface().isMalleable() ) {
-         if ( _bindThreads ) {
-#ifdef NANOS_DEBUG_ENABLED
-            std::ostringstream oss_cpu_idx;
-            oss_cpu_idx << "[";
-            for ( int cpu=0; cpu<_availableCPUs; cpu++) {
-               if ( CPU_ISSET( cpu, &_cpuActiveMask  ) ) {
-                  oss_cpu_idx << cpu << ", ";
-               }
-            }
-            oss_cpu_idx << "]";
-            verbose0( "PID[" << getpid() << "]. CPU affinity " << oss_cpu_idx.str() );
-#endif
-            applyCpuMask( workers );
-         } else {
-            verbose0( "PID[" << getpid() << "]. Changing number of threads: " <<
-                  myThread->getTeam()->getFinalSize() << " to " <<
-                  CPU_COUNT( &_cpuActiveMask ) );
-
-            sys.updateActiveWorkers( CPU_COUNT( &_cpuActiveMask ) );
-         }
-      }
-   }
-
    void applyCpuMask ( std::map<unsigned int, BaseThread *> &workers )
    {
+      /* Modify the number of threads on the fly is not allowed in OpenMP*/
+      if ( !sys.getPMInterface().isMalleable() ) return;
+
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
       NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveMask ) )
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-      unsigned int active_cpus = 0;
-
-      for ( unsigned cpu_id = 0; cpu_id < _cpus->size() || active_cpus < (size_t)CPU_COUNT( &_cpuActiveMask ); cpu_id += 1 ) {
-         ext::SMPProcessor *target = (*_cpus)[cpu_id];
+      for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         ext::SMPProcessor *target = *it;
          int binding_id = target->getBindingId();
          if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
 
@@ -843,7 +830,6 @@ private:
                createWorker( target, workers );
             }
 
-            active_cpus += 1;
             target->wakeUpThreads();
          } else {
             target->sleepThreads();

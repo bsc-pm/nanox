@@ -345,7 +345,8 @@ namespace nanos
          virtual void setupSignalHandlers() = 0;
 
 #endif
-         bool tryWakeUp();
+         //! \brief Wake up a thread and add it to the team, considering all the possible thread states
+         void tryWakeUp( ThreadTeam *team );
 
          unsigned int getOsId() const;
 
