@@ -806,7 +806,14 @@ inline void DeviceCache<_T>::invalidateAndFlush( Directory &dir, uint64_t tag, s
                ce->setFlushing(false);
          } else {
             CopyDescriptor cd = CopyDescriptor(tag, de->getVersion());
-            if ( copyBackFromCache( cd, size ) ) {
+
+            // There are 3 possible scenarios at this point:
+            //  1. size == ce->getSize() -> ideal case, we have to copy back all the data
+            //  2. size > ce->getSize()  -> we have to copy back the cache entry size
+            //  3. size < ce->getSize()  -> we cannot copy back the cache entry size
+            //                              because it's greater than the size
+            int min_size = std::min( size, ce->getSize( ) );
+            if ( copyBackFromCache( cd, min_size ) ) {
                ce->setFlushing(false);
                de->setOwner(NULL);
             }
