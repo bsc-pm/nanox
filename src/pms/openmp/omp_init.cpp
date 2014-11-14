@@ -163,12 +163,38 @@ namespace nanos
       }
 
       /*!
+       * \brief
+       * \param[out]
+       */
+      void OpenMPInterface::getCpuProcessMask( cpu_set_t *cpu_set ) const
+      {
+      }
+
+      /*!
+       * \brief
+       * \param[in]
+       * \note New threads are not inmediately created nor added to the team in the OpenMP model
+       */
+      void OpenMPInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+      }
+
+      /*!
+       * \brief
+       * \param[in]
+       * \note New threads are not inmediately created nor added to the team in the OpenMP model
+       */
+      void OpenMPInterface::addCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+      }
+
+      /*!
        * \brief Get the current mask of used cpus
        * \param[out] cpu_set cpu_set_t that will containt the current mask
        */
-      void OpenMPInterface::getCpuMask( cpu_set_t *cpu_set )
+      void OpenMPInterface::getCpuActiveMask( cpu_set_t *cpu_set ) const
       {
-         sys.getCpuMask( cpu_set );
+         sys.getCpuActiveMask( cpu_set );
       }
 
       /*!
@@ -176,12 +202,12 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::setCpuMask( const cpu_set_t *cpu_set )
+      void OpenMPInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set );
+         sys.setCpuActiveMask( cpu_set );
       }
 
       /*!
@@ -189,15 +215,15 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to add
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::addCpuMask( const cpu_set_t *cpu_set )
+      void OpenMPInterface::addCpuActiveMask( const cpu_set_t *cpu_set )
       {
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set );
+         sys.addCpuActiveMask( cpu_set );
       }
-      
+
       /*!
        * \brief Returns the identifier of the interface, OpenMP
        */
@@ -226,7 +252,7 @@ namespace nanos
             } else if ( num_threads != _numThreadsOMP ) {
                std::cerr << "Option --smp-workers set (value: " << num_threads << "), and OMP_NUM_THREADS is also set (value: " << _numThreads << "), will use the value of --smp-workers." << std::endl;
             }
-            
+
          }
          _numThreads = num_threads;
 
@@ -297,17 +323,35 @@ namespace nanos
       }
 
       /*!
+       * \brief
+       * \param[in]
+       * \note New threads are created and/or added to the team ASAP in the OmpSs model
+       */
+      void OmpSsInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+      }
+
+      /*!
+       * \brief
+       * \param[in]
+       * \note New threads are created and/or added to the team ASAP in the OmpSs model
+       */
+      void OmpSsInterface::addCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+      }
+
+      /*!
        * \brief Set a new mask of active cpus
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::setCpuMask( const cpu_set_t *cpu_set )
+      void OmpSsInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.setCpuMask( cpu_set );
+         sys.setCpuActiveMask( cpu_set );
       }
 
       /*!
@@ -315,16 +359,16 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to add
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::addCpuMask( const cpu_set_t *cpu_set )
+      void OmpSsInterface::addCpuActiveMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          int old_nthreads = data->icvs()->getNumThreads();
          data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.addCpuMask( cpu_set );
+         sys.addCpuActiveMask( cpu_set );
       }
-      
+
       /*!
        * \brief Returns the identifier of the interface, OpenMP
        */
@@ -338,7 +382,7 @@ namespace nanos
 
 /*
    This function must have C linkage to avoid that C applications need to link against the C++ library
-*/   
+*/
 extern "C" {
    void nanos_omp_set_interface( void * )
    {

@@ -1387,36 +1387,6 @@ void System::addPEsAndThreadsToTeam(PE **pes, int num_pes, BaseThread** threads,
     }
 }
 
-void System::admitCurrentThread ( bool isWorker )
-{
-   _smpPlugin->admitCurrentThread( _workers, isWorker );
-}
-
-void System::expelCurrentThread ( bool isWorker )
-{
-   _smpPlugin->expelCurrentThread( _workers, isWorker );
-}
-
-void System::updateActiveWorkers ( int nthreads )
-{
-   _smpPlugin->updateActiveWorkers( nthreads, _workers );
-}
-
-void System::getCpuMask ( cpu_set_t *mask ) const
-{
-   _smpPlugin->getCpuMask( mask );
-}
-
-void System::setCpuMask ( const cpu_set_t *mask )
-{
-   _smpPlugin->setCpuMask( mask, _workers );
-}
-
-void System::addCpuMask ( const cpu_set_t *mask )
-{
-   _smpPlugin->addCpuMask( mask, _workers );
-}
-
 void System::environmentSummary( void )
 {
    std::ostringstream mask;

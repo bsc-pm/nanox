@@ -89,8 +89,9 @@ namespace nanos
          static InitList   *_initList;
          static InitList   *_postInitList;
          static ModuleList *_moduleList;
+         static cpu_set_t  _systemMask;
          static cpu_set_t  _processMask;
-      public:         
+      public:
 
          static void init ();
 
@@ -117,6 +118,7 @@ namespace nanos
          static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
          static const ModuleList & getRequestedModules () { return *_moduleList; }
 
+         static void getSystemAffinity( cpu_set_t *cpu_set );
          static void getProcessAffinity( cpu_set_t *cpu_set );
 
          static int getMaxProcessors ( void );

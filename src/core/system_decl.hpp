@@ -364,22 +364,40 @@ namespace nanos
          void updateActiveWorkers ( int nthreads );
 
          /*!
+          * \brief Get the process mask of active CPUs
+          * \param[out] mask
+          */
+         void getCpuProcessMask ( cpu_set_t *mask ) const;
+
+         /*!
+          * \brief Set the process mask
+          * \param[in] mask
+          */
+         void setCpuProcessMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current process mask
+          * \param[in] mask
+          */
+         void addCpuProcessMask ( const cpu_set_t *mask );
+
+         /*!
           * \brief Get the current mask of active CPUs
           * \param[out] mask
           */
-         void getCpuMask ( cpu_set_t *mask ) const;
+         void getCpuActiveMask ( cpu_set_t *mask ) const;
 
          /*!
           * \brief Set the mask of active CPUs
           * \param[in] mask
           */
-         void setCpuMask ( const cpu_set_t *mask );
+         void setCpuActiveMask ( const cpu_set_t *mask );
 
          /*!
           * \brief Add the CPUs in mask into the current mask of active CPUs
           * \param[in] mask
           */
-         void addCpuMask ( const cpu_set_t *mask );
+         void addCpuActiveMask ( const cpu_set_t *mask );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

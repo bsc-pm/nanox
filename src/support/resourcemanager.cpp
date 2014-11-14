@@ -65,8 +65,8 @@ using namespace nanos;
 void ResourceManager::init( void )
 {
    LockBlock Lock( _lock );
-   sys.getCpuMask( &_running_cpus );
-   sys.getCpuMask( &_default_cpus );
+   sys.getCpuActiveMask( &_running_cpus );
+   sys.getCpuProcessMask( &_default_cpus );
    CPU_ZERO( &_waiting_cpus );
    ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
 
@@ -146,9 +146,9 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
                         break;
                   }
                }
-                sys.setCpuMask( &_running_cpus );
+                sys.setCpuActiveMask( &_running_cpus );
             }
-            sys.getCpuMask( &_running_cpus );
+            sys.getCpuActiveMask( &_running_cpus );
             ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
          }
       }
@@ -158,12 +158,12 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
       if ( _status.dlb_enabled ) {
          LockBlock Lock( _lock );
          DLB_UpdateResources();
-         sys.getCpuMask( &_running_cpus );
+         sys.getCpuActiveMask( &_running_cpus );
          ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
       } else {
          LockBlock Lock( _lock );
          memcpy( &_running_cpus, &_default_cpus, sizeof(cpu_set_t) );
-         sys.setCpuMask( &_default_cpus );
+         sys.setCpuActiveMask( &_default_cpus );
       }
    }
 }
@@ -219,7 +219,7 @@ void ResourceManager::returnClaimedCpus( void )
 
    DLB_ReturnClaimedCpus();
    LockBlock Lock( _lock );
-   sys.getCpuMask( &_running_cpus );
+   sys.getCpuActiveMask( &_running_cpus );
    ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
 }
 
@@ -245,7 +245,7 @@ void ResourceManager::returnMyCpuIfClaimed( void )
          myThread->sleep();
          // We can't clear it since DLB could have switched this cpu for another one
          //CPU_CLR( my_cpu, &_running_cpus );
-         sys.getCpuMask( &_running_cpus );
+         sys.getCpuActiveMask( &_running_cpus );
          ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
       }
    }

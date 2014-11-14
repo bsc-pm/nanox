@@ -16,6 +16,36 @@ namespace nanos
 using namespace nanos;
 using namespace nanos::OpenMP;
 
+NANOS_API_DEF(void, nanos_omp_get_process_mask, ( nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().getCpuProcessMask( (cpu_set_t *) cpu_set );
+}
+
+NANOS_API_DEF(void, nanos_omp_set_process_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().setCpuProcessMask( (cpu_set_t *) cpu_set );
+}
+
+NANOS_API_DEF(void, nanos_omp_add_process_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().addCpuProcessMask( (cpu_set_t *) cpu_set );
+}
+
+NANOS_API_DEF(void, nanos_omp_get_active_mask, ( nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().getCpuActiveMask( (cpu_set_t *) cpu_set );
+}
+
+NANOS_API_DEF(void, nanos_omp_set_active_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().setCpuActiveMask( (cpu_set_t *) cpu_set );
+}
+
+NANOS_API_DEF(void, nanos_omp_add_active_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().addCpuActiveMask( (cpu_set_t *) cpu_set );
+}
+
 NANOS_API_DEF ( int, nanos_omp_get_max_processors, (void ) )
 {
    return nanos::OS::getMaxProcessors();

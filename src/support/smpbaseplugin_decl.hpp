@@ -48,9 +48,12 @@ class SMPBasePlugin : public ArchPlugin {
       virtual int getCPUsPerSocket() const = 0;
       virtual unsigned int getNewSMPThreadId() = 0;
       virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers ) = 0;
-      virtual void getCpuMask ( cpu_set_t *mask ) const = 0;
-      virtual void setCpuMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
-      virtual void addCpuMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void getCpuProcessMask ( cpu_set_t *mask ) const = 0;
+      virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void getCpuActiveMask ( cpu_set_t *mask ) const = 0;
+      virtual void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
       virtual void setRequestedWorkers( int workers ) = 0;
       virtual int getRequestedWorkers() const = 0;

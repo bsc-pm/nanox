@@ -60,13 +60,13 @@ int main ( int argc, char *argv[])
    CPU_ZERO( &sched_mask2 );
 
    // init
-   sys.getCpuMask( &nanos_mask1 );
+   sys.getCpuActiveMask( &nanos_mask1 );
    sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask1 );
 
    // test
    CPU_SET( 0, &nanos_mask2 );
    CPU_SET( 1, &nanos_mask2 );
-   sys.setCpuMask( &nanos_mask2 );
+   sys.setCpuActiveMask( &nanos_mask2 );
    sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask2 );
 
    fprintf(stdout,"Thread team final size will be %d and %d is expected\n",

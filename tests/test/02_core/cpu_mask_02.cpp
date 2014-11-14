@@ -87,7 +87,7 @@ void set_random_mask( void )
          CPU_SET( i, &new_mask );
       }
    }
-   sys.setCpuMask( &new_mask );
+   sys.setCpuActiveMask( &new_mask );
 }
 
 void main__loop_1 ( void *args )
