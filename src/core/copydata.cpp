@@ -107,7 +107,18 @@ void CopyData::deductCd( CopyData const &ref, CopyData *out ) const {
          //std::cerr << idx << " this dim lower bound: " << lower_bound << " size: " << refDims[ idx ].size << " off: "<< current_offset << std::endl;
       }
    } else {
-      ::memcpy(out->getDimensions(), this->getDimensions(), sizeof(nanos_region_dimension_internal_t) * this->getNumDimensions());
+      if ( this->getNumDimensions() == 1 ) {
+         uint64_t off = (uint64_t)this->getBaseAddress() - (uint64_t)ref.getBaseAddress();
+         nanos_region_dimension_internal_t *outDims = out->getDimensions();
+         nanos_region_dimension_internal_t const *refDims = ref.getDimensions();
+         nanos_region_dimension_internal_t const *thisDims = this->getDimensions();
+         outDims[0].size = refDims[0].size;
+         outDims[0].lower_bound = off;
+         outDims[0].accessed_length = thisDims[0].accessed_length;
+      } else {
+         message("Warning: deductCd not properly implemented when there are the same number of dimensions and more than 1 dimension.");
+         ::memcpy(out->getDimensions(), this->getDimensions(), sizeof(nanos_region_dimension_internal_t) * this->getNumDimensions());
+      }
    }
 }
 
