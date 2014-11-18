@@ -33,7 +33,6 @@ class SMPBasePlugin : public ArchPlugin {
    public:
       SMPBasePlugin( const char *name, int version ) : ArchPlugin( name, version ) {}
       virtual ext::SMPProcessor *getFirstSMPProcessor() const = 0;
-      virtual cpu_set_t &getActiveSet() = 0;
       virtual ext::SMPProcessor *getLastFreeSMPProcessorAndReserve() = 0;
       virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node) = 0;
       virtual ext::SMPProcessor *getSMPProcessorByNUMAnode(int node, unsigned int idx) const = 0;
@@ -49,9 +48,11 @@ class SMPBasePlugin : public ArchPlugin {
       virtual int getCPUsPerSocket() const = 0;
       virtual unsigned int getNewSMPThreadId() = 0;
       virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team ) = 0;
+      virtual const cpu_set_t& getCpuProcessMask() const = 0 ;
       virtual void getCpuProcessMask ( cpu_set_t *mask ) const = 0;
       virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual const cpu_set_t& getCpuActiveMask() const = 0 ;
       virtual void getCpuActiveMask ( cpu_set_t *mask ) const = 0;
       virtual void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;

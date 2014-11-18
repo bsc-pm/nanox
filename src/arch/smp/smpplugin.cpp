@@ -539,40 +539,45 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void setCPUsPerSocket ( int cpus_per_socket ) { _CPUsPerSocket = cpus_per_socket; }
 
-   void getCpuProcessMask ( cpu_set_t *mask ) const
+   virtual const cpu_set_t& getCpuProcessMask () const
+   {
+      return _cpuProcessMask;
+   }
+
+   virtual void getCpuProcessMask ( cpu_set_t *mask ) const
    {
       ::memcpy( mask, &_cpuProcessMask , sizeof(cpu_set_t) );
    }
 
-   void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       ::memcpy( &_cpuProcessMask , mask, sizeof(cpu_set_t) );
       applyCpuMask( workers );
    }
 
-   void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       CPU_OR( &_cpuProcessMask , &_cpuProcessMask , mask );
       applyCpuMask( workers );
    }
 
-   virtual cpu_set_t &getActiveSet()
+   virtual const cpu_set_t& getCpuActiveMask () const
    {
       return _cpuActiveMask;
    }
 
-   void getCpuActiveMask ( cpu_set_t *mask ) const
+   virtual void getCpuActiveMask ( cpu_set_t *mask ) const
    {
       ::memcpy( mask, &_cpuActiveMask , sizeof(cpu_set_t) );
    }
 
-   void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       ::memcpy( &_cpuActiveMask , mask, sizeof(cpu_set_t) );
       applyCpuMask( workers );
    }
 
-   void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       CPU_OR( &_cpuActiveMask , &_cpuActiveMask , mask );
       applyCpuMask( workers );

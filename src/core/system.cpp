@@ -1191,7 +1191,7 @@ BaseThread * System::getUnassignedWorker ( void )
       if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
          // skip if the thread is not in the mask
-         if ( _smpPlugin->getBinding() && !CPU_ISSET( thread->getCpuId(), &_smpPlugin->getActiveSet() ) ) {
+         if ( _smpPlugin->getBinding() && !CPU_ISSET( thread->getCpuId(), &_smpPlugin->getCpuActiveMask() ) ) {
             continue;
          }
 

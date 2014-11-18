@@ -364,6 +364,11 @@ namespace nanos
          void updateActiveWorkers ( int nthreads );
 
          /*!
+          * \brief Get the process mask of active CPUs by reference
+          */
+         const cpu_set_t& getCpuProcessMask () const;
+
+         /*!
           * \brief Get the process mask of active CPUs
           * \param[out] mask
           */
@@ -380,6 +385,11 @@ namespace nanos
           * \param[in] mask
           */
          void addCpuProcessMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Get the current mask of active CPUs by reference
+          */
+         const cpu_set_t& getCpuActiveMask () const;
 
          /*!
           * \brief Get the current mask of active CPUs
