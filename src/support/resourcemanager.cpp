@@ -32,7 +32,7 @@ extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
    void DLB_UpdateResources( void ) __attribute__(( weak ));
    void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
-   int DLB_ReleaseCpu ( int cpu ) __attribute__(( weak ));
+   void DLB_ReleaseCpu ( int cpu ) __attribute__(( weak ));
    int DLB_ReturnClaimedCpu ( int cpu ) __attribute__(( weak ));
    void DLB_ClaimCpus (int cpus) __attribute__(( weak ));
    int DLB_CheckCpuAvailability ( int cpu ) __attribute__(( weak ));
@@ -169,8 +169,7 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 }
 
 
-/* When there is not work to do
-   release my cpu and go to sleep
+/* When there is no work to do, release my cpu and go to sleep
    This function only has effect in DLB when using policy: auto_LeWI_mask
 */
 void ResourceManager::releaseCpu( void )
@@ -181,7 +180,6 @@ void ResourceManager::releaseCpu( void )
    if ( !getMyThreadSafe()->getTeam() ) return;
    if ( getMyThreadSafe()->isSleeping() ) return;
 
-   bool release = true;
    int my_cpu = getMyThreadSafe()->getCpuId();
 
    {
@@ -190,10 +188,8 @@ void ResourceManager::releaseCpu( void )
       if ( CPU_COUNT(&_running_cpus) > 1 ) {
 
          if ( _status.dlb_enabled ) {
-            release = DLB_ReleaseCpu( my_cpu );
-         }
-
-         if ( release ) {
+            DLB_ReleaseCpu( my_cpu );
+         } else {
             CPU_CLR( my_cpu, &_running_cpus );
             ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
             myThread->sleep();
