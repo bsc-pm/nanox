@@ -249,7 +249,8 @@ inline void Scheduler::idleLoop ()
 
       //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
       // descriptor in its stack frame
-      if ( thread->isSleeping() && !behaviour::exiting() && !ResourceManager::lastOne() ) {
+      //if ( thread->isSleeping() && !behaviour::exiting() && !ResourceManager::lastOne() ) {
+      if ( thread->isSleeping() ) {
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
          NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )

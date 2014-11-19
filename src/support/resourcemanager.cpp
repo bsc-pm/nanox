@@ -38,6 +38,7 @@ extern "C" {
    int DLB_CheckCpuAvailability ( int cpu ) __attribute__(( weak ));
    void DLB_Init ( void ) __attribute__(( weak ));
    void DLB_Finalize ( void ) __attribute__(( weak ));
+   int DLB_Is_auto( void ) __attribute__(( weak ));
 }
 #endif
 
@@ -49,9 +50,10 @@ namespace ResourceManager {
          bool is_malleable:1;
          bool dlb_enabled:1;
          bool block_enabled:1;
+         bool auto_enabled:1;
       } flags_t;
 
-      flags_t   _status = {false, false, false, false};
+      flags_t   _status = {false, false, false, false, false};
       Lock      _lock;
       cpu_set_t _running_cpus;
       cpu_set_t _waiting_cpus;
@@ -73,6 +75,8 @@ void ResourceManager::init( void )
    _status.is_malleable = sys.getPMInterface().isMalleable();
    _status.block_enabled = sys.getSchedulerConf().getUseBlock();
    _status.dlb_enabled = sys.dlbEnabled();
+   _status.auto_enabled=true;
+
 #ifndef DLB
    _status.dlb_enabled &=
          DLB_UpdateResources_max &&
@@ -84,9 +88,10 @@ void ResourceManager::init( void )
          DLB_CheckCpuAvailability;
 #endif
 
-   if ( _status.dlb_enabled )
+   if ( _status.dlb_enabled ) {
       DLB_Init();
-
+      _status.auto_enabled=(DLB_Is_auto()==1);
+   }
    _status.initialized = _status.dlb_enabled || _status.block_enabled;
 }
 
@@ -126,14 +131,18 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
          if ( needed_resources > 0 ){
             LockBlock Lock( _lock );
 
-            if ( _status.dlb_enabled ) {
-               //If ready tasks > num threads I claim my cpus being used by somebodyels
-               DLB_ClaimCpus( needed_resources );
+            if ( _status.dlb_enabled)
+            { 
+               if (_status.auto_enabled || myThread->isMainThread())
+               {
+                  //If ready tasks > num threads I claim my cpus being used by somebodyels
+                  DLB_ClaimCpus( needed_resources );
 
-               //If ready tasks > num threads I check if there are available cpus
-               needed_resources = ready_tasks - team->getFinalSize();
-               if ( needed_resources > 0 ){
-                  DLB_UpdateResources_max( needed_resources );
+                  //If ready tasks > num threads I check if there are available cpus
+                  needed_resources = ready_tasks - team->getFinalSize();
+                  if ( needed_resources > 0 ){
+                     DLB_UpdateResources_max( needed_resources );
+                  }
                }
             } else {
                // Iterate over default cpus not running and wake them up if needed
@@ -155,11 +164,15 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 
    } else {
       /* OpenMP */
-      if ( _status.dlb_enabled ) {
-         LockBlock Lock( _lock );
-         DLB_UpdateResources();
-         sys.getCpuMask( &_running_cpus );
-         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+      if ( _status.dlb_enabled)
+      {
+         if (_status.auto_enabled || myThread->isMainThread())
+         {
+            LockBlock Lock( _lock );
+            DLB_UpdateResources();
+            sys.getCpuMask( &_running_cpus );
+            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+         }
       } else {
          LockBlock Lock( _lock );
          memcpy( &_running_cpus, &_default_cpus, sizeof(cpu_set_t) );
@@ -180,8 +193,8 @@ void ResourceManager::releaseCpu( void )
    if ( !_status.block_enabled ) return;
    if ( !getMyThreadSafe()->getTeam() ) return;
    if ( getMyThreadSafe()->isSleeping() ) return;
+//   if (!_status.auto_enabled) return;
 
-   bool release = true;
    int my_cpu = getMyThreadSafe()->getCpuId();
 
    {
@@ -189,11 +202,15 @@ void ResourceManager::releaseCpu( void )
 
       if ( CPU_COUNT(&_running_cpus) > 1 ) {
 
-         if ( _status.dlb_enabled ) {
-            release = DLB_ReleaseCpu( my_cpu );
-         }
+         if ( _status.dlb_enabled) {
+            
+            bool release = DLB_ReleaseCpu( my_cpu );
+            if ( release ) {
+               sys.getCpuMask( &_running_cpus );
+               ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+            }
 
-         if ( release ) {
+         } else {
             CPU_CLR( my_cpu, &_running_cpus );
             ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
             myThread->sleep();
@@ -217,10 +234,12 @@ void ResourceManager::returnClaimedCpus( void )
    if ( !_status.dlb_enabled ) return;
    if ( !getMyThreadSafe()->isMainThread() ) return;
 
-   DLB_ReturnClaimedCpus();
-   LockBlock Lock( _lock );
-   sys.getCpuMask( &_running_cpus );
-   ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+   if (_status.auto_enabled || myThread->isMainThread()){
+      DLB_ReturnClaimedCpus();
+      LockBlock Lock( _lock );
+      sys.getCpuMask( &_running_cpus );
+      ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+   }
 }
 
 /* Only useful for external slave (?) threads
@@ -234,25 +253,27 @@ void ResourceManager::returnMyCpuIfClaimed( void )
    if ( !_status.is_malleable ) return;
    if ( !_status.dlb_enabled ) return;
 
-   // Return if my cpu belongs to the default mask
-   int my_cpu = getMyThreadSafe()->getCpuId();
-   if ( CPU_ISSET( my_cpu, &_default_cpus ) )
-      return;
+   if (_status.auto_enabled || myThread->isMainThread()){
+      // Return if my cpu belongs to the default mask
+      int my_cpu = getMyThreadSafe()->getCpuId();
+      if ( CPU_ISSET( my_cpu, &_default_cpus ) )
+         return;
 
-   if ( !getMyThreadSafe()->isSleeping() ){
-      LockBlock Lock( _lock );
-      if ( DLB_ReturnClaimedCpu( my_cpu ) ) {
-         myThread->sleep();
-         // We can't clear it since DLB could have switched this cpu for another one
-         //CPU_CLR( my_cpu, &_running_cpus );
-         sys.getCpuMask( &_running_cpus );
-         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+      if ( !getMyThreadSafe()->isSleeping() ){
+         LockBlock Lock( _lock );
+         if ( DLB_ReturnClaimedCpu( my_cpu ) ) {
+            myThread->sleep();
+            // We can't clear it since DLB could have switched this cpu for another one
+            //CPU_CLR( my_cpu, &_running_cpus );
+            sys.getCpuMask( &_running_cpus );
+            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+         }
       }
-   }
 
-   // Go to sleep inmediately
-   if ( myThread->isSleeping() )
-      myThread->wait();
+      // Go to sleep inmediately
+      if ( myThread->isSleeping() )
+         myThread->wait();
+   }
 }
 
 /* When waking up to check if the my cpu is "really" free
@@ -263,21 +284,24 @@ void ResourceManager::waitForCpuAvailability( void )
    if ( !_status.initialized ) return;
    if ( !_status.dlb_enabled ) return;
 
-   int cpu = getMyThreadSafe()->getCpuId();
-   CPU_SET( cpu, &_waiting_cpus );
-   while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
-      // Sleep the thread for a while to reduce the cycles consumption, then yield
-      OS::nanosleep( NANOS_RM_YIELD_SLEEP_NS );
-      sched_yield();
-   /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
-         myThread->sleep();
-         break;
-         }*/
-   CPU_CLR( cpu, &_waiting_cpus );
+   if (_status.auto_enabled || myThread->isMainThread()){
+      int cpu = getMyThreadSafe()->getCpuId();
+      CPU_SET( cpu, &_waiting_cpus );
+      while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
+         // Sleep the thread for a while to reduce the cycles consumption, then yield
+         OS::nanosleep( NANOS_RM_YIELD_SLEEP_NS );
+         sched_yield();
+      /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
+            myThread->sleep();
+            break;
+            }*/
+      CPU_CLR( cpu, &_waiting_cpus );
+   }
 }
 
 bool ResourceManager::lastOne( void )
 {
+   if (!_status.auto_enabled) return false;
    if ( !_status.initialized )
       return false;
 
