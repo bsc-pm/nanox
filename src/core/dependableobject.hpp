@@ -101,7 +101,7 @@ inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * 
 {
    int  numPred = --_numPredecessors;
 //   DependableObject &depObj = *this;
-//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, finishedPred, sys.getDefaultSchedulePolicy()->REMOVE_IN_LOCK, numPred );
+//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, finishedPred );
    if(sys.getPredecessorLists())
    {
       SyncLockBlock lock( this->getLock() );
@@ -167,7 +167,7 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
 {
    if(sys.getPredecessorLists())
       depObj.addPredecessor( *this );
-//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, this, sys.getDefaultSchedulePolicy()->ADD, 0 );
+   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, this );
 
    return _successors.insert ( &depObj ).second;
 }

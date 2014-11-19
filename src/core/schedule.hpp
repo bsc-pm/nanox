@@ -164,7 +164,7 @@ inline void SchedulePolicy::atShutdown   ( void )
    return;
 }
 
-inline void SchedulePolicy::atSuccessor  ( DependableObject &depObj, DependableObject *pred, atSuccessorFlag mode, int numPred )
+inline void SchedulePolicy::atSuccessor  ( DependableObject &depObj, DependableObject *pred )
 {
    return;
 }

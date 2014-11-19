@@ -236,9 +236,6 @@ namespace nanos
             SYS_SUBMIT, SYS_SUBMIT_WITH_DEPENDENCIES, SYS_INLINE_WORK
          } SystemSubmitFlag;
 
-         typedef enum {
-            ADD, REMOVE_IN_LOCK, REMOVE
-         } atSuccessorFlag;
       private:
          std::string    _name;
       private:
@@ -284,7 +281,7 @@ namespace nanos
          virtual void atCreate      ( DependableObject &depObj );
          virtual void atSupport     ( BaseThread *thread );
          virtual void atShutdown    ( void );
-         virtual void atSuccessor   ( DependableObject &depObj, DependableObject *pred, atSuccessorFlag mode, int numPred );
+         virtual void atSuccessor   ( DependableObject &depObj, DependableObject *pred );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          /*! \brief Batch processing version.
