@@ -38,6 +38,7 @@ extern "C" {
    int DLB_CheckCpuAvailability ( int cpu ) __attribute__(( weak ));
    void DLB_Init ( void ) __attribute__(( weak ));
    void DLB_Finalize ( void ) __attribute__(( weak ));
+   int DLB_Is_auto( void ) __attribute__(( weak ));
 }
 #endif
 
@@ -49,9 +50,10 @@ namespace ResourceManager {
          bool is_malleable:1;
          bool dlb_enabled:1;
          bool block_enabled:1;
+         bool auto_enabled:1;
       } flags_t;
 
-      flags_t   _status = {false, false, false, false};
+      flags_t   _status = {false, false, false, false, false};
       Lock      _lock;
       cpu_set_t _waiting_cpus;
       int       _max_cpus;
@@ -70,6 +72,7 @@ void ResourceManager::init( void )
    _status.is_malleable = sys.getPMInterface().isMalleable();
    _status.block_enabled = sys.getSchedulerConf().getUseBlock();
    _status.dlb_enabled = sys.dlbEnabled();
+
 #ifndef DLB
    _status.dlb_enabled &=
          DLB_UpdateResources_max &&
@@ -81,9 +84,10 @@ void ResourceManager::init( void )
          DLB_CheckCpuAvailability;
 #endif
 
-   if ( _status.dlb_enabled )
+   if ( _status.dlb_enabled ) {
       DLB_Init();
-
+      _status.auto_enabled=(DLB_Is_auto()==1);
+   }
    _status.initialized = _status.dlb_enabled || _status.block_enabled;
 }
 
@@ -122,7 +126,7 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 
          LockBlock Lock( _lock );
          if ( needed_resources > 0 ) {
-            if ( _status.dlb_enabled ) {
+            if ( _status.dlb_enabled && (_status.auto_enabled || myThread->isMainThread()) ) {
                //If ready tasks > num threads I claim my cpus being used by someone else
                const cpu_set_t& process_mask = sys.getCpuProcessMask();
                const cpu_set_t& active_mask = sys.getCpuActiveMask();
@@ -158,10 +162,11 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
 
    } else {
       /* OpenMP */
-      LockBlock Lock( _lock );
-      if ( _status.dlb_enabled ) {
+      if ( _status.dlb_enabled && (_status.auto_enabled || myThread->isMainThread()) ) {
+         LockBlock Lock( _lock );
          DLB_UpdateResources();
       } else {
+         LockBlock Lock( _lock );
          const cpu_set_t& process_mask = sys.getCpuProcessMask();
          sys.setCpuActiveMask( &process_mask );
       }
@@ -232,6 +237,7 @@ void ResourceManager::returnMyCpuIfClaimed( void )
    if ( !_status.initialized ) return;
    if ( !_status.is_malleable ) return;
    if ( !_status.dlb_enabled ) return;
+   if ( !_status.auto_enabled ) return;
 
    // Return if my cpu belongs to the default mask
    const cpu_set_t& process_mask = sys.getCpuProcessMask();
