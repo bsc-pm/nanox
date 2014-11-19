@@ -418,7 +418,7 @@ class InstrumentationExtrae: public Instrumentation
          extrae_combined_events_t ce;
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
 
-         ce.HardwareCounters = 1;
+         ce.HardwareCounters = 0;
          ce.Callers = 0;
          ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
          ce.nEvents = 0;
@@ -505,6 +505,9 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = cvalue;
                   }
+                  // Add hwc only for user-funct events
+                  if ( ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                     ce.HardwareCounters = 1;
                   break;
                case NANOS_BURST_END:
                   ckey = e.getKey();
@@ -512,6 +515,8 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = 0; // end
                   }
+                  if ( ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                     ce.HardwareCounters = 1;
                   break;
                default: break;
             }

@@ -111,19 +111,20 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void successorFound( DependableObject *predecessor, DependableObject *successor )
+//            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor, atSuccessorFlag mode, int numPred )
             {
                //debug( "Scheduler::successorFound" );
 
-               if ( ! _useSmartPriority ) return;
+               if ( ! _useSmartPriority || (mode != ADD) ) return;
 
 
-               if ( predecessor == NULL || successor == NULL ) return;
+ //              if ( predecessor == NULL || successor == NULL ) return;
                
                WD *pred = ( WD* ) predecessor->getRelatedObject();
                if ( pred == NULL ) return;
 
-               WD *succ = ( WD* ) successor->getRelatedObject();
+               WD *succ = ( WD* ) successor.getRelatedObject();
                if ( succ == NULL ) {
                   fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
                }

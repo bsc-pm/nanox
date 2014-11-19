@@ -10,7 +10,7 @@
 namespace nanos {
 
 template <class T>
-ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), sparse( false ) {
+ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), _registeredObject( NULL ), sparse( false ) {
    //_container.reserve( MAX_REG_ID );
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx += 1 ) {
       _dimensionSizes[ idx ] = cd.getDimensions()[ idx ].size;
@@ -120,6 +120,16 @@ bool ContainerDense< T >::getKeepAtOrigin() const {
 }
 
 template <class T>
+void ContainerDense< T >::setRegisteredObject( CopyData *cd ) {
+   _registeredObject = cd;
+}
+
+template <class T>
+CopyData *ContainerDense< T >::getRegisteredObject() const {
+   return _registeredObject;
+}
+
+template <class T>
 ContainerSparse< T >::ContainerSparse( RegionDictionary< ContainerDense > &orig ) : _container(), _orig( orig ), sparse( true ) {
 }
 
@@ -221,8 +231,11 @@ std::vector< std::size_t > const &ContainerSparse< T >::getDimensionSizes() cons
 
 
 template < template <class> class Sparsity>
-RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : Sparsity< RegionVectorEntry >( cd ), Version( 1 ), _intersects( cd.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
-      _keyBaseAddress( cd.getHostBaseAddress() == 0 ? ( (uint64_t) cd.getBaseAddress() ) : cd.getHostBaseAddress() ), _realBaseAddress( (uint64_t) cd.getBaseAddress() ), _lock() {
+RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : 
+      Sparsity< RegionVectorEntry >( cd ), Version( 1 ),
+      _intersects( cd.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
+      _keyBaseAddress( cd.getHostBaseAddress() == 0 ? ( (uint64_t) cd.getBaseAddress() ) : cd.getHostBaseAddress() ),
+      _realBaseAddress( (uint64_t) cd.getBaseAddress() ), _lock() {
    //std::cerr << "CREATING MASTER DICT: tree: " << (void *) &_tree << std::endl;
    nanos_region_dimension_internal_t dims[ cd.getNumDimensions() ];
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx++ ) {
@@ -812,6 +825,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    //std::cerr << __FUNCTION__ << " rest of time " << (tfiniTOTAL-tfiniINTERS) << std::endl;
 }
 
+#if 0
 template < template <class> class Sparsity>
 reg_t RegionDictionary< Sparsity >::tryObtainRegionId( CopyData const &cd ) {
    reg_t id = 0;
@@ -824,24 +838,45 @@ reg_t RegionDictionary< Sparsity >::tryObtainRegionId( CopyData const &cd ) {
    }
    return id;
 }
+#endif
 
 template < template <class> class Sparsity>
 reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd, WD const &wd, unsigned int idx ) {
    reg_t id = 0;
-   if ( cd.getNumDimensions() != this->getNumDimensions() ) {
-      std::cerr << "Error: cd.getNumDimensions() returns " << cd.getNumDimensions() << " but I already have the object registered with " << this->getNumDimensions() << " dimensions. WD is : " << ( wd.getDescription() != NULL ? wd.getDescription() : "n/a" ) << " copy index: " << idx << std::endl;
+   CopyData *deductedCd = NULL;
+   if ( this->getRegisteredObject() != NULL ) {
+      CopyData *tmp = NEW CopyData( *this->getRegisteredObject() );
+      nanos_region_dimension_internal_t *dims = NEW nanos_region_dimension_internal_t[tmp->getNumDimensions()];
+      tmp->setDimensions( dims );
+      cd.deductCd( *this->getRegisteredObject(), tmp );
+      deductedCd = tmp;
    }
-   ensure( cd.getNumDimensions() == this->getNumDimensions(), "ERROR" );
-   if ( cd.getNumDimensions() != this->getNumDimensions() ) {
+   CopyData const &realCd = deductedCd != NULL ? *deductedCd : cd;
+   if ( realCd.getNumDimensions() != this->getNumDimensions() ) {
+      std::cerr << "Error: cd.getNumDimensions() returns " << realCd.getNumDimensions()
+         << " but I already have the object registered with " << this->getNumDimensions()
+         << " dimensions. WD is : "
+         << ( wd.getDescription() != NULL ? wd.getDescription() : "n/a" )
+         << " copy index: " << idx << " got reg object? " << this->getRegisteredObject()
+         << std::endl;
+   }
+   ensure( realCd.getNumDimensions() == this->getNumDimensions(), "ERROR" );
+   if ( realCd.getNumDimensions() != this->getNumDimensions() ) {
       std::cerr << "Error, invalid numDimensions" << std::endl;
    } else {
-      for ( unsigned int cidx = 0; cidx < cd.getNumDimensions(); cidx += 1 ) {
-         if ( this->getDimensionSizes()[ cidx ] != cd.getDimensions()[ cidx ].size ) {
-            fatal("Object with base address " << (void *)cd.getBaseAddress() << " was previously registered with a different size in dimension " << std::dec << cidx << " (previously was " << std::dec << this->getDimensionSizes()[ cidx ] << " now received size " << std::dec << cd.getDimensions()[ cidx ].size << ")." );
+      for ( unsigned int cidx = 0; cidx < realCd.getNumDimensions(); cidx += 1 ) {
+         if ( this->getDimensionSizes()[ cidx ] != realCd.getDimensions()[ cidx ].size ) {
+            fatal("Object with base address " << (void *)realCd.getBaseAddress() <<
+                  " was previously registered with a different size in dimension " <<
+                  std::dec << cidx << " (previously was " <<
+                  std::dec << this->getDimensionSizes()[ cidx ] <<
+                  " now received size " << std::dec <<
+                  realCd.getDimensions()[ cidx ].size << ")." );
          }
       }
-      id = this->addRegion( cd.getDimensions() );
+      id = this->addRegion( realCd.getDimensions() );
    }
+   //this->printRegion(std::cerr, id); std::cerr << std::endl;
    return id;
 }
 

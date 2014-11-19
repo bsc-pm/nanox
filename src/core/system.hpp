@@ -89,6 +89,9 @@ inline bool System::getUntieMaster () const { return _untieMaster; }
 inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
 inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
+inline void System::setPredecessorLists ( bool value ) { _predecessorLists = value; }
+inline bool System::getPredecessorLists ( void ) const { return _predecessorLists; }
+
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
 
 inline int System::getNumCreatedPEs() const { return _pes.size(); }
@@ -583,6 +586,14 @@ inline int System::getUserDefinedNUMANode() const {
 
 inline void System::setUserDefinedNUMANode( int nodeId ) {
    _userDefinedNUMANode = nodeId;
+}
+
+inline unsigned int System::getNumAccelerators() const {
+   return _acceleratorCount;
+}
+
+inline unsigned int System::getNewAcceleratorId() {
+   return _acceleratorCount++;
 }
 
 #endif

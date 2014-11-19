@@ -72,12 +72,18 @@ private:
         // Get the style of the node
         node_attrs += "style=\"";
         node_attrs += (!n->is_task() ? "bold" : "filled");
+        node_attrs += (n->is_task() && n->is_critical() ? ",bold\", shape=\"doublecircle" : "");    //Mark critical tasks as bold and filled
         
         // Get the color of the node
+ //       if(n->is_task() && n->is_critical()) {
+ //           node_attrs += "\", color=\"black\", fillcolor=red\"";// + wd_to_color_hash(n->get_funct_id());
+ //       }
         if(n->is_task()) {
             node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash(n->get_funct_id());
         }
-        
+       
+
+ 
         // Get the size of the node
         if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "constant" || _total_time == 0.0)
         {
@@ -111,7 +117,8 @@ private:
                         e->is_true_dependency()) ? "solid" 
                                                  : (e->is_anti_dependency() ? "dashed" 
                                                                             : "dotted"));
-        
+        edge_attrs += ( (e->get_source()->is_critical() && e->get_target()->is_critical()) ? ",bold" : "" ); //Mark the edges of the critical path as bold
+ 
         // Compute the color of the edge
         edge_attrs += "\", color=\"";
         edge_attrs += (e->is_nesting() ? "gray47" 
@@ -706,7 +713,8 @@ public:
         static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
         static const nanos_event_key_t user_funct_location = iD->getEventKey("user-funct-location");
         static const nanos_event_key_t taskwait = iD->getEventKey("taskwait");
-        
+        static const nanos_event_key_t critical_wd_id = iD->getEventKey("critical-wd-id");
+
         // Get the node corresponding to the wd_id calling this function
         // This node won't exist if the calling wd corresponds to that of the master thread
         int64_t current_wd_id = getMyWDId();
@@ -738,6 +746,13 @@ public:
                 if(current_parent != NULL) {
                     Node::connect_nodes(current_parent, new_node, Nesting);
                 }
+            }
+            else if (e.getKey() == critical_wd_id)
+            {
+               int64_t wd_id = e.getValue();
+               Node *n = find_node_from_wd_id(wd_id);
+               assert(n->is_task());
+               n->set_critical();
             }
             else if (e.getKey() == user_funct_location)
             {   // A user function has been called

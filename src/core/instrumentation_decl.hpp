@@ -636,6 +636,7 @@ namespace nanos {
             /* 56 */ registerEventKey("wd-criticality","Work descriptor criticality");
             /* 57 */ registerEventKey("blev-overheads", "Total overheads of botlev scheduler");
             /* 58 */ registerEventKey("blev-overheads-breakdown", "Overheads of botlev scheduler broken down");
+            /* 59 */ registerEventKey("critical-wd-id", "A critical work descriptor is submitted");
 
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */

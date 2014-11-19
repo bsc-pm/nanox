@@ -175,4 +175,111 @@ void MemoryMap< uint64_t >::addChunk( uint64_t addr, std::size_t len, uint64_t d
       insertWithOverlapButNotGenerateIntersects( key, it, data );
    }
 }
+
+
+uint64_t MemoryMap< uint64_t >::getExactInsertIfNotFound( uint64_t addr, std::size_t len, uint64_t valIfNotFound, uint64_t valIfNotValid ) {
+   uint64_t val;
+   MemoryChunk key( addr, len );
+   iterator it = this->lower_bound( key );
+   if ( it == this->end() )
+   {
+      /* not exact match found, check it-- */
+      if ( this->size() == 0 ) {
+         it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+         val = it->second;
+      } else {
+         it--;
+         if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
+            it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+            val = it->second;
+         } else {
+            val = valIfNotValid;
+         }
+      }
+   } else if ( this->key_comp()( key, it->first ) ) {
+      /* less than addr */
+      if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
+         it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+         val = it->second;
+      } else {
+         val = valIfNotValid;
+      }
+   } else if ( it->first.getLength() != len ) {
+      /* same addr, wrong length */
+      val = valIfNotValid;
+   } else {
+      /* exact address found */
+      val = it->second;
+   }
+   return val;
+}
+
+uint64_t MemoryMap< uint64_t >::getExactByAddress( uint64_t addr, uint64_t valIfNotFound ) const {
+   uint64_t val = valIfNotFound;
+   MemoryChunk key( addr, 0 );
+   const_iterator it = this->lower_bound( key );
+   if ( it != this->end() && !this->key_comp()( key, it->first ) )
+   {
+      /* exact address found */
+      val = it->second;
+   }
+   return val;
+}
+
+
+uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid ) {
+   uint64_t val = valIfNotValid;
+   MemoryChunk key( addr, len );
+   iterator it = this->lower_bound( key );
+   if ( it == this->end() )
+   {
+      /* not exact match found, check it-- */
+      if ( this->size() == 0 ) {
+         it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+         val = it->second;
+         exact = true;
+      } else {
+         it--;
+         MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
+         if ( ov == MemoryChunk::NO_OVERLAP ) {
+            it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+            val = it->second;
+            exact = true;
+         } else if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
+               ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
+               ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
+            val = it->second;
+            exact = false;
+         }
+      }
+   } else if ( this->key_comp()( key, it->first ) ) {
+      /* key less than it->first, not total overlap guaranteed */
+      if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
+         it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+         val = it->second;
+         exact = true;
+      } else {
+         val = valIfNotValid;
+         exact = false;
+      }
+   } else if ( it->first.getLength() != len ) {
+      /* same addr, wrong length */
+      MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
+      if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
+            ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
+            ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
+         val = it->second;
+         exact = false;
+      } else {
+         val = valIfNotValid;
+         exact = false;
+      }
+   } else {
+      /* exact address found */
+      val = it->second;
+      exact = true;
+   }
+   return val;
+}
+
 #endif

@@ -80,12 +80,15 @@ class HostAddressSpace {
    memory_space_id_t getMemorySpaceId() const;
    reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
    NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
+   void registerObject( nanos_copy_data_internal_t *obj );
 };
 
 
 class SeparateAddressSpace {
    RegionCache  _cache;
    unsigned int _nodeNumber;
+   unsigned int _acceleratorNumber;
+   bool         _isAccelerator;
    void        *_sdata;
    
    public:
@@ -107,7 +110,10 @@ class SeparateAddressSpace {
    unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
    unsigned int getNodeNumber() const;
+   unsigned int getAcceleratorNumber() const;
    void setNodeNumber( unsigned int n );
+   void setAcceleratorNumber( unsigned int n );
+   bool isAccelerator() const;
    void *getSpecificData() const;
    void setSpecificData( void *data );
 
@@ -127,6 +133,7 @@ class SeparateAddressSpace {
    unsigned int getHardInvalidationCount() const;
    bool canAllocateMemory( MemCacheCopy *memCopies, unsigned int numCopies, bool considerInvalidations, WD const &wd );
    void registerOwnedMemory(global_reg_t reg);
+   Device const &getDevice() const;
 };
 
 template <class T>

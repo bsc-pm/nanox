@@ -99,6 +99,8 @@ namespace nanos
          bool                 _synchronizedStart;
          //! Enable Dynamic Load Balancing library
          bool                 _enableDLB;
+         //! Maintain predecessors list, disabled by default, used by botlev and async threads (#1027)
+         bool                 _predecessorLists;
 
 
          //cutoff policy and related variables
@@ -185,6 +187,8 @@ namespace nanos
 
          std::set<unsigned int>                        _clusterNodes;
          std::set<unsigned int>                        _numaNodes;
+
+         unsigned int                                  _acceleratorCount;
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>                              _numaNodeMap;
          
@@ -347,6 +351,11 @@ namespace nanos
 
          void setSynchronizedStart ( bool value );
          bool getSynchronizedStart ( void ) const;
+
+         //! \brief Enables or disables the use of predecessor lists
+         void setPredecessorLists ( bool value );
+         //! \brief Checks if predecessor lists are enabled
+         bool getPredecessorLists ( void ) const;
 
          int nextThreadId ();
          unsigned int nextPEId ();
@@ -605,6 +614,7 @@ namespace nanos
          //It will act as an slave and call exit(0) when we need slave behaviour
          //in offload or cluster version
          void ompss_nanox_main ();         
+         void _registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len);
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
@@ -626,6 +636,10 @@ namespace nanos
          memory_space_id_t getMemorySpaceIdOfClusterNode( unsigned int node ) const;
          int getUserDefinedNUMANode() const;
          void setUserDefinedNUMANode( int nodeId );
+         void registerObject( int numObjects, nanos_copy_data_internal_t *obj );
+
+         unsigned int getNumAccelerators() const;
+         unsigned int getNewAcceleratorId();
    };
 
    extern System sys;

@@ -272,7 +272,6 @@ class SMPPlugin : public SMPBasePlugin
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
-            numaMem.setNodeNumber( 0 );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
             cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), active, numaNode, socket );
@@ -322,7 +321,7 @@ class SMPPlugin : public SMPBasePlugin
        *
        * The number of smp workers is computed with this:
        * if a certain number of workers was requested:
-       *    min of "the number of active non-reserved CPUs" and requested workers
+       *    max of "the number of active non-reserved CPUs" and requested workers
        * else
        *    "the number of active non-reserved CPUs"
        *
@@ -339,7 +338,7 @@ class SMPPlugin : public SMPBasePlugin
       }
 
       if ( _requestedWorkers > 0 ) {
-         count = std::min( ( _requestedWorkers - 1 /* main thd is already reserved */), active_cpus - reserved_cpus );
+         count = std::max( ( _requestedWorkers - 1 /* main thd is already reserved */), active_cpus - reserved_cpus );
       } else {
          count = active_cpus - reserved_cpus;
       }
