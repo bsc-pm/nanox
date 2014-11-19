@@ -736,6 +736,13 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
    if ( o != NULL ) {
       if ( *o == NULL ) {
          *o = NEW Object( NEW GlobalRegionDictionary( *cd ), cd );
+         GlobalRegionDictionary *dict = (*o)->getGlobalRegionDictionary();
+         NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
+         if ( entry == NULL ) {
+            entry = NEW NewNewDirectoryEntryData();
+            //entry->addAccess( 0, 1 );
+            dict->setRegionData( 1, entry );
+         }
       } else {
          /* already registered */
          fatal("Object already registered (same base addr).");
