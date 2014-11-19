@@ -58,6 +58,15 @@ typedef enum {
 } AsyncThreadState_t;
 
 
+AsyncThread::AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator ) :
+      BaseThread( osId, wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
+      _pendingEvents(), _pendingEventsCounter( 0 ), _recursiveCounter( 0 ),
+      _previousWD( NULL )
+{
+   sys.setPredecessorLists( true );
+}
+
+
 bool AsyncThread::inlineWorkDependent( WD &work )
 {
    ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_INLINE_WORK_DEP_EVENT );
