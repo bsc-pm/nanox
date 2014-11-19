@@ -639,6 +639,9 @@ namespace nanos {
             /* 59 */ registerEventKey("critical-wd-id", "A critical work descriptor is submitted");
 
 
+            /* 60 */ registerEventKey("copy-dir-devices", "Asynchronous memory copy between host and devices", true);
+
+
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
 
