@@ -124,7 +124,14 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
          if ( needed_resources > 0 ) {
             if ( _status.dlb_enabled ) {
                //If ready tasks > num threads I claim my cpus being used by someone else
-               DLB_ClaimCpus( needed_resources );
+               const cpu_set_t& process_mask = sys.getCpuProcessMask();
+               const cpu_set_t& active_mask = sys.getCpuActiveMask();
+               cpu_set_t mine_and_active;
+               CPU_AND( &mine_and_active, &process_mask, &active_mask );
+               if ( !CPU_EQUAL(&mine_and_active, &process_mask) ) {
+                  // Only claim if some of my CPUs are not active
+                  DLB_ClaimCpus( needed_resources );
+               }
 
                //If ready tasks > num threads I check if there are available cpus
                needed_resources = ready_tasks - team->getFinalSize();
@@ -195,7 +202,6 @@ void ResourceManager::releaseCpu( void )
 
 /* Only called by master thread
    Check if any of our cpus have been claimed by its owner
-   return it if necesary notifying the corresponding thread
 */
 void ResourceManager::returnClaimedCpus( void )
 {
@@ -205,7 +211,15 @@ void ResourceManager::returnClaimedCpus( void )
    if ( !getMyThreadSafe()->isMainThread() ) return;
 
    LockBlock Lock( _lock );
-   DLB_ReturnClaimedCpus();
+
+   const cpu_set_t& process_mask = sys.getCpuProcessMask();
+   const cpu_set_t& active_mask = sys.getCpuActiveMask();
+   cpu_set_t mine_or_active;
+   CPU_OR( &mine_or_active, &process_mask, &active_mask );
+   if ( CPU_COUNT(&mine_or_active) > CPU_COUNT(&process_mask) ) {
+      // Only return if I am using external CPUs
+      DLB_ReturnClaimedCpus();
+   }
 }
 
 /* Only useful for external slave (?) threads

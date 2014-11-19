@@ -284,7 +284,7 @@ class InstrumentationExtrae: public Instrumentation
         }
 
         /* Keep current number of threads */
-        _maxThreads = sys.getSMPPlugin()->getNumPEs();
+        _maxThreads = sys.getSMPPlugin()->getNumThreads();
       }
       void doLs(std::string dest)
       {
