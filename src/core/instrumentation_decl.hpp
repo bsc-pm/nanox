@@ -640,6 +640,8 @@ namespace nanos {
 
 
             /* 60 */ registerEventKey("copy-dir-devices", "Asynchronous memory copy between host and devices", true);
+            registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_H2D_GPU_EVENT", "Host to GPU device transfer (CUDA)" );                     /* 1 */
+            registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_D2H_GPU_EVENT", "GPU device to host transfer (CUDA)" );                     /* 2 */
 
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
