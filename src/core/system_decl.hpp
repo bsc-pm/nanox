@@ -99,6 +99,8 @@ namespace nanos
          bool                 _synchronizedStart;
          //! Enable Dynamic Load Balancing library
          bool                 _enableDLB;
+         //! Maintain predecessors list, disabled by default, used by botlev and async threads (#1027)
+         bool                 _predecessorLists;
 
 
          //cutoff policy and related variables
@@ -349,6 +351,11 @@ namespace nanos
 
          void setSynchronizedStart ( bool value );
          bool getSynchronizedStart ( void ) const;
+
+         //! \brief Enables or disables the use of predecessor lists
+         void setPredecessorLists ( bool value );
+         //! \brief Checks if predecessor lists are enabled
+         bool getPredecessorLists ( void ) const;
 
          int nextThreadId ();
          unsigned int nextPEId ();
