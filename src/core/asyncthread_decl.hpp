@@ -70,10 +70,7 @@ namespace nanos
       public:
         /*! \brief AsyncThread constructor
          */
-         AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0 ) :
-               BaseThread( osId, wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
-               _pendingEvents(), _pendingEventsCounter( 0 ), _recursiveCounter( 0 ),
-               _previousWD( NULL ) {}
+         AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0 );
 
         /*! \brief AsyncThread destructor
          */
