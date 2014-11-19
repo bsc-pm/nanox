@@ -130,6 +130,7 @@ namespace nanos {
          public:
             // constructor
             BotLev() : SchedulePolicy ( "BotLev" ) {
+               sys.setPredecessorLists(true);
                _currMax = _maxBotLev = maxBL;
                NANOS_INSTRUMENT( numCritical = 0; )
             }
