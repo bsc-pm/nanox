@@ -89,6 +89,11 @@ void ResourceManager::init( void )
       _status.auto_enabled=(DLB_Is_auto()==1);
    }
    _status.initialized = _status.dlb_enabled || _status.block_enabled;
+
+   // We can't untie the master thread when running DLB with the old non-auto policies
+   if ( _status.auto_enabled ) {
+      sys.setUntieMaster( false );
+   }
 }
 
 void ResourceManager::finalize( void )
