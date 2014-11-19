@@ -32,7 +32,7 @@ namespace ResourceManager {
    void returnClaimedCpus( void );
    void returnMyCpuIfClaimed( void );
    void waitForCpuAvailability( void );
-   bool lastOne( void );
+   bool lastActiveThread( void );
 }}
 
 #endif /* _NANOS_RESOURCEMANAGER */

@@ -32,7 +32,7 @@ extern "C" {
    void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
    void DLB_UpdateResources( void ) __attribute__(( weak ));
    void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
-   void DLB_ReleaseCpu ( int cpu ) __attribute__(( weak ));
+   int DLB_ReleaseCpu ( int cpu ) __attribute__(( weak ));
    int DLB_ReturnClaimedCpu ( int cpu ) __attribute__(( weak ));
    void DLB_ClaimCpus (int cpus) __attribute__(( weak ));
    int DLB_CheckCpuAvailability ( int cpu ) __attribute__(( weak ));
@@ -53,9 +53,8 @@ namespace ResourceManager {
 
       flags_t   _status = {false, false, false, false};
       Lock      _lock;
-      cpu_set_t _running_cpus;
       cpu_set_t _waiting_cpus;
-      cpu_set_t _default_cpus;
+      int       _max_cpus;
    }
 }}
 
@@ -65,10 +64,8 @@ using namespace nanos;
 void ResourceManager::init( void )
 {
    LockBlock Lock( _lock );
-   sys.getCpuActiveMask( &_running_cpus );
-   sys.getCpuProcessMask( &_default_cpus );
    CPU_ZERO( &_waiting_cpus );
-   ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+   _max_cpus = OS::getMaxProcessors();
 
    _status.is_malleable = sys.getPMInterface().isMalleable();
    _status.block_enabled = sys.getSchedulerConf().getUseBlock();
@@ -94,8 +91,7 @@ void ResourceManager::finalize( void )
 {
    _status.initialized = false;
 
-   // DLB is only manually finalized when Nanos has --enable-block (No MPI)
-   if ( _status.dlb_enabled && _status.block_enabled )
+   if ( _status.dlb_enabled )
       DLB_Finalize();
 }
 
@@ -123,11 +119,11 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &ready_tasks_key, &ready_tasks_value); )
 
          int needed_resources = ready_tasks - team->getFinalSize();
-         if ( needed_resources > 0 ){
-            LockBlock Lock( _lock );
 
+         LockBlock Lock( _lock );
+         if ( needed_resources > 0 ) {
             if ( _status.dlb_enabled ) {
-               //If ready tasks > num threads I claim my cpus being used by somebodyels
+               //If ready tasks > num threads I claim my cpus being used by someone else
                DLB_ClaimCpus( needed_resources );
 
                //If ready tasks > num threads I check if there are available cpus
@@ -137,33 +133,30 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
                }
             } else {
                // Iterate over default cpus not running and wake them up if needed
-               for (int i=0; i<CPU_SETSIZE; i++) {
-                  if ( CPU_ISSET( i, &_default_cpus) && !CPU_ISSET( i, &_running_cpus ) ) {
-                     CPU_SET( i, &_running_cpus );
+               const cpu_set_t& process_mask = sys.getCpuProcessMask();
+               cpu_set_t new_active_cpus = sys.getCpuActiveMask();
+               for (int i=0; i<_max_cpus; i++) {
+                  if ( CPU_ISSET( i, &process_mask) && !CPU_ISSET( i, &new_active_cpus ) ) {
+                     CPU_SET( i, &new_active_cpus );
                      if ( --ready_tasks == 0 )
                         break;
-                     if ( CPU_EQUAL( &_default_cpus, &_running_cpus ) )
+                     if ( CPU_EQUAL( &process_mask, &new_active_cpus ) )
                         break;
                   }
                }
-                sys.setCpuActiveMask( &_running_cpus );
+               sys.setCpuActiveMask( &new_active_cpus );
             }
-            sys.getCpuActiveMask( &_running_cpus );
-            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
          }
       }
 
    } else {
       /* OpenMP */
+      LockBlock Lock( _lock );
       if ( _status.dlb_enabled ) {
-         LockBlock Lock( _lock );
          DLB_UpdateResources();
-         sys.getCpuActiveMask( &_running_cpus );
-         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
       } else {
-         LockBlock Lock( _lock );
-         memcpy( &_running_cpus, &_default_cpus, sizeof(cpu_set_t) );
-         sys.setCpuActiveMask( &_default_cpus );
+         const cpu_set_t& process_mask = sys.getCpuProcessMask();
+         sys.setCpuActiveMask( &process_mask );
       }
    }
 }
@@ -182,23 +175,21 @@ void ResourceManager::releaseCpu( void )
 
    int my_cpu = getMyThreadSafe()->getCpuId();
 
-   {
-      LockBlock Lock( _lock );
+   LockBlock Lock( _lock );
 
-      if ( CPU_COUNT(&_running_cpus) > 1 ) {
+   // Do not release if this CPU is the last active within the process_mask
+   cpu_set_t mine_and_active;
+   CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
+   if ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) )
+      return;
 
-         if ( _status.dlb_enabled ) {
-            DLB_ReleaseCpu( my_cpu );
-         } else {
-            CPU_CLR( my_cpu, &_running_cpus );
-            ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
-            myThread->sleep();
-         }
-      }
-   }
-   // wait() only after the lock is released
-   if ( getMyThreadSafe()->isSleeping() ) {
-      myThread->wait();
+   if ( _status.dlb_enabled ) {
+      DLB_ReleaseCpu( my_cpu );
+   } else {
+      cpu_set_t new_active_cpus = sys.getCpuActiveMask();
+      ensure( CPU_ISSET(my_cpu, &new_active_cpus), "Trying to release a non active CPU" );
+      CPU_CLR( my_cpu, &new_active_cpus );
+      sys.setCpuActiveMask( &new_active_cpus );
    }
 }
 
@@ -213,10 +204,8 @@ void ResourceManager::returnClaimedCpus( void )
    if ( !_status.dlb_enabled ) return;
    if ( !getMyThreadSafe()->isMainThread() ) return;
 
-   DLB_ReturnClaimedCpus();
    LockBlock Lock( _lock );
-   sys.getCpuActiveMask( &_running_cpus );
-   ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
+   DLB_ReturnClaimedCpus();
 }
 
 /* Only useful for external slave (?) threads
@@ -231,24 +220,15 @@ void ResourceManager::returnMyCpuIfClaimed( void )
    if ( !_status.dlb_enabled ) return;
 
    // Return if my cpu belongs to the default mask
+   const cpu_set_t& process_mask = sys.getCpuProcessMask();
    int my_cpu = getMyThreadSafe()->getCpuId();
-   if ( CPU_ISSET( my_cpu, &_default_cpus ) )
+   if ( CPU_ISSET( my_cpu, &process_mask ) )
       return;
 
-   if ( !getMyThreadSafe()->isSleeping() ){
+   if ( !getMyThreadSafe()->isSleeping() ) {
       LockBlock Lock( _lock );
-      if ( DLB_ReturnClaimedCpu( my_cpu ) ) {
-         myThread->sleep();
-         // We can't clear it since DLB could have switched this cpu for another one
-         //CPU_CLR( my_cpu, &_running_cpus );
-         sys.getCpuActiveMask( &_running_cpus );
-         ensure( CPU_COUNT(&_running_cpus)>0, "Resource Manager: empty mask" );
-      }
+      DLB_ReturnClaimedCpu( my_cpu );
    }
-
-   // Go to sleep inmediately
-   if ( myThread->isSleeping() )
-      myThread->wait();
 }
 
 /* When waking up to check if the my cpu is "really" free
@@ -261,22 +241,24 @@ void ResourceManager::waitForCpuAvailability( void )
 
    int cpu = getMyThreadSafe()->getCpuId();
    CPU_SET( cpu, &_waiting_cpus );
-   while ( !lastOne() && !DLB_CheckCpuAvailability(cpu) )
-      // Sleep the thread for a while to reduce the cycles consumption, then yield
+   while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
+      // Sleep and Yield the thread to reduce cycle consumption
       OS::nanosleep( NANOS_RM_YIELD_SLEEP_NS );
       sched_yield();
-   /*      if ((myThread->getTeam()->getSchedulePolicy().fixme_getNumConcurrentWDs()==0) && DLB_ReleaseCpu(cpu)){
-         myThread->sleep();
-         break;
-         }*/
+   }
    CPU_CLR( cpu, &_waiting_cpus );
 }
 
-bool ResourceManager::lastOne( void )
+bool ResourceManager::lastActiveThread( void )
 {
-   if ( !_status.initialized )
-      return false;
+   if ( !_status.initialized ) return true;
+
+   // We omit the test if the cpu does not belong to my process_mask
+   int my_cpu = getMyThreadSafe()->getCpuId();
+   if ( !CPU_ISSET( my_cpu, &(sys.getCpuProcessMask()) ) ) return false;
 
    LockBlock Lock( _lock );
-   return ( CPU_COUNT(&_running_cpus) - CPU_COUNT(&_waiting_cpus) <= 1 );
+   cpu_set_t mine_and_active;
+   CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
+   return ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) );
 }
