@@ -90,10 +90,17 @@ bool ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, s
 }
 
 void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
-   char * hostAddrPtr = (char *) hostAddr;
+   char *hostAddrPtr = (char *) hostAddr;
+   char *packedAddr = NULL;
    ops->addOp();
    //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
-   char * packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+   do {
+      packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
+      if (!packedAddr ) {
+         myThread->idle( true );
+      }
+   } while ( packedAddr == NULL );
+
    if ( packedAddr != NULL) { 
       for ( unsigned int i = 0; i < count; i += 1 ) {
          ::memcpy( &packedAddr[ i * len ], &hostAddrPtr[ i * ld ], len );
