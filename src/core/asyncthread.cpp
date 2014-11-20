@@ -46,7 +46,8 @@ typedef enum {
    ASYNC_THREAD_PRE_RUN_EVENT,               /* 2 */
    ASYNC_THREAD_RUN_EVENT,                   /* 3 */
    ASYNC_THREAD_POST_RUN_EVENT,              /* 4 */
-   ASYNC_THREAD_WAIT_INPUTS_EVENT,           /* 5 */
+   ASYNC_THREAD_SCHEDULE_EVENT,              /* 5 */
+//   ASYNC_THREAD_WAIT_INPUTS_EVENT,           /* 5 */
    ASYNC_THREAD_CHECK_WD_INPUTS_EVENT,       /* 6 */
    ASYNC_THREAD_CHECK_WD_OUTPUTS_EVENT,      /* 7 */
    ASYNC_THREAD_CP_DATA_IN_EVENT,            /* 8 */
@@ -54,7 +55,6 @@ typedef enum {
    ASYNC_THREAD_CHECK_EVTS_EVENT,           /* 10 */
    ASYNC_THREAD_PROCESS_EVT_EVENT,          /* 11 */
    ASYNC_THREAD_SYNCHRONIZE_EVENT,          /* 12 */
-   ASYNC_THREAD_SCHEDULE_EVENT              /* 13 */
 } AsyncThreadState_t;
 
 
