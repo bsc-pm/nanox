@@ -674,17 +674,12 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            void atSuccessor ( DependableObject &successor, DependableObject *predecessor )
             {
                if ( !_usePriority || _priorityPropagation == 0 ) return;
 
                if ( predecessor == NULL ) {
                   debug( "AffinityReadyPriority::successorFound predecessor is NULL" );
-                  return;
-               }
-
-               if ( successor == NULL ) {
-                  debug( "AffinityReadyPriority::successorFound successor is NULL" );
                   return;
                }
 
@@ -694,9 +689,9 @@ namespace nanos {
                   return;
                }
 
-               WD *succ = ( WD* ) successor->getRelatedObject();
+               WD *succ = ( WD* ) successor.getRelatedObject();
                if ( succ == NULL ) {
-                  fatal( "AffinityReadyPriority::successorFound  successor->getRelatedObject() is NULL" );
+                  fatal( "AffinityReadyPriority::atSuccessor  successor->getRelatedObject() is NULL" );
                }
 
                debug ( "Propagating priority from "
@@ -772,7 +767,6 @@ namespace nanos {
                   //propagatePriority( obj );
                }
             }
-
       };
 
       inline WD *ReadyCacheSchedPolicy::fetchWD( BaseThread *thread, WD *current )
