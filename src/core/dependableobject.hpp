@@ -165,8 +165,10 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
 
 inline bool DependableObject::addSuccessor ( DependableObject &depObj )
 {
+   //Maintain the list of predecessors
    if(sys.getPredecessorLists())
       depObj.addPredecessor( *this );
+
    sys.getDefaultSchedulePolicy()->atSuccessor( depObj, this );
 
    return _successors.insert ( &depObj ).second;

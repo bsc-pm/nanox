@@ -218,6 +218,8 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                         found->decreasePredecessorsInLock( this, numPred );
                       //  sys.getDefaultSchedulePolicy()->atSuccessor( *found, this );
                      }
+                     else
+                        --_numPredecessors;
 //                     found->decreasePredecessorsInLock( this, numPred );
                   }
 
