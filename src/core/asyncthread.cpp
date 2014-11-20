@@ -355,6 +355,9 @@ void AsyncThread::runWD ( WD * wd )
 
 void AsyncThread::checkWDOutputs( WD * wd )
 {
+   // Marks task event as finished
+   NANOS_INSTRUMENT( closeWDEvent(); );
+
    // Check if WD's outputs have already been copied (if needed)
    _previousWD = getCurrentWD();
    setCurrentWD( *wd );

@@ -113,6 +113,8 @@ namespace nanos
          virtual GenericEvent * createRunEvent( WD * wd ) = 0;
          virtual GenericEvent * createPostRunEvent( WD * wd ) = 0;
 
+         virtual void closeWDEvent() {}
+
          // TODO: Do we need a getDeviceId()?
          //virtual int getGPUDevice ();
 
