@@ -1143,7 +1143,6 @@ AC_CONFIG_FILES([Makefile
                  src/pms/Makefile
                  src/arch/Makefile
                  src/arch/unix-os/Makefile
-                 src/arch/common/Makefile
                  src/arch/smp/Makefile
                  src/arch/fpga/Makefile
                  src/arch/spu/Makefile

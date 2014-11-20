@@ -47,6 +47,7 @@ gpu_api_sources = \
 	$(END)
 		
 gpu_sources = \
+        ../common/device_instrumentation.hpp \
 	gpucallback.cpp \
 	gpucallback.hpp \
 	gpuconfig.cpp \

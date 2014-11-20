@@ -17,6 +17,6 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = @ARCHITECTURES@ @OS@ common
+SUBDIRS = @ARCHITECTURES@ @OS@
 
-DIST_SUBDIRS = unix-os smp spu gpu cluster fpga opencl mpi common
+DIST_SUBDIRS = unix-os smp spu gpu cluster fpga opencl mpi
