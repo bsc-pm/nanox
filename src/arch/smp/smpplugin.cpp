@@ -551,13 +551,15 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      ::memcpy( &_cpuProcessMask , mask, sizeof(cpu_set_t) );
+      ::memcpy( &_cpuProcessMask, mask, sizeof(cpu_set_t) );
+      ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
       applyCpuMask( workers );
    }
 
    virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
       CPU_OR( &_cpuProcessMask , &_cpuProcessMask , mask );
+      ::memcpy( &_cpuActiveMask, &_cpuProcessMask, sizeof(cpu_set_t) );
       applyCpuMask( workers );
    }
 
@@ -568,18 +570,18 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void getCpuActiveMask ( cpu_set_t *mask ) const
    {
-      ::memcpy( mask, &_cpuActiveMask , sizeof(cpu_set_t) );
+      ::memcpy( mask, &_cpuActiveMask, sizeof(cpu_set_t) );
    }
 
    virtual void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      ::memcpy( &_cpuActiveMask , mask, sizeof(cpu_set_t) );
+      ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
       applyCpuMask( workers );
    }
 
    virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      CPU_OR( &_cpuActiveMask , &_cpuActiveMask , mask );
+      CPU_OR( &_cpuActiveMask, &_cpuActiveMask, mask );
       applyCpuMask( workers );
    }
 
@@ -792,9 +794,16 @@ class SMPPlugin : public SMPBasePlugin
       return _workersCreated ? _workers.size() : getEstimatedNumWorkers();
    }
 
+   //! \brief Get the max number of Workers that could run with the current Active Mask
    virtual unsigned int getMaxWorkers() const
    {
-      return UINT_MAX;
+      int max_workers = 0;
+      for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         if ( (*it)->isActive() ) {
+            max_workers += std::max( (*it)->getNumThreads(), 1LU );
+         }
+      }
+      return max_workers;
    }
 
    virtual SMPThread &associateThisThread( bool untie )
@@ -817,27 +826,43 @@ private:
 
    void applyCpuMask ( std::map<unsigned int, BaseThread *> &workers )
    {
-      /* Modify the number of threads on the fly is not allowed in OpenMP*/
-      if ( !sys.getPMInterface().isMalleable() ) return;
+      /* OmpSs */
+      if ( sys.getPMInterface().isMalleable() ) {
+         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+         NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
+         NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveMask ) )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-      NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-      NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-      NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveMask ) )
-      NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
+         for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+            ext::SMPProcessor *target = *it;
+            int binding_id = target->getBindingId();
+            if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
 
-      for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         ext::SMPProcessor *target = *it;
-         int binding_id = target->getBindingId();
-         if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
+               /* Create a new worker if the target PE is empty */
+               if ( target->getNumThreads() == 0 && !target->isReserved() ) {
+                  createWorker( target, workers );
+               }
 
-            /* Create a new worker if the target PE is empty */
-            if ( target->getNumThreads() == 0 && !target->isReserved() ) {
-               createWorker( target, workers );
+               target->wakeUpThreads();
+            } else {
+               target->sleepThreads();
             }
-
-            target->wakeUpThreads();
-         } else {
-            target->sleepThreads();
+         }
+      }
+      /* OpenMP */
+      else {
+         /* Modify the number of threads on the fly is not allowed in OpenMP. Just set PE flags */
+         for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+            ext::SMPProcessor *target = *it;
+            int binding_id = target->getBindingId();
+            if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
+               if ( !target->isReserved() ) {
+                  target->reserve();
+               }
+               if ( !target->isActive() ) {
+                  target->setActive();
+               }
+            }
          }
       }
    }

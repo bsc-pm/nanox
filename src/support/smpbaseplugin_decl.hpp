@@ -59,6 +59,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
       virtual void setRequestedWorkers( int workers ) = 0;
       virtual int getRequestedWorkers() const = 0;
+      virtual unsigned int getMaxWorkers() const = 0;
       virtual void getBindingMaskString( std::ostream &o ) const = 0;
 };
 
