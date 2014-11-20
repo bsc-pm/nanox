@@ -276,7 +276,7 @@ void ResourceManager::waitForCpuAvailability( void )
 
 bool ResourceManager::lastActiveThread( void )
 {
-   if ( !_status.initialized ) return true;
+   if ( !_status.initialized ) return false;
 
    // We omit the test if the cpu does not belong to my process_mask
    int my_cpu = getMyThreadSafe()->getCpuId();
