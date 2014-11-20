@@ -333,7 +333,7 @@ void AsyncThread::runWD ( WD * wd )
 
    // Run WD
    //this->inlineWorkDependent( *wd );
-   this->runWDDependent( *wd );
+   this->runWDDependent( *wd, evt );
 
    evt->setPending();
 

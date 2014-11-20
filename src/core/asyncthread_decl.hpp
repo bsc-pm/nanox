@@ -88,7 +88,7 @@ namespace nanos
          //virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent ( WD &work );
-         virtual bool runWDDependent ( WD &work ) = 0;
+         virtual bool runWDDependent ( WD &work, GenericEvent * evt ) = 0;
 
          // Must be implemented by children classes
          //virtual bool inlineWorkDependent( WD &work );

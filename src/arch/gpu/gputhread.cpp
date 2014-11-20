@@ -249,7 +249,7 @@ void GPUThread::initializeDependent ()
 }
 
 //bool GPUThread::inlineWorkDependent ( WD &wd )
-bool GPUThread::runWDDependent( WD &wd )
+bool GPUThread::runWDDependent( WD &wd, GenericEvent * event )
 {
    GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
    GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
