@@ -674,24 +674,19 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void atSuccessor ( DependableObject &successor, DependableObject *predecessor )
+            void atSuccessor ( DependableObject &successor, DependableObject &predecessor )
             {
                if ( !_usePriority || _priorityPropagation == 0 ) return;
 
-               if ( predecessor == NULL ) {
-                  debug( "AffinityReadyPriority::successorFound predecessor is NULL" );
-                  return;
-               }
-
-               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               WD *pred = ( WD* ) predecessor.getRelatedObject();
                if ( pred == NULL ) {
-                  debug( "AffinityReadyPriority::successorFound predecessor->getRelatedObject() is NULL" )
+                  debug( "AffinityReadyPriority::successorFound predecessor.getRelatedObject() is NULL" )
                   return;
                }
 
                WD *succ = ( WD* ) successor.getRelatedObject();
                if ( succ == NULL ) {
-                  fatal( "AffinityReadyPriority::atSuccessor  successor->getRelatedObject() is NULL" );
+                  fatal( "AffinityReadyPriority::atSuccessor  successor.getRelatedObject() is NULL" );
                }
 
                debug ( "Propagating priority from "
@@ -719,18 +714,16 @@ namespace nanos {
                propagatePriority( predecessor, _priorityPropagation - 1 );
             }
 
-            void propagatePriority ( DependableObject * successor, int maxDepth )
+            void propagatePriority ( DependableObject & successor, int maxDepth )
             {
                if ( maxDepth == 0 ) return;
 
-               if ( successor == NULL ) return;
-
-               WD * succ = ( WD * ) successor->getRelatedObject();
+               WD * succ = ( WD * ) successor.getRelatedObject();
                if ( succ == NULL ) return;
 
-               if ( successor->numPredecessors() == 0 ) return;
+               if ( successor.numPredecessors() == 0 ) return;
 
-               DependableObject::DependableObjectVector & predecessors = successor->getPredecessors();
+               DependableObject::DependableObjectVector & predecessors = successor.getPredecessors();
                for ( DependableObject::DependableObjectVector::iterator it = predecessors.begin();
                      it != predecessors.end(); it++ ) {
                   DependableObject * obj = *it;
