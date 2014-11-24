@@ -608,7 +608,7 @@ namespace nanos {
 
             virtual void atCreate ( DependableObject &depObj )
             {
-               if ( _usePriority ) propagatePriority( &depObj, _priorityPropagation );
+               if ( _usePriority ) propagatePriority( depObj, _priorityPropagation );
             }
 
             /*!
@@ -749,7 +749,7 @@ namespace nanos {
                         tdata._queues->reorderWD( pred, i );
                      }
 
-                     propagatePriority( obj, maxDepth - 1 );
+                     propagatePriority( *obj, maxDepth - 1 );
                   }
 
                   // Propagate priority
