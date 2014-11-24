@@ -674,7 +674,7 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void atSuccessor ( DependableObject &successor, DependableObject *predecessor )
+            void atSuccessor ( DependableObject &successor, DependableObject &predecessor )
             {
                if ( !_usePriority || _priorityPropagation == 0 ) return;
 
