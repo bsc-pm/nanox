@@ -86,14 +86,9 @@ void ResourceManager::init( void )
 
    if ( _status.dlb_enabled ) {
       DLB_Init();
-      _status.auto_enabled=(DLB_Is_auto()==1);
+      _status.auto_enabled = DLB_Is_auto();
    }
    _status.initialized = _status.dlb_enabled || _status.block_enabled;
-
-   // We can't untie the master thread when running DLB with the old non-auto policies
-   if ( _status.auto_enabled ) {
-      sys.setUntieMaster( false );
-   }
 }
 
 void ResourceManager::finalize( void )
@@ -286,4 +281,14 @@ bool ResourceManager::lastActiveThread( void )
    cpu_set_t mine_and_active;
    CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
    return ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) );
+}
+
+bool ResourceManager::canUntieMaster( void )
+{
+   // Warning: ResourceManager is not yet initialized here
+   if ( !sys.dlbEnabled() ) return true;
+   else {
+      std::string dlb_policy( OS::getEnvironmentVariable( "LB_POLICY" ) );
+      return (dlb_policy != "LeWI_mask");
+   }
 }
