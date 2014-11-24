@@ -126,7 +126,7 @@ namespace nanos {
              * propagated.
              */
 //            void successorFound( DependableObject *predecessor, DependableObject *successor )
-            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor )
+            void atSuccessor   ( DependableObject &successor, DependableObject &predecessor )
             {
                //debug( "Scheduler::successorFound" );
                // if ( ! _useSmartPriority ) return;
@@ -135,7 +135,7 @@ namespace nanos {
 
  //              if ( predecessor == NULL || successor == NULL ) return;
 
-               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               WD *pred = ( WD* ) predecessor.getRelatedObject();
                if ( pred == NULL ) return;
 
                WD *succ = ( WD* ) successor.getRelatedObject();

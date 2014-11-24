@@ -80,7 +80,7 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void atSuccessor   ( DependableObject &successor, DependableObject *predecessor )
+            void atSuccessor   ( DependableObject &successor, DependableObject &predecessor )
             {
                //debug( "Scheduler::successorFound" );
 
@@ -89,7 +89,7 @@ namespace nanos {
 
  //              if ( predecessor == NULL || successor == NULL ) return;
 
-               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               WD *pred = ( WD* ) predecessor.getRelatedObject();
                if ( pred == NULL ) return;
 
                WD *succ = ( WD* ) successor.getRelatedObject();

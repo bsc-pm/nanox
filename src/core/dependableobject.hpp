@@ -169,7 +169,7 @@ inline bool DependableObject::addSuccessor ( DependableObject &depObj )
    if(sys.getPredecessorLists())
       depObj.addPredecessor( *this );
 
-   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, this );
+   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
 
    return _successors.insert ( &depObj ).second;
 }
