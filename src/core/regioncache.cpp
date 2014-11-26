@@ -308,7 +308,7 @@ void AllocatedChunk::setRegionVersion( reg_t reg, unsigned int version, WD const
    entry->setVersion( version );
    if ( version > currentVersion ) {
       _dirty = true;
-   } else {
+   } else if ( version < currentVersion ) {
       *(myThread->_file) << "setRegionVersion and not version increase! current: " << currentVersion << " requested " << version << " wd: " << wd.getId() << " : " << (wd.getDescription() != NULL ? wd.getDescription() : "[no description]" ) << std::endl;
    }
 }

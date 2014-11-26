@@ -143,9 +143,20 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
       } else {
          /* already registered */
          dict = (*o)->getGlobalRegionDictionary();
-         if ( (*o)->getRegisteredObject() != NULL ) {
-            /* object pre registered with CopyData */
-            dict->setRegisteredObject( (*o)->getRegisteredObject() );
+         if ( dict != NULL ) {
+            if ( (*o)->getRegisteredObject() != NULL ) {
+               /* object pre registered with CopyData */
+               dict->setRegisteredObject( (*o)->getRegisteredObject() );
+            }
+         } else {
+            dict = NEW GlobalRegionDictionary( cd );
+            NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
+            if ( entry == NULL ) {
+               entry = NEW NewNewDirectoryEntryData();
+               //entry->addAccess( 0, 1 );
+               dict->setRegionData( 1, entry );
+            }
+            (*o)->setGlobalRegionDictionary( dict );
          }
       }
    } else {
@@ -524,6 +535,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
+
       if ( hb._bobjects == NULL ) continue;
 
    for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
@@ -533,6 +545,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       //   std::cerr << "Object " << it->second << " Keep " << std::endl;
       //}
       GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
+      if ( dict == NULL ) continue;
       uint64_t objectAddr = it->first.getAddress();
       if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, dict ) ) ) {
          if ( sys.getVerboseCopies() ) {
@@ -656,9 +669,27 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
          sys.getNetwork()->deleteDirectoryObject( o->getGlobalRegionDictionary() );
          //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
          //std::cerr << "delete and unregister dict (address) " << (void *) it->first << " (key) " << (void *) obj << std::endl;
-         delete o->getGlobalRegionDictionary(); 
-         o->clearGlobalRegionDirectory();
+         o->resetGlobalRegionDictionary();
          it->second->eraseByAddress( it->first );
+         if ( o->getRegisteredObject() != NULL ) {
+            CopyData *cd = o->getRegisteredObject();
+            Object **dict_o = it->second->getExactInsertIfNotFound( (uint64_t) cd->getBaseAddress(), cd->getMaxSize() );
+            if ( dict_o != NULL ) {
+               if ( *dict_o == NULL ) {
+                  *dict_o = o;
+               } else {
+                  /* something went wrong, we cleared the dictionary so
+                   * this call must return an new object pointing to NULL
+                   */
+                  fatal("Dictionary error.");
+               }
+            } else {
+               /* something went wrong, we cleared the dictionary so
+                * this call can not return NULL at this point
+                */
+               fatal("Dictionary error.");
+            }
+         }
       }
       sys.getNetwork()->synchronizeDirectory();
    }
