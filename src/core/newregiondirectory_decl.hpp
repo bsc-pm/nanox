@@ -98,11 +98,26 @@ namespace nanos
             GlobalRegionDictionary *getGlobalRegionDictionary() const {
                return _object;
             }
-            void clearGlobalRegionDirectory() {
-               _object = NULL;
-            }
             CopyData *getRegisteredObject() const {
                return _registeredObject;
+            }
+            void resetGlobalRegionDictionary() {
+               delete _object;
+               if ( _registeredObject == NULL ) {
+                  _object = NULL;
+               } else {
+                  _object = NEW GlobalRegionDictionary( *_registeredObject );
+                  _object->setRegisteredObject( _registeredObject );
+                  NewNewDirectoryEntryData *entry = getDirectoryEntry( *_object, 1 );
+                  if ( entry == NULL ) {
+                     entry = NEW NewNewDirectoryEntryData();
+                     //entry->addAccess( 0, 1 );
+                     _object->setRegionData( 1, entry );
+                  }
+               }
+            }
+            void setGlobalRegionDictionary( GlobalRegionDictionary *object ) {
+               _object = object;
             }
          };
          //struct __attribute__((aligned(64))) HashBucket {
