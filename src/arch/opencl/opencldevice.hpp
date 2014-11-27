@@ -95,10 +95,9 @@ bool OpenCLDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, st
     //If both devices are in the same vendor/context do a real copy in       
    //If shared memory, no need to copy (I hope, all OCL devices should share the same memory space...)
     if (procDst->getContext()==procSrc->getContext() && !OpenCLProcessor::getSharedMemAllocator().isSharedMem( (void*) devOrigAddr, len)) {       
-        ops->addOp();
         cl_mem buf=procSrc->getBuffer( (void*) devOrigAddr, len);
-        procDst->copyInBuffer( (void*) devDestAddr, buf, len);
-        ops->completeOp(); 
+        procDst->copyInBuffer( (void*) devDestAddr, buf, len, ops);
+        //TODO: Check this functor
         if ( f ) {
            (*f)(); 
         }

@@ -21,6 +21,8 @@
 #include "openclconfig.hpp"
 #include "openclprocessor.hpp"
 #include "deviceops.hpp"
+#include "openclthread_decl.hpp"
+#include "openclevent.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -100,12 +102,31 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
     cl_int errCode;
     cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);    
 
+    ops->addOp();
+    // Copy from host memory to device memory
+    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getActiveThread();
+    OpenCLEvent * evt = (OpenCLEvent*) thread->createPreRunEvent( thread->getCurrentWD() );
+#ifdef NANOS_GENERICEVENT_DEBUG
+    evt->setDescription( evt->getDescription() + " copy input: " + toString<uint64_t>( remoteSrc.getTag() ) );
+#endif
+    evt->setCreated();
+#ifdef NANOS_GENERICEVENT_DEBUG
+    evt->setDescription( evt->getDescription() + " action:DeviceOps::completeOp" );
+#endif
+    Action * action = new_action( ( ActionMemFunPtr0<DeviceOps>::MemFunPtr0 ) &DeviceOps::completeOp, ops );
+    evt->addNextAction( action );
+   
     errCode = _openclAdapter.writeBuffer(buf,
               (void*) hostAddr,
               0,
               size,
-              &_bytesIn);
-   // ops->completeOp();
+              &_bytesIn, 
+              evt->getCLEvent() );
+    
+    evt->setPending();
+
+    thread->addEvent( evt );
+    
     if (errCode != CL_SUCCESS){
         std::cerr << errCode << "\n";
         fatal("Buffer writing failed. Check if you are filling GPU's memory");
@@ -122,12 +143,31 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
     cl_int errCode;
 
     cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)devAddr,size);
+    
+    ops->addOp();
+    // Copy from host memory to device memory
+    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getActiveThread();
+    OpenCLEvent * evt = (OpenCLEvent*) thread->createPreRunEvent( thread->getCurrentWD() );
+#ifdef NANOS_GENERICEVENT_DEBUG
+    evt->setDescription( evt->getDescription() + " copy input: " + toString<uint64_t>( remoteSrc.getTag() ) );
+#endif
+    evt->setCreated();
+#ifdef NANOS_GENERICEVENT_DEBUG
+    evt->setDescription( evt->getDescription() + " action:DeviceOps::completeOp" );
+#endif
+    Action * action = new_action( ( ActionMemFunPtr0<DeviceOps>::MemFunPtr0 ) &DeviceOps::completeOp, ops );
+    evt->addNextAction( action );
+    
     errCode = _openclAdapter.readBuffer(buf,
                 ((void*)hostAddr),
                 0,
                 size,
-                &_bytesOut);
-   // ops->completeOp();
+                &_bytesOut, 
+                evt->getCLEvent() );
+    
+    evt->setPending();
+
+    thread->addEvent( evt );
 
     if (errCode != CL_SUCCESS && devAddr!=0) {        
         fatal("Buffer reading failed with error" << errCode);
@@ -137,16 +177,36 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
 
 bool OpenCLCache::copyInBuffer(void *localSrc,
         cl_mem remoteBuffer,
-        size_t size) {            
+        size_t size,
+        DeviceOps *ops) {            
     cl_int errCode;
 
     cl_mem buf = _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)localSrc,size);
+        
+    ops->addOp();
+    // Copy from host memory to device memory
+    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getActiveThread();
+    OpenCLEvent * evt = (OpenCLEvent*) thread->createPreRunEvent( thread->getCurrentWD() );
     
+#ifdef NANOS_GENERICEVENT_DEBUG
+    evt->setDescription( evt->getDescription() + " copy input: " + toString<uint64_t>( remoteSrc.getTag() ) );
+#endif
+    evt->setCreated();
+#ifdef NANOS_GENERICEVENT_DEBUG
+    evt->setDescription( evt->getDescription() + " action:DeviceOps::completeOp" );
+#endif
+    Action * action = new_action( ( ActionMemFunPtr0<DeviceOps>::MemFunPtr0 ) &DeviceOps::completeOp, ops );
+    evt->addNextAction( action );
     errCode = _openclAdapter.copyInBuffer(buf,
                 remoteBuffer,
                 0,
                 0,
-                size);
+                size,
+                evt->getCLEvent() );
+    
+    evt->setPending();
+
+    thread->addEvent( evt );
     
     if (errCode != CL_SUCCESS) {
         fatal("Buffer copy dev2dev failed.");
@@ -162,7 +222,12 @@ cl_mem OpenCLCache::toMemoryObjSS( const void * addr ) {
     void* addr_aux=const_cast<void*>(addr);
     cl_mem buf= _openclAdapter.getBuffer(_devAllocator,_mainBuffer,(size_t)addr,_openclAdapter.getSizeFromCache((size_t)addr));
     if ( _openclAdapter.getUseHostPtr() || OpenCLProcessor::getSharedMemAllocator().isSharedMem( addr_aux, 1)){
-       _openclAdapter.unmapBuffer(buf,addr_aux,0,1);
+        cl_event ev;
+       _openclAdapter.unmapBuffer(buf,addr_aux,0,1,ev);
+       cl_int err=clWaitForEvents(1,&ev);
+       if (err != CL_SUCCESS) {
+          fatal("Error while unmmaping buffer");
+       }   
     }
     return buf;
 }

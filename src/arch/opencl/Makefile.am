@@ -39,6 +39,8 @@ devinclude_HEADERS = \
     openclthread.hpp \
     openclutils.hpp \
     sharedmemallocator.hpp \
+    openclevent.hpp \
+    openclevent_decl.hpp \
 	$(END) 
 
 opencl_api_sources = \
