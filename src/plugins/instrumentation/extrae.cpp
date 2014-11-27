@@ -381,9 +381,7 @@ class InstrumentationExtrae: public Instrumentation
             static std::string nanos_event_state_value_str[] = {"NOT CREATED", "NOT RUNNING", 
                "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
                "RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION",
-               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
-               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
-               "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH", "DEBUG"};
+               "DATA TRANSFER ISSUE", "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH", "DEBUG"};
 
             for ( i = 0; i < (nval - 1); i++ ) { // Do not show the DEBUG state
                values[i] = i;
