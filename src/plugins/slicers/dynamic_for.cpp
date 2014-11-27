@@ -30,6 +30,7 @@ void SlicerDynamicFor::submit ( WorkDescriptor &work )
    //! Normalize Chunk size
    nli->chunk = std::max(1, nli->chunk);
 
+   work.untie();
    Scheduler::submit ( work );
 }
 
@@ -51,6 +52,7 @@ bool SlicerDynamicFor::dequeue(nanos::WorkDescriptor* wd, nanos::WorkDescriptor*
    } else {
       WorkDescriptor *nwd = NULL;
       sys.duplicateWD( &nwd, wd );
+      nwd->untie();
       nli->lower = _upper + nli->step;
 
       nli = ( nanos_loop_info_t * ) nwd->getData();

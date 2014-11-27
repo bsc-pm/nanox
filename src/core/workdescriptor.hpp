@@ -191,7 +191,13 @@ inline bool WorkDescriptor::isEnqueued() { return ( _myQueue != NULL ); }
 
 inline WorkDescriptor & WorkDescriptor::tied () { _flags.to_tie = true; return *this; }
 
-inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &pe ) { _tiedTo = &pe; _flags.to_tie=false; return *this; }
+inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &thread )
+{
+   fprintf(stderr,"Tie %d To %d\n", this->getId(), thread.getId()); //FIXME:xteruel
+   _tiedTo = &thread;
+   _flags.to_tie = false;
+   return *this;
+}
 
 inline WorkDescriptor & WorkDescriptor::tieToLocation ( memory_space_id_t loc ) { _tiedToLocation = loc; _flags.to_tie=false; return *this; }
 
