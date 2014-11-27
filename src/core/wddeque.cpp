@@ -33,3 +33,15 @@ void WDDeque::initDeviceList()
       _ndevs.insert( std::make_pair( dev, num ) );
    }
 }
+
+template<typename T>
+void WDPriorityQueue<T>::initDeviceList()
+{
+   DeviceList devs = sys.getSupportedDevices();
+
+   for ( DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
+      const Device * dev = *it;
+      Atomic<unsigned int> num = 0;
+      _ndevs.insert( std::make_pair( dev, num ) );
+   }
+}
