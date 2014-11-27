@@ -19,7 +19,7 @@ class ClusterPlugin : public ArchPlugin
       unsigned int _extraPEsCount;
       std::string _conduit;
       std::size_t _nodeMem;
-      bool _allocWide;
+      bool _allocFit;
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
@@ -44,7 +44,7 @@ class ClusterPlugin : public ArchPlugin
       int getSmpPresend();
       System::CachePolicyType getCachePolicy ( void );
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
-      bool getAllocWide();
+      bool getAllocFit();
 
 
       virtual void startSupportThreads();

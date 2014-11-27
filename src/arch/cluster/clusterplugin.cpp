@@ -54,7 +54,7 @@ namespace ext {
 ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ), _gasnetApi( *this ),
 _numPinnedSegments ( 0 ),
 _pinnedSegmentAddrList ( NULL ), _pinnedSegmentLenList ( NULL ), _extraPEsCount ( 0 ), _conduit (""),
-_nodeMem ( DEFAULT_NODE_MEM ), _allocWide ( false ), _gpuPresend ( 1 ), _smpPresend ( 1 ),
+_nodeMem ( DEFAULT_NODE_MEM ), _allocFit ( false ), _gpuPresend ( 1 ), _smpPresend ( 1 ),
 _cachePolicy ( System::DEFAULT ), _nodes( NULL ), _cpu( NULL ), _clusterThread( NULL )
 {}
 
@@ -75,7 +75,7 @@ void ClusterPlugin::init()
       if ( _gasnetApi.getNodeNum() == 0 ) {
          _nodes = NEW std::vector<nanos::ext::ClusterNode *>(_gasnetApi.getNumNodes(), (nanos::ext::ClusterNode *) NULL); 
          for ( unsigned int nodeC = 1; nodeC < _gasnetApi.getNumNodes(); nodeC++ ) {
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, true /* nanos::ext::ClusterInfo::getAllocWide() */ );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ) );
             SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
             nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) _gasnetApi.getSegmentAddr( nodeC ), _gasnetApi.getSegmentLen( nodeC ) ) );
             nodeMemory.setNodeNumber( nodeC );
@@ -136,8 +136,8 @@ RemoteWorkDescriptor * ClusterPlugin::getRemoteWorkDescriptor( int archId ) {
    return rwd;
 }
 
-bool ClusterPlugin::getAllocWide() {
-   return _allocWide;
+bool ClusterPlugin::getAllocFit() {
+   return _allocFit;
 }
 
 void ClusterPlugin::prepare( Config& cfg ) {
@@ -146,8 +146,8 @@ void ClusterPlugin::prepare( Config& cfg ) {
    cfg.registerArgOption ( "node-memory", "cluster-node-memory" );
    cfg.registerEnvOption ( "node-memory", "NX_CLUSTER_NODE_MEMORY" );
 
-   cfg.registerConfigOption ( "cluster-alloc-wide", NEW Config::FlagOption( _allocWide ), "Allocate full objects.");
-   cfg.registerArgOption( "cluster-alloc-wide", "cluster-alloc-wide" );
+   cfg.registerConfigOption ( "cluster-alloc-fit", NEW Config::FlagOption( _allocFit ), "Allocate full objects.");
+   cfg.registerArgOption( "cluster-alloc-fit", "cluster-alloc-fit" );
 
    cfg.registerConfigOption ( "cluster-gpu-presend", NEW Config::IntegerVar ( _gpuPresend ), "Number of Tasks to be sent to a remote node without waiting waiting any completion (GPU)." );
    cfg.registerArgOption ( "cluster-gpu-presend", "cluster-gpu-presend" );
