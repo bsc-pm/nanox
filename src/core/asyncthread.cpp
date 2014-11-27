@@ -217,6 +217,7 @@ void AsyncThread::preRunWD ( WD * wd )
 
 void AsyncThread::checkWDInputs( WD * wd )
 {
+   debug( "[Async] Checking inputs of WD " << wd << " : " << wd->getId() );
    // Check if WD's inputs have already been copied
 
    _previousWD = getCurrentWD();
@@ -348,6 +349,7 @@ void AsyncThread::runWD ( WD * wd )
 #endif
 
    addEvent( evt );
+   debug( "[Async] Finished running WD " << wd << " : " << wd->getId() );
 
    ASYNC_THREAD_CLOSE_EVENT;
 }
@@ -476,6 +478,9 @@ void AsyncThread::addEvent( GenericEvent * evt )
    _pendingEventsCounter++;
 }
 
+const AsyncThread::GenericEventList& AsyncThread::getEvents( ) {
+    return _pendingEvents;
+}
 
 void AsyncThread::addNextWD ( WD *next )
 {

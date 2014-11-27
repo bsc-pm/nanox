@@ -128,8 +128,9 @@ namespace nanos
          // Should bind be implemented?
          //virtual void bind( void );
 
-         void addEvent( GenericEvent * evt );
-         void checkEvents();
+         virtual void addEvent( GenericEvent * evt );
+         const AsyncThread::GenericEventList& getEvents( );
+         virtual void checkEvents();
          void checkEvents( WD * wd );
 
          virtual bool canGetWork ();
