@@ -35,7 +35,7 @@ namespace nanos
          DeviceOps _ops;
          std::set< memory_space_id_t > _location;
          std::set< ProcessingElement *> _pes;
-         bool _rooted;
+         memory_space_id_t _rooted;
          Lock _setLock;
          ProcessingElement * _firstWriterPE;
          uint64_t _baseAddress;
@@ -55,8 +55,9 @@ namespace nanos
          bool isLocatedIn( ProcessingElement *pe, unsigned int version );
          bool isLocatedIn( ProcessingElement *pe );
          bool isLocatedIn( memory_space_id_t loc );
-         void setRooted();
+         //void setRooted();
          bool isRooted() const;
+         memory_space_id_t getRootedLocation() const;
          //void merge( const NewNewDirectoryEntryData &de ) ;
          void print() const ;
          //bool equal( const NewNewDirectoryEntryData &d ) const ;
@@ -79,15 +80,60 @@ namespace nanos
    class NewNewRegionDirectory
    {
       private:
+         class Object {
+            GlobalRegionDictionary *_object;
+            CopyData *_registeredObject;
+
+            public:
+            Object() : _object( NULL ), _registeredObject( NULL ) {}
+            Object( GlobalRegionDictionary *dict, CopyData *cd = NULL ) :
+               _object( dict ), _registeredObject( cd ) {}
+            Object( Object const& o ) : _object( o._object ),
+               _registeredObject( o._registeredObject ) {}
+            Object &operator=( Object const& o ) {
+               this->_object = o._object;
+               this->_registeredObject = o._registeredObject;
+               return *this;
+            }
+            GlobalRegionDictionary *getGlobalRegionDictionary() const {
+               return _object;
+            }
+            CopyData *getRegisteredObject() const {
+               return _registeredObject;
+            }
+            void resetGlobalRegionDictionary() {
+               delete _object;
+               if ( _registeredObject == NULL ) {
+                  _object = NULL;
+               } else {
+                  _object = NEW GlobalRegionDictionary( *_registeredObject );
+                  _object->setRegisteredObject( _registeredObject );
+                  NewNewDirectoryEntryData *entry = getDirectoryEntry( *_object, 1 );
+                  if ( entry == NULL ) {
+                     entry = NEW NewNewDirectoryEntryData();
+                     //entry->addAccess( 0, 1 );
+                     _object->setRegionData( 1, entry );
+                  }
+               }
+            }
+            void setGlobalRegionDictionary( GlobalRegionDictionary *object ) {
+               _object = object;
+            }
+         };
          //struct __attribute__((aligned(64))) HashBucket {
          struct HashBucket {
             Lock _lock;
-            std::map< uint64_t, GlobalRegionDictionary * > _bobjects;
+            //std::map< uint64_t, Object > _bobjects;
+            MemoryMap< Object > *_bobjects;
             HashBucket();
             HashBucket( HashBucket const & hb );
             HashBucket &operator=( HashBucket const &hb );
+            ~HashBucket();
          };
 
+         MemoryMap<uint64_t> _keys;
+         uint64_t            _keysSeed;
+         Lock                _keysLock;
          std::vector< HashBucket > _objects;
 
       private:
@@ -104,6 +150,8 @@ namespace nanos
          GlobalRegionDictionary *getRegionDictionary( CopyData const &cd ) const;
          GlobalRegionDictionary *getRegionDictionary( uint64_t addr ) const;
          static void addSubRegion( GlobalRegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert );
+         uint64_t _getKey( uint64_t addr, std::size_t len );
+         uint64_t _getKey( uint64_t addr ) const;
 
       public:
          typedef GlobalRegionDictionary *RegionDirectoryKey;
@@ -159,6 +207,8 @@ namespace nanos
          static reg_t getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t localId );
          static void addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
          reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
+
+         void registerObject(nanos_copy_data_internal_t *obj);
    };
 }
 

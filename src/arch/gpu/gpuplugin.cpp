@@ -56,7 +56,7 @@ class GPUPlugin : public ArchPlugin
          for ( int gpuC = 0; gpuC < nanos::ext::GPUConfig::getGPUCount() ; gpuC++ ) {
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::GPU, nanos::ext::GPUConfig::getAllocWide() );
             SeparateMemoryAddressSpace &gpuMemory = sys.getSeparateMemory( id );
-            gpuMemory.setNodeNumber( 0 );
+            gpuMemory.setAcceleratorNumber( sys.getNewAcceleratorId() );
 
             ext::GPUMemorySpace *gpuMemSpace = NEW ext::GPUMemorySpace();
             gpuMemory.setSpecificData( gpuMemSpace );

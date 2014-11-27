@@ -28,6 +28,7 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "wddeque.hpp"
+#include "device_instrumentation.hpp"
 
 #include <cuda_runtime.h>
 #ifdef NANOS_GPU_USE_CUDA32
@@ -248,7 +249,7 @@ void GPUThread::initializeDependent ()
 }
 
 //bool GPUThread::inlineWorkDependent ( WD &wd )
-bool GPUThread::runWDDependent( WD &wd )
+bool GPUThread::runWDDependent( WD &wd, GenericEvent * event )
 {
    GPUDD &dd = ( GPUDD & ) wd.getActiveDevice();
    GPUProcessor &myGPU = * ( GPUProcessor * ) myThread->runningOn();
@@ -490,6 +491,8 @@ void GPUThread::raiseAsyncInputEvent ( size_t size )
 
    sys.getInstrumentation()->addEventList( 1, &e );
 
+   NANOS_INSTR_OPEN_CP_DIR_DEVS_EVENT( nanos::InstrCopyDirDevices::NANOS_DEVS_CPDIR_H2D_GPU_EVENT );
+
    //setCurrentWD( *oldwd );
 #endif
 }
@@ -500,6 +503,8 @@ void GPUThread::closeAsyncInputEvent ( size_t size )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    //WD * oldwd = getCurrentWD();
    //setCurrentWD( *wd );
+
+   NANOS_INSTR_CLOSE_CP_DIR_DEVS_EVENT;
 
    Instrumentation::Event e;
 
@@ -530,6 +535,8 @@ void GPUThread::raiseAsyncOutputEvent ( size_t size )
 
    sys.getInstrumentation()->addEventList( 1, &e );
 
+   NANOS_INSTR_OPEN_CP_DIR_DEVS_EVENT( nanos::InstrCopyDirDevices::NANOS_DEVS_CPDIR_D2H_GPU_EVENT );
+
    //setCurrentWD( *oldwd );
 #endif
 }
@@ -540,6 +547,8 @@ void GPUThread::closeAsyncOutputEvent ( size_t size )
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    //WD * oldwd = getCurrentWD();
    //setCurrentWD( *wd );
+
+   NANOS_INSTR_CLOSE_CP_DIR_DEVS_EVENT;
 
    Instrumentation::Event e;
 

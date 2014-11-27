@@ -308,7 +308,7 @@ void AllocatedChunk::setRegionVersion( reg_t reg, unsigned int version, WD const
    entry->setVersion( version );
    if ( version > currentVersion ) {
       _dirty = true;
-   } else {
+   } else if ( version < currentVersion ) {
       *(myThread->_file) << "setRegionVersion and not version increase! current: " << currentVersion << " requested " << version << " wd: " << wd.getId() << " : " << (wd.getDescription() != NULL ? wd.getDescription() : "[no description]" ) << std::endl;
    }
 }
@@ -801,7 +801,7 @@ AllocatedChunk *RegionCache::tryGetAddress( global_reg_t const &reg, WD const &w
             *(myThread->_file) << " returns " << (void *) deviceMem << std::endl;
          }
          if ( deviceMem != NULL ) {
-            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
+            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.getRootedLocation() == this->getMemorySpaceId() );
             allocChunkPtr = *(results.front().second);
             //*(results.front().second) = allocChunkPtr;
          } else {
@@ -858,7 +858,7 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
          if ( other_referenced_chunks == 0 ) {
          fatal("Unable to free enough space to allocate task data, probably a fragmentation issue. Try increasing the available device memory.");
          } else {
-            *(myThread->_file) << "Unable to invalidate using selectChunksToInvalidate, wd: " << wd.getId() <<std::endl;
+            *(myThread->_file) << "Unable to invalidate using selectChunksToInvalidate, wd: " << wd.getId() << " other_referenced_chunks: " << other_referenced_chunks << std::endl;
             printReferencedChunksAndWDs();
             return NULL;
          }
@@ -975,13 +975,13 @@ AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const
                   //fatal("Unable to allocate memory on the device.");
                   // let it return NULL 
                } else {
-                  *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
+                  *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.getRootedLocation() == this->getMemorySpaceId() );
                   allocChunkPtr = *(results.front().second);
                }
             }
             //reg.key->invalUnlock();
          } else {
-            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.isRooted() );
+            *(results.front().second) = NEW AllocatedChunk( *this, (uint64_t) deviceMem, results.front().first->getAddress(), results.front().first->getLength(), allocatedRegion, reg.getRootedLocation() == this->getMemorySpaceId() );
             allocChunkPtr = *(results.front().second);
             //*(results.front().second) = allocChunkPtr;
          }

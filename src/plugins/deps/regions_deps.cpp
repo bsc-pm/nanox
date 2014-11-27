@@ -122,7 +122,8 @@ namespace nanos {
                      flushDeps.push_back( (uint64_t) region.getFirstValue() );
                   }
                }
-                  
+               sys.getDefaultSchedulePolicy()->atCreate( depObj );                 
+ 
                // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
                increaseTasksInGraph();
             

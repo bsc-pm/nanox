@@ -120,7 +120,7 @@ void MemController::preInit( ) {
    if ( _wd.getParent() != NULL /* && !_wd.getParent()->_mcontrol._mainWd */ ) {
       for ( unsigned int parent_idx = 0; parent_idx < _wd.getParent()->getNumCopies(); parent_idx += 1 ) {
          if ( _wd.getParent()->_mcontrol.getAddress( parent_idx ) == (uint64_t) _wd.getCopies()[ index ].getBaseAddress() ) {
-            host_copy_addr = (uint64_t) _wd.getParent()->getCopies()[ parent_idx ].getBaseAddress();
+            host_copy_addr = (uint64_t) _wd.getParent()->getCopies()[ parent_idx ].getHostBaseAddress();
             //std::cerr << "TADAAAA this comes from a father's copy "<< std::hex << host_copy_addr << std::endl;
             _wd.getCopies()[ index ].setHostBaseAddress( host_copy_addr );
          }
@@ -209,7 +209,7 @@ bool MemController::allocateTaskMemory() {
       for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
          if ( _memCacheCopies[idx]._reg.key->getKeepAtOrigin() ) {
             //std::cerr << "WD " << _wd.getId() << " rooting to memory space " << _pe->getMemorySpaceId() << std::endl;
-            _memCacheCopies[idx]._reg.setRooted();
+            _memCacheCopies[idx]._reg.setOwnedMemory( _pe->getMemorySpaceId() );
          }
       }
    }
@@ -224,7 +224,7 @@ void MemController::copyDataIn() {
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       //if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::ostream &o = (*myThread->_file);
-         o << "### copyDataIn wd " << std::dec << _wd.getId() << " running on " << std::dec << _pe->getMemorySpaceId() << " ops: "<< (void *) _inOps << std::endl;
+         o << "### copyDataIn wd " << std::dec << _wd.getId() << " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << " ops: "<< (void *) _inOps << std::endl;
          for ( unsigned int index = 0; index < _wd.getNumCopies(); index += 1 ) {
          NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
          o << "## " << (_wd.getCopies()[index].isInput() ? "in" : "") << (_wd.getCopies()[index].isOutput() ? "out" : "") << " "; _memCacheCopies[ index ]._reg.key->printRegion( o, _memCacheCopies[ index ]._reg.id ) ;
@@ -299,12 +299,17 @@ uint64_t MemController::getAddress( unsigned int index ) const {
    if ( _pe->getMemorySpaceId() == 0 ) {
       addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress());
    } else {
-      if ( _wd.getCopies()[ index ].isRemoteHost() || _wd.getCopies()[ index ].getHostBaseAddress() == 0 ) {
-         addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
-      } else {
-         addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getHostBaseAddress(), _memCacheCopies[ index ]._chunk );
-      }
+      addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
+      //std::cerr << "Hola: HostBaseAddr: " << (void*) _wd.getCopies()[ index ].getHostBaseAddress() << " BaseAddr: " << (void*)_wd.getCopies()[ index ].getBaseAddress() << std::endl;
+      //if ( _wd.getCopies()[ index ].isRemoteHost() || _wd.getCopies()[ index ].getHostBaseAddress() == 0 ) {
+      //   std::cerr << "Hola" << std::endl;
+      //   addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
+      //} else {
+      //   std::cerr << "Hola1" << std::endl;
+      //   addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getHostBaseAddress(), _memCacheCopies[ index ]._chunk );
+      //}
    }
+   //std::cerr << "MemController::getAddress " << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]") <<" index: " << index << " addr: " << (void *)addr << std::endl;
    return addr;
 }
 
@@ -404,16 +409,20 @@ std::size_t MemController::getTotalAmountOfData() const {
 
 bool MemController::isRooted( memory_space_id_t &loc ) const {
    bool result = false;
-   unsigned int count = 0;
+   memory_space_id_t refLoc = (memory_space_id_t) -1;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
-      //std::cout << "Copy " << index << " addr " << (void *) _wd.getCopies()[index].getBaseAddress() << std::endl;
-      if ( _memCacheCopies[ index ].isRooted( loc ) ) {
-         count += 1;
-         result = true; 
+      memory_space_id_t thisLoc;
+      if ( _memCacheCopies[ index ].isRooted( thisLoc ) ) {
+         thisLoc = thisLoc == 0 ? 0 : ( sys.getSeparateMemory( thisLoc ).getNodeNumber() != 0 ? thisLoc : 0 );
+         if ( refLoc == (memory_space_id_t) -1 ) {
+            refLoc = thisLoc;
+            result = true;
+         } else {
+            result = (refLoc == thisLoc);
+         }
       }
-      //std::cout << "Copy " << index << " addr " << (void *) _wd.getCopies()[index].getBaseAddress() << " count " << count << std::endl;
    }
-   ensure(count <= 1, "Invalid count of rooted copies! (> 1).");
+   if ( result ) loc = refLoc;
    return result;
 }
 

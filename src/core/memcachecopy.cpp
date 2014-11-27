@@ -55,9 +55,21 @@ void MemCacheCopy::setVersion( unsigned int version ) {
 }
 
 bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
-   bool result = _reg.isRooted();
-   if ( result ) {
-      loc = _reg.getFirstLocation();
+   bool result;
+   if ( _locations.size() > 0 ) {
+      global_reg_t refReg( _locations.begin()->second, _reg.key );
+      result = true;
+      memory_space_id_t refloc = refReg.getFirstLocation();
+      for ( NewLocationInfoList::const_iterator it = _locations.begin(); it != _locations.end() && result; it++ ) {
+         global_reg_t thisReg( it->second, _reg.key );
+         result = ( thisReg.isRooted() && thisReg.getFirstLocation() == refloc );
+      }
+      if ( result ) loc = refloc;
+   } else {
+      result = _reg.isRooted();
+      if ( result ) {
+         loc = _reg.getFirstLocation();
+      }
    }
    return result;
 }

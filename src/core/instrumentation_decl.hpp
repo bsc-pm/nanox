@@ -617,7 +617,8 @@ namespace nanos {
             registerEventValue("async-thread", "ASYNC_THREAD_PRE_RUN_EVENT", "WD pre-run" );                     /* 2 */
             registerEventValue("async-thread", "ASYNC_THREAD_RUN_EVENT", "Running WD" );                         /* 3 */
             registerEventValue("async-thread", "ASYNC_THREAD_POST_RUN_EVENT", "WD post-run" );                   /* 4 */
-            registerEventValue("async-thread", "ASYNC_THREAD_WAIT_INPUTS_EVENT", "Waiting for inputs" );         /* 5 */
+            registerEventValue("async-thread", "ASYNC_THREAD_SCHEDULE_EVENT", "Scheduling tasks" );              /* 5 */
+            //registerEventValue("async-thread", "ASYNC_THREAD_WAIT_INPUTS_EVENT", "Waiting for inputs" );         /* 5 */
             registerEventValue("async-thread", "ASYNC_THREAD_CHECK_WD_INPUTS_EVENT", "Checking for inputs" );    /* 6 */
             registerEventValue("async-thread", "ASYNC_THREAD_CHECK_WD_OUTPUTS_EVENT", "Checking for outputs" );  /* 7 */
             registerEventValue("async-thread", "ASYNC_THREAD_CP_DATA_IN_EVENT", "Copy data in" );                /* 8 */
@@ -625,7 +626,6 @@ namespace nanos {
             registerEventValue("async-thread", "ASYNC_THREAD_CHECK_EVTS_EVENT", "Check events" );                /* 10 */
             registerEventValue("async-thread", "ASYNC_THREAD_PROCESS_EVT_EVENT", "Processing finished event" );  /* 11 */
             registerEventValue("async-thread", "ASYNC_THREAD_SYNCHRONIZE_EVENT", "Synchronize copy" );           /* 12 */
-            registerEventValue("async-thread", "ASYNC_THREAD_SCHEDULE_EVENT", "Scheduling tasks" );              /* 13 */
 
             /* 53 */ registerEventKey("copy-in-gpu", "Asynchronous memory copy from host to device", true);
 
@@ -636,6 +636,11 @@ namespace nanos {
             /* 56 */ registerEventKey("wd-criticality","Work descriptor criticality");
             /* 57 */ registerEventKey("blev-overheads", "Total overheads of botlev scheduler");
             /* 58 */ registerEventKey("blev-overheads-breakdown", "Overheads of botlev scheduler broken down");
+            /* 59 */ registerEventKey("critical-wd-id", "A critical work descriptor is submitted");
+
+            /* 60 */ registerEventKey("copy-dir-devices", "Asynchronous memory copy between host and devices", true);
+            registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_H2D_GPU_EVENT", "Host to GPU device transfer (CUDA)" );                     /* 1 */
+            registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_D2H_GPU_EVENT", "GPU device to host transfer (CUDA)" );                     /* 2 */
 
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */

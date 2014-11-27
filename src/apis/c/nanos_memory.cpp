@@ -77,7 +77,11 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int 
    try 
    {
       nanos::OSAllocator tmp_allocator;
-      *p = tmp_allocator.allocate_none( size );
+      if ( node == 0 ) {
+         *p = tmp_allocator.allocate ( size );
+      } else {
+         *p = tmp_allocator.allocate_none( size );
+      }
       sys.registerNodeOwnedMemory(node, *p, size);
    } catch ( nanos_err_t e ) {
       return e;
@@ -127,6 +131,12 @@ NANOS_API_DEF(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n)
 {
     std::memcpy(dest, src, n);
     return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_register_object, (int num_objects, nanos_copy_data_t *obj))
+{
+   sys.registerObject( num_objects, obj );
+   return NANOS_OK;
 }
 /*!
  * \}

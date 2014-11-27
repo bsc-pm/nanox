@@ -46,7 +46,8 @@ typedef enum {
    ASYNC_THREAD_PRE_RUN_EVENT,               /* 2 */
    ASYNC_THREAD_RUN_EVENT,                   /* 3 */
    ASYNC_THREAD_POST_RUN_EVENT,              /* 4 */
-   ASYNC_THREAD_WAIT_INPUTS_EVENT,           /* 5 */
+   ASYNC_THREAD_SCHEDULE_EVENT,              /* 5 */
+//   ASYNC_THREAD_WAIT_INPUTS_EVENT,           /* 5 */
    ASYNC_THREAD_CHECK_WD_INPUTS_EVENT,       /* 6 */
    ASYNC_THREAD_CHECK_WD_OUTPUTS_EVENT,      /* 7 */
    ASYNC_THREAD_CP_DATA_IN_EVENT,            /* 8 */
@@ -54,8 +55,16 @@ typedef enum {
    ASYNC_THREAD_CHECK_EVTS_EVENT,           /* 10 */
    ASYNC_THREAD_PROCESS_EVT_EVENT,          /* 11 */
    ASYNC_THREAD_SYNCHRONIZE_EVENT,          /* 12 */
-   ASYNC_THREAD_SCHEDULE_EVENT              /* 13 */
 } AsyncThreadState_t;
+
+
+AsyncThread::AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator ) :
+      BaseThread( osId, wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
+      _pendingEvents(), _pendingEventsCounter( 0 ), _recursiveCounter( 0 ),
+      _previousWD( NULL )
+{
+   sys.setPredecessorLists( true );
+}
 
 
 bool AsyncThread::inlineWorkDependent( WD &work )
@@ -324,7 +333,7 @@ void AsyncThread::runWD ( WD * wd )
 
    // Run WD
    //this->inlineWorkDependent( *wd );
-   this->runWDDependent( *wd );
+   this->runWDDependent( *wd, evt );
 
    evt->setPending();
 
@@ -346,6 +355,9 @@ void AsyncThread::runWD ( WD * wd )
 
 void AsyncThread::checkWDOutputs( WD * wd )
 {
+   // Marks task event as finished
+   NANOS_INSTRUMENT( closeWDEvent(); );
+
    // Check if WD's outputs have already been copied (if needed)
    _previousWD = getCurrentWD();
    setCurrentWD( *wd );

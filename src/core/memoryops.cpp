@@ -215,7 +215,9 @@ void BaseAddressSpaceInOps::copyInputData( MemCacheCopy const &memCopy, WD const
             bool is_located_in_host = data_source.isLocatedIn( 0 );
             insertOwnOp( thisRegOps, memCopy._reg, memCopy.getVersion(), 0 ); //i've got the responsability of copying this region
 
+            /* it can be region_shape.id = 1 and memCopy._reg.id = 1
             ensure( region_shape.id == memCopy._reg.id, "Wrong region" );
+            */
             if ( !is_located_in_host ) {
                ensure( location > 0, "Wrong location.");
                this->addOp( &( sys.getSeparateMemory( location ) ), region_shape, memCopy.getVersion(), NULL, copyIdx ); // inOp

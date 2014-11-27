@@ -100,11 +100,13 @@ inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * 
       bool batchRelease, bool blocking )
 {
    int  numPred = --_numPredecessors;
-
+//   DependableObject &depObj = *this;
+//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, finishedPred );
+   if(sys.getPredecessorLists())
    {
       SyncLockBlock lock( this->getLock() );
 
-      decreasePredecessorsInLock( flushDeps, finishedPred, blocking, numPred );
+      decreasePredecessorsInLock( finishedPred, numPred );
    }
 
    if ( numPred == 0 && !batchRelease ) {
@@ -114,8 +116,8 @@ inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * 
    return numPred;
 }
 
-inline void DependableObject::decreasePredecessorsInLock ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
-      bool blocking, int numPred )
+inline void DependableObject::decreasePredecessorsInLock ( DependableObject * finishedPred,
+       int numPred )
 {
    if ( finishedPred != NULL ) {
       if ( getWD() != NULL && finishedPred->getWD() != NULL ) {
@@ -163,7 +165,11 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
 
 inline bool DependableObject::addSuccessor ( DependableObject &depObj )
 {
-   depObj.addPredecessor( *this );
+   //Maintain the list of predecessors
+   if(sys.getPredecessorLists())
+      depObj.addPredecessor( *this );
+
+   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
 
    return _successors.insert ( &depObj ).second;
 }

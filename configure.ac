@@ -1137,25 +1137,25 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/core/Makefile
-		 src/support/Makefile
-		 src/plugins/Makefile
-		 src/apis/Makefile
-		 src/pms/Makefile
-       src/arch/Makefile
-		 src/arch/unix-os/Makefile
-		 src/arch/smp/Makefile
-		 src/arch/fpga/Makefile
-		 src/arch/spu/Makefile
-		 src/arch/gpu/Makefile
-		 src/arch/cluster/Makefile
-		 src/arch/opencl/Makefile
-		 src/arch/mpi/Makefile
-		 src/utils/Makefile
-		 scripts/Makefile
-		 tests/Makefile
-		 tests/gens/Makefile
-		 doc/Makefile
-       doc/doxy-nanox
+                 src/support/Makefile
+                 src/plugins/Makefile
+                 src/apis/Makefile
+                 src/pms/Makefile
+                 src/arch/Makefile
+                 src/arch/unix-os/Makefile
+                 src/arch/smp/Makefile
+                 src/arch/fpga/Makefile
+                 src/arch/spu/Makefile
+                 src/arch/gpu/Makefile
+                 src/arch/cluster/Makefile
+                 src/arch/opencl/Makefile
+                 src/arch/mpi/Makefile
+                 src/utils/Makefile
+                 scripts/Makefile
+                 tests/Makefile
+                 tests/gens/Makefile
+                 doc/Makefile
+                 doc/doxy-nanox
        ])
 
 AC_OUTPUT

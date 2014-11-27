@@ -206,10 +206,16 @@ std::set< memory_space_id_t > const &global_reg_t::getLocations() const {
    return entry->getLocations();
 }
 
-void global_reg_t::setRooted() const {
+//void global_reg_t::setRooted() const {
+//   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+//   ensure(entry != NULL, "invalid entry.");
+//   entry->setRooted();
+//}
+
+memory_space_id_t global_reg_t::getRootedLocation() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
-   entry->setRooted();
+   return entry->getRootedLocation();
 }
 
 bool global_reg_t::isRooted() const {
@@ -218,7 +224,7 @@ bool global_reg_t::isRooted() const {
    return entry->isRooted();
 }
 void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
-   setRooted();
+   //setRooted();
    NewNewRegionDirectory::addRootedAccess( key, id, loc, 1 );
 }
 

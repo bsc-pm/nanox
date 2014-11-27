@@ -272,7 +272,6 @@ class SMPPlugin : public SMPBasePlugin
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
-            numaMem.setNodeNumber( 0 );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
             cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), active, numaNode, socket );

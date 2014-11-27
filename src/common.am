@@ -17,7 +17,8 @@ devincludedir = $(prefix)/include/nanox-dev
 
 if HWLOC 
 hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@ 
-hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc 
+hwloc_rpath = -Xlinker -rpath -Xlinker @HWLOC_LIB@
+hwloc_ldflags = $(hwloc_rpath) -L@HWLOC_LIB@ -lhwloc 
 endif 
 
 

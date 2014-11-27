@@ -218,15 +218,16 @@ void *OSAllocator::_allocate( size_t len, bool none ) {
    uintptr_t targetAddr = 0;
    void *allocatedAddr = NULL;
    readeMaps();
-   targetAddr = lookForAlignedAddress( len );
+   size_t realLen = len < 4096 ? 4096 : len;
+   targetAddr = lookForAlignedAddress( realLen );
    if ( targetAddr != 0 ) {
-      if ( tryAlloc( targetAddr, len, none ? PROT_NONE : PROT_READ|PROT_WRITE ) ) {
-         std::cerr << "mmap failed to allocate " << len << " size-aligned bytes." << std::endl;
+      if ( tryAlloc( targetAddr, realLen, none ? PROT_NONE : PROT_READ|PROT_WRITE ) ) {
+         std::cerr << "mmap failed to allocate " << realLen << " size-aligned bytes." << std::endl;
       } else {
          allocatedAddr = (void *) targetAddr;
       }
    } else {
-      std::cerr << "Unable to find a free chunk to allocate " << len << " size-aligned bytes." << std::endl;
+      std::cerr << "Unable to find a free chunk to allocate " << realLen << " size-aligned bytes." << std::endl;
    }
    processMaps.clear();
    freeMaps.clear();

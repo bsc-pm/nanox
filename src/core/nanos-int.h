@@ -137,7 +137,7 @@ typedef struct {
    // declaration would be a pointer to a scalar, not a pointer to an array
    void* dimensions;
 #else
-   nanos_region_dimension_internal_t const *dimensions;
+   nanos_region_dimension_internal_t *dimensions;
 #endif
    ptrdiff_t offset;
    uint64_t host_base_address;

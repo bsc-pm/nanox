@@ -23,9 +23,10 @@
 #include "system.hpp"
 #include "os.hpp"
 #include "memtracker.hpp"
-#include "clusterthread_decl.hpp"
 #include "regioncache.hpp"
 #include "newregiondirectory.hpp"
+
+//#define EXTRA_QUEUE_DEBUG
 
 namespace nanos {
    namespace ext {
@@ -39,22 +40,270 @@ namespace nanos {
 
          private:
 
+            class SchedQueues
+            {
+               public:
+                  SchedQueues() {}
+
+                  SchedQueues( int memSpaces ) {}
+                  virtual ~SchedQueues() {}
+
+                  virtual size_t size( int index ) = 0;
+
+                  virtual void globalPushBack ( WD * wd ) = 0;
+                  virtual WD * globalPopFront ( BaseThread * thread ) = 0;
+                  virtual void pushBack ( WD * wd, int index ) = 0;
+                  virtual WD * popFront ( BaseThread * thread, int index ) = 0;
+                  virtual WD * popBack ( BaseThread * thread, int index ) = 0;
+                  virtual WD * fetchWD ( BaseThread * thread, int memId ) = 0;
+                  virtual bool reorderWD ( WD * wd, int index ) { return false; }
+            };
+
+            class SchedQueuesWDQ : public SchedQueues
+            {
+               WDDeque   _globalReadyQueue;
+               WDDeque * _readyQueues;
+
+#ifdef EXTRA_QUEUE_DEBUG
+               PE     ** _pes;
+#endif
+
+               public:
+                  SchedQueuesWDQ( int memSpaces ) : SchedQueues(), _globalReadyQueue( /* enableDeviceCounter */ false )
+                  {
+                     _readyQueues = NEW WDDeque[memSpaces];
+
+#ifdef EXTRA_QUEUE_DEBUG
+                     _pes = NEW PE*[memSpaces];
+                     for ( int i = 0; i < memSpaces; i++) {
+                        PE &pe = sys.getPEWithMemorySpaceId( i );
+                        _pes[i] = &pe;
+                     }
+#endif
+                  }
+
+                  ~SchedQueuesWDQ()
+                  {
+                     delete[] _readyQueues;
+
+#ifdef EXTRA_QUEUE_DEBUG
+                     delete [] _pes;
+#endif
+                  }
+
+                  inline size_t size( int index )
+                  {
+                     return _readyQueues[index].size();
+                  }
+
+                  inline void globalPushBack ( WD * wd )
+                  {
+                     _globalReadyQueue.push_back( wd );
+                  }
+
+                  inline WD * globalPopFront ( BaseThread * thread )
+                  {
+                     return _globalReadyQueue.pop_front( thread );
+                  }
+
+                  inline void pushBack ( WD * wd, int index )
+                  {
+#ifdef EXTRA_QUEUE_DEBUG
+                     if ( !wd->canRunIn( *_pes[index] ) ) {
+                        std::cout << "Impossible to add WD to incompatible queue!!!" << std::endl;
+                     }
+#endif
+
+                     _readyQueues[index].push_back( wd );
+                  }
+
+                  inline WD * popFront ( BaseThread * thread, int index )
+                  {
+                     return _readyQueues[index].pop_front( thread );
+                  }
+
+                  inline WD * popBack ( BaseThread * thread, int index )
+                  {
+                     return _readyQueues[index].pop_back( thread );
+                  }
+
+                  WD * fetchWD ( BaseThread * thread, int memId ) {
+
+                     NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+
+                     WD * wd = NULL;
+
+                     if ( ( wd = _readyQueues[memId].popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     if ( !_noInvalAware ) {
+                        if ( ( wd = _readyQueues[memId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
+                           NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+                           NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                           return wd;
+                        }
+                     }
+
+                     if ( ( wd = _readyQueues[memId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, NoCopy > >( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPYNOOUTMEM;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     if ( ( wd = _readyQueues[memId].popFrontWithConstraints< WouldNotRunOutOfMemory >( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOOUTMEM;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     if ( ( wd = _readyQueues[memId].pop_front( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     return wd;
+                  }
+
+            };
+
+            struct SchedQueuesWDPQ : public SchedQueues
+            {
+               WDPriorityQueue<>   _globalReadyQueue;
+               WDPriorityQueue<> * _readyQueues;
+
+#ifdef EXTRA_QUEUE_DEBUG
+               PE     ** _pes;
+#endif
+
+               public:
+                  SchedQueuesWDPQ( int memSpaces ) : SchedQueues(), _globalReadyQueue( /* optimise option */ true )
+                  {
+                     _readyQueues = NEW WDPriorityQueue<>[memSpaces];
+
+#ifdef EXTRA_QUEUE_DEBUG
+                     _pes = NEW PE*[memSpaces];
+                     for ( int i = 0; i < memSpaces; i++) {
+                        PE &pe = sys.getPEWithMemorySpaceId( i );
+                        _pes[i] = &pe;
+                     }
+#endif
+                 }
+
+                  ~SchedQueuesWDPQ()
+                  {
+                     delete[] _readyQueues;
+
+#ifdef EXTRA_QUEUE_DEBUG
+                     delete [] _pes;
+#endif
+                  }
+
+                  inline size_t size( int index )
+                  {
+                     return _readyQueues[index].size();
+                  }
+
+                  inline void globalPushBack ( WD * wd )
+                  {
+                     _globalReadyQueue.push_back( wd );
+                  }
+
+                  inline WD * globalPopFront ( BaseThread * thread )
+                  {
+                     return _globalReadyQueue.pop_front( thread );
+                  }
+
+                  inline void pushBack ( WD * wd, int index )
+                  {
+#ifdef EXTRA_QUEUE_DEBUG
+                     if ( !wd->canRunIn( *_pes[index] ) ) {
+                        std::cout << "Impossible to add WD to incompatible queue!!!" << std::endl;
+                     }
+#endif
+
+                     _readyQueues[index].push_back( wd );
+                  }
+
+                  inline WD * popFront ( BaseThread * thread, int index )
+                  {
+                     return _readyQueues[index].pop_front( thread );
+                  }
+
+                  inline WD * popBack ( BaseThread * thread, int index )
+                  {
+                     return _readyQueues[index].pop_back( thread );
+                  }
+
+                  WD * fetchWD ( BaseThread * thread, int memId ) {
+
+                     NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+
+                     WD * wd = NULL;
+
+                     if ( ( wd = _readyQueues[memId].popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     if ( !_noInvalAware ) {
+                        if ( ( wd = _readyQueues[memId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
+                           NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+                           NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                           return wd;
+                        }
+                     }
+
+                     if ( ( wd = _readyQueues[memId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, NoCopy > >( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPYNOOUTMEM;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     if ( ( wd = _readyQueues[memId].popFrontWithConstraints< WouldNotRunOutOfMemory >( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOOUTMEM;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     if ( ( wd = _readyQueues[memId].pop_front( thread ) ) != NULL ) {
+                        NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                        return wd;
+                     }
+
+                     return wd;
+                  }
+
+                  inline bool reorderWD ( WD * wd, int index )
+                  {
+                     return _readyQueues[index].reorderWD( wd );
+                  }
+
+            };
+
             struct TeamData : public ScheduleTeamData
             {
-               WDDeque            _globalReadyQueue;
-               WDDeque*           _readyQueues;
+               SchedQueues      * _queues;
                size_t*            _createdData;
                unsigned int       _numMemSpaces;
-               unsigned int      *_load;
+               unsigned int     * _load;
                ThreadDataSet      _teamThreadData;
+               Lock               _teamThrDataLock;
 
-               TeamData ( unsigned int size ) : ScheduleTeamData(), _globalReadyQueue(), _teamThreadData()
+               TeamData ( unsigned int size ) : ScheduleTeamData(), _teamThreadData(), _teamThrDataLock()
                {
-                  // Also count the host memory space
+                  // +1 to count the host memory space as well
                   _numMemSpaces = sys.getSeparateMemoryAddressSpacesCount() + 1;
 
+                  if ( _usePriority ) _queues = NEW SchedQueuesWDPQ( _numMemSpaces );
+                  else _queues = NEW SchedQueuesWDQ( _numMemSpaces );
+
                   if ( _numMemSpaces > 1 ) {
-                     _readyQueues = NEW WDDeque[_numMemSpaces];
                      _createdData = NEW size_t[_numMemSpaces];
                      for (unsigned int i = 0; i < _numMemSpaces; i += 1 ) {
                         _createdData[i] = 0;
@@ -69,17 +318,19 @@ namespace nanos {
 
                ~TeamData ()
                {
+                  delete _queues;
+
                   if (_numMemSpaces > 1 ) {
-                     delete[] _readyQueues;
                      delete[] _createdData;
                      delete[] _load;
                   }
-                  /* TODO add delete for new members */
                }
 
                void addThreadData ( ThreadData * thdata )
                {
+                  _teamThrDataLock.acquire();
                   _teamThreadData.insert( thdata );
+                  _teamThrDataLock.release();
                }
 
             };
@@ -96,9 +347,8 @@ namespace nanos {
                unsigned int _helped;
                unsigned int _fetch;
                PE         * _pe;
-               WDDeque      _localQueue;
 
-               ThreadData () : _init( false ), _memId( 0 ), _helped( 0 ), _fetch( 0 ), _pe( NULL ), _localQueue( false ) {}
+               ThreadData () : _init( false ), _memId( 0 ), _helped( 0 ), _fetch( 0 ), _pe( NULL ) {}
 
                virtual ~ThreadData () {}
 
@@ -194,12 +444,23 @@ namespace nanos {
             enum DecisionType { /* 0 */ NOCONSTRAINT,
                                 /* 1 */ NOCOPY,
                                 /* 2 */ SICOPY,
-                                /* 3 */ ALREADYINIT };
+                                /* 3 */ NOCOPYNOOUTMEM,
+                                /* 4 */ SICOPYNOOUTMEM,
+                                /* 5 */ ALREADYINIT };
 
          public:
+            static bool _usePriority;
+            // Depth propagation inside task graph
+            // -1 means no depth limit
+            //  0 means no propagation
+            static int _priorityPropagation;
+
             static bool _noSteal;
             static bool _noInvalAware;
             static bool _affinityInout;
+            static bool _affinityLoad;
+
+
             // constructor
             ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {}
 
@@ -241,13 +502,13 @@ namespace nanos {
                }
 
                if ( tdata._numMemSpaces == 1 ) {
-                  tdata._globalReadyQueue.push_back( &wd );
+                  tdata._queues->globalPushBack( &wd );
                   return;
                }
 
                if ( wd.isTied() ) {
                    unsigned int index = wd.isTiedTo()->runningOn()->getMemorySpaceId();
-                   tdata._readyQueues[index].push_back ( &wd );
+                   tdata._queues->pushBack( &wd, index );
                    return;
                }
 
@@ -265,11 +526,11 @@ namespace nanos {
 
                // If we found only one memory space, push this WD to its queue
                if ( executors == 1 ) {
-                  tdata._readyQueues[candidate].push_back( &wd );
+                  tdata._queues->pushBack( &wd, candidate );
                   return;
                }
 
-               tdata._globalReadyQueue.push_back ( &wd );
+               tdata._queues->globalPushBack( &wd );
             }
 
 
@@ -282,14 +543,14 @@ namespace nanos {
             virtual void affinity_queue ( BaseThread *thread, WD &wd )
             {
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
-               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+               TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
 
                if ( !data._init ) {
                   data.init( thread, tdata );
                }
 
                if ( tdata._numMemSpaces == 1 ) {
-                  tdata._globalReadyQueue.push_back( &wd );
+                  tdata._queues->globalPushBack( &wd );
                   return;
                }
 
@@ -313,16 +574,20 @@ namespace nanos {
 
                   if ( rw_copies == 0 ) /* init task */
                   {
-                     int winner = tdata._numMemSpaces - 1;
-                     int start = 0 ;
-
-                     for ( int i = winner - 1; i >= start; i -= 1 )
-                     {
-                        winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
+                     int winner = -1;
+                     for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
+                        ThreadData * thd = *it;
+                        if ( wd.canRunIn( * thd->_pe ) ) {
+                           if ( winner == -1 ) {
+                              winner = thd->_memId;
+                           } else {
+                              winner = ( tdata._createdData[ thd->_memId ] < tdata._createdData[ winner ] ) ? thd->_memId : winner ;
+                           }
+                        }
                      }
 
                      tdata._createdData[ winner ] += createdDataSize;
-                     tdata._readyQueues[ winner ].push_back( &wd );
+                     tdata._queues->pushBack( &wd, winner );
                   }
                   else
                   {
@@ -330,8 +595,20 @@ namespace nanos {
                      //        std::cerr << "END case, regular wd " << wd.getId() << std::endl;
                   }
                } else {
-                  tdata._readyQueues[ 0 ].push_back( &wd );
+                  // Check which memory spaces this WD can be run on
+                  for ( ThreadDataSet::const_iterator it = tdata._teamThreadData.begin(); it != tdata._teamThreadData.end(); it++ ) {
+                     ThreadData * thd = *it;
+                     if ( wd.canRunIn( * thd->_pe ) ) {
+                        tdata._queues->pushBack( &wd, thd->_memId );
+                        break;
+                     }
+                  }
                }
+            }
+
+            virtual void atCreate ( DependableObject &depObj )
+            {
+               if ( _usePriority ) propagatePriority( depObj, _priorityPropagation );
             }
 
             /*!
@@ -371,7 +648,7 @@ namespace nanos {
                }
 
                // Try to schedule the thread with a task from its queue
-               next = tdata._readyQueues[data._memId].pop_front ( thread );
+               next = tdata._queues->popFront( thread, data._memId );
 
                if ( next != NULL ) return next;
 
@@ -388,11 +665,106 @@ namespace nanos {
 
             WD *fetchWD ( BaseThread *thread, WD *current );
 
+            /*!
+             * \brief This method performs the main task of the smart priority
+             * scheduler, which is to propagate the priority of a WD to its
+             * immediate predecessors. It is meant to be invoked from
+             * DependenciesDomain::submitWithDependenciesInternal.
+             * \param [in/out] predecessor The preceding DependableObject.
+             * \param [in] successor DependableObject whose WD priority has to be
+             * propagated.
+             */
+            void atSuccessor ( DependableObject &successor, DependableObject &predecessor )
+            {
+               if ( !_usePriority || _priorityPropagation == 0 ) return;
+
+               WD *pred = ( WD* ) predecessor.getRelatedObject();
+               if ( pred == NULL ) {
+                  debug( "AffinityReadyPriority::successorFound predecessor.getRelatedObject() is NULL" )
+                  return;
+               }
+
+               WD *succ = ( WD* ) successor.getRelatedObject();
+               if ( succ == NULL ) {
+                  fatal( "AffinityReadyPriority::atSuccessor  successor.getRelatedObject() is NULL" );
+               }
+
+               debug ( "Propagating priority from "
+                  << ( void * ) succ << ":" << succ->getId() << " to "
+                  << ( void * ) pred << ":"<< pred->getId()
+                  << ", old priority: " << pred->getPriority()
+                  << ", new priority: " << std::max( pred->getPriority(),
+                  succ->getPriority() )
+               );
+
+               // Propagate priority
+               if ( pred->getPriority() < succ->getPriority() ) {
+                  pred->setPriority( succ->getPriority() );
+                  // Reorder
+                  TeamData &tdata = ( TeamData & ) *nanos::myThread->getTeam()->getScheduleData();
+                  // Do it for all the queues since I don't know which ones have the predecessor
+                  // TODO (#652): Find a way to avoid the situation described above.
+                  for ( unsigned int i = 0; i < tdata._numMemSpaces; i++ )
+                  {
+                     tdata._queues->reorderWD( pred, i );
+                  }
+               }
+
+               // Propagate priority recursively
+               propagatePriority( predecessor, _priorityPropagation - 1 );
+            }
+
+            void propagatePriority ( DependableObject & successor, int maxDepth )
+            {
+               if ( maxDepth == 0 ) return;
+
+               WD * succ = ( WD * ) successor.getRelatedObject();
+               if ( succ == NULL ) return;
+
+               if ( successor.numPredecessors() == 0 ) return;
+
+               DependableObject::DependableObjectVector & predecessors = successor.getPredecessors();
+               for ( DependableObject::DependableObjectVector::iterator it = predecessors.begin();
+                     it != predecessors.end(); it++ ) {
+                  DependableObject * obj = *it;
+                  WD * pred = ( WD * ) obj->getRelatedObject();
+                  if ( pred == NULL ) continue;
+
+                  if ( pred->getPriority() < succ->getPriority() ) {
+
+                     //std::ostringstream str;
+                     //str << "REC: Propagating priority from " << succ->getId() << " to " << pred->getId()
+                     //   << ", old priority: " << pred->getPriority()
+                     //   << ", new priority: " << succ->getPriority() << std::endl;
+                     //std::cout << str.str();
+
+                     pred->setPriority( succ->getPriority() );
+
+                     // Reorder
+                     TeamData &tdata = ( TeamData & ) *nanos::myThread->getTeam()->getScheduleData();
+                     // Do it for all the queues since I don't know which ones have the predecessor
+                     // TODO (#652): Find a way to avoid the situation described above.
+                     for ( unsigned int i = 0; i < tdata._numMemSpaces; i++ )
+                     {
+                        tdata._queues->reorderWD( pred, i );
+                     }
+
+                     propagatePriority( *obj, maxDepth - 1 );
+                  }
+
+                  // Propagate priority
+                  //std::ostringstream str2;
+                  //str2 << "Calling propagate for " << pred->getId() << std::endl;
+                  //std::cout << str2.str();
+
+                  //propagatePriority( obj );
+               }
+            }
       };
 
       inline WD *ReadyCacheSchedPolicy::fetchWD( BaseThread *thread, WD *current )
       {
-         WorkDescriptor * wd = NULL;
+         //WorkDescriptor * wd = NULL;
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
@@ -401,41 +773,7 @@ namespace nanos {
             data.init( thread, tdata );
          }
 
-         NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
-
-         if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
-            NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            return wd;
-         }
-
-         if ( !_noInvalAware ) {
-            if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
-               NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
-               NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-               return wd;
-            }
-         }
-
-         if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< And < WouldNotRunOutOfMemory, NoCopy > >( thread ) ) != NULL ) {
-            NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            return wd;
-         }
-
-         if ( ( wd = tdata._readyQueues[data._memId].popFrontWithConstraints< WouldNotRunOutOfMemory >( thread ) ) != NULL ) {
-            NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            return wd;
-         }
-
-         if ( ( wd = tdata._readyQueues[data._memId].pop_front( thread ) ) != NULL ) {
-            NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
-            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-            return wd;
-         }
-
-         return wd;
+         return tdata._queues->fetchWD( thread, data._memId );
       }
 
       WD *ReadyCacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
@@ -457,7 +795,7 @@ namespace nanos {
          }
 
          if ( tdata._numMemSpaces == 1 ) {
-            wd = tdata._globalReadyQueue.pop_front( thread );
+            wd = tdata._queues->globalPopFront( thread );
             return wd;
          }
 
@@ -468,7 +806,7 @@ namespace nanos {
          /*
           * Try to get it from the global queue and assign it properly
           */
-          wd = tdata._globalReadyQueue.pop_front ( thread );
+          wd = tdata._queues->globalPopFront( thread );
 
           if ( wd != NULL ) {
              affinity_queue( thread, *wd );
@@ -480,14 +818,14 @@ namespace nanos {
           if ( !_noSteal )
           {
              for ( unsigned int i = data._memId + 1; i < tdata._numMemSpaces; i++ ) {
-                if ( tdata._readyQueues[i].size() > 1 ) {
-                   wd = tdata._readyQueues[i].pop_back( thread );
+                if ( tdata._queues->size( i ) > 1 ) {
+                   wd = tdata._queues->popBack( thread, i );
                    return wd;
                 }
              }
              for ( unsigned int i = 0; i < data._memId; i++ ) {
-                if ( tdata._readyQueues[i].size() > 1 ) {
-                   wd = tdata._readyQueues[i].pop_back( thread );
+                if ( tdata._queues->size( i ) > 1 ) {
+                   wd = tdata._queues->popBack( thread, i );
                    return wd;
                 }
              }
@@ -536,7 +874,14 @@ namespace nanos {
 
          int winner = -1;
          unsigned int start = 0;
-         int maxRank = 0;
+         for ( unsigned int mem = 0; mem < numMemSpaces; mem++ ) {
+            if ( scores[mem] != -1 ) {
+               start = mem;
+               break;
+            }
+         }
+
+         int maxRank = -1;
          for ( unsigned int i = start; i < numMemSpaces; i++ ) {
             if ( scores[i] > maxRank ) {
                winner = i;
@@ -569,47 +914,54 @@ namespace nanos {
          //std::cerr << "RANKING WD " << wd.getId() << " numCopies " << wd.getNumCopies() << std::endl;
          size_t max_possible_score = 0;
          int winner = computeAffinityScore( wd, tdata._numMemSpaces, scores, max_possible_score );
-         unsigned int usage[ tdata._numMemSpaces ];
-         unsigned int ties = 0;
-         int maxRank = scores[ winner ];
-         unsigned int start = 0;
 
-         for ( unsigned int i = start; i < tdata._numMemSpaces; i++ ) {
-         //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< " this score "<< scores[i] << std::endl;
-            if ( scores[i] == maxRank ) {
-               usage[ ties ] = i;
-               ties += 1;
-            }
-         }
-         //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< std::endl;
-         if ( ties > 1 ) {
-            //    std::cerr << "I have to chose between :";
-            //for ( unsigned int ii = 0; ii < ties; ii += 1 ) fprintf(stderr, " %d", usage[ ii ] );
-            //std::cerr << std::endl;
-            unsigned int minLoad = usage[0];
-            for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
-               //     std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
-               //   std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
-               if ( tdata._readyQueues[ usage[ ii ] ].size() < tdata._readyQueues[ minLoad ].size() ) {
-                  minLoad = usage[ ii ];
+         if ( _affinityLoad ) {
+            unsigned int usage[ tdata._numMemSpaces ];
+            unsigned int ties = 0;
+            int maxRank = scores[ winner ];
+            unsigned int start = 0;
+
+            for ( unsigned int i = start; i < tdata._numMemSpaces; i++ ) {
+               //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< " this score "<< scores[i] << std::endl;
+               if ( scores[i] == maxRank ) {
+                  usage[ ties ] = i;
+                  ties += 1;
                }
             }
-            //std::cerr << "Well winner is gonna be "<< minLoad << std::endl;
-            winner = minLoad;
+            //std::cerr << "winner is "<< winner << " ties "<< ties << " " << maxRank<< std::endl;
+            if ( ties > 1 ) {
+               //std::cerr << "Max score is " << maxRank << " / " << max_possible_score << ", I have to chose between :";
+               //for ( unsigned int ii = 0; ii < ties; ii += 1 ) fprintf(stderr, " %d", usage[ ii ] );
+               //std::cerr << std::endl;
+               unsigned int minLoad = usage[0];
+               for ( unsigned int ii = 1; ii < ties; ii += 1 ) {
+                  //     std::cerr << "load of (min) " << minLoad << " is " << tdata._load[ minLoad ] <<std::endl;
+                  //   std::cerr << "load of (itr) " << usage[ ii ]  << " is " << tdata._load[ usage[ ii ] ] << std::endl;
+                  if ( tdata._queues->size( usage[ ii ] ) < tdata._queues->size( minLoad ) ) {
+                     minLoad = usage[ ii ];
+                  }
+               }
+               //std::cerr << "Well winner is gonna be "<< minLoad << std::endl;
+               winner = minLoad;
+            }
          }
 
          wd._mcontrol.setAffinityScore( scores[ winner ] );
          wd._mcontrol.setMaxAffinityScore( max_possible_score );
 
-         /* end of rank by cluster node */
+         /* end of rank by memory space */
 
-         tdata._readyQueues[winner].push_back( &wd );
+         tdata._queues->pushBack( &wd, winner );
       }
 
 
+      bool ReadyCacheSchedPolicy::_usePriority = false;
+      int ReadyCacheSchedPolicy::_priorityPropagation = 5;
       bool ReadyCacheSchedPolicy::_noSteal = false;
       bool ReadyCacheSchedPolicy::_noInvalAware = false;
       bool ReadyCacheSchedPolicy::_affinityInout = false;
+      bool ReadyCacheSchedPolicy::_affinityLoad = false;
+
 
       class ReadyCacheSchedPlugin : public Plugin
       {
@@ -619,6 +971,13 @@ namespace nanos {
             virtual void config( Config& cfg )
             {
                cfg.setOptionsSection( "Ready-Affinity module", "Data Affinity scheduling module at ready task time" );
+
+               cfg.registerConfigOption ( "affinity-priority", NEW Config::FlagOption( ReadyCacheSchedPolicy::_usePriority ), "Priority queue used as ready task queue");
+               cfg.registerArgOption( "affinity-priority", "affinity-priority" );
+
+               cfg.registerConfigOption ( "affinity-priority-depth", NEW Config::IntegerVar( ReadyCacheSchedPolicy::_priorityPropagation ), "Number of levels to propagate priority upwards in the task graph (0 = no propagation, -1 = no depth limit");
+               cfg.registerArgOption( "affinity-priority-depth", "affinity-priority-depth" );
+
                cfg.registerConfigOption ( "affinity-no-steal", NEW Config::FlagOption( ReadyCacheSchedPolicy::_noSteal ), "Steal tasks from other threads");
                cfg.registerArgOption( "affinity-no-steal", "affinity-no-steal" );
 
@@ -627,6 +986,9 @@ namespace nanos {
 
                cfg.registerConfigOption ( "affinity-inout", NEW Config::FlagOption( ReadyCacheSchedPolicy::_affinityInout ), "Check affinity for inout data only");
                cfg.registerArgOption( "affinity-inout", "affinity-inout" );
+
+               cfg.registerConfigOption ( "affinity-load", NEW Config::FlagOption( ReadyCacheSchedPolicy::_affinityLoad ), "Also take into account system load and try to balance work assignment");
+               cfg.registerArgOption( "affinity-load", "affinity-load" );
             }
 
             virtual void init() {
