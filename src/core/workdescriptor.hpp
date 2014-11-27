@@ -193,7 +193,6 @@ inline WorkDescriptor & WorkDescriptor::tied () { _flags.to_tie = true; return *
 
 inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &thread )
 {
-   fprintf(stderr,"Tie %d To %d\n", this->getId(), thread.getId()); //FIXME:xteruel
    _tiedTo = &thread;
    _flags.to_tie = false;
    return *this;
