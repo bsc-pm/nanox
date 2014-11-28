@@ -117,11 +117,11 @@ void SMPThread::wait()
       //}
 
       NANOS_INSTRUMENT( InstrumentState state_wake(NANOS_WAKINGUP) );
-
-      lock();
+   //WORKAROUND for deadlock. Waiting for correctness checking
+   //   lock();
       /* Set waiting status flag */
       BaseThread::resume();
-      unlock();
+   //   unlock();
       _pthread.mutexUnlock();
 
       /* Whether the thread should wait for the cpu to be free before doing some work */
