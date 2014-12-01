@@ -220,12 +220,6 @@ namespace nanos
          void unloadModules();
 
          /*!
-          * \brief Creates a new PE and a new thread associated to it
-          * \param[in] p ID of the new PE
-          */
-         void createWorker( unsigned p );
-
-         /*!
           * \brief Updates team members so that it matches with system's _cpu_active_set
           */
          void applyCpuMask();
