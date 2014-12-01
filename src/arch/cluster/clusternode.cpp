@@ -78,10 +78,6 @@ bool ClusterNode::supportsUserLevelThreads () const {
    return false;
 }
 
-bool ClusterNode::isGPU () const {
-   return false;
-}
-
 unsigned int ClusterNode::getMyNodeNumber() const {
    return _clusterNode;
 }
