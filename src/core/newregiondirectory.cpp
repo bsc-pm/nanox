@@ -105,7 +105,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
 #if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
 #else
-   uint64_t key = this->_getKey( objectAddr, objectSize );
+   uint64_t key = jen_hash( this->_getKey( objectAddr, objectSize ) ) & (HASH_BUCKETS-1);
 #endif
    HashBucket &hb = _objects[ key ];
    GlobalRegionDictionary *dict = NULL;
@@ -176,7 +176,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
 #if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
 #else
-   uint64_t key = this->_getKey( objectAddr );
+   uint64_t key = jen_hash( this->_getKey( objectAddr ) ) & (HASH_BUCKETS-1);
 #endif
    HashBucket const &hb = _objects[ key ];
    GlobalRegionDictionary *dict = NULL;
@@ -746,7 +746,7 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
 #if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
 #else
-   uint64_t key = this->_getKey( objectAddr, objectSize );
+   uint64_t key = jen_hash( this->_getKey( objectAddr, objectSize ) ) & (HASH_BUCKETS-1);
 #endif
    HashBucket &hb = _objects[ key ];
 
