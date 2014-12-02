@@ -217,6 +217,8 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
    std::size_t sent = 0, thisReqSize;
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) 1 ); )
    NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
    while ( sent < _len )
    {
@@ -240,13 +242,19 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
       }
       sent += thisReqSize;
    }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
 void GASNetAPI::SendDataGetRequest::doStrided( void *localAddr ) {
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) 1 ); )
    if ( gasnet_AMRequestLong2( 0, 212, localAddr, _len*_count, _destAddr, ARG_LO( _waitObj ), ARG_HI( _waitObj ) ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error sending reply msg.\n" );
    }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
 void GASNetAPI::processSendDataRequest( SendDataRequest *req ) {
@@ -1328,12 +1336,14 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
    else
 #endif
    {
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) remoteNode+1 ); )
       while ( sent < size )
       {
          thisReqSize = ( ( size - sent ) <= MAX_LONG_REQUEST ) ? size - sent : MAX_LONG_REQUEST;
 
-         NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
 
          if ( remoteTmpBuffer != NULL )
@@ -1373,6 +1383,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
          else { fprintf(stderr, "error sending a PUT to node %d, did not get a tmpBuffer\n", remoteNode ); }
          sent += thisReqSize;
       }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
    }
 }
 
@@ -1382,13 +1393,15 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
    std::size_t realSize = size * count;
    _txBytes += realSize;
    _totalBytes += realSize;
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) remoteNode+1 ); )
    {
       while ( sent < realSize )
       {
          thisReqSize = ( ( realSize - sent ) <= MAX_LONG_REQUEST ) ? realSize - sent : MAX_LONG_REQUEST;
 
-         NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
 
          if ( remoteTmpBuffer != NULL )
@@ -1427,6 +1440,7 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
          sent += thisReqSize;
       }
    }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
 void GASNetAPI::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) {
