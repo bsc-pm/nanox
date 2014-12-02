@@ -133,6 +133,9 @@ namespace nanos
 
          PEList               _pes;
          ThreadList           _workers;
+
+         //! List of all supported architectures by _pes
+         DeviceList           _devices;
         
          /*! It counts how many threads have finalized their initialization */
          Atomic<unsigned int> _initializedThreads;
@@ -294,6 +297,11 @@ namespace nanos
          * \param work WD to be set up
          */
          void setupWD( WD &work, WD *parent );
+
+        /*!                                                                     
+         * \brief Method to get the device types of all the architectures running
+         */                                                                     
+        DeviceList & getSupportedDevices();
 
          /*!
           * \brief Add mas to the current system's _cpu_active_set

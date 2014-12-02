@@ -22,11 +22,18 @@
 
 #include "wddeque_decl.hpp"
 #include "schedule.hpp"
-#include "system.hpp"
 #include "instrumentation.hpp"
 #include "atomic.hpp"
 
 using namespace nanos;
+
+
+inline WDDeque::WDDeque( bool enableDeviceCounter ) : _dq(), _lock(), _nelems(0), _ndevs(), _deviceCounter( enableDeviceCounter )
+{
+   if ( _deviceCounter ) {
+      initDeviceList();
+   }
+}
 
 inline bool WDDeque::empty ( void ) const
 {
@@ -43,6 +50,13 @@ inline void WDDeque::push_front ( WorkDescriptor *wd )
    {
       LockBlock lock( _lock );
       _dq.push_front( wd );
+
+      if ( _deviceCounter ) {
+         for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) {
+            _ndevs[( wd->getDevices()[i]->getDevice() )]++;
+         }
+      }
+
       int tasks = ++( sys.getSchedulerStats()._readyTasks );
       increaseTasksInQueues(tasks);
       memoryFence();
@@ -55,6 +69,13 @@ inline void WDDeque::push_back ( WorkDescriptor *wd )
    {
       LockBlock lock( _lock );
       _dq.push_back( wd );
+
+      if ( _deviceCounter ) {
+         for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) {
+            _ndevs[( wd->getDevices()[i]->getDevice() )]++;
+         }
+      }
+
       int tasks = ++( sys.getSchedulerStats()._readyTasks );
       increaseTasksInQueues(tasks);
       memoryFence();
@@ -73,6 +94,12 @@ inline void WDDeque::push_front( WD** wds, size_t numElems )
       WD* wd = wds[i];
       wd->setMyQueue( this );
       _dq.push_front( wd );
+
+      if ( _deviceCounter ) {
+         for ( unsigned int j = 0; j < wd->getNumDevices(); j++ ) {
+            _ndevs[( wd->getDevices()[j]->getDevice() )]++;
+         }
+      }
    }
    int tasks = sys.getSchedulerStats()._readyTasks += numElems;
    increaseTasksInQueues(tasks,numElems);
@@ -85,6 +112,12 @@ inline void WDDeque::push_back( WD** wds, size_t numElems )
       WD* wd = wds[i];
       wd->setMyQueue( this );
       _dq.push_back( wd );
+
+      if ( _deviceCounter ) {
+         for ( unsigned int j = 0; j < wd->getNumDevices(); j++ ) {
+            _ndevs[( wd->getDevices()[j]->getDevice() )]++;
+         }
+      }
    }
    int tasks = sys.getSchedulerStats()._readyTasks += numElems;
    increaseTasksInQueues(tasks,numElems);
@@ -124,6 +157,9 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thr
    if ( _dq.empty() )
       return NULL;
 
+   if ( _deviceCounter && _ndevs[ ( thread->runningOn()->getDeviceType() )].value() == 0 )
+      return NULL;
+
    {
       LockBlock lock( _lock );
 
@@ -137,6 +173,12 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thr
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread) ) {
                if ( wd.dequeue( &found ) ) {
                    _dq.erase( it );
+                   if ( _deviceCounter ) {
+                      for ( unsigned int i = 0; i < found->getNumDevices(); i++ ) {
+                         _ndevs[( found->getDevices()[i]->getDevice() )]--;
+                      }
+                   }
+
                    int tasks = --(sys.getSchedulerStats()._readyTasks);
                    decreaseTasksInQueues(tasks);
                }
@@ -146,7 +188,6 @@ inline WorkDescriptor * WDDeque::popFrontWithConstraints ( BaseThread const *thr
       }
 
       if ( found != NULL ) found->setMyQueue( NULL );
-
    }
 
    ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
@@ -185,6 +226,9 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread const *thre
    if ( _dq.empty() )
       return NULL;
 
+   if ( _deviceCounter && _ndevs[ ( thread->runningOn()->getDeviceType() )].value() == 0 )
+      return NULL;
+
    {
       LockBlock lock( _lock );
 
@@ -198,6 +242,11 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread const *thre
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
                if ( wd.dequeue( &found ) ) {
                   _dq.erase( ( ++rit ).base() );
+                  if ( _deviceCounter ) {
+                     for ( unsigned int i = 0; i < found->getNumDevices(); i++ ) {
+                        _ndevs[( found->getDevices()[i]->getDevice() )]--;
+                     }
+                  }
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
                }
@@ -207,7 +256,6 @@ inline WorkDescriptor * WDDeque::popBackWithConstraints ( BaseThread const *thre
       }
 
       if ( found != NULL ) found->setMyQueue( NULL );
-
    }
 
    ensure( !found || !found->isTied() || found->isTiedTo() == thread, "" );
@@ -236,6 +284,11 @@ inline bool WDDeque::removeWDWithConstraints( BaseThread *thread, WorkDescriptor
             if ( *it == toRem ) {
                if ( ( *it )->dequeue( next ) ) {
                   _dq.erase( it );
+                  if ( _deviceCounter ) {
+                     for ( unsigned int i = 0; i < (*it)->getNumDevices(); i++ ) {
+                        _ndevs[( (*it)->getDevices()[i]->getDevice() )]--;
+                     }
+                  }
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
                }

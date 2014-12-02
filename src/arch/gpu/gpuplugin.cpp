@@ -262,6 +262,12 @@ virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
    }
 }
 
+virtual void addDevices( DeviceList &devices ) const                                        
+{                                                                          
+   if ( !_gpus->empty() )                                                  
+      devices.insert( ( *_gpus->begin() )->getDeviceType() );              
+}
+
 virtual void startSupportThreads() {
    for ( unsigned int gpuC = 0; gpuC < _gpus->size(); gpuC += 1 ) {
       GPUProcessor *gpu = (*_gpus)[gpuC];

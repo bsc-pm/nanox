@@ -23,6 +23,7 @@
 #include "plugin_decl.hpp"
 #include "processingelement_fwd.hpp"
 #include "basethread_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include <vector>
 #include <map>
 #include <iostream>
@@ -77,6 +78,7 @@ namespace nanos
          virtual void initialize();
          virtual void finalize();
          virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const;
+         virtual void addDevices( DeviceList &devices ) const;
          virtual void startSupportThreads();
          virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers );
          virtual unsigned int getMaxPEs() const;

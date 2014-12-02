@@ -431,6 +431,7 @@ void System::start ()
    {
       verbose0("addPEs for arch: " << (*it)->getName()); 
       (*it)->addPEs( _pes );
+      (*it)->addDevices( _devices );
    }
 
    

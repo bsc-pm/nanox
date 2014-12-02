@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,52 +17,19 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "archplugin.hpp"
+#include "wddeque.hpp"
 #include "system.hpp"
 
 using namespace nanos;
 
-ArchPlugin::ArchPlugin( const char *name, int version ) : Plugin( name, version )
-{
-   sys.registerArchitecture( this );
-}
 
-unsigned ArchPlugin::getNumHelperPEs() const
+void WDDeque::initDeviceList()
 {
-   return 0;
-}
+   DeviceList devs = sys.getSupportedDevices();
 
-void ArchPlugin::createBindingList()
-{
-}
-
-void ArchPlugin::initialize() {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-}
-void ArchPlugin::finalize() {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-}
-void ArchPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-}
-void ArchPlugin::addDevices( DeviceList &devices ) const {                       
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;                         
-}
-void ArchPlugin::startSupportThreads() {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-}
-void ArchPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-}
-unsigned int ArchPlugin::getMaxPEs() const {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-   return 0;
-}
-unsigned int ArchPlugin::getNumWorkers() const {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-   return 0;
-}
-unsigned int ArchPlugin::getMaxWorkers() const {
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;
-   return 0;
+   for ( DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
+      const Device * dev = *it;
+      Atomic<unsigned int> num = 0;
+      _ndevs.insert( std::make_pair( dev, num ) );
+   }
 }

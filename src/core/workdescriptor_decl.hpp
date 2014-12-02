@@ -46,6 +46,8 @@
 namespace nanos
 {
 
+typedef std::set<const Device *>  DeviceList;
+
    /*! \brief This class represents a device object
     */
    class Device

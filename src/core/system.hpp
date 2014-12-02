@@ -50,6 +50,7 @@ using namespace nanos;
 //inline int System::getNumThreads () const { return _numThreads; }
 
 //inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
+inline DeviceList & System::getSupportedDevices() { return _devices; }
 
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 

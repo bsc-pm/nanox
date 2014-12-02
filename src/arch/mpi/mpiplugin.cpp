@@ -125,6 +125,8 @@ class MPIPlugin : public ArchPlugin
     virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
     }
 
+    virtual void addDevices( DeviceList &devices ) const {}
+
     virtual void startSupportThreads() {
     }
 
