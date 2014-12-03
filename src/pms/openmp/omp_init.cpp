@@ -77,11 +77,25 @@ namespace nanos
          // Must be allocated through new to avoid problems with the order of
          // initialization of global objects
          globalState = NEW OmpState();
-
          TaskICVs & icvs = globalState->getICVs();
          icvs.setSchedule(LoopSchedule(omp_sched_static));
 
-         _numThreads = _numThreadsOMP == -1 ? CPU_COUNT(&sys.getCpuActiveMask()) : _numThreadsOMP;
+         int requested_workers = sys.getSMPPlugin()->getRequestedWorkers();
+         int max_workers = sys.getSMPPlugin()->getMaxWorkers();
+
+         if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
+            warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "
+                  "value (" << _numThreadsOMP << ") differ. The value of OMP_NUM_THREADS will be used.");
+         }
+
+         // In OpenMP, OMP_NUM_THREADS takes precedence over --smp-workers
+         if ( _numThreadsOMP > 0 ) {
+            _numThreads = _numThreadsOMP;
+         } else if ( requested_workers > 0 ) {
+            _numThreads = requested_workers;
+         } else {
+            _numThreads = max_workers;
+         }
 
          icvs.setNumThreads(_numThreads);
          sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
@@ -249,31 +263,33 @@ namespace nanos
        */
       void OmpSsInterface::start ()
       {
-         int num_threads = sys.getSMPPlugin()->getRequestedWorkers();
-         
-         _numThreads = _numThreadsOMP == -1 ? CPU_COUNT(&sys.getCpuActiveMask()) : _numThreadsOMP;
-
-         if ( _numThreadsOMP != -1 ) {
-            std::cerr << "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recomended way to set the number of worker smp threads is using the flag --smp-workers." << std::endl;
-            if ( num_threads == -1 ) {
-               std::cerr << "Option --smp-workers not set, will use OMP_NUM_THREADS instead, value: " << _numThreads << "." << std::endl;
-               num_threads = _numThreadsOMP;
-            } else if ( num_threads != _numThreadsOMP ) {
-               std::cerr << "Option --smp-workers set (value: " << num_threads << "), and OMP_NUM_THREADS is also set (value: " << _numThreads << "), will use the value of --smp-workers." << std::endl;
-            }
-
-         }
-         _numThreads = num_threads;
-
          // Must be allocated through new to avoid problems with the order of
          // initialization of global objects
          globalState = NEW OmpState();
-
          TaskICVs & icvs = globalState->getICVs();
+
+         int requested_workers = sys.getSMPPlugin()->getRequestedWorkers();
+         int max_workers = sys.getSMPPlugin()->getMaxWorkers();
+
+         if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
+            warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "
+                  "value (" << _numThreadsOMP << ") differ. The value of --smp-workers will be used.");
+         }
+
+         // In OmpSs, --smp-workers takes precedence over OMP_NUM_THREADS
+         if ( requested_workers > 0 ) {
+            _numThreads = requested_workers;
+         } else if ( _numThreadsOMP > 0 ) {
+            warning0( "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recommended "
+                  "way to set the number of worker smp threads is using the flag --smp-workers." );
+            _numThreads = _numThreadsOMP;
+         } else {
+            _numThreads = max_workers;
+         }
+
          icvs.setNumThreads( _numThreads );
          sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
 
-         // Overwrite custom values
          _description = std::string("OmpSs");
          _malleable = true;
          sys.setInitialMode( System::POOL );
