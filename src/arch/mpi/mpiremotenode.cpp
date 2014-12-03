@@ -818,9 +818,9 @@ int MPIRemoteNode::nanosMPITypeCreateStruct( int count, int array_of_blocklength
     *newtype= NEW MPI_Datatype;
     _taskStructsCache[taskId]=*newtype;
     err=MPI_Type_create_struct(count,array_of_blocklengths,array_of_displacements, array_of_types, *newtype );
-    ensure0( err == MPI_SUCESS, "MPI Create struct failed when preparing the task. Please submit a ticket" );
+    ensure0( err == MPI_SUCCESS, "MPI Create struct failed when preparing the task. Please submit a ticket" );
     err=MPI_Type_commit(*newtype);
-    ensure0( err == MPI_SUCESS, "MPI Create struct failed when preparing the task. Please submit a ticket" );
+    ensure0( err == MPI_SUCCESS, "MPI Create struct failed when preparing the task. Please submit a ticket" );
     return err;
 }
 
@@ -834,7 +834,7 @@ void MPIRemoteNode::nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype ) {
         for ( int k=0;k<arr_size;k++ ) total_size+=ompss_mpi_file_ntasks[k];
         _taskStructsCache.assign(total_size, NULL);
     }
-    ensure0 ( _taskStructsCache.size() > taskId, "Tasks struct cache is failing, trying to access a taskId biggeer than the total number of tasks");
+    ensure0 ( static_cast<int>(_taskStructsCache.size()) > taskId, "Tasks struct cache is failing, trying to access a taskId biggeer than the total number of tasks");
     *newtype=_taskStructsCache[taskId];
 }
 
