@@ -1164,19 +1164,24 @@ echo ""
 echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
-echo "Host arch:" $SMP_ARCH
+echo "Host arch:               " $SMP_ARCH
 echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
-echo "Configured versions:" $VERSIONS
+echo "Configured versions:     " $VERSIONS
 if test x$memtracker_enabled = xyes ; then
-   echo "Memory tracker: enabled"
+   echo "Memory tracker:           enabled"
 else
-   echo "Memory tracker: disabled"
+   echo "Memory tracker:           disabled"
 fi
 if test x$allocator_enabled = xyes ; then
-   echo "Memory allocator: enabled"
+   echo "Memory allocator:         enabled"
 else
-   echo "Memory allocator: disabled"
+   echo "Memory allocator:         disabled"
+fi
+if test "x$resiliency" = "xyes" ; then
+   echo "Task resiliency:          enabled"
+else
+   echo "Task resiliency:          disabled"
 fi
 if test x$cluster_enabled = xyes ; then
    echo "With cluster/gasnet conduits:" $CONDUITS
