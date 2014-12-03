@@ -46,7 +46,8 @@ namespace nanos {
             static bool _disconnectedFromParent;
             static Lock _taskLock;
             static std::list<int> _pendingTasksQueue;
-            static std::list<int> _pendingTaskParentsQueue;   
+            static std::list<int> _pendingTaskParentsQueue;  
+            static std::vector<MPI_Datatype*> _taskStructsCache;   
             static int _currentTaskParent;
             static int _currProcessor;
             static pthread_cond_t          _taskWait;         //! Condition variable to wait for completion
@@ -94,8 +95,11 @@ namespace nanos {
              */
             static void mpiOffloadSlaveMain();
             
-            //Search function pointer and get index
+            //Search function pointer and get index of host array
             static int ompssMpiGetFunctionIndexHost(void* func_pointer);
+            
+            //Search function pointer and get index of device array
+            static int ompssMpiGetFunctionIndexDevice(void* func_pointer);
             
             /**
              * This routine implements a worker thread which will execute
@@ -266,7 +270,10 @@ namespace nanos {
                      MPI_Comm comm, MPI_Request *req);
             
             static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
-                    MPI_Datatype array_of_types[], MPI_Datatype *newtype);
+                    MPI_Datatype array_of_types[], MPI_Datatype **newtype, int taskId);
+            
+            static void nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype );
+                        
                         
             /**
              * Specialized functions
