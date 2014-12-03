@@ -1175,28 +1175,6 @@ void System::inlineWork ( WD &work )
    else fatal ("System: Trying to execute inline a task violating basic constraints");
 }
 
-void System::createWorker( unsigned p )
-{
-   fatal0("Disabled");
-   //jb NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-   //jb PE *pe = createPE ( "smp", getBindingId( p ), _pes.size() );
-   //jb _pes.push_back ( pe );
-   //jb BaseThread *thread = &pe->startWorker();
-   //jb _workers.push_back( thread );
-   //jb ++_targetThreads;
-
-   //jb CPU_SET( getBindingId( p ), &_smpPlugin->getActiveSet() );
-
-   //jb //Set up internal data
-   //jb WD & threadWD = thread->getThreadWD();
-   //jb if ( _pmInterface->getInternalDataSize() > 0 ) {
-   //jb    char *data = NEW char[_pmInterface->getInternalDataSize()];
-   //jb    _pmInterface->initInternalData( data );
-   //jb    threadWD.setInternalData( data );
-   //jb }
-   //jb _pmInterface->setupWD( threadWD );
-}
-
 BaseThread * System::getUnassignedWorker ( void )
 {
    BaseThread *thread;

@@ -203,7 +203,6 @@ public:
     
 
    bool supportsUserLevelThreads () const { return false; }
-   bool isGPU () const { return true; }
 
    BaseThread &startOpenCLThread();
 
