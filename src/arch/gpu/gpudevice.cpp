@@ -377,7 +377,7 @@ bool GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
 
 
 
-   nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpuDest->getActiveThread();
+   nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpuDest->getFirstThread();
 
    GenericEvent * evt = thread->createPreRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG

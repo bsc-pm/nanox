@@ -102,6 +102,7 @@ namespace ext
          virtual void wait();
          /** \brief Unset the flag */
          virtual void wakeup();
+         virtual bool canBlock() { return true;}
 
          virtual int getCpuId() const;
 #ifdef NANOS_RESILIENCY_ENABLED

@@ -365,7 +365,7 @@ inline void Scheduler::idleLoop ()
          if ( sys.getPMInterface().isMalleable() ) ResourceManager::acquireResourcesIfNeeded();
 
          if ( yields == 0 || !use_yield ) {
-            if ( use_block ) {
+            if ( use_block && thread->canBlock() ) {
                NANOS_INSTRUMENT ( total_blocks++; )
                NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                ResourceManager::releaseCpu();

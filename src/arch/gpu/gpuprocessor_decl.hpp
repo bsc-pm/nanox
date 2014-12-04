@@ -193,7 +193,7 @@ namespace ext
 
          std::size_t getNumThreads() const { return _core->getNumThreads(); }
          void stopAllThreads ();
-         BaseThread * getActiveThread();
+         BaseThread * getFirstThread();
 //xteruel
 #if 0
          BaseThread * getFirstRunningThread_FIXME();

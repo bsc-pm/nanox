@@ -406,7 +406,7 @@ void GPUProcessor::stopAllThreads ()
    _core->stopAllThreads();
 }
 
-BaseThread * GPUProcessor::getActiveThread()
+BaseThread * GPUProcessor::getFirstThread()
 {
    return _thread;
 }

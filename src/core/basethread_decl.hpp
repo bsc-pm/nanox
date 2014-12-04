@@ -223,6 +223,8 @@ namespace nanos
          virtual void wait();
          virtual void resume();
 
+         virtual bool canBlock() { return false; }
+
          // set/get methods
          void setCurrentWD ( WD &current );
 
