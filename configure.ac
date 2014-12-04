@@ -381,7 +381,18 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=aarch64
     ;;
-  powerpc-*-linux* | powerpc64-*-linux* | powerpc64??-*-linux* )
+  powerpc64??-*-linux* )
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+
+    if test $ac_cv_sizeof_size_t = 8 ; then
+        SMP_ARCH=ppc64_v2
+    fi
+    #FIXME ULT not supported yet
+    smp_ult=no
+    ;;
+
+  powerpc-*-linux* | powerpc64-*-linux* )
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
 
@@ -1165,7 +1176,7 @@ echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
 echo "Host arch:" $SMP_ARCH
-echo "User level threading:    " $smp_ult
+echo "User level threading:" $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
 echo "Configured versions:" $VERSIONS
 if test x$memtracker_enabled = xyes ; then
