@@ -70,10 +70,7 @@ namespace nanos
       public:
         /*! \brief AsyncThread constructor
          */
-         AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0 ) :
-               BaseThread( osId, wd, creator ), _runningWDs(), _runningWDsCounter( 0 ),
-               _pendingEvents(), _pendingEventsCounter( 0 ), _recursiveCounter( 0 ),
-               _previousWD( NULL ) {}
+         AsyncThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0 );
 
         /*! \brief AsyncThread destructor
          */
@@ -91,7 +88,7 @@ namespace nanos
          //virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent ( WD &work );
-         virtual bool runWDDependent ( WD &work ) = 0;
+         virtual bool runWDDependent ( WD &work, GenericEvent * evt ) = 0;
 
          // Must be implemented by children classes
          //virtual bool inlineWorkDependent( WD &work );
@@ -116,6 +113,8 @@ namespace nanos
          virtual GenericEvent * createRunEvent( WD * wd ) = 0;
          virtual GenericEvent * createPostRunEvent( WD * wd ) = 0;
 
+         virtual void closeWDEvent() {}
+
          // TODO: Do we need a getDeviceId()?
          //virtual int getGPUDevice ();
 
@@ -129,8 +128,9 @@ namespace nanos
          // Should bind be implemented?
          //virtual void bind( void );
 
-         void addEvent( GenericEvent * evt );
-         void checkEvents();
+         virtual void addEvent( GenericEvent * evt );
+         const AsyncThread::GenericEventList& getEvents( );
+         virtual void checkEvents();
          void checkEvents( WD * wd );
 
          virtual bool canGetWork ();

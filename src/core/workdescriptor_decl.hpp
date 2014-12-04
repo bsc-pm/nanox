@@ -109,6 +109,14 @@ typedef std::set<const Device *>  DeviceList;
          const Device *_architecture; /**< Related Device (architecture). */
       private:
          work_fct       _work;
+         
+         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
+          * **REQUERIMENT** If pe == NULL, this function must return true
+          *
+          *  \param[pe] pe is the ProcessingElement which we have to compare to.
+          *  \return a boolean indicating if both elements (DeviceData and PE) are compatible.
+          */
+         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
       public:
 
@@ -149,14 +157,6 @@ typedef std::set<const Device *>  DeviceList;
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
          bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
-         
-         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
-          * **REQUERIMENT** If pe == NULL, this function must return true
-          *
-          *  \param[pe] pe is the ProcessingElement which we have to compare to.
-          *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
-          */
-         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */

@@ -235,6 +235,7 @@ namespace nanos
          typedef enum {
             SYS_SUBMIT, SYS_SUBMIT_WITH_DEPENDENCIES, SYS_INLINE_WORK
          } SystemSubmitFlag;
+
       private:
          std::string    _name;
       private:
@@ -280,6 +281,7 @@ namespace nanos
          virtual void atCreate      ( DependableObject &depObj );
          virtual void atSupport     ( BaseThread *thread );
          virtual void atShutdown    ( void );
+         virtual void atSuccessor   ( DependableObject &depObj, DependableObject &pred );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          /*! \brief Batch processing version.

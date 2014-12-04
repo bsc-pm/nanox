@@ -119,12 +119,13 @@ namespace nanos {
         Lock _exit_lock;
         
         bool _printed;
-        
+        bool _critical;
+ 
         // Constructor
         Node( int64_t wd_id, int func_id, NodeType type )
             : _wd_id( wd_id ), _func_id( func_id ), _type( type ),
               _entry_edges( ), _exit_edges( ), 
-              _total_time( 0.0 ), _last_time( 0.0 ), _printed( false )
+              _total_time( 0.0 ), _last_time( 0.0 ), _printed( false ), _critical( false )
         {}
         
         int64_t get_wd_id( ) const {
@@ -240,7 +241,7 @@ namespace nanos {
         bool is_task( ) const {
             return _type == TaskNode;
         }
-        
+
         bool is_taskwait( ) const {
             return _type == TaskwaitNode;
         }
@@ -263,6 +264,14 @@ namespace nanos {
         
         void set_printed( ) {
             _printed = true;
+        }
+
+        bool is_critical( ) {
+           return _critical;
+        }
+
+        void set_critical( ) {
+           _critical = true;
         }
     };
 

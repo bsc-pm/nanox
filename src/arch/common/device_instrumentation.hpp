@@ -1,6 +1,5 @@
-
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -18,25 +17,38 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "opencldd.hpp"
-#include "opencldevice.hpp"
-#include "openclconfig.hpp"
 
-using namespace nanos;
-using namespace nanos::ext;
+#ifndef _DEV_INSTR
+#define _DEV_INSTR
 
-OpenCLDevice nanos::ext::OpenCLDev( "OPENCL" );
 
-OpenCLDD * OpenCLDD::copyTo ( void *toAddr )
+namespace nanos
 {
-   OpenCLDD *dd = new ( toAddr ) OpenCLDD( *this );
-   return dd;
+
+   class InstrCopyDirDevices {
+
+      public:
+
+         typedef enum {
+            NANOS_DEVS_CPDIR_NULL_EVENT,          /* 0 */
+            NANOS_DEVS_CPDIR_H2D_GPU_EVENT,       /* 1 */
+            NANOS_DEVS_CPDIR_D2H_GPU_EVENT,       /* 2 */
+            NANOS_DEVS_CPDIR_H2D_HSTR_EVENT,      /* 3 */
+            NANOS_DEVS_CPDIR_D2H_HSTR_EVENT,      /* 4 */
+         } CopyDirValues;
+
+   };
+
+
+// Macro's to instrument the code and make it cleaner
+#define NANOS_INSTR_OPEN_CP_DIR_DEVS_EVENT(x)     NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseOpenBurstEvent ( \
+            sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "copy-dir-devices" ), (x) ); )
+
+#define NANOS_INSTR_CLOSE_CP_DIR_DEVS_EVENT       NANOS_INSTRUMENT( \
+		sys.getInstrumentation()->raiseCloseBurstEvent ( \
+            sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "copy-dir-devices" ), 0 ); )
+
 }
 
-void OpenCLDD::setOpenclStreamIdx(int streamIdx){
-    _oclStreamIdx=streamIdx;
-}
-
-int OpenCLDD::getOpenCLStreamIdx(){
-    return _oclStreamIdx;
-}
+#endif

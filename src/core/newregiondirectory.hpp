@@ -30,7 +30,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
    , _ops()
    , _location()
    , _pes()
-   , _rooted( false )
+   , _rooted( -1 )
    , _setLock() 
    , _firstWriterPE( NULL )
    , _baseAddress( 0 )
@@ -123,7 +123,7 @@ inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, un
    //_writeLocation = id;
    this->setVersion( version );
    _location.insert( loc );
-   _rooted = true;
+   _rooted = loc;
    _setLock.release();
 }
 
@@ -246,12 +246,16 @@ inline std::set< memory_space_id_t > const &NewNewDirectoryEntryData::getLocatio
    return _location;
 }
 
-inline void NewNewDirectoryEntryData::setRooted() {
-   _rooted = true;
+//inline void NewNewDirectoryEntryData::setRooted() {
+//   _rooted = true;
+//}
+inline memory_space_id_t NewNewDirectoryEntryData::getRootedLocation() const{
+   return _rooted;
 }
 
+
 inline bool NewNewDirectoryEntryData::isRooted() const{
-   return _rooted;
+   return _rooted != (memory_space_id_t) -1;
 }
 
 inline ProcessingElement *NewNewDirectoryEntryData::getFirstWriterPE() const {

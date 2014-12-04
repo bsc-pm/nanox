@@ -47,6 +47,7 @@ gpu_api_sources = \
 	$(END)
 		
 gpu_sources = \
+        ../common/device_instrumentation.hpp \
 	gpucallback.cpp \
 	gpucallback.hpp \
 	gpuconfig.cpp \
@@ -87,7 +88,7 @@ gpu_api_flags = -I$(srcdir)/../../apis/c
 
 gpu_ldflags = -lcublas
 #995 Already included in CFLAGS
-gpu_includes = 
+gpu_includes = -I$(srcdir)/../common
 
 gpu_cublas_ldflags = -lcublas
 gpu_cublas_includes =

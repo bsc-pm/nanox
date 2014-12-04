@@ -1,5 +1,5 @@
-#ifndef OMP_TYPES_H
-#define OMP_TYPES_H
+#ifndef OMPT_TYPES_H
+#define OMPT_TYPES_H
 
 #include <inttypes.h>
 
@@ -67,7 +67,8 @@ typedef enum {
    ompt_event_init_nest_lock = 58,               /* nest lock init */
    ompt_event_destroy_lock = 59,                 /* lock destruction */
    ompt_event_destroy_nest_lock = 60,            /* nest lock destruction */
-   ompt_event_flush = 61                         /* after executing flush */
+   ompt_event_flush = 61,                        /* after executing flush */
+   ompt_event_dependence = 62                    /* when a dependence is found */
 } ompt_event_t;
 
 typedef enum {
@@ -102,5 +103,11 @@ typedef unsigned int ompt_wait_id_t;
 typedef unsigned int ompt_task_id_t;
 typedef unsigned int ompt_parallel_id_t;
 typedef unsigned int ompt_frame_t;
+
+typedef enum {
+   ompt_dependence_raw = 1,
+   ompt_dependence_war = 2,
+   ompt_dependence_waw = 3
+} ompt_dependence_type_t;
 
 #endif

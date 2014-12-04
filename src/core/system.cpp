@@ -71,7 +71,7 @@ System::System () :
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
-      _enableDLB( false ), _throttlePolicy ( NULL ),
+      _enableDLB( false ), _predecessorLists( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
@@ -79,7 +79,7 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes()
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0)
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -1457,26 +1457,35 @@ void System::ompss_nanox_main(){
     #endif
 }
 
+void System::_registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len) {
+   CopyData cd;
+   nanos_region_dimension_internal_t dim;
+   dim.lower_bound = 0;
+   dim.size = len;
+   dim.accessed_length = len;
+   cd.setBaseAddress( addr );
+   cd.setDimensions( &dim );
+   cd.setNumDimensions( 1 );
+   global_reg_t reg;
+   getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
+   reg.setOwnedMemory(loc);
+   //not really needed.., *it->registerOwnedMemory( reg );
+}
+
 void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len) {
    memory_space_id_t loc = 0;
-   for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
-      if ( *it != NULL ) {
-         if ((*it)->getNodeNumber() == node) {
-            CopyData cd;
-            nanos_region_dimension_internal_t dim;
-            dim.lower_bound = 0;
-            dim.size = len;
-            dim.accessed_length = len;
-            cd.setBaseAddress( addr );
-            cd.setDimensions( &dim );
-            cd.setNumDimensions( 1 );
-            global_reg_t reg;
-            getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
-            reg.setOwnedMemory(loc);
-           //not really needed.., *it->registerOwnedMemory( reg );
+   if ( node == 0 ) {
+      _registerMemoryChunk( loc, addr, len );
+   } else {
+      //_separateAddressSpaces[0] is always NULL (because loc = 0 is the local node memory)
+      for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
+         if ( *it != NULL ) {
+            if ((*it)->getNodeNumber() == node) {
+               _registerMemoryChunk( loc, addr, len );
+            }
          }
+         loc++;
       }
-      loc++;
    }
 }
 
@@ -1505,4 +1514,10 @@ memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allo
    SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide );
    _separateAddressSpaces[ id ] = mem;
    return id;
+}
+
+void System::registerObject(int numObjects, nanos_copy_data_internal_t *obj) {
+   for ( int i = 0; i < numObjects; i += 1 ) {
+      _hostMemory.registerObject( &obj[i] );
+   }
 }

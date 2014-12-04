@@ -69,7 +69,7 @@ namespace ext
          void preOutlineWorkDependent( WD &work ) { fatal( "GPUThread does not support preOutlineWorkDependent()" ); }
          void outlineWorkDependent( WD &work ) { fatal( "GPUThread does not support outlineWorkDependent()" ); }
 
-         bool runWDDependent( WD &work );
+         bool runWDDependent( WD &work, GenericEvent * evt = NULL );
          //bool inlineWorkDependent( WD &work );
 
          bool processDependentWD ( WD * wd );

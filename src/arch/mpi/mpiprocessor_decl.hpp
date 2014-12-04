@@ -70,6 +70,7 @@ namespace nanos {
             std::list<MPI_Request> _pendingReqs;
             MPI_Comm _commOfParents;
             SMPProcessor* _core;
+            Lock _peLock;
             
 
             // disable copy constructor and assignment operator
@@ -139,8 +140,9 @@ namespace nanos {
 
             void setBusy(bool busy);
                       
-            //Try to reserve this PE, if the one who reserves it is the same
-            //which already has the PE, return true
+            /**
+             * Try to reserve this PE, if the one who reserves it is the same
+            */
             bool testAndSetBusy(int dduid, bool multithreadedAccess);
             
             int getCurrExecutingDD() const;
@@ -151,10 +153,12 @@ namespace nanos {
             
             /**
              * Waits or clears all Pending Requests
+             * Non thread-safe function
              */
             void clearAllRequests();
             /**
              * Tests all pending requests
+             * Thread-safe function
              */
             bool testAllRequests();
 
@@ -179,8 +183,6 @@ namespace nanos {
             bool supportsUserLevelThreads() const {
                 return false;
             }       
-            
-            bool isGPU () const { return true; }
         };   
 
         // Macros to instrument the code and make it cleaner

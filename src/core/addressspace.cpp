@@ -54,7 +54,11 @@ reg_t HostAddressSpace::getLocalRegionId( void *hostObject, reg_t hostRegionId )
    return _directory.getLocalRegionId( hostObject, hostRegionId );
 }
 
-SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT ), _nodeNumber( 0 )  {
+void HostAddressSpace::registerObject( nanos_copy_data_internal_t *obj ) {
+   _directory.registerObject( obj );
+}
+
+SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
 }
 
 void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval ) {
@@ -115,6 +119,19 @@ void SeparateAddressSpace::setNodeNumber( unsigned int n ) {
    _nodeNumber = n;
 }
 
+unsigned int SeparateAddressSpace::getAcceleratorNumber() const {
+   return _acceleratorNumber;
+}
+
+void SeparateAddressSpace::setAcceleratorNumber( unsigned int n ) {
+   _acceleratorNumber = n;
+   _isAccelerator = true;
+}
+
+bool SeparateAddressSpace::isAccelerator() const {
+   return _isAccelerator;
+}
+
 void *SeparateAddressSpace::getSpecificData() const {
    return _sdata;
 }
@@ -171,6 +188,10 @@ void SeparateAddressSpace::invalidate( global_reg_t const &reg ) {
 
 void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
    _cache.setRegionVersion( reg, version, wd, copyIdx );
+}
+
+Device const &SeparateAddressSpace::getDevice() const {
+   return _cache.getDevice();
 }
 
 }

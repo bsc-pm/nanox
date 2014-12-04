@@ -129,7 +129,6 @@ namespace ext
 
          //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }
-         bool isGPU () const { return true; }
 
          int getDeviceId ()
          {

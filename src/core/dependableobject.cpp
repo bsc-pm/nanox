@@ -213,8 +213,14 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
                      succ.insert( found );
                   } else {
                      // We have removed the successor, so we need to decrease its predecessors
-                     int  numPred = --_numPredecessors;
-                     found->decreasePredecessorsInLock( NULL, this, false, numPred );
+                     if(sys.getPredecessorLists()) {
+                        int  numPred = --_numPredecessors;
+                        found->decreasePredecessorsInLock( this, numPred );
+                      //  sys.getDefaultSchedulePolicy()->atSuccessor( *found, this );
+                     }
+                     else
+                        --_numPredecessors;
+//                     found->decreasePredecessorsInLock( this, numPred );
                   }
 
                   //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<

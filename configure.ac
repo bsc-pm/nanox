@@ -1165,25 +1165,25 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/core/Makefile
-		 src/support/Makefile
-		 src/plugins/Makefile
-		 src/apis/Makefile
-		 src/pms/Makefile
-       src/arch/Makefile
-		 src/arch/unix-os/Makefile
-		 src/arch/smp/Makefile
-		 src/arch/fpga/Makefile
-		 src/arch/spu/Makefile
-		 src/arch/gpu/Makefile
-		 src/arch/cluster/Makefile
-		 src/arch/opencl/Makefile
-		 src/arch/mpi/Makefile
-		 src/utils/Makefile
-		 scripts/Makefile
-		 tests/Makefile
-		 tests/gens/Makefile
-		 doc/Makefile
-       doc/doxy-nanox
+                 src/support/Makefile
+                 src/plugins/Makefile
+                 src/apis/Makefile
+                 src/pms/Makefile
+                 src/arch/Makefile
+                 src/arch/unix-os/Makefile
+                 src/arch/smp/Makefile
+                 src/arch/fpga/Makefile
+                 src/arch/spu/Makefile
+                 src/arch/gpu/Makefile
+                 src/arch/cluster/Makefile
+                 src/arch/opencl/Makefile
+                 src/arch/mpi/Makefile
+                 src/utils/Makefile
+                 scripts/Makefile
+                 tests/Makefile
+                 tests/gens/Makefile
+                 doc/Makefile
+                 doc/doxy-nanox
        ])
 
 AC_OUTPUT
@@ -1192,19 +1192,24 @@ echo ""
 echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
-echo "Host arch:" $SMP_ARCH
+echo "Host arch:               " $SMP_ARCH
 echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
-echo "Configured versions:" $VERSIONS
+echo "Configured versions:     " $VERSIONS
 if test x$memtracker_enabled = xyes ; then
-   echo "Memory tracker: enabled"
+   echo "Memory tracker:           enabled"
 else
-   echo "Memory tracker: disabled"
+   echo "Memory tracker:           disabled"
 fi
 if test x$allocator_enabled = xyes ; then
-   echo "Memory allocator: enabled"
+   echo "Memory allocator:         enabled"
 else
-   echo "Memory allocator: disabled"
+   echo "Memory allocator:         disabled"
+fi
+if test "x$resiliency" = "xyes" ; then
+   echo "Task resiliency:          enabled"
+else
+   echo "Task resiliency:          disabled"
 fi
 if test x$cluster_enabled = xyes ; then
    echo "With cluster/gasnet conduits:" $CONDUITS

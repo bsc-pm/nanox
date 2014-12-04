@@ -34,7 +34,7 @@ using namespace nanos::ext;
 
 MPIProcessor::MPIProcessor( void* communicator, int rank, int uid, bool owner, bool shared, 
         MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) : 
-ProcessingElement( &MPI, NULL, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ), _pendingReqs(), _core(core) {
+ProcessingElement( &MPI, NULL, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ), _pendingReqs(), _core(core), _peLock() {
     _communicator = *((MPI_Comm *)communicator);
     _commOfParents=communicatorOfParents;
     _rank = rank;
@@ -151,11 +151,15 @@ bool MPIProcessor::testAllRequests() {
     //Wait and clear for all the requests
     int ret=0;
     if (!_pendingReqs.empty()) {
-        std::vector<MPI_Request> nodeVector(_pendingReqs.begin(), _pendingReqs.end());
-        MPI_Testall(_pendingReqs.size(),&nodeVector[0], &ret,MPI_STATUSES_IGNORE);
-        if (ret==1) {
-            _pendingReqs.clear();
+        _peLock.acquire();
+        if (!_pendingReqs.empty()) {
+            std::vector<MPI_Request> nodeVector(_pendingReqs.begin(), _pendingReqs.end());
+            MPI_Testall(_pendingReqs.size(),&nodeVector[0], &ret,MPI_STATUSES_IGNORE);
+            if (ret==1) {
+                _pendingReqs.clear();
+            }
         }
+        _peLock.release();
     }
     return ret==1;
 }
