@@ -1226,3 +1226,25 @@ instrumentation_debug_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_noc
 endif
 ######################################################################################################
 ######################################################################################################
+
+######################################################################################################
+#### PMs #############################################################################################
+######################################################################################################
+
+openmp_sources = pms/pm_omp.cpp deps/pm_omp.hpp 
+
+######################################################################################################
+# FIXME DISABLED
+#if DEBUG_VERSION
+#debug_LTLIBRARIES += debug/libnanox-pm-openmp.la
+#debug_libnanox_pm_openmp_la_CXXFLAGS = $(nanos_debug_cxxflags)
+#debug_libnanox_pm_openmp_la_LDFLAGS = $(ld_plugin_flags)
+#debug_libnanox_pm_openmp_la_SOURCES = $(openmp_sources)
+#debug_LTLIBRARIES += debug/libnanox-pm-ompss.la
+#debug_libnanox_pm_ompss_la_CXXFLAGS = $(nanos_debug_cxxflags) -DNANOS_SS_COMPATIBILITY
+#debug_libnanox_pm_ompss_la_LDFLAGS = $(ld_plugin_flags)
+#debug_libnanox_pm_ompss_la_SOURCES = $(openmp_sources)
+#endif
+
+######################################################################################################
+######################################################################################################
