@@ -903,6 +903,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->setFinal ( dyn_props->flags.is_final );
       wd->setRecoverable ( dyn_props->flags.is_recover);
    }
+
+   // Set dynamic properties
+   if ( dyn_props != NULL ) {
+      wd->setPriority( dyn_props->priority );
+      wd->setFinal ( dyn_props->flags.is_final );
+      wd->setRecoverable ( dyn_props->flags.is_recover);
+   }
+
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
    
    /* DLB */
