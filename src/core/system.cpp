@@ -251,11 +251,6 @@ void System::config ()
 
    cfg.setOptionsSection( "Core", "Core options of the core of Nanos++ runtime" );
 
-//   cfg.registerConfigOption( "num_threads", NEW Config::PositiveVar( _numThreads ),
-//                             "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
-//   cfg.registerArgOption( "num_threads", "threads" );
-//   cfg.registerEnvOption( "num_threads", "NX_THREADS" );
-   
    cfg.registerConfigOption( "stack-size", NEW Config::PositiveVar( _deviceStackSize ),
                              "Defines the default stack size for all devices" );
    cfg.registerArgOption( "stack-size", "stack-size" );
@@ -375,6 +370,7 @@ void System::config ()
    cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
 
    _schedConf.config( cfg );
+
    _pmInterface->config( cfg );
    
    _hwloc.config( cfg );
