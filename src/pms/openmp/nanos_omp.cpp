@@ -71,3 +71,8 @@ NANOS_API_DEF(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, in
    }
    return NANOS_OK;
 }
+
+// FIXME:xteruel
+#if 0
+ __attribute__((section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {.func = nanos_omp_set_interface, .data = (void *)0};
+#endif
