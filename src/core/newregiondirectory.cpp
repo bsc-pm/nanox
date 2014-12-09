@@ -167,18 +167,18 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
    return dict;
 }
 
-GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( CopyData const &cd ) const {
+GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( CopyData const &cd ) {
    uint64_t objectAddr = ( cd.getHostBaseAddress() == 0 ? ( uint64_t ) cd.getBaseAddress() : cd.getHostBaseAddress() );
    return getRegionDictionary( objectAddr );
 }
 
-GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t objectAddr ) const {
+GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t objectAddr ) {
 #if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
 #else
    uint64_t key = jen_hash( this->_getKey( objectAddr ) ) & (HASH_BUCKETS-1);
 #endif
-   HashBucket const &hb = _objects[ key ];
+   HashBucket &hb = _objects[ key ];
    GlobalRegionDictionary *dict = NULL;
 
 #if 0
@@ -189,6 +189,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
      fatal("can not continue");
    }
 #endif
+   hb._lock.acquire();
    if ( hb._bobjects == NULL ) {
       *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << (void *) objectAddr << std::endl;
       printBt( *(myThread->_file) );
@@ -203,6 +204,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
          dict = o->getGlobalRegionDictionary();
       }
    }
+   hb._lock.release();
    return dict;
 }
 
@@ -298,6 +300,9 @@ void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, 
 
 void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
 {
+   if ( !missingParts.empty() ) {
+   printBt(std::cerr);
+   }
    ensure( missingParts.empty(), "Non empty list provided." );
    missingParts.clear();
    //sys.getMasterRegionDirectory().print();
@@ -517,7 +522,7 @@ unsigned int NewNewRegionDirectory::getFirstLocation( RegionDirectoryKey dict, r
 //    return regEntry->getWriteLocation();
 // }
 
-GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd ) const {
+GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd ) {
    return *getRegionDictionary( cd );
 }
 
@@ -713,7 +718,7 @@ void NewNewRegionDirectory::initializeEntry( RegionDirectoryKey dict, reg_t reg 
    dict->setRegionData( reg, entry );
 }
 
-reg_t NewNewRegionDirectory::getLocalRegionId(void * hostObject, reg_t hostRegionId ) const {
+reg_t NewNewRegionDirectory::getLocalRegionId(void * hostObject, reg_t hostRegionId ) {
    GlobalRegionDictionary *dict = getRegionDictionary( (uint64_t) hostObject );
    return dict->getLocalRegionIdFromMasterRegionId( hostRegionId );
 }

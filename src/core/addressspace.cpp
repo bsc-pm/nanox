@@ -46,11 +46,11 @@ memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
    return 0;
 }
 
-NewNewRegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) const {
+NewNewRegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) {
    return _directory.getRegionDirectoryKey( addr );
 }
 
-reg_t HostAddressSpace::getLocalRegionId( void *hostObject, reg_t hostRegionId ) const {
+reg_t HostAddressSpace::getLocalRegionId( void *hostObject, reg_t hostRegionId ) {
    return _directory.getLocalRegionId( hostObject, hostRegionId );
 }
 
