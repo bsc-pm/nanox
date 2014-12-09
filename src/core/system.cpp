@@ -780,9 +780,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
 
    size_t size_CopyData;
    size_t size_Data, offset_Data, size_DPtrs, offset_DPtrs, size_Copies, offset_Copies, size_Dimensions, offset_Dimensions, offset_PMD;
-   size_t offset_DESC, size_DESC;
    size_t offset_Sched;
-   char *desc;
    size_t total_size;
 
    // WD doesn't need to compute offset, it will always be the chunk allocated address
@@ -811,23 +809,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       offset_Copies = offset_Dimensions = NANOS_ALIGNED_MEMORY_OFFSET(offset_DPtrs, size_DPtrs, 1);
    }
 
-   // Computing description char * + description
-   if ( description == NULL ) {
-      offset_DESC = offset_Dimensions;
-      size_DESC = size_Dimensions;
-   } else {
-      offset_DESC = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, __alignof__ (void*) );
-      size_DESC = (strlen(description)+1) * sizeof(char);
-   }
-
    // Computing Internal Data info and total size
    static size_t size_PMD   = _pmInterface->getInternalDataSize();
    if ( size_PMD != 0 ) {
       static size_t align_PMD = _pmInterface->getInternalDataAlignment();
-      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_DESC, size_DESC, align_PMD);
+      offset_PMD = NANOS_ALIGNED_MEMORY_OFFSET(offset_Dimensions, size_Dimensions, align_PMD );
    } else {
-      offset_PMD = offset_DESC;
-      size_PMD = size_DESC;
+      offset_PMD = offset_Dimensions;
+      size_PMD = size_Dimensions;
    }
    
    // Compute Scheduling Data size
@@ -870,17 +859,9 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       *dimensions = ( nanos_region_dimension_internal_t * ) ( chunk + offset_Dimensions );
    }
 
-   // Copying description string
-   if ( description == NULL ) desc = NULL;
-   else {
-      desc = (chunk + offset_DESC);
-      strncpy ( desc, description, size_DESC);
-//      desc[strlen(description)]='\0';
-   }
-
    WD * wd;
    wd =  new (*uwd) WD( num_devices, dev_ptrs, data_size, data_align, data != NULL ? *data : NULL,
-                        num_copies, (copies != NULL)? *copies : NULL, translate_args, desc );
+                        num_copies, (copies != NULL)? *copies : NULL, translate_args, description );
 
    if ( slicer ) wd->setSlicer(slicer);
 
@@ -922,6 +903,14 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->setFinal ( dyn_props->flags.is_final );
       wd->setRecoverable ( dyn_props->flags.is_recover);
    }
+
+   // Set dynamic properties
+   if ( dyn_props != NULL ) {
+      wd->setPriority( dyn_props->priority );
+      wd->setFinal ( dyn_props->flags.is_final );
+      wd->setRecoverable ( dyn_props->flags.is_recover);
+   }
+
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
    
    /* DLB */
