@@ -279,7 +279,7 @@ namespace nanos {
              * Specialized functions
              */
             static void nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
-                    unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])());
+                    unsigned int* task_per_file,void* ompss_mpi_func_pointers_dev[]);
             
         };   
 

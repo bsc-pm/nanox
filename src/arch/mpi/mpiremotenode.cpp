@@ -36,7 +36,7 @@ extern __attribute__((weak)) unsigned int ompss_mpi_filenames[2U];
 extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[2U];
 extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[2U];
 extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[2U];
-extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[2U])();
+extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[2U];
 
 
 
@@ -413,9 +413,9 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
         int userProvided;
         MPI_Query_thread(&userProvided);        
         if (userProvided < MPI_THREAD_MULTIPLE ) {
-             std::cerr << "MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, your application may hang when offloading, check your MPI "
+             message0("MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, your application may hang when offloading, check your MPI "
                 "implementation and try to configure it so it can support this multithread level. Configure your PATH so the mpi compiler"
-                " points to a multithread implementation of MPI";
+                " points to a multithread implementation of MPI");
              //Some implementations seem to catch fatal0 and continue... make sure we die
              exit(-1);
         }
@@ -918,7 +918,7 @@ int MPIRemoteNode::nanosMPIIRecv(void *buf, int count, MPI_Datatype datatype, in
  * in both files (host and device, which are different architectures, so maybe they were not compiled in the same order)
  */
 void MPIRemoteNode::nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
-            unsigned int* task_per_file,void (*ompss_mpi_func_ptrs_dev[])()){
+            unsigned int* task_per_file,void *ompss_mpi_func_ptrs_dev[]){
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);   
     //If this process was not spawned, we don't need this reorder (and shouldnt have been called)
