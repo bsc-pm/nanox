@@ -30,6 +30,7 @@ struct global_reg_t {
    void fillDimensionData( nanos_region_dimension_internal_t region[]) const;
    bool operator<( global_reg_t const &reg ) const;
    memory_space_id_t getFirstLocation() const;
+   memory_space_id_t getPreferedSourceLocation( memory_space_id_t dest ) const;
    unsigned int getVersion() const;
    unsigned int getHostVersion( bool increaseVersion ) const;
    reg_t getFitRegionId() const;

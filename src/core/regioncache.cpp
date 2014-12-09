@@ -131,6 +131,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
    unsigned int currentVersion = 0;
    bool opEmitted = false;
    std::list< std::pair< reg_t, reg_t > > components;
+   bool skipNull = false;
 
    std::ostream &o = *(myThread->_file);
 
@@ -170,16 +171,39 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
 
       if ( components.size() == 1 ) {
          ensure( components.begin()->first == reg, "Error, wrong region");
+      } else {
+         std::list< std::pair< reg_t, reg_t > > componentsNotNull;
+         bool imInList = false;
+         reg_t myRegData = 0;
+         for ( std::list< std::pair< reg_t, reg_t > >::const_iterator it = components.begin(); it != components.end() && !imInList; it++ ) {
+            CachedRegionStatus *thisEntry = ( CachedRegionStatus * ) _newRegions->getRegionData( it->first );
+            if ( it->first == reg ) {
+               imInList = true;
+               myRegData = it->second;
+            }
+            if ( thisEntry != NULL ) {
+               componentsNotNull.push_back( *it );
+            }
+         }
+         if ( !imInList ) {
+            skipNull = _newRegions->doTheseRegionsForm( reg, componentsNotNull.begin(), componentsNotNull.end(), false );
+         } else {
+            components.clear();
+            components.push_back( std::pair< reg_t, reg_t >( reg, myRegData ) );
+         }
       }
 
       for ( std::list< std::pair< reg_t, reg_t > >::iterator it = components.begin(); it != components.end(); it++ )
       {
          CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( it->first );
-         if ( ( !entry || version > entry->getVersion() ) ) {
+         if ( !entry && skipNull ) {
+            continue;
+         }
+         if ( !entry || version > entry->getVersion() ) {
             //o << "No entry for region " << it->first << " "; _newRegions->printRegion( o, it->first); o << " must copy from region " << it->second << " "; _newRegions->printRegion(o, it->second); o << " want version "<< version << " entry version is " << ( (!entry) ? -1 : entry->getVersion() )<< std::endl;
             CachedRegionStatus *copyFromEntry = ( CachedRegionStatus * ) _newRegions->getRegionData( it->second );
             if ( !copyFromEntry || version > copyFromEntry->getVersion() ) {
-               //o << "I HAVE TO COPY: I dont have this region" << std::endl;
+               //o << "I HAVE TO COPY: I dont have this region, entry = " << entry << " " << skipNull << std::endl;
 
                global_reg_t chunkReg( it->first, key );
 
@@ -220,7 +244,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                      }
                      //o << "shape: "<< it->first << " data source: " << it->second << std::endl;
                      //o <<" CHECKING THIS SHIT ID " << data_source.id << std::endl;
-                     memory_space_id_t location = data_source.getFirstLocation();
+                     memory_space_id_t location = data_source.getPreferedSourceLocation( _owner.getMemorySpaceId() );
                      if ( location == 0 || location != _owner.getMemorySpaceId() ) {
                         //o << "add copy from host, reg " << region_shape.id << " version " << ops.getVersionNoLock( data_source, wd, copyIdx ) << std::endl;
                         if ( _VERBOSE_CACHE ) {
@@ -748,6 +772,7 @@ unsigned int AllocatedChunk::getVersion( global_reg_t const &reg ) {
 
 DeviceOps *AllocatedChunk::getDeviceOps( global_reg_t const &reg ) {
    CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg.id );
+   ensure(entry != NULL, "CacheEntry not found!");
    return entry->getDeviceOps();
 }
 
@@ -1433,7 +1458,7 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
       _lock.release();
    } else {
       result = false;
-      std::cerr << "This device can not hold this task, not enough memory. Needed: "<< total_allocatable_size << " max avalilable " << _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) << std::endl;
+      std::cerr << "This device can not hold this task, not enough memory. Needed: "<< total_allocatable_size << " max avalilable " << _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) << " wd " << wd.getId() << " allocWide " << ( _flags == ALLOC_WIDE )  << std::endl;
       fatal( "This device can not hold this task, not enough memory." );
    }
    return result;

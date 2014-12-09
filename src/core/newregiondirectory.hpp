@@ -274,11 +274,11 @@ inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegio
    return getRegionDictionaryRegisterIfNeeded( cd );
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( CopyData const &cd ) const {
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( CopyData const &cd ) {
    return getRegionDictionary( cd );
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( uint64_t addr ) const {
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( uint64_t addr ) {
    return getRegionDictionary( addr );
 }
 

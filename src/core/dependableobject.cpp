@@ -100,6 +100,10 @@ void DependableObject::finished ( )
             // Convert to WD*
             WD* wd = (WD*) dSucc.getRelatedObject();
             fatal_cond( wd == NULL, "Cannot cast the related object to WD" );
+
+            if ( this->getWD() != NULL ) {
+               wd->predecessorFinished( this->getWD() );
+            }
             
             *pIS++ = wd ;
          }

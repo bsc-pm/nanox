@@ -1172,7 +1172,7 @@ bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::map< r
 }
 
 template < template <class> class Sparsity>
-bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::list< std::pair< reg_t, reg_t > >::const_iterator ibegin, std::list< std::pair< reg_t, reg_t > >::const_iterator iend ) {
+bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::list< std::pair< reg_t, reg_t > >::const_iterator ibegin, std::list< std::pair< reg_t, reg_t > >::const_iterator iend, bool checkVersion ) {
    std::size_t totalSize = 0;
    global_reg_t gtarget( target, this->getGlobalDirectoryKey() );
    Version *target_entry = this->getRegionData( target );
@@ -1181,12 +1181,12 @@ bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::list< 
       if ( ibegin->first != target ) {
          if ( checkIntersect( target, ibegin->first ) ) {
             reg_t intersect = computeIntersect( target, ibegin->first );
-            //std::cerr << __FUNCTION__ << " " << (void*)this <<" This " << ibegin->first; printRegion( ibegin->first ); std::cerr << " vs target " << target; printRegion( target ); std::cerr << " intersect result " << intersect << std::endl;
+            //std::cerr << __FUNCTION__ << " " << (void*)this <<" This " << ibegin->first << " "; printRegion( std::cerr, ibegin->first ); std::cerr << " vs target " << target; printRegion( std::cerr, target ); std::cerr << " intersect result " << intersect << std::endl;
             if ( ibegin->first == intersect ) {
                global_reg_t greg( ibegin->first, this->getGlobalDirectoryKey() );
                Version *it_entry = this->getRegionData( ibegin->second );
-               totalSize += it_entry->getVersion() == targetVersion ? greg.getDataSize() : 0;
-            }      
+               totalSize += ( it_entry->getVersion() == targetVersion || !checkVersion ) ? greg.getDataSize() : 0;
+            }
          }
       }
       ibegin++;
