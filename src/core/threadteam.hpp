@@ -64,17 +64,33 @@ inline void ThreadTeam::resized ()
 inline const BaseThread & ThreadTeam::getThread ( int i ) const
 {
    // Return the i-th valid element in _threads
+   int j = 0;
    ThreadTeamList::const_iterator it = _threads.begin();
-   std::advance( it, i );
-   return *(it->second);
+   for ( it = _threads.begin(); it != _threads.end(); ++it, ++j ) {
+      if ( i == j ) {
+         return *(it->second);
+      }
+   }
+
+   // If we didn't returned during the loop, return last thread
+   ThreadTeamList::const_reverse_iterator last = _threads.rbegin();
+   return *(last->second);
 }
 
 inline BaseThread & ThreadTeam::getThread ( int i )
 {
    // Return the i-th valid element in _threads
+   int j = 0;
    ThreadTeamList::iterator it = _threads.begin();
-   std::advance( it, i );
-   return *(it->second);
+   for ( it = _threads.begin(); it != _threads.end(); ++it, ++j ) {
+      if ( i == j ) {
+         return *(it->second);
+      }
+   }
+
+   // If we didn't returned during the loop, return last thread
+   ThreadTeamList::reverse_iterator last = _threads.rbegin();
+   return *(last->second);
 }
 
 inline const BaseThread & ThreadTeam::operator[]  ( int i ) const
