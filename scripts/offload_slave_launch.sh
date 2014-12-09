@@ -25,67 +25,10 @@ ARG2=$2
 shift
 shift
 
-ARCH_NUM_THREADS=$UPPER_CURR_ARCH"_OMP_NUM_THREADS"
-LOWER_ARCH_NUM_THREADS=$LOWER_CURR_ARCH"_OMP_NUM_THREADS"
-
-ARCH_NX_SMP_WORKERS=$UPPER_CURR_ARCH"_NX_SMP_WORKERS"
-LOWER_ARCH_NX_SMP_WORKERS=$LOWER_CURR_ARCH"_NX_SMP_WORKERS"
-
-
-#################### OMP BLOCK
+#undef OMP num threads and NX SMP WORKERS, if they are defined in the host, most likely we don't want them defined in the remote device
 unset OMP_NUM_THREADS
-
-#OMP_NUM_THREADS ignored, OFFLOAD_OMP_NUM_THREADS used
-if [ "x$OFFL_OMP_NUM_THREADS" != "x" ]; then 
-	export OMP_NUM_THREADS=$OFFL_OMP_NUM_THREADS
-fi
-unset OFFL_OMP_NUM_THREADS
-
-eval TMP_NUM_THREADS=\$$ARCH_NUM_THREADS
-#OMP_NUM_THREADS ignored, $ARCH_OMP_NUM_THREADS used
-if [ "x$TMP_NUM_THREADS" != "x" ]; then 
-	export OMP_NUM_THREADS=$TMP_NUM_THREADS
-fi
-unset $ARCH_NUM_THREADS
-unset TMP_NUM_THREADS
-eval TMP_NUM_THREADS=\$$LOWER_ARCH_NUM_THREADS
-#OMP_NUM_THREADS ignored, $ARCH_OMP_NUM_THREADS used
-if [ "x$TMP_NUM_THREADS" != "x" ]; then 
-	export OMP_NUM_THREADS=$TMP_NUM_THREADS
-fi
-unset $LOWER_ARCH_NUM_THREADS
-unset TMP_NUM_THREADS
-
-
-#################### END OMP BLOCK
-
-#################### NX_SMP BLOCK
 unset NX_SMP_WORKERS
-
-#OMP_NUM_THREADS ignored, OFFLOAD_OMP_NUM_THREADS used
-if [ "x$OFFL_NX_SMP_WORKERS" != "x" ]; then 
-	export NX_SMP_WORKERS=$OFFL_NX_SMP_WORKERS
-fi
-unset OFFL_NX_SMP_WORKERS
-
-eval TMP_NX_SMP_WORKERS=\$$ARCH_NX_SMP_WORKERS
-#NX_SMP_WORKERS ignored, $ARCH_NX_SMP_WORKERS used
-if [ "x$TMP_NX_SMP_WORKERS" != "x" ]; then 
-	export NX_SMP_WORKERS=$TMP_NX_SMP_WORKERS
-fi
-unset $ARCH_NX_SMP_WORKERS
-unset TMP_NX_SMP_WORKERS
-eval TMP_NX_SMP_WORKERS=\$$LOWER_ARCH_NX_SMP_WORKERS
-#NX_SMP_WORKERS ignored, $ARCH_NX_SMP_WORKERS used
-if [ "x$TMP_NX_SMP_WORKERS" != "x" ]; then 
-	export NX_SMP_WORKERS=$TMP_NX_SMP_WORKERS
-fi
-unset $LOWER_ARCH_NX_SMP_WORKERS
-unset TMP_NX_SMP_WORKERS
-
-
-#################### END NX_SMP
-
+#export variables which are process/host dependant
 second="="
 first=${@}
 first=${first//EQUAL/$second}
@@ -97,65 +40,49 @@ elif [ "x$NX_BINDING_START" == "x" ]; then
    export NX_BINDING_START=1
 fi
 
-#################### OMP BLOCK
 
-#OMP_NUM_THREADS ignored, OFFLOAD_OMP_NUM_THREADS used
-if [ "x$OFFL_OMP_NUM_THREADS" != "x" ]; then 
-	export OMP_NUM_THREADS=$OFFL_OMP_NUM_THREADS
-fi
-unset OFFL_OMP_NUM_THREADS
-
-eval TMP_NUM_THREADS=\$$ARCH_NUM_THREADS
-#OMP_NUM_THREADS ignored, $ARCH_OMP_NUM_THREADS used
-if [ "x$TMP_NUM_THREADS" != "x" ]; then 
-	export OMP_NUM_THREADS=$TMP_NUM_THREADS
-fi
-unset $ARCH_NUM_THREADS
-unset TMP_NUM_THREADS
-eval TMP_NUM_THREADS=\$$LOWER_ARCH_NUM_THREADS
-#OMP_NUM_THREADS ignored, $ARCH_OMP_NUM_THREADS used
-if [ "x$TMP_NUM_THREADS" != "x" ]; then 
-	export OMP_NUM_THREADS=$TMP_NUM_THREADS
-fi
-unset $LOWER_ARCH_NUM_THREADS
-unset TMP_NUM_THREADS
-
-#################### END OMP BLOCK
-
-#################### NX_SMP BLOCK
-
-#OMP_NUM_THREADS ignored, OFFLOAD_OMP_NUM_THREADS used
-if [ "x$OFFL_NX_SMP_WORKERS" != "x" ]; then 
-	export NX_SMP_WORKERS=$OFFL_NX_SMP_WORKERS
-fi
-unset OFFL_NX_SMP_WORKERS
-
-eval TMP_NX_SMP_WORKERS=\$$ARCH_NX_SMP_WORKERS
-#NX_SMP_WORKERS ignored, $ARCH_NX_SMP_WORKERS used
-if [ "x$TMP_NX_SMP_WORKERS" != "x" ]; then 
-	export NX_SMP_WORKERS=$TMP_NX_SMP_WORKERS
-fi
-unset $ARCH_NX_SMP_WORKERS
-unset TMP_NX_SMP_WORKERS
-eval TMP_NX_SMP_WORKERS=\$$LOWER_ARCH_NX_SMP_WORKERS
-#NX_SMP_WORKERS ignored, $ARCH_NX_SMP_WORKERS used
-if [ "x$TMP_NX_SMP_WORKERS" != "x" ]; then 
-	export NX_SMP_WORKERS=$TMP_NX_SMP_WORKERS
-fi
-unset $LOWER_ARCH_NX_SMP_WORKERS
-unset TMP_NX_SMP_WORKERS
-
-#################### END NX_SMP
+#PROCESS OFFL_* OR $ARCH_* VARIABLES TO *
+OFFLOAD_VARS=${!OFFL_@}
+for OFFLOAD_CURR_VAR in $OFFLOAD_VARS
+do
+	eval VALUE_OFFLOAD_CURR_VAR=\$$OFFLOAD_CURR_VAR
+	NEW_OFFLOAD_CURR_VAR=${OFFLOAD_CURR_VAR#OFFL_}
+	export $NEW_OFFLOAD_CURR_VAR=$VALUE_OFFLOAD_CURR_VAR
+   if [ "$NX_OFFL_DEBUG" = "4" ]; 
+   then 
+     echo Converting environment variable $OFFLOAD_CURR_VAR to $NEW_OFFLOAD_CURR_VAR, value $VALUE_OFFLOAD_CURR_VAR
+   fi
+done
+AUXX_TMP_VARS='OFFLOAD_VARS=${!'$LOWER_CURR_ARCH'_@}'
+eval $AUXX_TMP_VARS
+for OFFLOAD_CURR_VAR in $OFFLOAD_VARS
+do
+	eval VALUE_OFFLOAD_CURR_VAR=\$$OFFLOAD_CURR_VAR
+	NEW_OFFLOAD_CURR_VAR=${OFFLOAD_CURR_VAR#${LOWER_CURR_ARCH}_}
+	export $NEW_OFFLOAD_CURR_VAR=$VALUE_OFFLOAD_CURR_VAR
+   if [ "$NX_OFFL_DEBUG" = "4" ]; 
+   then 
+     echo Converting environment variable $OFFLOAD_CURR_VAR to $NEW_OFFLOAD_CURR_VAR, value $VALUE_OFFLOAD_CURR_VAR
+   fi
+done
+AUXX_TMP_VARS='OFFLOAD_VARS=${!'$UPPER_CURR_ARCH'_@}'
+eval $AUXX_TMP_VARS
+for OFFLOAD_CURR_VAR in $OFFLOAD_VARS
+do
+	eval VALUE_OFFLOAD_CURR_VAR=\$$OFFLOAD_CURR_VAR
+	NEW_OFFLOAD_CURR_VAR=${OFFLOAD_CURR_VAR#${UPPER_CURR_ARCH}_}
+	export $NEW_OFFLOAD_CURR_VAR=$VALUE_OFFLOAD_CURR_VAR
+   if [ "$NX_OFFL_DEBUG" = "4" ]; 
+   then 
+     echo Converting environment variable $OFFLOAD_CURR_VAR to $NEW_OFFLOAD_CURR_VAR, value $VALUE_OFFLOAD_CURR_VAR
+   fi
+done
+#END PROCESS OFFL_* OR ARCH_* VARIABLES TO *
 
 export OMPSS_OFFLOAD_SLAVE=1
 if [ "$NX_OFFL_DEBUG" = "3" ]; 
 then 
     echo "NX_OFFL_DEBUG: Allocating offload worker at host \""`hostname `"\" with "`taskset -cp $$`", architecture" $CURR_ARCH 
-fi
-if [ "$NX_OFFL_DEBUG" = "4" ]; 
-then 
-   echo "NX_OFFL_DEBUG: Allocating offload worker at host \""`hostname `"\" with "`taskset -cp $$`
-	echo "Launching" exec $filename.$CURR_ARCH $ARG1 $ARG2
 fi
 if [ "$NX_OFFL_DEBUG" = "5" ]; 
 then 
