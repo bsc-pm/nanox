@@ -526,12 +526,97 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
    return *getRegionDictionary( cd );
 }
 
+void NewNewRegionDirectory::_invalidateObjectsFromDevices( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
+   for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects.begin(); it != objects.end(); it++ ) {
+      for ( memory_space_id_t id = 1; id <= sys.getSeparateMemoryAddressSpacesCount(); id++ ) {
+         //sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, (*it->second)[it->first].getGlobalRegionDictionary() ) );
+         Object *o = it->second->getExactByAddress(it->first);
+         sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, o->getGlobalRegionDictionary() ) );
+      }
+   }
+}
+
+void NewNewRegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
+   for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects.begin(); it != objects.end(); it++ ) {
+      Object *o = it->second->getExactByAddress(it->first);
+      sys.getNetwork()->deleteDirectoryObject( o->getGlobalRegionDictionary() );
+      o->resetGlobalRegionDictionary();
+      it->second->eraseByAddress( it->first );
+      if ( o->getRegisteredObject() != NULL ) {
+         CopyData *cd = o->getRegisteredObject();
+         Object **dict_o = it->second->getExactInsertIfNotFound( (uint64_t) cd->getBaseAddress(), cd->getMaxSize() );
+         if ( dict_o != NULL ) {
+            if ( *dict_o == NULL ) {
+               *dict_o = o;
+            } else {
+               /* something went wrong, we cleared the dictionary so
+                * this call must return an new object pointing to NULL
+                */
+               fatal("Dictionary error.");
+            }
+         } else {
+            /* something went wrong, we cleared the dictionary so
+             * this call can not return NULL at this point
+             */
+            fatal("Dictionary error.");
+         }
+      }
+   }
+}
+
 void NewNewRegionDirectory::synchronize( WD &wd ) {
    //std::cerr << "SYNC DIR with wd " << wd.getId() << std::endl;
    //int c = 0;
    //print();
 
-   if ( sys.getSeparateMemoryAddressSpacesCount() == 0 ) return;
+   if ( sys.getSeparateMemoryAddressSpacesCount() == 0 ) {
+
+      std::map< uint64_t, MemoryMap< Object > * > objects_to_clear;
+
+      for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
+         HashBucket &hb = *bit;
+         if ( hb._bobjects == NULL ) continue;
+         for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
+            GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
+            if ( dict == NULL ) continue;
+            uint64_t objectAddr = it->first.getAddress();
+            if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, dict ) ) ) {
+               if ( sys.getVerboseCopies() ) {
+                  std::ostream &o = (*myThread->_file);
+                  o << "Not synchronizing this object! "; dict->printRegion( o, 1 ); o << std::endl;
+               }
+               continue;
+            }
+            if ( dict->getKeepAtOrigin() ) continue;
+            std::list< std::pair< reg_t, reg_t > > missingParts;
+            unsigned int version = 0;
+            //double tini = OS::getMonotonicTime();
+            /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
+            objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
+
+            for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
+               //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
+               if ( mit->first == mit->second ) {
+                  global_reg_t reg( mit->first, dict );
+                  if ( reg.isRooted() ) { //ignore regions rooted to a certain location
+                     objects_to_clear.erase( objectAddr );
+                  }
+               } else {
+                  global_reg_t region_shape( mit->first, dict );
+                  global_reg_t data_source( mit->second, dict );
+                  if ( data_source.isRooted() ) { //ignore regions rooted to a certain location
+                     objects_to_clear.erase( objectAddr );
+                  }
+               }
+            }
+         }
+      }
+
+      if ( wd.getDepth() == 0 ) {
+         _unregisterObjects( objects_to_clear );
+      }
+      return;
+   }
 
    SeparateAddressSpaceOutOps outOps( myThread->runningOn(), true, false );
    std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > > locations;
@@ -645,57 +730,14 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
    outOps.issue( *( (WD *) NULL ) );
    while ( !outOps.isDataReady( wd ) ) { myThread->idle(); }
 
-   //std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
+   std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
    //printBt();
    if ( wd.getDepth() == 0 ) {
       // invalidate data on devices
-      //for ( std::map< GlobalRegionDictionary *, std::set< memory_space_id_t > >::const_iterator it = locations.begin(); it != locations.end(); it++ ) {
-      //   for ( std::set< memory_space_id_t >::const_iterator locIt = it->second.begin(); locIt != it->second.end(); locIt++ ) {
-      //      if ( *locIt != 0 ) {
-      //         std::cerr << "inval object " << it->first << " (addr " << (void*) it->first->getKeyBaseAddress() << ") from mem space " << *locIt <<", wd (" << wd.getId() << ") depth is "<< wd.getDepth() <<" this node is "<< sys.getNetwork()->getNodeNum() << std::endl;
-      //         sys.getSeparateMemory( *locIt ).invalidate( global_reg_t( 1, it->first ) );
-      //      }
-      //   }
-      //}
-      //for ( std::map< uint64_t, std::map< uint64_t, Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
-      for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
-         for ( memory_space_id_t id = 1; id <= sys.getSeparateMemoryAddressSpacesCount(); id++ ) {
-            //sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, (*it->second)[it->first].getGlobalRegionDictionary() ) );
-            Object *o = it->second->getExactByAddress(it->first);
-            sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, o->getGlobalRegionDictionary() ) );
-         }
-      }
+      _invalidateObjectsFromDevices( objects_to_clear );
 
       //clear objects from directory
-      //for ( std::map< uint64_t, std::map< uint64_t, Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
-      for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects_to_clear.begin(); it != objects_to_clear.end(); it++ ) {
-         //GlobalRegionDictionary *obj = (*it->second)[it->first].getGlobalRegionDictionary();
-         Object *o = it->second->getExactByAddress(it->first);
-         sys.getNetwork()->deleteDirectoryObject( o->getGlobalRegionDictionary() );
-         //std::cerr << "delete and unregister dict (address) " << (void *) *it << " (key) " << (void *) _objects[ *it ] << std::endl;
-         //std::cerr << "delete and unregister dict (address) " << (void *) it->first << " (key) " << (void *) obj << std::endl;
-         o->resetGlobalRegionDictionary();
-         it->second->eraseByAddress( it->first );
-         if ( o->getRegisteredObject() != NULL ) {
-            CopyData *cd = o->getRegisteredObject();
-            Object **dict_o = it->second->getExactInsertIfNotFound( (uint64_t) cd->getBaseAddress(), cd->getMaxSize() );
-            if ( dict_o != NULL ) {
-               if ( *dict_o == NULL ) {
-                  *dict_o = o;
-               } else {
-                  /* something went wrong, we cleared the dictionary so
-                   * this call must return an new object pointing to NULL
-                   */
-                  fatal("Dictionary error.");
-               }
-            } else {
-               /* something went wrong, we cleared the dictionary so
-                * this call can not return NULL at this point
-                */
-               fatal("Dictionary error.");
-            }
-         }
-      }
+      _unregisterObjects( objects_to_clear );
       sys.getNetwork()->synchronizeDirectory();
    }
    //std::cerr << "SYNC DIR DONE" << std::endl;
