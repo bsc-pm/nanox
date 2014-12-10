@@ -25,7 +25,7 @@
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
-#include "dlb.hpp"
+#include "resourcemanager.hpp"
 
 using namespace nanos;
 using namespace nanos::OpenMP;
@@ -223,9 +223,9 @@ extern "C"
 
    NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
    {
-      dlb_updateAvailableCpus();
+      ResourceManager::acquireResourcesIfNeeded();
+
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-/*** Marta ***/
       if ( threads_requested <= 0 ) {
          threads_requested = data->icvs()->getNumThreads();
       }
@@ -249,20 +249,5 @@ extern "C"
       }
 
       return num_threads;
-   }
-
-   NANOS_API_DEF(void, nanos_omp_get_mask, ( nanos_cpu_set_t cpu_set ))
-   {
-      sys.getPMInterface().getCpuMask( (cpu_set_t *) cpu_set );
-   }
-
-   NANOS_API_DEF(void, nanos_omp_set_mask, ( const nanos_cpu_set_t cpu_set ))
-   {
-      sys.getPMInterface().setCpuMask( (cpu_set_t *) cpu_set );
-   }
-
-   NANOS_API_DEF(void, nanos_omp_add_mask, ( const nanos_cpu_set_t cpu_set ))
-   {
-      sys.getPMInterface().addCpuMask( (cpu_set_t *) cpu_set );
    }
 }

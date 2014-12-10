@@ -189,6 +189,18 @@ namespace nanos {
                   return true;
                }
             }
+
+            int getPotentiallyParallelWDs( void )
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               if ( _usePriority || _useSmartPriority ) {
+                  WDPriorityQueue<> &q = (WDPriorityQueue<> &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
+               } else {
+                  WDDeque &q = (WDDeque &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
+               }
+            }
       };
 
       bool BreadthFirst::_useStack = false;

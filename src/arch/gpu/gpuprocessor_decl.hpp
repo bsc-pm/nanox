@@ -92,6 +92,7 @@ namespace ext
          volatile bool           _initialized; //! Object is initialized
          GPUMemorySpace         &_gpuMemory;
          SMPProcessor           *_core;
+         BaseThread             *_thread;
 
 
          //SimpleAllocator               _allocator;
@@ -192,10 +193,13 @@ namespace ext
 
          std::size_t getNumThreads() const { return _core->getNumThreads(); }
          void stopAllThreads ();
+         BaseThread * getFirstThread();
+//xteruel
+#if 0
          BaseThread * getFirstRunningThread_FIXME();
          BaseThread * getFirstStoppedThread_FIXME();
-         BaseThread * getActiveThread();
          BaseThread * getUnassignedThread();
+#endif
 
    };
 

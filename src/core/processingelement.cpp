@@ -141,9 +141,8 @@ void ProcessingElement::stopAllThreads ()
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
-      if ( thread->isWaiting() ) thread->wakeup();
-      if ( sys.getSchedulerConf().getUseBlock() ) thread->unblock();
       thread->stop();
+      if ( thread->isWaiting() ) thread->wakeup();
    }
 
    //! \note joining threads
@@ -158,50 +157,19 @@ Device const *ProcessingElement::getCacheDeviceType() const {
    return NULL;
 }
 
-BaseThread* ProcessingElement::getFirstRunningThread_FIXME()
+void ProcessingElement::wakeUpThreads()
 {
+   ThreadTeam *team = myThread->getTeam();
    ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->hasTeam() && !(*it)->isSleeping() )
-         return (*it);
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      (*it)->tryWakeUp( team );
    }
-   return NULL;
 }
 
-BaseThread* ProcessingElement::getFirstStoppedThread_FIXME()
+void ProcessingElement::sleepThreads()
 {
    ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() && (*it)->isSleeping() )
-         return (*it);
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      (*it)->sleep();
    }
-   return NULL;
-}
-
-BaseThread* ProcessingElement::getActiveThread()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->isSleeping() )
-         return (*it);
-   }
-   return NULL;
-}
-BaseThread* ProcessingElement::getUnassignedThread()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() ) {
-         (*it)->lock();
-         if ( (*it)->hasTeam() ) {
-            (*it)->unlock();
-            continue;
-         }
-         (*it)->reserve();
-         (*it)->wakeup();
-         (*it)->unlock();
-         return (*it);
-      }
-   }
-   return NULL;
 }
