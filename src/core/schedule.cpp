@@ -236,10 +236,10 @@ inline void Scheduler::idleLoop ()
       BaseThread *thread = getMyThreadSafe();
 
       if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
-         myThread->unpause(); //!< If scheduler is enabled thread is not paused, mark it as so
+         thread->unpause(); //!< If scheduler is enabled thread is not paused, mark it as so
       }
       else {
-         myThread->pause(); //!< Otherwise thread is paused.
+         thread->pause(); //!< Otherwise thread is paused.
          continue;
       }
 
@@ -292,8 +292,8 @@ inline void Scheduler::idleLoop ()
         else behaviour::switchWD(thread, current, &(thread->getThreadWD()));
       }
 
-      myThread->getNextWDQueue().iterate<TestInputs>();
-      WD * next = myThread->getNextWD();
+      thread->getNextWDQueue().iterate<TestInputs>();
+      WD * next = thread->getNextWD();
 
       if ( !next && thread->getTeam() != NULL ) {
          memoryFence();
@@ -329,7 +329,7 @@ inline void Scheduler::idleLoop ()
 
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
 
-         myThread->setIdle( false );
+         thread->setIdle( false );
          sys.getSchedulerStats()._idleThreads--;
 
          behaviour::switchWD(thread, current, next);
@@ -338,7 +338,7 @@ inline void Scheduler::idleLoop ()
          thread->step();
 
          sys.getSchedulerStats()._idleThreads++;
-         myThread->setIdle( true );
+         thread->setIdle( true );
 
          NANOS_INSTRUMENT (total_spins = 0; )
          NANOS_INSTRUMENT (total_blocks = 0; )
