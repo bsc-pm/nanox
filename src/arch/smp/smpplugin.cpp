@@ -799,7 +799,7 @@ class SMPPlugin : public SMPBasePlugin
       int max_workers = 0;
       for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
          if ( (*it)->isActive() ) {
-            max_workers += std::max( (*it)->getNumThreads(), 1U );
+            max_workers += std::max( (*it)->getNumThreads(), static_cast<std::size_t>(1U) );
          }
       }
       return max_workers;
