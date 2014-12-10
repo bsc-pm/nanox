@@ -812,14 +812,66 @@ class SMPPlugin : public SMPBasePlugin
       return thd;
    }
 
-   virtual void getBindingMaskString( std::ostream &o ) const
-   {
-      o << "[ ";
-      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         o << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
+   /*! \brief returns a human readable string containing information about the binding mask, detecting ranks. 
+    *       format e.g.,
+    *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]
+    */
+   virtual std::string getBindingMaskString() const {
+      // inactive/active cpus list
+      std::ostringstream a, i;
+      // current rank limits
+      unsigned int a0, aN, i0, iN;
+      bool end_rank_a = false, end_rank_i = false;
+      for ( std::vector<SMPProcessor *>::iterator curr = _cpusByCpuId->begin(); curr != _cpusByCpuId->end(); curr++ ) {
+         if ( curr == _cpusByCpuId->begin() ) {
+            // no state change at first iteration, write it down
+            ( (*curr)->isActive() ) ? a0 = (*curr)->getBindingId() : i0 = (*curr)->getBindingId();
+         } else {
+            /* Detect whether there is a state change (a->i/i->a). If so, 
+             * close the rank and start a new one. If it's the last iteration
+             * close it anyway. 
+             */
+            std::vector<SMPProcessor *>::iterator prev = curr-1;
+            std::vector<SMPProcessor *>::iterator next = curr+1;
+            // change, i->a
+            if ( (*curr)->isActive() && !(*prev)->isActive() ) {
+               end_rank_i = true;
+               iN = (*(prev))->getBindingId();
+               a0 = (*curr)->getBindingId();
+            // change, a->i
+            } else if ( !(*curr)->isActive() && (*prev)->isActive() ) {
+               end_rank_a = true;
+               aN = (*(prev))->getBindingId();
+               i0 = (*curr)->getBindingId();
+            } 
+            // last it, close ranks anyway
+            if ( next == _cpusByCpuId->end() ) {
+               if ( (*curr)->isActive() ) {
+                  aN = (*(curr))->getBindingId(); 
+                  end_rank_a = true;
+               } else {
+                  iN = (*(curr))->getBindingId(); 
+                  end_rank_i = true;
+               } 
+            }
+            // append rank string if ended
+            if ( end_rank_a ) {
+               ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", "; 
+                end_rank_a = false;
+            }
+            if ( end_rank_i ) {
+               ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", "; 
+                end_rank_i = false;
+            }
+         }
       }
-      o << "]";
-   }
+      // remove last comma
+      std::string sa = a.str(), si = i.str();
+      if (!sa.empty()) sa.erase(sa.length()-2);
+      if (!si.empty()) si.erase(si.length()-2);
+
+      return "active[ " + sa + " ] - inactive[ " + si + " ]";
+    }
 
 private:
 

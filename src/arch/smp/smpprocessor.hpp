@@ -56,7 +56,7 @@ namespace ext
          // constructors
          SMPProcessor( int bindingId, memory_space_id_t numMemId, bool active, unsigned int numaNode, unsigned int socket );
 
-         unsigned int getBindingId() { return _bindingId; }
+         unsigned int getBindingId() const { return _bindingId; }
 
          virtual ~SMPProcessor() {}
 

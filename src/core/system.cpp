@@ -1389,9 +1389,6 @@ void System::addPEsAndThreadsToTeam(PE **pes, int num_pes, BaseThread** threads,
 
 void System::environmentSummary( void )
 {
-   std::ostringstream mask;
-   _smpPlugin->getBindingMaskString( mask );
-
    /* Get Prog. Model string */
    std::string prog_model;
    switch ( getInitialMode() )
@@ -1412,7 +1409,7 @@ void System::environmentSummary( void )
    //message0( "=== Num. SMP threads:        " << _smpPlugin->getNumThreads() );
    //message0( "=== Num. SMP worker threads: " << _smpPlugin->getNumWorkers() );
    message0( "=== Num. worker threads: " << _workers.size() );
-   message0( "=== System CPUs:         " << mask.str() );
+   message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
    message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
    message0( "=== Prog. Model:         " << prog_model );
 
