@@ -508,7 +508,6 @@ WD * Scheduler::prefetch( BaseThread *thread, WD &wd )
 
 #ifdef CLUSTER_DEV
 WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
-r
 {
    WD * wd = NULL;
    if ( thread->getTeam() != NULL ) {
