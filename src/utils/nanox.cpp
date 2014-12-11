@@ -37,6 +37,16 @@ typedef std::pair<std::string,Plugin*> PluginInfo;
 typedef std::list<PluginInfo> PluginList;
 PluginList* pluginNames;
 
+namespace nanos {
+namespace PMInterfaceType
+{
+   int * ssCompatibility = 0;
+   void set_interface_cb( void * );
+   void set_interface_cb( void * p  ) {}
+   void (*set_interface)( void * ) = set_interface_cb;
+}
+}
+
 void utilInit ( void * );
 
 void utilInit ( void * ) 
