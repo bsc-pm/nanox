@@ -1171,7 +1171,7 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    updateExitStats (*wd);
 
    //! \note getting more work to do (only if not going to sleep)
-   if ( schedule && !getMyThreadSafe()->isSleeping() ) {
+   if ( !getMyThreadSafe()->isSleeping() ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
@@ -1451,15 +1451,12 @@ void Scheduler::exit ( void )
 
    WD *oldwd = thread->getCurrentWD();
 
-   /* get next WorkDescriptor (if any) */
-   WD *next =  thread->getNextWD();
-
    oldwd->finish();
 
-   finishWork( oldwd, ( next == NULL ) );
+   finishWork( oldwd, true );
 
    /* update next WorkDescriptor (if any) */
-   next = ( next == NULL ) ? thread->getNextWD() : next;
+   WD *next = thread->getNextWD();
 
    if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
       // The thread is not paused, mark it as so
