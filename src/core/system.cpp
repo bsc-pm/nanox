@@ -65,6 +65,14 @@ using namespace nanos;
 
 System nanos::sys;
 
+namespace nanos {
+namespace PMInterfaceType
+{
+   extern int * ssCompatibility;
+   extern void (*set_interface)( void * );
+}
+}
+
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
@@ -170,8 +178,7 @@ void System::loadModules ()
    }
 #endif
 
-   verbose0( "Architectures loaded, stating PM interface.");
-   _pmInterface->start();
+   verbose0( "Architectures loaded");
 
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );   
@@ -241,10 +248,12 @@ void System::config ()
    const OS::InitList & externalInits = OS::getInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
    
+#if 0
    if ( !_pmInterface ) {
       // bare bone run
       _pmInterface = NEW PMInterface();
    }
+#endif
 
    //! Declare all configuration core's flags
    verbose0( "Preparing library configuration" );
@@ -371,8 +380,6 @@ void System::config ()
 
    _schedConf.config( cfg );
 
-   _pmInterface->config( cfg );
-   
    _hwloc.config( cfg );
 
    verbose0 ( "Reading Configuration" );
@@ -386,6 +393,14 @@ void System::start ()
    
    // Modules can be loaded now
    loadModules();
+
+   verbose0( "Stating PM interface.");
+   Config cfg;
+   void (*f)(void *) = nanos::PMInterfaceType::set_interface;
+   f(NULL);
+   _pmInterface->config( cfg );
+   cfg.init();
+   _pmInterface->start();
 
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
@@ -407,9 +422,15 @@ void System::start ()
    }
 
    _smpPlugin->associateThisThread( getUntieMaster() );
+
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
    mainWD._mcontrol.setMainWD();
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( data );
+      mainWD.setInternalData( data );
+   }
 
    if ( _pmInterface->getInternalDataSize() > 0 ) {
       char *data = NEW char[_pmInterface->getInternalDataSize()];
