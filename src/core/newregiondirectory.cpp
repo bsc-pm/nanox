@@ -575,41 +575,44 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
       for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
          HashBucket &hb = *bit;
-         if ( hb._bobjects == NULL ) continue;
-         for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
-            GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
-            if ( dict == NULL ) continue;
-            uint64_t objectAddr = it->first.getAddress();
-            if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, dict ) ) ) {
-               if ( sys.getVerboseCopies() ) {
-                  std::ostream &o = (*myThread->_file);
-                  o << "Not synchronizing this object! "; dict->printRegion( o, 1 ); o << std::endl;
-               }
-               continue;
-            }
-            if ( dict->getKeepAtOrigin() ) continue;
-            std::list< std::pair< reg_t, reg_t > > missingParts;
-            unsigned int version = 0;
-            //double tini = OS::getMonotonicTime();
-            /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
-            objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
-
-            for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-               //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
-               if ( mit->first == mit->second ) {
-                  global_reg_t reg( mit->first, dict );
-                  if ( reg.isRooted() ) { //ignore regions rooted to a certain location
-                     objects_to_clear.erase( objectAddr );
+         hb._lock.acquire();
+         if ( hb._bobjects != NULL ) {
+            for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
+               GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
+               if ( dict == NULL ) continue;
+               uint64_t objectAddr = it->first.getAddress();
+               if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, dict ) ) ) {
+                  if ( sys.getVerboseCopies() ) {
+                     std::ostream &o = (*myThread->_file);
+                     o << "Not synchronizing this object! "; dict->printRegion( o, 1 ); o << std::endl;
                   }
-               } else {
-                  global_reg_t region_shape( mit->first, dict );
-                  global_reg_t data_source( mit->second, dict );
-                  if ( data_source.isRooted() ) { //ignore regions rooted to a certain location
-                     objects_to_clear.erase( objectAddr );
+                  continue;
+               }
+               if ( dict->getKeepAtOrigin() ) continue;
+               std::list< std::pair< reg_t, reg_t > > missingParts;
+               unsigned int version = 0;
+               //double tini = OS::getMonotonicTime();
+               /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
+               objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
+
+               for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
+                  //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
+                  if ( mit->first == mit->second ) {
+                     global_reg_t reg( mit->first, dict );
+                     if ( reg.isRooted() ) { //ignore regions rooted to a certain location
+                        objects_to_clear.erase( objectAddr );
+                     }
+                  } else {
+                     global_reg_t region_shape( mit->first, dict );
+                     global_reg_t data_source( mit->second, dict );
+                     if ( data_source.isRooted() ) { //ignore regions rooted to a certain location
+                        objects_to_clear.erase( objectAddr );
+                     }
                   }
                }
             }
          }
+         hb._lock.release();
       }
 
       if ( wd.getDepth() == 0 ) {
@@ -625,112 +628,110 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
-
-      if ( hb._bobjects == NULL ) continue;
-
-   for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
-//   for ( std::map< uint64_t, Object >::iterator it = hb._bobjects.begin(); it != hb._bobjects.end(); it++ ) {
-      //std::cerr << "==================  start object " << ++c << "("<< it->second <<") ================="<<std::endl;
-      //if ( it->second->getKeepAtOrigin() ) {
-      //   std::cerr << "Object " << it->second << " Keep " << std::endl;
-      //}
-      GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
-      if ( dict == NULL ) continue;
-      uint64_t objectAddr = it->first.getAddress();
-      if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, dict ) ) ) {
-         if ( sys.getVerboseCopies() ) {
-            std::ostream &o = (*myThread->_file);
-            o << "Not synchronizing this object! "; dict->printRegion( o, 1 ); o << std::endl;
-         }
-         continue;
-      }
-      if ( dict->getKeepAtOrigin() ) continue;
-
-      std::list< std::pair< reg_t, reg_t > > missingParts;
-      unsigned int version = 0;
-      //double tini = OS::getMonotonicTime();
-      /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
-      //double tfini = OS::getMonotonicTime();
-      //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
-      //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
-      //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-      //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
-      //}
-      //std::cerr << "}"<<std::endl;
-
-      objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
-
-      for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-         //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
-         if ( mit->first == mit->second ) {
-            global_reg_t reg( mit->first, dict );
-            if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
-               if ( !reg.isLocatedIn( 0 ) ) {
-                  DeviceOps *thisOps = reg.getDeviceOps();
-                  if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
-                     if ( _VERBOSE_CACHE ) {
-                        std::cerr << "f SYNC REGION! "; reg.key->printRegion( std::cerr, reg.id );
-                        if ( entry ) std::cerr << " " << *entry << std::endl;
-                        else std::cerr << " nil " << std::endl; 
-                     }
-                     //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                     outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
-                     outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
-                  } else {
-                     outOps.getOtherOps().insert( thisOps );
-                  }
-                  //regEntry->addAccess( 0, regEntry->getVersion() );
+      hb._lock.acquire();
+      if ( hb._bobjects != NULL ) {
+         for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
+            //std::cerr << "==================  start object " << ++c << "("<< it->second <<") ================="<<std::endl;
+            //if ( it->second->getKeepAtOrigin() ) {
+            //   std::cerr << "Object " << it->second << " Keep " << std::endl;
+            //}
+            GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
+            if ( dict == NULL ) continue;
+            uint64_t objectAddr = it->first.getAddress();
+            if ( !wd._mcontrol.hasObjectOfRegion( global_reg_t( 1, dict ) ) ) {
+               if ( sys.getVerboseCopies() ) {
+                  std::ostream &o = (*myThread->_file);
+                  o << "Not synchronizing this object! "; dict->printRegion( o, 1 ); o << std::endl;
                }
-               // another mechanism to inval data: else if ( reg.getNumLocations() > 1 ) {
-               // another mechanism to inval data:    //std::cerr << " have too upgrade host region" << std::endl;
-               // another mechanism to inval data:    reg.setLocationAndVersion( 0, reg.getVersion()+1 ); //increase version to invalidate the device copy
-               // another mechanism to inval data: }
+               continue;
+            }
+            if ( dict->getKeepAtOrigin() ) continue;
 
-               // aggregate the locations, later, we will invalidate the full object from those locations
-               locations[dict].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
-            } else {
-               //objects_to_clear.insert( std::make_pair( objectAddr, &hb._bobjects ) ); //FIXME: objects may be added later
-               objects_to_clear.erase( objectAddr );
-            }
-         } else {
-            global_reg_t region_shape( mit->first, dict );
-            global_reg_t data_source( mit->second, dict );
-            if ( !data_source.isRooted() ) { //ignore regions rooted to a certain location
-               if ( !data_source.isLocatedIn( 0 ) ) {
-                  //std::cerr << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); std::cerr << std::endl;
-                  //std::cerr << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); std::cerr << std::endl;
-                  region_shape.initializeGlobalEntryIfNeeded();
-                  DeviceOps *thisOps = region_shape.getDeviceOps();
-                  if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                     NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  );
-                     if ( _VERBOSE_CACHE ) {
-                        std::cerr << " SYNC REGION! "; region_shape.key->printRegion( std::cerr, region_shape.id );
-                        if ( entry ) std::cerr << " " << *entry << std::endl;
-                        else std::cerr << " nil " << std::endl; 
+            std::list< std::pair< reg_t, reg_t > > missingParts;
+            unsigned int version = 0;
+            //double tini = OS::getMonotonicTime();
+            /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
+            //double tfini = OS::getMonotonicTime();
+            //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
+            //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
+            //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
+            //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
+            //}
+            //std::cerr << "}"<<std::endl;
+
+            objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
+
+            for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
+               //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
+               if ( mit->first == mit->second ) {
+                  global_reg_t reg( mit->first, dict );
+                  if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
+                     if ( !reg.isLocatedIn( 0 ) ) {
+                        DeviceOps *thisOps = reg.getDeviceOps();
+                        if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
+                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                           if ( _VERBOSE_CACHE ) {
+                              std::cerr << "f SYNC REGION! "; reg.key->printRegion( std::cerr, reg.id );
+                              if ( entry ) std::cerr << " " << *entry << std::endl;
+                              else std::cerr << " nil " << std::endl; 
+                           }
+                           //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                           outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
+                        } else {
+                           outOps.getOtherOps().insert( thisOps );
+                        }
+                        //regEntry->addAccess( 0, regEntry->getVersion() );
                      }
-                     //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                     outOps.addOp( &sys.getSeparateMemory( data_source.getFirstLocation() ), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
-                     outOps.insertOwnOp( thisOps, region_shape, data_source.getVersion()+1, 0 ); //increase version to invalidate the device copy
+                     // another mechanism to inval data: else if ( reg.getNumLocations() > 1 ) {
+                     // another mechanism to inval data:    //std::cerr << " have too upgrade host region" << std::endl;
+                     // another mechanism to inval data:    reg.setLocationAndVersion( 0, reg.getVersion()+1 ); //increase version to invalidate the device copy
+                     // another mechanism to inval data: }
+
+                     // aggregate the locations, later, we will invalidate the full object from those locations
+                     locations[dict].insert(reg.getLocations().begin(), reg.getLocations().end()); //this requires delayedCommit = yes in the ops object!! FIXME
                   } else {
-                     outOps.getOtherOps().insert( thisOps );
+                     //objects_to_clear.insert( std::make_pair( objectAddr, &hb._bobjects ) ); //FIXME: objects may be added later
+                     objects_to_clear.erase( objectAddr );
                   }
-                  //regEntry->addAccess( 0, regEntry->getVersion() );
+               } else {
+                  global_reg_t region_shape( mit->first, dict );
+                  global_reg_t data_source( mit->second, dict );
+                  if ( !data_source.isRooted() ) { //ignore regions rooted to a certain location
+                     if ( !data_source.isLocatedIn( 0 ) ) {
+                        //std::cerr << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); std::cerr << std::endl;
+                        //std::cerr << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); std::cerr << std::endl;
+                        region_shape.initializeGlobalEntryIfNeeded();
+                        DeviceOps *thisOps = region_shape.getDeviceOps();
+                        if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
+                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  );
+                           if ( _VERBOSE_CACHE ) {
+                              std::cerr << " SYNC REGION! "; region_shape.key->printRegion( std::cerr, region_shape.id );
+                              if ( entry ) std::cerr << " " << *entry << std::endl;
+                              else std::cerr << " nil " << std::endl; 
+                           }
+                           //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
+                           outOps.addOp( &sys.getSeparateMemory( data_source.getFirstLocation() ), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           outOps.insertOwnOp( thisOps, region_shape, data_source.getVersion()+1, 0 ); //increase version to invalidate the device copy
+                        } else {
+                           outOps.getOtherOps().insert( thisOps );
+                        }
+                        //regEntry->addAccess( 0, regEntry->getVersion() );
+                     }
+                  } else {
+                     objects_to_clear.erase( objectAddr );
+                  }
                }
-            } else {
-               objects_to_clear.erase( objectAddr );
             }
+            //std::cerr << "=============================================================="<<std::endl;
          }
       }
-
-      //std::cerr << "=============================================================="<<std::endl;
-   }
-
+      hb._lock.release();
    }
    outOps.issue( *( (WD *) NULL ) );
    while ( !outOps.isDataReady( wd ) ) { myThread->processTransfers(); }
 
-   std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
+   //std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
    //printBt();
    if ( wd.getDepth() == 0 ) {
       // invalidate data on devices
