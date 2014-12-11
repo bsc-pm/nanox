@@ -812,59 +812,51 @@ class SMPPlugin : public SMPBasePlugin
       return thd;
    }
 
-   /*! \brief returns a human readable string containing information about the binding mask, detecting ranks. 
+   /*! \brief returns a human readable string containing information about the binding mask, detecting ranks.
     *       format e.g.,
     *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]
     */
    virtual std::string getBindingMaskString() const {
+      if ( _cpusByCpuId->empty() ) return "";
+
       // inactive/active cpus list
       std::ostringstream a, i;
-      // current rank limits
-      unsigned int a0, aN, i0, iN;
-      bool end_rank_a = false, end_rank_i = false;
-      for ( std::vector<SMPProcessor *>::iterator curr = _cpusByCpuId->begin(); curr != _cpusByCpuId->end(); curr++ ) {
-         if ( curr == _cpusByCpuId->begin() ) {
-            // no state change at first iteration, write it down
-            ( (*curr)->isActive() ) ? a0 = (*curr)->getBindingId() : i0 = (*curr)->getBindingId();
-         } else {
-            /* Detect whether there is a state change (a->i/i->a). If so, 
-             * close the rank and start a new one. If it's the last iteration
-             * close it anyway. 
-             */
-            std::vector<SMPProcessor *>::iterator prev = curr-1;
-            std::vector<SMPProcessor *>::iterator next = curr+1;
+
+      // Initialize rank limits with the first cpu in the list
+      int a0 = -1, aN = -1, i0 = -1, iN = -1;
+      SMPProcessor *first_cpu = _cpusByCpuId->front();
+      first_cpu->isActive() ? a0 = first_cpu->getBindingId() : i0 = first_cpu->getBindingId();
+
+      // Iterate through begin+1..end
+      for ( std::vector<SMPProcessor *>::iterator curr = _cpusByCpuId->begin()+1; curr != _cpusByCpuId->end(); curr++ ) {
+         /* Detect whether there is a state change (a->i/i->a). If so,
+          * close the rank and start a new one. If it's the last iteration
+          * close it anyway.
+          */
+         std::vector<SMPProcessor *>::iterator prev = curr-1;
+         if ( (*curr)->isActive() && !(*prev)->isActive() ) {
             // change, i->a
-            if ( (*curr)->isActive() && !(*prev)->isActive() ) {
-               end_rank_i = true;
-               iN = (*(prev))->getBindingId();
-               a0 = (*curr)->getBindingId();
+            iN = (*prev)->getBindingId();
+            a0 = (*curr)->getBindingId();
+            ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", ";
+         } else if ( !(*curr)->isActive() && (*prev)->isActive() ) {
             // change, a->i
-            } else if ( !(*curr)->isActive() && (*prev)->isActive() ) {
-               end_rank_a = true;
-               aN = (*(prev))->getBindingId();
-               i0 = (*curr)->getBindingId();
-            } 
-            // last it, close ranks anyway
-            if ( next == _cpusByCpuId->end() ) {
-               if ( (*curr)->isActive() ) {
-                  aN = (*(curr))->getBindingId(); 
-                  end_rank_a = true;
-               } else {
-                  iN = (*(curr))->getBindingId(); 
-                  end_rank_i = true;
-               } 
-            }
-            // append rank string if ended
-            if ( end_rank_a ) {
-               ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", "; 
-                end_rank_a = false;
-            }
-            if ( end_rank_i ) {
-               ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", "; 
-                end_rank_i = false;
-            }
+            aN = (*prev)->getBindingId();
+            i0 = (*curr)->getBindingId();
+            ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";
          }
       }
+
+      // close ranks and append strings according to the last cpu
+      SMPProcessor *last_cpu = _cpusByCpuId->back();
+      if ( last_cpu->isActive() ) {
+         aN = last_cpu->getBindingId();
+         ( a0 != aN ) ? a << a0 << "-" << aN << ", " : a << a0 << ", ";
+      } else {
+         iN = last_cpu->getBindingId();
+         ( i0 != iN ) ? i << i0 << "-" << iN << ", " : i << i0 << ", ";
+      }
+
       // remove last comma
       std::string sa = a.str(), si = i.str();
       if (!sa.empty()) sa.erase(sa.length()-2);
