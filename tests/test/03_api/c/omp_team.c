@@ -91,6 +91,7 @@ int main()
         nanos_handle_error(err);
       }
   }
+  return 0;
 }
 
 static void smp_ol_main_0_unpacked(nanos_ws_desc_t *wsd_1)
