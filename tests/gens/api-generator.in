@@ -38,7 +38,7 @@ test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS"
 test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
 test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
 
-test_LDFLAGS_performance="-Wl,--no-as-needed \ 
+test_LDFLAGS_performance=" -Wl,--no-as-needed \
 \$BUILD/core/performance/.libs/libnanox.so \
 \$BUILD/pms/performance/.libs/libnanox-ompss.so \
 \$BUILD/apis/performance/.libs/libnanox-c.so \
