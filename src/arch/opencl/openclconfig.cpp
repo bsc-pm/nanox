@@ -30,8 +30,10 @@ bool OpenCLConfig::_disableAllocWide = false;
 bool OpenCLConfig::_disableOCLdev2dev = false;
 size_t OpenCLConfig::_devCacheSize = 0;
 bool OpenCLConfig::_forceShMem = false;
-unsigned int OpenCLConfig::_devNum = INT_MAX;
+int OpenCLConfig::_devNum = INT_MAX;
+int OpenCLConfig::_prefetchNum = 1;
 unsigned int OpenCLConfig::_currNumDevices = 0;
+System::CachePolicyType OpenCLConfig::_cachePolicy = System::DEFAULT;
 //System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
 //This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
 extern __attribute__((weak)) char ompss_uses_opencl;
@@ -91,8 +93,15 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerArgOption( "opencl-cache", "opencl-cache" );
    
     // Select the size of the device cache.
+   cfg.registerConfigOption( "opencl-num-prefetch",
+                             NEW Config::IntegerVar( _prefetchNum ),
+                             "Defines the maximum number of OpenCL tasks to prefetch (defaults to 1) ");
+   cfg.registerEnvOption( "opencl-num-prefetch", "NX_OPENCL_NUM_PREFETCH" );
+   cfg.registerArgOption( "opencl-num-prefetch", "opencl-num-prefetch" );
+   
+       // Select the size of the device cache.
    cfg.registerConfigOption( "opencl-max-devices",
-                             NEW Config::UintVar( _devNum ),
+                             NEW Config::IntegerVar( _devNum ),
                              "Defines the total maximum number of devices "
                              "to be used by nanox" );
    cfg.registerEnvOption( "opencl-max-devices", "NX_OPENCL_MAX_DEVICES" );
@@ -113,6 +122,14 @@ void OpenCLConfig::prepare( Config &cfg )
                              "Force the use the use of mapped pointers for every device (Default: GPU -> NO, CPU->YES). Can save copy time on shared memory devices" );
    cfg.registerEnvOption( "force-opencl-mapped", "NX_FORCE_OPENCL_MAPPED");
    cfg.registerArgOption( "force-opencl-mapped", "force-opencl-mapped" );
+   
+   System::CachePolicyConfig *cachePolicyCfg = NEW System::CachePolicyConfig ( _cachePolicy );
+   cachePolicyCfg->addOption("wt", System::WRITE_THROUGH );
+   cachePolicyCfg->addOption("wb", System::WRITE_BACK );
+   cachePolicyCfg->addOption( "nocache", System::NONE );
+   cfg.registerConfigOption ( "opencl-cache-policy", cachePolicyCfg, "Defines the cache policy for OpenCL architectures: write-through / write-back (wb by default)" );
+   cfg.registerEnvOption ( "opencl-cache-policy", "NX_OPENCL_CACHE_POLICY" );
+   cfg.registerArgOption( "opencl-cache-policy", "opencl-cache-policy" );
 }
 
 void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices) {
@@ -205,7 +222,8 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
             if (errCode != CL_SUCCESS)
                 continue;
 
-            if (available && _devices.size() + devicesToUse < _devNum) {
+            unsigned int maxDevs= (unsigned int) _devNum;
+            if (available && _devices.size() + devicesToUse < maxDevs) {
                 avaiableDevs[devicesToUse++] = *j;
             }
         }

@@ -596,5 +596,21 @@ inline unsigned int System::getNewAcceleratorId() {
    return _acceleratorCount++;
 }
 
+/* SMPPlugin functions */
+inline void System::admitCurrentThread ( bool isWorker ) { _smpPlugin->admitCurrentThread( _workers, isWorker ); }
+inline void System::expelCurrentThread ( bool isWorker ) { _smpPlugin->expelCurrentThread( _workers, isWorker ); }
+
+inline void System::updateActiveWorkers ( int nthreads ) { _smpPlugin->updateActiveWorkers( nthreads, _workers, myThread->getTeam() ); }
+
+inline const cpu_set_t& System::getCpuProcessMask () const { return _smpPlugin->getCpuProcessMask(); }
+inline void System::getCpuProcessMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuProcessMask( mask ); }
+inline void System::setCpuProcessMask ( const cpu_set_t *mask ) { _smpPlugin->setCpuProcessMask( mask, _workers ); }
+inline void System::addCpuProcessMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuProcessMask( mask, _workers ); }
+
+inline const cpu_set_t& System::getCpuActiveMask () const { return _smpPlugin->getCpuActiveMask(); }
+inline void System::getCpuActiveMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuActiveMask( mask ); }
+inline void System::setCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->setCpuActiveMask( mask, _workers ); }
+inline void System::addCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
+
 #endif
 

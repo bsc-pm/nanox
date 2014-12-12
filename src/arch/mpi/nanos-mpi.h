@@ -75,13 +75,15 @@ extern "C" {
     
     NANOS_API_DECL(int, nanos_mpi_send_taskinit, (void *buf, int count, int dest, MPI_Comm comm));
     NANOS_API_DECL(int, nanos_mpi_send_taskend, (void *buf, int count, int disconnect, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));
-    NANOS_API_DECL(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm));   
+    NANOS_API_DECL(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype* datatype, int dest, MPI_Comm comm));
+    NANOS_API_DECL(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype* datatype, int dest, MPI_Comm comm));       
     NANOS_API_DECL(int, nanos_mpi_type_create_struct, ( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[],  
-            MPI_Datatype array_of_types[], MPI_Datatype *newtype));
+            MPI_Datatype array_of_types[], MPI_Datatype **newtype, int taskId));
+    NANOS_API_DECL(int, nanos_mpi_type_get_struct, ( int taskId, MPI_Datatype **newtype));
     NANOS_API_DECL(MPI_Datatype, ompss_get_mpi_type, (int type));    
     NANOS_API_DECL(int, nanos_mpi_get_parent, (MPI_Comm* parent_out));    
     NANOS_API_DECL(int, ompss_mpi_get_function_index_host, (void* func_pointer));
+    NANOS_API_DECL(int, ompss_mpi_get_function_index_dev, (void* func_pointer));
 
 #ifdef __cplusplus
 }

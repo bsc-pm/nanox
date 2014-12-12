@@ -284,7 +284,7 @@ class InstrumentationExtrae: public Instrumentation
         }
 
         /* Keep current number of threads */
-        _maxThreads = sys.getSMPPlugin()->getNumPEs();
+        _maxThreads = sys.getSMPPlugin()->getNumThreads();
       }
       void doLs(std::string dest)
       {
@@ -381,7 +381,8 @@ class InstrumentationExtrae: public Instrumentation
             static std::string nanos_event_state_value_str[] = {"NOT CREATED", "NOT RUNNING", 
                "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
                "RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION",
-               "DATA TRANSFER ISSUE", "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH", "DEBUG"};
+               "DATA TRANSFER ISSUE", "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH",
+               "FILL COLOR", "WAKING UP", "STOPPED" , "DEBUG"};
 
             for ( i = 0; i < (nval - 1); i++ ) { // Do not show the DEBUG state
                values[i] = i;

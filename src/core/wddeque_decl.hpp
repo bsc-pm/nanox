@@ -159,6 +159,12 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
+
          void transferElemsFrom( WDDeque &dq );
          template <typename Test>
          void iterate ();
@@ -387,6 +393,11 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
    };
 
 

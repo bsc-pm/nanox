@@ -579,8 +579,11 @@ namespace nanos {
             /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data in");
             /* 47 */ registerEventKey("sched-affinity-constraint","Constraint used by affinity scheduler");
 
+            /* 48 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 49 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+            /* 50 */ registerEventKey("concurrent-tasks", "Number of concurrent tasks in the ready queue", false);
                      
-            /* 48*/ registerEventKey("in-mpi-runtime","Inside MPI runtime", true);
+            /* 51*/ registerEventKey("in-mpi-runtime","Inside MPI runtime", true);
             registerEventValue("in-mpi-runtime", "NANOS_MPI_ALLOC_EVENT", "malloc()" );                                     /* 1 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_FREE_EVENT", "free()" );                                         /* 2 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT", "deep_booster_alloc(...)" );                            /* 3 */
@@ -608,9 +611,9 @@ namespace nanos {
             registerEventValue("in-mpi-runtime", "NANOS_MPI_ISEND_EVENT", "Async send" );  /* 25 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_GENERIC_EVENT", "MPI generic event" );                /* 26 */
 
-            /* 49 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
-            /* 50 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
-            /* 51 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false);
+            /* 52 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
+            /* 53 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
+            /* 54 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false);
 
             /* 52 */ registerEventKey("async-thread","Asynchronous thread state events", true);
             registerEventValue("async-thread", "ASYNC_THREAD_INLINE_WORK_DEP_EVENT", "inlineWorkDependent()" );  /* 1 */

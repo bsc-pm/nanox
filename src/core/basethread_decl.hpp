@@ -209,9 +209,7 @@ namespace nanos
          void stop();
          virtual void sleep();
          virtual void wakeup();
-         virtual void block() {};
-         virtual void unblock() {};
-         
+
          void pause ();
          void unpause ();
 
@@ -224,6 +222,8 @@ namespace nanos
 
          virtual void wait();
          virtual void resume();
+
+         virtual bool canBlock() { return false; }
 
          // set/get methods
          void setCurrentWD ( WD &current );
@@ -291,7 +291,7 @@ namespace nanos
          
          void setRunningOn(ProcessingElement* element);
          
-         void associate();
+         void associate( WD *wd = NULL );
 
          int getId() const;
 
@@ -347,7 +347,8 @@ namespace nanos
          virtual void setupSignalHandlers() = 0;
 
 #endif
-         bool tryWakeUp();
+         //! \brief Wake up a thread and add it to the team, considering all the possible thread states
+         void tryWakeUp( ThreadTeam *team );
 
          unsigned int getOsId() const;
 

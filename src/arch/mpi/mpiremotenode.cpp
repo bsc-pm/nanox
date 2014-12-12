@@ -36,7 +36,7 @@ extern __attribute__((weak)) unsigned int ompss_mpi_filenames[2U];
 extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[2U];
 extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[2U];
 extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[2U];
-extern __attribute__((weak)) void (*ompss_mpi_func_pointers_dev[2U])();
+extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[2U];
 
 
 
@@ -84,6 +84,14 @@ int MPIRemoteNode::ompssMpiGetFunctionIndexHost(void* func_pointer){
     return i;
 }
 
+
+int MPIRemoteNode::ompssMpiGetFunctionIndexDevice(void* func_pointer){  
+    int i;
+    //This function WILL find the pointer, if it doesnt, program would crash anyways so I won't limit it
+    for (i=0;ompss_mpi_func_pointers_dev[i]!=func_pointer;i++) { }
+    return i;
+}
+
 /**
  * Statics (mostly external API adapters provided to user or used by mercurium) begin here
  */
@@ -105,7 +113,7 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
           fatal0 ( "Couldn't load MPI support" );
     } 
    
-    _initialized=true;   
+    _initialized=true;        
     int provided;
     //If user provided a null pointer, we'll a value for internal checks
     if (userProvided==NULL) userProvided=&provided;
@@ -133,6 +141,10 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
 
 void MPIRemoteNode::nanosMPIFinalize() {    
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FINALIZE_EVENT);
+    for ( std::vector<MPI_Datatype*>::iterator it = _taskStructsCache.begin(); 
+            it!=_taskStructsCache.end(); ++it ) {
+        delete *it;
+    }
     int resul;
     MPI_Finalized(&resul);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -372,12 +384,20 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     }
     //If we despawned all the threads which used this communicator, free the communicator
     //If intercomm is null, do not do it, after all, it should be the final free
-    if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {        
+    if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {   
+#ifdef OPEN_MPI 
+       MPI_Comm_free(intercomm);
+#else
        MPI_Comm_disconnect(intercomm); 
+#endif
     } else if (communicatorsToFree.size()>0) {
         for (std::vector<MPI_Comm>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
            MPI_Comm commToFree=*it;
-           MPI_Comm_disconnect(&commToFree);            
+#ifdef OPEN_MPI 
+           MPI_Comm_free(&commToFree);
+#else
+           MPI_Comm_disconnect(&commToFree); 
+#endif
         }
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -393,9 +413,9 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
         int userProvided;
         MPI_Query_thread(&userProvided);        
         if (userProvided < MPI_THREAD_MULTIPLE ) {
-             std::cerr << "MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, your application may hang when offloading, check your MPI "
+             message0("MPI_Query_Thread returned multithread support less than MPI_THREAD_MULTIPLE, your application may hang when offloading, check your MPI "
                 "implementation and try to configure it so it can support this multithread level. Configure your PATH so the mpi compiler"
-                " points to a multithread implementation of MPI";
+                " points to a multithread implementation of MPI");
              //Some implementations seem to catch fatal0 and continue... make sure we die
              exit(-1);
         }
@@ -793,10 +813,29 @@ int MPIRemoteNode::nanosMPIRecvDatastruct(void *buf, int count, MPI_Datatype dat
 }
 
 int MPIRemoteNode::nanosMPITypeCreateStruct( int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
-        MPI_Datatype array_of_types[], MPI_Datatype *newtype) {
-    int err=MPI_Type_create_struct(count,array_of_blocklengths,array_of_displacements, array_of_types,newtype );
-    MPI_Type_commit(newtype);
+        MPI_Datatype array_of_types[], MPI_Datatype **newtype, int taskId) {
+    int err;
+    *newtype= NEW MPI_Datatype;
+    _taskStructsCache[taskId]=*newtype;
+    err=MPI_Type_create_struct(count,array_of_blocklengths,array_of_displacements, array_of_types, *newtype );
+    ensure0( err == MPI_SUCCESS, "MPI Create struct failed when preparing the task. Please submit a ticket" );
+    err=MPI_Type_commit(*newtype);
+    ensure0( err == MPI_SUCCESS, "MPI Create struct failed when preparing the task. Please submit a ticket" );
     return err;
+}
+
+void MPIRemoteNode::nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype ) {    
+    //Initialize cache if needed
+    if (_taskStructsCache.size()==0) {        
+        //Fill total number of tasks which have been compiled
+        int arr_size;
+        for ( arr_size=0;ompss_mpi_masks[arr_size]==MASK_TASK_NUMBER;arr_size++ ){};
+        unsigned int total_size=0;
+        for ( int k=0;k<arr_size;k++ ) total_size+=ompss_mpi_file_ntasks[k];
+        _taskStructsCache.assign(total_size, NULL);
+    }
+    ensure0 ( static_cast<int>(_taskStructsCache.size()) > taskId, "Tasks struct cache is failing, trying to access a taskId biggeer than the total number of tasks");
+    *newtype=_taskStructsCache[taskId];
 }
 
 int MPIRemoteNode::nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
@@ -879,15 +918,14 @@ int MPIRemoteNode::nanosMPIIRecv(void *buf, int count, MPI_Datatype datatype, in
  * in both files (host and device, which are different architectures, so maybe they were not compiled in the same order)
  */
 void MPIRemoteNode::nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
-            unsigned int* task_per_file,void (*ompss_mpi_func_ptrs_dev[])()){
-    const int mask = MASK_TASK_NUMBER;
+            unsigned int* task_per_file,void *ompss_mpi_func_ptrs_dev[]){
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);   
     //If this process was not spawned, we don't need this reorder (and shouldnt have been called)
     if ( parentcomm != 0 && parentcomm != MPI_COMM_NULL ) {     
         //MPI_Status status;
         int arr_size;
-        for ( arr_size=0;file_mask[arr_size]==mask;arr_size++ ){};
+        for ( arr_size=0;file_mask[arr_size]==MASK_TASK_NUMBER;arr_size++ ){};
         unsigned int total_size=0;
         for ( int k=0;k<arr_size;k++ ) total_size+=task_per_file[k];
         size_t filled_arr_size=0;

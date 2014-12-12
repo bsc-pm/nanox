@@ -32,10 +32,11 @@
 #include "smp_ult.hpp"
 #include "instrumentation.hpp"
 //#include "clusterdevice_decl.hpp"
+#include "resourcemanager.hpp"
+//#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
-
 
 SMPThread & SMPThread::stackSize( size_t size )
 {
@@ -83,54 +84,78 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
+   ThreadTeam *team = getTeam();
+
+   /* Put WD's from local to global queue, leave team, and set flag
+    * Locking pthread mutex assures us that the sleep flag is still set when we get here
+    */
    lock();
    _pthread.mutexLock();
 
-   ThreadTeam *team = getTeam();
-
-   if ( hasNextWD() ) {
-      WD *next = getNextWD();
-      next->untie();
-      team->getSchedulePolicy().queue( this, *next );
-   }
-   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
-
-   if ( team != NULL ) leaveTeam();
-
    if ( isSleeping() ) {
+
+      if ( hasNextWD() ) {
+         WD *next = getNextWD();
+         next->untie();
+         team->getSchedulePolicy().queue( this, *next );
+      }
+      fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+
+      if ( team != NULL ) leaveTeam();
       BaseThread::wait();
 
       unlock();
-      _pthread.condWait();
 
-      //! \note Then we call base thread wakeup, which just mark thread as active
-      lock();
+      NANOS_INSTRUMENT( InstrumentState state_stop(NANOS_STOPPED) );
+
+      /* It is recommended to wait under a while loop to handle spurious wakeups
+       * http://pubs.opengroup.org/onlinepubs/009695399/functions/pthread_cond_wait.html
+       * But, for some reason this is causing deadlocks.
+       */
+      //while ( isSleeping() ) {
+      _pthread.condWait();
+      //}
+
+      NANOS_INSTRUMENT( InstrumentState state_wake(NANOS_WAKINGUP) );
+   //WORKAROUND for deadlock. Waiting for correctness checking
+   //   lock();
+      /* Set waiting status flag */
       BaseThread::resume();
-      BaseThread::wakeup();
-      unlock();
-   } else {
+   //   unlock();
+      _pthread.mutexUnlock();
+
+      /* Whether the thread should wait for the cpu to be free before doing some work */
+      ResourceManager::waitForCpuAvailability();
+
+      if ( isSleeping() ) wait();
+      else {
+         NANOS_INSTRUMENT ( if ( sys.getSMPPlugin()->getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+         NANOS_INSTRUMENT ( if ( !sys.getSMPPlugin()->getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+      }
+   }
+   else {
+      _pthread.mutexUnlock();
       unlock();
    }
-
-   _pthread.mutexUnlock();
-
-   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
-   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
 void SMPThread::wakeup()
 {
-   //! \note This function has to be in free race condition environment or externally
-   // protected, when called, with the thread common lock: lock() & unlock() functions.
-
-   //! \note If thread is not marked as waiting, just ignore wakeup
-   if ( !isSleeping() || !isWaiting() ) return;
-
-   _pthread.wakeup();
+   _pthread.mutexLock();
+   BaseThread::wakeup();
+   if ( isWaiting() ) {
+      _pthread.condSignal();
+   }
+   _pthread.mutexUnlock();
 }
 
+void SMPThread::sleep()
+{
+   _pthread.mutexLock();
+   BaseThread::sleep();
+   _pthread.mutexUnlock();
+}
 
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )

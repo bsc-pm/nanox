@@ -54,8 +54,8 @@ class OpenCLCache
   friend class OpenCLProcessor;
   
 public:
-  OpenCLCache(OpenCLAdapter &openclAdapter) : _devCacheSize( 0 ),
-                                     _openclAdapter( openclAdapter ) { }
+  OpenCLCache(OpenCLAdapter &openclAdapter, OpenCLProcessor* processor) : _devCacheSize( 0 ),
+                                     _openclAdapter( openclAdapter ), _processor( processor ) { }
 
   OpenCLCache( const OpenCLCache &cache ); // Do not implement.
   const OpenCLCache &operator=( const OpenCLCache &cache ); // Do not implement.
@@ -77,7 +77,7 @@ public:
    
    cl_mem getBuffer( void *localSrc, size_t size );
    
-   bool copyInBuffer( void *localDst, cl_mem buffer, size_t size );
+   bool copyInBuffer( void *localDst, cl_mem buffer, size_t size, DeviceOps *ops );
    
    void *getDeviceBase()
    {
@@ -105,6 +105,8 @@ private:
    SimpleAllocator _devAllocator;
 
    OpenCLAdapter &_openclAdapter;
+   //Processor "owner" of this Cache
+   OpenCLProcessor *_processor;
   
    Atomic<size_t>    _bytesIn;
    Atomic<size_t>    _bytesOut;

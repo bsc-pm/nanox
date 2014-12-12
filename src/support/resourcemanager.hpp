@@ -17,43 +17,23 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_DLB
-#define _NANOS_DLB
+#ifndef _NANOS_RESOURCEMANAGER
+#define _NANOS_RESOURCEMANAGER
 
-
-using namespace nanos;
-
-extern "C" {
-   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
-   void DLB_UpdateResources( void ) __attribute__(( weak ));
-   void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
-}
+// Sleep time in ns between each sched_yield
+#define NANOS_RM_YIELD_SLEEP_NS 20000
 
 namespace nanos {
+namespace ResourceManager {
+   void init( void );
+   void finalize( void );
+   void acquireResourcesIfNeeded( void );
+   void releaseCpu( void );
+   void returnClaimedCpus( void );
+   void returnMyCpuIfClaimed( void );
+   void waitForCpuAvailability( void );
+   bool lastActiveThread( void );
+   bool canUntieMaster( void );
+}}
 
-   inline void dlb_returnCpusIfNeeded ( void )
-   {
-      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
-         DLB_ReturnClaimedCpus();
-   }
-
-   inline void dlb_updateAvailableCpus ( void )
-   {
-      if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
-            DLB_ReturnClaimedCpus();
-
-         if ( sys.getPMInterface().isMalleable() ) {
-            int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getSMPPlugin()->getNumWorkers();
-            if ( needed_resources > 0 )
-               DLB_UpdateResources_max( needed_resources );
-
-         } else {
-            DLB_UpdateResources();
-         }
-
-
-      }
-
-   }
-}
-#endif
+#endif /* _NANOS_RESOURCEMANAGER */

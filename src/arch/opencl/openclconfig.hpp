@@ -27,6 +27,8 @@ public:
   static bool getDisableDev2Dev() { return _disableOCLdev2dev; }
   static size_t getDevCacheSize() { return _devCacheSize; }
   static bool getForceShMem() { return _forceShMem; } 
+  static int getPrefetchNum() { return _prefetchNum +1; }
+  static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
   
 private:
   static void prepare( Config &cfg );
@@ -49,7 +51,9 @@ private:
   static bool _forceShMem;
   
   //Maximum number of devices to be used by nanox
-  static unsigned int _devNum;
+  static int _devNum;
+  //Number of prefetchs
+  static int _prefetchNum;
   // These properties contains runtime info, not directly settable by the user.
 
   // All found OpenCL platforms.
@@ -64,6 +68,7 @@ private:
   static Atomic<unsigned> _freeDevice;
   // Whether to disable OpenCL dev2dev.
   static bool _disableOCLdev2dev;
+  static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by OCL devices
 
   friend class OpenCLPlugin;
 };

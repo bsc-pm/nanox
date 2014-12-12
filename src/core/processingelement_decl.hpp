@@ -59,12 +59,11 @@ namespace nanos
          /*! \brief ProcessingElement copy assignment operator (private)
           */
          const ProcessingElement & operator= ( const ProcessingElement &pe );
-      protected:
+      public:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
          virtual WorkDescriptor & getMultiWorkerWD () const = 0;
 
-      public:
          /*! \brief ProcessingElement constructor
           */
          ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId,
@@ -122,27 +121,17 @@ namespace nanos
          virtual void waitInputs( WorkDescriptor& wd );
          bool testInputs( WorkDescriptor& wd );
 
-         virtual bool isGPU() const = 0;
          BaseThread *getFirstThread() const { return _threads[0]; }
 
          /*!
-          * \brief Returns the first thread of the PE that has team and is not tagged to sleep
+          * \brief Wake up all threads associated with the PE
           */
-         virtual BaseThread* getFirstRunningThread_FIXME();
+         virtual void wakeUpThreads();
 
          /*!
-          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
+          * \brief Sleep up all threads associated with the PE
           */
-         virtual BaseThread* getFirstStoppedThread_FIXME();
-
-         /*!
-          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
-          */
-         virtual BaseThread* getUnassignedThread();
-         /*!
-          * \brief Returns the first thread of the PE that is not tagged to sleep
-          */
-         virtual BaseThread* getActiveThread();
+         virtual void sleepThreads();
 
          std::size_t getNumThreads() const;
    };

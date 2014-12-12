@@ -1103,6 +1103,34 @@ AC_ARG_WITH([chapel],
 AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
 
+# Check for DLB support
+AC_MSG_CHECKING([for DLB support])
+AC_ARG_WITH([dlb],
+   AS_HELP_STRING([--with-dlb=dir], [Directory of DLB installation]),
+   [
+      dlb_path="$withval"
+   ],
+   [
+      dlb_path="not_set"
+   ]
+)
+
+if test ${dlb_path} != "no" -a ${dlb_path} != "not_set" ; then
+   DLB_INC="$dlb_path/include"
+   DLB_LIB="$dlb_path/lib"
+   if test ! -d ${dlb_path} -o ! -f ${DLB_INC}/DLB_interface.h -o ! -f ${DLB_LIB}/libdlb.so ; then
+      AC_MSG_ERROR([Attention! You have passed an invalid DLB location.])
+   fi
+   dlb=yes
+else
+   dlb=no
+fi
+AC_MSG_RESULT([${dlb}])
+
+AM_CONDITIONAL([DLB], [test x"$dlb" = "xyes"])
+AC_SUBST([DLB_INC])
+AC_SUBST([DLB_LIB])
+
 # Check MKL Support
 AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
@@ -1164,19 +1192,24 @@ echo ""
 echo "Configuration summary of Nanos++"
 echo "================================"
 echo ""
-echo "Host arch:" $SMP_ARCH
+echo "Host arch:               " $SMP_ARCH
 echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
-echo "Configured versions:" $VERSIONS
+echo "Configured versions:     " $VERSIONS
 if test x$memtracker_enabled = xyes ; then
-   echo "Memory tracker: enabled"
+   echo "Memory tracker:           enabled"
 else
-   echo "Memory tracker: disabled"
+   echo "Memory tracker:           disabled"
 fi
 if test x$allocator_enabled = xyes ; then
-   echo "Memory allocator: enabled"
+   echo "Memory allocator:         enabled"
 else
-   echo "Memory allocator: disabled"
+   echo "Memory allocator:         disabled"
+fi
+if test "x$resiliency" = "xyes" ; then
+   echo "Task resiliency:          enabled"
+else
+   echo "Task resiliency:          disabled"
 fi
 if test x$cluster_enabled = xyes ; then
    echo "With cluster/gasnet conduits:" $CONDUITS

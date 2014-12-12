@@ -78,8 +78,8 @@ class HostAddressSpace {
 
    void synchronize( WD &wd );
    memory_space_id_t getMemorySpaceId() const;
-   reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
-   NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
+   reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
+   NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
    void registerObject( nanos_copy_data_internal_t *obj );
 };
 

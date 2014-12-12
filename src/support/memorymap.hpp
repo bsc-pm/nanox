@@ -1622,21 +1622,27 @@ _Type **MemoryMap< _Type >::getExactOrFullyOverlappingInsertIfNotFound( uint64_t
    } else if ( this->key_comp()( key, it->first ) ) {
       /* key less than it->first, not total overlap guaranteed */
       if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
-         it--;
-         MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
-         if ( ov == MemoryChunk::NO_OVERLAP ) {
+         if ( it == this->begin() ) {
             it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
             ptr = &( it->second );
             exact = true;
-         } else if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
-               ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
-               ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
-            ptr = &( it->second );
-            exact = false;
+         } else {
+            it--;
+            MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
+            if ( ov == MemoryChunk::NO_OVERLAP ) {
+               it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+               ptr = &( it->second );
+               exact = true;
+            } else if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
+                  ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
+                  ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
+               ptr = &( it->second );
+               exact = false;
+            }
+            //it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
+            //ptr = &( it->second );
+            //exact = true;
          }
-         //it = this->insert( it, typename BaseMap::value_type( key, ( _Type * ) NULL ) );
-         //ptr = &( it->second );
-         //exact = true;
       } else {
          ptr = NULL;
          exact = false;

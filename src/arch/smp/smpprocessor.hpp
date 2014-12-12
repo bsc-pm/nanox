@@ -56,7 +56,7 @@ namespace ext
          // constructors
          SMPProcessor( int bindingId, memory_space_id_t numMemId, bool active, unsigned int numaNode, unsigned int socket );
 
-         unsigned int getBindingId() { return _bindingId; }
+         unsigned int getBindingId() const { return _bindingId; }
 
          virtual ~SMPProcessor() {}
 
@@ -74,10 +74,10 @@ namespace ext
 #else
          virtual bool supportsUserLevelThreads () const { return false; }
 #endif
-         virtual bool isGPU () const { return false; }
          bool isReserved() const { return _reserved; }
          void reserve() { _reserved = true; }
          bool isActive() const { return _active; }
+         void setActive( bool value = true) { _active = value; }
          //virtual void* getAddressDependent( uint64_t tag );
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          //virtual void* newGetAddressDependent( CopyData const &cd );

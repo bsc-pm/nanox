@@ -27,6 +27,7 @@
 #include "os.hpp"
 #include "synchronizedcondition.hpp"
 #include "printbt_decl.hpp"
+#include "resourcemanager.hpp"
 
 using namespace nanos;
 
@@ -497,6 +498,10 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
+   // Ask for more resources once we have finished creating tasks
+   ResourceManager::returnClaimedCpus();
+   ResourceManager::acquireResourcesIfNeeded();
+
    _componentsSyncCond.waitConditionAndSignalers();
    if ( !avoidFlush ) {
       _mcontrol.synchronize();

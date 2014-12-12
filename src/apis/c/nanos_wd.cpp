@@ -75,7 +75,7 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
  *  \param [out] string description
  *  \param [in] wd is the WorkDescriptor
  */
-NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ))
+NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( const char **description, nanos_wd_t wd ))
 {
    try 
    {

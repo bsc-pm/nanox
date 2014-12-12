@@ -37,7 +37,7 @@ Atomic<int> GPUProcessor::_deviceSeed = 0;
 GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) :
       ProcessingElement( &GPU, NULL, memId, 0 /* local node */, core->getNumaNode() /* numa */, true, 0 /* socket: n/a */, false ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(),
-      _initialized( false ), _gpuMemory( gpuMem ), _core( core )
+      _initialized( false ), _gpuMemory( gpuMem ), _core( core ), _thread( NULL)
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
@@ -396,7 +396,9 @@ BaseThread & GPUProcessor::startGPUThread()
    NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
 
-   return _core->startThread( *this, worker, NULL );
+   _thread = &_core->startThread( *this, worker, NULL );
+
+   return *_thread;
 }
 
 void GPUProcessor::stopAllThreads ()
@@ -404,6 +406,13 @@ void GPUProcessor::stopAllThreads ()
    _core->stopAllThreads();
 }
 
+BaseThread * GPUProcessor::getFirstThread()
+{
+   return _thread;
+}
+
+//xteruel
+#if 0
 BaseThread * GPUProcessor::getFirstRunningThread_FIXME()
 {
    return _core->getFirstRunningThread_FIXME();
@@ -413,17 +422,11 @@ BaseThread * GPUProcessor::getFirstStoppedThread_FIXME()
 {
    return _core->getFirstStoppedThread_FIXME();
 }
-
-BaseThread * GPUProcessor::getActiveThread()
-{
-   return _core->getActiveThread();
-}
-
 BaseThread * GPUProcessor::getUnassignedThread()
 {
    return _core->getUnassignedThread();
 }
-
+#endif
 
 //bool GPUProcessor::supportsDirectTransfersWith(ProcessingElement const &pe) const {
 //   return ( &GPU == pe.getCacheDeviceType() );

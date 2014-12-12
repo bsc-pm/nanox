@@ -43,6 +43,7 @@ pthread_cond_t MPIRemoteNode::_taskWait;         //! Condition variable to wait 
 pthread_mutex_t MPIRemoteNode::_taskMutex;        //! Mutex to access the completion 
 std::list<int> MPIRemoteNode::_pendingTasksQueue;
 std::list<int> MPIRemoteNode::_pendingTaskParentsQueue;
+std::vector<MPI_Datatype*>  MPIRemoteNode::_taskStructsCache;
 bool MPIRemoteNode::_initialized=false;
 bool MPIRemoteNode::_disconnectedFromParent=false;
 int MPIRemoteNode::_currentTaskParent=-1;

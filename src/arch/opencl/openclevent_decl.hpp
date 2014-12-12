@@ -17,73 +17,65 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_PTHREAD_DECL
-#define _NANOS_PTHREAD_DECL
+#ifndef _OpenCL_EVENT_DECL
+#define _OpenCL_EVENT_DECL
 
-#include "smpprocessor_fwd.hpp"
-#include "taskexecutionexception_decl.hpp"
-#include <pthread.h>
-#include <signal.h>
+#include "genericevent_decl.hpp"
 
 
-namespace nanos {
 
-   class PThread
+namespace nanos
+{
+
+   class OpenCLEvent : public GenericEvent
    {
-      friend class ext::SMPProcessor;
-
       private:
-         ext::SMPProcessor * _core;
+         int            _timesToQuery;
+         cl_event*    _openclEvents;
+         int _numEvents;
+         void* _runningKernel;
+         bool _usedEvent;
 
-         pthread_t   _pth;
-         size_t      _stackSize;
-
-         pthread_cond_t    _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
-         pthread_mutex_t   _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
-
-         // disable copy constructor and assignment operator
-         PThread( const PThread &th );
-         const PThread & operator= ( const PThread &th );
+         void updateState();
 
       public:
-         // constructor
-         PThread( ext::SMPProcessor * core ) : _core( core ), _pth( ), _stackSize( 0 ) { }
-
-         // destructor
-         virtual ~PThread() {}
-
-         int getCpuId() const;
-
-         size_t getStackSize ();
-         void setStackSize( size_t size );
-
-         virtual void initMain();
-         virtual void start( BaseThread * th );
-         virtual void finish();
-         virtual void join();
-
-         virtual void bind();
-
-         virtual void yield();
-
-         virtual void mutexLock();
-         virtual void mutexUnlock();
-
-         virtual void condWait();
-         virtual void condSignal();
-
-#ifdef NANOS_RESILIENCY_ENABLED
-         virtual void setupSignalHandlers();
+        /*! \brief OpenCLEvent constructor
+         */
+#ifdef NANOS_GENERICEVENT_DEBUG
+         OpenCLEvent ( WD *wd, cl_context& context, std::string desc = "" );
+#else
+         OpenCLEvent ( WD *wd, cl_context& context );
 #endif
-   };
 
+         /*! \brief OpenCLEvent constructor
+          */
+#ifdef NANOS_GENERICEVENT_DEBUG
+         OpenCLEvent ( WD *wd, ActionList next, cl_context& context, std::string desc = "" );
+#else
+         OpenCLEvent ( WD *wd, ActionList next, cl_context& context );
+#endif
+
+        /*! \brief OpenCLEvent destructor
+         */
+         ~OpenCLEvent();
+
+         // set/get methods
+         bool isPending();
+         void setPending();
+         bool isRaised();
+         void setRaised();
+         
+         /**
+          * *WARNING* If you get this event, you MUST enqueue into an OpenCL queue
+          * @return Native OCL event for this event
+          */
+         cl_event& getCLEvent();
+         void* getCLKernel();
+         void setCLKernel(void* currKernel);
+
+         // event synchronization related methods
+         void waitForEvent();
+   };
 }
 
-void * os_bootthread ( void *arg );
-
-#ifdef NANOS_RESILIENCY_ENABLED
-void taskExecutionHandler(int sig, siginfo_t* si, void* context)
-   throw (TaskExecutionException);
-#endif
-
-#endif
+#endif //_OpenCL_EVENT_DECL

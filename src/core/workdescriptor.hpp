@@ -39,7 +39,7 @@
 using namespace nanos;
 
 inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size, size_t data_align, void *wdata,
-                                 size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
+                                 size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, const char *description )
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align( data_align ),  _data ( wdata ), _totalSize(0),
@@ -71,7 +71,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  }
 
 inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, size_t data_align, void *wdata,
-                                 size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, char *description )
+                                 size_t numCopies, CopyData *copies, nanos_translate_args_t translate_args, const char *description )
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>( &_components.override(), 0 ) ), _parent(NULL), _forcedParent(NULL),
                                  _data_size ( data_size ), _data_align ( data_align ), _data ( wdata ), _totalSize(0),
@@ -104,7 +104,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                     }
                                  }
 
-inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, char *description )
+inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data, const char *description )
                                : _id( sys.getWorkDescriptorId() ), _components( 0 ), 
                                  _componentsSyncCond( EqualConditionChecker<int>(&_components.override(), 0 ) ), _parent(NULL), _forcedParent(wd._forcedParent),
                                  _data_size( wd._data_size ), _data_align( wd._data_align ), _data ( data ), _totalSize(0),
@@ -191,7 +191,12 @@ inline bool WorkDescriptor::isEnqueued() { return ( _myQueue != NULL ); }
 
 inline WorkDescriptor & WorkDescriptor::tied () { _flags.to_tie = true; return *this; }
 
-inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &pe ) { _tiedTo = &pe; _flags.to_tie=false; return *this; }
+inline WorkDescriptor & WorkDescriptor::tieTo ( BaseThread &thread )
+{
+   _tiedTo = &thread;
+   _flags.to_tie = false;
+   return *this;
+}
 
 inline WorkDescriptor & WorkDescriptor::tieToLocation ( memory_space_id_t loc ) { _tiedToLocation = loc; _flags.to_tie=false; return *this; }
 
@@ -451,7 +456,7 @@ inline void WorkDescriptor::setImplicit( bool b )
 
 inline bool WorkDescriptor::isImplicit( void ) { return _flags.is_implicit; } 
 
-inline char * WorkDescriptor::getDescription ( void ) const  { return _description; }
+inline const char * WorkDescriptor::getDescription ( void ) const  { return _description; }
 
 inline void WorkDescriptor::addWork ( WorkDescriptor &work )
 {

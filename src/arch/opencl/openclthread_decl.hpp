@@ -23,14 +23,22 @@
 
 #include "smpthread.hpp"
 #include "opencldd.hpp"
+#include "genericevent_decl.hpp"
+#include "asyncthread_decl.hpp"
+#include "openclconfig.hpp"
 
 namespace nanos {
 namespace ext {
     
-class OpenCLThread : public SMPThread
+class OpenCLThread : public nanos::AsyncThread
 {
 private:
    bool _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
+   PThread _pthread;
+   GenericEvent* _currKernelEvent;
+   nanos::AsyncThread::GenericEventList _externalEventsList;
+   Lock _evlLock;
+   int _openclStreamIdx;
    
    OpenCLThread( const OpenCLThread &thr ); // Do not implement.
    const OpenCLThread &operator=( const OpenCLThread &thr ); // Do not implement.
@@ -40,15 +48,60 @@ private:
    void raiseWDClosingEvents ();
    
 public:
-   OpenCLThread( WD &wd, PE *pe, SMPProcessor* core ) : SMPThread( wd, pe, core ) {}
+   OpenCLThread( WD &wd, PE *pe, SMPProcessor* core ) : nanos::AsyncThread( sys.getSMPPlugin()->getNewSMPThreadId(), wd, pe ), _pthread(core), _externalEventsList(), _openclStreamIdx(1) 
+   { 
+      setMaxPrefetch( OpenCLConfig::getPrefetchNum() );
+   }
    ~OpenCLThread() {}
    
+   GenericEvent* getCurrKernelEvent() { return _currKernelEvent; };
    void initializeDependent();
    void runDependent();
-   bool inlineWorkDependent( WD &wd );
-   void yield();
-   void idle();
    void enableWDClosingEvents ();
+   
+   void preOutlineWorkDependent( WD &work ) { fatal( "GPUThread does not support preOutlineWorkDependent()" ); }
+   void outlineWorkDependent( WD &work ) { fatal( "GPUThread does not support outlineWorkDependent()" ); }
+   
+   bool runWDDependent( WD &wd, GenericEvent * evt );
+   bool processDependentWD ( WD * wd );
+
+   GenericEvent * createPreRunEvent( WD * wd );
+   GenericEvent * createRunEvent( WD * wd );
+   GenericEvent * createPostRunEvent( WD * wd );
+   
+   
+   // PThread functions
+   virtual void start() { _pthread.start( this ); }
+   virtual void finish() { _pthread.finish(); BaseThread::finish(); }
+   virtual void join();
+   virtual void bind() { _pthread.bind(); }
+   /** \brief GPU specific yield implementation */
+   virtual void yield() { AsyncThread::yield(); _pthread.yield(); }
+   /** \brief Blocks the thread if it still has enabled the sleep flag */
+   virtual void wait();
+   /** \brief Unset the flag */
+   virtual void wakeup();
+   virtual int getCpuId() const;   
+   virtual void idle( bool debug );
+   #ifdef NANOS_RESILIENCY_ENABLED
+      virtual void setupSignalHandlers() { _pthread.setupSignalHandlers(); }
+   #endif
+   
+   
+   
+   void switchTo( WD *work, SchedulerHelper *helper );
+   void exitTo( WD *work, SchedulerHelper *helper );
+
+   void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
+   void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {}
+
+   void switchToNextThread() { fatal( "GPUThread does not support switchToNextThread()" ); }
+   BaseThread *getNextThread() { return this; }
+   bool isCluster() { return false; }
+   
+   //TODO: CHECK if this should be the base implementation of Async Thread
+   virtual void addEvent( GenericEvent * evt );
+   virtual void checkEvents();
 
 private:
 

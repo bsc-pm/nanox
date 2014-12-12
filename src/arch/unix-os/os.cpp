@@ -47,6 +47,7 @@ char ** OS::_argv = 0;
 OS::ModuleList * OS::_moduleList = 0;
 OS::InitList * OS::_initList = 0;
 OS::InitList * OS::_postInitList = 0;
+cpu_set_t OS::_systemMask;
 cpu_set_t OS::_processMask;
 
 static void findArgs (long *argc, char ***argv) 
@@ -72,6 +73,11 @@ void OS::init ()
    _moduleList = NEW ModuleList(&__start_nanos_modules,&__stop_nanos_modules);
    _initList = NEW InitList(&__start_nanos_init, &__stop_nanos_init);
    _postInitList = NEW InitList(&__start_nanos_post_init, &__stop_nanos_post_init);
+
+   CPU_ZERO( &_systemMask );
+   for (int i=0; i<OS::getMaxProcessors(); i++) {
+      CPU_SET( i, &_systemMask );
+   }
 
    CPU_ZERO( &_processMask );
 #ifdef IS_BGQ_MACHINE
@@ -111,8 +117,6 @@ void * OS::loadDL( const std::string &dir, const std::string &name )
    return dlopen ( filename.c_str(), RTLD_NOW );
 }
 
-
-
 void * OS::loadLocalDL(  )
 {
    return dlopen ( NULL, RTLD_NOW|RTLD_GLOBAL );
@@ -128,22 +132,26 @@ void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
    return dlsym ( dlHandler, symbolName );
 }
 
+void OS::getSystemAffinity( cpu_set_t *cpu_set )
+{
+   memcpy( cpu_set, &_systemMask, sizeof(cpu_set_t) );
+}
+
 void OS::getProcessAffinity( cpu_set_t *cpu_set )
 {
    memcpy( cpu_set, &_processMask, sizeof(cpu_set_t) );
 }
 
-void OS::bindThread( pthread_t pth, cpu_set_t *cpu_set )
-{
-   pthread_setaffinity_np( pth, sizeof(cpu_set_t), cpu_set );
-}
-
 int OS::getMaxProcessors ( void )
 {
+#ifdef IS_BGQ_MACHINE
+   return (int) 64;
+#else
 #ifdef _SC_NPROCESSORS_ONLN
    return (int) sysconf(_SC_NPROCESSORS_CONF);
 #else
    return (int) 0;
+#endif
 #endif
 }
 

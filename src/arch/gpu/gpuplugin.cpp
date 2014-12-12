@@ -298,7 +298,7 @@ class GPUPlugin : public ArchPlugin
       }
 
       virtual void finalize() {
-         if ( _gpus ) {
+         if ( _gpuThreads->size() ) {
             int soft_inv = 0;
             int hard_inv = 0;
             for ( unsigned int idx = 0; idx < _gpus->size(); idx += 1 ) {
