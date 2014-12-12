@@ -135,6 +135,8 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
 
    std::ostream &o = *(myThread->_file);
 
+   //o << "=================== BEGIN " << __FUNCTION__ << " wd " << wd.getId() << " [ " << (wd.getDescription() != NULL ? wd.getDescription() : "n/a" ) << " ] copy index " << copyIdx <<" ====================" << std::endl;
+
 //if ( sys.getNetwork()->getNodeNum() > 0 ) {
 //   std::cerr << __FUNCTION__ << " reg " << reg << std::endl;
 //}
@@ -200,7 +202,21 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
             continue;
          }
          if ( !entry || version > entry->getVersion() ) {
-            //o << "No entry for region " << it->first << " "; _newRegions->printRegion( o, it->first); o << " must copy from region " << it->second << " "; _newRegions->printRegion(o, it->second); o << " want version "<< version << " entry version is " << ( (!entry) ? -1 : entry->getVersion() )<< std::endl;
+            //NewNewDirectoryEntryData *_dentry1 = NewNewRegionDirectory::getDirectoryEntry( *key, it->first );
+            //NewNewDirectoryEntryData *_dentry2 = NewNewRegionDirectory::getDirectoryEntry( *key, it->second );
+            //o << " 1. DENTRY " << (void *)_dentry1  << " for reg " << it->first << std::endl;
+            //if ( _dentry1 ) {
+            //   key->printRegion(o, it->first); o << *_dentry1 << std::endl;
+            //}
+            //o << " 2. DENTRY " << (void *)_dentry2  << " for reg " << it->second << std::endl;
+            //if ( _dentry2 ) {
+            //   key->printRegion(o, it->second); o << *_dentry2 << std::endl;
+            //}
+            //if ( !entry ) {
+            //   o << "No entry for region " << it->first << " must copy from region " << it->second << " "; _newRegions->printRegion(o, it->second); o << " want version "<< version << " entry version is " << ( (!entry) ? -1 : entry->getVersion() )<< std::endl;
+            //} else {
+            //   o << "Version lower " << it->first << " "; _newRegions->printRegion( o, it->first); o << " must copy from region " << it->second << " "; _newRegions->printRegion(o, it->second); o << " want version "<< version << " entry version is " << ( (!entry) ? -1 : entry->getVersion() )<< std::endl;
+            //}
             CachedRegionStatus *copyFromEntry = ( CachedRegionStatus * ) _newRegions->getRegionData( it->second );
             if ( !copyFromEntry || version > copyFromEntry->getVersion() ) {
                //o << "I HAVE TO COPY: I dont have this region, entry = " << entry << " " << skipNull << std::endl;
@@ -225,6 +241,7 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                   //} else {
                   //   o << " same " << std::endl;
                   //}
+                  //key->printRegion(o, locIt->first); o << std::endl;
 
                   //if ( locIt->first == it->first || chunkReg.contains( locReg ) ) {
                   if ( locReg.id == chunkReg.id || locReg.key->checkIntersect( locReg.id, chunkReg.id ) ) {
@@ -258,8 +275,13 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                            if ( !entryToCopyOps->addCacheOp( /* debug: */ &wd, 2 ) ) {
                               std::cerr << "ERROR " << __FUNCTION__ << std::endl;
                            }
-                      //FIXME: this now updates the metadata of reg: which is redundant but updating the metadata of region_shape it's not possible since it could not have a directory entry, and its not right to update the source region since we may be copying just a piece.
+                           //FIXME: this now updates the metadata of reg: which is redundant but updating the metadata of region_shape it's not possible since it could not have a directory entry, and its not right to update the source region since we may be copying just a piece.
                            //ops.insertOwnOp( entryToCopyOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version + (output ? 1 : 0), _owner.getMemorySpaceId() ); 
+
+                           NewNewDirectoryEntryData *target_dentry = NewNewRegionDirectory::getDirectoryEntry( *key, it->first );
+                           if ( target_dentry == NULL ) {
+                              NewNewRegionDirectory::initializeEntryWithAnother( key, it->first, data_source.id );
+                           }
                            ops.insertOwnOp( entryToCopyOps, global_reg_t( locIt->first, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
                         }
 
