@@ -757,7 +757,12 @@ DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
 
 void NewNewRegionDirectory::initializeEntry( RegionDirectoryKey dict, reg_t reg ) {
    NewNewDirectoryEntryData *entry = NEW NewNewDirectoryEntryData();
-   //entry->addAccess( 0, 1 );
+   dict->setRegionData( reg, entry );
+}
+void NewNewRegionDirectory::initializeEntryWithAnother( RegionDirectoryKey dict, reg_t reg, reg_t from ) {
+   NewNewDirectoryEntryData *from_entry = (NewNewDirectoryEntryData *) dict->getRegionData( from );
+   ensure( from_entry != NULL, "Invalid entry.");
+   NewNewDirectoryEntryData *entry = NEW NewNewDirectoryEntryData( *from_entry );
    dict->setRegionData( reg, entry );
 }
 
