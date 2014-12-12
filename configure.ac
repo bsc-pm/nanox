@@ -14,6 +14,9 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
+# Turn off static libraries.
+LT_INIT([disable-static])
+
 dnl Enable silent rules if available
 supported_silent_rules=1
 m4_ifdef([AM_SILENT_RULES],
