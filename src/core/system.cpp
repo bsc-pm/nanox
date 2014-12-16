@@ -1410,6 +1410,8 @@ void System::environmentSummary( void )
       message0( "===  | Worker Threads:   " << (*it)->getNumWorkers() );
    }
 
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->getInstrumentationDictionary()->printEventVerbosity(); )
+
    message0( "=========================================================" );
 
    // Get start time
