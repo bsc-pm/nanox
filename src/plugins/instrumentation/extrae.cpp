@@ -334,6 +334,7 @@ class InstrumentationExtrae: public Instrumentation
 
          for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
             InstrumentationKeyDescriptor *kD = itK->second;
+            if ( kD->getId() == 0 ) continue;
             extrae_type_t type = _eventBase+kD->getId(); 
             char *type_desc = ( char *) alloca(sizeof(char) * (kD->getDescription().size() + 1) );
             strncpy ( type_desc, kD->getDescription().c_str(), kD->getDescription().size()+1 );
@@ -355,8 +356,6 @@ class InstrumentationExtrae: public Instrumentation
                }
             } else if (kD->getId() == usr_functName ) {
                // DO Nothing
-            } else if (kD->getId() == 0 ) {
-               // This event is disabled (key id not assigned): do nothing
             } else {
                extrae_value_t *values = (extrae_value_t *) alloca(sizeof(extrae_value_t) * nval);
                char **val_desc = (char **) alloca(sizeof(char *) * nval);
@@ -426,7 +425,10 @@ class InstrumentationExtrae: public Instrumentation
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
-            switch ( e.getType() ) {
+            nanos_event_type_t type = e.getType();
+            nanos_event_key_t key = e.getKey();
+            if ( key == 0 ) continue;
+            switch ( type ) {
                case NANOS_STATE_START:
                case NANOS_STATE_END:
                case NANOS_SUBSTATE_START:
@@ -479,13 +481,14 @@ class InstrumentationExtrae: public Instrumentation
                case NANOS_PTP_START:
                case NANOS_PTP_END:
                   /* Creating PtP event */
+                  ckey = e.getKey();
+
                   if ( type == NANOS_PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
 
-                  ckey = e.getKey();
-                  if ( ckey == sizeKey ) ce.Communications[k].size = e.getValue();
+                  if ( ckey != 0 && ckey == sizeKey ) ce.Communications[k].size = e.getValue();
                   else ce.Communications[k].size = e.getId();
 
                   if ( e.getPartner() == NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {
@@ -505,7 +508,7 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Values[j++] = cvalue;
                   }
                   // Add hwc only for user-funct events
-                  if ( ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                  if ( ckey != 0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
                      ce.HardwareCounters = 1;
                   break;
                case NANOS_BURST_END:
@@ -514,7 +517,7 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = 0; // end
                   }
-                  if ( ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                  if ( ckey !=0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
                      ce.HardwareCounters = 1;
                   break;
                default: break;
@@ -543,6 +546,21 @@ class InstrumentationExtrae: public Instrumentation
                ce.Values[i] = ce.Values[jj++];
             }
          }
+
+         if ( ce.nEvents == 0 && ce.nCommunications == 0 ) return;
+
+//FIXME: to remove when closing #1034
+#if 0
+         fprintf(stderr,"\nEvents: ");
+         for ( extrae_size_t jj = 0; jj < ce.nEvents; jj++ )
+           fprintf(stderr,"%d, ", (int)ce.Types[jj]);
+         fprintf(stderr,"\n");
+
+         fprintf(stderr,"\nCommunications: ");
+         for ( extrae_size_t jj = 0; jj < ce.nCommunications; jj++ )
+           fprintf(stderr,"%d, ", (int) ce.Communications[jj].type);
+         fprintf(stderr,"\n");
+#endif
 
          Extrae_emit_CombinedEvents ( &ce );
       }
