@@ -878,7 +878,8 @@ namespace ext {
         {
             cfg.setOptionsSection("Task Dependency Graph Plugin ", "TDG plugin specific options" );
             cfg.registerConfigOption("node-size",  NEW Config::StringVar(InstrumentationTDGInstrumentation::_nodeSizeFunc),
-                                     "Defines the size of the nodes depending on the execution time of the related task" );
+                                     "Defines the size of the nodes depending on the execution time of the related task. "
+                                     "Accepted values are: constant (default), linear, log");
             cfg.registerArgOption("node-size", "node-size");
         }
         
