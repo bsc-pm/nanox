@@ -973,6 +973,8 @@ namespace nanos {
           */
          InstrumentationDictionary * getInstrumentationDictionary ( void );
 
+         bool isStateEnabled() const;
+         bool isPtPEnabled() const;
          /*! \brief Enable/disable events
           */
          void filterEvents(std::string event_default, std::list<std::string> &enable_events, std::list<std::string> &disable_events );

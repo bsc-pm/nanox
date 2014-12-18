@@ -415,6 +415,8 @@ class InstrumentationExtrae: public Instrumentation
       {
          extrae_combined_events_t ce;
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+         bool _stateEnabled = sys.getInstrumentation()->isStateEnabled();
+         bool _ptpEnabled = sys.getInstrumentation()->isPtPEnabled();
 
          ce.HardwareCounters = 0;
          ce.Callers = 0;
@@ -427,21 +429,23 @@ class InstrumentationExtrae: public Instrumentation
             Event &e = events[i];
             nanos_event_type_t type = e.getType();
             nanos_event_key_t key = e.getKey();
-            if ( key == 0 ) continue;
             switch ( type ) {
                case NANOS_STATE_START:
                case NANOS_STATE_END:
                case NANOS_SUBSTATE_START:
                case NANOS_SUBSTATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.nEvents++;
                   break;
                case NANOS_PTP_START:
                case NANOS_PTP_END:
+                  if ( !_ptpEnabled ) continue;
                   ce.nCommunications++;
                   break;
                case NANOS_POINT:
                case NANOS_BURST_START:
                case NANOS_BURST_END:
+                  if ( key == 0 ) continue;
                   ce.nEvents++;
                   break;
                default: break;
@@ -463,23 +467,28 @@ class InstrumentationExtrae: public Instrumentation
             unsigned int type = e.getType();
             switch ( type ) {
                case NANOS_STATE_START:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = e.getState();
                   break;
                case NANOS_STATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = 0;
                   break;
                case NANOS_SUBSTATE_START:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = e.getState();
                   break;
                case NANOS_SUBSTATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = 0;
                   break;
                case NANOS_PTP_START:
                case NANOS_PTP_END:
+                  if ( !_ptpEnabled ) continue;
                   /* Creating PtP event */
                   ckey = e.getKey();
 

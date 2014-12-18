@@ -410,6 +410,9 @@ inline long long Instrumentation::Event::getId( void ) const { return _ptpId; }
 
 inline unsigned int Instrumentation::Event::getPartner( void ) const { return _partner; }
 
+inline bool Instrumentation::isStateEnabled() const { return _emitStateEvents; }
+inline bool Instrumentation::isPtPEnabled() const { return _emitPtPEvents; }
+
 inline void Instrumentation::filterEvents( std::string event_default, std::list<std::string> &enable_events, std::list<std::string> &disable_events )
 {
 
