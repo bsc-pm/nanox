@@ -74,7 +74,6 @@ namespace ext
 #else
          virtual bool supportsUserLevelThreads () const { return false; }
 #endif
-         virtual bool isGPU () const { return false; }
          bool isReserved() const { return _reserved; }
          void reserve() { _reserved = true; }
          bool isActive() const { return _active; }

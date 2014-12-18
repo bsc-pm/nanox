@@ -109,6 +109,14 @@ typedef std::set<const Device *>  DeviceList;
          const Device *_architecture; /**< Related Device (architecture). */
       private:
          work_fct       _work;
+         
+         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
+          * **REQUERIMENT** If pe == NULL, this function must return true
+          *
+          *  \param[pe] pe is the ProcessingElement which we have to compare to.
+          *  \return a boolean indicating if both elements (DeviceData and PE) are compatible.
+          */
+         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
       public:
 
@@ -149,14 +157,6 @@ typedef std::set<const Device *>  DeviceList;
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
          bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
-         
-         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
-          * **REQUERIMENT** If pe == NULL, this function must return true
-          *
-          *  \param[pe] pe is the ProcessingElement which we have to compare to.
-          *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
-          */
-         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */
@@ -263,7 +263,7 @@ typedef std::set<const Device *>  DeviceList;
          WorkDescriptorPtrList        *_commutativeOwners;      //!< Array of commutative target owners
          int                           _numaNode;               //!< FIXME:scheduler data. The NUMA node this WD was assigned to
          bool                          _copiesNotInChunk;       //!< States whether the buffer of the copies is allocated in the chunk of the WD
-         char                         *_description;            //!< WorkDescriptor description, usually user function name
+         const char                   *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
          int                           _criticality;
@@ -288,12 +288,12 @@ typedef std::set<const Device *>  DeviceList;
          /*! \brief WorkDescriptor constructor - 1
           */
          WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, const char *description = NULL );
 
          /*! \brief WorkDescriptor constructor - 2
           */
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, const char *description = NULL );
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -305,7 +305,7 @@ typedef std::set<const Device *>  DeviceList;
           *
           *  \see WorkDescriptor System::duplicateWD
           */
-         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, char *description = NULL );
+         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, const char *description = NULL );
 
          /*! \brief WorkDescriptor destructor
           *
@@ -652,7 +652,7 @@ typedef std::set<const Device *>  DeviceList;
           */
          void setCopies(size_t numCopies, CopyData * copies);
 
-         char * getDescription ( void ) const;
+         const char * getDescription ( void ) const;
 
          //! \brief Removing work from current WorkDescriptor
          virtual void exitWork ( WorkDescriptor &work );

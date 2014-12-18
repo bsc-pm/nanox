@@ -183,8 +183,6 @@ namespace nanos {
             bool supportsUserLevelThreads() const {
                 return false;
             }       
-            
-            bool isGPU () const { return true; }
         };   
 
         // Macros to instrument the code and make it cleaner

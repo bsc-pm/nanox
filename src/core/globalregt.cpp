@@ -118,6 +118,39 @@ memory_space_id_t global_reg_t::getFirstLocation() const {
    return NewNewRegionDirectory::getFirstLocation( key, id );
 }
 
+memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t dest ) const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   memory_space_id_t selected;
+   if ( entry->isLocatedIn( dest ) ) {
+      selected = dest;
+   } else if ( entry->getNumLocations() == 1 || true ) {
+      selected = entry->getFirstLocation();
+   } else {
+      unsigned int destNode = sys.getSeparateMemory( dest ).getNodeNumber();
+
+      //try to get from node + 1
+      std::set< memory_space_id_t > const &locs = entry->getLocations();
+      std::set< memory_space_id_t >::const_iterator it = locs.begin();
+      bool found = false;
+      while ( it != locs.end() && !found ) {
+         unsigned int this_node = *it == 0 ? 0 : sys.getSeparateMemory( *it ).getNodeNumber();
+         if ( ( destNode + 1 ) ==  this_node ) {
+            found = true;
+         } else {
+            it++;
+         }
+      }
+      if ( found ) {
+         selected = *it;
+      } else {
+         std::cerr << "failed to balance this." << std::endl;
+         selected = entry->getFirstLocation();
+      }
+   }
+   return selected;
+}
+
 unsigned int global_reg_t::getHostVersion( bool increaseVersion ) const {
    unsigned int version = 0;
    if ( NewNewRegionDirectory::isLocatedIn( key, id, (memory_space_id_t) 0 ) ) {
