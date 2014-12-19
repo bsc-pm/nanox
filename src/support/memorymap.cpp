@@ -301,4 +301,16 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
    return val;
 }
 
+void MemoryMap< uint64_t >::eraseByAddress( uint64_t addr ) {
+   MemoryChunk key( addr, 0 );
+   iterator it = this->lower_bound( key );
+   if ( it == this->end() || this->key_comp()( key, it->first ) )
+   {
+      std::cerr << "Could not erase, address not found." << std::endl;
+      exit(-1);
+   } else {
+      this->erase( it );
+   }
+}
+
 #endif

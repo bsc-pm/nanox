@@ -542,6 +542,7 @@ void NewNewRegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< O
       sys.getNetwork()->deleteDirectoryObject( o->getGlobalRegionDictionary() );
       o->resetGlobalRegionDictionary();
       it->second->eraseByAddress( it->first );
+      _keys.eraseByAddress( it->first );
       if ( o->getRegisteredObject() != NULL ) {
          CopyData *cd = o->getRegisteredObject();
          Object **dict_o = it->second->getExactInsertIfNotFound( (uint64_t) cd->getBaseAddress(), cd->getMaxSize() );
