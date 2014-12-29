@@ -401,6 +401,10 @@ void GPUThread::raiseWDRunEvent ( WD * wd )
 
    //std::cout << "Start  " << ( int ) tend << std::endl;
 
+   if ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ) {
+      wd->setRunTime( OS::getMonotonicTimeUs() );
+   }
+
 }
 
 void GPUThread::closeWDRunEvent ( WD * wd )
