@@ -349,9 +349,6 @@ namespace nanos
          /*! \brief Performs lower bound reversely or not depending on the settings */
          WDPQ::BaseContainer::iterator lower_bound( const WD *wd );
 
-         /*! \brief Initialization function for WD device counter
-          */
-         void initDeviceList();
 
       public:
          /*! \brief WDPriorityQueue default constructor
