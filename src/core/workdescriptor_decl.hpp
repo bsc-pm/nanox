@@ -252,8 +252,10 @@ typedef std::set<const Device *>  DeviceList;
          CopyData                     *_copies;                 //!< Copy-in / Copy-out data
          size_t                        _paramsSize;             //!< Total size of WD's parameters
          unsigned long                 _versionGroupId;         //!< The way to link different implementations of a task into the same group
-         double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time
-         double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time
+         double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time, accounting data transfers
+         double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time, accounting data transfers
+         double                        _runTime;          //!< FIXME:scheduler data. WD starting wall-clock time, without data transfers
+         double                        _estimatedRunTime;      //!< FIXME:scheduler data. WD estimated execution time, without data transfers
          DOSubmit                     *_doSubmit;               //!< DependableObject representing this WD in its parent's depsendencies domain
          LazyInit<DOWait>              _doWait;                 //!< DependableObject used by this task to wait on dependencies
          DependenciesDomain           *_depsDomain;             //!< Dependences domain. Each WD has one where DependableObjects can be submitted            //!< Directory to mantain cache coherence
@@ -542,17 +544,33 @@ typedef std::set<const Device *>  DeviceList;
           */
          void setVersionGroupId( unsigned long id );
 
-         /*! \brief returns the total execution time of the WD
+         /*! \brief returns the total execution time of the WD, accounting data transfers
           */
          double getExecutionTime() const;
 
-         /*! \brief returns the estimated execution time of the WD
+         /*! \brief returns the estimated execution time of the WD, accounting data transfers
           */
          double getEstimatedExecutionTime() const;
 
-         /*! \brief sets the estimated execution time of the WD
+         /*! \brief sets the estimated execution time of the WD, accounting data transfers
           */
          void setEstimatedExecutionTime( double time );
+
+         /*! \brief returns the running time of the WD, without data transfers
+          */
+         double getRunTime() const;
+
+         /*! \brief sets the running time of the WD, without data transfers
+          */
+         void setRunTime( double time );
+
+         /*! \brief returns the estimated execution time of the WD, without data transfers
+          */
+         double getEstimatedRunTime() const;
+
+         /*! \brief sets the estimated execution time of the WD, without data transfers
+          */
+         void setEstimatedRunTime( double time );
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */
