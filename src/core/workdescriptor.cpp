@@ -130,6 +130,10 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    // Setting state to ready
    _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
    _mcontrol.setCacheMetaData();
+
+   // Getting run time
+   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() : 0.0 );
+
 }
 
 
@@ -170,6 +174,10 @@ bool WorkDescriptor::isInputDataReady() {
       // Setting state to ready
       setReady();
       //_mcontrol.setCacheMetaData();
+
+      // Getting run time
+      _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() : 0.0 );
+
    }
    return result;
 }
@@ -267,6 +275,9 @@ void WorkDescriptor::submit( bool force_queue )
 
 void WorkDescriptor::finish ()
 {
+   // Getting run time
+   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() - _runTime : 0.0 );
+
    // At that point we are ready to copy data out
    if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );
@@ -281,6 +292,9 @@ void WorkDescriptor::finish ()
 
 void WorkDescriptor::preFinish ()
 {
+   // Getting run time
+   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() - _runTime : 0.0 );
+
    // At that point we are ready to copy data out
    if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );

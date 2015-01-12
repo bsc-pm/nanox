@@ -180,7 +180,9 @@ namespace nanos
    inline bool BaseThread::canPrefetch () const { return _nextWDs.size() < _maxPrefetch; }
 
    inline bool BaseThread::hasNextWD () const { return !_nextWDs.empty(); }
- 
+
+   inline int BaseThread::getMaxConcurrentTasks () const { return 1; }
+
    inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
 
    // team related methods

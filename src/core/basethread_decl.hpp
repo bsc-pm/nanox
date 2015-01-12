@@ -240,6 +240,9 @@ namespace nanos
          virtual WD * getNextWD ();
          virtual bool hasNextWD () const;
 
+         // Return the number of concurrent tasks (tasks that can be run by this thread at the same time)
+         int getMaxConcurrentTasks() const;
+
          // Set whether the thread will schedule WDs or not used by getImmediateSuccessor()
          // If so, WD's dependencies should be kept till WD is finished
          virtual bool keepWDDeps() { return false; }

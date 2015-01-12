@@ -35,8 +35,8 @@ namespace nanos {
 
               TeamData () : ScheduleTeamData(), _readyQueue( NULL )
               {
-                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* optimise option */ );
-                else _readyQueue = NEW WDDeque( /* enableDeviceCounter */ true );
+                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* enableDeviceCounter */, true /* optimise option */ );
+                else _readyQueue = NEW WDDeque( true /* enableDeviceCounter */ );
               }
               ~TeamData () { delete _readyQueue; }
            };

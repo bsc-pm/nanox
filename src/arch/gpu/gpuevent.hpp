@@ -38,7 +38,7 @@ inline void GPUEvent::updateState()
    _timesToQuery = 1;
 
    // Check for the state of the event, to see if it has changed
-   //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::NANOS_GPU_CUDA_EVENT_QUERY_EVENT );
+   //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::GPUUtils::NANOS_GPU_CUDA_EVENT_QUERY_EVENT );
    cudaError_t recorded = cudaEventQuery( _cudaEvent );
    //NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
 
@@ -46,13 +46,13 @@ inline void GPUEvent::updateState()
    if ( recorded == cudaErrorNotReady ) {
       // This means that the event is still pending
       _state = PENDING;
+#ifdef NANOS_GENERICEVENT_DEBUG
       debug( "[GPUEvt] Updating state event " << this
             << " with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
             << " and stream " << (void *) _cudaStream << " state is now PENDING"
-#ifdef NANOS_GENERICEVENT_DEBUG
             << ". Description: " << getDescription()
-#endif
       );
+#endif
 
       return;
    }
@@ -64,23 +64,23 @@ inline void GPUEvent::updateState()
    if ( recorded == cudaSuccess ) {
       // This means that the event has been raised
       _state = RAISED;
+#ifdef NANOS_GENERICEVENT_DEBUG
       debug( "[GPUEvt] Updating state event " << this
             << " with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
             << " and stream " << (void *) _cudaStream << " state is now RAISED"
-#ifdef NANOS_GENERICEVENT_DEBUG
             << ". Description: " << getDescription()
-#endif
       );
+#endif
       return;
    }
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Updating state event " << this
          << " with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream
          << " state is " << stateToString() << " but I should NEVER reach this point!"
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
    // This point should not be reached: an event should always be either pending or raised
 
    //fatal( "CUDA error detected while updating the state of an event: " + cudaGetErrorString( recorded ) );
@@ -95,13 +95,13 @@ inline GPUEvent::GPUEvent ( WD *wd, cudaStream_t stream, std::string desc ) : Ge
 inline GPUEvent::GPUEvent ( WD *wd, cudaStream_t stream ) : GenericEvent( wd ), _timesToQuery( 1 ), _cudaStream( stream )
 #endif
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Creating event " << this
          << " with wd = " << wd << " : " << ( ( wd != NULL ) ? wd->getId() : 0 )
          << " and stream " << (void *) stream
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << desc
-#endif
    );
+#endif
 
    //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::GPUUtils::NANOS_GPU_CUDA_EVENT_CREATE_EVENT );
    //cudaError_t err =
@@ -120,14 +120,14 @@ inline GPUEvent::GPUEvent ( WD *wd, ActionList next, cudaStream_t stream, std::s
 inline GPUEvent::GPUEvent ( WD *wd, ActionList next, cudaStream_t stream ) : GenericEvent( wd, next )
 #endif
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Creating event " << this
          << " with wd = " << wd << " : " << ( ( wd != NULL ) ? wd->getId() : 0 )
          << " and stream " << (void *) stream
          << " and " << next.size() << " elems in the queue "
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << desc
-#endif
    );
+#endif
 
    //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::GPUUtils::NANOS_GPU_CUDA_EVENT_CREATE_EVENT );
    //cudaError_t err =
@@ -142,13 +142,13 @@ inline GPUEvent::GPUEvent ( WD *wd, ActionList next, cudaStream_t stream ) : Gen
 
 inline GPUEvent::~GPUEvent()
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Destroying event " << this
          << " with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
 
    ensure ( _state == RAISED, "Error trying to destroy a non-raised event" );
 
@@ -163,14 +163,14 @@ inline GPUEvent::~GPUEvent()
 
 inline bool GPUEvent::isPending()
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Checking event " << this
          << " if pending with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream
          << " state is " << stateToString()
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
 
    // If the event is not pending, return false
    if ( _state != PENDING ) return false;
@@ -184,13 +184,13 @@ inline bool GPUEvent::isPending()
 
 inline void GPUEvent::setPending()
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Setting event " << this
          << " to pending with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream << " previous state was " << stateToString()
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
 
    //NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( ext::GPUUtils::NANOS_GPU_CUDA_EVENT_RECORD_EVENT );
    //cudaError_t err =
@@ -205,14 +205,14 @@ inline void GPUEvent::setPending()
 
 inline bool GPUEvent::isRaised()
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Checking event " << this
          << " if raised with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream
          << " state is " << stateToString()
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
 
    if ( _state == RAISED ) return true;
    if ( _state == COMPLETED ) return false;
@@ -227,14 +227,14 @@ inline bool GPUEvent::isRaised()
    // Otherwise, check again for the state of the event, just in case it has changed
    updateState();
 
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Checking event " << this
          << " if raised after updating state with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream
          << " state is " << stateToString()
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
 
    return _state == RAISED;
 }
@@ -242,14 +242,14 @@ inline bool GPUEvent::isRaised()
 
 inline void GPUEvent::setRaised()
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Setting event " << this
          << " to raised with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream
          << " previous state was " << stateToString()
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
 
    //fatal_cond( !isRaised(), "Error trying to set a CUDA event to RAISED: this operation is not allowed for CUDA events" );
 }
@@ -257,14 +257,14 @@ inline void GPUEvent::setRaised()
 
 inline void GPUEvent::waitForEvent()
 {
+#ifdef NANOS_GENERICEVENT_DEBUG
    debug( "[GPUEvt] Waiting for event " << this
          << " with wd = " << getWD() << " : " << ( ( getWD() != NULL ) ? getWD()->getId() : 0 )
          << " and stream " << (void *) _cudaStream
          << " state is " << stateToString()
-#ifdef NANOS_GENERICEVENT_DEBUG
          << ". Description: " << getDescription()
-#endif
    );
+#endif
 
    // Event's state must be pending or raised, otherwise it is an error
    ensure ( _state != CREATED, "Error trying to wait for a non-recorded event" );
