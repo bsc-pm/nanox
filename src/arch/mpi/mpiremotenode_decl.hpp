@@ -201,6 +201,7 @@ namespace nanos {
             static inline void callMPISpawn( 
                 MPI_Comm comm,
                 const int availableHosts,
+                const bool strict,
                 std::vector<std::string>& tokensParams,
                 std::vector<std::string>& tokensHost, 
                 std::vector<int>& hostInstances,

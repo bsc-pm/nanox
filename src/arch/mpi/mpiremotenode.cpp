@@ -445,7 +445,7 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
     MPI_Comm_size(comm,&mpiSize);  
     bool shared=(mpiSize>1);
     
-    callMPISpawn(comm, availableHosts, tokensParams, tokensHost, hostInstances, pph_list,
+    callMPISpawn(comm, availableHosts, strict, tokensParams, tokensHost, hostInstances, pph_list,
             process_per_host, shared,/* outputs*/ spawnedHosts, totalNumberOfSpawns, intercomm);
     if (provided!=NULL) *provided=totalNumberOfSpawns;
     
@@ -547,6 +547,7 @@ void MPIRemoteNode::buildHostLists(
 void MPIRemoteNode::callMPISpawn( 
     MPI_Comm comm,
     const int availableHosts,
+    const bool strict,
     std::vector<std::string>& tokensParams,
     std::vector<std::string>& tokensHost, 
     std::vector<int>& hostInstances,
@@ -613,6 +614,10 @@ void MPIRemoteNode::callMPISpawn(
                 currHostInstances=number_of_lines_in_file*currHostInstances;
             } else {            
                 MPI_Info_set(info, const_cast<char*> ("host"), const_cast<char*> (host.c_str()));
+            }
+            //In case the MPI implementation supports soft key...
+            if (!strict) {
+                MPI_Info_set(info, const_cast<char*> ("soft"), const_cast<char*> ("0:N"));
             }
             arrOfInfo[spawnedHosts]=info;
             hostfile.close();
@@ -927,7 +932,13 @@ void MPIRemoteNode::nanosSyncDevPointers(int* file_mask, unsigned int* file_name
         int arr_size;
         for ( arr_size=0;file_mask[arr_size]==MASK_TASK_NUMBER;arr_size++ ){};
         unsigned int total_size=0;
-        for ( int k=0;k<arr_size;k++ ) total_size+=task_per_file[k];
+        for ( int k=0;k<arr_size;k++ ) {
+           //Files which have 0 tasks, may add a NULL to the pointer array
+           //if this is the case their number of tasks for reordering purposes is 1
+           if (task_per_file[k]==0 &&  ((void*) *ompss_mpi_func_ptrs_dev+total_size)==NULL ) task_per_file[k]=1;
+           total_size+=task_per_file[k];
+        }
+
         size_t filled_arr_size=0;
         unsigned int* host_file_size=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);
         unsigned int* host_file_namehash=(unsigned int*) malloc(sizeof(unsigned int)*arr_size);

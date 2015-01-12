@@ -64,11 +64,13 @@ namespace nanos {
             bool _owner; //if we are the owner (process in charge of freeing the remote process)
             bool _shared; //if more processes also have access to this PE
             bool _hasWorkerThread;
+
             Atomic<bool> _busy;
             WorkDescriptor* _currExecutingWd;
             int _currExecutingDD;
             std::list<MPI_Request> _pendingReqs;
             MPI_Comm _commOfParents;
+
             SMPProcessor* _core;
             Lock _peLock;
             
