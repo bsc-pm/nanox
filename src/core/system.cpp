@@ -1395,8 +1395,6 @@ void System::environmentSummary( void )
 
    message0( "========== Nanos++ Initial Environment Summary ==========" );
    message0( "=== PID:                 " << getpid() );
-   //message0( "=== Num. SMP threads:        " << _smpPlugin->getNumThreads() );
-   //message0( "=== Num. SMP worker threads: " << _smpPlugin->getNumWorkers() );
    message0( "=== Num. worker threads: " << _workers.size() );
    message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
    message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
@@ -1406,7 +1404,6 @@ void System::environmentSummary( void )
         it != _archs.end(); ++it ) {
       message0( "=== Plugin:              " << (*it)->getName() );
       message0( "===  | PEs:              " << (*it)->getNumPEs() );
-      message0( "===  | Threads:          " << (*it)->getNumThreads() );
       message0( "===  | Worker Threads:   " << (*it)->getNumWorkers() );
    }
 

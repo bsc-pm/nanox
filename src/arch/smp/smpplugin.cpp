@@ -260,10 +260,6 @@ class SMPPlugin : public SMPBasePlugin
          std::cerr << "]" << std::endl;
       }
 #endif /* NANOS_DEBUG_ENABLED */
-
-      /* reserve it for main thread */
-      getFirstSMPProcessor()->reserve();
-      getFirstSMPProcessor()->setNumFutureThreads( 1 );
    }
 
    virtual unsigned int getEstimatedNumThreads() const
@@ -281,7 +277,7 @@ class SMPPlugin : public SMPBasePlugin
        *
        * The number of smp workers is computed with this:
        * if a certain number of workers was requested:
-       *    max of "the number of active non-reserved CPUs" and requested workers
+       *    "the number of requested workers"
        * else
        *    "the number of active non-reserved CPUs"
        *
@@ -298,7 +294,7 @@ class SMPPlugin : public SMPBasePlugin
       }
 
       if ( _requestedWorkers > 0 ) {
-         count = std::max( ( _requestedWorkers - 1 /* main thd is already reserved */), active_cpus - reserved_cpus );
+         count = _requestedWorkers;
       } else {
          count = active_cpus - reserved_cpus;
       }
@@ -338,7 +334,6 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers )
    {
-      //associateThisThread( sys.getUntieMaster() );
       ensure( _workers.size() == 1, "Main thread should be the only worker created so far." );
       workers.insert( std::make_pair( _workers[0]->getId(), _workers[0] ) );
       //create as much workers as possible
@@ -349,19 +344,19 @@ class SMPPlugin : public SMPBasePlugin
          active_cpus += (*it)->isActive();
       }
 
-      unsigned int max_thds_per_cpu = 0;
       int max_workers = 0;
+      bool ignore_reserved_cpus = false;
 
       if ( available_cpus+1 >= _requestedWorkers ) {
          /* we have plenty of cpus to create requested threads or the user
           * did not request a specific amount of workers
           */
          max_workers = ( _requestedWorkers == -1 ) ? available_cpus + 1 : _requestedWorkers;
-         max_thds_per_cpu = 1;
       } else {
          /* more workers than cpus available have been requested */
          max_workers = _requestedWorkers;
-         max_thds_per_cpu = std::ceil( _requestedWorkers / static_cast<float>( active_cpus ) );
+         ignore_reserved_cpus = true;
+         warning0( "You have explicitly requested more SMP workers than available CPUs" );
       }
 
       int current_workers = 1;
@@ -369,7 +364,7 @@ class SMPPlugin : public SMPBasePlugin
       while ( current_workers < max_workers ) {
          idx = idx % _cpus->size();
          SMPProcessor *cpu = (*_cpus)[idx];
-         if ( cpu->getNumThreads() < max_thds_per_cpu && cpu->isActive() ) {
+         if ( cpu->isActive() && (!cpu->isReserved() || ignore_reserved_cpus) ) {
             BaseThread *thd = &cpu->startWorker();
             _workers.push_back( (SMPThread *) thd );
             workers.insert( std::make_pair( thd->getId(), thd ) );
@@ -780,7 +775,7 @@ class SMPPlugin : public SMPBasePlugin
 
 
       if ( _requestedWorkers > 0 ) {
-         count = std::min( _requestedWorkers, active_cpus - reserved_cpus );
+         count = _requestedWorkers;
       } else {
          count = active_cpus - reserved_cpus;
       }
@@ -882,7 +877,7 @@ private:
             if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
 
                /* Create a new worker if the target PE is empty */
-               if ( target->getNumThreads() == 0 && !target->isReserved() ) {
+               if ( target->getNumThreads() == 0 ) {
                   createWorker( target, workers );
                }
 
@@ -899,9 +894,6 @@ private:
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
             if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
-               if ( !target->isReserved() ) {
-                  target->reserve();
-               }
                if ( !target->isActive() ) {
                   target->setActive();
                }
@@ -913,7 +905,6 @@ private:
    void createWorker( ext::SMPProcessor *target, std::map<unsigned int, BaseThread *> &workers )
    {
       NANOS_INSTRUMENT( sys.getInstrumentation()->incrementMaxThreads(); )
-      target->reserve();
       if ( !target->isActive() ) {
          target->setActive();
       }

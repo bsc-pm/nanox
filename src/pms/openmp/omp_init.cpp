@@ -81,7 +81,7 @@ namespace nanos
          icvs.setSchedule(LoopSchedule(omp_sched_static));
 
          int requested_workers = sys.getSMPPlugin()->getRequestedWorkers();
-         int max_workers = sys.getSMPPlugin()->getMaxWorkers();
+         int max_workers = sys.getSMPPlugin()->getNumWorkers();
 
          if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
             warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "
@@ -269,7 +269,7 @@ namespace nanos
          TaskICVs & icvs = globalState->getICVs();
 
          int requested_workers = sys.getSMPPlugin()->getRequestedWorkers();
-         int max_workers = sys.getSMPPlugin()->getMaxWorkers();
+         int max_workers = sys.getSMPPlugin()->getNumWorkers();
 
          if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
             warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "

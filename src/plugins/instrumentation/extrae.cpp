@@ -96,6 +96,7 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
       std::string                                    _binFileName;           /*<< Binnary file name */
       int                                            _maxThreads;
+      Lock                                           _lock;
    public:
       static std::string                             _traceBaseName;
       // constructor
@@ -589,7 +590,11 @@ class InstrumentationExtrae: public Instrumentation
 
       void incrementMaxThreads( void )
       {
+         // Extrae_change_num_threads involves memory allocation and file creation,
+         // thus the function call must be lock-protected
+         _lock.acquire();
          Extrae_change_num_threads( ++_maxThreads );
+         _lock.release();
       }
 
 #endif
