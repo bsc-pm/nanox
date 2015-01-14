@@ -2,12 +2,15 @@
 #include <stdint.h>
 #include <string>
 #include "atomic.hpp"
+#include <tr1/unordered_map>
 
 #define HASH_SIZE 655
 
 namespace nanos {
 
     class Node;
+
+    int used_edge_types[5] = {0, 0, 0, 0, 0};
     
     enum DependencyType {
         Null,
@@ -234,6 +237,28 @@ namespace nanos {
                 target->_entry_lock.acquire();
                 target->_entry_edges.push_back( new_edge );
                 target->_entry_lock.release();
+
+                // store the edge type as used
+                switch (kind)
+                {
+                    case Nesting :          used_edge_types[3] = 1; break;
+                    case Synchronization :  used_edge_types[0] = 1; break;
+                    case Dependency :       {
+                                                switch (dep_type)
+                                                {
+                                                    case True:      used_edge_types[0] = 1; break;
+                                                    case Anti:      used_edge_types[1] = 1; break;
+                                                    case Output:    used_edge_types[2] = 1; break;
+                                                    default:        break;
+                                                };
+                                                break;
+                                            };
+                    default:                break;
+                };
+                if (source->is_critical() && target->is_critical())
+                {
+                    used_edge_types[4] = 1;
+                }
             }
             source->_exit_lock.release();
         }
@@ -333,9 +358,9 @@ namespace nanos {
         "grey22", "grey23", "grey24", "grey25", "grey26",
         "grey27", "grey28", "grey29", "grey3", "grey30",
         "grey31", "grey32", "grey33", "grey34", "grey35",
-        "grey36", "grey37", "grey38  grey39", "grey4",
-        "grey40", "grey41", "grey42  grey43", "grey44",
-        "grey45", "grey46", "grey47  grey48", "grey49",
+        "grey36", "grey37", "grey38", "grey39", "grey4",
+        "grey40", "grey41", "grey42", "grey43", "grey44",
+        "grey45", "grey46", "grey47", "grey48", "grey49",
         "grey5", "grey50", "grey51", "grey52", "grey53",
         "grey54", "grey55", "grey56", "grey57", "grey58",
         "grey59", "grey6", "grey60", "grey61", "grey62",
@@ -409,8 +434,9 @@ namespace nanos {
         "yellow1", "yellow2", "yellow3", "yellow4", "yellowgreen"
     };
 
-    inline std::string &wd_to_color_hash( int64_t wd_id )
+    inline std::string &wd_to_color_hash(std::string description)
     {
-        return node_colors[ wd_id % HASH_SIZE ];
+        std::tr1::hash<std::string> hash_fn;
+        return node_colors[ hash_fn(description) % HASH_SIZE ];
     }
 }

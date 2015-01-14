@@ -343,10 +343,11 @@ class InstrumentationExtrae: public Instrumentation
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   // Parsing event description
                   std::string description = iD->getValueDescription( kD->getId(), (itV->second)->getId() );
-                  int pos1 = description.find_first_of("@");
-                  int pos2 = description.find_first_of("@",pos1+1);
-                  int length = description.size();
-                  int  line = atoi ( (description.substr(pos2+1, length)).c_str());
+                  size_t pos1 = description.find_first_of("@");
+                  size_t pos2 = description.find_first_of("@",pos1+1);
+                  size_t pos3 = description.find_first_of("@",pos2+1);
+                  pos3 = (pos3 == std::string::npos ? description.length() : pos3-1);
+                  int  line = atoi ( (description.substr(pos2+1, pos3)).c_str());
                   Extrae_register_function_address ( 
                      (void *) (itV->second)->getId(),
                      (char *) description.substr(0,pos1).c_str(),
