@@ -76,7 +76,7 @@ performance_LTLIBRARIES =
 
 install-data-hook:	
 
-	echo -n ${nanos_debug_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/test_flags
+	echo -n ${nanos_perfo_cxxflags} | sed "s@${top_srcdir}@${prefix}@g" > $(DESTDIR)$(mpiincludedir)/test_flags
 	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir}" >> $(DESTDIR)$(mpiincludedir)/test_flags
 	echo $(CXX) > $(DESTDIR)$(mpiincludedir)/nanox_compiler
 if DEBUG_VERSION
