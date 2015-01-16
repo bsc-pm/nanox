@@ -139,6 +139,7 @@ void BaseAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int
 }
 
 void BaseAddressSpaceInOps::issue( WD const &wd ) {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE); );
    for ( MapType::iterator it = _separateTransfers.begin(); it != _separateTransfers.end(); it++ ) {
      sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* regions */, wd );
    }
@@ -285,6 +286,7 @@ void SeparateAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned
 }
 
 void SeparateAddressSpaceInOps::issue( WD const &wd ) {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE); );
    for ( MapType::iterator it = _separateTransfers.begin(); it != _separateTransfers.end(); it++ ) {
       _destination.copy( *(it->first) /* mem space */, it->second /* list of regions */, wd );
    }
@@ -333,6 +335,7 @@ void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global
 }
 
 void SeparateAddressSpaceOutOps::issue( WD const &wd ) {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE); );
    for ( MapType::iterator it = _transfers.begin(); it != _transfers.end(); it++ ) {
      sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* region */, wd, _invalidation );
    }

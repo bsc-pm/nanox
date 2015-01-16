@@ -30,7 +30,7 @@
 #include "processingelement.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
-#include "dlb.hpp"
+#include "resourcemanager.hpp"
 #include <assert.h>
 #include <string.h>
 #include <signal.h>
@@ -433,8 +433,6 @@ void System::start ()
       (*it)->addPEs( _pes );
       (*it)->addDevices( _devices );
    }
-
-   
    
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       _clusterNodes.insert( it->second->getClusterNode() );
@@ -530,9 +528,7 @@ void System::start ()
    myThread->setupSignalHandlers();
 #endif
 
-   if ( getSynchronizedStart() )
-      threadReady();
-
+   if ( getSynchronizedStart() ) threadReady();
 
    switch ( getInitialMode() )
    {
@@ -549,10 +545,7 @@ void System::start ()
          break;
    }
 
-   if ( usingCluster() )
-   {
-      _net.nodeBarrier();
-   }
+   if ( usingCluster() ) _net.nodeBarrier();
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
@@ -576,8 +569,9 @@ void System::start ()
       warning( "Unrecognised arguments: " << unrecog );
    Config::deleteOrphanOptions();
       
-   if ( _summary )
-      environmentSummary();
+   if ( _summary ) environmentSummary();
+
+   ResourceManager::init();
 }
 
 System::~System ()
@@ -587,7 +581,9 @@ System::~System ()
 
 void System::finish ()
 {
-   //! \note Instrumentation: first removing RUNNING state from top of the state statck
+   ResourceManager::finalize();
+
+   //! \note Instrumentation: first removing RUNNING state from top of the state stack
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
@@ -598,12 +594,20 @@ void System::finish ()
    myThread->getCurrentWD()->waitCompletion( true );
 
    //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
-   if ( _workers[0]->isSleeping() ) _workers[0]->wakeup();
+   if ( _workers[0]->isSleeping() ) {
+      if ( !_workers[0]->hasTeam() ) {
+         acquireWorker( myThread->getTeam(), _workers[0], true, false, false );
+      }
+      _workers[0]->wakeup();
+   }
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    myThread->getTeam()->getSchedulePolicy().atShutdown();
    
-   ensure( getMyThreadSafe()->isMainThread(), "Main thread not finishing the application!");
+   ensure( getMyThreadSafe()->isMainThread(), "Main thread is not finishing the application!");
+
+   ThreadTeam* team = getMyThreadSafe()->getTeam();
+   while ( !(team->isStable()) ) memoryFence();
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
@@ -611,6 +615,7 @@ void System::finish ()
       it->second->stopAllThreads();
    }
    verbose ( "...thread has been joined" );
+
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
@@ -653,6 +658,9 @@ void System::finish ()
       sys.getNetwork()->nodeBarrier();
    }
 
+   //! \note Master leaves team and finalizes thread structures (before insrumentation ends)
+   _workers[0]->finish();
+
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
@@ -678,14 +686,9 @@ void System::finish ()
    }
    
    //! \note  printing thread team statistics and deleting it
-   ThreadTeam* team = getMyThreadSafe()->getTeam();
-
    if ( team->getScheduleData() != NULL ) team->getScheduleData()->printStats();
 
-   myThread->leaveTeam();
-
    ensure(team->size() == 0, "Trying to finish execution, but team is still not empty");
-
    delete team;
 
    //! \note deleting processing elements (but main pe)
@@ -915,8 +918,12 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    
    /* DLB */
    // In case the master have been busy crating tasks 
-   // every 10 tasks created I'll check available cpus
-   if(_atomicWDSeed.value()%10==0)dlb_updateAvailableCpus();
+   // every 10 tasks created I'll check if I must return claimed cpus
+   // or there are available cpus idle
+   if(_atomicWDSeed.value()%10==0){
+      ResourceManager::returnClaimedCpus();
+      ResourceManager::acquireResourcesIfNeeded();
+   }
 
    if (_createLocalTasks) {
       wd->tieToLocation( 0 );
@@ -1173,7 +1180,7 @@ BaseThread * System::getUnassignedWorker ( void )
       if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
          // skip if the thread is not in the mask
-         if ( _smpPlugin->getBinding() && !CPU_ISSET( thread->getCpuId(), &_smpPlugin->getActiveSet() ) ) {
+         if ( _smpPlugin->getBinding() && !CPU_ISSET( thread->getCpuId(), &_smpPlugin->getCpuActiveMask() ) ) {
             continue;
          }
 
@@ -1195,6 +1202,53 @@ BaseThread * System::getUnassignedWorker ( void )
 
    return NULL;
 }
+
+#if 0
+BaseThread * System::getInactiveWorker ( void )
+{
+   BaseThread *thread;
+
+   for ( unsigned i = 0; i < _workers.size(); i++ ) {
+      thread = _workers[i];
+      if ( !thread->hasTeam() && thread->isWaiting() ) {
+         // recheck availability with exclusive access
+         thread->lock();
+         if ( thread->hasTeam() || !thread->isWaiting() ) {
+            // we lost it
+            thread->unlock();
+            continue;
+         }
+         thread->reserve(); // set team flag only
+         thread->wakeup();
+         thread->unlock();
+
+         return thread;
+      }
+   }
+   return NULL;
+}
+
+
+BaseThread * System::getAssignedWorker ( ThreadTeam *team )
+{
+   BaseThread *thread;
+
+   ThreadList::reverse_iterator rit;
+   for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
+      thread = *rit;
+      thread->lock();
+      //! \note Checking thread availabitity.
+      if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
+         thread->unlock();
+         return thread;
+      }
+      thread->unlock();
+   }
+
+   //! \note If no thread has found, return NULL.
+   return NULL;
+}
+#endif
 
 BaseThread * System::getWorker ( unsigned int n )
 {
@@ -1229,19 +1283,6 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    else thread->setNextTeamData( data );
 
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
-}
-
-void System::releaseWorker ( BaseThread * thread )
-{
-   ensure( myThread == thread, "Calling release worker from other thread context" );
-
-   //! \todo Destroy if too many?
-   debug("Releasing thread " << thread << " from team " << thread->getTeam() );
-
-   thread->lock();
-   thread->sleep();
-   thread->unlock();
-
 }
 
 int System::getNumWorkers( DeviceData *arch )
@@ -1297,7 +1338,10 @@ void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
 
-   dlb_returnCpusIfNeeded();
+   /* For OpenMP applications
+      At the end of the parallel return the claimed cpus
+   */
+   ResourceManager::returnClaimedCpus();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
@@ -1332,21 +1376,8 @@ void System::addPEsAndThreadsToTeam(PE **pes, int num_pes, BaseThread** threads,
     }
 }
 
-void System::admitCurrentThread ( bool isWorker )
-{
-   _smpPlugin->admitCurrentThread( _workers, isWorker );
-}
-
-void System::expelCurrentThread ( bool isWorker )
-{
-   _smpPlugin->expelCurrentThread( _workers, isWorker );
-}
-
 void System::environmentSummary( void )
 {
-   std::ostringstream mask;
-   _smpPlugin->getBindingMaskString( mask );
-
    /* Get Prog. Model string */
    std::string prog_model;
    switch ( getInitialMode() )
@@ -1364,10 +1395,8 @@ void System::environmentSummary( void )
 
    message0( "========== Nanos++ Initial Environment Summary ==========" );
    message0( "=== PID:                 " << getpid() );
-   //message0( "=== Num. SMP threads:        " << _smpPlugin->getNumThreads() );
-   //message0( "=== Num. SMP worker threads: " << _smpPlugin->getNumWorkers() );
    message0( "=== Num. worker threads: " << _workers.size() );
-   message0( "=== System CPUs:         " << mask.str() );
+   message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
    message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
    message0( "=== Prog. Model:         " << prog_model );
 
@@ -1375,9 +1404,10 @@ void System::environmentSummary( void )
         it != _archs.end(); ++it ) {
       message0( "=== Plugin:              " << (*it)->getName() );
       message0( "===  | PEs:              " << (*it)->getNumPEs() );
-      message0( "===  | Threads:          " << (*it)->getNumThreads() );
       message0( "===  | Worker Threads:   " << (*it)->getNumWorkers() );
    }
+
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->getInstrumentationDictionary()->printEventVerbosity(); )
 
    message0( "=========================================================" );
 

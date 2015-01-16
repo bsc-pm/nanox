@@ -61,21 +61,22 @@ WDDeque &BaseThread::getNextWDQueue() {
    return _nextWDs;
 }
 
-void BaseThread::associate ()
+void BaseThread::associate ( WD *wd )
 {
+   WD * current = wd? wd:&_threadWD;
    _status.has_started = true;
 
    myThread = this;
-   setCurrentWD( _threadWD );
+   setCurrentWD( *current );
 
    if ( sys.getSMPPlugin()->getBinding() ) bind();
 
-   _threadWD._mcontrol.preInit();
-   _threadWD._mcontrol.initialize( *runningOn() );
-   _threadWD.init();
-   _threadWD.start(WD::IsNotAUserLevelThread);
+   current->_mcontrol.preInit();
+   current->_mcontrol.initialize( *runningOn() );
+   current->init();
+   current->start(WD::IsNotAUserLevelThread);
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, current, false); )
 }
 
 bool BaseThread::singleGuard ()
@@ -125,6 +126,7 @@ int BaseThread::getCpuId() const {
    return _parent->getCpuId();
 }
 
+#if 0
 bool BaseThread::tryWakeUp() {
    bool result = false;
    if ( !this->hasTeam() && this->isWaiting() ) {
@@ -142,6 +144,52 @@ bool BaseThread::tryWakeUp() {
       }
    }
    return result;
+}
+#endif
+
+void BaseThread::tryWakeUp( ThreadTeam *team )
+{
+   // Make sure thread is waiting, tagged to sleep, or teamless
+   if ( this->isWaiting() || this->isSleeping() || !this->hasTeam() ) {
+      this->lock();
+      // Thread has been already told to wake up, and it is ready. Skipping
+      if ( this->isWaiting() && !this->isSleeping() ) {
+         ensure( this->getTeam(), "A ready thread has not a valid team" );
+         ensure( this->hasTeam(), "A ready thread has not been flagged" );
+      }
+      // Thread was ready to wake up and then flagged to sleep, but it was unable to set the
+      // right flags because of the lock
+      else if ( this->isWaiting() && this->hasTeam() ) {
+         ensure( this->getTeam(), "A ready thread has not a valid team(2)" );
+         team->increaseFinalSize();
+         this->wakeup();
+      }
+      // Thread is already waiting
+      else if ( this->isWaiting() ) {
+         ensure( !this->getTeam(), "A waiting thread has already a valid team" );
+         this->reserve();
+         sys.acquireWorker( team, this, true, false, false );
+         team->increaseFinalSize();
+         this->wakeup();
+      }
+      // Thread is only tagged to sleep
+      else if ( this->isSleeping() ) {
+         ensure( this->getTeam(), "A just tagged thread has not a valid team" );
+         ensure( this->hasTeam(), "A just tagged thread has not a team flag" );
+         team->increaseFinalSize();
+         this->wakeup();
+      }
+      // Thread is just orhpan
+      else if ( !this->hasTeam() ) {
+         this->reserve();
+         sys.acquireWorker( team, this, true, false, false );
+         team->increaseFinalSize();
+      }
+      // Thread was waken up while acquiring the lock. Skipping
+      else {
+      }
+      this->unlock();
+   }
 }
 
 unsigned int BaseThread::getOsId() const {

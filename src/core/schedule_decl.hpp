@@ -321,6 +321,17 @@ namespace nanos
          {
             return true;
          }
+
+         /*! \brief Returns the number of ready tasks that could be run simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         virtual int getPotentiallyParallelWDs( void );
+
+         /*! \brief Returns if the scheduler needs WD run time */
+         virtual bool isCheckingWDRunTime()
+         {
+            return false;
+         }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */

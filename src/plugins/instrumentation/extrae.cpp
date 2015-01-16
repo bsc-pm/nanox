@@ -96,6 +96,7 @@ class InstrumentationExtrae: public Instrumentation
       std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
       std::string                                    _binFileName;           /*<< Binnary file name */
       int                                            _maxThreads;
+      Lock                                           _lock;
    public:
       static std::string                             _traceBaseName;
       // constructor
@@ -284,7 +285,7 @@ class InstrumentationExtrae: public Instrumentation
         }
 
         /* Keep current number of threads */
-        _maxThreads = sys.getSMPPlugin()->getNumPEs();
+        _maxThreads = sys.getSMPPlugin()->getNumThreads();
       }
       void doLs(std::string dest)
       {
@@ -334,6 +335,7 @@ class InstrumentationExtrae: public Instrumentation
 
          for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
             InstrumentationKeyDescriptor *kD = itK->second;
+            if ( kD->getId() == 0 ) continue;
             extrae_type_t type = _eventBase+kD->getId(); 
             char *type_desc = ( char *) alloca(sizeof(char) * (kD->getDescription().size() + 1) );
             strncpy ( type_desc, kD->getDescription().c_str(), kD->getDescription().size()+1 );
@@ -342,10 +344,11 @@ class InstrumentationExtrae: public Instrumentation
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   // Parsing event description
                   std::string description = iD->getValueDescription( kD->getId(), (itV->second)->getId() );
-                  int pos1 = description.find_first_of("@");
-                  int pos2 = description.find_first_of("@",pos1+1);
-                  int length = description.size();
-                  int  line = atoi ( (description.substr(pos2+1, length)).c_str());
+                  size_t pos1 = description.find_first_of("@");
+                  size_t pos2 = description.find_first_of("@",pos1+1);
+                  size_t pos3 = description.find_first_of("@",pos2+1);
+                  pos3 = (pos3 == std::string::npos ? description.length() : pos3-1);
+                  int  line = atoi ( (description.substr(pos2+1, pos3)).c_str());
                   Extrae_register_function_address ( 
                      (void *) (itV->second)->getId(),
                      (char *) description.substr(0,pos1).c_str(),
@@ -355,8 +358,6 @@ class InstrumentationExtrae: public Instrumentation
                }
             } else if (kD->getId() == usr_functName ) {
                // DO Nothing
-            } else if (kD->getId() == 0 ) {
-               // This event is disabled (key id not assigned): do nothing
             } else {
                extrae_value_t *values = (extrae_value_t *) alloca(sizeof(extrae_value_t) * nval);
                char **val_desc = (char **) alloca(sizeof(char *) * nval);
@@ -381,9 +382,8 @@ class InstrumentationExtrae: public Instrumentation
             static std::string nanos_event_state_value_str[] = {"NOT CREATED", "NOT RUNNING", 
                "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
                "RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION",
-               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
-               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
-               "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH", "DEBUG"};
+               "DATA TRANSFER ISSUE", "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH",
+               "FILL COLOR", "WAKING UP", "STOPPED" , "DEBUG"};
 
             for ( i = 0; i < (nval - 1); i++ ) { // Do not show the DEBUG state
                values[i] = i;
@@ -417,6 +417,8 @@ class InstrumentationExtrae: public Instrumentation
       {
          extrae_combined_events_t ce;
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+         bool _stateEnabled = sys.getInstrumentation()->isStateEnabled();
+         bool _ptpEnabled = sys.getInstrumentation()->isPtPEnabled();
 
          ce.HardwareCounters = 0;
          ce.Callers = 0;
@@ -427,20 +429,25 @@ class InstrumentationExtrae: public Instrumentation
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
-            switch ( e.getType() ) {
+            nanos_event_type_t type = e.getType();
+            nanos_event_key_t key = e.getKey();
+            switch ( type ) {
                case NANOS_STATE_START:
                case NANOS_STATE_END:
                case NANOS_SUBSTATE_START:
                case NANOS_SUBSTATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.nEvents++;
                   break;
                case NANOS_PTP_START:
                case NANOS_PTP_END:
+                  if ( !_ptpEnabled ) continue;
                   ce.nCommunications++;
                   break;
                case NANOS_POINT:
                case NANOS_BURST_START:
                case NANOS_BURST_END:
+                  if ( key == 0 ) continue;
                   ce.nEvents++;
                   break;
                default: break;
@@ -462,31 +469,37 @@ class InstrumentationExtrae: public Instrumentation
             unsigned int type = e.getType();
             switch ( type ) {
                case NANOS_STATE_START:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = e.getState();
                   break;
                case NANOS_STATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = 0;
                   break;
                case NANOS_SUBSTATE_START:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = e.getState();
                   break;
                case NANOS_SUBSTATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = 0;
                   break;
                case NANOS_PTP_START:
                case NANOS_PTP_END:
+                  if ( !_ptpEnabled ) continue;
                   /* Creating PtP event */
+                  ckey = e.getKey();
+
                   if ( type == NANOS_PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
 
-                  ckey = e.getKey();
-                  if ( ckey == sizeKey ) ce.Communications[k].size = e.getValue();
+                  if ( ckey != 0 && ckey == sizeKey ) ce.Communications[k].size = e.getValue();
                   else ce.Communications[k].size = e.getId();
 
                   if ( e.getPartner() == NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {
@@ -506,7 +519,7 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Values[j++] = cvalue;
                   }
                   // Add hwc only for user-funct events
-                  if ( ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                  if ( ckey != 0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
                      ce.HardwareCounters = 1;
                   break;
                case NANOS_BURST_END:
@@ -515,7 +528,7 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = 0; // end
                   }
-                  if ( ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                  if ( ckey !=0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
                      ce.HardwareCounters = 1;
                   break;
                default: break;
@@ -545,6 +558,21 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
+         if ( ce.nEvents == 0 && ce.nCommunications == 0 ) return;
+
+//FIXME: to remove when closing #1034
+#if 0
+         fprintf(stderr,"\nEvents: ");
+         for ( extrae_size_t jj = 0; jj < ce.nEvents; jj++ )
+           fprintf(stderr,"%d, ", (int)ce.Types[jj]);
+         fprintf(stderr,"\n");
+
+         fprintf(stderr,"\nCommunications: ");
+         for ( extrae_size_t jj = 0; jj < ce.nCommunications; jj++ )
+           fprintf(stderr,"%d, ", (int) ce.Communications[jj].type);
+         fprintf(stderr,"\n");
+#endif
+
          Extrae_emit_CombinedEvents ( &ce );
       }
       void addResumeTask( WorkDescriptor &w )
@@ -562,7 +590,11 @@ class InstrumentationExtrae: public Instrumentation
 
       void incrementMaxThreads( void )
       {
+         // Extrae_change_num_threads involves memory allocation and file creation,
+         // thus the function call must be lock-protected
+         _lock.acquire();
          Extrae_change_num_threads( ++_maxThreads );
+         _lock.release();
       }
 
 #endif

@@ -35,8 +35,8 @@ namespace nanos {
 
               TeamData () : ScheduleTeamData(), _readyQueue( NULL )
               {
-                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* optimise option */ );
-                else _readyQueue = NEW WDDeque( /* enableDeviceCounter */ true );
+                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* enableDeviceCounter */, true /* optimise option */ );
+                else _readyQueue = NEW WDDeque( true /* enableDeviceCounter */ );
               }
               ~TeamData () { delete _readyQueue; }
            };
@@ -187,6 +187,18 @@ namespace nanos {
                   return q? q->reorderWD( wd ) : true;
                } else {
                   return true;
+               }
+            }
+
+            int getPotentiallyParallelWDs( void )
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               if ( _usePriority || _useSmartPriority ) {
+                  WDPriorityQueue<> &q = (WDPriorityQueue<> &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
+               } else {
+                  WDDeque &q = (WDDeque &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
                }
             }
       };

@@ -177,6 +177,11 @@ inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t num
    }
 }
 
+inline int SchedulePolicy::getPotentiallyParallelWDs ( void )
+{
+   return sys.getReadyNum();
+}
+
 inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )
 {
    _obj.successorFound( predecessor, successor );

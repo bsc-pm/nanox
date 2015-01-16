@@ -291,9 +291,9 @@ public:
         return _cache.getConstAllocator();
     }
     
-    BaseThread * getActiveThread()
+    BaseThread * getFirstThread()
     {
-       return _core->getActiveThread();
+       return _core->getFirstThread();
     }
 
 

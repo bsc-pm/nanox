@@ -33,3 +33,4 @@ void WDDeque::initDeviceList()
       _ndevs.insert( std::make_pair( dev, num ) );
    }
 }
+

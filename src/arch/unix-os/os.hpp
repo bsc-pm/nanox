@@ -30,7 +30,6 @@
 #include <dlfcn.h>
 #include <time.h>
 #include <sched.h>
-#include <pthread.h>
 #include "nanos-int.h"
 
 namespace nanos
@@ -90,8 +89,9 @@ namespace nanos
          static InitList   *_initList;
          static InitList   *_postInitList;
          static ModuleList *_moduleList;
+         static cpu_set_t  _systemMask;
          static cpu_set_t  _processMask;
-      public:         
+      public:
 
          static void init ();
 
@@ -118,8 +118,8 @@ namespace nanos
          static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
          static const ModuleList & getRequestedModules () { return *_moduleList; }
 
+         static void getSystemAffinity( cpu_set_t *cpu_set );
          static void getProcessAffinity( cpu_set_t *cpu_set );
-         static void bindThread( pthread_t pth, cpu_set_t *cpu_set );
 
          static int getMaxProcessors ( void );
 

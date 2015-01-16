@@ -219,19 +219,6 @@ namespace nanos
          void loadModules();
          void unloadModules();
 
-         /*!
-          * \brief Updates team members so that it matches with system's _cpu_active_set
-          */
-         void applyCpuMask();
-
-         /*!
-          * \brief Processes the system's _cpu_active_set for later update the threads
-          *
-          * Depending on the system binding configuration, this function will update _bindings to be able
-          * later to create new PE's or just update the raw number of threads if binding is disabled
-          */
-         void processCpuMask( void );
-         
          Atomic<int> _atomicSeedWg;
          Atomic<unsigned int> _affinityFailureCount;
          bool                      _createLocalTasks;
@@ -299,12 +286,6 @@ namespace nanos
           */
          DeviceList & getSupportedDevices();
 
-         /*!
-          * \brief Add mas to the current system's _cpu_active_set
-          * \param[in] mask
-          */
-         void addCpuMask ( const cpu_set_t *mask );
-
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
@@ -357,7 +338,7 @@ namespace nanos
          bool isSummaryEnabled() const;
          
          /*!
-          * \brief Returns whether DLB is enabled or not
+          * \brief Returns whether DLB is enabled
           */
          bool dlbEnabled() const;
 
@@ -373,16 +354,6 @@ namespace nanos
          BaseThread * getUnassignedWorker ( void );
 
          /*!
-          * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
-          */
-         //BaseThread * getAssignedWorker ( ThreadTeam *team );
-
-         /*!
-          * \brief Returns, if any, the worker thread is inactive
-          */
-         //BaseThread * getInactiveWorker ( void );
-  
-         /*!
           * \brief Returns a new team of threads 
           * \param[in] nthreads Number of threads in the team.
           * \param[in] constraints This parameter is not used.
@@ -396,16 +367,56 @@ namespace nanos
          void endTeam ( ThreadTeam *team );
 
          /*!
-          * \brief Releases a worker thread from its team
-          * \param[in,out] thread
-          */
-         void releaseWorker ( BaseThread * thread );
-
-         /*!
           * \brief Updates the number of active worker threads and adds them to the main team
           * \param[in] nthreads
           */
          void updateActiveWorkers ( int nthreads );
+
+         /*!
+          * \brief Get the process mask of active CPUs by reference
+          */
+         const cpu_set_t& getCpuProcessMask () const;
+
+         /*!
+          * \brief Get the process mask of active CPUs
+          * \param[out] mask
+          */
+         void getCpuProcessMask ( cpu_set_t *mask ) const;
+
+         /*!
+          * \brief Set the process mask
+          * \param[in] mask
+          */
+         void setCpuProcessMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current process mask
+          * \param[in] mask
+          */
+         void addCpuProcessMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Get the current mask of active CPUs by reference
+          */
+         const cpu_set_t& getCpuActiveMask () const;
+
+         /*!
+          * \brief Get the current mask of active CPUs
+          * \param[out] mask
+          */
+         void getCpuActiveMask ( cpu_set_t *mask ) const;
+
+         /*!
+          * \brief Set the mask of active CPUs
+          * \param[in] mask
+          */
+         void setCpuActiveMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current mask of active CPUs
+          * \param[in] mask
+          */
+         void addCpuActiveMask ( const cpu_set_t *mask );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

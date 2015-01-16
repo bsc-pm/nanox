@@ -147,17 +147,19 @@ namespace nanos
          const NewNewRegionDirectory & operator= ( const NewNewRegionDirectory &dir );
 
          GlobalRegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd );
-         GlobalRegionDictionary *getRegionDictionary( CopyData const &cd ) const;
-         GlobalRegionDictionary *getRegionDictionary( uint64_t addr ) const;
+         GlobalRegionDictionary *getRegionDictionary( CopyData const &cd );
+         GlobalRegionDictionary *getRegionDictionary( uint64_t addr );
          static void addSubRegion( GlobalRegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert );
          uint64_t _getKey( uint64_t addr, std::size_t len );
          uint64_t _getKey( uint64_t addr ) const;
+         void _unregisterObjects( std::map< uint64_t, MemoryMap< Object > * > &objects );
+         void _invalidateObjectsFromDevices( std::map< uint64_t, MemoryMap< Object > * > &objects );
 
       public:
          typedef GlobalRegionDictionary *RegionDirectoryKey;
          //typedef std::pair< Region, NewNewDirectoryEntryData const *> LocationInfo;
-         RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd ) const;
-         RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
+         RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd );
+         RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
          RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd );
          void synchronize( WD &wd );
 
@@ -174,7 +176,7 @@ namespace nanos
          void print() const;
          void lock();
          void tryLock();
-         GlobalRegionDictionary &getDictionary( CopyData const &cd ) const;
+         GlobalRegionDictionary &getDictionary( CopyData const &cd );
 
          static NewNewDirectoryEntryData *getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id );
 
@@ -206,7 +208,7 @@ namespace nanos
          static void addRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
          static reg_t getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t localId );
          static void addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
-         reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
+         reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
 
          void registerObject(nanos_copy_data_internal_t *obj);
    };

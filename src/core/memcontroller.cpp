@@ -131,8 +131,9 @@ void MemController::preInit( ) {
       // o << "## " << (_wd.getCopies()[index].isInput() ? "in" : "") << (_wd.getCopies()[index].isOutput() ? "out" : "") << " " <<  _wd.getCopies()[index] << std::endl; 
 
       unsigned int predecessorsVersion;
-      if ( _providedRegions.hasVersionInfoForRegion( _memCacheCopies[ index ]._reg, predecessorsVersion, _memCacheCopies[ index ]._locations ) )
+      if ( _providedRegions.hasVersionInfoForRegion( _memCacheCopies[ index ]._reg, predecessorsVersion, _memCacheCopies[ index ]._locations ) ) {
          _memCacheCopies[ index ].setVersion( predecessorsVersion );
+      }
       if ( _memCacheCopies[ index ].getVersion() != 0 ) {
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " copy "<< index <<" got location info from predecessor "<<  _memCacheCopies[ index ]._reg.id << " got version " << _memCacheCopies[ index ].getVersion()<< " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
@@ -240,9 +241,7 @@ void MemController::copyDataIn() {
       _memCacheCopies[ index ].generateInOps( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd, index );
    }
 
-   //NANOS_INSTRUMENT( InstrumentState inst5(NANOS_CC_CDIN_DO_OP); );
    _inOps->issue( _wd );
-   //NANOS_INSTRUMENT( inst5.close(); );
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::cerr << "### copyDataIn wd " << std::dec << _wd.getId() << " done" << std::endl;
@@ -318,6 +317,7 @@ uint64_t MemController::getAddress( unsigned int index ) const {
 void MemController::getInfoFromPredecessor( MemController const &predecessorController ) {
    for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
       unsigned int version = predecessorController._memCacheCopies[ index ].getChildrenProducedVersion();
+      //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << std::endl;
       _providedRegions.addRegion( predecessorController._memCacheCopies[ index ]._reg, version );
    }
 #if 0
@@ -449,6 +449,8 @@ void MemController::setCacheMetaData() {
          if ( _pe->getMemorySpaceId() != 0 /* HOST_MEMSPACE_ID */) {
             sys.getSeparateMemory( _pe->getMemorySpaceId() ).setRegionVersion( _memCacheCopies[ index ]._reg, _memCacheCopies[ index ].getVersion() + 1, _wd, index );
          }
+      } else if ( _wd.getCopies()[index].isInput() ) {
+         _memCacheCopies[ index ].setChildrenProducedVersion( _memCacheCopies[ index ].getVersion() );
       }
    }
 }

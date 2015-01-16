@@ -101,7 +101,9 @@ NANOS_API_DEF(nanos_err_t, nanos_enter_team, (void))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","enter_team",NANOS_RUNTIME) );
    try {
+      myThread->lock();
       myThread->enterTeam( NULL );
+      myThread->unlock();
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -113,6 +115,7 @@ NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","leave_team",NANOS_RUNTIME) );
 
    try {
+      myThread->getTeam()->decreaseFinalSize();
       myThread->leaveTeam( );
    } catch ( nanos_err_t e) {
       return e;

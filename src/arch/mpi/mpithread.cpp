@@ -270,22 +270,6 @@ void MPIThread::checkTaskEnd() {
     checkCommunicationsCompletion();
 }
 
-void MPIThread::block()
-{
-    if (*_groupTotRunningWds==0) {
-        pthread_mutex_lock( &_completionMutex );
-        pthread_cond_wait( &_completionWait, &_completionMutex );
-        pthread_mutex_unlock( &_completionMutex );
-    }
-}
-
-void MPIThread::unblock()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_signal( &_completionWait );
-   pthread_mutex_unlock( &_completionMutex );
-}
-
 void MPIThread::finish() {
     //If I'm the master thread of the group (group counter == self-counter)
     int resul;

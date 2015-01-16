@@ -27,14 +27,22 @@ ft_cxxflags = -fnon-call-exceptions -DNANOS_RESILIENCY_ENABLED
 ft_fcflags = -fnon-call-exceptions
 endif
 
+if DLB
+dlb_cppflags = -DDLB -I@DLB_INC@
+dlb_perfo_ldflags = -L@DLB_LIB@ -ldlb
+dlb_debug_ldflags = -L@DLB_LIB@ -ldlb_dbg
+dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_instr
+dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
+endif
+
 if GNU_C
-common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(hwloc_cxxflags) $(ft_cxxflags)
+common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(hwloc_cxxflags) $(ft_cxxflags) $(dlb_cppflags)
 common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC $(ft_fcflags)
 no_inline_flag= -fno-inline
 endif
 
 if IBM_C
-common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS)
+common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags) $(dlb_cppflags)
 common_fcflags= -qPIC -DPIC
 no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs

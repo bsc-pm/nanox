@@ -51,7 +51,7 @@ void GPUDevice::isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t
 void GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const
 {
    // Copy from host memory to device memory
-   nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpu->getActiveThread();
+   nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpu->getFirstThread();
 
    GenericEvent * evt = thread->createPreRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG
@@ -108,7 +108,7 @@ void GPUDevice::isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t s
    if ( gpu->getGPUProcessorInfo()->getOutTransferStream() != 0 ) {
       gpu->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, size );
    } else {
-      nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpu->getActiveThread();
+      nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpu->getFirstThread();
 
       GenericEvent * evt = thread->createPostRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG

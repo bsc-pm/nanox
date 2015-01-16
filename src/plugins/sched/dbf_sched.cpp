@@ -41,8 +41,8 @@ namespace nanos {
 
                ThreadData () : ScheduleThreadData(), _readyQueue( NULL )
                {
-                 if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* optimise option */ );
-                 else _readyQueue = NEW WDDeque();
+                 if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* enableDeviceCounter */, true /* optimise option */ );
+                 else _readyQueue = NEW WDDeque( true /* enableDeviceCounter */ );
                }
                virtual ~ThreadData () { delete _readyQueue; }
             };
@@ -204,10 +204,10 @@ namespace nanos {
             do {
                thid = ( thid + 1 ) % size;
 
-               BaseThread *victim = &thread->getTeam()->getThread(thid);
+               BaseThread &victim = thread->getTeam()->getThread(thid);
 
-               if ( victim && victim->getTeam() != NULL ) {
-                 ThreadData &tdata = ( ThreadData & ) *victim->getTeamData()->getScheduleData();
+               if ( victim.getTeam() != NULL ) {
+                 ThreadData &tdata = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
                  wd = tdata._readyQueue->pop_back ( thread );
                }
 

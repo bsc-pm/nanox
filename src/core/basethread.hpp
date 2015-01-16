@@ -134,10 +134,16 @@ namespace nanos
  
    inline void BaseThread::stop() { _status.must_stop = true; }
 
-   inline void BaseThread::sleep() { _status.must_sleep = true; }
+   inline void BaseThread::sleep() {
+      if (!_status.must_sleep) {
+         _status.must_sleep = true;
+         if ( ThreadTeam *team = getTeam() )
+            team->decreaseFinalSize();
+      }
+   }
 
    inline void BaseThread::wakeup() { _status.must_sleep = false; }
-   
+
    inline void BaseThread::pause ()
    {
       // If the thread was already paused, do nothing
@@ -174,19 +180,19 @@ namespace nanos
    inline bool BaseThread::canPrefetch () const { return _nextWDs.size() < _maxPrefetch; }
 
    inline bool BaseThread::hasNextWD () const { return !_nextWDs.empty(); }
- 
+
+   inline int BaseThread::getMaxConcurrentTasks () const { return 1; }
+
    inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
 
    // team related methods
    inline void BaseThread::reserve() { _status.has_team = true; }
  
    inline void BaseThread::enterTeam( TeamData *data )
-   { 
-      lock();
+   {
       if ( data != NULL ) _teamData = data;
       else _teamData = _nextTeamData;
       _status.has_team = true;
-      unlock();
    }
  
    inline bool BaseThread::hasTeam() const { return _status.has_team; }
@@ -228,7 +234,7 @@ namespace nanos
  
    inline bool BaseThread::isRunning () const { return _status.has_started && !_status.must_stop; }
 
-   inline bool BaseThread::isSleeping () const { return _status.must_sleep; }
+   inline bool BaseThread::isSleeping () const { return _status.must_sleep && !_status.must_stop; }
 
    inline bool BaseThread::canGetWork () { return _status.can_get_work; }
 

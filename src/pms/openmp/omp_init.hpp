@@ -59,9 +59,12 @@ namespace nanos
             virtual ThreadTeamData * getThreadTeamData();
 
             virtual void setNumThreads( int nthreads );
-            virtual void getCpuMask( cpu_set_t *cpu_set );
-            virtual void setCpuMask( const cpu_set_t *cpu_set );
-            virtual void addCpuMask( const cpu_set_t *cpu_set );
+            virtual void getCpuProcessMask( cpu_set_t *cpu_set ) const;
+            virtual void setCpuProcessMask( const cpu_set_t *cpu_set );
+            virtual void addCpuProcessMask( const cpu_set_t *cpu_set );
+            virtual void getCpuActiveMask( cpu_set_t *cpu_set ) const;
+            virtual void setCpuActiveMask( const cpu_set_t *cpu_set );
+            virtual void addCpuActiveMask( const cpu_set_t *cpu_set );
 
          public:
             nanos_ws_t findWorksharing( nanos_omp_sched_t kind ) ;
@@ -81,8 +84,10 @@ namespace nanos
             virtual void setupWD( WD &wd ) ;
             virtual void setNumThreads( int nthreads );
             virtual void setNumThreads_globalState ( int nthreads );
-            virtual void setCpuMask( const cpu_set_t *cpu_set );
-            virtual void addCpuMask( const cpu_set_t *cpu_set );
+            virtual void setCpuProcessMask( const cpu_set_t *cpu_set );
+            virtual void addCpuProcessMask( const cpu_set_t *cpu_set );
+            virtual void setCpuActiveMask( const cpu_set_t *cpu_set );
+            virtual void addCpuActiveMask( const cpu_set_t *cpu_set );
          public:
             virtual PMInterface::Interfaces getInterface() const;
       };

@@ -29,10 +29,13 @@
 #include <assert.h>
 
 
+// TODO: detect at configure
+#ifndef PTHREAD_STACK_MIN
+#define PTHREAD_STACK_MIN 16384
+#endif
+
 
 using namespace nanos;
-
-pthread_mutex_t PThread::_mutexWait = PTHREAD_MUTEX_INITIALIZER;
 
 void * os_bootthread ( void *arg )
 {
@@ -43,12 +46,6 @@ void * os_bootthread ( void *arg )
 
    self->run();
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-
-
    self->finish();
    pthread_exit ( 0 );
 
@@ -56,10 +53,17 @@ void * os_bootthread ( void *arg )
    return NULL;
 }
 
-// TODO: detect at configure
-#ifndef PTHREAD_STACK_MIN
-#define PTHREAD_STACK_MIN 16384
-#endif
+// Main thread does not get initializaed through start()
+void PThread::initMain ()
+{
+   _pth = pthread_self();
+
+   if ( pthread_cond_init( &_condWait, NULL ) < 0 )
+      fatal( "couldn't create pthread condition wait" );
+
+   if ( pthread_mutex_init(&_mutexWait, NULL) < 0 )
+      fatal( "couldn't create pthread mutex wait" );
+}
 
 void PThread::start ( BaseThread * th )
 {
@@ -82,10 +86,21 @@ void PThread::start ( BaseThread * th )
 
    if ( pthread_cond_init( &_condWait, NULL ) < 0 )
       fatal( "couldn't create pthread condition wait" );
+
+   if ( pthread_mutex_init(&_mutexWait, NULL) < 0 )
+      fatal( "couldn't create pthread mutex wait" );
 }
 
 void PThread::finish ()
 {
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value =  (nanos_event_value_t) 0; )
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+
+   if ( pthread_mutex_destroy( &_mutexWait ) < 0 )
+      fatal( "couldn't destroy pthread mutex wait" );
+
    if ( pthread_cond_destroy( &_condWait ) < 0 )
       fatal( "couldn't destroy pthread condition wait" );
 }
@@ -103,7 +118,7 @@ void PThread::bind()
    CPU_ZERO( &cpu_set );
    CPU_SET( cpu_id, &cpu_set );
    verbose( " Binding thread " << getMyThreadSafe()->getId() << " to cpu " << cpu_id );
-   OS::bindThread( _pth, &cpu_set );
+   pthread_setaffinity_np( _pth, sizeof(cpu_set_t), &cpu_set );
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
@@ -132,25 +147,9 @@ void PThread::condWait()
    pthread_cond_wait( &_condWait, &_mutexWait );
 }
 
-void PThread::wakeup()
+void PThread::condSignal()
 {
-   pthread_mutex_lock( &_mutexWait );
    pthread_cond_signal( &_condWait );
-   pthread_mutex_unlock( &_mutexWait );
-}
-
-void PThread::block()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_wait( &_completionWait, &_completionMutex );
-   pthread_mutex_unlock( &_completionMutex );
-}
-
-void PThread::unblock()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_signal( &_completionWait );
-   pthread_mutex_unlock( &_completionMutex );
 }
 
 
