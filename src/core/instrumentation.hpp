@@ -412,6 +412,7 @@ inline unsigned int Instrumentation::Event::getPartner( void ) const { return _p
 
 inline bool Instrumentation::isStateEnabled() const { return _emitStateEvents; }
 inline bool Instrumentation::isPtPEnabled() const { return _emitPtPEvents; }
+inline bool Instrumentation::isInternalsEnabled() const { return _emitInternalEvents; }
 
 inline void Instrumentation::filterEvents( std::string event_default, std::list<std::string> &enable_events, std::list<std::string> &disable_events )
 {
@@ -422,22 +423,27 @@ inline void Instrumentation::filterEvents( std::string event_default, std::list<
       _instrumentationDictionary.setDefaultLevel( EVENT_ALL );
       _emitStateEvents = true;
       _emitPtPEvents = true;
+      _emitInternalEvents = true;
    } else if ( event_default.compare( 0,strlen("none"), "none") == 0 ) {
       _instrumentationDictionary.setDefaultLevel( EVENT_NONE );
       _emitStateEvents = false;
       _emitPtPEvents = false;
+      _emitInternalEvents = false;
    } else if ( event_default.compare( 0,strlen("user"), "user") == 0) {
       _instrumentationDictionary.setDefaultLevel( EVENT_USER );
       _emitStateEvents = true;
       _emitPtPEvents = true;
+      _emitInternalEvents = false;
    } else if ( event_default.compare( 0,strlen("developer"), "developer") == 0 ) {
       _instrumentationDictionary.setDefaultLevel( EVENT_DEVELOPER );
       _emitStateEvents = true;
       _emitPtPEvents = true;
+      _emitInternalEvents = false;
    } else if ( event_default.compare( 0,strlen("advanced"), "advanced") == 0 ) {
       _instrumentationDictionary.setDefaultLevel( EVENT_ADVANCED );
       _emitStateEvents = true;
       _emitPtPEvents = true;
+      _emitInternalEvents = true;
    } else {
       // Warning
    }
@@ -446,6 +452,7 @@ inline void Instrumentation::filterEvents( std::string event_default, std::list<
    while ( it != enable_events.end() ) {
       if ( (*it).compare(0,strlen("state"), "state") == 0 ) _emitStateEvents = true;
       if ( (*it).compare(0,strlen("ptp"), "ptp") == 0 ) _emitPtPEvents = true;
+      if ( (*it).compare(0,strlen("internals"), "internals") == 0 ) _emitInternalEvents = true;
       _instrumentationDictionary.switchEventPrefix( (*it).c_str(), EVENT_ENABLED );
       it++;
    }
@@ -454,6 +461,7 @@ inline void Instrumentation::filterEvents( std::string event_default, std::list<
    while ( it != disable_events.end() ) {
       if ( (*it).compare(0,strlen("state"), "state") == 0 ) _emitStateEvents = false;
       if ( (*it).compare(0,strlen("ptp"), "ptp") == 0 ) _emitPtPEvents = false;
+      if ( (*it).compare(0,strlen("internals"), "internals") == 0 ) _emitInternalEvents = false;
       _instrumentationDictionary.switchEventPrefix( (*it).c_str(), EVENT_DISABLED );
       it++;
    }

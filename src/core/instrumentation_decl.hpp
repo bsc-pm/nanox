@@ -949,6 +949,7 @@ namespace nanos {
          InstrumentationContext        &_instrumentationContext; /**< Instrumentation Context */
          bool                           _emitStateEvents;
          bool                           _emitPtPEvents;
+         bool                           _emitInternalEvents;
       private:
          /*! \brief Instrumentation default constructor (private)
           */
@@ -962,7 +963,7 @@ namespace nanos {
       public:
          /*! \brief Instrumentation constructor
           */
-         Instrumentation( InstrumentationContext &ic ) : _instrumentationDictionary(), _instrumentationContext(ic), _emitStateEvents(true), _emitPtPEvents(true) {}
+         Instrumentation( InstrumentationContext &ic ) : _instrumentationDictionary(), _instrumentationContext(ic), _emitStateEvents(true), _emitPtPEvents(true), _emitInternalEvents(false) {}
 
          /*! \brief Instrumentation destructor
           */
@@ -975,6 +976,7 @@ namespace nanos {
 
          bool isStateEnabled() const;
          bool isPtPEnabled() const;
+         bool isInternalsEnabled() const;
          /*! \brief Enable/disable events
           */
          void filterEvents(std::string event_default, std::list<std::string> &enable_events, std::list<std::string> &disable_events );

@@ -458,7 +458,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       _instrumentationContext.clearDeferredEvents( new_icd );
 
    }
-   
 
    ensure0( i == numEvents , "Computed number of events doesn't fit with number of real events");
 
@@ -467,15 +466,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       if ( numEvents != 0 ) addEventList ( numEvents, &e[0] );
    } else {
       if ( oldWD != NULL) {
-         if ( _emitStateEvents == true ) {
-            createStateEvent( &e[numEvents], NANOS_NOT_RUNNING, old_icd );
-         }
          if ( numOldEvents != 0 ) addEventList ( numOldEvents, &e[0] );
-         addEventList ( 1, &e[numEvents] );
-         if ( _emitStateEvents == true ) {
-            returnPreviousStateEvent( &e[numEvents], old_icd );
-            _instrumentationContext.insertDeferredEvent( old_icd, e[numEvents]  );
-         }
          addSuspendTask( *oldWD, last );
       }
       if ( newWD != NULL) {
