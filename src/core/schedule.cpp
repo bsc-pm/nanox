@@ -67,7 +67,7 @@ void SchedulerConf::config (Config &cfg)
 
 void Scheduler::submit ( WD &wd, bool force_queue )
 {
-   NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING) );
+   NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING, true) );
    BaseThread *mythread = myThread;
 
    debug ( "submitting task " << wd.getId() );
@@ -126,7 +126,7 @@ void Scheduler::submit ( WD &wd, bool force_queue )
 
 void Scheduler::submit ( WD ** wds, size_t numElems )
 {
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING, true) );
    if ( numElems == 0 ) return;
    
    BaseThread *mythread = myThread;
@@ -395,7 +395,7 @@ inline void Scheduler::idleLoop ()
 
 void Scheduler::waitOnCondition (GenericSyncCond *condition)
 {
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION, true) );
 
    if (condition->check()) return;
 
@@ -456,7 +456,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
 void Scheduler::wakeUp ( WD *wd )
 {
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SYNCHRONIZATION, true) );
    
    if ( !wd->isReady() ) {
       /* Setting ready wd */
@@ -568,7 +568,7 @@ void Scheduler::workerClusterLoop ()
                      //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                      if ( wd->isInputDataReady() ) {
                         myClusterThread->addRunningWDSMP( wd );
-                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                         outlineWork( myThread, wd );
                      //NANOS_INSTRUMENT( inst2.close(); );
                      } else {
@@ -590,7 +590,7 @@ void Scheduler::workerClusterLoop ()
                            if ( wd->isInputDataReady() ) {
                               //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                               myClusterThread->addRunningWDSMP( wd );
-                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                               outlineWork( myThread, wd );
                               //NANOS_INSTRUMENT( inst2.close(); );
                            } else {
@@ -617,7 +617,7 @@ void Scheduler::workerClusterLoop ()
                      //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                      if ( wd->isInputDataReady() ) {
                         myClusterThread->addRunningWDSMP( wd );
-                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                         outlineWork( myThread, wd );
                      //NANOS_INSTRUMENT( inst2.close(); );
                      } else {
@@ -639,7 +639,7 @@ void Scheduler::workerClusterLoop ()
                            if ( wd->isInputDataReady() ) {
                               //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                               myClusterThread->addRunningWDSMP( wd );
-                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                               outlineWork( myThread, wd );
                               //NANOS_INSTRUMENT( inst2.close(); );
                            } else {
@@ -675,7 +675,7 @@ void Scheduler::workerClusterLoop ()
                      //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                      if ( wd->isInputDataReady() ) {
                         myClusterThread->addRunningWDGPU( wd );
-                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                         outlineWork( myThread, wd );
                      //NANOS_INSTRUMENT( inst2.close(); );
                      } else {
@@ -697,7 +697,7 @@ void Scheduler::workerClusterLoop ()
                            if ( wd->isInputDataReady() ) {
                               //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                               myClusterThread->addRunningWDGPU( wd );
-                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                               outlineWork( myThread, wd );
                               //NANOS_INSTRUMENT( inst2.close(); );
                            } else {
@@ -724,7 +724,7 @@ void Scheduler::workerClusterLoop ()
                      //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                      if ( wd->isInputDataReady() ) {
                         myClusterThread->addRunningWDGPU( wd );
-                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                         outlineWork( myThread, wd );
                      //NANOS_INSTRUMENT( inst2.close(); );
                      } else {
@@ -746,7 +746,7 @@ void Scheduler::workerClusterLoop ()
                            if ( wd->isInputDataReady() ) {
                               //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
                               myClusterThread->addRunningWDGPU( wd );
-                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
                               outlineWork( myThread, wd );
                               //NANOS_INSTRUMENT( inst2.close(); );
                            } else {
@@ -834,7 +834,7 @@ void Scheduler::asyncWorkerLoop ()
 
 void Scheduler::preOutlineWorkWithThread ( BaseThread * thread, WD *wd )
 {
-   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK, true); );
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
@@ -870,7 +870,7 @@ void Scheduler::preOutlineWork ( WD *wd )
 {
    BaseThread *thread = getMyThreadSafe();
 
-   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK, true); );
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
@@ -914,7 +914,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
    BaseThread *thread = getMyThreadSafe();
 
    if ( wd->_mcontrol.allocateTaskMemory() ) {
-      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK); );
+      //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_PRE_OUTLINE_WORK, true); );
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
@@ -936,7 +936,7 @@ bool Scheduler::tryPreOutlineWork ( WD *wd )
 void Scheduler::postOutlineWork ( WD *wd, bool schedule, BaseThread *owner )
 {
    BaseThread *thread = owner;
-   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_POST_OUTLINE_WORK); );
+   //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_POST_OUTLINE_WORK, true); );
 
    //std::cerr << "completing WD " << wd->getId() << " at thd " << owner->getId() << " thd addr " << owner << std::endl; 
    //if (schedule && thread->getNextWD() == NULL ) {
@@ -1181,7 +1181,7 @@ void Scheduler::switchTo ( WD *to )
 
 void Scheduler::yield ()
 {
-   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING, true) );
    WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
    if ( next ) switchTo(next);
 }
@@ -1190,7 +1190,7 @@ void Scheduler::switchToThread ( BaseThread *thread )
 {
    while ( getMyThreadSafe() != thread )
    {
-      NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
+      NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING, true) );
 
       WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
       if ( next == NULL ) next = &(myThread->getThreadWD());
