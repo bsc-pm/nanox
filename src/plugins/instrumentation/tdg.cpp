@@ -79,10 +79,9 @@ private:
  //           node_attrs += "\", color=\"black\", fillcolor=red\"";// + wd_to_color_hash(n->get_funct_id());
  //       }
         if(n->is_task()) {
-            node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash(n->get_funct_id());
+            std::string description = _funct_id_to_decl_map[n->get_funct_id()];
+            node_attrs += "\", color=\"black\", fillcolor=\"" + wd_to_color_hash(description);
         }
-       
-
  
         // Get the size of the node
         if(InstrumentationTDGInstrumentation::_nodeSizeFunc == "constant" || _total_time == 0.0)
@@ -157,36 +156,53 @@ private:
             ss << cluster_id++;
         lock.release();
         std::string edges_legend = "";
+
+        // Open the subgraph containing the edge's legend
         edges_legend += "  subgraph cluster_" + ss.str() + " {\n";
-        edges_legend += "    label=\"Edge types:\"; style=\"rounded\"; rankdir=\"TB\";\n";
-        edges_legend += "    subgraph {\n";
-        edges_legend += "      rank=same\n";
-        edges_legend += "      \"solid gray line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-        edges_legend += "      \"Nested task\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-        edges_legend += "      \"solid gray line\"->\"Nested task\"[minlen=2.0, color=gray47];\n";
-        edges_legend += "    }\n";
-        edges_legend += "    subgraph {\n";
-        edges_legend += "      rank=same;\n";
-        edges_legend += "      \"solid black line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-        edges_legend += "      \"True dependence \\n Taskwait | Barrier\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-        edges_legend += "      \"solid black line\"->\"True dependence \\n Taskwait | Barrier\"[minlen=2.0];\n";
-        edges_legend += "    }\n";
-        edges_legend += "    subgraph {\n";
-        edges_legend += "      rank=same;\n";
-        edges_legend += "      \"dashed line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-        edges_legend += "      \"Anti-dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-        edges_legend += "      \"dashed line\"->\"Anti-dependence\"[style=\"dashed\", minlen=2.0];\n";
-        edges_legend += "    }\n";
-        edges_legend += "    subgraph {\n";
-        edges_legend += "      rank=same;\n";
-        edges_legend += "      \"dotted line\"[label=\"\", color=\"white\", shape=\"point\"];\n";
-        edges_legend += "      \"Output dependence\"[color=\"white\", margin=\"0.0,0.0\"];\n";
-        edges_legend += "      \"dotted line\"->\"Output dependence\"[style=\"dotted\", minlen=2.0];\n";
-        edges_legend += "    }\n";
-        edges_legend += "    \"solid gray line\"->\"solid black line\"[style=\"invis\"];\n";
-        edges_legend += "    \"solid black line\"->\"dashed line\"[style=\"invis\"];\n";
-        edges_legend += "    \"dashed line\"->\"dotted line\"[style=\"invis\"];\n";
+        edges_legend += "    label=\"Edge types:\"; style=\"rounded\";\n";
+
+        // Print the table with the used edge types
+        edges_legend += "    edges_table [label=<<table border=\"0\" cellspacing=\"10\" cellborder=\"0\">\n";
+        if (used_edge_types[0])
+        {
+            edges_legend += "      <tr>\n";
+            edges_legend += "        <td width=\"15px\" border=\"0\">&#10141;</td>\n";
+            edges_legend += "        <td>True dependence | Taskwait | Barrier</td>\n";
+            edges_legend += "      </tr>\n";
+        }
+        if (used_edge_types[1])
+        {
+            edges_legend += "      <tr>\n";
+            edges_legend += "        <td width=\"15px\" border=\"0\">&#8674;</td>\n";
+            edges_legend += "        <td>Anti-dependence</td>\n";
+            edges_legend += "      </tr>\n";
+        }
+        if (used_edge_types[2])
+        {
+            edges_legend += "      <tr>\n";
+            edges_legend += "        <td width=\"15px\" border=\"0\">&#10513;</td>\n";
+            edges_legend += "        <td>Output dependence</td>\n";
+            edges_legend += "      </tr>\n";
+        }
+        if (used_edge_types[3])
+        {
+            edges_legend += "      <tr>\n";
+            edges_legend += "        <td width=\"15px\" border=\"0\">&#10141;</td>\n";
+            edges_legend += "        <td>Nested task</td>\n";
+            edges_legend += "      </tr>\n";
+        }
+        if (used_edge_types[4])
+        {
+            edges_legend += "      <tr>\n";
+            edges_legend += "        <td width=\"15px\" border=\"0\">&#10145;</td>\n";
+            edges_legend += "        <td>Critical path</td>\n";
+            edges_legend += "      </tr>\n";
+        }
+        edges_legend += "    </table>>]\n";
+
+        // Close the node legend subgraph
         edges_legend += "  }\n";
+
         return edges_legend;
     }
     
@@ -195,57 +211,40 @@ private:
         lock.acquire();
         ssc << cluster_id++;
         lock.release();
+
         std::string nodes_legend = "";
+
+        // Open the subgraph containing the node's legend
         nodes_legend += "  subgraph cluster_" + ssc.str() + " {\n";
-        nodes_legend += "    label=\"User functions:\"; style=\"rounded\"; rankdir=\"TB\";\n";
-        
-        int id = 1;
+        nodes_legend += "    label=\"User functions:\"; style=\"rounded\";\n";
+        nodes_legend += "    funcs_table [label=<<table border=\"0\" cellspacing=\"10\" cellborder=\"0\">\n";
         std::set<std::string> printed_funcs;
-        for(std::map<int64_t, std::string>::const_iterator it = _funct_id_to_decl_map.begin(); it != _funct_id_to_decl_map.end() ; ++it)
+        for (std::map<int64_t, std::string>::const_iterator it = _funct_id_to_decl_map.begin();
+             it != _funct_id_to_decl_map.end() ; ++it)
         {
-            if(printed_funcs.find(it->second) == printed_funcs.end())
+            std::string description = it->second;
+            if (printed_funcs.find(description) == printed_funcs.end())
             {
-                printed_funcs.insert(it->second);
-                
-                nodes_legend += "    subgraph {\n";
-                nodes_legend += "      rank=same;\n";
-                // Print the transparent node with the name of the function
-                nodes_legend += "      " + it->second + "[color=\"white\", margin=\"0.0,0.0\"];\n";
-                // Print one node for each function id that has the same name as the current function name
-                int last_id = 0;
-                for(std::map<int64_t, std::string>::const_iterator it2 = _funct_id_to_decl_map.begin(); 
-                     it2 != _funct_id_to_decl_map.end(); ++it2)
-                {
-                    if(it2->second == it->second)
-                    {
-                        std::stringstream ssid; ssid << id;
-                        nodes_legend += "      0" + ssid.str() + "[label=\"\",  width=0.3, height=0.3, shape=box, "
-                                      + "fillcolor=" + wd_to_color_hash(it2->first) + ", style=filled];\n";
-                        if(last_id != 0) {
-                            std::stringstream ss2; ss2 << last_id;
-                            nodes_legend += "      0" + ss2.str() + " -> 0" + ssid.str() + "[style=\"invis\"];\n";
-                        }
-                        last_id = id;
-                        ++id;
-                    }
+                printed_funcs.insert(description);
+
+                // Replace any '&' with the HTML entity '&amp;'
+                std::string from = "&";
+                std::string to = "&amp;";
+                size_t start_pos = 0;
+                std::string dot_description = description;
+                while((start_pos = dot_description.find(from, start_pos)) != std::string::npos) {
+                    dot_description.replace(start_pos, from.length(), to);
+                    start_pos += to.length();
                 }
-                // Print the edge between the last function id node and the name of the function
-                std::stringstream sslid; sslid << last_id;
-                nodes_legend += "      0" + sslid.str() + "->" + it->second + "[style=\"invis\"];\n";
-                nodes_legend += "    }\n";
+
+                nodes_legend += "      <tr>\n";
+                nodes_legend += "        <td bgcolor=\"" + wd_to_color_hash(description) + "\" width=\"15px\" border=\"1\"></td>\n";
+                nodes_legend += "        <td>" + dot_description + "</td>\n";
+                nodes_legend += "      </tr>\n";
             }
         }
-    
-        // We want the pairs of <task_set, task_name> to be shown vertically
-        // To achieve it, we create edges between each two consecutive pair subgraph
-        std::set<std::string>::iterator it2;
-        for(std::set<std::string>::const_iterator it = printed_funcs.begin(); it != printed_funcs.end(); ++it)
-        {
-            it2 = it; it2++;
-            if(it2 != printed_funcs.end())
-                nodes_legend += "    " + *it + " -> " + *it2 + "[style=\"invis\"];\n";
-        }
-        
+        nodes_legend += "    </table>>]\n";
+
         // Close the node legend subgraph
         nodes_legend += "  }\n";
         return nodes_legend;
@@ -560,6 +559,7 @@ private:
             }
             
             // Print the legends
+            dot_file << "  node [shape=plaintext];\n";
             dot_file << print_nodes_legend();
             dot_file << print_edges_legend();
         dot_file << "}";
@@ -707,7 +707,6 @@ public:
     void addEventList(unsigned int count, Event *events)
     {
         InstrumentationDictionary *iD = getInstrumentationDictionary();
-        static const nanos_event_key_t create_wd_id = iD->getEventKey("create-wd-id");
         static const nanos_event_key_t create_wd_ptr = iD->getEventKey("create-wd-ptr");
         static const nanos_event_key_t dependence = iD->getEventKey("dependence");
         static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
@@ -719,21 +718,19 @@ public:
         // This node won't exist if the calling wd corresponds to that of the master thread
         int64_t current_wd_id = getMyWDId();
         Node* current_parent = find_node_from_wd_id(current_wd_id);
-        
+
         unsigned int i;
         for(i=0; i<count; i++) {
             Event &e = events[i];
-            if(e.getKey() == create_wd_ptr)
+            if (e.getKey() == create_wd_ptr)
             {  // A wd is submitted => create a new node
-                
+
                 // Get the identifier of the task function
                 WorkDescriptor *wd = (WorkDescriptor *) e.getValue();
                 int64_t funct_id = (int64_t) wd->getActiveDevice().getWorkFct();
-                
+
                 // Get the identifier of the wd
-                e = events[--i];
-                assert(e.getKey() == create_wd_id);
-                int64_t wd_id = e.getValue();
+                int64_t wd_id = wd->getId();
                 _next_tw_id = std::min(_next_tw_id, -wd_id);
                 _next_conc_id = wd_id + 1;
                 // Create the new node
@@ -741,9 +738,9 @@ public:
                 _graph_nodes_lock.acquire();
                 _graph_nodes.insert(new_node);
                 _graph_nodes_lock.release();
-                
+
                 // Connect the task with its parent task, if exists
-                if(current_parent != NULL) {
+                if (current_parent != NULL) {
                     Node::connect_nodes(current_parent, new_node, Nesting);
                 }
             }
@@ -759,10 +756,24 @@ public:
                 int64_t func_id = e.getValue();
                 _funct_id_to_decl_map_lock.acquire();
                 if(func_id != 0 && _funct_id_to_decl_map.find(func_id) == _funct_id_to_decl_map.end()) {
+                    // description = func_type|func_label @ file @ line @ name_type
+                    // If name_type == LABEL -> description = func_type|func_label
+                    // else if name_type == FUNCTION -> description = func_type|func_label @ file @ line
                     std::string description = iD->getValueDescription(user_funct_location, func_id);
-                    int pos2 = description.find_first_of("(");
-                    int pos1 = description.find_last_of (" ", pos2);
-                    _funct_id_to_decl_map[ func_id ] = '\"' + description.substr(pos1+1, pos2-pos1-1) + '\"';
+                    int pos2 = description.find_first_of("@");
+                    int pos3 = description.find_last_of("@")+1;
+                    int pos4 = description.length();
+                    std::string type = description.substr(pos3, pos4-pos3);
+                    if (type == "LABEL")
+                    {
+                        // description = func_label                -> only store the label
+                        _funct_id_to_decl_map[ func_id ] = description.substr(0, pos2);
+                    }
+                    else    // type == "FUNCTION"
+                    {
+                        // description = func_type @ file @ line   -> store the whole description
+                        _funct_id_to_decl_map[ func_id ] = description.substr(0, pos3);
+                    }
                 }
                 _funct_id_to_decl_map_lock.release();
             }
