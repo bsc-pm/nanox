@@ -96,6 +96,9 @@ namespace ext
 
          virtual bool inlineWorkDependent( WD &work );
          
+         virtual bool canBlock() { return false;}
+
+         
          /**
           * Deletes an WD if no thread is executing it
           * @param wd

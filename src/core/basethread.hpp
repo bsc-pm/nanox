@@ -135,7 +135,7 @@ namespace nanos
    inline void BaseThread::stop() { _status.must_stop = true; }
 
    inline void BaseThread::sleep() {
-      if (!_status.must_sleep) {
+      if (!_status.must_sleep && canBlock()) {
          _status.must_sleep = true;
          if ( ThreadTeam *team = getTeam() )
             team->decreaseFinalSize();

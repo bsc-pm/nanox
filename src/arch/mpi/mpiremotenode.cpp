@@ -108,7 +108,8 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
     if (getenv("I_MPI_WAIT_MODE")==NULL) putenv(const_cast<char*> ("I_MPI_WAIT_MODE=1"));
    
     //If we are not offload slaves, initialice MPI plugin
-    if (!getenv("OMPSS_OFFLOAD_SLAVE")){  
+    bool imSlave=getenv("OMPSS_OFFLOAD_SLAVE")!=NULL;
+    if (!imSlave){  
         if ( !sys.loadPlugin( "arch-mpi" ) )
           fatal0 ( "Couldn't load MPI support" );
     } 
@@ -135,7 +136,7 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
            
     //Remove possible trashfiles from other executions
-    if (myRank==0) {
+    if (myRank==0 && !imSlave) {
        std::string lockname="./.ompssOffloadLock";
        remove(const_cast<char*> (lockname.c_str()));
        if (!nanos::ext::MPIProcessor::getMpiControlFile().empty()) remove(const_cast<char*> (nanos::ext::MPIProcessor::getMpiControlFile().c_str()));
@@ -414,7 +415,8 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
             }
             if (rank==-1){                    
                 mpiThread->lock();
-                mpiThread->sleep();
+                mpiThread->stop();
+                mpiThread->join();
                 mpiThread->unlock();
             }
         }

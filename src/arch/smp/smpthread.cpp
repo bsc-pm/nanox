@@ -92,7 +92,7 @@ void SMPThread::wait()
    lock();
    _pthread.mutexLock();
 
-   if ( isSleeping() ) {
+   if ( isSleeping() && getNextWDQueue().size()<=1 && canBlock() ) {
 
       if ( hasNextWD() ) {
          WD *next = getNextWD();
