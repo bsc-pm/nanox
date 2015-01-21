@@ -84,6 +84,7 @@ void ThreadTeam::registerTaskReduction( void *p_orig, void *p_dep, size_t p_size
       if ( (*it)->have( p_orig, 0 ) ) break;
    }
 
+   NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
    if ( it == _taskReductions.end() ) {
       _taskReductions.push_front( new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var, p_size, _finalSize.value(), myThread->getCurrentWD()->getDepth() ) );
    }
