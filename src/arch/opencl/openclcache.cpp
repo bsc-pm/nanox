@@ -74,7 +74,10 @@ void *OpenCLCache::allocate(size_t size, uint64_t tag, uint64_t offset) {
         _devAllocator.unlock();
         if (addr==NULL) return NULL;
         cl_mem buf=_openclAdapter.createBuffer(_mainBuffer,(size_t)addr,size,(void*)tag);
-        if (buf==NULL){    
+        if (buf==NULL){   
+            _devAllocator.lock();
+            _devAllocator.free(addr);
+            _devAllocator.unlock();
             return NULL;
         }
         
@@ -128,8 +131,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
     thread->addEvent( evt );
     
     if (errCode != CL_SUCCESS){
-        std::cerr << errCode << "\n";
-        fatal("Buffer writing failed. Check if you are filling GPU's memory");
+        fatal("Buffer writing failed. Check if you are filling GPU's memory with error" << errCode);
     }
     return true;
 }

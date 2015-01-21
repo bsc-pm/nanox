@@ -46,11 +46,6 @@ void OpenCLThread::runDependent() {
    OpenCLDD &dd = static_cast<OpenCLDD &> (wd.activateDevice(OpenCLDev));
 
    while ( getTeam() == NULL ) { OS::nanosleep( 100 ); }
-
-   if ( getTeam() == NULL ) {
-      warning( "This OpenCLThread needs a team to work, but no team was found. The thread will exit.");
-      return;
-   }
     
    dd.getWorkFct()(wd.getData());    
    ( ( OpenCLProcessor * ) myThread->runningOn() )->cleanUp();

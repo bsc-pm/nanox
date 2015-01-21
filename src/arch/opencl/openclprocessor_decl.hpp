@@ -291,14 +291,15 @@ public:
         return _cache.getConstAllocator();
     }
     
-    BaseThread * getFirstThread()
+    BaseThread * getOpenCLThread()
     {
-       return _core->getFirstThread();
+       return _thread;
     }
 
 
 private:
    SMPProcessor *_core;
+   BaseThread *_thread;
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
    int _devId;

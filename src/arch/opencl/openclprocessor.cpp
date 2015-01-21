@@ -1054,6 +1054,8 @@ BaseThread &OpenCLProcessor::startOpenCLThread() {
    NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
    NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
-
-   return _core->startThread( *this, worker, NULL );
+   
+   _thread=&_core->startThread( *this, worker, NULL );
+   
+   return *_thread;
 }
