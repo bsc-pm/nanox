@@ -298,15 +298,17 @@ namespace nanos {
                     TrackableObject &stat = *(*it);
                     TR1::unordered_map<TrackableObject*, bool>::iterator iterStat=statusMap.find (&stat);
                     if ( iterStat == statusMap.end() ){  
-                        if ( accessType.output ) {
-                            submitDependableObjectOutputNoWriteDataAccess( depObj, target, accessType, stat, callback );    
+                        if ( accessType.output && !accessType.concurrent && !accessType.commutative ) {
+                           submitDependableObjectOutputNoWriteDataAccess( depObj, target, accessType, stat, callback );    
                         } 
-                        submitDependableObjectInputNoReadDataAccess( depObj, target, accessType, stat, callback );  
+                        if ( accessType.input && !accessType.concurrent && !accessType.commutative ) {
+                           submitDependableObjectInputNoReadDataAccess( depObj, target, accessType, stat, callback );  
+                        }
                     } else {
                         bool isWriter=iterStat->second;
                         //This region was previously marked as "input" in this task, but our current writer 
                         //has to wait for it until all readers finish, reorder dependencies so we do not depend on ourselves
-                        if (!isWriter && accessType.output ) {          
+                        if (!isWriter && accessType.output && !accessType.concurrent && !accessType.commutative ) {
                             stat.getReadersLock().acquire();
                             stat.deleteReader(depObj);
                             stat.getReadersLock().release();
