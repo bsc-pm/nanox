@@ -107,7 +107,7 @@ bool OpenCLCache::copyIn(uint64_t devAddr,
 
     ops->addOp();
     // Copy from host memory to device memory
-    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getFirstThread();
+    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getOpenCLThread();
     OpenCLEvent * evt = (OpenCLEvent*) thread->createPreRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG
     evt->setDescription( evt->getDescription() + " copy input: " + toString<uint64_t>( remoteSrc.getTag() ) );
@@ -148,7 +148,7 @@ bool OpenCLCache::copyOut(uint64_t hostAddr,
     
     ops->addOp();
     // Copy from host memory to device memory
-    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getFirstThread();
+    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getOpenCLThread();
     OpenCLEvent * evt = (OpenCLEvent*) thread->createPreRunEvent( thread->getCurrentWD() );
 #ifdef NANOS_GENERICEVENT_DEBUG
     evt->setDescription( evt->getDescription() + " copy input: " + toString<uint64_t>( remoteSrc.getTag() ) );
@@ -187,7 +187,7 @@ bool OpenCLCache::copyInBuffer(void *localSrc,
         
     ops->addOp();
     // Copy from host memory to device memory
-    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getFirstThread();
+    nanos::ext::OpenCLThread * thread = ( nanos::ext::OpenCLThread * ) _processor->getOpenCLThread();
     OpenCLEvent * evt = (OpenCLEvent*) thread->createPreRunEvent( thread->getCurrentWD() );
     
 #ifdef NANOS_GENERICEVENT_DEBUG
