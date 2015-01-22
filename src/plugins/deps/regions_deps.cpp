@@ -316,8 +316,10 @@ namespace nanos {
             {
                submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
             }
-            
-         
+            void finalizeAllReductions ( void )
+            {
+               // Region lacks of reduction finalizer
+            }
       };
       
       template void RegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const DataAccess* begin, const DataAccess* end, SchedulePolicySuccessorFunctor* callback );

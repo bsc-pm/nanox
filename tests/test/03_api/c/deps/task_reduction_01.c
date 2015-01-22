@@ -115,6 +115,7 @@ nanos_wd_dyn_props_t dyn_props = {0};
 
 void my_init ( void *p ) { *((int *)p) = 0 ; }
 void my_red ( void *p, void *q ) { *((int *)p) = *((int *)p) + *((int *)q);  }
+void my_red_orig ( void *p ) { *((int *)p) = *((int *)p);  }
 
 int main ( int argc, char **argv )
 {
@@ -142,7 +143,7 @@ int main ( int argc, char **argv )
       nanos_wd_t wd = 0;
 
       // Create
-      nanos_task_reduction_register ( &my_value, sizeof(my_value), sizeof(my_value), &my_init, &my_red ) ;
+      nanos_task_reduction_register ( &my_value, &my_value, sizeof(my_value), sizeof(my_value), &my_init, &my_red, &my_red_orig ) ;
       NANOS_SAFE( nanos_create_wd_compact ( &wd, &const_increment.base, &dyn_props, sizeof( my_args ), ( void ** )&args, nanos_current_wd(), NULL, NULL ) );
 
       args->sh_val = &my_value;
