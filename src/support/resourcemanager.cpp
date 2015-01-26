@@ -146,16 +146,23 @@ void ResourceManager::acquireResourcesIfNeeded ( void )
                // Iterate over default cpus not running and wake them up if needed
                const cpu_set_t& process_mask = sys.getCpuProcessMask();
                cpu_set_t new_active_cpus = sys.getCpuActiveMask();
-               for (int i=0; i<_max_cpus; i++) {
-                  if ( CPU_ISSET( i, &process_mask) && !CPU_ISSET( i, &new_active_cpus ) ) {
-                     CPU_SET( i, &new_active_cpus );
-                     if ( --ready_tasks == 0 )
-                        break;
-                     if ( CPU_EQUAL( &process_mask, &new_active_cpus ) )
-                        break;
+               cpu_set_t mine_and_active;
+               CPU_AND( &mine_and_active, &process_mask, &new_active_cpus );
+               // Check first that we have some owned CPU not active
+               if ( CPU_COUNT(&mine_and_active) != CPU_COUNT(&process_mask) ) {
+                  bool dirty = false;
+                  for (int i=0; i<_max_cpus; i++) {
+                     if ( CPU_ISSET( i, &process_mask) && !CPU_ISSET( i, &new_active_cpus ) ) {
+                        CPU_SET( i, &new_active_cpus );
+                        dirty = true;
+                        if ( --ready_tasks == 0 )
+                           break;
+                     }
+                  }
+                  if (dirty) {
+                     sys.setCpuActiveMask( &new_active_cpus );
                   }
                }
-               sys.setCpuActiveMask( &new_active_cpus );
             }
          }
       }
