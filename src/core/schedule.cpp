@@ -418,12 +418,14 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             //! First checking prefetching queue
             WD * next = myThread->getNextWD();
 
-            //! Second calling scheduler policy at block
-            if ( !next ) {
-               memoryFence();
-               if ( sys.getSchedulerStats()._readyTasks > 0 ) {
-                  if ( sys.getSchedulerConf().getSchedulerEnabled() )
-                     next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+            if ( !thread->isSleeping() ) {
+               //! Second calling scheduler policy at block
+               if ( !next ) {
+                  memoryFence();
+                  if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+                     if ( sys.getSchedulerConf().getSchedulerEnabled() )
+                        next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+                  }
                }
             }
 
@@ -1095,9 +1097,10 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    //! \note If WorkDescriptor has been submitted update statistics
    updateExitStats (*wd);
 
+   BaseThread *thread = getMyThreadSafe();
+
    //! \note Getting more work to do (only if not going to sleep)
-   if ( schedule && !getMyThreadSafe()->isSleeping() ) {
-      BaseThread *thread = getMyThreadSafe();
+   if ( schedule && !thread->isSleeping() ) {
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
          WD *prefetchedWD = thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule );
