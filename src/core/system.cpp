@@ -902,9 +902,6 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( dyn_props->priority );
-      wd->setFinal ( dyn_props->flags.is_final );
-      wd->setRecoverable ( dyn_props->flags.is_recover);
    }
 
    // Set dynamic properties
