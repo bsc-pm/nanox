@@ -69,6 +69,17 @@ void * local_nanos_smp_factory( void *args )
    return ( void * )new ext::SMPDD( smp->outline );
 }
 
+#ifdef OpenCL_DEV
+#include "opencldd.hpp"
+#include "opencldevice_decl.hpp"
+void * local_nanos_ocl_factory( void *args );
+void * local_nanos_ocl_factory( void *args )
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   return ( void * )new ext::OpenCLDD( smp->outline );
+}
+#endif
+
 #ifndef __SIZEOF_POINTER__
 #   error This compiler does not define __SIZEOF_POINTER__ :( 
 #else
@@ -76,10 +87,12 @@ void * local_nanos_smp_factory( void *args )
 #      define MERGE_ARG( _Hi, _Lo) (  ( uint32_t ) _Lo + ( ( ( uintptr_t ) ( ( uint32_t ) _Hi ) ) << 32 ) )
 #      define ARG_HI( _Arg ) ( ( gasnet_handlerarg_t ) ( ( ( uintptr_t ) ( _Arg ) ) >> 32 ) )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) ( ( uintptr_t ) _Arg ) )
+#      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
 #   else
 #      define MERGE_ARG( _Hi, _Lo) ( ( uintptr_t ) ( _Lo ) )
 #      define ARG_HI( _Arg ) ( ( gasnet_handlerarg_t ) 0 )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) _Arg )
+#      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest() / 2) //Montblanc
 #   endif
 #endif
 
@@ -89,7 +102,6 @@ using namespace ext;
 #define _emitPtPEvents 1
 
 
-#define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
 
 GASNetAPI::WorkBufferManager::WorkBufferManager() : _buffers(), _lock() {
 }
@@ -129,10 +141,10 @@ GASNetAPI *GASNetAPI::getInstance() {
    return _instance;
 }
 
-GASNetAPI::GASNetAPI( ClusterPlugin &p ) : _plugin( p ), _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _packSegment( 0 ),
+GASNetAPI::GASNetAPI( ClusterPlugin &p ) : _plugin( p ), _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _rwgOCL( 0 ), _packSegment( 0 ),
    _pinnedAllocators(), _pinnedAllocatorsLocks(),
    _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ),
-   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ), _incomingWorkBuffers() {
+   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ), _incomingWorkBuffers(), _nodeBarrierCounter( 0 ) {
    _instance = this;
 }
 
@@ -385,6 +397,9 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 #ifdef GPU_DEV
    nanos_device_t newDeviceGPU = { local_nanos_gpu_factory, (void *) &smp_args } ;
 #endif
+#ifdef OpenCL_DEV
+   nanos_device_t newDeviceOCL = { local_nanos_ocl_factory, (void *) &smp_args } ;
+#endif
    nanos_device_t *devPtr = NULL;
 
    if (arch == 0)
@@ -407,6 +422,18 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
          getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
 
       rwg = (WorkDescriptor *) getInstance()->_rwgGPU;
+   }
+#endif
+#ifdef OpenCL_DEV
+   else if (arch == 2)
+   {
+      //FIXME: OCL support
+      devPtr = &newDeviceOCL;
+
+      if (getInstance()->_rwgOCL == NULL)
+         getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
+
+      rwg = (WorkDescriptor *) getInstance()->_rwgOCL;
    }
 #endif
    else
@@ -1026,18 +1053,30 @@ void GASNetAPI::amRegionMetadata(gasnet_token_t token, void *arg, std::size_t ar
 }
 
 void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
-   WorkDescriptor *wds[2];
+   WorkDescriptor *wds[3];
    unsigned int numWDs = 0;
 
-   if ( getInstance()->_rwgSMP != NULL ) {
-      wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgSMP;
-      numWDs += 1;
-   }
+   if (getInstance()->_rwgSMP == NULL) 
+      getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
+
 #ifdef GPU_DEV
-   if ( getInstance()->_rwgGPU != NULL) {
-      wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgGPU;
-      numWDs += 1;
-   }
+   if (getInstance()->_rwgGPU == NULL) 
+      getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
+#endif
+#ifdef OpenCL_DEV
+   if (getInstance()->_rwgOCL == NULL) 
+      getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
+#endif
+
+   wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgSMP;
+   numWDs += 1;
+#ifdef GPU_DEV
+   wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgGPU;
+   numWDs += 1;
+#endif
+#ifdef OpenCL_DEV
+   wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgOCL;
+   numWDs += 1;
 #endif
    getInstance()->_net->notifySynchronizeDirectory( numWDs, wds );
 }
@@ -1571,8 +1610,10 @@ void GASNetAPI::memFree ( unsigned int remoteNode, void *addr )
 
 void GASNetAPI::nodeBarrier()
 {
-   gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
-   gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+   unsigned int id = _nodeBarrierCounter;
+   _nodeBarrierCounter += 1;
+   gasnet_barrier_notify( id, !(GASNET_BARRIERFLAG_ANONYMOUS) );
+   gasnet_barrier_wait( id, !(GASNET_BARRIERFLAG_ANONYMOUS) );
 }
 
 void GASNetAPI::sendMyHostName( unsigned int dest )

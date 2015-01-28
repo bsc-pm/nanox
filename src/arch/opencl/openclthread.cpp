@@ -19,6 +19,7 @@
 /*************************************************************************************/
 
 #include "openclprocessor.hpp"
+#include "basethread.hpp"
 #include "openclthread.hpp"
 
 using namespace nanos;

@@ -22,6 +22,7 @@
 #include "system.hpp"
 #include "compatibility.hpp"
 #include "workdescriptor.hpp"
+#include "basethread.hpp"
 #include <alloca.h>
 
 using namespace nanos;

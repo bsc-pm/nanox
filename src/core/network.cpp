@@ -26,6 +26,7 @@
 #include "schedule.hpp"
 #include "system.hpp"
 #include "deviceops.hpp"
+#include "basethread.hpp"
 #include "regiondict.hpp"
 #include "version.hpp"
 
@@ -37,11 +38,15 @@ Lock Network::_nodeLock;
 Atomic<uint64_t> Network::_nodeRCAaddr;
 Atomic<uint64_t> Network::_nodeRCAaddrOther;
 
-Network::Network () : _numNodes( 1 ), _api( (NetworkAPI *) 0 ), _nodeNum( 0 ), _masterHostname ( NULL ),
-_checkForDataInOtherAddressSpaces( false ), _putRequestSequence( NULL ), _recvWdData(), _sentWdData(),
-_deferredWorkReqs(), _deferredWorkReqsLock(), _recvSeqN(0), _waitingPutRequestsLock(), _waitingPutRequests(),
-_receivedUnmatchedPutRequests(), _delayedBySeqNumberPutReqs(), _delayedBySeqNumberPutReqsLock(),
-_forwardedRegions(NULL),_gpuPresend(1), _smpPresend(1), _metadataSequenceNumbers( NULL ), _recvMetadataSeq(1) {}
+Network::Network () : _numNodes(1), _api((NetworkAPI *) 0), _nodeNum(0),
+   _masterHostname(NULL), _checkForDataInOtherAddressSpaces(false),
+   _putRequestSequence(NULL), _recvWdData(), _sentWdData(), _deferredWorkReqs(),
+   _deferredWorkReqsLock(), _recvSeqN(0), _waitingPutRequestsLock(),
+   _waitingPutRequests(), _receivedUnmatchedPutRequests(),
+   _delayedBySeqNumberPutReqs(), _delayedBySeqNumberPutReqsLock(),
+   _forwardedRegions(NULL),_gpuPresend(1), _smpPresend(1),
+   _metadataSequenceNumbers(NULL), _recvMetadataSeq(1), _syncReqs(),
+   _syncReqsLock(), _nodeBarrierCounter(0) {}
 
 Network::~Network () {}
 
@@ -107,6 +112,9 @@ void Network::poll( unsigned int id)
    //   ensure ( _api != NULL, "No network api loaded." );
    checkDeferredWorkReqs();
    processRequestsDelayedBySeqNumber();
+   if ( _nodeNum != MASTER_NODE_NUM && myThread->getId() == 0 ) {
+      processSyncRequests();
+   }
    SendDataRequest * req = _dataSendRequests.tryFetch();
    if ( req ) {
       _api->processSendDataRequest( req );
@@ -338,6 +346,7 @@ void Network::nodeBarrier()
    if ( _api != NULL )
    {
       _api->nodeBarrier();
+      _nodeBarrierCounter += 1;
    }
 }
 
@@ -363,6 +372,27 @@ void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, len );
+      //(*myThread->_file) << __func__ << " hostObject " << (void *) hostObject << " from node " << dest << " to node " << dataDest << std::endl;
+      // added
+      unsigned int seq = 0;
+      reg_key_t obj = sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject );
+      if ( !_forwardedRegions[dataDest-1].isRegionForwarded( global_reg_t( hostRegId, obj ) ) ) {
+         global_reg_t reg( hostRegId, obj );
+         CopyData cd;
+         reg.fillCopyData( cd, dstAddr - reg.getFirstAddress(0) );
+         nanos_region_dimension_internal_t dims[cd.getNumDimensions()];
+         reg.fillDimensionData( dims );
+         cd.setDimensions(dims);
+         cd.setHostRegionId( hostRegId );
+
+         seq = getMetadataSequenceNumber( dataDest );
+         _api->sendRegionMetadata( dataDest, &cd, seq );
+         seq += 1;
+         _forwardedRegions[dataDest-1].addForwardedRegion( reg );
+      } else {
+         seq = checkMetadataSequenceNumber( dataDest );
+      }
+      // added
       _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd, f, hostObject, hostRegId, 0 );
    }
 }
@@ -372,6 +402,24 @@ void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, uns
    if ( _api != NULL )
    {
       _sentWdData.addSentData( wdId, len * count );
+      unsigned int seq = 0;
+      reg_key_t obj = sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject );
+      if ( !_forwardedRegions[dataDest-1].isRegionForwarded( global_reg_t( hostRegId, obj ) ) ) {
+         global_reg_t reg( hostRegId, obj );
+         CopyData cd;
+         reg.fillCopyData( cd, dstAddr - reg.getFirstAddress(0) );
+         nanos_region_dimension_internal_t dims[cd.getNumDimensions()];
+         reg.fillDimensionData( dims );
+         cd.setDimensions(dims);
+         cd.setHostRegionId( hostRegId );
+
+         seq = getMetadataSequenceNumber( dataDest );
+         _api->sendRegionMetadata( dataDest, &cd, seq );
+         seq += 1;
+         _forwardedRegions[dataDest-1].addForwardedRegion( reg );
+      } else {
+         seq = checkMetadataSequenceNumber( dataDest );
+      }
       _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd, f, hostObject, hostRegId, 0 );
    }
 }
@@ -731,20 +779,31 @@ unsigned int SendDataRequest::getSeqNumber() const {
 void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId ) {
    reg_t id = sys.getHostMemory().getLocalRegionId( hostObject, hostRegId );
    global_reg_t reg( id, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
+   //(*myThread->_file) << "[net] Invalidate data from devices, addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
 
    if ( reg.isRegistered() ) {
-      if ( reg.getFirstLocation() != 0 ) {
-         reg.setLocationAndVersion( NULL, 0, reg.getVersion() );
+      //(*myThread->_file) << "[net] registered addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
+      if ( reg.isLocatedInSeparateMemorySpaces() ) {
+         //(*myThread->_file) << "[net] in devices! invalidate: " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
+         reg.setLocationAndVersion( NULL, 0, reg.getVersion()+1 );
       }
+      //else {
+      //   (*myThread->_file) << "[net] already in host! " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
+      //}
    }
+   //else {
+   //   (*myThread->_file) << "[net] unregistered " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
+   //}
 }
 
 void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId ) {
    reg_t id = sys.getHostMemory().getLocalRegionId( hostObject, hostRegId );
    global_reg_t thisReg( id, sys.getHostMemory().getRegionDirectoryKey( (uint64_t) hostObject ));
 
+   //(*myThread->_file) << "[net] Get data from devices, addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
    if ( thisReg.isRegistered() ) {
       if ( thisReg.getFirstLocation() != 0 ) {
+         //(*myThread->_file) << "[net] Issue device ops, addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << " data is [" << *((double *)addr) << "]" <<std::endl;
          SeparateAddressSpaceOutOps outOps( myThread->runningOn(), false, false );
 
          std::list< std::pair< reg_t, reg_t > > missingParts;
@@ -772,8 +831,15 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
          }
          outOps.issue( *( (WD *) NULL ) );
          while ( !outOps.isDataReady( myThread->getThreadWD()) ) { myThread->idle(); }
-      }
-   }
+         //(*myThread->_file) << "[net] ops completed, addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << " data is [" << *((double *)addr) << "]" <<std::endl;
+      } 
+      //else {
+      //   (*myThread->_file) << "[net] not issuing ops, host alredy syncd addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << " data is [" << *((double *)addr) << "]" <<std::endl;
+      //}
+   } 
+   //else {
+   //  (*myThread->_file) << "[net] Unregistered addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
+   //}
 }
 
 unsigned int Network::getPutRequestSequenceNumber( unsigned int dest ) {
@@ -819,7 +885,7 @@ bool GetRequest::isCompleted() const {
 void GetRequest::clear() {
    ::memcpy( _hostAddr, _recvAddr, _size );
    if ( VERBOSE_COMPLETION ) {
-      std::cerr << "Completed copyOut request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
+      (*myThread->_file) << "Completed copyOut request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
    }
    sys.getNetwork()->freeReceiveMemory( _recvAddr );
    _ops->completeOp();
@@ -838,7 +904,7 @@ void GetRequestStrided::clear() {
       ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
    }
    if ( VERBOSE_COMPLETION ) {
-      std::cerr << "Completed copyOutStrided request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
+      (*myThread->_file) << "Completed copyOutStrided request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
    }
    //NANOS_INSTRUMENT( inst2.close(); );
    _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );
@@ -923,8 +989,23 @@ void Network::synchronizeDirectory() {
 }
 
 void Network::notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds ) {
-   for ( unsigned int idx = 0; idx < numWDs; idx += 1 ) {
-      sys.getHostMemory().synchronize( *(wds[idx]) );
+   _syncReqsLock.acquire();
+   _syncReqs.push_back( SyncWDs( numWDs, wds ) );
+   _syncReqsLock.release();
+}
+
+void Network::processSyncRequests() {
+   if ( !_syncReqs.empty() ) {
+      if ( _syncReqsLock.tryAcquire() ) {
+         while ( !_syncReqs.empty() ) {
+            SyncWDs const &s = _syncReqs.front();
+            for ( unsigned int idx = 0; idx < s.getNumWDs(); idx += 1 ) {
+               sys.getHostMemory().synchronize( *(s.getWDs()[idx]) );
+            }
+            this->nodeBarrier(); //matches the call in synchronizeDirectory
+            _syncReqs.pop_front();
+         }
+         _syncReqsLock.release();
+      }
    }
-   this->nodeBarrier(); //mathes the call in synchronizeDirectory
 }

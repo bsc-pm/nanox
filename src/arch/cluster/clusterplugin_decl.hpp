@@ -20,6 +20,7 @@ class ClusterPlugin : public ArchPlugin
       std::string _conduit;
       std::size_t _nodeMem;
       bool _allocFit;
+      bool _allowSharedThd;
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;

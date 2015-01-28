@@ -24,6 +24,7 @@
 #include "os.hpp"
 #include "osallocator_decl.hpp"
 #include "system.hpp"
+#include "basethread.hpp"
 #include "printbt_decl.hpp"
 #include <limits>
 
@@ -477,6 +478,19 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
+   virtual ext::SMPProcessor *getLastSMPProcessor() {
+      ensure( _cpus != NULL, "Uninitialized SMP plugin.");
+      ext::SMPProcessor *target = NULL;
+      for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
+            it != _cpus->rend() && !target;
+            it++ ) {
+         if ( (*it)->isActive() ) {
+            target = *it;
+         }
+      }
+      return target;
+   }
+
    virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node) {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
       ext::SMPProcessor *target = NULL;
@@ -530,10 +544,10 @@ class SMPPlugin : public SMPBasePlugin
             _numSockets = 1;
          }
       }
-      ensure(_numSockets > 0, "Invalid number of sockets!");
+      ensure0(_numSockets > 0, "Invalid number of sockets!");
       if ( _coresPerSocket == 0 )
          _coresPerSocket = std::ceil( _cpus->size() / static_cast<float>( _numSockets ) );
-      ensure(_coresPerSocket > 0, "Invalid number of cores per socket!");
+      ensure0(_coresPerSocket > 0, "Invalid number of cores per socket!");
 //#ifdef HWLOC
 //      hwloc_topology_t topology = ( hwloc_topology_t ) _hwlocTopology;
 //

@@ -20,6 +20,7 @@
 #ifndef _GPU_DEVICE
 #define _GPU_DEVICE
 
+#include "basethread.hpp"
 #include "gpudevice_decl.hpp"
 #include "gpuprocessor.hpp"
 #include "gpumemoryspace_decl.hpp"

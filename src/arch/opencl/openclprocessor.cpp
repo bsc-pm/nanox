@@ -63,6 +63,9 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    //clGetDeviceInfo( _dev, CL_DEVICE_TYPE, sizeof( cl_device_type ),&devType, NULL );
    //_useHostPtrs= (devType==CL_DEVICE_TYPE_CPU);
    _useHostPtrs= false;
+   cl_int align;
+   clGetDeviceInfo(_dev, CL_DEVICE_MEM_BASE_ADDR_ALIGN, sizeof(align), &align, NULL);
+   std::cerr << " THIS CL DEV HAS ALIGN " << align << std::endl;
    
    _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
 
@@ -968,7 +971,7 @@ void  OpenCLAdapter::waitForEvents(){
 SharedMemAllocator OpenCLProcessor::_shmemAllocator;
 
 OpenCLProcessor::OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem ) :
-   ProcessingElement( &OpenCLDev, NULL, memId, 0 /* local node */, 0 /* FIXME: numa */, true, 0 /* socket: n/a? */, false ),
+   ProcessingElement( &OpenCLDev, memId, 0 /* local node */, 0 /* FIXME: numa */, true, 0 /* socket: n/a? */, false ),
    _core( core ),
    _openclAdapter(),
    _cache( _openclAdapter ),

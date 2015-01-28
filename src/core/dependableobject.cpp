@@ -20,6 +20,7 @@
 #include "dependableobject.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
+#include "basethread.hpp"
 #include <alloca.h>
 
 using namespace nanos;

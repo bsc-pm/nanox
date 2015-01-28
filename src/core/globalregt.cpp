@@ -2,6 +2,7 @@
 #include "globalregt_decl.hpp"
 #include "newregiondirectory.hpp"
 #include "regiondict.hpp"
+#include "basethread.hpp"
 #include "debug.hpp"
 
 uint64_t global_reg_t::getKeyFirstAddress() const {
@@ -271,4 +272,11 @@ ProcessingElement *global_reg_t::getFirstWriterPE() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
    return entry->getFirstWriterPE();
+}
+
+bool global_reg_t::isLocatedInSeparateMemorySpaces() const {
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   ensure(entry != NULL, "invalid entry.");
+   std::set< memory_space_id_t > const &locs = entry->getLocations();
+   return ( locs.size() > 1 || locs.count(0) == 0 ); 
 }

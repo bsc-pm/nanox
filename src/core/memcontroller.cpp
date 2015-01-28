@@ -246,7 +246,7 @@ void MemController::copyDataIn() {
    //NANOS_INSTRUMENT( inst5.close(); );
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
-         std::cerr << "### copyDataIn wd " << std::dec << _wd.getId() << " done" << std::endl;
+         (*myThread->_file) << "### copyDataIn wd " << std::dec << _wd.getId() << " done" << std::endl;
       }
    }
    //NANOS_INSTRUMENT( inst2.close(); );

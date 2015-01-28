@@ -592,5 +592,16 @@ inline unsigned int System::getNewAcceleratorId() {
    return _acceleratorCount++;
 }
 
+inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int accelerator_id ) const {
+   memory_space_id_t id = ( memory_space_id_t ) -1;
+   for ( memory_space_id_t mem_idx = 1; mem_idx < _separateMemorySpacesCount; mem_idx += 1 ) {
+      if ( _separateAddressSpaces[ mem_idx ]->getAcceleratorNumber() == accelerator_id ) {
+         id = mem_idx;
+         break;
+      }
+   }
+   return id;
+}
+
 #endif
 

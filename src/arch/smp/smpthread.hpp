@@ -21,7 +21,9 @@
 #define _NANOS_SMP_THREAD
 
 #include "smpdd.hpp"
-#include "basethread.hpp"
+#include "basethread_decl.hpp"
+#include "processingelement_decl.hpp"
+#include "system_decl.hpp"
 #include <nanos-int.h>
 #include "smpprocessor_fwd.hpp"
 #include "pthread_decl.hpp"
