@@ -19,6 +19,7 @@
 
 
 #include "gpucallback.hpp"
+#include "system.hpp"
 
 
 using namespace nanos;
