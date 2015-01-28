@@ -27,7 +27,6 @@
 #include "os.hpp"
 #include "synchronizedcondition.hpp"
 #include "basethread.hpp"
-#include "printbt_decl.hpp"
 #include "resourcemanager.hpp"
 
 using namespace nanos;

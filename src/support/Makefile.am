@@ -93,7 +93,6 @@ devinclude_HEADERS = \
 	functor_decl.hpp \
 	requestqueue_decl.hpp \
 	requestqueue.hpp \
-	printbt_decl.hpp \
         smpbaseplugin_decl.hpp \
 	pinnedallocator_decl.hpp \
 	genericevent_decl.hpp \
@@ -116,6 +115,7 @@ support_sources = \
 	queue_decl.hpp\
 	queue.hpp\
 	debug.hpp\
+	debug.cpp\
 	config_fwd.hpp\
 	config_decl.hpp\
 	config.hpp\
@@ -179,8 +179,6 @@ support_sources = \
 	functor_decl.hpp \
 	requestqueue_decl.hpp \
 	requestqueue.hpp \
-	printbt_decl.hpp \
-	printbt.cpp \
 	genericevent_decl.hpp \
 	genericevent.cpp \
 	$(END) 

@@ -22,7 +22,6 @@
 
 #include "deviceops.hpp"
 #include "version.hpp"
-#include "printbt_decl.hpp"
 
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )

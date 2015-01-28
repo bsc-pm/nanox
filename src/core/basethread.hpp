@@ -30,7 +30,6 @@
 #include "atomic.hpp"
 #include "system.hpp"
 #include "wddeque.hpp"
-#include "printbt_decl.hpp"
 #include "smpthread.hpp"
 #include <stdio.h>
 
