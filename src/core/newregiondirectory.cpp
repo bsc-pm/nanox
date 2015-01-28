@@ -79,14 +79,15 @@ NewNewRegionDirectory::HashBucket::~HashBucket() { }
 NewNewRegionDirectory::NewNewRegionDirectory() : _keys(), _keysSeed( 1 ),
    _keysLock(), _objects( HASH_BUCKETS, HashBucket() ) {}
 
-uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len ) {
+uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len, WD const *wd ) {
    bool exact;
    _keysLock.acquire();
    uint64_t keyIfNotFound = ( _keysSeed + 1 == 0 ) ? 1 : _keysSeed + 1;
+   //std::cerr << __func__ << " with addr " << (void *) addr << " and size " << len << " wd " << ( wd != NULL ? wd->getId() : -1 ) << " [ " << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << " ] " << std::endl;
    uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0 );
    if ( key == 0 ) {
       printBt(std::cerr);
-      fatal("invalid key, can not continue.");
+      fatal("invalid key, can not continue. Address " << (void *) addr << " w/len " << len << " [" << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << "]" );
    } else if ( key == keyIfNotFound ) {
       _keysSeed += 1;
    }
@@ -99,13 +100,13 @@ uint64_t NewNewRegionDirectory::_getKey( uint64_t addr ) const {
    return key;
 }
 
-GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeeded( CopyData const &cd ) {
+GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
    uint64_t objectAddr = ( cd.getHostBaseAddress() == 0 ? ( uint64_t ) cd.getBaseAddress() : cd.getHostBaseAddress() );
    std::size_t objectSize = cd.getMaxSize();
 #if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
 #else
-   uint64_t key = jen_hash( this->_getKey( objectAddr, objectSize ) ) & (HASH_BUCKETS-1);
+   uint64_t key = jen_hash( this->_getKey( objectAddr, objectSize, wd ) ) & (HASH_BUCKETS-1);
 #endif
    HashBucket &hb = _objects[ key ];
    GlobalRegionDictionary *dict = NULL;
@@ -800,7 +801,7 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
 #if 0
    unsigned int key = ( jen_hash( objectAddr ) & (HASH_BUCKETS-1) );
 #else
-   uint64_t key = jen_hash( this->_getKey( objectAddr, objectSize ) ) & (HASH_BUCKETS-1);
+   uint64_t key = jen_hash( this->_getKey( objectAddr, objectSize, NULL ) ) & (HASH_BUCKETS-1);
 #endif
    HashBucket &hb = _objects[ key ];
 
