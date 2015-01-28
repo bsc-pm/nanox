@@ -270,8 +270,8 @@ inline uint64_t NewNewDirectoryEntryData::getBaseAddress() const {
    return _baseAddress;
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {
-   return getRegionDictionaryRegisterIfNeeded( cd );
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
+   return getRegionDictionaryRegisterIfNeeded( cd, wd );
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( CopyData const &cd ) {

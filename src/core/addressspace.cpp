@@ -29,7 +29,7 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx ) {
    // *(myThread->_file) << "Registering CD with addr " << (void *) cd.getBaseAddress() << std::endl;
    // *(myThread->_file) << cd << std::endl;
-   reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
+   reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd, &wd );
    reg.id = reg.key->obtainRegionId( cd, wd, idx );
    //*(myThread->_file) << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
 }
