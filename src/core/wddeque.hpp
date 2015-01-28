@@ -24,6 +24,7 @@
 #include "schedule.hpp"
 #include "instrumentation.hpp"
 #include "atomic.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 

@@ -30,7 +30,7 @@
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
 #include "system_fwd.hpp"
-#include "basethread_decl.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 

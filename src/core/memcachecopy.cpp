@@ -5,6 +5,7 @@
 #include "memoryops_decl.hpp"
 #include "deviceops.hpp"
 #include "workdescriptor.hpp"
+#include "basethread.hpp"
 
 MemCacheCopy::MemCacheCopy() : 
    _version( 0 ), _childrenProducedVersion( 0 )

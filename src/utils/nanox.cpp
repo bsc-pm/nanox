@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <list>
 #include "compatibility.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 

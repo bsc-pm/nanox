@@ -612,5 +612,16 @@ inline void System::getCpuActiveMask ( cpu_set_t *mask ) const { _smpPlugin->get
 inline void System::setCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->setCpuActiveMask( mask, _workers ); }
 inline void System::addCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
 
+inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int accelerator_id ) const {
+   memory_space_id_t id = ( memory_space_id_t ) -1;
+   for ( memory_space_id_t mem_idx = 1; mem_idx < _separateMemorySpacesCount; mem_idx += 1 ) {
+      if ( _separateAddressSpaces[ mem_idx ]->getAcceleratorNumber() == accelerator_id ) {
+         id = mem_idx;
+         break;
+      }
+   }
+   return id;
+}
+
 #endif
 

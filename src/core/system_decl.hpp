@@ -37,7 +37,7 @@
 #include "archplugin_decl.hpp"
 #include "barrier_decl.hpp"
 #include "accelerator_decl.hpp"
-#include "location.hpp"
+#include "location_decl.hpp"
 #include "addressspace_decl.hpp"
 #include "smpbaseplugin_decl.hpp"
 #include "hwloc_decl.hpp"
@@ -645,6 +645,7 @@ namespace nanos
 
          unsigned int getNumAccelerators() const;
          unsigned int getNewAcceleratorId();
+         memory_space_id_t getMemorySpaceIdOfAccelerator( unsigned int acceleratorId ) const;
    };
 
    extern System sys;

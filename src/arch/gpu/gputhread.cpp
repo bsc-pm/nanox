@@ -29,6 +29,7 @@
 #include "system.hpp"
 #include "wddeque.hpp"
 #include "device_instrumentation.hpp"
+#include "basethread.hpp"
 
 #include <cuda_runtime.h>
 #ifdef NANOS_GPU_USE_CUDA32

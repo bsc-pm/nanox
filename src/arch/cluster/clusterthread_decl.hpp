@@ -52,7 +52,7 @@ namespace ext
       };
 
       unsigned int                     _clusterNode; // Assigned Cluster device Id
-      RunningWDQueue _runningWDs[2]; //0: SMP, 1: GPU
+      RunningWDQueue _runningWDs[3]; //0: SMP, 1: GPU, 3: OCL
       Lock _lock;
       WD *_pendingInitWD;
       std::list< WD * > _waitingDataWDs;
@@ -84,6 +84,10 @@ namespace ext
       unsigned int numRunningWDsGPU() const;
       void clearCompletedWDsGPU2( );
 
+      void addRunningWDOCL( WorkDescriptor *wd );
+      unsigned int numRunningWDsOCL() const;
+      void clearCompletedWDsOCL2( );
+
       virtual void join();
       virtual void start();
       virtual BaseThread * getNextThread ();
@@ -107,6 +111,7 @@ namespace ext
 
       bool acceptsWDsSMP() const;
       bool acceptsWDsGPU() const;
+      bool acceptsWDsOCL() const;
 
       bool hasAPendingWDToInit() const;
       WD *getPendingInitWD();

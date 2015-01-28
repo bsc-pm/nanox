@@ -42,10 +42,11 @@ namespace nanos
          int                                  _id;
          //! Unique ID
          int                                  _uid;
+         std::vector<const Device *>          _supportedDevices;
          const Device *                       _device;
-         const Device *                       _subDevice;
-         const Device *                       _deviceNo;
-         const Device *                       _subDeviceNo;
+//         const Device *                       _subDevice;
+//         const Device *                       _deviceNo;
+//         const Device *                       _subDeviceNo;
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
 
@@ -66,7 +67,10 @@ namespace nanos
 
          /*! \brief ProcessingElement constructor
           */
-         ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId,
+         ProcessingElement ( const Device *arch, unsigned int memSpaceId,
+            unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
+
+         ProcessingElement ( const Device **arch, unsigned int numArchs, unsigned int memSpaceId,
             unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ); 
 
          /*! \brief ProcessingElement destructor
@@ -93,17 +97,9 @@ namespace nanos
          BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
 
-         void disableDevice( int num )
-         {
-            if ( num == 0 ) { _deviceNo = _device; _device = NULL; }
-            if ( num == 1 ) { _subDeviceNo = _subDevice; _subDevice = NULL; }
+         void setCurrentDevice( int idx ) {
+            _device = _supportedDevices[ idx ];
          }
-         void enableDevice( int num )
-         {
-            if ( num == 0 ) { _device = _deviceNo; _deviceNo = NULL; }
-            if ( num == 1 ) { _subDevice = _subDeviceNo; _subDeviceNo = NULL; }
-         }
-
          void stopAll();
          void stopAllThreads();
 

@@ -28,6 +28,7 @@
 #include "basethread.hpp"
 #include "malign.hpp"
 #include "processingelement.hpp"
+#include "basethread.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
 #include "resourcemanager.hpp"
@@ -39,6 +40,7 @@
 #include "smpthread.hpp"
 #include "regiondict.hpp"
 #include "smpprocessor.hpp"
+#include "location.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"

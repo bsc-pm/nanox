@@ -21,6 +21,7 @@
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "config.hpp"
+#include "basethread.hpp"
 #include <iostream>
 
 using namespace nanos;
@@ -32,7 +33,7 @@ System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active, unsigned int numaNode, unsigned int socket ) :
-   PE( &SMP, NULL, memId, 0 /* always local node */, numaNode, true, socket, true ),
+   PE( &SMP, memId, 0 /* always local node */, numaNode, true, socket, true ),
    _bindingId( bindingId ), _reserved( false ), _active( active ), _futureThreads( 0 ) {}
 
 void SMPProcessor::prepareConfig ( Config &config )

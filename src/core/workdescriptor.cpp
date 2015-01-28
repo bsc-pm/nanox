@@ -26,6 +26,7 @@
 #include "system.hpp"
 #include "os.hpp"
 #include "synchronizedcondition.hpp"
+#include "basethread.hpp"
 #include "printbt_decl.hpp"
 #include "resourcemanager.hpp"
 
@@ -246,8 +247,9 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    bool result;
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
 
-   if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
-   else result = canRunIn( *pe.getDeviceType(), &pe ) ;
+  // if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
+  // else 
+   result = canRunIn( *pe.getDeviceType(), &pe ) ;
 
    return result;   
    //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));

@@ -23,10 +23,13 @@
 #include "clusterplugin_decl.hpp"
 #include "clusternode_decl.hpp"
 #include "remoteworkdescriptor_decl.hpp"
+#include "basethread.hpp"
 #include "smpprocessor.hpp"
-
+#ifdef OpenCL_DEV
+#include "opencldd.hpp"
+#endif
 #ifdef GPU_DEV
-#include "gpuconfig.hpp"
+#include "gpudd.hpp"
 #endif
 
 #if defined(__SIZEOF_SIZE_T__) 
@@ -51,12 +54,13 @@
 namespace nanos {
 namespace ext {
 
-ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ), _gasnetApi( *this ),
-_numPinnedSegments ( 0 ),
-_pinnedSegmentAddrList ( NULL ), _pinnedSegmentLenList ( NULL ), _extraPEsCount ( 0 ), _conduit (""),
-_nodeMem ( DEFAULT_NODE_MEM ), _allocFit ( false ), _gpuPresend ( 1 ), _smpPresend ( 1 ),
-_cachePolicy ( System::DEFAULT ), _nodes( NULL ), _cpu( NULL ), _clusterThread( NULL )
-{}
+ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
+   _gasnetApi( *this ), _numPinnedSegments( 0 ), _pinnedSegmentAddrList( NULL ),
+   _pinnedSegmentLenList( NULL ), _extraPEsCount( 0 ), _conduit(""),
+   _nodeMem( DEFAULT_NODE_MEM ), _allocFit( false ), _allowSharedThd( false ),
+   _gpuPresend( 1 ), _smpPresend( 1 ), _cachePolicy( System::DEFAULT ),
+   _nodes( NULL ), _cpu( NULL ), _clusterThread( NULL ) {
+}
 
 void ClusterPlugin::config( Config& cfg )
 {
@@ -73,13 +77,21 @@ void ClusterPlugin::init()
 
    if ( _gasnetApi.getNumNodes() > 1 ) {
       if ( _gasnetApi.getNodeNum() == 0 ) {
+         const Device * supported_archs[3] = { &SMP, NULL, NULL };
+         int num_supported_archs = 3;
+         #ifdef GPU_DEV
+         supported_archs[1] = &GPU;
+         #endif
+         #ifdef OpenCL_DEV
+         supported_archs[2] = &OpenCLDev;
+         #endif
          _nodes = NEW std::vector<nanos::ext::ClusterNode *>(_gasnetApi.getNumNodes(), (nanos::ext::ClusterNode *) NULL); 
          for ( unsigned int nodeC = 1; nodeC < _gasnetApi.getNumNodes(); nodeC++ ) {
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ) );
             SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
             nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) _gasnetApi.getSegmentAddr( nodeC ), _gasnetApi.getSegmentLen( nodeC ) ) );
             nodeMemory.setNodeNumber( nodeC );
-            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id );
+            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id, supported_archs, num_supported_archs );
             (*_nodes)[ node->getNodeNum() ] = node;
          }
       }
@@ -87,7 +99,14 @@ void ClusterPlugin::init()
       if ( _cpu ) {
          _cpu->setNumFutureThreads( 1 );
       } else {
-         fatal0("Unable to get a cpu to run the cluster thread.");
+         if ( _allowSharedThd ) {
+            _cpu = sys.getSMPPlugin()->getLastSMPProcessor();
+            if ( !_cpu ) {
+               fatal0("Unable to get a cpu to run the cluster thread.");
+            }
+         } else {
+            fatal0("Unable to get a cpu to run the cluster thread. Try using --cluster-allow-shared-thread");
+         }
       }
    }
 }
@@ -164,6 +183,10 @@ void ClusterPlugin::prepare( Config& cfg ) {
    cfg.registerConfigOption ( "cluster-cache-policy", cachePolicyCfg, "Defines the cache policy for Cluster architectures: write-through / write-back (wb by default)" );
    cfg.registerEnvOption ( "cluster-cache-policy", "NX_CLUSTER_CACHE_POLICY" );
    cfg.registerArgOption( "cluster-cache-policy", "cluster-cache-policy" );
+
+   cfg.registerConfigOption ( "allow-shared-thread", NEW Config::FlagOption ( _allowSharedThd ), "Allow the cluster thread to share CPU with other threads." );
+   cfg.registerArgOption ( "allow-shared-thread", "cluster-allow-shared-thread" );
+   cfg.registerEnvOption ( "allow-shared-thread", "NX_CLUSTER_ALLOW_SHARED_THREAD" );
 }
 
 ProcessingElement * ClusterPlugin::createPE( unsigned id, unsigned uid ){
@@ -185,11 +208,10 @@ void ClusterPlugin::startSupportThreads() {
             _clusterThread->getThreadWD().setInternalData(NEW char[sys.getPMInterface().getInternalDataSize()]);
          //_pmInterface->setupWD( smpRepThd->getThreadWD() );
          //setSlaveParentWD( &mainWD );
-#ifdef GPU_DEV
-         if ( nanos::ext::GPUConfig::getGPUCount() > 0 ) {
+         if ( sys.getNumAccelerators() > 0 ) { 
+            /* This works, but it could happen that the cluster is initialized before the accelerators, and this call could return 0 */
             sys.getNetwork()->enableCheckingForDataInOtherAddressSpaces();
          }
-#endif
       }
    }
 }

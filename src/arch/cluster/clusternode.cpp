@@ -28,21 +28,14 @@ using namespace nanos;
 using namespace nanos::ext;
 
 
-ClusterNode::ClusterNode( int nodeId, memory_space_id_t memId ) : 
-   ProcessingElement( &SMP,
-#ifdef GPU_DEV
-   &GPU,
-#else
-   NULL,
-#endif
-   memId,
-   nodeId,
+ClusterNode::ClusterNode( int nodeId, memory_space_id_t memId,
+   const Device **archs, unsigned int numArchs ) :
+   ProcessingElement( archs, numArchs, memId, nodeId,
    0, /* TODO: should be NumaNode, use HWLoc to get the correct value (NIC numa node) */
    true,
    0,
    false ),
-   _clusterNode ( nodeId ),
-   _executedWorkDesciptors ( 0 ) {
+   _clusterNode ( nodeId ), _executedWorkDesciptors ( 0 ) {
 }
 
 ClusterNode::~ClusterNode() {

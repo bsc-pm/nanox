@@ -20,7 +20,7 @@
 #ifndef _GPU_DEVICE_DECL
 #define _GPU_DEVICE_DECL
 
-#include "workdescriptor_decl.hpp"
+#include "workdescriptor.hpp"
 #include "processingelement_fwd.hpp"
 #include "copydescriptor_decl.hpp"
 #include "gpuprocessor_fwd.hpp"

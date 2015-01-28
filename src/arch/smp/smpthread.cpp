@@ -30,6 +30,7 @@
 #include <signal.h>
 #include <assert.h>
 #include "smp_ult.hpp"
+#include "basethread.hpp"
 #include "instrumentation.hpp"
 //#include "clusterdevice_decl.hpp"
 #include "resourcemanager.hpp"

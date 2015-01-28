@@ -34,6 +34,7 @@ class SMPBasePlugin : public ArchPlugin {
       SMPBasePlugin( const char *name, int version ) : ArchPlugin( name, version ) {}
       virtual ext::SMPProcessor *getFirstSMPProcessor() const = 0;
       virtual ext::SMPProcessor *getLastFreeSMPProcessorAndReserve() = 0;
+      virtual ext::SMPProcessor *getLastSMPProcessor() = 0;
       virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node) = 0;
       virtual ext::SMPProcessor *getSMPProcessorByNUMAnode(int node, unsigned int idx) const = 0;
       virtual bool getBinding() const = 0;

@@ -35,6 +35,7 @@
 #ifdef GPU_DEV
 #include "gpudd.hpp"
 #endif
+#include "location.hpp"
 
 namespace nanos {
    namespace ext {
