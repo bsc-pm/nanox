@@ -46,7 +46,7 @@ public:
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _preallocateWholeMemory(false){}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _progCache(), _pendingEvents() {}
 
 public:
    void initialize(cl_device_id dev);
