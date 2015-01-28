@@ -29,6 +29,7 @@ test_generator=gens/api-generator
 #include <nanos.h>
 
 #define NUM_TASKS 500
+#define VERBOSE
 
 typedef struct { int *sh_val; } my_args;
 
@@ -114,7 +115,10 @@ struct nanos_const_wd_definition const_print =
 nanos_wd_dyn_props_t dyn_props = {0};
 
 void my_init ( void *p ) { *((int *)p) = 0 ; }
-void my_red ( void *p, void *q ) { *((int *)p) = *((int *)p) + *((int *)q);  }
+void my_red ( void *p, void *q ) {
+   fprintf(stderr,"reducing on %p \n", (void *) p);
+   *((int *)p) = *((int *)p) + *((int *)q);
+}
 void my_red_orig ( void *p ) { *((int *)p) = *((int *)p);  }
 
 int main ( int argc, char **argv )
@@ -172,7 +176,7 @@ int main ( int argc, char **argv )
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
 
-   fprintf(stderr,"Final result", my_value );
+   fprintf(stderr,"Final result is %d", my_value );
 
    if( my_value == NUM_TASKS ) return 0;
    else return 1;
