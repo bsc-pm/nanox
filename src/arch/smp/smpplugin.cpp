@@ -558,9 +558,11 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      ::memcpy( &_cpuProcessMask, mask, sizeof(cpu_set_t) );
-      ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
-      applyCpuMask( workers );
+      if ( isValidMask( mask ) ) {
+         ::memcpy( &_cpuProcessMask, mask, sizeof(cpu_set_t) );
+         ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         applyCpuMask( workers );
+      }
    }
 
    virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
@@ -582,8 +584,10 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
-      applyCpuMask( workers );
+      if ( isValidMask( mask ) ) {
+         ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         applyCpuMask( workers );
+      }
    }
 
    virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
@@ -933,6 +937,14 @@ private:
          threadWD.setInternalData( data );
       }
       sys.getPMInterface().setupWD( threadWD );
+   }
+
+   bool isValidMask( const cpu_set_t *mask )
+   {
+      // A mask is valid if it shares at least 1 bit with the system mask
+      cpu_set_t m;
+      CPU_AND( &m, mask, &_cpuSystemMask );
+      return CPU_COUNT( &m ) > 0;
    }
 
 };
