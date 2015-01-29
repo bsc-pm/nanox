@@ -278,6 +278,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
    }
 
 
+
    if ( _pe->getMemorySpaceId() == 0 /* HOST_MEMSPACE_ID */) {
       _outputDataReady = true;
    } else {
@@ -316,9 +317,15 @@ uint64_t MemController::getAddress( unsigned int index ) const {
 
 void MemController::getInfoFromPredecessor( MemController const &predecessorController ) {
    for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
-      unsigned int version = predecessorController._memCacheCopies[ index ].getChildrenProducedVersion();
-      //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << std::endl;
-      _providedRegions.addRegion( predecessorController._memCacheCopies[ index ]._reg, version );
+      unsigned int version = predecessorController._memCacheCopies[ index ].getChildrenProducedVersion(); 
+      unsigned int predecessorProducedVersion = predecessorController._memCacheCopies[ index ].getVersion() + (predecessorController._wd.getCopies()[ index ].isOutput() ? 1 : 0);
+      if ( predecessorProducedVersion == version ) {
+         // if the predecessor's children produced new data, then the father can not
+         // guarantee that the version is correct (the children may have produced a subchunk
+         // of the region). The version is not added here and then the global directory is checked.
+         //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy version " << predecessorController._memCacheCopies[ index ].getVersion() << std::endl;
+         _providedRegions.addRegion( predecessorController._memCacheCopies[ index ]._reg, version );
+      }
    }
 #if 0
    _provideLock.acquire();
