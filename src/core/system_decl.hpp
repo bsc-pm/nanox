@@ -41,6 +41,7 @@
 #include "addressspace_decl.hpp"
 #include "smpbaseplugin_decl.hpp"
 #include "hwloc_decl.hpp"
+#include "threadmanager_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
 
@@ -97,8 +98,6 @@ namespace nanos
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _synchronizedStart;
-         //! Enable Dynamic Load Balancing library
-         bool                 _enableDLB;
          //! Maintain predecessors list, disabled by default, used by botlev and async threads (#1027)
          bool                 _predecessorLists;
 
@@ -191,7 +190,11 @@ namespace nanos
          unsigned int                                  _acceleratorCount;
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>                              _numaNodeMap;
-         
+
+         /*! Thread Manager members */
+         ThreadManagerConf                             _threadManagerConf;
+         ThreadManager *                               _threadManager;
+
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
@@ -336,11 +339,6 @@ namespace nanos
          unsigned int nextPEId ();
 
          bool isSummaryEnabled() const;
-         
-         /*!
-          * \brief Returns whether DLB is enabled
-          */
-         bool dlbEnabled() const;
 
          /*!
           * \brief Returns the maximum number of times a task can try to recover from an error by re-executing itself.
@@ -646,6 +644,9 @@ namespace nanos
          unsigned int getNumAccelerators() const;
          unsigned int getNewAcceleratorId();
          memory_space_id_t getMemorySpaceIdOfAccelerator( unsigned int acceleratorId ) const;
+
+         const ThreadManagerConf& getThreadManagerConf() const;
+         ThreadManager* getThreadManager() const;
    };
 
    extern System sys;

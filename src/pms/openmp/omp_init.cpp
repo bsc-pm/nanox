@@ -27,7 +27,6 @@
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
 #include "plugin.hpp"
-#include "resourcemanager.hpp"
 
 using namespace nanos;
 //using namespace nanos::OpenMP;
@@ -293,7 +292,7 @@ namespace nanos
          _description = std::string("OmpSs");
          _malleable = true;
          sys.setInitialMode( System::POOL );
-         sys.setUntieMaster( ResourceManager::canUntieMaster() );
+         sys.setUntieMaster( sys.getThreadManagerConf().canUntieMaster() );
       }
 
       /*! \brief Get the size of OmpSsData */

@@ -508,8 +508,6 @@ inline unsigned int System::nextPEId () { return _peIdSeed++; }
 
 inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
-inline bool System::dlbEnabled() const { return _enableDLB; }
-
 inline bool System::haveDependencePendantWrites ( void *addr ) const
 {
    return myThread->getCurrentWD()->getDependenciesDomain().haveDependencePendantWrites ( addr );
@@ -594,6 +592,14 @@ inline unsigned int System::getNumAccelerators() const {
 
 inline unsigned int System::getNewAcceleratorId() {
    return _acceleratorCount++;
+}
+
+inline const ThreadManagerConf& System::getThreadManagerConf() const {
+   return _threadManagerConf;
+}
+
+inline ThreadManager* System::getThreadManager() const {
+   return _threadManager;
 }
 
 /* SMPPlugin functions */

@@ -278,6 +278,8 @@ common_sources=\
 	hwloc.cpp \
 	regionset_decl.hpp \
 	regionset.cpp \
+	threadmanager_decl.hpp \
+	threadmanager.cpp \
 	$(END)
 
 instr_sources = \

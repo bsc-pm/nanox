@@ -25,7 +25,6 @@
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
-#include "resourcemanager.hpp"
 
 using namespace nanos;
 using namespace nanos::OpenMP;
@@ -42,8 +41,7 @@ extern "C"
 
    NANOS_API_DEF(int, omp_get_max_threads, ( void ))
    {
-      OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-      return data->icvs()->getNumThreads();
+      return sys.getSMPPlugin()->getMaxWorkers();
    }
 
    int nanos_omp_get_max_threads ( void ) __attribute__ ((alias ("omp_get_max_threads")));
@@ -223,7 +221,7 @@ extern "C"
 
    NANOS_API_DEF(int, nanos_omp_get_num_threads_next_parallel, ( int threads_requested ))
    {
-      ResourceManager::acquireResourcesIfNeeded();
+      sys.getThreadManager()->acquireResourcesIfNeeded();
 
       OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
       if ( threads_requested <= 0 ) {

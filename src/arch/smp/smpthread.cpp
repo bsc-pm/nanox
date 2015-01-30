@@ -33,7 +33,6 @@
 #include "basethread.hpp"
 #include "instrumentation.hpp"
 //#include "clusterdevice_decl.hpp"
-#include "resourcemanager.hpp"
 //#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
@@ -126,7 +125,7 @@ void SMPThread::wait()
       _pthread.mutexUnlock();
 
       /* Whether the thread should wait for the cpu to be free before doing some work */
-      ResourceManager::waitForCpuAvailability();
+      sys.getThreadManager()->waitForCpuAvailability();
 
       if ( isSleeping() ) wait();
       else {

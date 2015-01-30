@@ -46,19 +46,14 @@ inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread 
    return result;
 }
 
-inline void SchedulerConf::setUseYield ( const bool value )
-{
-   _useYield = value;
-}
-
-inline void SchedulerConf::setUseBlock ( const bool value )
-{
-   _useBlock = value;
-}
-
 inline void SchedulerConf::setSchedulerEnabled ( const bool value )
 {
    _schedulerEnabled = value;
+}
+
+inline bool SchedulerConf::getSchedulerEnabled ( void ) const
+{
+   return _schedulerEnabled;
 }
 
 inline unsigned int SchedulerConf::getNumSpins ( void ) const
@@ -69,26 +64,6 @@ inline unsigned int SchedulerConf::getNumSpins ( void ) const
 inline unsigned int SchedulerConf::getNumChecks ( void ) const
 {
    return _numChecks;
-}
-
-inline unsigned int SchedulerConf::getNumYields ( void ) const
-{
-   return _numYields;
-}
-
-inline bool SchedulerConf::getUseYield ( void ) const
-{
-   return _useYield;
-}
-
-inline bool SchedulerConf::getUseBlock ( void ) const
-{
-   return _useBlock;
-}
-
-inline bool SchedulerConf::getSchedulerEnabled ( void ) const
-{
-   return _schedulerEnabled;
 }
 
 inline const std::string & SchedulePolicy::getName () const

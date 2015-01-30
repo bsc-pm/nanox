@@ -28,7 +28,6 @@ devinclude_HEADERS = \
 	regionpart_fwd.hpp \
 	regiontree_fwd.hpp \
 	regiontreenode_fwd.hpp \
-	resourcemanager.hpp\
 	new_decl.hpp\
 	allocator_fwd.hpp\
 	allocator_decl.hpp\
@@ -99,8 +98,6 @@ devinclude_HEADERS = \
 	$(END) 
 
 support_sources = \
-	resourcemanager.hpp\
-	resourcemanager.cpp\
 	new_decl.hpp\
 	new.cpp\
 	allocator_fwd.hpp\

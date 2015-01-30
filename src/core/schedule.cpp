@@ -35,7 +35,6 @@
 #include "opencldd.hpp"
 #endif
 #include "wddeque.hpp"
-#include "resourcemanager.hpp"
 #include "smpthread.hpp"
 #include "nanos-int.h"
 
@@ -47,23 +46,11 @@ void SchedulerConf::config (Config &cfg)
 {
    cfg.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   cfg.registerConfigOption( "yield-opt", NEW Config::FlagOption( _useYield, true ),
-                             "Thread yield on idle and condition waits (default is disabled)" );
-   cfg.registerArgOption( "yield-opt", "enable-yield" );
-
-   cfg.registerConfigOption( "block-opt", NEW Config::FlagOption( _useBlock, true ),
-                             "Thread block on idle and condition waits (default is disabled)" );
-   cfg.registerArgOption( "block-opt", "enable-block" );
-
    cfg.registerConfigOption ( "num-spins", NEW Config::UintVar( _numSpins ), "Set number of spins on Idle before yield (default = 1)" );
    cfg.registerArgOption ( "num-spins", "spins" );
 
-   cfg.registerConfigOption ( "num-yields", NEW Config::UintVar( _numYields ), "Set number of yields on Idle before block (default = 1)" );
-   cfg.registerArgOption ( "num-yields", "yields" );
-
    cfg.registerConfigOption ( "num-checks", NEW Config::UintVar( _numChecks ), "Set number of checks before Idle (default = 1)" );
    cfg.registerArgOption ( "num-checks", "checks" );
-
 }
 
 void Scheduler::submit ( WD &wd, bool force_queue )
@@ -214,9 +201,7 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
    const int init_spins = sys.getSchedulerConf().getNumSpins();
-   const int init_yields = sys.getSchedulerConf().getNumYields();
-   const bool use_yield = sys.getSchedulerConf().getUseYield();
-   const bool use_block = sys.getSchedulerConf().getUseBlock();
+   const int init_yields = sys.getThreadManagerConf().getNumYields();
    int spins = init_spins;
    int yields = init_yields;
 
@@ -228,6 +213,8 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( unsigned long long time_blocks = 0; ) /* Time of blocks by idle phase */
    NANOS_INSTRUMENT ( unsigned long long time_yields = 0; ) /* Time of yields by idle phase */
    NANOS_INSTRUMENT ( unsigned long long time_scheds = 0; ) /* Time of yields by idle phase */
+
+   ThreadManager *const thread_manager = sys.getThreadManager();
 
    WD *current = myThread->getCurrentWD();
    sys.getSchedulerStats()._idleThreads++;
@@ -245,13 +232,13 @@ inline void Scheduler::idleLoop ()
       }
 
       spins--;
-      
-      ResourceManager::returnMyCpuIfClaimed();
+
+      thread_manager->returnMyCpuIfClaimed();
 
       //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
       // descriptor in its stack frame
-      //if ( thread->isSleeping() && !behaviour::exiting() && !ResourceManager::lastActiveThread() ) {
-      if ( thread->isSleeping() && !ResourceManager::lastActiveThread() ) {
+      //if ( thread->isSleeping() && !behaviour::exiting() && !thread_manager->lastActiveThread() ) {
+      if ( thread->isSleeping() && !thread_manager->lastActiveThread() ) {
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
          NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
@@ -283,6 +270,7 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT (time_scheds = 0; )
 
          spins = init_spins;
+         yields = init_yields;
 
       }//thread going to sleep, thread waiking up
 
@@ -360,29 +348,13 @@ inline void Scheduler::idleLoop ()
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
 
-         //! Resource Manager may ask to return cpus claimed by another process
-         ResourceManager::returnClaimedCpus();
+         // Perform yield and/or block
+         thread_manager->idle( yields
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+               , total_yields, total_blocks, time_yields, time_blocks
+#endif
+               );
 
-         if ( sys.getPMInterface().isMalleable() ) ResourceManager::acquireResourcesIfNeeded();
-
-         if ( yields == 0 || !use_yield ) {
-            if ( use_block && thread->canBlock() ) {
-               NANOS_INSTRUMENT ( total_blocks++; )
-               NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-               ResourceManager::releaseCpu();
-               NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-               NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-            }
-            yields = init_yields;
-
-         } else if ( use_yield ) {
-            NANOS_INSTRUMENT ( total_yields++; )
-            NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-            thread->yield();
-            NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-            NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
-            if ( use_block ) yields--;
-         }
          spins = init_spins;
       }
    }
@@ -1170,14 +1142,6 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *oldwd );
 
-//   if ( &(thread->getThreadWD()) == thread->getCurrentWD()){
-      /* DLB: 
-         If slave, check if I must release my cpu
-         if so do not get next WD and go to sleep*/
-      
-//      dlb_returnMyCpuIfClaimed();
-//   }
-
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
    #if 0
@@ -1187,14 +1151,15 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
-   
+
    /* If DLB, perform the adjustment of resources
          If master: Return claimed cpus
          claim cpus and update_resources 
    */
-   ResourceManager::returnClaimedCpus();
-   if ( sys.getPMInterface().isMalleable() )
-      ResourceManager::acquireResourcesIfNeeded();
+   sys.getThreadManager()->returnClaimedCpus();
+   if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->acquireResourcesIfNeeded();
+   }
 
   return done;
 }
@@ -1382,19 +1347,12 @@ void Scheduler::exit ( void )
          If master: Return claimed cpus
          claim cpus and update_resources 
    */
-   ResourceManager::returnClaimedCpus();
-   if ( sys.getPMInterface().isMalleable() )
-      ResourceManager::acquireResourcesIfNeeded();
+   sys.getThreadManager()->returnClaimedCpus();
+   if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->acquireResourcesIfNeeded();
+   }
 
    WD *next = NULL;
-   /* DLB: 
-      If slave, check if I must release my cpu
-      if so do not get next WD and go to sleep
-   */
-//   if (!dlb_returnMyCpuIfClaimed()){
-      /* get next WorkDescriptor (if any) */
-//      next =  thread->getNextWD();
-//   }
 
    finishWork( oldwd, ( next == NULL ) );
 

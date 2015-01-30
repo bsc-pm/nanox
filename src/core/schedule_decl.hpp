@@ -92,15 +92,12 @@ namespace nanos
       private: /* PRIVATE DATA MEMBERS */
          unsigned int                  _numSpins;          //!< Number of spins before yield
          unsigned int                  _numChecks;         //!< Number of checks before schedule
-         unsigned int                  _numYields;         //!< Number of yields before block
-         bool                          _useYield;          //!< Yield is allowed
-         bool                          _useBlock;          //!< Block is allowed
          bool                          _schedulerEnabled;  //!< Scheduler is enabled
       private: /* PRIVATE METHODS */
         //! \brief SchedulerConf default constructor (private)
-        SchedulerConf() : _numSpins(1), _numChecks(1), _numYields(1), _useYield(false), _useBlock(false), _schedulerEnabled(true) {}
+        SchedulerConf() : _numSpins(1), _numChecks(1), _schedulerEnabled(true) {}
         //! \brief SchedulerConf copy constructor (private)
-        SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(), _numYields(), _useYield(), _useBlock(), _schedulerEnabled()
+        SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(), _schedulerEnabled()
         {
            fatal("SchedulerConf: Illegal use of class");
         }
@@ -110,10 +107,6 @@ namespace nanos
          //! \brief SchedulerConf destructor 
          ~SchedulerConf() {}
 
-         //! \brief Set if yield is allowed
-         void setUseYield ( const bool value );
-         //! \brief Set if block is allowed
-         void setUseBlock ( const bool value );
          //! \brief Set if scheduler is enabled
          void setSchedulerEnabled ( const bool value ) ;
 
@@ -121,12 +114,6 @@ namespace nanos
          unsigned int getNumSpins ( void ) const;
          //! \brief Returns the number of checks before schedule
          unsigned int getNumChecks ( void ) const;
-         //! \brief Returns the number of yields before block
-         unsigned int getNumYields ( void ) const;
-         //! \brief Returns if yield is allowed
-         bool getUseYield ( void ) const;
-         //! \brief Returns if block is allowed
-         bool getUseBlock ( void ) const;
          //! \brief Returns if scheduler is enabled 
          bool getSchedulerEnabled () const;
 

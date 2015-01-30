@@ -31,7 +31,6 @@
 #include "basethread.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
-#include "resourcemanager.hpp"
 #include <assert.h>
 #include <string.h>
 #include <signal.h>
@@ -73,7 +72,7 @@ System::System () :
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
-      _enableDLB( false ), _predecessorLists( false ), _throttlePolicy ( NULL ),
+      _predecessorLists( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
@@ -81,7 +80,8 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0)
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0),
+      _numaNodeMap(), _threadManagerConf(), _threadManager( NULL )
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -207,8 +207,8 @@ void System::loadModules ()
       fatal0( "Could not load main barrier algorithm" );
 
    ensure0( _defBarrFactory,"No default system barrier factory" );
-   
 
+   _threadManager = _threadManagerConf.create();
 }
 
 void System::unloadModules ()
@@ -332,10 +332,6 @@ void System::config ()
    cfg.registerArgOption( "instrument-cpuid", "instrument-cpuid" );
 #endif
 
-   cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _enableDLB ),
-                              "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
-   cfg.registerArgOption( "enable-dlb", "enable-dlb" );
-
    /* Cluster: load the cluster support */
    cfg.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _usingCluster, true ), "Enables the usage of Nanos++ Cluster" );
    cfg.registerArgOption ( "enable-cluster", "cluster" );
@@ -378,8 +374,8 @@ void System::config ()
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
-   
    _hwloc.config( cfg );
+   _threadManagerConf.config( cfg );
 
    verbose0 ( "Reading Configuration" );
 
@@ -572,8 +568,6 @@ void System::start ()
    Config::deleteOrphanOptions();
       
    if ( _summary ) environmentSummary();
-
-   ResourceManager::init();
 }
 
 System::~System ()
@@ -583,8 +577,6 @@ System::~System ()
 
 void System::finish ()
 {
-   ResourceManager::finalize();
-
    //! \note Instrumentation: first removing RUNNING state from top of the state stack
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
@@ -666,6 +658,9 @@ void System::finish ()
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+
+   //! \note stopping and deleting the thread manager
+   delete _threadManager;
 
    //! \note stopping and deleting the programming model interface
    _pmInterface->finish();
@@ -920,8 +915,8 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // every 10 tasks created I'll check if I must return claimed cpus
    // or there are available cpus idle
    if(_atomicWDSeed.value()%10==0){
-      ResourceManager::returnClaimedCpus();
-      ResourceManager::acquireResourcesIfNeeded();
+      _threadManager->returnClaimedCpus();
+      _threadManager->acquireResourcesIfNeeded();
    }
 
    if (_createLocalTasks) {
@@ -1340,7 +1335,7 @@ void System::endTeam ( ThreadTeam *team )
    /* For OpenMP applications
       At the end of the parallel return the claimed cpus
    */
-   ResourceManager::returnClaimedCpus();
+   _threadManager->returnClaimedCpus();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
