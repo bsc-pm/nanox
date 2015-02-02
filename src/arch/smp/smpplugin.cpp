@@ -556,13 +556,24 @@ class SMPPlugin : public SMPBasePlugin
       ::memcpy( mask, &_cpuProcessMask , sizeof(cpu_set_t) );
    }
 
-   virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual bool setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
+      bool success = false;
       if ( isValidMask( mask ) ) {
          ::memcpy( &_cpuProcessMask, mask, sizeof(cpu_set_t) );
          ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         int master_cpu = workers[0]->getCpuId();
+         if ( !sys.getUntieMaster() && !CPU_ISSET( master_cpu, mask ) ) {
+            // If master thread is tied and mask does not include master's cpu, force it
+            CPU_SET( master_cpu, &_cpuProcessMask );
+            CPU_SET( master_cpu, &_cpuActiveMask );
+         } else {
+            // Return only true success when we have set an unmodified user mask
+            success = true;
+         }
          applyCpuMask( workers );
       }
+      return success;
    }
 
    virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
@@ -582,12 +593,22 @@ class SMPPlugin : public SMPBasePlugin
       ::memcpy( mask, &_cpuActiveMask, sizeof(cpu_set_t) );
    }
 
-   virtual void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual bool setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
+      bool success = false;
       if ( isValidMask( mask ) ) {
          ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         int master_cpu = workers[0]->getCpuId();
+         if ( !sys.getUntieMaster() && !CPU_ISSET( master_cpu, mask ) ) {
+            // If master thread is tied and mask does not include master's cpu, force it
+            CPU_SET( master_cpu, &_cpuActiveMask );
+         } else {
+            // Return only true success when we have set an unmodified user mask
+            success = true;
+         }
          applyCpuMask( workers );
       }
+      return success;
    }
 
    virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )

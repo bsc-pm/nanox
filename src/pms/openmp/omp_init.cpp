@@ -190,12 +190,14 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      bool OpenMPInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
       {
-         sys.setCpuProcessMask( cpu_set );
+         bool success = sys.setCpuProcessMask( cpu_set );
 
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -225,12 +227,14 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
+      bool OpenMPInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
-         sys.setCpuActiveMask( cpu_set );
+         bool success = sys.setCpuActiveMask( cpu_set );
 
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -355,14 +359,16 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      bool OmpSsInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
 
-         sys.setCpuProcessMask( cpu_set );
+         bool success = sys.setCpuProcessMask( cpu_set );
 
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -385,14 +391,16 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
+      bool OmpSsInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
 
-         sys.setCpuActiveMask( cpu_set );
+         bool success = sys.setCpuActiveMask( cpu_set );
 
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!

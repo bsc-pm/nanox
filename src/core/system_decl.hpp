@@ -384,8 +384,10 @@ namespace nanos
          /*!
           * \brief Set the process mask
           * \param[in] mask
+          * \return True if the mask was completely set,
+          *          False if the mask was either invalid or only partially set
           */
-         void setCpuProcessMask ( const cpu_set_t *mask );
+         bool setCpuProcessMask ( const cpu_set_t *mask );
 
          /*!
           * \brief Add the CPUs in mask into the current process mask
@@ -407,8 +409,10 @@ namespace nanos
          /*!
           * \brief Set the mask of active CPUs
           * \param[in] mask
+          * \return True if the mask was completely set,
+          *          False if the mask was either invalid or only partially set
           */
-         void setCpuActiveMask ( const cpu_set_t *mask );
+         bool setCpuActiveMask ( const cpu_set_t *mask );
 
          /*!
           * \brief Add the CPUs in mask into the current mask of active CPUs

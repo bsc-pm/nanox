@@ -70,10 +70,10 @@ namespace nanos
          virtual void setNumThreads_globalState( int nthreads ) {}
 
          virtual void getCpuProcessMask( cpu_set_t *cpu_set ) const {}
-         virtual void setCpuProcessMask( const cpu_set_t *cpu_set ) {}
+         virtual bool setCpuProcessMask( const cpu_set_t *cpu_set ) { return false; }
          virtual void addCpuProcessMask( const cpu_set_t *cpu_set ) {}
          virtual void getCpuActiveMask( cpu_set_t *cpu_set ) const {}
-         virtual void setCpuActiveMask( const cpu_set_t *cpu_set ) {}
+         virtual bool setCpuActiveMask( const cpu_set_t *cpu_set ) { return false; }
          virtual void addCpuActiveMask( const cpu_set_t *cpu_set ) {}
 
          //! By default, OmpSs is assumed (required for the bare run in system.cpp)
