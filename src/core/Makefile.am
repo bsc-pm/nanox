@@ -34,6 +34,7 @@ devinclude_HEADERS = \
 	barrier.hpp \
 	cachedaccelerator_decl.hpp \
 	cachedaccelerator.hpp \
+	threadmanager_decl.hpp \
 	threadteam_fwd.hpp \
 	threadteam_decl.hpp \
 	threadteam.hpp \
