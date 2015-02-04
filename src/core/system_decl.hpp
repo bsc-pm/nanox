@@ -81,6 +81,15 @@ namespace nanos
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          typedef std::vector<ArchPlugin*> ArchitecturePlugins;
          
+         //! \brief Compiler supplied flags in symbols
+         struct SuppliedFlags
+         {
+            //! If the program is using priorities
+            bool prioritiesNeeded : 1;
+         };
+         
+         SuppliedFlags        _compilerSuppliedFlags; /*!< \brief Compiler supplied flags */
+         
          // global seeds
          Atomic<int> _atomicWDSeed; /*!< \brief ID seed for new WD's */
          Atomic<int> _threadIdSeed; /*!< \brief ID seed for new threads */
@@ -218,6 +227,7 @@ namespace nanos
          System( const System &sys );
          const System & operator= ( const System &sys );
 
+         //! \brief Reads environment variables and compiler-supplied flags
          void config ();
          void loadModules();
          void unloadModules();
@@ -651,6 +661,9 @@ namespace nanos
 
          const ThreadManagerConf& getThreadManagerConf() const;
          ThreadManager* getThreadManager() const;
+         
+         //! \brief Returns true if the compiler says priorities are required
+         bool getPrioritiesNeeded() const;
    };
 
    extern System sys;

@@ -380,6 +380,16 @@ void System::config ()
    verbose0 ( "Reading Configuration" );
 
    cfg.init();
+   
+   // Now read compiler-supplied flags
+   // Open the own executable
+   void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
+
+   // Check if the compiler marked myself as requiring priorities (#1041)
+   _compilerSuppliedFlags.prioritiesNeeded = dlsym(myself, "nanos_need_priorities_") != NULL;
+   
+   // Close handle to myself
+   dlclose( myself );
 }
 
 void System::start ()
@@ -1393,6 +1403,7 @@ void System::environmentSummary( void )
    message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
    message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
    message0( "=== Prog. Model:         " << prog_model );
+   message0( "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed") );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it ) {

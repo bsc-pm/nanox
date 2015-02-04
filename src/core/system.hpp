@@ -602,6 +602,10 @@ inline ThreadManager* System::getThreadManager() const {
    return _threadManager;
 }
 
+inline bool System::getPrioritiesNeeded() const {
+   return _compilerSuppliedFlags.prioritiesNeeded;
+}
+
 /* SMPPlugin functions */
 inline void System::admitCurrentThread ( bool isWorker ) { _smpPlugin->admitCurrentThread( _workers, isWorker ); }
 inline void System::expelCurrentThread ( bool isWorker ) { _smpPlugin->expelCurrentThread( _workers, isWorker ); }
