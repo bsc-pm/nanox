@@ -41,7 +41,7 @@ extern "C"
 
    NANOS_API_DEF(int, omp_get_max_threads, ( void ))
    {
-      return sys.getSMPPlugin()->getMaxWorkers();
+      return sys.getPMInterface().getMaxThreads();
    }
 
    int nanos_omp_get_max_threads ( void ) __attribute__ ((alias ("omp_get_max_threads")));

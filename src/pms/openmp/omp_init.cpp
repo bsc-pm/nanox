@@ -166,6 +166,19 @@ namespace nanos
          return (ThreadTeamData *) NEW OmpThreadTeamData();
       }
 
+      int OpenMPInterface::getMaxThreads() const
+      {
+         int max_threads = 0;
+         if ( myThread ) {
+            OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+            max_threads = data->icvs()->getNumThreads();
+         } else {
+            // This function can be called at initialization when myThread == NULL
+            max_threads = globalState->getICVs().getNumThreads();
+         }
+         return max_threads;
+      }
+
       /*!
        * \brief specific setNumThreads implementation for OpenMP model
        * \param[in] nthreads Number of threads
@@ -333,6 +346,19 @@ namespace nanos
             data->setICVs( &globalState->getICVs() );
          }
          data->setFinal(false);
+      }
+
+      int OmpSsInterface::getMaxThreads() const
+      {
+         int max_threads = 0;
+         if ( myThread ) {
+            OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+            max_threads = data->icvs()->getNumThreads();
+         } else {
+            // This function can be called at initialization when myThread == NULL
+            max_threads = globalState->getICVs().getNumThreads();
+         }
+         return max_threads;
       }
 
       /*!

@@ -66,6 +66,7 @@ namespace nanos
 
          bool isMalleable( void ) const { return _malleable; }
 
+         virtual int getMaxThreads() const { return 0; }
          virtual void setNumThreads( int nthreads ) {}
          virtual void setNumThreads_globalState( int nthreads ) {}
 

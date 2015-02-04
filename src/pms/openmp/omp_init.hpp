@@ -58,6 +58,7 @@ namespace nanos
 
             virtual ThreadTeamData * getThreadTeamData();
 
+            virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
             virtual void getCpuProcessMask( cpu_set_t *cpu_set ) const;
             virtual bool setCpuProcessMask( const cpu_set_t *cpu_set );
@@ -82,6 +83,7 @@ namespace nanos
             virtual int getInternalDataAlignment() const ;
             virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
+            virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
             virtual void setNumThreads_globalState ( int nthreads );
             virtual bool setCpuProcessMask( const cpu_set_t *cpu_set );
