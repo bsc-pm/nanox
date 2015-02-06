@@ -633,5 +633,9 @@ inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int acc
    return id;
 }
 
+inline Router &System::getRouter() {
+   return _router;
+}
+
 #endif
 

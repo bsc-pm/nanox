@@ -138,6 +138,9 @@ devinclude_HEADERS = \
 	trackableobject.hpp \
 	hwloc_decl.hpp \
 	regionset_decl.hpp \
+	router_fwd.hpp \
+	router_decl.hpp \
+	router.hpp \
 	$(END)
 
 common_sources=\

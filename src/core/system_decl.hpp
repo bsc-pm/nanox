@@ -42,6 +42,7 @@
 #include "smpbaseplugin_decl.hpp"
 #include "hwloc_decl.hpp"
 #include "threadmanager_decl.hpp"
+#include "router_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
 
@@ -239,6 +240,7 @@ namespace nanos
          bool _verboseCopies;
          bool _splitOutputForThreads;
          int _userDefinedNUMANode;
+         Router _router;
       public:
          Hwloc _hwloc;
 
@@ -664,6 +666,7 @@ namespace nanos
          
          //! \brief Returns true if the compiler says priorities are required
          bool getPrioritiesNeeded() const;
+         Router& getRouter();
    };
 
    extern System sys;
