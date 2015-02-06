@@ -41,6 +41,7 @@
 #include "addressspace_decl.hpp"
 #include "smpbaseplugin_decl.hpp"
 #include "hwloc_decl.hpp"
+#include "router_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
 
@@ -243,6 +244,7 @@ namespace nanos
          bool _verboseCopies;
          bool _splitOutputForThreads;
          int _userDefinedNUMANode;
+         Router _router;
       public:
          Hwloc _hwloc;
 
@@ -634,6 +636,7 @@ namespace nanos
          unsigned int getNumAccelerators() const;
          unsigned int getNewAcceleratorId();
          memory_space_id_t getMemorySpaceIdOfAccelerator( unsigned int acceleratorId ) const;
+         Router& getRouter();
    };
 
    extern System sys;

@@ -4,6 +4,8 @@
 #include "regiondict.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
+#include "router.hpp"
+#include "printbt_decl.hpp"
 
 uint64_t global_reg_t::getKeyFirstAddress() const {
    return getFirstAddress( key->getKeyBaseAddress() );
@@ -125,29 +127,10 @@ memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t des
    memory_space_id_t selected;
    if ( entry->isLocatedIn( dest ) ) {
       selected = dest;
-   } else if ( entry->getNumLocations() == 1 || true ) {
-      selected = entry->getFirstLocation();
+      printBt(std::cerr);
+      fatal("Data already in destination.");
    } else {
-      unsigned int destNode = sys.getSeparateMemory( dest ).getNodeNumber();
-
-      //try to get from node + 1
-      std::set< memory_space_id_t > const &locs = entry->getLocations();
-      std::set< memory_space_id_t >::const_iterator it = locs.begin();
-      bool found = false;
-      while ( it != locs.end() && !found ) {
-         unsigned int this_node = *it == 0 ? 0 : sys.getSeparateMemory( *it ).getNodeNumber();
-         if ( ( destNode + 1 ) ==  this_node ) {
-            found = true;
-         } else {
-            it++;
-         }
-      }
-      if ( found ) {
-         selected = *it;
-      } else {
-         std::cerr << "failed to balance this." << std::endl;
-         selected = entry->getFirstLocation();
-      }
+      selected = sys.getRouter().getSource( dest, entry->getLocations() );
    }
    return selected;
 }

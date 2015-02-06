@@ -41,6 +41,7 @@
 #include "regiondict.hpp"
 #include "smpprocessor.hpp"
 #include "location.hpp"
+#include "router.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -94,6 +95,7 @@ System::System () :
       , _verboseCopies( false )
       , _splitOutputForThreads( false )
       , _userDefinedNUMANode( -1 )
+      , _router()
       , _hwloc()
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -551,6 +553,7 @@ void System::start ()
          break;
    }
 
+   _router.initialize();
    if ( usingCluster() )
    {
       _net.nodeBarrier();
