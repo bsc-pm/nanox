@@ -5,7 +5,6 @@
 #include "basethread.hpp"
 #include "debug.hpp"
 #include "router.hpp"
-#include "printbt_decl.hpp"
 
 uint64_t global_reg_t::getKeyFirstAddress() const {
    return getFirstAddress( key->getKeyBaseAddress() );
