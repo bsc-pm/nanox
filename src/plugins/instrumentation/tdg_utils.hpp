@@ -102,6 +102,7 @@ namespace nanos {
     };
     
     enum NodeType {
+        Root,
         BarrierNode,
         ConcurrentNode,
         CommutativeNode,
