@@ -135,10 +135,10 @@ void MemController::preInit( ) {
          _memCacheCopies[ index ].setVersion( predecessorsVersion );
       }
       if ( _memCacheCopies[ index ].getVersion() != 0 ) {
-         if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " copy "<< index <<" got location info from predecessor "<<  _memCacheCopies[ index ]._reg.id << " got version " << _memCacheCopies[ index ].getVersion()<< " "; }
+         if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " " <<(_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a") << " copy "<< index <<" got location info from predecessor, reg [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<< _memCacheCopies[ index ]._reg.id << " ] got version " << _memCacheCopies[ index ].getVersion()<< " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
       } else {
-         if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " copy "<< index <<" got requesting location info to global directory for region "<<  _memCacheCopies[ index ]._reg.id << " "; }
+         if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " " <<(_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a") << " copy "<< index <<" got requesting location info to global directory for region [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<<  _memCacheCopies[ index ]._reg.id << " ] "; }
          _memCacheCopies[ index ].getVersionInfo();
       }
       if ( _VERBOSE_CACHE ) { 
@@ -325,8 +325,10 @@ void MemController::getInfoFromPredecessor( MemController const &predecessorCont
          // if the predecessor's children produced new data, then the father can not
          // guarantee that the version is correct (the children may have produced a subchunk
          // of the region). The version is not added here and then the global directory is checked.
-         //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy version " << predecessorController._memCacheCopies[ index ].getVersion() << std::endl;
+         //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy version " << version << std::endl;
          _providedRegions.addRegion( predecessorController._memCacheCopies[ index ]._reg, version );
+      } else {
+         //(*myThread->_file) << _preinitialized << " " << _initialized <<" SKIP getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy CP version " << version << " predec Produced version " << predecessorProducedVersion << std::endl;
       }
    }
 #if 0
@@ -454,9 +456,11 @@ void MemController::setCacheMetaData() {
       if ( _wd.getCopies()[index].isOutput() ) {
          unsigned int newVersion = _memCacheCopies[ index ].getVersion() + 1;
          _memCacheCopies[ index ]._reg.setLocationAndVersion( _pe, _pe->getMemorySpaceId(), newVersion ); //update directory
+         //*myThread->_file << "setChildrenProducedVersion( " << newVersion << " ) for WD " << _wd.getId() << " : " << _wd.getDescription() << std::endl;
          _memCacheCopies[ index ].setChildrenProducedVersion( newVersion );
          if ( _pe->getMemorySpaceId() != 0 /* HOST_MEMSPACE_ID */) {
-            sys.getSeparateMemory( _pe->getMemorySpaceId() ).setRegionVersion( _memCacheCopies[ index ]._reg, _memCacheCopies[ index ].getVersion() + 1, _wd, index );
+            //*myThread->_file <<__func__<< " setRegionVersion ( " << newVersion << " ) for WD " << _wd.getId() << " : " << _wd.getDescription() << " and index " << index <<std::endl;
+            sys.getSeparateMemory( _pe->getMemorySpaceId() ).setRegionVersion( _memCacheCopies[ index ]._reg, newVersion, _wd, index );
          }
       } else if ( _wd.getCopies()[index].isInput() ) {
          _memCacheCopies[ index ].setChildrenProducedVersion( _memCacheCopies[ index ].getVersion() );
