@@ -834,6 +834,9 @@ namespace nanos {
          if ( data._helped >= 16 ) return;
          NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+         if ( tdata._numNodes == 1 ) {
+            return;
+         }
          if ( thread->runningOn()->getClusterNode() > 0 )  {  // CLUSTER THREAD (master or slave)
             //ERROR
             (*myThread->_file) << "Error at " << __FUNCTION__ << std::endl;
