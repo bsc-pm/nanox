@@ -169,59 +169,6 @@ endif
 
 ###################################################
 
-
-
-
-####### SS ########################################
-ss_sources = \
-   ss/ss_init.cpp\
-	$(END) 
-
-pkginclude_HEADERS+=\
-	$(END)
-
-if DEBUG_VERSION
-debug_LTLIBRARIES+=debug/libnanox-ss.la
-
-debug_libnanox_ss_la_CXXFLAGS=$(nanos_debug_cxxflags)
-debug_libnanox_ss_la_LDFLAGS=$(version_flags)
-debug_libnanox_ss_la_LIBADD=debug/libnanox-omp.la
-debug_libnanox_ss_la_SOURCES=$(ss_sources)
-debug_libnanox_ss_la_DEPENDENCIES=debug/libnanox-omp.la
-endif
-
-if INSTRUMENTATION_VERSION
-instrumentation_LTLIBRARIES+=instrumentation/libnanox-ss.la
-
-instrumentation_libnanox_ss_la_CXXFLAGS=$(nanos_instr_cxxflags)
-instrumentation_libnanox_ss_la_LDFLAGS=$(version_flags)
-instrumentation_libnanox_ss_la_LIBADD=instrumentation/libnanox-omp.la
-instrumentation_libnanox_ss_la_SOURCES=$(ss_sources)
-instrumentation_libnanox_ss_la_DEPENDENCIES=instrumentation/libnanox-omp.la
-endif
-
-if INSTRUMENTATION_DEBUG_VERSION
-instrumentation_debug_LTLIBRARIES+=instrumentation_debug/libnanox-ss.la
-
-instrumentation_debug_libnanox_ss_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
-instrumentation_debug_libnanox_ss_la_LDFLAGS=$(version_flags)
-instrumentation_debug_libnanox_ss_la_LIBADD=instrumentation-debug/libnanox-omp.la
-instrumentation_debug_libnanox_ss_la_SOURCES=$(ss_sources)
-instrumentation_debug_libnanox_ss_la_DEPENDENCIES=instrumentation-debug/libnanox-omp.la
-endif
-
-if PERFORMANCE_VERSION
-performance_LTLIBRARIES+=performance/libnanox-ss.la
-
-performance_libnanox_ss_la_CXXFLAGS=$(nanos_perfo_cxxflags)
-performance_libnanox_ss_la_LDFLAGS=$(version_flags)
-performance_libnanox_ss_la_LIBADD=performance/libnanox-omp.la
-performance_libnanox_ss_la_SOURCES=$(ss_sources)
-performance_libnanox_ss_la_DEPENDENCIES=performance/libnanox-omp.la
-endif
-###################################################
-
-
 #### Chapel #######################################
 
 if CHAPEL_SUPPORT
