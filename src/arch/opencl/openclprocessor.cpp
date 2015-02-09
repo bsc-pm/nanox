@@ -65,7 +65,7 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _useHostPtrs= false;
    cl_int align;
    clGetDeviceInfo(_dev, CL_DEVICE_MEM_BASE_ADDR_ALIGN, sizeof(align), &align, NULL);
-   std::cerr << " THIS CL DEV HAS ALIGN " << align << std::endl;
+   verbose("CL device align: " << align);
    
    _useHostPtrs=_useHostPtrs || nanos::ext::OpenCLConfig::getForceShMem();
 
