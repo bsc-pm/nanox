@@ -28,6 +28,10 @@
 #include "printbt_decl.hpp"
 #include <limits>
 
+#ifdef NANOX_MEMKIND_SUPPORT
+#include <memkind.h>
+#endif
+
 //#include <numa.h>
 
 namespace nanos {
@@ -62,7 +66,7 @@ class SMPPlugin : public SMPBasePlugin
    bool                         _smpPrivateMemory;
    bool                         _smpAllocWide;
    int                          _smpHostCpus;
-   int                          _smpPrivateMemorySize;
+   std::size_t                  _smpPrivateMemorySize;
    bool                         _workersCreated;
    unsigned int                 _numWorkers; //must be updated if the number of workers increases after calling startWorkerThreads
 
@@ -80,6 +84,9 @@ class SMPPlugin : public SMPBasePlugin
 
    //! CPU id binding list
    Bindings                     _bindings;
+
+   bool                         _memkindSupport;
+   std::size_t                  _memkindMemorySize;
 
    public:
    SMPPlugin() : SMPBasePlugin( "SMP PE Plugin", 1 )
@@ -106,6 +113,8 @@ class SMPPlugin : public SMPBasePlugin
                  , _numSockets( 0 )
                  , _coresPerSocket( 0 )
                  , _bindings()
+                 , _memkindSupport( false )
+                 , _memkindMemorySize( 1024*1024*1024 ) // 1Gb
    {}
 
    virtual unsigned int getNewSMPThreadId() {
@@ -163,11 +172,22 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "smp-host-cpus", "smp-host-cpus" );
       cfg.registerEnvOption( "smp-host-cpus", "NX_SMP_HOST_CPUS" );
 
-      cfg.registerConfigOption( "smp-private-memory-size", NEW Config::PositiveVar( _smpPrivateMemorySize ),
+      cfg.registerConfigOption( "smp-private-memory-size", NEW Config::SizeVar( _smpPrivateMemorySize ),
             "Set the size of SMP devices private memory area." );
       cfg.registerArgOption( "smp-private-memory-size", "smp-private-memory-size" );
       cfg.registerEnvOption( "smp-private-memory-size", "NX_SMP_PRIVATE_MEMORY_SIZE" );
 
+#ifdef NANOX_MEMKIND_SUPPORT
+      cfg.registerConfigOption( "smp-memkind", NEW Config::FlagOption( _memkindSupport, true ),
+            "SMP memkind support." );
+      cfg.registerArgOption( "smp-memkind", "smp-memkind" );
+      cfg.registerEnvOption( "smp-memkind", "NX_SMP_MEMKIND" );
+
+      cfg.registerConfigOption( "smp-memkind-memory-size", NEW Config::SizeVar( _memkindMemorySize ),
+            "Set the size of SMP memkind memory area." );
+      cfg.registerArgOption( "smp-memkind-memory-size", "smp-memkind-memory-size" );
+      cfg.registerEnvOption( "smp-memkind-memory-size", "NX_SMP_MEMKIND_MEMORY_SIZE" );
+#endif
    }
 
    virtual void init() {
@@ -262,20 +282,40 @@ class SMPPlugin : public SMPBasePlugin
       loadNUMAInfo();
 
       int count = 0;
+
+      memory_space_id_t mem_id = sys.getRootMemorySpaceId();
+#ifdef NANOX_MEMKIND_SUPPORT
+      if ( _memkindSupport ) {
+         mem_id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
+         SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
+         void *addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
+         if ( addr == NULL ) {
+            OSAllocator a;
+            warning0("Could not allocate memory with memkind_malloc(), requested " << _memkindMemorySize << " bytes. Continuing with a regular allocator.");
+            addr = a.allocate(_memkindMemorySize);
+            if ( addr == NULL ) {
+               fatal0("Could not allocate memory with a regullar allocator.");
+            }
+         }
+         memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
+      }
+#endif
+
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
          bool active = ( (count < _currentCores) && CPU_ISSET( *it, &_cpuSet) );
          unsigned numaNode = active ? getNodeOfPE( *it ) : std::numeric_limits<unsigned>::max();
          unsigned socket = numaNode;   /* FIXME: socket */
          
-         if ( _smpPrivateMemory && count >= _smpHostCpus ) {
+         if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
-            cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), active, numaNode, socket );
+
+            cpu = NEW SMPProcessor( *it, mem_id, active, numaNode, socket );
          }
          CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
          //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
