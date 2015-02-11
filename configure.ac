@@ -1182,7 +1182,7 @@ LIBS_BKP="$LIBS"
 AC_ARG_WITH([jemalloc],
    AS_HELP_STRING([--with-jemalloc=dir], [Directory of jemalloc installation]),
    [
-      JEMALLOC_LDFLAGS="-L$withval/lib"
+      JEMALLOC_LDFLAGS="-L$withval/lib -Wl,-rpath,$withval/lib"
    ]
 )
 LDFLAGS="$LDFLAGS $JEMALLOC_LDFLAGS"
