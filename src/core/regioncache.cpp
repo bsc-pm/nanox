@@ -422,10 +422,6 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
    //   ops.insert( data_source.getDeviceOps() );
    //}
 
-   //for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
-   //   (*opIt)->syncAndDisableInvalidations();
-   //}
-
    DeviceOps *thisChunkOps = _allocatedRegion.getDeviceOps();
    CachedRegionStatus *alloc_entry = ( CachedRegionStatus * ) _newRegions->getRegionData( _allocatedRegion.id );
    //bool alloc_entry_not_present = false;
@@ -974,9 +970,6 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
    }
 
    return allocChunkPtr;
-   //for ( std::set< DeviceOps * >::iterator opIt = ops.begin(); opIt != ops.end(); opIt++ ) {
-   //   (*opIt)->resumeInvalidations();
-   //}
 }
 
 AllocatedChunk *RegionCache::getOrCreateChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) {
