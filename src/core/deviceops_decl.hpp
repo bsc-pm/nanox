@@ -12,7 +12,6 @@ namespace nanos {
       private:
          Atomic<unsigned int> _pendingDeviceOps;
          Lock _pendingCacheOp;
-         Lock _lock;
          /*debug:*/ int _owner;
          /*debug:*/ WorkDescriptor const *_wd;
          /*debug:*/ int _loc;
@@ -26,12 +25,6 @@ namespace nanos {
          bool addCacheOp( /* debug: */ WorkDescriptor const *wd, int loc = -1 );
          void completeCacheOp( /* debug: */WorkDescriptor const *wd );
          bool allCacheOpsCompleted();
-
-         bool setInvalidating();
-         void clearInvalidating();
-
-         void syncAndDisableInvalidations();
-         void resumeInvalidations();
    };
 }
 #endif /* DEVICEOPS_DECL_HPP */

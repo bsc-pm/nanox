@@ -10,7 +10,7 @@
 
 using namespace nanos;
 
-inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ), _lock() /* debug: */ , _owner( -1 ), _wd( NULL ), _loc( 0 ) {
+inline DeviceOps::DeviceOps() : _pendingDeviceOps ( 0 ) /* debug: */ , _owner( -1 ), _wd( NULL ), _loc( 0 ) {
 }
 
 inline DeviceOps::~DeviceOps() {
@@ -41,14 +41,6 @@ inline bool DeviceOps::addCacheOp( /* debug: */ WorkDescriptor const *wd, int lo
 
 inline bool DeviceOps::allCacheOpsCompleted() {
    return _pendingCacheOp.getState() == NANOS_LOCK_FREE;
-}
-
-inline void DeviceOps::syncAndDisableInvalidations() {
-   _lock.acquire();
-}
-
-inline void DeviceOps::resumeInvalidations() {
-   _lock.release();
 }
 
 inline void DeviceOps::completeOp() {
