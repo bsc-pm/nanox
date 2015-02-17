@@ -1072,14 +1072,12 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    BaseThread *thread = getMyThreadSafe();
 
    //! \note Getting more work to do (only if not going to sleep)
-   if ( schedule && !thread->isSleeping() ) {
-      ThreadTeam *thread_team = thread->getTeam();
-      if ( thread_team ) {
-         WD *prefetchedWD = thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule );
-         if ( prefetchedWD ) {
-            prefetchedWD->_mcontrol.preInit();
-            thread->addNextWD( prefetchedWD );
-         }
+   ThreadTeam *thread_team = thread->getTeam();
+   if ( thread_team ) {
+      WD *prefetchedWD = thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule && !thread->isSleeping() );
+      if ( prefetchedWD ) {
+         prefetchedWD->_mcontrol.preInit();
+         thread->addNextWD( prefetchedWD );
       }
    }
 
