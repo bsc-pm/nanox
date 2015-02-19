@@ -168,11 +168,12 @@ namespace nanos
       private:
          typedef enum { UNDEFINED, NONE, BASIC, GENERIC_DLB, BASIC_DLB, AUTO_DLB } ThreadManagerOption;
 
-         ThreadManagerOption  _tm;           //!< Thread Manager name option
-         unsigned int         _numYields;    //!< Number of yields before block
-         bool                 _useYield;     //!< Yield is allowed
-         bool                 _useBlock;     //!< Block is allowed
-         bool                 _useDLB;       //!< DLB library will be used
+         ThreadManagerOption  _tm;              //!< Thread Manager name option
+         unsigned int         _numYields;       //!< Number of yields before block
+         bool                 _useYield;        //!< Yield is allowed
+         bool                 _useBlock;        //!< Block is allowed
+         bool                 _useDLB;          //!< DLB library will be used
+         bool                 _forceTieMaster;  //!< Force Master WD (user code) to run on Master Thread
 
       public:
          ThreadManagerConf();

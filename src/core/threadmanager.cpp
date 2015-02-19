@@ -63,7 +63,7 @@ using namespace nanos;
 /**********************************/
 
 ThreadManagerConf::ThreadManagerConf()
-   : _tm(), _numYields(1), _useYield(false), _useBlock(false), _useDLB(false)
+   : _tm(), _numYields(1), _useYield(false), _useBlock(false), _useDLB(false), _forceTieMaster(false)
 {
 }
 
@@ -95,6 +95,10 @@ void ThreadManagerConf::config( Config &cfg )
    cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _useDLB ),
                               "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
    cfg.registerArgOption( "enable-dlb", "enable-dlb" );
+
+   cfg.registerConfigOption( "force-tie-master", NEW Config::FlagOption ( _forceTieMaster ),
+                              "Force Master WD (user code) to run on Master Thread" );
+   cfg.registerArgOption( "force-tie-master", "force-tie-master" );
 }
 
 ThreadManager* ThreadManagerConf::create()
@@ -141,6 +145,9 @@ ThreadManager* ThreadManagerConf::create()
 
 bool ThreadManagerConf::canUntieMaster() const
 {
+   // If the user forces it, ignore everything else
+   if ( _forceTieMaster ) return false;
+
    const char *lb_policy = OS::getEnvironmentVariable( "LB_POLICY" );
    if ( !_useDLB || lb_policy == NULL ) return true;
    else {
@@ -284,6 +291,7 @@ void BasicThreadManager::releaseCpu()
    BaseThread *thread = getMyThreadSafe();
    if ( !thread->getTeam() ) return;
    if ( thread->isSleeping() ) return;
+   if ( thread->isMainThread() && !sys.getUntieMaster() ) return; /* Do not release master thread if master WD is tied*/
 
    int my_cpu = thread->getCpuId();
 
