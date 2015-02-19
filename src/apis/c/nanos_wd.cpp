@@ -36,13 +36,6 @@
 
 using namespace nanos;
 
-// Internal definition for const
-struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag 
-{
-   // C++ doesn't support C99 flexible array
-   nanos_device_t devices[1];
-};
-
 
 /*! \brief Returns the WD of the current task.
  *
@@ -82,7 +75,7 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
  *  \param [out] string description
  *  \param [in] wd is the WorkDescriptor
  */
-NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ))
+NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( const char **description, nanos_wd_t wd ))
 {
    try 
    {
@@ -274,13 +267,13 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       wd.forceParent( myThread->getCurrentWD() );
       
       // Set WD's socket
-      wd.setSocket( sys.getCurrentSocket() );
+      wd.setNUMANode( sys.getUserDefinedNUMANode() );
 #ifndef ON_TASK_REDUCTION
 #else
       wd.copyReductions (myThread->getCurrentWD() );
 #endif
       
-      if ( wd.getSocket() >= sys.getNumSockets() )
+      if ( wd.getNUMANode() >= (int)sys.getNumNumaNodes() )
          throw NANOS_INVALID_PARAM;
 
       // set properties
@@ -302,6 +295,13 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       if ( pmDataSize > 0 ) {
         sys.getPMInterface().initInternalData( pmData );
         wd.setInternalData(pmData, /* ownedByWD */ false);
+      }
+
+      int schedDataSize = sys.getDefaultSchedulePolicy()->getWDDataSize();
+      char schedData[schedDataSize];
+      if ( schedDataSize  > 0 ) {
+         sys.getDefaultSchedulePolicy()->initWDData( schedData );
+         wd.setSchedulerData( reinterpret_cast<ScheduleWDData*>( schedData ), /* ownedByWD */ false );
       }
 
       sys.setupWD( wd, myThread->getCurrentWD() );
@@ -555,6 +555,17 @@ NANOS_API_DEF(nanos_err_t, nanos_set_final, ( bool value ))
     NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_final",NANOS_RUNTIME) );
     try {
        myThread->getCurrentWD()->setFinal( value );
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_set_create_local_tasks, ( bool value ))
+{
+    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","set_create_local_tasks",NANOS_RUNTIME) );
+    try {
+       sys.setCreateLocalTasks( value );
     } catch ( nanos_err_t e) {
        return e;
     }

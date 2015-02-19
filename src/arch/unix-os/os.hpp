@@ -20,12 +20,16 @@
 #ifndef _NANOS_OS
 #define _NANOS_OS
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <string>
 #include <vector>
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
 #include <time.h>
+#include <sched.h>
 #include "nanos-int.h"
 
 namespace nanos
@@ -85,13 +89,16 @@ namespace nanos
          static InitList   *_initList;
          static InitList   *_postInitList;
          static ModuleList *_moduleList;
-      public:         
+         static cpu_set_t  _systemMask;
+         static cpu_set_t  _processMask;
+      public:
 
          static void init ();
 
          static const char *getEnvironmentVariable( const std::string &variable );
 
          static void * loadDL( const std::string &dir, const std::string &name );
+         static void * loadLocalDL( );
          static void * dlFindSymbol( void *dlHandler, const std::string &symbolName );
          static void * dlFindSymbol( void *dlHandler, const char *symbolName );
          // too-specific?
@@ -99,17 +106,20 @@ namespace nanos
 
          static const char * getArg (int i) { return _argv[i]; }
          static long getArgc() { return _argc; }
+         static char **getArgv() { return _argv; }
 
          static double getMonotonicTime ();
          static double getMonotonicTimeUs ();
          static double getMonotonicTimeResolution ();
+
+         static int nanosleep ( unsigned long long nanoseconds );
          
          static const InitList & getInitializationFunctions ( ) { return *_initList;}
          static const InitList & getPostInitializationFunctions ( ) { return *_postInitList;}
          static const ModuleList & getRequestedModules () { return *_moduleList; }
 
+         static void getSystemAffinity( cpu_set_t *cpu_set );
          static void getProcessAffinity( cpu_set_t *cpu_set );
-         static void bindThread( cpu_set_t *cpu_set );
 
          static int getMaxProcessors ( void );
 
@@ -157,7 +167,6 @@ namespace nanos
 
       return res;
    }
-
 };
 
 

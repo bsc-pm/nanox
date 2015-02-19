@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "workdescriptor_decl.hpp"
 #include "processingelement_fwd.hpp"
-#include "copydescriptor_decl.hpp"
+#include "copydescriptor.hpp"
 
 namespace nanos
 {
@@ -48,59 +48,68 @@ namespace nanos
           */
          ~SMPDevice() {};
 
-        /* \breif allocate size bytes in the device
-         */
-         static void * allocate( size_t size, ProcessingElement *pe, uint64_t tag = 0 )
-         {
-            return NEW char[size]; 
+         virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx ) {
+            void *retAddr = NULL;
+
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->lock();
+            retAddr = sallocator->allocate( size );
+            sallocator->unlock();
+            return retAddr;
          }
 
-        /* \brief free address
-         */
-         static void free( void *address, ProcessingElement *pe )
-         {
-            delete[] (char *) address;
+         virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->lock();
+            sallocator->free( (void *) addr );
+            sallocator->unlock();
          }
 
-        /* \brief Reallocate and copy from address.
-         */
-         static void * realloc( void *address, size_t size, size_t old_size, ProcessingElement *pe )
-         {
-            return ::realloc( address, size );
+         virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->canAllocate( sizes, numChunks, remainingSizes );
          }
 
-        /* \brief Copy from remoteSrc in the host to localDst in the device
-         *        Returns true if the operation is synchronous
-         */
-         static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe )
-         {
-            memcpy( localDst, (void *)remoteSrc.getTag(), size );
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            return sallocator->getCapacity();
+         }
+
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            ::memcpy( (void *) devAddr, (void *) hostAddr, len );
+         }
+
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            ::memcpy( (void *) hostAddr, (void *) devAddr, len );
+         }
+
+         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            ::memcpy( (void *) devDestAddr, (void *) devOrigAddr, len );
             return true;
          }
 
-        /* \brief Copy from localSrc in the device to remoteDst in the host
-         *        Returns true if the operation is synchronous
-         */
-         static bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, ProcessingElement *pe )
-         {
-            memcpy( (void *)remoteDst.getTag(), localSrc, size );
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+            for ( std::size_t count = 0; count < numChunks; count += 1) {
+               ::memcpy( ((char *) devAddr) + count * ld, ((char *) hostAddr) + count * ld, len );
+            }
+         }
+
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+            for ( std::size_t count = 0; count < numChunks; count += 1) {
+               ::memcpy( ((char *) hostAddr) + count * ld, ((char *) devAddr) + count * ld, len );
+            }
+         }
+
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
+            for ( std::size_t count = 0; count < numChunks; count += 1) {
+               ::memcpy( ((char *) devDestAddr) + count * ld, ((char *) devOrigAddr) + count * ld, len );
+            }
             return true;
          }
 
-        /* \brief Copy localy in the device from src to dst
-         */
-         static void copyLocal( void *dst, void *src, size_t size, ProcessingElement *pe )
-         {
-            memcpy( dst, src, size );
-         }
-
-         static void syncTransfer( uint64_t hostAddress, ProcessingElement *pe)
-         {
-         }
-
-         static bool copyDevToDev( void * addrDst, CopyDescriptor& cdDst, void * addrSrc, std::size_t size, ProcessingElement *peDst, ProcessingElement *peSrc )
-         {
-            return true;
+         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
+            SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
+            sallocator->getFreeChunksList( list );
          }
 
    };

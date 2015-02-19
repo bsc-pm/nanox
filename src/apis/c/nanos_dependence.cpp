@@ -65,6 +65,23 @@ NANOS_API_DEF(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *a
    return NANOS_OK;
 }
 
+//! \brief Create a new dependence between two different WD's
+//!
+//! This function is not thread safe, so user must guarantee thread safety and avoid
+//! race condition due a parallel dependence creation and execution dependence releases
+//!
+//! \param [in] pred is the predecessor work descriptor
+//! \param [in] succ is the successor work descriptor
+NANOS_API_DEF(nanos_err_t, nanos_dependence_create, ( nanos_wd_t pred, nanos_wd_t succ ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","dependence_create", NANOS_RUNTIME) );
+   try {
+      sys.createDependence( (WD *) pred, (WD *) succ );
+   } catch ( nanos_err_t e) {
+      return e;                                                                                                                          
+   }
+   return NANOS_OK;
+}
 /*!
  * \}
  */ 

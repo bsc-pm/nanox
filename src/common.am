@@ -8,27 +8,49 @@ common_includes= \
 	-I$(top_srcdir)/src/arch/smp \
 	-I$(top_srcdir)/src/arch/spu \
 	-I$(top_srcdir)/src/arch/gpu \
+	-I$(top_srcdir)/src/arch/cluster \
 	-I$(top_srcdir)/src/arch/opencl \
+	-I$(top_srcdir)/src/arch/mpi \
 	$(END)
 
 devincludedir = $(prefix)/include/nanox-dev
 
-if HWLOC
-hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@
-hwloc_ldflags = -L@HWLOC_LIB@ -lhwloc
+if HWLOC 
+hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@ 
+hwloc_rpath = -Xlinker -rpath -Xlinker @HWLOC_LIB@
+hwloc_ldflags = $(hwloc_rpath) -L@HWLOC_LIB@ -lhwloc 
+endif 
+
+
+if RESILIENCY
+ft_cxxflags = -fnon-call-exceptions -DNANOS_RESILIENCY_ENABLED
+ft_fcflags = -fnon-call-exceptions
+endif
+
+if DLB
+dlb_cppflags = -DDLB -I@DLB_INC@
+dlb_perfo_ldflags = -L@DLB_LIB@ -ldlb
+dlb_debug_ldflags = -L@DLB_LIB@ -ldlb_dbg
+dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_instr
+dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
 endif
 
 if GNU_C
-common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(CFLAGS) $(hwloc_cxxflags)
-common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC
+common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(hwloc_cxxflags) $(ft_cxxflags) $(dlb_cppflags)
+common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC $(ft_fcflags)
 no_inline_flag= -fno-inline
 endif
 
 if IBM_C
-common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags)
+common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags) $(dlb_cppflags)
 common_fcflags= -qPIC -DPIC
 no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs
+endif
+
+if INTEL_C
+common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -pthread  $(hwloc_cxxflags) $(ft_cxxflags)
+common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC $(ft_fcflags)
 endif
 
 bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL 

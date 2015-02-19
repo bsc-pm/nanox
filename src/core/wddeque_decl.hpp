@@ -22,9 +22,10 @@
 
 #include <list>
 #include <functional>
+#include <map>
 #include "atomic_decl.hpp"
 #include "debug.hpp"
-#include "workdescriptor_fwd.hpp"
+#include "workdescriptor_decl.hpp"
 #include "basethread_fwd.hpp"
 
 #define NANOS_ABA_MASK (15)
@@ -77,9 +78,9 @@ namespace nanos
          virtual bool removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next ) = 0;
 
          template <typename Constraints>
-         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popFrontWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
-         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popBackWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
          
@@ -105,10 +106,14 @@ namespace nanos
    {
       private:
          typedef std::list<WorkDescriptor *> BaseContainer;
+         typedef std::map< const Device *, Atomic<unsigned int> > WDDeviceCounter;
 
          BaseContainer     _dq;
          Lock              _lock;
          size_t            _nelems;
+         WDDeviceCounter   _ndevs;
+         bool              _deviceCounter;
+
 
       private:
          /*! \brief WDDeque copy constructor (private)
@@ -117,10 +122,15 @@ namespace nanos
          /*! \brief WDDeque copy assignment operator (private)
           */
          const WDDeque & operator= ( const WDDeque & );
+
+         /*! \brief Initialization function for WD device counter
+          */
+         void initDeviceList();
+
       public:
          /*! \brief WDDeque default constructor
           */
-         WDDeque() : _dq(), _lock(), _nelems(0) {}
+         WDDeque( bool enableDeviceCounter = true );
          /*! \brief WDDeque destructor
           */
          ~WDDeque() {}
@@ -136,9 +146,9 @@ namespace nanos
          void push_back( WD** wds, size_t numElems );
 
          template <typename Constraints>
-         WorkDescriptor * popFrontWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popFrontWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
-         WorkDescriptor * popBackWithConstraints ( BaseThread *thread );
+         WorkDescriptor * popBackWithConstraints ( BaseThread const *thread );
          template <typename Constraints>
          bool removeWDWithConstraints( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next );
 
@@ -149,6 +159,15 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
+
+         void transferElemsFrom( WDDeque &dq );
+         template <typename Test>
+         void iterate ();
    };
 
    class WDLFQueue : public WDPool
@@ -281,6 +300,8 @@ namespace nanos
       public:
          typedef T         type;
          typedef std::const_mem_fun_t<T, WD> PriorityValueFun;
+         typedef std::map< const Device *, Atomic<unsigned int> > WDDeviceCounter;
+
       private:
          // TODO (gmiranda): Measure if vector is better as a container
          WDPQ::BaseContainer _dq;
@@ -295,7 +316,11 @@ namespace nanos
          
          /*! \brief Revert insertion */
          bool              _reverse;
-         
+
+         /*! \brief Counts the number of WDs in the queue for each architecture */
+         WDDeviceCounter   _ndevs;
+         bool              _deviceCounter;
+
          /*! \brief Functor that will be used to get the priority or
           *  deadline */
          PriorityValueFun  _getter;
@@ -323,10 +348,12 @@ namespace nanos
         
          /*! \brief Performs lower bound reversely or not depending on the settings */
          WDPQ::BaseContainer::iterator lower_bound( const WD *wd );
+
+
       public:
          /*! \brief WDPriorityQueue default constructor
           */
-         WDPriorityQueue( bool optimise = true, bool reverse = false,
+         WDPriorityQueue( bool enableDeviceCounter = true, bool optimise = true, bool reverse = false,
                PriorityValueFun getter = std::mem_fun( &WD::getPriority ) );
          
          /*! \brief WDPriorityQueue destructor
@@ -374,6 +401,11 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
    };
 
 

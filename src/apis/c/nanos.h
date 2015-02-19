@@ -125,9 +125,12 @@
  *   - 5: Including nanos_omp_find_worksharing( omp_sched_t kind );
  *   - 6:
  *   - 7: Including int nanos_omp_get_num_threads_next_parallel ( int threads_requested )
+ * - nanos interface family: instrumentation_api
+ *   - 1000: Instrumentation API interface family created
+ *
  */
 
-#include <unistd.h>
+#include <stddef.h>
 #include "nanos-int.h"
 #include "nanos_error.h"
 
@@ -170,6 +173,13 @@ typedef struct {
 
 #define _Bool bool
 
+// Internal definition for const
+struct nanos_const_wd_definition_internal_t : nanos_const_wd_definition_tag 
+{
+   // C++ doesn't support C99 flexible array
+   nanos_device_t devices[1];
+};
+
 extern "C" {
 #endif
 
@@ -182,7 +192,7 @@ NANOS_API_DECL(int, nanos_get_wd_id, (nanos_wd_t wd));
 NANOS_API_DECL(int, nanos_get_wd_priority, (nanos_wd_t wd));
 NANOS_API_DECL(void, nanos_set_wd_priority, (nanos_wd_t wd, int p));
 
-NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ));
+NANOS_API_DECL(nanos_err_t, nanos_get_wd_description, ( const char **description, nanos_wd_t wd ));
 
 // Finder functions
 NANOS_API_DECL(nanos_slicer_t, nanos_find_slicer, ( const char * slicer ));
@@ -224,7 +234,7 @@ NANOS_API_DECL(nanos_err_t, nanos_set_final, ( bool value ));
 // Team related functions
 
 NANOS_API_DECL(nanos_err_t, nanos_create_team,(nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads,
-                              nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info));
+                              nanos_constraint_t * constraints, bool reuse, nanos_thread_t *info , nanos_const_wd_definition_t  *const_data  ));
 
 NANOS_API_DECL(nanos_err_t, nanos_create_team_mapped, (nanos_team_t *team, nanos_sched_t sg, unsigned int *nthreads, unsigned int *mapping));
 
@@ -261,6 +271,7 @@ NANOS_API_DECL(nanos_err_t, nanos_expel_current_thread, (void));
 // dependence
 NANOS_API_DECL(nanos_err_t, nanos_dependence_release_all, ( void ) );
 NANOS_API_DECL(nanos_err_t, nanos_dependence_pendant_writes, ( bool *res, void *addr ));
+NANOS_API_DECL(nanos_err_t, nanos_dependence_create, ( nanos_wd_t pred, nanos_wd_t succ ) );
 
 // worksharing
 NANOS_API_DECL(nanos_err_t, nanos_worksharing_create ,( nanos_ws_desc_t **wsd, nanos_ws_t ws, nanos_ws_info_t *info, bool *b ) );
@@ -295,6 +306,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_addr, ( nanos_copy_id_t copy_id, void **ad
 NANOS_API_DECL(nanos_err_t, nanos_copy_value, ( void *dst, nanos_copy_id_t copy_id, nanos_wd_t cwd ));
 
 // system interface
+NANOS_API_DECL(const char *, nanos_get_runtime_version, () );
 NANOS_API_DECL(const char *, nanos_get_default_architecture, ());
 NANOS_API_DECL(const char *, nanos_get_pm, ());
 NANOS_API_DECL(nanos_err_t, nanos_get_default_binding, ( bool *res ));
@@ -307,6 +319,9 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 
 // Memory management
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int node, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ));
 NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
 NANOS_API_DECL(void, nanos_free0, ( void *p )); 
 
@@ -326,10 +341,15 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_get_value, (const char *key, const 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, nanos_event_t events[] ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_close_user_fun_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_raise_gpu_kernel_launch_event,());
+NANOS_API_DECL(nanos_err_t, nanos_instrument_close_gpu_kernel_launch_event,());
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_enable,( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_disable,( void ));
+NANOS_API_DECL(nanos_err_t, nanos_get_node_num, ( unsigned int *num ));
+NANOS_API_DECL(int, nanos_get_num_nodes, ( ));
+NANOS_API_DECL(nanos_err_t, nanos_set_create_local_tasks, ( bool value ));
 
 #ifdef _MF03
     typedef void*  nanos_string_t;
@@ -341,7 +361,13 @@ NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, n
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
 
+#ifdef _MF03
+NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, ptrdiff_t n));
+#else
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n));
+#endif
+
+NANOS_API_DECL(nanos_err_t, nanos_register_object, (int num_objects, nanos_copy_data_t *obj));
 
 // scheduling interface
 NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());

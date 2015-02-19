@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include "smpdevice.hpp"
-#include "workdescriptor.hpp"
+#include "workdescriptor_fwd.hpp"
 #include "config.hpp"
 
 namespace nanos {
@@ -33,24 +33,23 @@ namespace ext
 
    class SMPDD : public DD
    {
-
-      public:
-         typedef void ( *work_fct ) ( void *self );
-
       private:
-         work_fct       _work;
          intptr_t *     _stack;
          intptr_t *     _state;
          static size_t     _stackSize;
 
+      protected:
+         SMPDD( work_fct w, Device *dd ) : DD( dd, w ),_stack( 0 ),_state( 0 ) {}
+         SMPDD( Device *dd ) : DD( dd, NULL ), _stack( 0 ),_state( 0 ) {}
+
       public:
          // constructors
-         SMPDD( work_fct w ) : DD( &SMP ),_work( w ),_stack( 0 ),_state( 0 ) {}
+         SMPDD( work_fct w ) : DD( &SMP, w ), _stack( 0 ),_state( 0 ) {}
 
-         SMPDD() : DD( &SMP ),_work( 0 ),_stack( 0 ),_state( 0 ) {}
+         SMPDD() : DD( &SMP, NULL ), _stack( 0 ),_state( 0 ) {}
 
          // copy constructors
-         SMPDD( const SMPDD &dd ) : DD( dd ), _work( dd._work ), _stack( 0 ), _state( 0 ) {}
+         SMPDD( const SMPDD &dd ) : DD( dd ), _stack( 0 ), _state( 0 ) {}
 
          // assignment operator
          const SMPDD & operator= ( const SMPDD &wd );
@@ -58,17 +57,16 @@ namespace ext
 
          virtual ~SMPDD() { if ( _stack ) delete[] _stack; }
 
-         work_fct getWorkFct() const { return _work; }
-
          bool hasStack() { return _state != NULL; }
 
-         void initStack( void *data );
+         void initStack( WD *wd );
 
-        /* \brief Wrapper called by the instrumented library to
-         * be able to instrument the exact moment in which the runtime
-         * is left and the user's code starts being executed.
+        /*! \brief Wrapper called to be able to instrument the
+         * exact moment in which the runtime is left and the
+         * user's code starts being executed and to be able to
+         * re-execute it (fault tolerance).
          */
-         static void workWrapper( void *data );
+         static void workWrapper( WD &data );
 
          intptr_t *getState() const { return _state; }
 
@@ -81,7 +79,22 @@ namespace ext
          virtual SMPDD *copyTo ( void *toAddr );
 
          virtual SMPDD *clone () const { return NEW SMPDD ( *this); }
-      };
+
+            /*! \brief Encapsulates the user function call.
+             * This avoids code duplication for additional
+             * operations that must be done just before/after
+             * this call (e.g. task re-execution on errors).
+             */
+            void execute ( WD &wd ) throw();
+
+#ifdef NANOS_RESILIENCY_ENABLED
+            /*! \brief Restores the workdescriptor to its original state.
+             * Leaving the recovery dependent to the arch allows more
+             * accurate recovery for each kind of device.
+             */
+            void recover ( WD &wd );
+#endif
+   };
 
    inline const SMPDD & SMPDD::operator= ( const SMPDD &dd )
    {
@@ -90,7 +103,6 @@ namespace ext
 
       DD::operator= ( dd );
 
-      _work = dd._work;
       _stack = 0;
       _state = 0;
 

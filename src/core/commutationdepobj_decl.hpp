@@ -19,6 +19,7 @@
 
 #ifndef _NANOS_COMMUTATONDEPOBJ_DECL
 #define _NANOS_COMMUTATONDEPOBJ_DECL
+
 #include "dependableobject_decl.hpp"
 #include "basedependency_decl.hpp"
 #include "task_reduction_decl.hpp"

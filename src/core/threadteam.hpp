@@ -65,17 +65,33 @@ inline void ThreadTeam::resized ()
 inline const BaseThread & ThreadTeam::getThread ( int i ) const
 {
    // Return the i-th valid element in _threads
+   int j = 0;
    ThreadTeamList::const_iterator it = _threads.begin();
-   std::advance( it, i );
-   return *(it->second);
+   for ( it = _threads.begin(); it != _threads.end(); ++it, ++j ) {
+      if ( i == j ) {
+         return *(it->second);
+      }
+   }
+
+   // If we didn't returned during the loop, return last thread
+   ThreadTeamList::const_reverse_iterator last = _threads.rbegin();
+   return *(last->second);
 }
 
 inline BaseThread & ThreadTeam::getThread ( int i )
 {
    // Return the i-th valid element in _threads
+   int j = 0;
    ThreadTeamList::iterator it = _threads.begin();
-   std::advance( it, i );
-   return *(it->second);
+   for ( it = _threads.begin(); it != _threads.end(); ++it, ++j ) {
+      if ( i == j ) {
+         return *(it->second);
+      }
+   }
+
+   // If we didn't returned during the loop, return last thread
+   ThreadTeamList::reverse_iterator last = _threads.rbegin();
+   return *(last->second);
 }
 
 inline const BaseThread & ThreadTeam::operator[]  ( int i ) const
@@ -254,7 +270,7 @@ inline size_t ThreadTeam::getFinalSize ( void ) const { return _finalSize.value(
 inline void ThreadTeam::setFinalSize ( size_t s ) { _finalSize = Atomic<size_t>(s);}
 
 inline void ThreadTeam::increaseFinalSize ( void ) { _finalSize++; }
-inline void ThreadTeam::decreaseFinalSize ( void ) { _finalSize--; }
+inline void ThreadTeam::decreaseFinalSize ( void ) { _finalSize--; /*ensure(_finalSize>0, "Team size < 0")*/ }
 
 inline void ThreadTeam::setStable ( bool value )  { _stable = value;}
 inline bool ThreadTeam::isStable ( void ) const { return _stable; }

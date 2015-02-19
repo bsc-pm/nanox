@@ -495,11 +495,11 @@ class InstrumentationTasksimTracePlugin : public Plugin {
       void init ()
       {
          sys.setInstrumentation( new InstrumentationTasksimTrace() );
-         sys.getSchedulerConf().setUseYield(true);
+         sys.getThreadManagerConf().setUseYield(true);
       }
 };
 
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::InstrumentationTasksimTracePlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::InstrumentationTasksimTracePlugin );

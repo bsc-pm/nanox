@@ -29,7 +29,7 @@
 #include <iostream>
 
 #define NANOS_CACHELINE 128 /* FIXME: This definition must be architectural dependant */
-#define NANOS_OBJECTS_PER_ARENA 100
+#define NANOS_OBJECTS_PER_ARENA 1000
 
 namespace nanos
 {
@@ -46,6 +46,8 @@ class InternalAllocator
        typedef value_type& reference;
        typedef const value_type& const_reference;
        typedef std::size_t size_type;
+       typedef std::ptrdiff_t difference_type;
+
       /* \brief Convert an allocator<T> to allocator<U>
        */
        template<typename U>

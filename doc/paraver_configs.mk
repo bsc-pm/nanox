@@ -252,6 +252,7 @@ paraver_config_files = \
      paraver_configs/ompss/graph_and_scheduling/nb_tasks_in_graph.cfg\
      paraver_configs/ompss/graph_and_scheduling/2dp_order.cfg\
      paraver_configs/ompss/graph_and_scheduling/nb_ready_tasks.cfg\
+     paraver_configs/ompss/graph_and_scheduling/nb_concurrent_ready.cfg\
      paraver_configs/ompss/graph_and_scheduling/creating_submitting_task.cfg\
      paraver_configs/ompss/runtime/3dh_duration_state.cfg\
      paraver_configs/ompss/runtime/thread_state.cfg\
@@ -320,4 +321,5 @@ paraver_config_files = \
      paraver_configs/general/sanity_checks/flushing.cfg\
      paraver_configs/general/sanity_checks/2dh_cycperus.cfg\
      paraver_configs/general/sanity_checks/Equivalent_CPUs.cfg\
+     paraver_configs/cluster/network_transfers_and_bw.cfg\
      $(END)

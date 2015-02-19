@@ -24,57 +24,46 @@
 #include "dependenciesdomain_decl.hpp"
 #include <vector>
 #include <string>
-#include "schedule.hpp"
+#include "schedule_decl.hpp"
 #include "threadteam.hpp"
 #include "slicer.hpp"
 #include "nanos-int.h"
 #include "dataaccess.hpp"
 #include "instrumentation_decl.hpp"
 #include "synchronizedcondition.hpp"
-#include "cache_map.hpp"
+#include "regioncache.hpp"
 #include <cmath>
+#include <climits>
 
-
-#ifdef HWLOC
-#include <hwloc.h>
-#endif
 
 using namespace nanos;
 
 // methods to access configuration variable         
-inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
+//inline void System::setNumPEs ( int npes ) { _numPEs = npes; }
+//
+//inline int System::getNumPEs () const { return _numPEs; }
+//
+//inline unsigned System::getMaxThreads () const { return _targetThreads; } 
+//
+//inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
+//
+//inline int System::getNumThreads () const { return _numThreads; }
 
-inline int System::getNumPEs () const { return _numPEs; }
+//inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
 
-inline unsigned System::getMaxThreads () const { return _targetThreads; } 
-
-inline void System::setNumThreads ( int nthreads ) { _numThreads = nthreads; }
-
-inline int System::getNumThreads () const { return _numThreads; }
-
-inline int System::getCpuCount () const { return CPU_COUNT( &_cpu_set ) ; };
+inline DeviceList & System::getSupportedDevices() { return _devices; }
 
 inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
 
 inline int System::getDeviceStackSize () const {return _deviceStackSize; }
-
-inline void System::setBindingStart ( int value ) { _bindingStart = value; }
-
-inline int System::getBindingStart () const { return _bindingStart; }
-
-inline void System::setBindingStride ( int value ) { _bindingStride = value;  }
-
-inline int System::getBindingStride () const { return _bindingStride; }
-
-inline void System::setBinding ( bool set ) { _bindThreads = set; }
-
-inline bool System::getBinding () const { return _bindThreads; }
 
 inline System::ExecutionMode System::getExecutionMode () const { return _executionMode; }
 
 inline bool System::getVerbose () const { return _verboseMode; }
 
 inline void System::setVerbose ( bool value ) { _verboseMode = value; }
+
+inline bool System::isSummaryEnabled() const{ return _summary; }
 
 inline void System::setInitialMode ( System::InitialMode mode ) { _initialMode = mode; }
 
@@ -100,43 +89,49 @@ inline bool System::getUntieMaster () const { return _untieMaster; }
 inline void System::setSynchronizedStart ( bool value ) { _synchronizedStart = value; }
 inline bool System::getSynchronizedStart ( void ) const { return _synchronizedStart; }
 
+inline void System::setPredecessorLists ( bool value ) { _predecessorLists = value; }
+inline bool System::getPredecessorLists ( void ) const { return _predecessorLists; }
+
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
+
+inline int System::getNumCreatedPEs() const { return _pes.size(); }
 
 inline int System::getNumWorkers() const { return _workers.size(); }
 
-inline int System::getNumSockets() const { return _numSockets; }
-inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
-
-inline int System::getNumAvailSockets() const
-{
-   return _numAvailSockets;
-}
-
+//inline int System::getNumSockets() const { return _numSockets; }
+//inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
+//
+//inline int System::getNumAvailSockets() const
+//{
+//   return _numAvailSockets;
+//}
+//
 inline int System::getVirtualNUMANode( int physicalNode ) const
 {
-   return _numaNodeMap[ physicalNode ];
+   return ( physicalNode < (int)_numaNodeMap.size() ) ? _numaNodeMap[ physicalNode ] : INT_MIN;
 }
+//
+//inline int System::getCurrentSocket() const { return _currentSocket; }
+//inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
+//
+//inline int System::getCoresPerSocket() const { return _coresPerSocket; }
+//inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
 
-inline int System::getCurrentSocket() const { return _currentSocket; }
-inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
+//inline int System::getBindingId ( int pe ) const
+//{
+//   return _bindings[ pe % _bindings.size() ];
+//}
 
-inline int System::getCoresPerSocket() const { return _coresPerSocket; }
-inline void System::setCoresPerSocket ( int coresPerSocket ) { _coresPerSocket = coresPerSocket; }
+//inline bool System::isHwlocAvailable () const
+//{
+//#ifdef HWLOC
+//   return true;
+//#else
+//   return false;
+//#endif
+//}
 
-inline int System::getBindingId ( int pe ) const
-{
-   return _bindings[ pe % _bindings.size() ];
-}
-
-inline bool System::isHwlocAvailable () const
-{
-#ifdef HWLOC
-   return true;
-#else
-   return false;
-#endif
-}
-
+#if 0
 inline void System::loadHwloc ()
 {
 #ifdef HWLOC
@@ -281,6 +276,7 @@ inline unsigned System::getNodeOfPE ( unsigned pe )
    return sys.getNumSockets() - 1;
 #endif
 }
+#endif
 
 inline void System::setThrottlePolicy( ThrottlePolicy * policy ) { _throttlePolicy = policy; }
 
@@ -315,7 +311,7 @@ inline Instrumentation * System::getInstrumentation ( void ) const { return _ins
 inline void System::setInstrumentation ( Instrumentation *instr ) { _instrumentation = instr; }
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-inline bool System::isCpuidEventEnabled ( void ) const { return _enable_cpuid_event; }
+inline bool System::isCpuidEventEnabled ( void ) const { return _enableCpuidEvent; }
 #endif
 
 inline void System::registerSlicer ( const std::string &label, Slicer *slicer) { _slicers[label] = slicer; }
@@ -388,6 +384,13 @@ inline DependenciesManager * System::getDependenciesManager ( ) const
 inline const std::string & System::getDefaultArch() const { return _defArch; }
 inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch; }
 
+inline Network * System::getNetwork( void ) { return &_net; }
+inline bool System::usingCluster( void ) const { return _usingCluster; }
+inline bool System::useNode2Node( void ) const { return _usingNode2Node; }
+inline bool System::usePacking( void ) const { return _usingPacking; }
+inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }
+inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
+
 inline void System::setPMInterface(PMInterface *pm)
 {
    ensure0(!_pmInterface,"PM interface already in place!");
@@ -395,12 +398,6 @@ inline void System::setPMInterface(PMInterface *pm)
 }
 
 inline PMInterface &  System::getPMInterface(void) const { return *_pmInterface; }
-
-inline bool System::isCacheEnabled() { return _useCaches; }
-
-inline System::CachePolicyType System::getCachePolicy() { return _cachePolicy; }
-
-inline CacheMap& System::getCacheMap() { return _cacheMap; }
 
 inline size_t System::registerArchitecture( ArchPlugin * plugin )
 {
@@ -410,16 +407,9 @@ inline size_t System::registerArchitecture( ArchPlugin * plugin )
 }
 
 #ifdef GPU_DEV
-//TODO: remove this from system, should be inside gpuconfig.cpp, but weak attributes don't seem to be working inside gpu device
-//This var name has to be consistant with the one which the compiler "fills" (basically, do not rename it)
-extern __attribute__((weak)) char ompss_uses_cuda;
-extern __attribute__((weak)) char gpu_cublas_init;
-
-inline char *  System::getOmpssUsesCuda() { return &ompss_uses_cuda; }
-inline char *  System::getOmpssUsesCublas() { return &gpu_cublas_init; }
-
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
+
 
 inline bool System::throttleTaskIn ( void ) const { return _throttlePolicy->throttleIn(); }
 inline void System::throttleTaskOut ( void ) const { _throttlePolicy->throttleOut(); }
@@ -460,6 +450,21 @@ inline Plugin * System::loadAndGetPlugin ( const std::string & name )
    return _pluginManager.loadAndGetPlugin(name, false);
 }
 
+inline int System::getWgId() { return _atomicSeedWg++; }
+inline unsigned int System::getRootMemorySpaceId() { return 0; }
+
+inline ProcessingElement &System::getPEWithMemorySpaceId( memory_space_id_t id ) {
+   bool found = false;
+   PE *target = NULL;
+   for ( PEList::iterator it = _pes.begin(); it != _pes.end() && !found; it++ ) {
+      if ( it->second->getMemorySpaceId() == id ) {
+         target = it->second;
+         found = true;
+      }
+   }
+   return *target;
+}
+
 inline void System::setValidPlugin ( const std::string &module,  const std::string &plugin )
 {
    _validPlugins.insert( make_pair( module, plugin ) );
@@ -491,13 +496,137 @@ inline void System::registerPluginOption ( const std::string &option, const std:
 
 inline int System::nextThreadId () { return _threadIdSeed++; }
 
-inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
+inline unsigned int System::nextPEId () { return _peIdSeed++; }
 
-inline bool System::dlbEnabled() const { return _enable_dlb; }
+inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
 inline bool System::haveDependencePendantWrites ( void *addr ) const
 {
    return myThread->getCurrentWD()->getDependenciesDomain().haveDependencePendantWrites ( addr );
+}
+
+inline int System::getTaskMaxRetries() const { return _task_max_retries; }
+
+inline void System::setSMPPlugin(SMPBasePlugin *p) {
+   _smpPlugin = p;
+}
+
+inline SMPBasePlugin *System::getSMPPlugin() const {
+   return _smpPlugin;
+}
+
+inline bool System::isSimulator() const {
+   return _simulator;
+}
+
+inline ThreadTeam *System::getMainTeam() {
+   return _mainTeam;
+}
+
+inline bool System::getVerboseDevOps() const {
+   return _verboseDevOps;
+}
+
+inline bool System::getVerboseCopies() const {
+   return _verboseCopies;
+}
+
+inline bool System::getSplitOutputForThreads() const {
+   return _splitOutputForThreads;
+}
+
+inline RegionCache::CachePolicy System::getRegionCachePolicy() const {
+   return _regionCachePolicy;
+}
+
+inline void System::createDependence( WD* pred, WD* succ)
+{
+   DOSubmit *pred_do = pred->getDOSubmit(), *succ_do = succ->getDOSubmit();
+   pred_do->addSuccessor(*succ_do);
+   succ_do->increasePredecessors();
+}
+
+inline unsigned int System::getNumClusterNodes() const {
+   return _clusterNodes.size();
+}
+
+inline unsigned int System::getNumNumaNodes() const {
+   return _numaNodes.size();
+}
+
+inline std::set<unsigned int> const &System::getClusterNodeSet() const {
+   return _clusterNodes;
+}
+
+inline memory_space_id_t System::getMemorySpaceIdOfClusterNode( unsigned int node ) const {
+   memory_space_id_t id = 0;
+   if ( node != 0 ) {
+      for ( PEList::const_iterator it = _pes.begin(); it != _pes.end(); it++ ) {
+         if ( it->second->getClusterNode() == node ) {
+            id = it->second->getMemorySpaceId();
+         }
+      }
+   }
+   return id;
+}
+
+inline int System::getUserDefinedNUMANode() const {
+   return _userDefinedNUMANode;
+}
+
+inline void System::setUserDefinedNUMANode( int nodeId ) {
+   _userDefinedNUMANode = nodeId;
+}
+
+inline unsigned int System::getNumAccelerators() const {
+   return _acceleratorCount;
+}
+
+inline unsigned int System::getNewAcceleratorId() {
+   return _acceleratorCount++;
+}
+
+inline const ThreadManagerConf& System::getThreadManagerConf() const {
+   return _threadManagerConf;
+}
+
+inline ThreadManager* System::getThreadManager() const {
+   return _threadManager;
+}
+
+inline bool System::getPrioritiesNeeded() const {
+   return _compilerSuppliedFlags.prioritiesNeeded;
+}
+
+/* SMPPlugin functions */
+inline void System::admitCurrentThread ( bool isWorker ) { _smpPlugin->admitCurrentThread( _workers, isWorker ); }
+inline void System::expelCurrentThread ( bool isWorker ) { _smpPlugin->expelCurrentThread( _workers, isWorker ); }
+
+inline void System::updateActiveWorkers ( int nthreads ) { _smpPlugin->updateActiveWorkers( nthreads, _workers, myThread->getTeam() ); }
+
+inline const cpu_set_t& System::getCpuProcessMask () const { return _smpPlugin->getCpuProcessMask(); }
+inline void System::getCpuProcessMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuProcessMask( mask ); }
+inline bool System::setCpuProcessMask ( const cpu_set_t *mask ) { return _smpPlugin->setCpuProcessMask( mask, _workers ); }
+inline void System::addCpuProcessMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuProcessMask( mask, _workers ); }
+
+inline const cpu_set_t& System::getCpuActiveMask () const { return _smpPlugin->getCpuActiveMask(); }
+inline void System::getCpuActiveMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuActiveMask( mask ); }
+inline bool System::setCpuActiveMask ( const cpu_set_t *mask ) { return _smpPlugin->setCpuActiveMask( mask, _workers ); }
+inline void System::addCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
+
+inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int accelerator_id ) const {
+   memory_space_id_t id = ( memory_space_id_t ) -1;
+   for ( memory_space_id_t mem_idx = 1; mem_idx < _separateMemorySpacesCount; mem_idx += 1 ) {
+      if ( _separateAddressSpaces[ mem_idx ]->getAcceleratorNumber() == accelerator_id ) {
+         id = mem_idx;
+         break;
+      }
+   }
+   return id;
+}
+
+inline Router &System::getRouter() {
+   return _router;
 }
 
 #endif

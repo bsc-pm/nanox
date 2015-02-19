@@ -26,15 +26,16 @@
 #include "system.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
-#include "directory.hpp"
 
 using namespace nanos;
 
 void DOSubmit::dependenciesSatisfied ( )
 {
-   DependenciesDomain::decreaseTasksInGraph();
-   dependenciesSatisfiedNoSubmit();
-   _submittedWD->submit( true );
+   if ( needsSubmission() ) {
+      DependenciesDomain::decreaseTasksInGraph();
+      dependenciesSatisfiedNoSubmit();
+      getWD()->submit( true );
+   }
 }
 
 void DOSubmit::dependenciesSatisfiedNoSubmit( )
@@ -43,12 +44,12 @@ void DOSubmit::dependenciesSatisfiedNoSubmit( )
 
 bool DOSubmit::canBeBatchReleased ( ) const
 {
-   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( _submittedWD );
+   return numPredecessors() == 1 && sys.getDefaultSchedulePolicy()->isValidForBatch( getWD() ) && needsSubmission();
 }
 
 unsigned long DOSubmit::getDescription ( )
 {
-   return (unsigned long) ((nanos::ext::SMPDD &) _submittedWD->getActiveDevice()).getWorkFct();
+   return (unsigned long) ((nanos::ext::SMPDD &) getWD()->getActiveDevice()).getWorkFct();
 }
 
 void DOSubmit::instrument ( DependableObject &successor )
@@ -83,17 +84,17 @@ void DOWait::init()
    _depsSatisfied = false;
 }
 
-int DOWait::decreasePredecessors ( std::list<uint64_t>const * flushDeps, bool blocking )
+int DOWait::decreasePredecessors ( std::list<uint64_t>const * flushDeps,  DependableObject * finishedPred,
+      bool batchRelease, bool blocking )
 {
-   int retval = DependableObject::decreasePredecessors ( flushDeps, blocking );
+   int retval = DependableObject::decreasePredecessors ( flushDeps, finishedPred, batchRelease, blocking );
 
    if ( blocking ) {
       _syncCond.wait();
-
-      Directory *d = _waitDomainWD->getDirectory(false);
-      if ( d != NULL ) {
-         d->synchronizeHost( *flushDeps );
-      }
+      //Directory *d = _waitDomainWD->getDirectory(false);
+      //if ( d != NULL ) {
+      //   d->synchronizeHost( *flushDeps );
+      //}
    }
 
    return retval;

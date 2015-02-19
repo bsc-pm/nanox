@@ -50,6 +50,8 @@ void SlicerCompoundWD::submit ( WorkDescriptor &work )
    for ( int i = 0; i < data->nsect; i++) {
       slice = (WorkDescriptor*)data->lwd[i];
       sys.setupWD(*slice, &work);
+
+      slice->_mcontrol.preInit();
    }
 
    Scheduler::submit ( work );
@@ -70,16 +72,15 @@ bool SlicerCompoundWD::dequeue ( WorkDescriptor *wd, WorkDescriptor **slice )
 {
    /* Get commont data */
    nanos_compound_wd_data_t *data = (nanos_compound_wd_data_t *) wd->getData();
-   WorkDescriptor *current = myThread->getCurrentWD();
    SchedulerStats &ss = sys.getSchedulerStats();
-   int nthreads = myThread->getTeam()->size();
+   int nthreads = myThread->getTeam()->getFinalSize();
 
    /* Computing Modifiers: neutral element == true */
    bool all_threads_running = true; /* If (and only if) all threads are running allow to serialize */
 
    if ( _modAllThreadsRunning ) {
-      if ( (current->isIdle() == false) && (ss._idleThreads != 0) ) all_threads_running = false;
-      else if ( (current->isIdle() == true) && (ss._idleThreads != 1) ) all_threads_running = false;
+      if ( (myThread->isIdle() == false) && (ss._idleThreads != 0) ) all_threads_running = false;
+      else if ( (myThread->isIdle() == true) && (ss._idleThreads != 1) ) all_threads_running = false;
    }
 
    bool modifiers = all_threads_running; /* Sumarizes all modifiers */

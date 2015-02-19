@@ -17,7 +17,69 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-SUBDIRS = performance debug instrumentation instrumentation-debug
+include ../common.am
 
-include $(top_srcdir)/src/common.am
+nanox_sources = \
+   nanox.cpp \
+   $(END)
 
+bin_PROGRAMS =
+if DEBUG_VERSION
+
+bin_PROGRAMS += nanox-dbg
+
+nanox_dbg_CPPFLAGS = $(common_includes) $(common_debug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(debugdir)\"
+
+nanox_dbg_SOURCES=  $(nanox_sources)
+
+nanox_dbg_LDADD=\
+	-ldl \
+	$(top_builddir)/src/core/debug/libnanox.la \
+	$(END)
+
+endif
+
+if INSTRUMENTATION_VERSION
+
+bin_PROGRAMS += nanox-ins
+
+nanox_ins_CPPFLAGS = $(common_includes) $(common_instr_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(instrumentationdir)\"
+
+nanox_ins_SOURCES=  $(nanox_sources)
+
+nanox_ins_LDADD=\
+	-ldl \
+	$(top_builddir)/src/core/instrumentation/libnanox.la \
+	$(END)
+
+endif
+
+if INSTRUMENTATION_DEBUG_VERSION
+
+bin_PROGRAMS += nanox-ins-dbg
+
+nanox_ins_dbg_CPPFLAGS = $(common_includes) $(common_instrdebug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(instrdebugdir)\"
+
+nanox_ins_dbg_SOURCES=  $(nanox_sources)
+
+nanox_ins_dbg_LDADD=\
+	-ldl \
+	$(top_builddir)/src/core/instrumentation-debug/libnanox.la \
+	$(END)
+
+endif
+
+if PERFORMANCE_VERSION
+
+bin_PROGRAMS += nanox-pfm
+
+nanox_pfm_CPPFLAGS = $(common_includes) $(common_perfo_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
+
+nanox_pfm_SOURCES=  $(nanox_sources)
+
+nanox_pfm_LDADD=\
+	-ldl \
+	$(top_builddir)/src/core/performance/libnanox.la \
+	$(END)
+
+endif

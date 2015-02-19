@@ -28,6 +28,8 @@ void* operator new ( size_t size ) throw (std::bad_alloc) { return nanos::getMem
 void* operator new[] ( size_t size ) throw (std::bad_alloc) { return nanos::getMemTracker().allocate( size ); }
 void operator delete ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
 void operator delete[] ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
+void operator delete ( void *p, const char *file, int line  ) { nanos::getMemTracker().deallocate( p ); }
+void operator delete[] ( void *p, const char *file, int line  ) { nanos::getMemTracker().deallocate( p ); }
 
 #else // ----- default -----
 

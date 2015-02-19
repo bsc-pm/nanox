@@ -23,13 +23,13 @@ public:
   static unsigned getOpenCLDevicesCount() { return _currNumDevices; }
   static cl_device_id getFreeDevice();
   static cl_context getContextDevice(cl_device_id dev);
-
+  static bool getAllocWide();
+  static bool getDisableDev2Dev() { return _disableOCLdev2dev; }
   static size_t getDevCacheSize() { return _devCacheSize; }
-  static bool getForceShMem() { return _forceShMem; }
+  static bool getForceShMem() { return _forceShMem; } 
+  static int getPrefetchNum() { return _prefetchNum +1; }
+  static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
   
-    
-  static System::CachePolicyType getCachePolicy(void) { return _cachePolicy;}
-
 private:
   static void prepare( Config &cfg );
   static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
@@ -46,29 +46,29 @@ private:
   // The platform to use.
   static std::string _platName;
 
-  
-  //! Defines the cache policy used by OpenCL devices
-  static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by GPU devices
-
-
   // The portion of the cache to be allocated on the device.
   static size_t _devCacheSize;
+  static bool _forceShMem;
   
   //Maximum number of devices to be used by nanox
-  static unsigned int _devNum;
+  static int _devNum;
+  //Number of prefetchs
+  static int _prefetchNum;
   // These properties contains runtime info, not directly settable by the user.
 
   // All found OpenCL platforms.
   //static std::vector<cl_platform_id> _plats;
   static std::map<cl_device_id, cl_context>* _devicesPtr;
   static unsigned int _currNumDevices;
+  static bool _disableAllocWide; //! Use wide allocation policy for the region cache
 
   // These properties manages mutable state.
 
   // The next free device.
   static Atomic<unsigned> _freeDevice;
-  
-  static bool _forceShMem;
+  // Whether to disable OpenCL dev2dev.
+  static bool _disableOCLdev2dev;
+  static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by OCL devices
 
   friend class OpenCLPlugin;
 };

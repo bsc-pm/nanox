@@ -80,8 +80,8 @@ namespace nanos
          void * getAddress() const;
          
         /*! \brief Obtain the dependency's address address
-	 */
-	 ptrdiff_t getOffset() const;
+    */
+    ptrdiff_t getOffset() const;
          
         /*! \brief Compute the address of the first element
          * (address + offset)
@@ -128,6 +128,17 @@ namespace nanos
          */
          void setCommutative( bool b );
          
+        /*! \brief gets the size of the dataAccess element
+          */
+        std::size_t getSize() const;        
+        
+        /*! \brief gets the pointer of the dimensions
+          */
+        nanos_region_dimension_internal_t const* getDimensions() const;
+        
+        /*! \brief gets the number of dimensions
+          */
+        short getNumDimensions() const;
    };
    
    

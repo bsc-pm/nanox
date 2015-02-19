@@ -47,7 +47,14 @@ namespace nanos
          static void idleLoop (void);
 
       public:
+         static bool tryPreOutlineWork ( WD *work );
+         static void preOutlineWork ( WD *work );
+         static void prePreOutlineWork ( WD *work );
+         static void preOutlineWorkWithThread ( BaseThread *thread, WD *work );
+         static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
          static bool inlineWork ( WD *work, bool schedule = false );
+         static bool inlineWorkAsync ( WD *wd, bool schedule = false );
+         static void outlineWork( BaseThread *currentThread, WD *wd ); 
 
          static void submit ( WD &wd, bool force_queue = false  );
          /*! \brief Submits a set of wds. It only calls the policy's queue()
@@ -60,6 +67,8 @@ namespace nanos
          static void finishWork( WD * wd, bool schedule = false );
 
          static void workerLoop ( void );
+         static void asyncWorkerLoop ( void );
+         static void workerClusterLoop ( void );
          static void yield ( void );
 
          static void exit ( void );
@@ -73,7 +82,8 @@ namespace nanos
          static void updateCreateStats ( WD &wd );
 
          /*! \brief checks if a WD is elegible to run in a given thread */
-         static bool checkBasicConstraints ( WD &wd, BaseThread &thread );
+         static bool checkBasicConstraints ( WD &wd, BaseThread const &thread );
+	 static WD * getClusterWD( BaseThread *thread, int inGPU );
    };
 
    class SchedulerConf
@@ -82,15 +92,12 @@ namespace nanos
       private: /* PRIVATE DATA MEMBERS */
          unsigned int                  _numSpins;          //!< Number of spins before yield
          unsigned int                  _numChecks;         //!< Number of checks before schedule
-         unsigned int                  _numYields;         //!< Number of yields before block
-         bool                          _useYield;          //!< Yield is allowed
-         bool                          _useBlock;          //!< Block is allowed
          bool                          _schedulerEnabled;  //!< Scheduler is enabled
       private: /* PRIVATE METHODS */
         //! \brief SchedulerConf default constructor (private)
-        SchedulerConf() : _numSpins(1), _numChecks(1), _numYields(1), _useYield(false), _useBlock(false), _schedulerEnabled(true) {}
+        SchedulerConf() : _numSpins(1), _numChecks(1), _schedulerEnabled(true) {}
         //! \brief SchedulerConf copy constructor (private)
-        SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(), _numYields(), _useYield(), _useBlock(), _schedulerEnabled()
+        SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(), _schedulerEnabled()
         {
            fatal("SchedulerConf: Illegal use of class");
         }
@@ -100,10 +107,6 @@ namespace nanos
          //! \brief SchedulerConf destructor 
          ~SchedulerConf() {}
 
-         //! \brief Set if yield is allowed
-         void setUseYield ( const bool value );
-         //! \brief Set if block is allowed
-         void setUseBlock ( const bool value );
          //! \brief Set if scheduler is enabled
          void setSchedulerEnabled ( const bool value ) ;
 
@@ -111,12 +114,6 @@ namespace nanos
          unsigned int getNumSpins ( void ) const;
          //! \brief Returns the number of checks before schedule
          unsigned int getNumChecks ( void ) const;
-         //! \brief Returns the number of yields before block
-         unsigned int getNumYields ( void ) const;
-         //! \brief Returns if yield is allowed
-         bool getUseYield ( void ) const;
-         //! \brief Returns if block is allowed
-         bool getUseBlock ( void ) const;
          //! \brief Returns if scheduler is enabled 
          bool getSchedulerEnabled () const;
 
@@ -202,12 +199,30 @@ namespace nanos
          virtual ~ScheduleThreadData() {}
    };
 
+   class ScheduleWDData {
+      private:
+         /*! \brief ScheduleWDData copy constructor (private)
+          */
+         ScheduleWDData( ScheduleWDData &std );
+         /*! \brief ScheduleWDData copy assignment operator (private) 
+          */
+         ScheduleWDData& operator= ( ScheduleWDData &std );
+      public:
+         /*! \brief ScheduleWDData default constructor
+          */
+         ScheduleWDData() {}
+         /*! \brief ScheduleWDData destructor
+          */
+         virtual ~ScheduleWDData() {}
+   };
+
    class SchedulePolicy
    {
       public:
          typedef enum {
             SYS_SUBMIT, SYS_SUBMIT_WITH_DEPENDENCIES, SYS_INLINE_WORK
          } SystemSubmitFlag;
+
       private:
          std::string    _name;
       private:
@@ -238,6 +253,10 @@ namespace nanos
          virtual ScheduleTeamData * createTeamData () = 0;
          virtual ScheduleThreadData * createThreadData () = 0;
          
+         virtual size_t getWDDataSize () const { return 0; }
+         virtual size_t getWDDataAlignment () const { return 0; }
+         virtual void initWDData ( void * data ) const {}
+         
          virtual WD * atSubmit      ( BaseThread *thread, WD &wd ) = 0;
          virtual WD * atIdle        ( BaseThread *thread ) = 0;
          virtual WD * atBeforeExit  ( BaseThread *thread, WD &current, bool schedule );
@@ -246,6 +265,10 @@ namespace nanos
          virtual WD * atYield       ( BaseThread *thread, WD *current);
          virtual WD * atWakeUp      ( BaseThread *thread, WD &wd );
          virtual WD * atPrefetch    ( BaseThread *thread, WD &current );
+         virtual void atCreate      ( DependableObject &depObj );
+         virtual void atSupport     ( BaseThread *thread );
+         virtual void atShutdown    ( void );
+         virtual void atSuccessor   ( DependableObject &depObj, DependableObject &pred );
 
          virtual void queue ( BaseThread *thread, WD &wd )  = 0;
          /*! \brief Batch processing version.
@@ -284,6 +307,17 @@ namespace nanos
          virtual bool reorderWD( BaseThread *t, WD * wd )
          {
             return true;
+         }
+
+         /*! \brief Returns the number of ready tasks that could be run simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         virtual int getPotentiallyParallelWDs( void );
+
+         /*! \brief Returns if the scheduler needs WD run time */
+         virtual bool isCheckingWDRunTime()
+         {
+            return false;
          }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.

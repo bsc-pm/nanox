@@ -21,7 +21,7 @@ class WorkSharingGuidedFor : public WorkSharing {
          *wsd = myThread->getTeamWorkSharingDescriptor( &single );
          if ( single ) {
             (*wsd)->data = NEW WorkSharingLoopInfo();
-             int num_threads = myThread->getTeam()->size();
+             int num_threads = myThread->getTeam()->getFinalSize();
             ((WorkSharingLoopInfo *)(*wsd)->data)->lowerBound = loop_info->lower_bound;
             ((WorkSharingLoopInfo *)(*wsd)->data)->upperBound = loop_info->upper_bound;
             ((WorkSharingLoopInfo *)(*wsd)->data)->loopStep   = loop_info->loop_step;
@@ -63,7 +63,7 @@ class WorkSharingGuidedFor : public WorkSharing {
             return;
          }
 
-         int num_threads = myThread->getTeam()->size();
+         int num_threads = myThread->getTeam()->getFinalSize();
          int sign = (( loop_data->loopStep < 0 ) ? -1 : +1);
 
          loop_item->lower = loop_data->lowerBound;
@@ -106,4 +106,4 @@ class WorkSharingGuidedForPlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::WorkSharingGuidedForPlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::WorkSharingGuidedForPlugin );

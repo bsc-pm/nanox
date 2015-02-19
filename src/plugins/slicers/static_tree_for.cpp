@@ -31,7 +31,7 @@ static void staticLoop ( void *arg )
    WorkDescriptor *slice = NULL;
    BaseThread *mythread = myThread;
    ThreadTeam *team = mythread->getTeam();
-   int num_threads = team->size();
+   int num_threads = team->getFinalSize();
    WorkDescriptor *work = mythread->getCurrentWD();
 
    nanos_loop_info_t * nli = (nanos_loop_info_t *) arg;
@@ -146,7 +146,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    
    BaseThread *mythread = myThread;
    ThreadTeam *team = mythread->getTeam();
-   int i, num_threads = team->size();
+   int i, num_threads = team->getFinalSize();
    WorkDescriptor *slice = NULL;
    nanos_loop_info_t *nli;
 
@@ -230,7 +230,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    
    BaseThread *mythread = myThread;
    ThreadTeam *team = mythread->getTeam();
-   int i, num_threads = team->size();
+   int i, num_threads = team->getFinalSize();
    WorkDescriptor *slice = NULL;
    nanos_loop_info_t *nli;
 

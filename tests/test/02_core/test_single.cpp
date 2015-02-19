@@ -29,6 +29,7 @@ test_generator="gens/mixed-generator -a \"--gpus=0\""
 #include "smpprocessor.hpp"
 #include "system.hpp"
 #include <string.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -57,7 +58,7 @@ int main ( int argc, char **argv )
    cout << "start" << endl;
 
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
-   for ( int i = 1; i < sys.getNumPEs(); i++ ) {
+   for ( unsigned int i = 1; i < sys.getSMPPlugin()->getNumWorkers(); i++ ) {
       WD * wd = new WD( new SMPDD( single_code ) );
       wd->tieTo(team[i]);
       sys.submit( *wd );

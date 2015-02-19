@@ -140,6 +140,27 @@ namespace nanos
           */
          inline void submitDependableObjectInputDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback );
          
+         /*! \brief Adds an output region without write access of a DependableObject to the domains dependency system. 
+          *  \param depObj target DependableObject
+          *  \param target accessed base address/region
+          *  \param accessType kind of access
+          *  \param[in,out] sourceStatus status of the source address/region (used to find input dependencies)
+          *  \param[in,out] targetStatus status of the target address/region (used to represent the new access)
+          *  \param callback Function to call if an immediate predecessor is found.
+          */
+         inline void submitDependableObjectOutputNoWriteDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback );
+          
+         /*! \brief Adds a region without read access of a DependableObject to the domains dependency system. 
+          *  \param depObj target DependableObject
+          *  \param target accessed base address/region
+          *  \param accessType kind of access
+          *  \param[in,out] sourceStatus status of the source address/region (used to find input dependencies)
+          *  \param[in,out] targetStatus status of the target address/region (used to represent the new access)
+          *  \param callback Function to call if an immediate predecessor is found.
+          */
+         inline void submitDependableObjectInputNoReadDataAccess( DependableObject &depObj, BaseDependency const &target, AccessType const &accessType, TrackableObject &status, SchedulePolicySuccessorFunctor* callback );
+         
+         
       public:
          BaseDependenciesDomain ( ) :  DependenciesDomain(), _lastDepObjId ( 0 ) {
             NANOS_INSTRUMENT ( InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )

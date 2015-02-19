@@ -180,6 +180,12 @@ NANOS_API_DEF(nanos_err_t, nanos_init_lock_at, ( nanos_lock_t *lock ))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","init_lock",NANOS_RUNTIME) );
 
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+
+   NANOS_INSTRUMENT ( static nanos_event_key_t Keys = ID->getEventKey("lock-addr"); )
+   NANOS_INSTRUMENT ( nanos_event_value_t Values = (nanos_event_value_t) lock; )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(1, &Keys, &Values); )
+
    try {
       new ( lock ) Lock();
    } catch ( nanos_err_t e) {

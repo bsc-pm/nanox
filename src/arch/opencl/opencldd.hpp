@@ -20,7 +20,7 @@
 #ifndef _NANOS_OpenCL_WD
 #define _NANOS_OpenCL_WD
 
-#include "workdescriptor.hpp"
+#include "workdescriptor_fwd.hpp"
 #include "debug.hpp"
 #include "opencldevice_decl.hpp"
 
@@ -61,20 +61,17 @@ extern OpenCLDevice OpenCLDev;
 class OpenCLDD : public DD
    {
     
-      public:
-         typedef void ( *work_fct ) ( void *self );
-
       private:
-         work_fct       _work;
-
+         int _oclStreamIdx;
+    
       public:
          // constructors
-         OpenCLDD( work_fct w ) : DD( &OpenCLDev ), _work( w ) {}
+         OpenCLDD( work_fct w ) : DD( &OpenCLDev, w ), _oclStreamIdx(-1) {}
 
-         OpenCLDD() : DD( &OpenCLDev ), _work( 0 ) {}
+         OpenCLDD() : DD( &OpenCLDev, NULL ), _oclStreamIdx(-1) {}
 
          // copy constructors
-         OpenCLDD( const OpenCLDD &dd ) : DD( dd ), _work( dd._work ) {}
+         OpenCLDD( const OpenCLDD &dd ) : DD( dd ), _oclStreamIdx( dd._oclStreamIdx ) {}
 
          // assignment operator
          const OpenCLDD & operator= ( const OpenCLDD &wd );
@@ -82,12 +79,12 @@ class OpenCLDD : public DD
          // destructor
          virtual ~OpenCLDD() { }
 
-         work_fct getWorkFct() const { return _work; }
-
          virtual void lazyInit (WD &wd, bool isUserLevelThread, WD *previous) { }
          virtual size_t size ( void ) { return sizeof(OpenCLDD); }
          virtual OpenCLDD *copyTo ( void *toAddr );
          virtual OpenCLDD *clone () const { return NEW OpenCLDD ( *this); }
+         void setOpenclStreamIdx(int streamIdx);
+         int getOpenCLStreamIdx();
    };
 
    inline const OpenCLDD & OpenCLDD::operator= ( const OpenCLDD &dd )
@@ -96,7 +93,7 @@ class OpenCLDD : public DD
       if ( &dd == this ) return *this;
 
       DD::operator= ( dd );
-      _work = dd._work;
+      _oclStreamIdx= dd._oclStreamIdx;
 
       return *this;
    }

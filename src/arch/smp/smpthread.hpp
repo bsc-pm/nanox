@@ -21,27 +21,25 @@
 #define _NANOS_SMP_THREAD
 
 #include "smpdd.hpp"
-#include "basethread.hpp"
-#include <pthread.h>
+#include "basethread_decl.hpp"
+#include "processingelement_decl.hpp"
+#include "system_decl.hpp"
+#include <nanos-int.h>
+#include "smpprocessor_fwd.hpp"
+#include "pthread_decl.hpp"
 
 //TODO: Make smp independent from pthreads? move it to OS?
 
 namespace nanos {
 namespace ext
 {
+   class SMPMultiThread;
 
    class SMPThread : public BaseThread
    {
-
-         friend class SMPProcessor;
-
       private:
-         pthread_t   _pth;
-         size_t      _stackSize;
-         bool        _useUserThreads;
-
-         pthread_cond_t          _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
-         static pthread_mutex_t  _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
+         bool           _useUserThreads;
+         PThread        _pthread;
 
          // disable copy constructor and assignment operator
          SMPThread( const SMPThread &th );
@@ -49,10 +47,11 @@ namespace ext
         
       public:
          // constructor
-         SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+         SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
+               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _useUserThreads( true ), _pthread(core) {}
 
          // named parameter idiom
-         SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
+         SMPThread & stackSize( size_t size );
          SMPThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
@@ -60,41 +59,92 @@ namespace ext
 
          void setUseUserThreads( bool value=true ) { _useUserThreads = value; }
 
-         virtual void start();
-         virtual void finish();
-         virtual void join();
          virtual void initializeDependent( void ) {}
          virtual void runDependent ( void );
 
          virtual bool inlineWorkDependent( WD &work );
+         virtual void preOutlineWorkDependent( WD &work ) { fatal( "SMPThread does not support preOutlineWorkDependent()" ); }
+         virtual void outlineWorkDependent( WD &work ) { fatal( "SMPThread does not support outlineWorkDependent()" ); }
          virtual void switchTo( WD *work, SchedulerHelper *helper );
          virtual void exitTo( WD *work, SchedulerHelper *helper );
 
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg );
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) {};
 
-         virtual void bind( void );
-         
+         virtual void idle( bool debug = false );
 
-         /** \brief SMP specific yield implementation
-         */
-         virtual void yield();
+         virtual void switchToNextThread() {
+            fatal( "SMPThread does not support switchToNextThread()" );
+         }
+
+         virtual BaseThread *getNextThread()
+         {
+            return this;
+         }
+
+         virtual bool isCluster() { return false; }
+
+         //virtual int checkStateDependent( int numPe ) {
+         //   fatal( "SMPThread does not support checkStateDependent()" );
+         //}
 
          /*!
-          * \brief Blocks the thread if it still has enabled the sleep flag
+          * \brief Set the flag
           */
+         virtual void sleep();
+         // PThread functions
+         virtual void initMain() { _pthread.initMain(); };
+         virtual void start() { _pthread.start( this ); }
+         virtual void finish() { _pthread.finish(); BaseThread::finish(); }
+         virtual void join() { _pthread.join(); joined(); }
+         virtual void bind() { _pthread.bind(); }
+         /** \brief SMP specific yield implementation */
+         virtual void yield() { _pthread.yield(); }
+         /** \brief Blocks the thread if it still has enabled the sleep flag */
          virtual void wait();
-
-         /*!
-          * \brief Unset the flag
-          */
+         /** \brief Unset the flag */
          virtual void wakeup();
+         virtual bool canBlock() { return true;}
+
+         virtual int getCpuId() const;
+#ifdef NANOS_RESILIENCY_ENABLED
+         virtual void setupSignalHandlers() { _pthread.setupSignalHandlers(); }
+#endif
    };
 
+   class SMPMultiThread : public SMPThread
+   {
+      private:
+         std::vector< BaseThread * > _threads;
+         unsigned int _current;
+         unsigned int _totalThreads;
 
+         // disable copy constructor and assignment operator
+         SMPMultiThread( const SMPThread &th );
+         const SMPMultiThread & operator= ( const SMPMultiThread &th );
+
+      public:
+         // constructor
+         SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs );
+         // destructor
+         virtual ~SMPMultiThread() { }
+
+         std::vector< BaseThread * >& getThreadVector() { return _threads; }
+
+         virtual BaseThread * getNextThread()
+         {
+            if ( _totalThreads == 0 )
+               return this;
+            _current = ( _current == ( _totalThreads - 1 ) ) ? 0 : _current + 1;
+            return _threads[ _current ];
+         }
+
+         unsigned int getNumThreads() const
+         {
+            return _totalThreads;
+         }
+   };
 }
 }
-
-void * smp_bootthread ( void *arg );
 
 #endif

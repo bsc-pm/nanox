@@ -42,7 +42,7 @@ bool PluginManager::isPlugin ( const char *name )
       return false;
    }
 
-   Plugin *plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
+   Plugin *(*plugin)() = ( Plugin *(*)() ) OS::dlFindSymbol( handler, "NanosXPluginFactory" );
 
    return plugin != NULL;
 }
@@ -64,34 +64,42 @@ Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool initPlugi
 
    Plugin * plugin = NULL;
    PluginMap::iterator it;
-   
+
    if ( (it = _availablePlugins.find(name)) != _availablePlugins.end() )
    {
-     plugin = it->second;
-     
+      plugin = it->second;
+
    } else {
 
-     dlname = "libnanox-";
-     dlname += name;
-     handler = OS::loadDL( "",dlname );
+      dlname = "libnanox-";
+      dlname += name;
+      handler = OS::loadDL( "",dlname );
 
-     if ( !handler ) {
-       warning0 ( "plugin error=" << OS::dlError( handler ) );
-       return NULL;
-     }
+      if ( !handler ) {
+         warning0 ( "plugin error=" << OS::dlError( handler ) );
+         return NULL;
+      }
 
-     plugin = ( Plugin * ) OS::dlFindSymbol( handler, "NanosXPlugin" );
+      Plugin *(*pluginFactory)() = ( Plugin *(*)() ) OS::dlFindSymbol( handler, "NanosXPluginFactory" );
 
-     if ( !plugin ) {
-       warning0 ( "plugin error=" << OS::dlError( handler ) );
-       return NULL;
-     }
-      
+      if ( !pluginFactory ) {
+         warning0 ( "plugin error=" << OS::dlError( handler ) );
+         return NULL;
+      } else {
+         plugin = (*pluginFactory)();
+         if ( !plugin ) {
+            warning0 ( "plugin error=" << OS::dlError( handler ) );
+            return NULL;
+         }
+      }
+
    }
 
-   Config config;
-   plugin->config(config);
-   config.init();
+   if (plugin->configurable()) {
+      Config config;
+      plugin->config(config);
+      config.init();
+   }
 
    if ( initPlugin )
       plugin->init();

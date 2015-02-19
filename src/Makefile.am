@@ -39,7 +39,7 @@ instrdebug=instrumentation_debug
 endif
 
 plugins-list-dyn:
-	ls -1 -d plugins/*/ | sed -e "s/\/$$//" > plugins-list-dyn
+	ls -1 -d plugins | sed -e "s/\/$$//" > plugins-list-dyn
 	ls -1 -d arch/*/ | sed -e "s/\/$$//" >> plugins-list-dyn
 	ls -1 -d pms/*/ | sed -e "s/\/$$//" >> plugins-list-dyn
 

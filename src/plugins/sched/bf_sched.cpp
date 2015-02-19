@@ -35,8 +35,8 @@ namespace nanos {
 
               TeamData () : ScheduleTeamData(), _readyQueue( NULL )
               {
-                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* optimise option */ );
-                else _readyQueue = NEW WDDeque();
+                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* enableDeviceCounter */, true /* optimise option */ );
+                else _readyQueue = NEW WDDeque( true /* enableDeviceCounter */ );
               }
               ~TeamData () { delete _readyQueue; }
            };
@@ -111,19 +111,20 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void successorFound( DependableObject *predecessor, DependableObject *successor )
+//            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            void atSuccessor   ( DependableObject &successor, DependableObject &predecessor )
             {
-               debug( "Scheduler::successorFound" );
+               //debug( "Scheduler::successorFound" );
 
                if ( ! _useSmartPriority ) return;
 
 
-               if ( predecessor == NULL || successor == NULL ) return;
+ //              if ( predecessor == NULL || successor == NULL ) return;
                
-               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               WD *pred = ( WD* ) predecessor.getRelatedObject();
                if ( pred == NULL ) return;
 
-               WD *succ = ( WD* ) successor->getRelatedObject();
+               WD *succ = ( WD* ) successor.getRelatedObject();
                if ( succ == NULL ) {
                   fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
                }
@@ -186,6 +187,18 @@ namespace nanos {
                   return q? q->reorderWD( wd ) : true;
                } else {
                   return true;
+               }
+            }
+
+            int getPotentiallyParallelWDs( void )
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               if ( _usePriority || _useSmartPriority ) {
+                  WDPriorityQueue<> &q = (WDPriorityQueue<> &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
+               } else {
+                  WDDeque &q = (WDDeque &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
                }
             }
       };

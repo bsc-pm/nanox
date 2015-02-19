@@ -18,10 +18,14 @@
 /*************************************************************************************/
 
 #include "gpuprocessor.hpp"
+#include "gpumemoryspace_decl.hpp"
 #include "debug.hpp"
 #include "gpudd.hpp"
+#include "gpuutils.hpp"
+#include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "simpleallocator.hpp"
+#include "basethread.hpp"
 
 #include "cuda_runtime.h"
 
@@ -31,9 +35,10 @@ using namespace nanos::ext;
 Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
-GPUProcessor::GPUProcessor( int id, int gpuId, int uid ) : CachedAccelerator<GPUDevice>( id, &GPU, uid ),
-      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(), _gpuProcessorTransfers(), _allocator(),
-      _inputPinnedMemoryBuffer()
+GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) :
+      ProcessingElement( &GPU, memId, 0 /* local node */, core->getNumaNode() /* numa */, true, 0 /* socket: n/a */, false ),
+      _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(),
+      _initialized( false ), _gpuMemory( gpuMem ), _core( core ), _thread( NULL)
 {
    _gpuProcessorInfo = NEW GPUProcessorInfo( gpuId );
 }
@@ -61,9 +66,9 @@ void GPUProcessor::init ()
          userDefinedMem = ( size_t ) ( maxMemoryAvailable * ( userDefinedMem / 100.0 ) );
       }
       if ( userDefinedMem > maxMemoryAvailable ) {
-         warning( "Could not set memory size to " << bytesToHumanReadable( userDefinedMem ) << " for GPU #" << _gpuDevice
-               << " because maximum memory available is " << bytesToHumanReadable( maxMemoryAvailable ) << ". Using "
-               << bytesToHumanReadable( maxMemoryAvailable ) );
+         warning( "Could not set memory size to " << GPUUtils::bytesToHumanReadable( userDefinedMem ) << " for GPU #" << _gpuDevice
+               << " because maximum memory available is " << GPUUtils::bytesToHumanReadable( maxMemoryAvailable ) << ". Using "
+               << GPUUtils::bytesToHumanReadable( maxMemoryAvailable ) );
       }
       else {
          maxMemoryAvailable = userDefinedMem;
@@ -86,30 +91,26 @@ void GPUProcessor::init ()
    GPUConfig::setOverlappingOutputs( outputStream );
 
    // Get GPU memory alignment to allow the use of textures
-   _memoryAlignment = gpuProperties.textureAlignment;
+   //_memoryAlignment = gpuProperties.textureAlignment;
+   _gpuProcessorInfo->setMemoryAlignment( gpuProperties.textureAlignment );
 
    // We allocate the whole GPU memory
    // WARNING: GPUDevice::allocateWholeMemory() must be called first, as it may
    // modify maxMemoryAvailable, in the case of not being able to allocate as
    // much bytes as we have asked
    void * baseAddress = GPUDevice::allocateWholeMemory( maxMemoryAvailable );
-   _allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
-   configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
+
+   //std::cerr << "GPU memory: baseAddr=" << baseAddress << " size=" << maxMemoryAvailable << std::endl;
+
+   //_allocator.init( ( uint64_t ) baseAddress, maxMemoryAvailable );
+   //configureCache( maxMemoryAvailable, GPUConfig::getCachePolicy() );
+
+   _gpuProcessorInfo->setBaseAddress( baseAddress );
    _gpuProcessorInfo->setMaxMemoryAvailable( maxMemoryAvailable );
 
+   _gpuMemory.initialize( inputStream, outputStream, this );
    // If some kind of overlapping is defined, allocate some pinned memory
 
-   if ( inputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 256*1024*1024 );
-      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-      _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-   }
-
-   if ( outputStream ) {
-      size_t pinnedSize = std::min( maxMemoryAvailable, ( size_t ) 256*1024*1024 );
-      void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
-      _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
-   }
    // WARNING: initTransferStreams() can modify inputStream's and outputStream's value,
    // so call it first
 
@@ -125,7 +126,7 @@ void GPUProcessor::cleanUp()
 {
    cudaError_t err = cudaGetLastError();
    if ( err != cudaSuccess ) {
-      warning("WARNING: CUDA reported errors during application's execution: " << cudaGetErrorString(err));
+      warning( "WARNING: CUDA reported errors during application's execution: " << cudaGetErrorString( err ) );
    }
    _gpuProcessorInfo->destroyTransferStreams();
    // When cache is disabled, calling this function hangs the execution
@@ -136,35 +137,43 @@ void GPUProcessor::cleanUp()
 
 void GPUProcessor::freeWholeMemory()
 {
-   void * baseAddress = ( void * ) _allocator.getBaseAddress();
+   void * baseAddress = ( void * ) _gpuMemory.getAllocator()->getBaseAddress();
    GPUDevice::freeWholeMemory( baseAddress );
-   _allocator.free( baseAddress );
+   _gpuMemory.getAllocator()->free( baseAddress );
 }
 
-size_t GPUProcessor::getMaxMemoryAvailable ( int id )
+std::size_t GPUProcessor::getMaxMemoryAvailable () const
 {
    return _gpuProcessorInfo->getMaxMemoryAvailable();
 }
 
 WorkDescriptor & GPUProcessor::getWorkerWD () const
 {
-   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerLoop );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct ) Scheduler::asyncWorkerLoop );
    WD *wd = NEW WD( dd );
    return *wd;
 }
 
 WorkDescriptor & GPUProcessor::getMasterWD () const
 {
-   fatal("Attempting to create a GPU master thread");
+   fatal( "Attempting to create a GPU master thread" );
 }
 
-BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper )
+BaseThread &GPUProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
    // In fact, the GPUThread will run on the CPU, so make sure it canRunIn( SMP )
    ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
-   GPUThread &th = *NEW GPUThread( helper, this, _gpuDevice );
+   GPUThread &th = *NEW GPUThread( helper, this, _core, _gpuDevice );
 
-   return th;
+   return ( BaseThread& )  th;
+}
+
+void GPUProcessor::printStats ()
+{
+   message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
+   message("    Total input transfers: " << GPUUtils::bytesToHumanReadable( _gpuProcessorStats._bytesIn.value() ) );
+   message("    Total output transfers: " << GPUUtils::bytesToHumanReadable( _gpuProcessorStats._bytesOut.value() ) );
+   message("    Total device transfers: " << GPUUtils::bytesToHumanReadable( _gpuProcessorStats._bytesDevice.value() ) );
 }
 
 
@@ -172,7 +181,10 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 {
    if ( inputStream ) {
       // Initialize the CUDA streams used for input data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       cudaError_t err = cudaStreamCreate( &_inTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          // If an error occurred, disable stream overlapping
          _inTransferStream = 0;
@@ -182,11 +194,28 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
          }
          warning( "Error while creating the CUDA input transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      // Initialize the CUDA stream used for tracing input data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
+      err = cudaStreamCreate( &_tracingInStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+      if ( err != cudaSuccess ) {
+         _tracingInStream = 0;
+         warning( "CUDA stream creation for tracing input transfers failed: " << cudaGetErrorString( err ) );
+         warning( "Tracing information may differ from reality." );
+      }
+#endif
+
    }
 
    if ( outputStream ) {
       // Initialize the CUDA streams used for output data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       cudaError_t err = cudaStreamCreate( &_outTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          // If an error occurred, disable stream overlapping
          _outTransferStream = 0;
@@ -196,58 +225,210 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
          }
          warning( "Error while creating the CUDA output transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      // Initialize the CUDA stream used for tracing output data transfers
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
+      err = cudaStreamCreate( &_tracingOutStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+      if ( err != cudaSuccess ) {
+         _tracingOutStream = 0;
+         warning( "CUDA stream creation for tracing output transfers failed: " << cudaGetErrorString( err ) );
+         warning( "Tracing information may differ from reality." );
+      }
+#endif
+
    }
 
    if ( inputStream || outputStream ) {
       // Initialize the CUDA streams used for local data transfers and kernel execution
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
       cudaError_t err = cudaStreamCreate( &_localTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          // If an error occurred, disable stream overlapping
          _localTransferStream = 0;
          if ( err == CUDANODEVERR ) {
-            fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+            fatal( "Error while creating the CUDA local transfer stream: all CUDA-capable devices are busy or unavailable" );
          }
          warning( "Error while creating the CUDA local transfer stream: " << cudaGetErrorString( err ) );
       }
-      err = cudaStreamCreate( &_kernelExecStream );
-      if ( err != cudaSuccess ) {
-         // If an error occurred, disable stream overlapping
-         _kernelExecStream = 0;
-         if ( err == CUDANODEVERR ) {
-            fatal( "Error while creating the CUDA output transfer stream: all CUDA-capable devices are busy or unavailable" );
+
+      // Create as many kernel streams as the number of prefetching tasks
+      _numExecStreams = GPUConfig::isConcurrentExecutionEnabled() ? GPUConfig::getNumPrefetch() + 1 : 1;
+      std::cout << "Creating " << _numExecStreams << " exec streams" << std::endl;
+      _kernelExecStream = ( cudaStream_t * ) malloc( _numExecStreams * sizeof( cudaStream_t ) );
+      for ( int i = 0; i < _numExecStreams; i++ ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
+         err = cudaStreamCreate( &_kernelExecStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+         if ( err != cudaSuccess ) {
+            // If an error occurred, disable stream overlapping for that kernel stream
+            _kernelExecStream[i] = 0;
+            if ( err == CUDANODEVERR ) {
+               fatal( "Error while creating the CUDA kernel transfer streams: all CUDA-capable devices are busy or unavailable" );
+            }
+            warning( "Error while creating the CUDA kernel execution stream #" << i << ": " << cudaGetErrorString( err ) );
          }
-         warning( "Error while creating the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      // Initialize the CUDA streams used for tracing kernel launches
+      _tracingKernelStream = ( cudaStream_t * ) malloc( _numExecStreams * sizeof( cudaStream_t ) );
+      for ( int i = 0; i < _numExecStreams; i++ ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
+         err = cudaStreamCreate( &_tracingKernelStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+         if ( err != cudaSuccess ) {
+            _tracingKernelStream[i] = 0;
+            warning( "CUDA stream creation for tracing kernel launches failed: " << cudaGetErrorString( err ) );
+            warning( "Tracing information may differ from reality." );
+         }
+      }
+#endif
+
+   } else {
+      _kernelExecStream = ( cudaStream_t * ) malloc( sizeof( cudaStream_t ) );
+      _kernelExecStream[0] = 0;
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      _tracingKernelStream = ( cudaStream_t * ) malloc( sizeof( cudaStream_t ) );
+      _tracingKernelStream[0] = 0;
+#endif
+
    }
 }
 
 void GPUProcessor::GPUProcessorInfo::destroyTransferStreams ()
 {
    if ( _inTransferStream ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       cudaError_t err = cudaStreamDestroy( _inTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA input transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
+      err = cudaStreamDestroy( _tracingInStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA stream for tracing input transfers: " << cudaGetErrorString( err ) );
+      }
+#endif
    }
 
    if ( _outTransferStream ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       cudaError_t err = cudaStreamDestroy( _outTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA output transfer stream: " << cudaGetErrorString( err ) );
       }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
+      err = cudaStreamDestroy( _tracingOutStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+      if ( err != cudaSuccess ) {
+         warning( "Error while destroying the CUDA stream for tracing output transfers: " << cudaGetErrorString( err ) );
+      }
+#endif
    }
 
    if ( _localTransferStream ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
       cudaError_t err = cudaStreamDestroy( _localTransferStream );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
       if ( err != cudaSuccess ) {
          warning( "Error while destroying the CUDA local transfer stream: " << cudaGetErrorString( err ) );
       }
    }
 
-   if ( _kernelExecStream ) {
-      cudaError_t err = cudaStreamDestroy( _kernelExecStream );
-      if ( err != cudaSuccess ) {
-         warning( "Error while destroying the CUDA kernel execution stream: " << cudaGetErrorString( err ) );
+   for ( int i = 0; i < _numExecStreams; i++ ) {
+      if ( _kernelExecStream[i] ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
+         cudaError_t err = cudaStreamDestroy( _kernelExecStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+         if ( err != cudaSuccess ) {
+            warning( "Error while destroying the CUDA kernel execution stream #" << i << ": " << cudaGetErrorString( err ) );
+         }
       }
    }
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   for ( int i = 0; i < _numExecStreams; i++ ) {
+      if ( _tracingKernelStream[i] ) {
+         NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_DESTROY_EVENT );
+         cudaError_t err = cudaStreamDestroy( _tracingKernelStream[i] );
+         NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+
+         if ( err != cudaSuccess ) {
+            warning( "Error while destroying the CUDA stream for tracing kernel launches: " << cudaGetErrorString( err ) );
+         }
+      }
+   }
+#endif
+
 }
+
+cudaStream_t GPUProcessor::GPUProcessorInfo::getKernelExecStream ()
+{
+   unsigned int index = ( ( GPUThread * ) myThread )->getCurrentKernelExecStreamIdx();
+   return _kernelExecStream[index];
+}
+
+BaseThread & GPUProcessor::startGPUThread()
+{
+   WD & worker = getWorkerWD();
+
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+   NANOS_INSTRUMENT (icd->setStartingWD(true) );
+
+   _thread = &_core->startThread( *this, worker, NULL );
+
+   return *_thread;
+}
+
+void GPUProcessor::stopAllThreads ()
+{
+   _core->stopAllThreads();
+}
+
+BaseThread * GPUProcessor::getFirstThread()
+{
+   return _thread;
+}
+
+//xteruel
+#if 0
+BaseThread * GPUProcessor::getFirstRunningThread_FIXME()
+{
+   return _core->getFirstRunningThread_FIXME();
+}
+
+BaseThread * GPUProcessor::getFirstStoppedThread_FIXME()
+{
+   return _core->getFirstStoppedThread_FIXME();
+}
+BaseThread * GPUProcessor::getUnassignedThread()
+{
+   return _core->getUnassignedThread();
+}
+#endif
+
+//bool GPUProcessor::supportsDirectTransfersWith(ProcessingElement const &pe) const {
+//   return ( &GPU == pe.getCacheDeviceType() );
+//}

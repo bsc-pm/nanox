@@ -53,7 +53,8 @@ namespace ext
          static bool                      _forceDisableCUDA; //! Force disable all CUDA support
          static int                       _numGPUs; //! Number of CUDA-capable GPUs
          static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by GPU devices
-         static bool                      _prefetch; //! Enable / disable data prefetching (set by the user)
+         static int                       _numPrefetch; //! Maximum number of tasks to prefetch (set by the user)
+         static bool                      _concurrentExec; //! Create more than one execution stream to enable concurrent kernels
          static bool                      _overlap; //! Enable / disable computation and data transfer overlapping (set by the user)
          static bool                      _overlapInputs;
          static bool                      _overlapOutputs;
@@ -62,6 +63,7 @@ namespace ext
          static bool                      _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
          static bool                      _initCublas; //! Init CUBLAS library during runtime startup
          static void *                    _gpusProperties; //! Array of structs of cudaDeviceProp
+         static bool                      _allocWide; //! Use wide allocation policy for the region cache
 
          /*! Parses the GPU user options */
          static void prepare ( Config &config );
@@ -77,7 +79,11 @@ namespace ext
 
          static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
 
-         static bool isPrefetchingDefined ( void ) { return _prefetch; }
+         static int getNumPrefetch ( void ) { return _numPrefetch; }
+
+         static bool isConcurrentExecutionEnabled ( void ) { return _concurrentExec; }
+
+         static void setConcurrentExecution ( bool concurrent ) { _concurrentExec = concurrent; }
 
          static bool isOverlappingInputsDefined ( void ) { return _overlapInputs; }
 
@@ -98,42 +104,10 @@ namespace ext
 
          static void getGPUsProperties( int device, void * deviceProps );
 
+         static bool getAllocWide( void );
+
          static void printConfiguration( void );
-
    };
-
-
-   // Macro's to instrument the code and make it cleaner
-#define NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT(x)   NANOS_INSTRUMENT( \
-		sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ), (x) ); )
-
-#define NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT       NANOS_INSTRUMENT( \
-		sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "in-cuda-runtime" ), 0 ); )
-
-
-   typedef enum {
-      NANOS_GPU_CUDA_NULL_EVENT,                            /* 0 */
-      NANOS_GPU_CUDA_MALLOC_EVENT,                          /* 1 */
-      NANOS_GPU_CUDA_FREE_EVENT,                            /* 2 */
-      NANOS_GPU_CUDA_MALLOC_HOST_EVENT,                     /* 3 */
-      NANOS_GPU_CUDA_FREE_HOST_EVENT,                       /* 4 */
-      NANOS_GPU_CUDA_MEMCOPY_EVENT,                         /* 5 */
-      NANOS_GPU_CUDA_MEMCOPY_TO_HOST_EVENT,                 /* 6 */
-      NANOS_GPU_CUDA_MEMCOPY_TO_DEVICE_EVENT,               /* 7 */
-      NANOS_GPU_CUDA_MEMCOPY_ASYNC_EVENT,                   /* 8 */
-      NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_HOST_EVENT,           /* 9 */
-      NANOS_GPU_CUDA_MEMCOPY_ASYNC_TO_DEVICE_EVENT,         /* 10 */
-      NANOS_GPU_CUDA_INPUT_STREAM_SYNC_EVENT,               /* 11 */
-      NANOS_GPU_CUDA_OUTPUT_STREAM_SYNC_EVENT,              /* 12 */
-      NANOS_GPU_CUDA_KERNEL_STREAM_SYNC_EVENT,              /* 13 */
-      NANOS_GPU_CUDA_DEVICE_SYNC_EVENT,                     /* 14 */
-      NANOS_GPU_CUDA_SET_DEVICE_EVENT,                      /* 15 */
-      NANOS_GPU_CUDA_GET_DEVICE_PROPS_EVENT,                /* 16 */
-      NANOS_GPU_CUDA_SET_DEVICE_FLAGS_EVENT,                /* 17 */
-      NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT,                  /* 18 */
-      NANOS_GPU_CUDA_GENERIC_EVENT,                         /* 19 */
-      NANOS_GPU_MEMCOPY_EVENT                               /* 20 */
-   } in_cuda_runtime_event_value;
 }
 }
 

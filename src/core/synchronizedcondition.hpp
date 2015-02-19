@@ -22,8 +22,8 @@
 
 #include "synchronizedcondition_decl.hpp"
 #include "atomic.hpp"
-#include "basethread.hpp"
-#include "schedule.hpp"
+#include "basethread_decl.hpp"
+#include "schedule_decl.hpp"
 
 using namespace nanos;
 

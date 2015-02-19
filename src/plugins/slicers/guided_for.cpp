@@ -32,7 +32,7 @@ void SlicerGuidedFor::submit ( WorkDescriptor &work )
 
    //! get team size,
    ThreadTeam *team = myThread->getTeam();
-   int i, num_threads = team->size();
+   int i, num_threads = team->getFinalSize();
 
    //! and determine the number of valid threads
    nli->threads = 0;

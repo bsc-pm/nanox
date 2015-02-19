@@ -38,34 +38,21 @@ NANOS_API_DEF(void*, nanos_create_current_kernel, (const char* kernel_name,const
 }
 
 NANOS_API_DEF(nanos_err_t,nanos_opencl_set_bufferarg, (void* opencl_kernel, int arg_num, const void* pointer)){
-   try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
-      pe->setKernelBufferArg(opencl_kernel, arg_num, pointer);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
-
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
+   pe->setKernelBufferArg(opencl_kernel, arg_num, pointer);
    return NANOS_OK;
 }
 
 NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_num, size_t size, const void* pointer)){
-    try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
-      pe->setKernelArg(opencl_kernel, arg_num, size, pointer);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
+   pe->setKernelArg(opencl_kernel, arg_num, size, pointer);
 
    return NANOS_OK;
 }
 
 NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size)){
-    try {
-      nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
-      pe->execKernel(opencl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
-   } catch ( ... ) {
-      return NANOS_UNKNOWN_ERR;
-   }
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
+   pe->execKernel(opencl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
 
    return NANOS_OK;
 }
@@ -78,23 +65,33 @@ void nanos_get_opencl_num_devices_( int* numret){
     *numret=nanos::ext::OpenCLConfig::getOpenCLDevicesCount();
 }
 
-void * nanos_malloc_opencl ( size_t size )
+void * ompss_opencl_malloc ( size_t size )
 {
    return nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate(size);
 }
 
-void nanos_opencl_allocate_fortran_ ( int* size, void** ptr )
-{  
-   *ptr= nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate(*size);
+void * nanos_malloc_opencl ( size_t size )
+{
+	return ompss_opencl_malloc( size );
 }
 
-void nanos_free_opencl ( void * address ) 
+NANOS_API_DEF(void, nanos_opencl_allocate_fortran, ( ptrdiff_t size, void* ptr ))
+{
+   (*(void**)ptr) = nanos::ext::OpenCLProcessor::getSharedMemAllocator().allocate(size);
+}
+
+void ompss_opencl_free ( void * address ) 
 {
    nanos::ext::OpenCLProcessor::getSharedMemAllocator().free(address);
 } 
 
-void nanos_opencl_deallocate_fortran_ ( void ** address ) 
+void nanos_free_opencl( void * address )
 {
-   nanos::ext::OpenCLProcessor::getSharedMemAllocator().free(*address);
-   *address=0;
-} 
+	return ompss_opencl_free( address );
+}
+
+NANOS_API_DEF(void, nanos_opencl_deallocate_fortran, ( void * address ))
+{
+   nanos::ext::OpenCLProcessor::getSharedMemAllocator().free(*((void**)address));
+   *((void**)address) = 0;
+}

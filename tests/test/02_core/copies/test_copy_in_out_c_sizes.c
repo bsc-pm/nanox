@@ -19,6 +19,7 @@
 /*
 <testinfo>
 test_generator=gens/api-generator
+test_exec_fail=yes
 </testinfo>
 */
 
@@ -26,6 +27,7 @@ test_generator=gens/api-generator
 #include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <nanos.h>
 
 typedef struct {

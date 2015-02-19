@@ -28,11 +28,19 @@
 #include "dataaccess.hpp"
 #include "basedependency_decl.hpp"
 #include "functors.hpp"
+#include "workdescriptor_decl.hpp"
 
 using namespace nanos;
 
 inline DependableObject::~DependableObject ( )
 {
+   {
+      SyncLockBlock lock( this->getLock() );
+      for ( DependableObjectVector::iterator it = _predecessors.begin(); it != _predecessors.end(); it++ ) {
+         ( *it )->deleteSuccessor( *this );
+      }
+   }
+
    std::for_each(_outputObjects.begin(),_outputObjects.end(),deleter<BaseDependency>);
    std::for_each(_readObjects.begin(),_readObjects.end(),deleter<BaseDependency>);
 }
@@ -43,10 +51,13 @@ inline const DependableObject & DependableObject::operator= ( const DependableOb
    _id = depObj._id;
    _numPredecessors = depObj._numPredecessors;
    _references = depObj._references;
+   _predecessors = depObj._predecessors;
    _successors = depObj._successors;
    _domain = depObj._domain;
    _outputObjects = depObj._outputObjects;
    _submitted = depObj._submitted;
+   _needsSubmission = depObj._needsSubmission;
+   _wd = depObj._wd;
    return *this;
 }
 
@@ -82,17 +93,48 @@ inline unsigned int DependableObject::getId () const
 
 inline int DependableObject::increasePredecessors ( )
 {
-	  return _numPredecessors++;
+   return _numPredecessors++;
 }
 
-inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking )
+inline int DependableObject::decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
+      bool batchRelease, bool blocking )
 {
-   int  numPred = --_numPredecessors; 
-   if ( numPred == 0 ) {
+   int  numPred = --_numPredecessors;
+//   DependableObject &depObj = *this;
+//   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, finishedPred );
+   if(sys.getPredecessorLists())
+   {
+      SyncLockBlock lock( this->getLock() );
+
+      decreasePredecessorsInLock( finishedPred, numPred );
+   }
+
+   if ( numPred == 0 && !batchRelease ) {
       dependenciesSatisfied( );
    }
 
    return numPred;
+}
+
+inline void DependableObject::decreasePredecessorsInLock ( DependableObject * finishedPred,
+       int numPred )
+{
+   if ( finishedPred != NULL ) {
+      if ( getWD() != NULL && finishedPred->getWD() != NULL ) {
+         getWD()->predecessorFinished( finishedPred->getWD() );
+      }
+
+      //remove the predecessor from the list!
+      if ( _predecessors.size() != 0 ) {
+         DependableObjectVector::iterator it = _predecessors.find( finishedPred );
+         if ( it != _predecessors.end() )
+            _predecessors.erase( it );
+      }
+   }
+
+   if ( numPred == 0 && !_predecessors.empty() ) {
+      _predecessors.clear();
+   }
 }
 
 inline int DependableObject::numPredecessors () const
@@ -100,14 +142,46 @@ inline int DependableObject::numPredecessors () const
    return _numPredecessors.value();
 }
 
+inline DependableObject::DependableObjectVector & DependableObject::getPredecessors ( )
+{
+   return _predecessors;
+}
+
 inline DependableObject::DependableObjectVector & DependableObject::getSuccessors ( )
 {
    return _successors;
 }
 
+inline bool DependableObject::addPredecessor ( DependableObject &depObj )
+{
+   bool inserted = false;
+   {
+      SyncLockBlock lock( this->getLock() );
+      inserted = _predecessors.insert ( &depObj ).second;
+   }
+
+   return inserted;
+}
+
 inline bool DependableObject::addSuccessor ( DependableObject &depObj )
 {
+   //Maintain the list of predecessors
+   if(sys.getPredecessorLists())
+      depObj.addPredecessor( *this );
+
+   sys.getDefaultSchedulePolicy()->atSuccessor( depObj, *this );
+
    return _successors.insert ( &depObj ).second;
+}
+
+inline bool DependableObject::deleteSuccessor ( DependableObject *depObj )
+{
+   return _successors.erase( depObj ) > 0;
+}
+
+inline bool DependableObject::deleteSuccessor ( DependableObject &depObj )
+{
+   return deleteSuccessor( &depObj );
 }
 
 inline DependenciesDomain * DependableObject::getDependenciesDomain ( ) const
@@ -159,6 +233,24 @@ inline bool DependableObject::isSubmitted()
 inline void DependableObject::submitted()
 {
    _submitted = true;
+   enableSubmission();
+   memoryFence();
+}
+
+inline bool DependableObject::needsSubmission() const
+{
+   return _needsSubmission;
+}
+
+inline void DependableObject::enableSubmission()
+{
+   _needsSubmission = true;
+}
+
+inline void DependableObject::disableSubmission()
+{
+   _needsSubmission = false;
+   _submitted = false;
    memoryFence();
 }
 
@@ -167,4 +259,23 @@ inline Lock& DependableObject::getLock()
    return _objectLock;
 }
 
+inline void DependableObject::setWD( WorkDescriptor *wd )
+{
+   _wd = wd;
+}
+
+inline WorkDescriptor * DependableObject::getWD( void ) const
+{
+   return _wd;
+}
+
+inline DOSchedulerData* DependableObject::getSchedulerData ( )
+{
+   return _schedulerData;
+}
+
+inline void DependableObject::setSchedulerData ( DOSchedulerData* scData)
+{
+        _schedulerData = scData;
+}
 #endif

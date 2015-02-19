@@ -1,4 +1,4 @@
-
+/*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
@@ -30,28 +30,30 @@
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
 #include "system_fwd.hpp"
-#include "basethread_decl.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 
-inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread &thread )
+inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread )
 {
-   return wd.canRunIn(*thread.runningOn()) && ( !wd.isTied() || wd.isTiedTo() == &thread ) && wd.tryAcquireCommutativeAccesses();
-}
-
-inline void SchedulerConf::setUseYield ( const bool value )
-{
-   _useYield = value;
-}
-
-inline void SchedulerConf::setUseBlock ( const bool value )
-{
-   _useBlock = value;
+   unsigned int this_node = thread.runningOn()->getMemorySpaceId() != 0 ? sys.getSeparateMemory( thread.runningOn()->getMemorySpaceId() ).getNodeNumber() : 0;
+   unsigned int tied_node = wd.isTiedLocation() ? ( wd.isTiedToLocation() != 0 ? sys.getSeparateMemory( wd.isTiedToLocation() ).getNodeNumber() : 0 ) : (unsigned int) -1; 
+   bool result = wd.canRunIn(*thread.runningOn()) &&
+      ( !wd.isTied() || wd.isTiedTo() == &thread ) &&
+      ( !wd.isTiedLocation() || tied_node == this_node ) &&
+      wd.tryAcquireCommutativeAccesses();
+   //if ( thread.getId() > 0 ) *thread._file << "checkBasicConstraints says " << result << " this_node " << this_node << " tied_node " << tied_node << " isTiedToLocation " << wd.isTiedToLocation()<< std::endl;
+   return result;
 }
 
 inline void SchedulerConf::setSchedulerEnabled ( const bool value )
 {
    _schedulerEnabled = value;
+}
+
+inline bool SchedulerConf::getSchedulerEnabled ( void ) const
+{
+   return _schedulerEnabled;
 }
 
 inline unsigned int SchedulerConf::getNumSpins ( void ) const
@@ -62,26 +64,6 @@ inline unsigned int SchedulerConf::getNumSpins ( void ) const
 inline unsigned int SchedulerConf::getNumChecks ( void ) const
 {
    return _numChecks;
-}
-
-inline unsigned int SchedulerConf::getNumYields ( void ) const
-{
-   return _numYields;
-}
-
-inline bool SchedulerConf::getUseYield ( void ) const
-{
-   return _useYield;
-}
-
-inline bool SchedulerConf::getUseBlock ( void ) const
-{
-   return _useBlock;
-}
-
-inline bool SchedulerConf::getSchedulerEnabled ( void ) const
-{
-   return _schedulerEnabled;
 }
 
 inline const std::string & SchedulePolicy::getName () const
@@ -107,6 +89,11 @@ inline WD * SchedulePolicy::atBlock       ( BaseThread *thread, WD *current )
 inline WD * SchedulePolicy::atYield       ( BaseThread *thread, WD *current)
 {
    return atIdle( thread );
+}
+
+inline void SchedulePolicy::atCreate ( DependableObject &depObj )
+{
+   return;
 }
 
 inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
@@ -142,12 +129,32 @@ inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
    return atIdle( thread );
 }
 
+inline void SchedulePolicy::atSupport    ( BaseThread *thread )
+{
+   return;
+}
+
+inline void SchedulePolicy::atShutdown   ( void )
+{
+   return;
+}
+
+inline void SchedulePolicy::atSuccessor  ( DependableObject &depObj, DependableObject &pred )
+{
+   return;
+}
+
 inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t numElems )
 {
    for( size_t i = 0; i < numElems; ++i )
    {
       queue( threads[i], *wds[i] );
    }
+}
+
+inline int SchedulePolicy::getPotentiallyParallelWDs ( void )
+{
+   return sys.getReadyNum();
 }
 
 inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )

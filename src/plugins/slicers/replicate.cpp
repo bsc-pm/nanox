@@ -26,7 +26,7 @@ void SlicerReplicate::submit ( WorkDescriptor &work )
 
    nanos_ws_desc_t *wsd_current = *(( nanos_ws_desc_t ** )work.getData());
 
-   int i = myThread->getTeam()->size() - 1;
+   int i = myThread->getTeam()->getFinalSize() - 1;
 
    BaseThread *thread = &(myThread->getTeam()->getThread(i));
    if ( thread == myThread ) {
@@ -89,4 +89,4 @@ class SlicerReplicatePlugin : public Plugin {
 } // namespace ext
 } // namespace nanos
 
-nanos::ext::SlicerReplicatePlugin NanosXPlugin;
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::SlicerReplicatePlugin );

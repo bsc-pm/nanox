@@ -27,9 +27,8 @@ extern "C"
    void startHelper ();
 }
 
-
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, void *userArg,
-                          void *cleanup, void *cleanupArg )
+intptr_t * initContext( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+                       void *cleanup, void *cleanupArg )
 {
    intptr_t * state = stack;
    state += stackSize - 1;
@@ -42,9 +41,9 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void *userFunction, 
    state--;
    *state = ( intptr_t )cleanupArg;
    state --;
-   *state = ( intptr_t )userFunction;
+   *state = ( intptr_t )wrapperFunction;
    state--;
-   *state = ( intptr_t )userArg;
+   *state = ( intptr_t )wd;
    state--;
    *state = ( intptr_t )startHelper;
    state-=9; //number of push and pop registers except for the lr on pc on stack.s

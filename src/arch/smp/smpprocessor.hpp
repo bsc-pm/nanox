@@ -23,12 +23,7 @@
 #include "config.hpp"
 #include "smpthread.hpp"
 #include "smpdevice.hpp"
-#ifdef SMP_NUMA
-#include "cachedaccelerator.hpp"
-#include "copydescriptor_decl.hpp"
-#else
 #include "processingelement.hpp"
-#endif
 
 // xlc/icc compilers require the next include to emit the vtable of WDDeque
 #include <wddeque.hpp>
@@ -39,21 +34,18 @@ namespace nanos {
 namespace ext
 {
 
-#ifdef SMP_NUMA
-
-   class SMPProcessor : public nanos::CachedAccelerator<SMPDevice>
-#else
    class SMPProcessor : public PE
-#endif
    {
-
-
       private:
          // config variables
          static bool _useUserThreads;
          static size_t _threadsStackSize;
          static size_t _cacheDefaultSize;
          static System::CachePolicyType _cachePolicy;
+         unsigned int _bindingId;
+         bool _reserved;
+         bool _active;
+         unsigned int _futureThreads;
 
          // disable copy constructor and assignment operator
          SMPProcessor( const SMPProcessor &pe );
@@ -62,18 +54,18 @@ namespace ext
 
       public:
          // constructors
-#ifdef SMP_NUMA
-         SMPProcessor( int id, int uid ) :
-            CachedAccelerator<SMPDevice>( id, &SMP, uid ) {}
-#else
-         SMPProcessor( int id, int uid ) : PE( id, &SMP, uid ) {}
-#endif
+         SMPProcessor( int bindingId, memory_space_id_t numMemId, bool active, unsigned int numaNode, unsigned int socket );
+
+         unsigned int getBindingId() const { return _bindingId; }
 
          virtual ~SMPProcessor() {}
 
+         virtual WD & getMultiWorkerWD () const;
          virtual WD & getWorkerWD () const;
          virtual WD & getMasterWD () const;
-         virtual BaseThread & createThread ( WorkDescriptor &wd );
+         virtual BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent=NULL );
+         virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs );
+         SMPThread &associateThisThread(bool untieMaster);
 
          static void prepareConfig ( Config &config );
          // capability query functions
@@ -82,6 +74,16 @@ namespace ext
 #else
          virtual bool supportsUserLevelThreads () const { return false; }
 #endif
+         bool isReserved() const { return _reserved; }
+         void reserve() { _reserved = true; }
+         bool isActive() const { return _active; }
+         void setActive( bool value = true) { _active = value; }
+         //virtual void* getAddressDependent( uint64_t tag );
+         //virtual void* waitInputsDependent( WorkDescriptor &work );
+         //virtual void* newGetAddressDependent( CopyData const &cd );
+         //virtual bool supportsDirectTransfersWith(ProcessingElement const & pe) const;
+         void setNumFutureThreads( unsigned int nthreads );
+         unsigned int getNumFutureThreads() const;
    };
 
 }

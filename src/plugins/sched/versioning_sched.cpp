@@ -21,7 +21,9 @@
 #include "wddeque.hpp"
 #include "plugin.hpp"
 #include "system.hpp"
+#include "os.hpp"
 #include "config.hpp"
+#include "hashmap.hpp"
 
 #include <math.h>
 #include <limits>
@@ -359,7 +361,11 @@ namespace ext
                         WDBestRecordData &data = _wdExecBest[key];
 
                         message( "    Best version found for groupId " << key.first << ", paramSize " << key.second << ":");
-                        message( "    versionId: " << data._versionId << ", PE: " << data._pe->getDeviceType().getName() << ", time: " << data._elapsedTime );
+                        if ( data._pe != NULL ) {
+                           message( "    versionId: " << data._versionId << ", PE: " << data._pe->getDeviceType()->getName() << ", time: " << data._elapsedTime );
+                        } else {
+                           message( "    versionId: " << data._versionId << ", PE: null, time: " << data._elapsedTime );
+                        }
                      }
 
                      message( "GENERAL STATISTICS" );
@@ -378,7 +384,7 @@ namespace ext
                                  message( "    PE: " << "Device not present" << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
                               }
                            } else {
-                              message( "    PE: " << record._pe->getDeviceType().getName() << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
+                              message( "    PE: " << record._pe->getDeviceType()->getName() << ", elapsed time: " << record._elapsedTime << " us, #records: " << record._numAssigned.value() );
                            }
                         }
                      }
@@ -436,7 +442,7 @@ namespace ext
          {
             TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
 
-            if ( wd->getDevices()[deviceIdx]->isCompatible( thread->runningOn()->getDeviceType() ) ) {
+            if ( wd->getDevices()[deviceIdx]->isCompatible( *thread->runningOn()->getDeviceType(), thread->runningOn() ) ) {
 
                NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SETDEVICE_CANRUN );
 
@@ -507,6 +513,9 @@ namespace ext
          void setWorker ( TeamData &tdata, WD *wd, unsigned int deviceIdx, unsigned int workerIdx, double time = 1 )
          {
             WDExecInfoData &data = tdata.getWDExecInfo( wd );
+            if ( data.empty() ) {
+               tdata.initExecInfoData( data, wd );
+            }
             data[deviceIdx]._numAssigned++;
 
             wd->activateDevice( deviceIdx );
@@ -555,7 +564,7 @@ namespace ext
                   time = tdata._executionMap[w]->_estimatedBusyTime;
 
                   for ( i = 0; i < data.size(); i++ ) {
-                     if ( data[i]._pe && &thread->runningOn()->getDeviceType() == &data[i]._pe->getDeviceType() ) {
+                     if ( data[i]._pe && thread->runningOn()->getDeviceType() == data[i]._pe->getDeviceType() ) {
                         if ( ( time + data[i]._elapsedTime ) < earliestTime ) {
 
                            NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_FINDEARLIESTEW_BETTERTIME );
@@ -718,7 +727,7 @@ namespace ext
             tdata._statsLock.acquire();
 
             for ( i = 0; i < numVersions; i++ ) {
-               if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords > 0 && bestTime > data[i]._elapsedTime ) {
+               if ( devices[i]->isCompatible( *pe->getDeviceType(), pe ) && data[i]._numRecords > 0 && bestTime > data[i]._elapsedTime ) {
                   bestIdx = i;
                   bestTime = data[i]._elapsedTime;
                }
@@ -726,7 +735,7 @@ namespace ext
 
             if ( bestIdx == numVersions ) {
                for ( i = 0; i < numVersions; i++ ) {
-                  if ( devices[i]->isCompatible( pe->getDeviceType() ) && data[i]._numRecords < _minRecordTrial ) {
+                  if ( devices[i]->isCompatible( *pe->getDeviceType(), pe ) && data[i]._numRecords < _minRecordTrial ) {
                      bestIdx = i;
                      bestTime = 1;
                      break;
@@ -773,7 +782,8 @@ namespace ext
                   // If the thread can run the task, activate its device and return the WD
                   unsigned int i;
                   for ( i = 0; i < numVersions; i++ ) {
-                     if ( devices[i]->isCompatible( pe->getDeviceType() ) ) {
+                     if ( devices[i]->isCompatible( *pe->getDeviceType(), pe ) ) {
+                        data[i]._numAssigned++;
                         tdata._statsLock.release();
 
                         NANOS_SCHED_VER_POINT_EVENT( NANOS_SCHED_VER_SELECTWD_FIRSTCANRUN );
@@ -809,7 +819,7 @@ namespace ext
                   WDExecRecord & record = data[i];
 
                   // Find a version that this PE can run
-//                  if ( record._versionId->isCompatible( pe->getDeviceType() ) ) {
+//                  if ( record._versionId->isCompatible( *pe->getDeviceType() ) ) {
                      if ( record._lastElapsedTime < timeLimit ) {
                         // It is worth trying this device, so go on
                         if ( record._numAssigned < _minRecordTrial ) {
@@ -823,7 +833,7 @@ namespace ext
                                  + next->getDevices()[i]->getDevice()->getName() );
 
                            // If this PE can run the task, run it
-                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
+                           if ( next->getDevices()[i]->isCompatible( *pe->getDeviceType(), pe ) ) {
 
                               NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_SELECTWD_BELOWMINRECCANRUN );
 
@@ -853,8 +863,8 @@ namespace ext
                                  + next->getDevices()[i]->getDevice()->getName() );
 
                            // If this PE can run the task, run it
-                           if ( next->getDevices()[i]->isCompatible( pe->getDeviceType() ) ) {
-                              //record._numAssigned++;
+                           if ( next->getDevices()[i]->isCompatible( *pe->getDeviceType(), pe ) ) {
+                              record._numAssigned++;
                               memoryFence();
                               tdata._statsLock.release();
                               return setDevice( thread, next, i );
@@ -950,10 +960,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATIDLE_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
@@ -1032,10 +1039,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATPREFETCH_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
@@ -1050,9 +1054,6 @@ namespace ext
                ProcessingElement * pe = thread->runningOn();
                double executionTime = currentWD.getExecutionTime();
                unsigned int devIdx = currentWD.getActiveDeviceIdx();
-
-               currentWD.setEstimatedExecutionTime( 77.77 );
-
 
                tdata._executionMap[thread->getId()]->finishTask( &currentWD );
 
@@ -1141,10 +1142,7 @@ namespace ext
 
             NANOS_SCHED_VER_RAISE_EVENT( NANOS_SCHED_VER_ATBEFEX_NOFIRST );
 
-            struct timespec req, rem;
-            req.tv_sec = 0;
-            req.tv_nsec = 100;
-            nanosleep( &req, &rem );
+            OS::nanosleep( 100 );
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
@@ -1265,5 +1263,4 @@ namespace ext
 }
 
 
-nanos::ext::VersioningSchedPlugin NanosXPlugin;
-
+DECLARE_PLUGIN( "placeholder-name", nanos::ext::VersioningSchedPlugin );

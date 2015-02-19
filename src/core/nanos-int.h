@@ -20,14 +20,13 @@
 #define __NANOS_INT_H
 
 //! \file nanos_c_api_macros.h
-//! \brief 
+//! \brief
 //
 //! \defgroup core Nanos++ Core
 
-#include <stdio.h>
-#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define NANOS_API_DECL(Type, Name, Params) \
     extern Type Name##_ Params; \
@@ -122,6 +121,8 @@ typedef struct {
    void (*cleanup)(void *);
 } nanos_reduction_t;
 
+typedef unsigned int memory_space_id_t;
+
 /* This structure is initialized in copydata.hpp. Any change in
  * its contents has to be reflected in CopyData constructor
  */
@@ -140,9 +141,12 @@ typedef struct {
    // declaration would be a pointer to a scalar, not a pointer to an array
    void* dimensions;
 #else
-   nanos_region_dimension_internal_t const *dimensions;
+   nanos_region_dimension_internal_t *dimensions;
 #endif
    ptrdiff_t offset;
+   uint64_t host_base_address;
+   memory_space_id_t host_region_id;
+   bool remote_host;
 } nanos_copy_data_internal_t;
 
 typedef nanos_access_type_internal_t nanos_access_type_t;
@@ -234,7 +238,7 @@ typedef struct {
 
 typedef struct {
    bool is_final:1;
-   bool reserved1:1;
+   bool is_recover:1;
    bool reserved2:1;
    bool reserved3:1;
    bool reserved4:1;
@@ -282,16 +286,16 @@ typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair)
 
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
-               NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL,
-               NANOS_MEM_TRANSFER_DEVICE_IN, NANOS_MEM_TRANSFER_DEVICE_OUT, NANOS_MEM_TRANSFER_DEVICE_LOCAL,
-               NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH, NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
+               NANOS_MEM_TRANSFER_ISSUE, NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH,
+               NANOS_FILL1, NANOS_WAKINGUP, NANOS_STOPPED, 
+               NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
-typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_WD_REMOTE, NANOS_XFER_PUT, NANOS_XFER_GET
-} nanos_event_domain_t; /**< Specifies a domain */
+typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_XFER_DATA, NANOS_XFER_REQ, NANOS_WD_REMOTE,
+               NANOS_AM_WORK, NANOS_AM_WORK_DONE, NANOS_XFER_WAIT_REQ_PUT, NANOS_XFER_FREE_TMP_BUFF } nanos_event_domain_t; /**< Specifies a domain */
 
 typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
-  
+
 typedef struct {
    nanos_event_type_t   type;
    nanos_event_key_t    key;

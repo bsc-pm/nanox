@@ -14,6 +14,8 @@
 #include <alloca.h>
 #include <stdlib.h>
 #include <libgen.h>
+#include <unistd.h>
+
 #include "os.hpp"
 #include "errno.h"
 #include <unistd.h>
@@ -38,12 +40,16 @@
 #    endif /*------------------------------------------------- version 2.3.x */
 
 #  endif /*--------------------------------------------------- version 2.x.x */
+#  if EXTRAE_VERSION_MAJOR(EXTRAE_VERSION) == 3 /************* version 3.x.x */
+#      define extrae_size_t unsigned int
+#  endif /*--------------------------------------------------- version 3.x.x */
 #endif
 
 #ifdef NANOX_EXTRAE_SUPPORTED_VERSION
 extern "C" {
    unsigned int nanos_ompitrace_get_max_threads ( void );
    unsigned int nanos_ompitrace_get_thread_num ( void );
+   void nanos_extrae_instrumentation_barrier( void );
    unsigned int nanos_extrae_node_id();
    unsigned int nanos_extrae_num_nodes();
    void         nanos_ompitrace_instrumentation_barrier();
@@ -81,23 +87,167 @@ class InstrumentationExtrae: public Instrumentation
       void incrementMaxThreads( void ) {}
 #else
    private:
+      std::string                                    _listOfTraceFileNames;
+      std::string                                    _traceDirectory;        /*<< Extrae directory: EXTRAE_DIR */
+      std::string                                    _traceFinalDirectory;   /*<< Extrae final directory: EXTRAE_FINAL_DIR */
+      std::string                                    _traceParaverDirectory; /*<< Paraver output files directory */
+      std::string                                    _traceFileName_PRV;     /*<< Paraver: file.prv */
+      std::string                                    _traceFileName_PCF;     /*<< Paraver: file.pcf */
+      std::string                                    _traceFileName_ROW;     /*<< Paraver: file.row */
+      std::string                                    _binFileName;           /*<< Binnary file name */
       int                                            _maxThreads;
+      Lock                                           _lock;
    public:
+      static std::string                             _traceBaseName;
       // constructor
       InstrumentationExtrae ( ) : Instrumentation( *NEW InstrumentationContextDisabled() ) {}
       // destructor
       ~InstrumentationExtrae ( ) { }
 
+      void secureCopy(const char *orig, std::string dest)
+      {
+         pid_t pid;
+         int status, options = 0;
+
+         std::cerr << "secure copy " << orig << " to " << dest << std::endl;
+
+         pid = vfork();
+         if ( pid == (pid_t) 0 ) {
+            int execret = execl ( "/usr/bin/scp", "scp", orig, dest.c_str(), (char *) NULL); 
+            if ( execret == -1 )
+            {
+               std::cerr << "Error calling /usr/bin/scp " << orig << " " << dest.c_str() << std::endl;
+               exit(-1);
+            }
+         } else {
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+            } else {
+               waitpid( pid, &status, options);
+            }
+         }
+      }
+
+      void copyFilesToMaster()
+      {
+         /* Removig Temporary trace files */
+         char str[255];
+         std::fstream p_file;
+
+         for ( unsigned int j = 0; j < sys.getNetwork()->getNumNodes(); j++ )
+         {
+            if ( j == sys.getNetwork()->getNodeNum() )
+            {
+               p_file.open(_listOfTraceFileNames.c_str());
+               //size_t found = _traceFinalDirectory.find_last_of("/");
+               std::string dst = std::string(sys.getNetwork()->getMasterHostname() );
+
+               if (p_file.is_open())
+               {
+                  unsigned int thread = 0;
+                  while (!p_file.eof() )
+                  {
+                     p_file.getline (str, 255);
+                     if ( strlen(str) > 0 )
+                     {
+                        std::string src_path( str );
+                        std::size_t pos = src_path.size() ;
+                        for (unsigned int i = 0; i < 2; i++ ) {
+                           pos = src_path.find_last_of('/', pos - 1);
+                        }
+                        //int pos0 =  src_path.find_last_of('/');
+                        //int pos1 =  src_path.find_first_of(' ');
+                        //std::cerr << "len is " << pos1-pos0 << " pos0: " << pos0 << " total size is " << src_path.size()<< "src_path is " << src_path<< std::endl;
+                        //std::string name( src_path.substr( pos0, pos1-pos0 ) );
+
+                        for (unsigned int i = 0; i < strlen(str); i++) if ( str[i] == ' ' ) str[i] = 0x0;
+                        // jbueno: cluster workaround until we get the new extrae
+                        //if ( sys.getNetwork()->getNodeNum() > 0 ) {
+                        //   str[ strlen(str) - 12 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() % 10 ) );
+                        //   str[ strlen(str) - 13 ] = '0';// + ( (char) ( sys.getNetwork()->getNodeNum() / 10 ) );
+                        //   str[ strlen(str) - 14 ] = '0';
+                        //   str[ strlen(str) - 15 ] = '0';
+                        //   str[ strlen(str) - 16 ] = '0';
+                        //   str[ strlen(str) - 17 ] = '0';
+                        //}
+                        //std::cerr << "NAME: " << name << std::endl;
+                        secureCopy(str, dst + ":" + src_path.substr( 0, pos + 1 ) /* + name */ );
+
+                        //Copy the symbol file
+                        if ( thread == 0 ) {
+                           char sym_file_name[256];
+                           std::size_t dot_pos = src_path.find(".mpit");
+                           std::string myName = src_path.substr( src_path.find_last_of('/') + 1, dot_pos - src_path.find_last_of('/') );
+                           sprintf( sym_file_name, "%s/set-0/%ssym", _traceDirectory.c_str(), myName.c_str() );
+                           secureCopy(sym_file_name, dst + ":" + src_path.substr( 0, pos + 1 ) );
+                        }
+
+                        thread += 1;
+                     }
+                  }
+                  p_file.close();
+               }
+               else std::cout << "Unable to open " << _listOfTraceFileNames << " file" << std::endl;  
+
+               // copy pcf file too
+               //{
+               //   size_t found = _traceFinalDirectory.find_last_of("/");
+               //   size_t found_pcf = _traceFileName_PCF.find_last_of("/");
+               //   char number[16];
+               //   sprintf(number, "%08d", sys.getNetwork()->getNodeNum() );
+               //   secureCopy( _traceFileName_PCF.c_str(), dst + ":" + _traceFinalDirectory.substr(0,found+1) + number + "." + _traceFileName_PCF.substr(found_pcf+1));
+               //}
+            }
+            nanos_extrae_instrumentation_barrier();
+         }
+      }
+
       void initialize ( void )
       {
          /* check environment variable: EXTRAE_ON */
          char *mpi_trace_on = getenv("EXTRAE_ON");
+         char *mpi_trace_dir;
+         char *mpi_trace_final_dir;
+
          /* if MPITRAE_ON not defined, active it */
          if ( mpi_trace_on == NULL ) {
             mpi_trace_on = NEW char[12];
             strcpy(mpi_trace_on, "EXTRAE_ON=1");
             putenv (mpi_trace_on);
          }
+
+         /* check environment variable: EXTRAE_FINAL_DIR */
+         mpi_trace_final_dir = getenv("EXTRAE_FINAL_DIR");
+         /* if EXTRAE_FINAL_DIR not defined, active it */
+         if ( mpi_trace_final_dir == NULL ) {
+            mpi_trace_final_dir = NEW char[3];
+            strcpy(mpi_trace_final_dir, "./");
+         }
+
+         /* check environment variable: EXTRAE_DIR */
+         mpi_trace_dir = getenv("EXTRAE_DIR");
+         /* if EXTRAE_DIR not defined, active it */
+         if ( mpi_trace_dir == NULL ) {
+            mpi_trace_dir = NEW char[3];
+            strcpy(mpi_trace_dir, "./");
+         }
+
+         _traceDirectory = mpi_trace_dir;
+         _traceFinalDirectory = mpi_trace_final_dir;
+         _listOfTraceFileNames = _traceFinalDirectory + "/TRACE.mpits";
+
 
         // Common thread information
         Extrae_set_threadid_function ( nanos_ompitrace_get_thread_num );
@@ -107,10 +257,19 @@ class InstrumentationExtrae: public Instrumentation
         Extrae_set_taskid_function ( nanos_extrae_node_id );
         Extrae_set_numtasks_function ( nanos_extrae_num_nodes );
         Extrae_set_barrier_tasks_function ( nanos_ompitrace_instrumentation_barrier );
-
-        /* OMPItrace initialization */
-        OMPItrace_init();
-
+#ifdef MPI_DEV
+        char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
+        if (offload_trace_on != NULL){ 
+           //MPI plugin init will initialize extrae...
+           sys.loadPlugin("arch-mpi");
+        } else {
+#endif
+            /* Regular SMP OMPItrace initialization */      
+            OMPItrace_init();      
+#ifdef MPI_DEV
+        }
+#endif
+        
         Extrae_register_codelocation_type( 9200011, 9200021, "User Function Name", "User Function Location" );
 
         Extrae_register_stacked_type( (extrae_type_t) _eventState );
@@ -126,7 +285,43 @@ class InstrumentationExtrae: public Instrumentation
         }
 
         /* Keep current number of threads */
-        _maxThreads = sys.getNumThreads();
+        _maxThreads = sys.getSMPPlugin()->getNumThreads();
+      }
+      void doLs(std::string dest)
+      {
+         pid_t pid;
+         int status, options = 0;
+
+         std::cerr << "list directory " << dest << std::endl;
+
+         pid = vfork();
+         if ( pid == (pid_t) 0 ) {
+            dup2(2, 1);
+            int execret = execl ( "/bin/ls", "ls", dest.c_str(), (char *) NULL); 
+            if ( execret == -1 )
+            {
+               std::cerr << "Error calling /bin/ls " << dest.c_str() << std::endl;
+               exit(-1);
+            }
+         } else {
+            if ( pid < 0 ) {
+                int errsv = errno;
+                message0("Error: Cannot execute mpi2prv due following error:");
+                switch ( errsv ){
+                   case EAGAIN:
+                      message0("fork() cannot allocate sufficient memory to copy the parent's page tables and allocate a task structure for the child.");
+                      break;
+                   case ENOMEM:
+                      message0("fork() failed to allocate the necessary kernel structures because memory is tight.");
+                      break;
+                   default:
+                      message0("fork() unknow error.");
+                      break;
+                }
+            } else {
+               waitpid( pid, &status, options);
+            }
+         }
       }
 
       void finalize ( void )
@@ -140,6 +335,7 @@ class InstrumentationExtrae: public Instrumentation
 
          for ( itK = iD->beginKeyMap(); itK != iD->endKeyMap(); itK++ ) {
             InstrumentationKeyDescriptor *kD = itK->second;
+            if ( kD->getId() == 0 ) continue;
             extrae_type_t type = _eventBase+kD->getId(); 
             char *type_desc = ( char *) alloca(sizeof(char) * (kD->getDescription().size() + 1) );
             strncpy ( type_desc, kD->getDescription().c_str(), kD->getDescription().size()+1 );
@@ -148,10 +344,11 @@ class InstrumentationExtrae: public Instrumentation
                for ( itV = kD->beginValueMap(); itV != kD->endValueMap(); itV++ ) {
                   // Parsing event description
                   std::string description = iD->getValueDescription( kD->getId(), (itV->second)->getId() );
-                  int pos1 = description.find_first_of("@");
-                  int pos2 = description.find_first_of("@",pos1+1);
-                  int length = description.size();
-                  int  line = atoi ( (description.substr(pos2+1, length)).c_str());
+                  size_t pos1 = description.find_first_of("@");
+                  size_t pos2 = description.find_first_of("@",pos1+1);
+                  size_t pos3 = description.find_first_of("@",pos2+1);
+                  pos3 = (pos3 == std::string::npos ? description.length() : pos3-1);
+                  int  line = atoi ( (description.substr(pos2+1, pos3)).c_str());
                   Extrae_register_function_address ( 
                      (void *) (itV->second)->getId(),
                      (char *) description.substr(0,pos1).c_str(),
@@ -185,9 +382,8 @@ class InstrumentationExtrae: public Instrumentation
             static std::string nanos_event_state_value_str[] = {"NOT CREATED", "NOT RUNNING", 
                "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
                "RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION",
-               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
-               "DATA TRANSFER TO DEVICE", "DATA TRANSFER TO HOST", "LOCAL DATA TRANSFER IN DEVICE",
-               "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH", "DEBUG"};
+               "DATA TRANSFER ISSUE", "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH",
+               "FILL COLOR", "WAKING UP", "STOPPED" , "DEBUG"};
 
             for ( i = 0; i < (nval - 1); i++ ) { // Do not show the DEBUG state
                values[i] = i;
@@ -203,7 +399,15 @@ class InstrumentationExtrae: public Instrumentation
             Extrae_define_event_type( (extrae_type_t *) &_eventSubState, (char *) "Thread sub-state", &nval, values, val_desc );
          }
 
-         OMPItrace_fini();
+         //If offloading, MPI will finish the trace
+         char *offload_trace_on = getenv("NX_OFFLOAD_INSTRUMENTATION");
+         if (offload_trace_on == NULL){ 
+            OMPItrace_fini();
+         }
+
+         if ( sys.usingCluster() ) {
+            copyFilesToMaster();
+         }
       }
 
       void disable( void ) { Extrae_shutdown(); }
@@ -213,8 +417,10 @@ class InstrumentationExtrae: public Instrumentation
       {
          extrae_combined_events_t ce;
          InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+         bool _stateEnabled = sys.getInstrumentation()->isStateEnabled();
+         bool _ptpEnabled = sys.getInstrumentation()->isPtPEnabled();
 
-         ce.HardwareCounters = 1;
+         ce.HardwareCounters = 0;
          ce.Callers = 0;
          ce.UserFunction = EXTRAE_USER_FUNCTION_NONE;
          ce.nEvents = 0;
@@ -223,20 +429,25 @@ class InstrumentationExtrae: public Instrumentation
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
-            switch ( e.getType() ) {
+            nanos_event_type_t type = e.getType();
+            nanos_event_key_t key = e.getKey();
+            switch ( type ) {
                case NANOS_STATE_START:
                case NANOS_STATE_END:
                case NANOS_SUBSTATE_START:
                case NANOS_SUBSTATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.nEvents++;
                   break;
                case NANOS_PTP_START:
                case NANOS_PTP_END:
+                  if ( !_ptpEnabled ) continue;
                   ce.nCommunications++;
                   break;
                case NANOS_POINT:
                case NANOS_BURST_START:
                case NANOS_BURST_END:
+                  if ( key == 0 ) continue;
                   ce.nEvents++;
                   break;
                default: break;
@@ -258,31 +469,37 @@ class InstrumentationExtrae: public Instrumentation
             unsigned int type = e.getType();
             switch ( type ) {
                case NANOS_STATE_START:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = e.getState();
                   break;
                case NANOS_STATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventState;
                   ce.Values[j++] = 0;
                   break;
                case NANOS_SUBSTATE_START:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = e.getState();
                   break;
                case NANOS_SUBSTATE_END:
+                  if ( !_stateEnabled ) continue;
                   ce.Types[j] = _eventSubState;
                   ce.Values[j++] = 0;
                   break;
                case NANOS_PTP_START:
                case NANOS_PTP_END:
+                  if ( !_ptpEnabled ) continue;
                   /* Creating PtP event */
+                  ckey = e.getKey();
+
                   if ( type == NANOS_PTP_START) ce.Communications[k].type = EXTRAE_USER_SEND;
                   else ce.Communications[k].type = EXTRAE_USER_RECV;
                   ce.Communications[k].tag = e.getDomain();
                   ce.Communications[k].id = e.getId();
 
-                  ckey = e.getKey();
-                  if ( ckey == sizeKey ) ce.Communications[k].size = e.getValue();
+                  if ( ckey != 0 && ckey == sizeKey ) ce.Communications[k].size = e.getValue();
                   else ce.Communications[k].size = e.getId();
 
                   if ( e.getPartner() == NANOX_INSTRUMENTATION_PARTNER_MYSELF ) {
@@ -301,6 +518,9 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = cvalue;
                   }
+                  // Add hwc only for user-funct events
+                  if ( ckey != 0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                     ce.HardwareCounters = 1;
                   break;
                case NANOS_BURST_END:
                   ckey = e.getKey();
@@ -308,6 +528,8 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = 0; // end
                   }
+                  if ( ckey !=0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                     ce.HardwareCounters = 1;
                   break;
                default: break;
             }
@@ -336,6 +558,21 @@ class InstrumentationExtrae: public Instrumentation
             }
          }
 
+         if ( ce.nEvents == 0 && ce.nCommunications == 0 ) return;
+
+//FIXME: to remove when closing #1034
+#if 0
+         fprintf(stderr,"\nEvents: ");
+         for ( extrae_size_t jj = 0; jj < ce.nEvents; jj++ )
+           fprintf(stderr,"%d, ", (int)ce.Types[jj]);
+         fprintf(stderr,"\n");
+
+         fprintf(stderr,"\nCommunications: ");
+         for ( extrae_size_t jj = 0; jj < ce.nCommunications; jj++ )
+           fprintf(stderr,"%d, ", (int) ce.Communications[jj].type);
+         fprintf(stderr,"\n");
+#endif
+
          Extrae_emit_CombinedEvents ( &ce );
       }
       void addResumeTask( WorkDescriptor &w )
@@ -353,11 +590,19 @@ class InstrumentationExtrae: public Instrumentation
 
       void incrementMaxThreads( void )
       {
+         // Extrae_change_num_threads involves memory allocation and file creation,
+         // thus the function call must be lock-protected
+         _lock.acquire();
          Extrae_change_num_threads( ++_maxThreads );
+         _lock.release();
       }
 
 #endif
 };
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+std::string InstrumentationExtrae::_traceBaseName = std::string("");
+#endif
 
 namespace ext {
 

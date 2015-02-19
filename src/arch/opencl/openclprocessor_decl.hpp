@@ -26,6 +26,7 @@
 #include "opencldd.hpp"
 #include "opencldevice_decl.hpp"
 #include "sharedmemallocator.hpp"
+#include "smpprocessor.hpp"
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
@@ -41,37 +42,48 @@ class OpenCLAdapter
 {
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
+   typedef std::map<std::pair<uint64_t,size_t>, cl_mem> BufferCache;
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _preallocateWholeMemory(false){}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _progCache() {}
 
 public:
    void initialize(cl_device_id dev);
 
+   /**
+    * Allocs OpenCL buffer
+    * @param size size of the buffer
+    * @param host_ptr hostPtr (only used in CPU/mappedMem devices)
+    * @param buf buffer object
+    * @return return code of OpenCL call
+    */
    cl_int allocBuffer( size_t size, void* host_ptr, cl_mem &buf );
    void* allocSharedMemBuffer( size_t size);
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
 
-   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
-   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size );
-   cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
-   cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
-   cl_mem getBuffer( cl_mem parentBuf, size_t offset, size_t size );
-   void freeAddr( void* addr );
-   cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
-
+   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter, cl_event& ev);
+   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter, cl_event& ev);
+   cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size, cl_event& ev );
+   cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size, cl_event& ev );
+   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
+   size_t getSizeFromCache(size_t addr);
+   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size, void* hostPtr);   
+   void freeAddr(void* addr );
+   cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size, cl_event& ev );
+   
    // Low-level program builder. Lifetime of prog is under caller
    // responsability.
    cl_int buildProgram( const char *src,
                         const char *compilerOpts,
-                        cl_program &prog );
+                        cl_program &prog,
+                        const std::string& filename );
 
    // As above, but without compiler options.
    cl_int buildProgram( const char *src, cl_program &prog )
    {
-      return buildProgram( src, "", prog );
+      return buildProgram( src, "", prog, "" );
    }
 
    // Low-level program destructor.
@@ -86,7 +98,7 @@ public:
    // Return program to the cache, decreasing reference-counting.
    cl_int putProgram( cl_program &prog );
 
-   cl_int execKernel( void* oclKernel, 
+   void execKernel( void* oclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
@@ -95,7 +107,7 @@ public:
    // TODO: replace with new APIs.
    size_t getGlobalSize();
    
-   void waitForEvents();
+   std::string getDeviceName();
    
    
 
@@ -121,7 +133,7 @@ public:
    }
    
    void setPreallocatedWholeMemory(bool val){
-      // _preallocateWholeMemory=val;
+      //_preallocateWholeMemory=val;
    }
 
    ProgramCache& getProgCache() {
@@ -131,10 +143,6 @@ public:
    cl_context& getContext() {
         return _ctx;
     }
-   
-   cl_command_queue& getCommandQueue(){
-       return _queue;
-   }
 
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
@@ -154,20 +162,23 @@ private:
 private:
    cl_device_id _dev;
    cl_context _ctx;
-   cl_command_queue _queue;
-   std::map<void *, cl_mem> _bufCache;
+   cl_command_queue* _queues;
+   int _currQueue;
+   cl_command_queue _copyInQueue;
+   cl_command_queue _copyOutQueue;
+   BufferCache _bufCache;
    std::map<cl_mem, int> _unmapedCache;
+   std::map<uint64_t,size_t> _sizeCache;
    bool _preallocateWholeMemory;
 
    ProgramCache _progCache;
-   std::vector<cl_event> _pendingEvents;
    bool _useHostPtrs;
 };
 
-class OpenCLProcessor : public CachedAccelerator<OpenCLDevice>
+class OpenCLProcessor : public ProcessingElement
 {
 public:        
-   OpenCLProcessor( int id , int devId, int uid );
+   OpenCLProcessor( int devId, memory_space_id_t memId, SMPProcessor *core, SeparateMemoryAddressSpace &mem );
 
    OpenCLProcessor( const OpenCLProcessor &pe ); // Do not implement.
    OpenCLProcessor &operator=( const OpenCLProcessor &pe ); // Do not implement.
@@ -179,11 +190,22 @@ public:
    WD &getWorkerWD() const;
 
    WD &getMasterWD() const;
-   
-   BaseThread &createThread( WorkDescriptor &wd );
-
-   bool supportsUserLevelThreads() const { return false; }
     
+   virtual WD & getMultiWorkerWD () const
+   {
+      fatal( "getMultiWorkerWD: OpenCLProcessor is not allowed to create MultiThreads" );
+   }
+   BaseThread & createThread ( WorkDescriptor &wd, SMPMultiThread *parent );
+   virtual BaseThread & createMultiThread ( WorkDescriptor &wd, unsigned int numPEs, PE **repPEs )
+   {
+      fatal( "OpenCLNode is not allowed to create MultiThreads" );
+   }
+    
+
+   bool supportsUserLevelThreads () const { return false; }
+
+   BaseThread &startOpenCLThread();
+
    OpenCLAdapter::ProgramCache& getProgCache() {
        return _openclAdapter.getProgCache();
    }
@@ -206,16 +228,12 @@ public:
    void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);
    
    void printStats();
-   
-   void waitForEvents() {       
-       _openclAdapter.waitForEvents();
-   }
-   
+      
    void cleanUp();
      
-   void *allocate( size_t size, uint64_t tag )
+   void *allocate( size_t size, uint64_t tag, uint64_t offset )
    {
-      return _cache.allocate( size, tag );
+      return _cache.allocate( size, tag, offset );
    }
    
    void *realloc( void *address, size_t size, size_t ceSize )
@@ -228,14 +246,14 @@ public:
       return _cache.free( address );
    }
 
-   bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size )
+   bool copyIn( uint64_t devAddr,  uint64_t hostAddr, size_t size, DeviceOps *ops )
    {
-      return _cache.copyIn( localDst, remoteSrc, size );
+      return _cache.copyIn( devAddr, hostAddr, size, ops );
    }
 
-   bool copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size )
+   bool copyOut( uint64_t hostAddr, uint64_t devAddr, size_t size, DeviceOps *ops )
    {
-      return _cache.copyOut( remoteDst, localSrc, size );
+      return _cache.copyOut( hostAddr, devAddr, size, ops );
    }
    
    cl_mem getBuffer( void *localSrc, size_t size )
@@ -243,23 +261,19 @@ public:
       return _cache.getBuffer( localSrc, size );
    } 
    
-   bool copyInBuffer( void *localSrc, cl_mem remoteBuffer, size_t size )
+   bool copyInBuffer( void *localSrc, cl_mem remoteBuffer, size_t size, DeviceOps *ops)
    {
-      return _cache.copyInBuffer( localSrc, remoteBuffer, size );
+      return _cache.copyInBuffer( localSrc, remoteBuffer, size, ops );
    }
    
     cl_context& getContext() {    
         return _openclAdapter.getContext();
     }
 
-    cl_command_queue& getCommandQueue() {    
-        return _openclAdapter.getCommandQueue();
-    }
-
     cl_int getOpenCLDeviceType( cl_device_type &deviceType ){
        return _openclAdapter.getDeviceType(deviceType);
     }
-   
+    
     static SharedMemAllocator& getSharedMemAllocator() {
        return _shmemAllocator;
     }
@@ -268,8 +282,24 @@ public:
    
     void freeSharedMemory( void* addr );
 
+    
+    SimpleAllocator& getCacheAllocator(){
+        return _cache.getAllocator();
+    }
+    
+    SimpleAllocator const &getConstCacheAllocator() const {
+        return _cache.getConstAllocator();
+    }
+    
+    BaseThread * getOpenCLThread()
+    {
+       return _thread;
+    }
+
 
 private:
+   SMPProcessor *_core;
+   BaseThread *_thread;
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
    int _devId;

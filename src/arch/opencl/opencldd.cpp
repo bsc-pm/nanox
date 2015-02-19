@@ -32,3 +32,11 @@ OpenCLDD * OpenCLDD::copyTo ( void *toAddr )
    OpenCLDD *dd = new ( toAddr ) OpenCLDD( *this );
    return dd;
 }
+
+void OpenCLDD::setOpenclStreamIdx(int streamIdx){
+    _oclStreamIdx=streamIdx;
+}
+
+int OpenCLDD::getOpenCLStreamIdx(){
+    return _oclStreamIdx;
+}

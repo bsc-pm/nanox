@@ -66,9 +66,9 @@ namespace nanos {
                   DataAccess const &dataAccess = *it;
 
                   // if address == NULL, just ignore it
-		  if ( dataAccess.getDepAddress() == NULL ) {
-                          continue;
-		  }
+                  if ( dataAccess.getDepAddress() == NULL ) {
+                     continue;
+                  }
                   
                   
                   // Find out the displacement due to the lower bounds and correct it in the address
@@ -123,14 +123,14 @@ namespace nanos {
                      flushDeps.push_back( (uint64_t) region.getFirstValue() );
                   }
                }
-                  
+               sys.getDefaultSchedulePolicy()->atCreate( depObj ); 
                // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
                increaseTasksInGraph();
             
                depObj.submitted();
             
                // now everything is ready
-               depObj.decreasePredecessors( &flushDeps, true );
+               depObj.decreasePredecessors( &flushDeps, NULL, false, true );
             }
             
             /*! \brief Adds a region access of a DependableObject to the domains dependency system.

@@ -51,7 +51,7 @@ static void staticLoop ( void *arg )
             loop_info->last = true;
          }
          //! Calling realwork
-         ((SMPDD::work_fct)(loop_info->args))(arg);
+         ((DeviceData::work_fct)(loop_info->args))(arg);
       }
    } else {
       _chunk = loop_info->chunk - 1;
@@ -64,7 +64,7 @@ static void staticLoop ( void *arg )
             loop_info->last = true;
          }
          // Calling realwork
-         ((SMPDD::work_fct)(loop_info->args))(arg);
+         ((DeviceData::work_fct)(loop_info->args))(arg);
       }
    }
 }
@@ -75,7 +75,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    
    BaseThread *mythread = myThread;
    ThreadTeam *team = mythread->getTeam();
-   int i, num_threads = team->size();
+   int i, num_threads = team->getFinalSize();
    WorkDescriptor *slice = NULL;
    nanos_loop_info_t *loop_info;
 

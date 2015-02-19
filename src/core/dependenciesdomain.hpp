@@ -78,4 +78,3 @@ inline void DependenciesDomain::finalizeAllReductions ( void )
 }
 
 #endif
-
