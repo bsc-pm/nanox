@@ -274,8 +274,10 @@ namespace nanos {
                      }
 
                      commDO->resetReferences();
+
                      //! Finally decrease dummy dependence added in createCommutationDO
-                     commDO->decreasePredecessors( NULL ); 
+                     std::list<uint64_t> flushDeps;
+                     commDO->decreasePredecessors( &flushDeps, NULL, false, false ); 
                   }
                }
             }
