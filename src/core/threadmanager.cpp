@@ -50,7 +50,6 @@ extern "C" {
          DLB_Init && \
          DLB_Finalize && \
          DLB_Update )
-
 #endif
 
 // Sleep time in ns between each sched_yield
@@ -75,6 +74,7 @@ void ThreadManagerConf::config( Config &cfg )
    Config::MapVar<ThreadManagerOption>* tm_options = NEW Config::MapVar<ThreadManagerOption>( _tm );
    tm_options->addOption( "none", NONE );
    tm_options->addOption( "basic", BASIC );
+   tm_options->addOption( "dlb", GENERIC_DLB );
    tm_options->addOption( "basic-dlb", BASIC_DLB );
    tm_options->addOption( "auto-dlb", AUTO_DLB );
    cfg.registerConfigOption ( "thread-manager", tm_options, "Selects which Thread Manager will be used" );
@@ -99,6 +99,7 @@ void ThreadManagerConf::config( Config &cfg )
 
 ThreadManager* ThreadManagerConf::create()
 {
+   // Choose default if _tm not specified
    if ( _tm == UNDEFINED ) {
       if  ( _useYield || _useBlock ) {
          // yield or block enabled implies a basic thread manager
@@ -106,6 +107,17 @@ ThreadManager* ThreadManagerConf::create()
       } else {
          // default Thread Manager
          _tm = NONE;
+      }
+   }
+
+   // Choose specific DLB when generic DLB was chosen
+   if ( _tm == GENERIC_DLB ) {
+      const char *lb_policy = OS::getEnvironmentVariable( "LB_POLICY" );
+      if ( lb_policy == NULL ) {
+         warning0( "Generic thread manager DLB was chosen but LB_POLICY cannot be determined. Please recheck your DLB configuration." );
+      } else {
+         std::string dlb_policy( lb_policy );
+         _tm = (dlb_policy == "auto_LeWI_mask") ? AUTO_DLB : BASIC_DLB;
       }
    }
 

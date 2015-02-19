@@ -166,7 +166,7 @@ namespace nanos
    class ThreadManagerConf
    {
       private:
-         typedef enum { UNDEFINED, NONE, BASIC, BASIC_DLB, AUTO_DLB } ThreadManagerOption;
+         typedef enum { UNDEFINED, NONE, BASIC, GENERIC_DLB, BASIC_DLB, AUTO_DLB } ThreadManagerOption;
 
          ThreadManagerOption  _tm;           //!< Thread Manager name option
          unsigned int         _numYields;    //!< Number of yields before block
