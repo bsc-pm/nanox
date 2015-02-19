@@ -910,6 +910,11 @@ namespace nanos {
             {
                return _steal;
             }
+            
+            bool usingPriorities() const
+            {
+               return true;
+            }
       };
 
       class SocketSchedPlugin : public Plugin

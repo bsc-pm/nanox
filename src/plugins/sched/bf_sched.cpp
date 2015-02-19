@@ -46,7 +46,15 @@ namespace nanos {
            static bool       _usePriority;
            static bool       _useSmartPriority;
 
-           BreadthFirst() : SchedulePolicy("Breadth First") {}
+           BreadthFirst() : SchedulePolicy("Breadth First")
+           {
+              /* If priorities are disabled by the user and detected
+                 by the compiler, disable them. If enabled by the
+                 user (default) and not detected by the compiler,
+                 disable too
+               */
+               _usePriority = _usePriority && sys.getPrioritiesNeeded();
+           }
            virtual ~BreadthFirst () {}
 
          private:
@@ -201,10 +209,15 @@ namespace nanos {
                   return q.getPotentiallyParallelWDs();
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority || _useSmartPriority;
+            }
       };
 
       bool BreadthFirst::_useStack = false;
-      bool BreadthFirst::_usePriority = false;
+      bool BreadthFirst::_usePriority = true;
       bool BreadthFirst::_useSmartPriority = false;
 
       class BFSchedPlugin : public Plugin

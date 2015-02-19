@@ -53,7 +53,10 @@ namespace nanos {
 
          public:
             // constructor
-            DistributedBFPolicy() : SchedulePolicy ( "Cilk" ) {}
+            DistributedBFPolicy() : SchedulePolicy ( "Cilk" )
+            {
+              _usePriority = _usePriority && sys.getPrioritiesNeeded();
+            }
 
             // destructor
             virtual ~DistributedBFPolicy() {}
@@ -155,6 +158,11 @@ namespace nanos {
                   return true;
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority || _useSmartPriority;
+            }
       };
 
 
@@ -219,7 +227,7 @@ namespace nanos {
          }
       }
 
-      bool DistributedBFPolicy::_usePriority = false;
+      bool DistributedBFPolicy::_usePriority = true;
       bool DistributedBFPolicy::_useSmartPriority = false;
 
       class DistributedBFSchedPlugin : public Plugin
