@@ -319,6 +319,15 @@ namespace nanos
          {
             return false;
          }
+         
+         /*! \brief Returns if priorities are enabled in this policy.
+          * Note that some policies won't support priorities while others
+          * will depending on a flag
+          */
+         virtual bool usingPriorities() const
+         {
+            return false;
+         }
    };
    /*! \brief Functor that will be used when a WD's predecessor is found.
     */

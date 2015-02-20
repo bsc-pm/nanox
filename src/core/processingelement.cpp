@@ -168,6 +168,8 @@ Device const *ProcessingElement::getCacheDeviceType() const {
 void ProcessingElement::wakeUpThreads()
 {
    ThreadTeam *team = myThread->getTeam();
+   if (!team) return;
+
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); ++it ) {
       (*it)->tryWakeUp( team );

@@ -53,7 +53,9 @@ namespace nanos {
            static int        _numQueues;
            static int        _maxPriority;
 
-           MultiPriorityQueue() : SchedulePolicy("Multi Priority Queue") {}
+           MultiPriorityQueue() : SchedulePolicy("Multi Priority Queue") {
+              _usePriority = _usePriority && sys.getPrioritiesNeeded();
+           }
            virtual ~MultiPriorityQueue () {}
 
          private:
@@ -208,10 +210,15 @@ namespace nanos {
                   return true;
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority || _useSmartPriority;
+            }
       };
 
       bool MultiPriorityQueue::_useStack = false;
-      bool MultiPriorityQueue::_usePriority = false;
+      bool MultiPriorityQueue::_usePriority = true;
       bool MultiPriorityQueue::_useSmartPriority = false;
       int  MultiPriorityQueue::_maxPriority = 0;
       int  MultiPriorityQueue::_numQueues = 8;

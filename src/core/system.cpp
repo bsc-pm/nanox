@@ -1414,7 +1414,7 @@ void System::environmentSummary( void )
    message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
    message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
    message0( "=== Prog. Model:         " << prog_model );
-   message0( "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed") );
+   message0( "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed") << " / " << ( _defSchedulePolicy->usingPriorities() ? "enabled" : "disabled" ) );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it ) {
