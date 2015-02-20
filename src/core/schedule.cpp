@@ -343,7 +343,9 @@ inline void Scheduler::idleLoop ()
       }
 
       thread->idle();
-      if ( sys.getNetwork()->getNodeNum() > 0 ) { sys.getNetwork()->poll(0); }
+      //if ( sys.getNetwork()->getNodeNum() > 0 ) {
+         sys.getNetwork()->poll(0);
+      //}
 
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
