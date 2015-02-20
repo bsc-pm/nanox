@@ -354,17 +354,3 @@ namespace nanos
 
    };
 }
-
-/*
-   This function must have C linkage to avoid that C applications need to link against the C++ library
-*/   
-extern "C" {
-   void nanos_omp_set_interface( void * )
-   {
-      if ( nanos::PMInterfaceType::ssCompatibility != NULL ) {
-         sys.setPMInterface(NEW nanos::OpenMP::OmpSsInterface());
-      } else {
-         sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
-      }
-   }
-}

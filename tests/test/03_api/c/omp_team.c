@@ -252,6 +252,3 @@ static void smp_ol_main_1(struct nanos_args_1_t *const args)
     smp_ol_main_1_unpacked((*args).i);
   }
 }
-
-void nanos_omp_set_interface(void *);
-__attribute__((weak)) __attribute__((section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {.func = nanos_omp_set_interface, .data = (void *)0};

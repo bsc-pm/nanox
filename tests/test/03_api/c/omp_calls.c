@@ -30,12 +30,6 @@ test_generator=gens/api-omp-generator
 #include "nanos.h"
 #include "omp.h"
 
-void nanos_omp_set_interface(void *);
-__attribute__((weak, section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {
-    nanos_omp_set_interface,
-    (void *) 0
-};
-
 int main ( int argc, char **argv )
 {
    int result = 0;
