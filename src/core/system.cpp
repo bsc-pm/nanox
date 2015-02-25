@@ -1371,6 +1371,10 @@ void System::endTeam ( ThreadTeam *team )
       // FIXME: Is it really necessary?
       memoryFence();
    }
+   while ( team->getFinalSize ( ) > 0 ) {
+      // FIXME: Is it really necessary?
+      memoryFence();
+   }
    
    fatal_cond( team->size() > 0, "Trying to end a team with running threads");
    
