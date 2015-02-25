@@ -242,7 +242,7 @@ inline void nanos::memoryFence ()
 }
 
 template<typename T>
-inline bool nanos::compareAndSwap( T *ptr, T oldval, T  newval )
+inline bool nanos::compareAndSwap( volatile T *ptr, T oldval, T  newval )
 {
     return __sync_bool_compare_and_swap ( ptr, oldval, newval );
 }
