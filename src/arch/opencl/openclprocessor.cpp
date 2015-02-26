@@ -234,6 +234,19 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
        cl_mem buf = clCreateSubBuffer(parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
+
+	   if (errCode != CL_SUCCESS) {
+		  if (errCode == CL_MISALIGNED_SUB_BUFFER_OFFSET) {
+			 std::cerr << "Error trying to create a subbuffer whose offset "
+					   <<  "is not properly aligned." << std::endl;
+
+			 // The specification says that it has to be aligned to
+			 // CL_DEVICE_MEM_BASE_ADDR_ALIGN. However, sometimes work with
+			 // other values (depending on the vendor)
+		  }
+		  fatal0("Error creating a subbuffer");
+	   }
+
        _bufCache[std::make_pair(devAddr+baseAddress,size)]=buf;
        _sizeCache[devAddr+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
