@@ -560,17 +560,35 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
    return kern;    
 }
 
-static void processOpenCLError(cl_int errCode){    
-      std::cerr << "Error code when executing kernel " << errCode << "\n"; 
-      if (errCode==-52){
-          std::cerr << "HINT: Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
-      }
-      if (errCode==-5){
-          std::cerr << "HINT: Out of resources, make sure that ndrange local size fits in your device or that your kernel is not reading/writing outside of the buffer\n";
-      }
-      if (errCode==-14){
-          std::cerr << "HINT: Check if your input or output data sizes are correctly specified/accessed\n";
-      }
+static void processOpenCLError(cl_int errCode) {
+   std::cerr << "Error code when executing kernel " << errCode << "\n";
+   switch (errCode) {
+	  case CL_OUT_OF_RESOURCES: // -5
+		 {
+			std::cerr
+			   << "HINT: Out of resources, make sure that ndrange local size "
+			   << "fits in your device or that your kernel is not reading/writing outside of the buffer\n";
+			break;
+		 }
+	  case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST: // -14
+		 {
+			std::cerr
+			   << "HINT: Check if your input or output data sizes are correctly specified/accessed\n";
+			break;
+		 }
+	  case CL_INVALID_KERNEL_ARGS: // -52
+		 {
+			std::cerr
+			   << "HINT: Check if the OpenCL kernel declaration in the "
+			   << "header/interface file and the definition in .cl have the same parameters\n";
+			break;
+		 }
+	  default:
+		 {
+			// We don't have any hint for this error
+			break;
+		 }
+   }
 }
 
 cl_int OpenCLAdapter::execKernel(void* oclKernel, 
