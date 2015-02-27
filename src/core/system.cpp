@@ -432,6 +432,12 @@ void System::start ()
    }
    _pmInterface->setupWD( mainWD );
 
+   if ( _defSchedulePolicy->getWDDataSize() > 0 ) {
+      char *data = NEW char[ _defSchedulePolicy->getWDDataSize() ];
+      _defSchedulePolicy->initWDData( data );
+      mainWD.setSchedulerData( reinterpret_cast<ScheduleWDData*>( data ), /* ownedByWD */ true );
+   }
+
    /* Renaming currend thread as Master */
    myThread->rename("Master");
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_STARTUP) );
