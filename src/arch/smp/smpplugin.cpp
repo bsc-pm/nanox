@@ -856,6 +856,19 @@ class SMPPlugin : public SMPBasePlugin
       return thd;
    }
 
+   /*! \brief Force the creation of at least 1 thread per CPU.
+    */
+   virtual void forceMaxThreadCreation()
+   {
+      cpu_set_t mask;
+      // Save original active mask
+      getCpuActiveMask( &mask );
+      // Set all CPUs active
+      sys.setCpuActiveMask( &_cpuSystemMask );
+      // Fall back
+      sys.setCpuActiveMask( &mask );
+   }
+
    /*! \brief returns a human readable string containing information about the binding mask, detecting ranks.
     *       format e.g.,
     *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]

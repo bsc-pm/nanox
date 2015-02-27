@@ -3,9 +3,10 @@
 
 /*
 <testinfo>
-   test_generator=gens/mixed-generator
-   test_schedule="bf"
-   test_max_cpus=1
+   test_generator="gens/mixed-generator -a --no-warmup-threads|--warmup-threads"
+   test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
+                        "NX_TEST_SCHEDULE=bf"
+                        "test_architecture=smp")
    test_ignore_fail=1
 </testinfo>
 */

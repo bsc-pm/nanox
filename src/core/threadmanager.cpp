@@ -63,7 +63,8 @@ using namespace nanos;
 /**********************************/
 
 ThreadManagerConf::ThreadManagerConf()
-   : _tm(), _numYields(1), _useYield(false), _useBlock(false), _useDLB(false), _forceTieMaster(false)
+   : _tm(), _numYields(1), _useYield(false), _useBlock(false), _useDLB(false),
+   _forceTieMaster(false), _warmupThreads( false )
 {
 }
 
@@ -99,6 +100,10 @@ void ThreadManagerConf::config( Config &cfg )
    cfg.registerConfigOption( "force-tie-master", NEW Config::FlagOption ( _forceTieMaster ),
                               "Force Master WD (user code) to run on Master Thread" );
    cfg.registerArgOption( "force-tie-master", "force-tie-master" );
+
+   cfg.registerConfigOption( "warmup-threads", NEW Config::FlagOption( _warmupThreads, true ),
+            "Force the creation of as many threads as available CPUs at initialization time, then block them immediately if needed" );
+   cfg.registerArgOption( "warmup-threads", "warmup-threads" );
 }
 
 ThreadManager* ThreadManagerConf::create()
@@ -155,6 +160,11 @@ bool ThreadManagerConf::canUntieMaster() const
       // Currently auto_LeWI_mask is the only dlb policy that supports untied master
       return (dlb_policy == "auto_LeWI_mask");
    }
+}
+
+bool ThreadManagerConf::threadWarmupEnabled() const
+{
+   return _warmupThreads;
 }
 
 /**********************************/

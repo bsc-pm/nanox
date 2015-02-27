@@ -561,6 +561,10 @@ void System::start ()
          break;
    }
 
+   if ( _threadManagerConf.threadWarmupEnabled() ) {
+      _smpPlugin->forceMaxThreadCreation();
+   }
+
    _router.initialize();
    if ( usingCluster() )
    {
