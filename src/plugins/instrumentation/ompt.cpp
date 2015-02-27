@@ -6,6 +6,14 @@
 
 extern "C" {
 
+   namespace nanos {
+      namespace ompt {
+         Lock _lock;
+         std::map<void *, int> map_parallel_id;
+         ompt_parallel_id_t    count_parallel_id = 1;
+      }
+   }
+
    int ompt_initialize(
          ompt_function_lookup_t lookup,  /* function to look up OMPT API routines by name */
          const char *runtime_version,    /* OpenMP runtime version string */
@@ -32,18 +40,18 @@ extern "C" {
    }
 
    //! List of callback declarations
-   ompt_new_parallel_callback_t  ompt_nanos_event_parallel_begin = NULL;
-   ompt_parallel_callback_t      ompt_nanos_event_parallel_end = NULL;
-   ompt_new_task_callback_t      ompt_nanos_event_task_begin = NULL;
-   ompt_task_callback_t          ompt_nanos_event_task_end = NULL;
-   ompt_thread_type_callback_t   ompt_nanos_event_thread_begin = NULL;
-   ompt_thread_type_callback_t   ompt_nanos_event_thread_end = NULL;
-   ompt_control_callback_t       ompt_nanos_event_control = NULL;
-   ompt_callback_t               ompt_nanos_event_shutdown = NULL;
-   ompt_task_switch_callback_t   ompt_nanos_event_task_switch = NULL;
-   ompt_new_dependence_callback_t ompt_nanos_event_dependence = NULL;
-   ompt_parallel_callback_t      ompt_nanos_event_barrier_begin = NULL;
-   ompt_parallel_callback_t      ompt_nanos_event_barrier_end = NULL;
+   ompt_new_parallel_callback_t        ompt_nanos_event_parallel_begin = NULL;
+   ompt_parallel_callback_t            ompt_nanos_event_parallel_end = NULL;
+   ompt_new_task_callback_t            ompt_nanos_event_task_begin = NULL;
+   ompt_task_callback_t                ompt_nanos_event_task_end = NULL;
+   ompt_thread_type_callback_t         ompt_nanos_event_thread_begin = NULL;
+   ompt_thread_type_callback_t         ompt_nanos_event_thread_end = NULL;
+   ompt_control_callback_t             ompt_nanos_event_control = NULL;
+   ompt_callback_t                     ompt_nanos_event_shutdown = NULL;
+   ompt_task_switch_callback_t         ompt_nanos_event_task_switch = NULL;
+   ompt_new_dependence_callback_t      ompt_nanos_event_dependence = NULL;
+   ompt_parallel_callback_t            ompt_nanos_event_barrier_begin = NULL;
+   ompt_parallel_callback_t            ompt_nanos_event_barrier_end = NULL;
 
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback );
    int ompt_nanos_set_callback( ompt_event_t event, ompt_callback_t callback )
@@ -213,15 +221,39 @@ extern "C" {
    ompt_parallel_id_t ompt_nanos_get_parallel_id( int ancestor_level );
    ompt_parallel_id_t ompt_nanos_get_parallel_id( int ancestor_level )
    {
-      // FIXME: TBD
-      return (ompt_parallel_id_t) 0;
+
+      ompt_parallel_id_t rv = 0;
+
+      ThreadTeam *tt = myThread->getTeam();
+      while ( ancestor_level > 0 && tt != NULL ) {
+         tt = tt->getParent();
+         ancestor_level--;
+      }
+      if ( tt != NULL ) {
+         nanos::ompt::_lock.acquire();
+
+         if ( nanos::ompt::map_parallel_id.find((void *) tt ) != nanos::ompt::map_parallel_id.end() )
+            rv = nanos::ompt::map_parallel_id[(void *) tt];
+         else {
+            rv = nanos::ompt::count_parallel_id++;
+            nanos::ompt::map_parallel_id[(void *) tt] = rv;
+         }
+
+         nanos::ompt::_lock.release();
+      }
+      
+      return rv;
    }
 
    int ompt_nanos_get_parallel_team_size( int ancestor_level );
    int ompt_nanos_get_parallel_team_size( int ancestor_level )
    {
-      // FIXME: TBD
-      return (int) 0;
+      ThreadTeam *tt = myThread->getTeam();
+      while ( ancestor_level > 0 && tt != NULL ) {
+         tt = tt->getParent();
+         ancestor_level--;
+      }
+      return (int) tt->size();
    }
 
    // XXX: Is the return value actually a pointer to task_id_t
