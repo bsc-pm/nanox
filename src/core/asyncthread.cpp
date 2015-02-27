@@ -313,7 +313,7 @@ bool AsyncThread::processDependentWD ( WD * wd )
 void AsyncThread::runWD ( WD * wd )
 {
    // Check WD's dependencies
-   if ( wd->getNumDepsPredecessors() != 0 ) {
+   if ( wd->hasDepsPredecessors() ) {
       // Its WD predecessor is still running, so enqueue another event
       // to make this WD wait till the predecessor has finished
 
