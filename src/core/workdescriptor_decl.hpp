@@ -582,6 +582,10 @@ typedef std::set<const Device *>  DeviceList;
           */
          int getNumDepsPredecessors();
 
+         /*! \brief Returns if DOSubmit's has predecessors
+          */
+         bool hasDepsPredecessors();
+
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
           *  scheduler when its dependencies are satisfied.
