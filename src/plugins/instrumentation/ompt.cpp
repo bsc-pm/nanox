@@ -253,15 +253,21 @@ extern "C" {
          tt = tt->getParent();
          ancestor_level--;
       }
-      return (int) tt->size();
+      if ( tt ) return (int) tt->size();
+      return (int) 0;
    }
 
-   // XXX: Is the return value actually a pointer to task_id_t
-   ompt_task_id_t *ompt_nanos_get_task_id( int depth );
-   ompt_task_id_t *ompt_nanos_get_task_id( int depth )
+   ompt_task_id_t ompt_nanos_get_task_id( int depth );
+   ompt_task_id_t ompt_nanos_get_task_id( int depth )
    {
-      // FIXME: TBD
-      return NULL;
+      WorkDescriptor *wd = myThread->getCurrentWD();
+      while ( depth > 0 && wd != NULL ) {
+         wd = wd->getParent();
+         depth--;
+      }
+      if ( wd ) return (ompt_task_id_t) wd->getId();
+
+      return (ompt_task_id_t) 0;
    }
 
    ompt_frame_t *ompt_nanos_get_task_frame( int depth );
