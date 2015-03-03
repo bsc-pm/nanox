@@ -82,7 +82,7 @@ namespace nanos {
          void unlock( bool unsetVerbose=false );
          bool locked() const;
          bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
-         void NEWaddWriteRegion( reg_t reg, unsigned int version );
+         void NEWaddWriteRegion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          void setRegionVersion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          void addReference(int wdId, unsigned int loc);
          void removeReference(int wdId);

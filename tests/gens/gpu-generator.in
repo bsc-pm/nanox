@@ -281,7 +281,7 @@ test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\
 \$BUILD/pms/instrumentation-debug/.libs:\
 \$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
 
-`@SRCDIR@/tests/gens/config.py -a '--smp-cpus=3 --gpu-max-memory 16777216 --gpus=2 , --gpu-overlap --gpu-prefetch 4|--gpu-overlap --gpu-prefetch 0' -c 1`
+`@SRCDIR@/tests/gens/config.py -a '--smp-cpus=3 --gpu-max-memory 16777216 --enable-cuda --gpus=2 , --gpu-overlap --gpu-prefetch 4|--gpu-overlap --gpu-prefetch 0' -c 1`
 EOF
 
 else

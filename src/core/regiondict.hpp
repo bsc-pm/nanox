@@ -5,7 +5,6 @@
 #include "atomic.hpp"
 #include "memorymap.hpp"
 #include "system_decl.hpp"
-#include "printbt_decl.hpp"
 
 namespace nanos {
 

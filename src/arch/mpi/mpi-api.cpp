@@ -247,6 +247,9 @@ NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (int type)) {
         case mpitype_ompss_unsigned_long_long:
             result = MPI_UNSIGNED_LONG_LONG;
             break;
+        case mpitype_ompss_signed_long_long:
+            result = MPI_LONG_LONG;
+            break;
         default:
         break;
     }

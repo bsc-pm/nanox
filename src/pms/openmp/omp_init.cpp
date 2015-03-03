@@ -93,11 +93,25 @@ namespace nanos
          // Must be allocated through new to avoid problems with the order of
          // initialization of global objects
          globalState = NEW OmpState();
-
          TaskICVs & icvs = globalState->getICVs();
          icvs.setSchedule(LoopSchedule(omp_sched_static));
 
-         _numThreads = _numThreadsOMP == -1 ? sys.getSMPPlugin()->getNumPEs() : _numThreadsOMP;
+         int requested_workers = sys.getSMPPlugin()->getRequestedWorkers();
+         int max_workers = sys.getSMPPlugin()->getNumWorkers();
+
+         if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
+            warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "
+                  "value (" << _numThreadsOMP << ") differ. The value of OMP_NUM_THREADS will be used.");
+         }
+
+         // In OpenMP, OMP_NUM_THREADS takes precedence over --smp-workers
+         if ( _numThreadsOMP > 0 ) {
+            _numThreads = _numThreadsOMP;
+         } else if ( requested_workers > 0 ) {
+            _numThreads = requested_workers;
+         } else {
+            _numThreads = max_workers;
+         }
 
          icvs.setNumThreads(_numThreads);
          sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
@@ -169,6 +183,19 @@ namespace nanos
          return (ThreadTeamData *) NEW OmpThreadTeamData();
       }
 
+      int OpenMPInterface::getMaxThreads() const
+      {
+         int max_threads = 0;
+         if ( myThread ) {
+            OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+            max_threads = data->icvs()->getNumThreads();
+         } else {
+            // This function can be called at initialization when myThread == NULL
+            max_threads = globalState->getICVs().getNumThreads();
+         }
+         return max_threads;
+      }
+
       /*!
        * \brief specific setNumThreads implementation for OpenMP model
        * \param[in] nthreads Number of threads
@@ -180,12 +207,49 @@ namespace nanos
       }
 
       /*!
+       * \brief Get the current mask of the process
+       * \param[out] cpu_set cpu_set_t that will containt the process mask
+       */
+      void OpenMPInterface::getCpuProcessMask( cpu_set_t *cpu_set ) const
+      {
+         sys.getCpuProcessMask( cpu_set );
+      }
+
+      /*!
+       * \brief Set a new mask for the process
+       * \param[in] cpu_set cpu_set_t that containts the mask to set
+       * \note New threads are not inmediately created nor added to the team in the OpenMP model
+       */
+      bool OpenMPInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+         bool success = sys.setCpuProcessMask( cpu_set );
+
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
+      }
+
+      /*!
+       * \brief Add a new mask to be merged with the process mask
+       * \param[in] cpu_set cpu_set_t that containts the mask to add
+       * \note New threads are not inmediately created nor added to the team in the OpenMP model
+       */
+      void OpenMPInterface::addCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+         sys.addCpuProcessMask( cpu_set );
+
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
        * \brief Get the current mask of used cpus
        * \param[out] cpu_set cpu_set_t that will containt the current mask
        */
-      void OpenMPInterface::getCpuMask( cpu_set_t *cpu_set )
+      void OpenMPInterface::getCpuActiveMask( cpu_set_t *cpu_set ) const
       {
-         sys.getSMPPlugin()->getCpuMask( cpu_set );
+         sys.getCpuActiveMask( cpu_set );
       }
 
       /*!
@@ -193,12 +257,14 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::setCpuMask( const cpu_set_t *cpu_set )
+      bool OpenMPInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
-         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-         data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
+         bool success = sys.setCpuActiveMask( cpu_set );
 
-         sys.getSMPPlugin()->setCpuMask( cpu_set );
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -206,15 +272,14 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to add
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::addCpuMask( const cpu_set_t *cpu_set )
+      void OpenMPInterface::addCpuActiveMask( const cpu_set_t *cpu_set )
       {
-         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
-         int old_nthreads = data->icvs()->getNumThreads();
-         data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
+         sys.addCpuActiveMask( cpu_set );
 
-         sys.getSMPPlugin()->addCpuMask( cpu_set );
+         OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
       }
-      
+
       /*!
        * \brief Returns the identifier of the interface, OpenMP
        */
@@ -231,33 +296,37 @@ namespace nanos
        */
       void OmpSsInterface::start ()
       {
-         // Base class start()
-         OpenMPInterface::start();
-
-         int num_threads = sys.getSMPPlugin()->getRequestedWorkersOMPSS();
-         if ( _numThreadsOMP != -1 ) {
-            std::cerr << "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recommended way to set the number of worker smp threads is using the flag --smp-workers." << std::endl;
-            if ( num_threads == -1 ) {
-               std::cerr << "Option --smp-workers not set, will use OMP_NUM_THREADS instead, value: " << _numThreads << "." << std::endl;
-               num_threads = _numThreadsOMP;
-            } else if ( num_threads != _numThreadsOMP ) {
-               std::cerr << "Option --smp-workers set (value: " << num_threads << "), and OMP_NUM_THREADS is also set (value: " << _numThreads << "), will use the value of --smp-workers." << std::endl;
-            }
-            
-         }
-         _numThreads = num_threads;
-
+         // Must be allocated through new to avoid problems with the order of
+         // initialization of global objects
+         globalState = NEW OmpState();
          TaskICVs & icvs = globalState->getICVs();
+
+         int requested_workers = sys.getSMPPlugin()->getRequestedWorkers();
+         int max_workers = sys.getSMPPlugin()->getNumWorkers();
+
+         if ( requested_workers > 0 && _numThreadsOMP > 0 && requested_workers != _numThreadsOMP ) {
+            warning0( "Option --smp-workers value (" << requested_workers << "), and OMP_NUM_THREADS "
+                  "value (" << _numThreadsOMP << ") differ. The value of --smp-workers will be used.");
+         }
+
+         // In OmpSs, --smp-workers takes precedence over OMP_NUM_THREADS
+         if ( requested_workers > 0 ) {
+            _numThreads = requested_workers;
+         } else if ( _numThreadsOMP > 0 ) {
+            warning0( "Using OMP_NUM_THREADS in an OmpSs applications is discouraged, the recommended "
+                  "way to set the number of worker smp threads is using the flag --smp-workers." );
+            _numThreads = _numThreadsOMP;
+         } else {
+            _numThreads = max_workers;
+         }
+
          icvs.setNumThreads( _numThreads );
          sys.getSMPPlugin()->setRequestedWorkers( _numThreads );
 
-         // Overwrite custom values
          _description = std::string("OmpSs");
          _malleable = true;
          sys.setInitialMode( System::POOL );
-         sys.setUntieMaster(true);
-
-         if ( sys.dlbEnabled() ) sys.setUntieMaster(false);
+         sys.setUntieMaster( sys.getThreadManagerConf().canUntieMaster() );
       }
 
       /*! \brief Get the size of OmpSsData */
@@ -296,6 +365,19 @@ namespace nanos
          data->setFinal(false);
       }
 
+      int OmpSsInterface::getMaxThreads() const
+      {
+         int max_threads = 0;
+         if ( myThread ) {
+            OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+            max_threads = data->icvs()->getNumThreads();
+         } else {
+            // This function can be called at initialization when myThread == NULL
+            max_threads = globalState->getICVs().getNumThreads();
+         }
+         return max_threads;
+      }
+
       /*!
        * \brief specific setNumThreads implementation for OmpSs model
        * \param[in] nthreads Number of threads
@@ -306,7 +388,7 @@ namespace nanos
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( nthreads );
 
-         sys.getSMPPlugin()->updateActiveWorkers( nthreads );
+         sys.updateActiveWorkers( nthreads );
       }
 
       void OmpSsInterface::setNumThreads_globalState ( int nthreads )
@@ -316,17 +398,52 @@ namespace nanos
       }
 
       /*!
+       * \brief Set a new mask for the process
+       * \param[in] cpu_set cpu_set_t that containts the mask to set
+       * \note New threads are created and/or added to the team ASAP in the OmpSs model
+       */
+      bool OmpSsInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+         LockBlock Lock( _lock );
+
+         bool success = sys.setCpuProcessMask( cpu_set );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
+      }
+
+      /*!
+       * \brief Add a new mask to be merged with the process mask
+       * \param[in] cpu_set cpu_set_t that containts the mask to add
+       * \note New threads are created and/or added to the team ASAP in the OmpSs model
+       */
+      void OmpSsInterface::addCpuProcessMask( const cpu_set_t *cpu_set )
+      {
+         LockBlock Lock( _lock );
+
+         sys.addCpuProcessMask( cpu_set );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+      }
+
+      /*!
        * \brief Set a new mask of active cpus
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::setCpuMask( const cpu_set_t *cpu_set )
+      bool OmpSsInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
-         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
-         data->icvs()->setNumThreads( CPU_COUNT(cpu_set) );
 
-         sys.getSMPPlugin()->setCpuMask( cpu_set );
+         bool success = sys.setCpuActiveMask( cpu_set );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -334,16 +451,16 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to add
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::addCpuMask( const cpu_set_t *cpu_set )
+      void OmpSsInterface::addCpuActiveMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
-         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
-         int old_nthreads = data->icvs()->getNumThreads();
-         data->icvs()->setNumThreads( old_nthreads + CPU_COUNT(cpu_set) );
 
-         sys.getSMPPlugin()->addCpuMask( cpu_set );
+         sys.addCpuActiveMask( cpu_set );
+
+         OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+         data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
       }
-      
+
       /*!
        * \brief Returns the identifier of the interface, OpenMP
        */

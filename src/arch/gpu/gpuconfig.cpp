@@ -22,6 +22,7 @@
 #include "plugin.hpp"
 // We need to include system.hpp (to use verbose0(msg)), as debug.hpp does not include it
 #include "system.hpp"
+#include <dlfcn.h>
 
 #include <cuda_runtime.h>
 
@@ -134,15 +135,21 @@ void GPUConfig::prepare( Config& config )
 
 void GPUConfig::apply()
 {
-   //Auto-enable CUDA if it was not done before
+   //Auto-enable CUDA if it was not done before (#1050)
+   void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
+   bool mercuriumHasTasks = dlsym(myself, "ompss_uses_cuda") != NULL;
+   
+   // Init cublas if it wasn't manually enabled, but detected in the binary (#1050)
+   _initCublas = _initCublas || ( dlsym(myself, "gpu_cublas_init") != NULL );
+   
+   dlclose( myself );
+   
    if ( !_enableCUDA ) {
       //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
-      _enableCUDA = ( sys.getOmpssUsesCuda() != NULL );
+      _enableCUDA = mercuriumHasTasks;
    }
 
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
-      bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != NULL );
-
       if ( mercuriumHasTasks ) {
          message0( " CUDA tasks were compiled and CUDA was disabled, execution"
                " could have unexpected behavior and can even hang, check configuration parameters" );
@@ -254,9 +261,7 @@ void GPUConfig::apply()
          }
       }
 
-      if ( _initCublas || ( sys.getOmpssUsesCublas() != 0 ) ) {
-         //gpu_cublas_init pointer will be null (it's extern) if the compiler did not fill it
-         _initCublas = true;
+      if ( _initCublas ) {
          verbose0( "Initializing CUBLAS Library" );
          if ( !sys.loadPlugin( "gpu-cublas" ) ) {
             _initCublas = false;
@@ -265,7 +270,6 @@ void GPUConfig::apply()
       }
       
       if ( _numGPUs == 0 ) {
-         bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != NULL );
          if ( mercuriumHasTasks ) {
             message0( " CUDA tasks were compiled and no CUDA devices were found, execution"
                     " could have unexpected behavior and can even hang" );

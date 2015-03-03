@@ -20,6 +20,7 @@
 
 #include "openclconfig.hpp"
 #include "system.hpp"
+#include <dlfcn.h>
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -35,8 +36,6 @@ int OpenCLConfig::_prefetchNum = 1;
 unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::DEFAULT;
 //System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
-//This var name has to be consistant with the one which the compiler "fills" (basically, do not change it)
-extern __attribute__((weak)) char ompss_uses_opencl;
 
 std::map<cl_device_id,cl_context>* OpenCLConfig::_devicesPtr=0;
 
@@ -134,10 +133,16 @@ void OpenCLConfig::prepare( Config &cfg )
 
 void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices) {
     _devicesPtr = &_devices;
+    
+    //ompss_uses_opencl pointer will be null if the compiler did not fill it (#1050)
+    void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
+    bool mercuriumHasTasks = dlsym(myself, "ompss_uses_opencl") != NULL;
+    dlclose( myself );
+    
     //Auto-enable CUDA if it was not done before
     if (!_enableOpenCL) {
-        //ompss_uses_opencl pointer will be null (is extern) if the compiler did not fill it
-        _enableOpenCL = ((&ompss_uses_opencl) != NULL);
+        
+        _enableOpenCL = mercuriumHasTasks;
     }
     if (_forceDisableOpenCL || !_enableOpenCL)
         return;
@@ -246,7 +251,6 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
     _currNumDevices = _devices.size();
     
     if ( _currNumDevices == 0 ) {
-       bool mercuriumHasTasks = ((&ompss_uses_opencl) != NULL);
        if ( mercuriumHasTasks ) {
           message0( " OpenCL tasks were compiled and no OpenCL devices were found, execution"
                   " could have unexpected behavior and can even hang" );

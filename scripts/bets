@@ -391,7 +391,7 @@ merge_cpp_compile_vars ()
 merge_exec_vars ()
 {
    eval test_ENV_$1=\"\${test_ENV_$2} \${test_ENV_$3}\"
-   eval test_ARGS_$1=\"\${test_ENV_$2} \${test_ENV_$3}\"
+   eval test_ARGS_$1=\"\${test_ARGS_$2} \${test_ARGS_$3}\"
 }
 
 clean_c_compile_vars ()

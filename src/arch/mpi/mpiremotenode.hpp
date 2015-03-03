@@ -104,8 +104,6 @@ bool MPIRemoteNode::getDisconnectedFromParent(){
 ////////////////////////////////
 //Auxiliar filelock routines////
 ////////////////////////////////
-//Lock not used with OMPI, remove unused function warning
-#ifndef OPEN_MPI
 /*! Try to get lock. Return its file descriptor or -1 if failed.
  *
  *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
@@ -144,6 +142,5 @@ static void releaseLock( int fd, char const *lockName )
     //remove( lockName );
     close( fd );
 }
-#endif
 
 #endif

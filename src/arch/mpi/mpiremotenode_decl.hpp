@@ -183,7 +183,7 @@ namespace nanos {
              */
             static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm,
                     bool strict, int* provided,
-                    int offset,const int* pph_list);  
+                    int offset, int* pph_list);  
             
             /*
              * Subkernel for DEEPBoosterAlloc
@@ -201,6 +201,7 @@ namespace nanos {
             static inline void callMPISpawn( 
                 MPI_Comm comm,
                 const int availableHosts,
+                const bool strict,
                 std::vector<std::string>& tokensParams,
                 std::vector<std::string>& tokensHost, 
                 std::vector<int>& hostInstances,
@@ -221,7 +222,9 @@ namespace nanos {
                 int spawnedHosts,
                 int totalNumberOfSpawns,
                 bool shared,
-                int mpiSize);
+                int mpiSize,
+                int currRank,
+                int* pphList);
             
             /**
              * Wrappers for MPI functions

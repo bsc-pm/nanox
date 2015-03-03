@@ -40,6 +40,10 @@
 
 #endif
 
+// FIXME: Following macro must be architecture dependant (64 bytes)
+#define NANOS_ARCHITECTURE_PADDING_SIZE(size)\
+      size = size + (63 & (64 - (63 & size)));
+
 //! \addtogroup capi_types Types and Structures
 //! \ingroup capi
 //! \{
@@ -282,10 +286,9 @@ typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair)
 
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
-               NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL,
-               NANOS_MEM_TRANSFER_DEVICE_IN, NANOS_MEM_TRANSFER_DEVICE_OUT, NANOS_MEM_TRANSFER_DEVICE_LOCAL,
-               NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH, NANOS_DEBUG, 
- /*22*/        NANOS_EVENT_STATE_TYPES
+               NANOS_MEM_TRANSFER_ISSUE, NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH,
+               NANOS_FILL1, NANOS_WAKINGUP, NANOS_STOPPED, 
+               NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_XFER_DATA, NANOS_XFER_REQ, NANOS_WD_REMOTE,

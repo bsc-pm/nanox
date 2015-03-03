@@ -5,6 +5,7 @@
 #include "memoryops_decl.hpp"
 #include "deviceops.hpp"
 #include "workdescriptor.hpp"
+#include "basethread.hpp"
 
 MemCacheCopy::MemCacheCopy() : 
    _version( 0 ), _childrenProducedVersion( 0 )
@@ -31,6 +32,13 @@ void MemCacheCopy::getVersionInfo() {
 
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
    //NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
+   if ( input && output ) {
+      //re read version, in case of this being a commutative or concurrent access
+      if ( _reg.getVersion() > _version ) {
+         *myThread->_file << "[!!!] WARNING: concurrent or commutative detected, wd " << wd.getId() << " " << (wd.getDescription()!=NULL?wd.getDescription():"[no desc]") << " index " << copyIdx << " _reg.getVersion() " << _reg.getVersion() << " _version " << _version << std::endl;
+         _version = _reg.getVersion();
+      }
+   }
    if ( input ) {
       ops.copyInputData( *this, wd, copyIdx );
    } else if ( output ) {

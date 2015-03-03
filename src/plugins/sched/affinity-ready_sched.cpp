@@ -462,7 +462,9 @@ namespace nanos {
 
 
             // constructor
-            ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {}
+            ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {
+               _usePriority = _usePriority && sys.getPrioritiesNeeded();
+            }
 
             // destructor
             virtual ~ReadyCacheSchedPolicy() {}
@@ -760,6 +762,11 @@ namespace nanos {
                   //propagatePriority( obj );
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority;
+            }
       };
 
       inline WD *ReadyCacheSchedPolicy::fetchWD( BaseThread *thread, WD *current )
@@ -954,8 +961,7 @@ namespace nanos {
          tdata._queues->pushBack( &wd, winner );
       }
 
-
-      bool ReadyCacheSchedPolicy::_usePriority = false;
+      bool ReadyCacheSchedPolicy::_usePriority = true;
       int ReadyCacheSchedPolicy::_priorityPropagation = 5;
       bool ReadyCacheSchedPolicy::_noSteal = false;
       bool ReadyCacheSchedPolicy::_noInvalAware = false;
@@ -975,7 +981,7 @@ namespace nanos {
                cfg.registerConfigOption ( "affinity-priority", NEW Config::FlagOption( ReadyCacheSchedPolicy::_usePriority ), "Priority queue used as ready task queue");
                cfg.registerArgOption( "affinity-priority", "affinity-priority" );
 
-               cfg.registerConfigOption ( "affinity-priority-depth", NEW Config::IntegerVar( ReadyCacheSchedPolicy::_priorityPropagation ), "Number of levels to propagate priority upwards in the task graph (0 = no propagation, -1 = no depth limit");
+               cfg.registerConfigOption ( "affinity-priority-depth", NEW Config::IntegerVar( ReadyCacheSchedPolicy::_priorityPropagation ), "Number of levels to propagate priority upwards in the task graph (0 = no propagation, -1 = no depth limit)");
                cfg.registerArgOption( "affinity-priority-depth", "affinity-priority-depth" );
 
                cfg.registerConfigOption ( "affinity-no-steal", NEW Config::FlagOption( ReadyCacheSchedPolicy::_noSteal ), "Steal tasks from other threads");

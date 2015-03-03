@@ -1,5 +1,6 @@
+
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2012 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,43 +18,38 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_DLB
-#define _NANOS_DLB
+#ifndef _NANOS_TASK_REDUCTION_HPP
+#define _NANOS_TASK_REDUCTION_HPP
 
+#include "task_reduction_decl.hpp"
 
-using namespace nanos;
+inline void * TaskReduction::have_dependence( const void *ptr, size_t id )
+{
+   bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
 
-extern "C" {
-   void DLB_UpdateResources_max( int max_resources ) __attribute__(( weak ));
-   void DLB_UpdateResources( void ) __attribute__(( weak ));
-   void DLB_ReturnClaimedCpus( void ) __attribute__(( weak ));
+   if ( inside ) return & _storage[_size*id];
+   else return NULL;
 }
 
-namespace nanos {
+inline void * TaskReduction::have ( const void *ptr, size_t id )
+{
+   bool inside =  ( ( ptr == _original ) || ( (ptr >= _min) && (ptr <= _max) ) );
 
-   inline void dlb_returnCpusIfNeeded ( void )
-   {
-      if ( sys.dlbEnabled() && DLB_ReturnClaimedCpus && getMyThreadSafe()->getId() == 0 && sys.getPMInterface().isMalleable() )
-         DLB_ReturnClaimedCpus();
-   }
-
-   inline void dlb_updateAvailableCpus ( void )
-   {
-      if ( sys.dlbEnabled() && DLB_UpdateResources_max && getMyThreadSafe()->getId() == 0 ) {
-            DLB_ReturnClaimedCpus();
-
-         if ( sys.getPMInterface().isMalleable() ) {
-            int needed_resources = sys.getSchedulerStats().getReadyTasks() - sys.getSMPPlugin()->getNumWorkers();
-            if ( needed_resources > 0 )
-               DLB_UpdateResources_max( needed_resources );
-
-         } else {
-            DLB_UpdateResources();
-         }
-
-
-      }
-
-   }
+   if ( inside ) return & _storage[_size*id];
+   else return NULL;
 }
+
+inline void * TaskReduction::finalize ( void )
+{
+   void * result = _original;
+   for ( size_t i=1; i< _threads; i++) _reducer( &_storage[0] ,&_storage[i*_size] );
+   _reducer_orig_var( _original, &_storage[0] );
+   return result;
+}
+
+inline unsigned TaskReduction::getDepth(void) const 
+{
+   return _depth;
+}
+
 #endif

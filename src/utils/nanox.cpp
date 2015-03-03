@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <list>
 #include "compatibility.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 
@@ -156,8 +157,8 @@ int main (int argc, char* argv[])
       std::cout << "The runtime configuration can be set using arguments added" << std::endl;
       std::cout << "to the NX_ARGS environment variable or through specialised" << std::endl;
       std::cout << "environment variables. As an example of NX_ARGS, to execute" << std::endl;
-      std::cout << "with verbose mode and 4 PEs the NX_ARGS environment variable" << std::endl;
-      std::cout << "should be: 'NX_ARGS=\"--pes=4 --verbose\"'." << std::endl;
+      std::cout << "with verbose mode and 4 worker threads the NX_ARGS environment" << std::endl;
+      std::cout << "variable should be: 'NX_ARGS=\"--smp-workers=4 --verbose\"'." << std::endl;
       std::cout << std::endl;
       std::cout << "All NX_ARGS and env vars are listed below." << std::endl;
       std::cout << std::endl;

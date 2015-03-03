@@ -2,6 +2,7 @@ master=5028
 worksharing=1000
 deps_api=1001
 copies_api=1004
+task_reduction=1000
 openmp=8
 instrumentation_api=1001
 resiliency=1000

@@ -315,6 +315,10 @@ namespace nanos {
             {
                submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
             }
+            void finalizeAllReductions ( void )
+            {
+               // Perfect region lacks of reduction finalizer
+            }
             
          
       };

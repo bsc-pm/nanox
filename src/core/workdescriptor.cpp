@@ -26,7 +26,7 @@
 #include "system.hpp"
 #include "os.hpp"
 #include "synchronizedcondition.hpp"
-#include "printbt_decl.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 
@@ -129,6 +129,10 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
    // Setting state to ready
    _state = READY; //! \bug This should disapear when handling properly states as flags (#904)
    _mcontrol.setCacheMetaData();
+
+   // Getting run time
+   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() : 0.0 );
+
 }
 
 
@@ -169,6 +173,10 @@ bool WorkDescriptor::isInputDataReady() {
       // Setting state to ready
       setReady();
       //_mcontrol.setCacheMetaData();
+
+      // Getting run time
+      _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() : 0.0 );
+
    }
    return result;
 }
@@ -237,8 +245,9 @@ bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
    bool result;
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
 
-   if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
-   else result = canRunIn( *pe.getDeviceType(), &pe ) ;
+  // if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
+  // else 
+   result = canRunIn( *pe.getDeviceType(), &pe ) ;
 
    return result;   
    //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));
@@ -266,6 +275,9 @@ void WorkDescriptor::submit( bool force_queue )
 
 void WorkDescriptor::finish ()
 {
+   // Getting run time
+   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() - _runTime : 0.0 );
+
    // At that point we are ready to copy data out
    if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );
@@ -280,6 +292,9 @@ void WorkDescriptor::finish ()
 
 void WorkDescriptor::preFinish ()
 {
+   // Getting run time
+   _runTime = ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ? OS::getMonotonicTimeUs() - _runTime : 0.0 );
+
    // At that point we are ready to copy data out
    if ( getNumCopies() > 0 ) {
       _mcontrol.copyDataOut( MemController::WRITE_BACK );
@@ -497,6 +512,11 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
+   _depsDomain->finalizeAllReductions();
+   // Ask for more resources once we have finished creating tasks
+   sys.getThreadManager()->returnClaimedCpus();
+   sys.getThreadManager()->acquireResourcesIfNeeded();
+
    _componentsSyncCond.waitConditionAndSignalers();
    if ( !avoidFlush ) {
       _mcontrol.synchronize();
@@ -510,6 +530,59 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    //! \note It seems that _syncCond.check() generates a race condition here?
    if (componentsLeft == 0) _componentsSyncCond.signal();
    _componentsSyncCond.unreference();
+}
+
+void WorkDescriptor::registerTaskReduction( void *p_orig, void *p_dep, size_t p_size, void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      if ( (*it)->have( p_orig, 0 ) ) break;
+   }
+
+
+   NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+   if ( it == _taskReductions.end() ) {
+      _taskReductions.push_front( new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var, p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+   }
+}
+
+bool WorkDescriptor::removeTaskReduction( void *p_orig, bool del )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      if ( (*it)->have_dependence( p_orig, 0 ) ) break;
+   }
+
+   if ( it != _taskReductions.end() ) {
+       if ( del ) delete (*it);
+       _taskReductions.erase( it );
+       return true;
+   }
+   return false;
+}
+
+void * WorkDescriptor::getTaskReductionThreadStorage( void *p_orig, size_t id )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      void *ptr = (*it)->have( p_orig, id );
+      if ( ptr != NULL ) return ptr;
+   }
+   return NULL;
+}
+
+TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
+{
+   //! Check if orig is already registered
+   task_reduction_list_t::iterator it;
+   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+      void *ptr = (*it)->have_dependence( p_dep, 0 );
+      if ( ptr != NULL ) return (*it);
+   }
+   return NULL;
 }
 
 bool WorkDescriptor::resourceCheck( BaseThread const &thd, bool considerInvalidations ) const {

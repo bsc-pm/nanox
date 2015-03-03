@@ -21,6 +21,7 @@
 #include "schedule.hpp"
 #include "debug.hpp"
 #include "config.hpp"
+#include "basethread.hpp"
 #include <iostream>
 
 using namespace nanos;
@@ -32,7 +33,7 @@ System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active, unsigned int numaNode, unsigned int socket ) :
-   PE( &SMP, NULL, memId, 0 /* always local node */, numaNode, true, socket, true ),
+   PE( &SMP, memId, 0 /* always local node */, numaNode, true, socket, true ),
    _bindingId( bindingId ), _reserved( false ), _active( active ), _futureThreads( 0 ) {}
 
 void SMPProcessor::prepareConfig ( Config &config )
@@ -96,20 +97,24 @@ BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned i
 }
 
 SMPThread &SMPProcessor::associateThisThread( bool untieMain ) {
-   WD & worker = getMasterWD();
-   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
-   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+
+   WD & master = getMasterWD();
+   WD & worker = getWorkerWD();
+
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) master.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (InstrumentationContextData *icd = master.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
-   
+
    SMPThread &thread = (SMPThread &)createThread( worker );
 
+   thread.initMain();
    thread.setMainThread();
-   thread.associate();
+   thread.associate( &master );
 
    getThreads().push_back( &thread );
 
    if ( !untieMain ) {
-      worker.tieTo(thread);
+      master.tieTo(thread);
    }
 
    return thread;

@@ -28,9 +28,9 @@
 #include "basethread.hpp"
 #include "malign.hpp"
 #include "processingelement.hpp"
+#include "basethread.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
-#include "dlb.hpp"
 #include <assert.h>
 #include <string.h>
 #include <signal.h>
@@ -39,6 +39,8 @@
 #include "smpthread.hpp"
 #include "regiondict.hpp"
 #include "smpprocessor.hpp"
+#include "location.hpp"
+#include "router.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -79,7 +81,7 @@ System::System () :
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
-      _enableDLB( false ), _predecessorLists( false ), _throttlePolicy ( NULL ),
+      _predecessorLists( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
@@ -87,7 +89,8 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0)
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0),
+      _numaNodeMap(), _threadManagerConf(), _threadManager( NULL )
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -100,6 +103,7 @@ System::System () :
       , _verboseCopies( false )
       , _splitOutputForThreads( false )
       , _userDefinedNUMANode( -1 )
+      , _router()
       , _hwloc()
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -212,8 +216,8 @@ void System::loadModules ()
       fatal0( "Could not load main barrier algorithm" );
 
    ensure0( _defBarrFactory,"No default system barrier factory" );
-   
 
+   _threadManager = _threadManagerConf.create();
 }
 
 void System::unloadModules ()
@@ -334,10 +338,6 @@ void System::config ()
    cfg.registerArgOption( "instrument-cpuid", "instrument-cpuid" );
 #endif
 
-   cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _enableDLB ),
-                              "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
-   cfg.registerArgOption( "enable-dlb", "enable-dlb" );
-
    /* Cluster: load the cluster support */
    cfg.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _usingCluster, true ), "Enables the usage of Nanos++ Cluster" );
    cfg.registerArgOption ( "enable-cluster", "cluster" );
@@ -381,10 +381,21 @@ void System::config ()
    _schedConf.config( cfg );
 
    _hwloc.config( cfg );
+   _threadManagerConf.config( cfg );
 
    verbose0 ( "Reading Configuration" );
 
    cfg.init();
+   
+   // Now read compiler-supplied flags
+   // Open the own executable
+   void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
+
+   // Check if the compiler marked myself as requiring priorities (#1041)
+   _compilerSuppliedFlags.prioritiesNeeded = dlsym(myself, "nanos_need_priorities_") != NULL;
+   
+   // Close handle to myself
+   dlclose( myself );
 }
 
 void System::start ()
@@ -450,8 +461,6 @@ void System::start ()
       (*it)->addPEs( _pes );
       (*it)->addDevices( _devices );
    }
-
-   
    
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       _clusterNodes.insert( it->second->getClusterNode() );
@@ -547,9 +556,7 @@ void System::start ()
    myThread->setupSignalHandlers();
 #endif
 
-   if ( getSynchronizedStart() )
-      threadReady();
-
+   if ( getSynchronizedStart() ) threadReady();
 
    switch ( getInitialMode() )
    {
@@ -566,6 +573,7 @@ void System::start ()
          break;
    }
 
+   _router.initialize();
    if ( usingCluster() )
    {
       _net.nodeBarrier();
@@ -593,8 +601,7 @@ void System::start ()
       warning( "Unrecognised arguments: " << unrecog );
    Config::deleteOrphanOptions();
       
-   if ( _summary )
-      environmentSummary();
+   if ( _summary ) environmentSummary();
 }
 
 System::~System ()
@@ -604,7 +611,7 @@ System::~System ()
 
 void System::finish ()
 {
-   //! \note Instrumentation: first removing RUNNING state from top of the state statck
+   //! \note Instrumentation: first removing RUNNING state from top of the state stack
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent(NANOS_SHUTDOWN) );
@@ -615,12 +622,20 @@ void System::finish ()
    myThread->getCurrentWD()->waitCompletion( true );
 
    //! \note switching main work descriptor (current) to the main thread to shutdown the runtime 
-   if ( _workers[0]->isSleeping() ) _workers[0]->wakeup();
+   if ( _workers[0]->isSleeping() ) {
+      if ( !_workers[0]->hasTeam() ) {
+         acquireWorker( myThread->getTeam(), _workers[0], true, false, false );
+      }
+      _workers[0]->wakeup();
+   }
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
    myThread->getTeam()->getSchedulePolicy().atShutdown();
    
-   ensure( getMyThreadSafe()->isMainThread(), "Main thread not finishing the application!");
+   ensure( getMyThreadSafe()->isMainThread(), "Main thread is not finishing the application!");
+
+   ThreadTeam* team = getMyThreadSafe()->getTeam();
+   while ( !(team->isStable()) ) memoryFence();
 
    //! \note stopping all threads
    verbose ( "Joining threads..." );
@@ -628,6 +643,7 @@ void System::finish ()
       it->second->stopAllThreads();
    }
    verbose ( "...thread has been joined" );
+
 
    ensure( _schedStats._readyTasks == 0, "Ready task counter has an invalid value!");
 
@@ -670,9 +686,15 @@ void System::finish ()
       sys.getNetwork()->nodeBarrier();
    }
 
+   //! \note Master leaves team and finalizes thread structures (before insrumentation ends)
+   _workers[0]->finish();
+
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+
+   //! \note stopping and deleting the thread manager
+   delete _threadManager;
 
    //! \note stopping and deleting the programming model interface
    _pmInterface->finish();
@@ -695,14 +717,9 @@ void System::finish ()
    }
    
    //! \note  printing thread team statistics and deleting it
-   ThreadTeam* team = getMyThreadSafe()->getTeam();
-
    if ( team->getScheduleData() != NULL ) team->getScheduleData()->printStats();
 
-   myThread->leaveTeam();
-
    ensure(team->size() == 0, "Trying to finish execution, but team is still not empty");
-
    delete team;
 
    //! \note deleting processing elements (but main pe)
@@ -916,9 +933,6 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( dyn_props->priority );
-      wd->setFinal ( dyn_props->flags.is_final );
-      wd->setRecoverable ( dyn_props->flags.is_recover);
    }
 
    // Set dynamic properties
@@ -932,12 +946,21 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    
    /* DLB */
    // In case the master have been busy crating tasks 
-   // every 10 tasks created I'll check available cpus
-   if(_atomicWDSeed.value()%10==0)dlb_updateAvailableCpus();
+   // every 10 tasks created I'll check if I must return claimed cpus
+   // or there are available cpus idle
+   if(_atomicWDSeed.value()%10==0){
+      _threadManager->returnClaimedCpus();
+      _threadManager->acquireResourcesIfNeeded();
+   }
 
    if (_createLocalTasks) {
       wd->tieToLocation( 0 );
    }
+
+#ifndef ON_TASK_REDUCTION
+#else
+   wd->copyReductions((WorkDescriptor *)uwg);
+#endif
 }
 
 /*! \brief Duplicates the whole structure for a given WD
@@ -1190,7 +1213,7 @@ BaseThread * System::getUnassignedWorker ( void )
       if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
          // skip if the thread is not in the mask
-         if ( _smpPlugin->getBinding() && !CPU_ISSET( thread->getCpuId(), &_smpPlugin->getActiveSet() ) ) {
+         if ( _smpPlugin->getBinding() && !CPU_ISSET( thread->getCpuId(), &_smpPlugin->getCpuActiveMask() ) ) {
             continue;
          }
 
@@ -1212,6 +1235,53 @@ BaseThread * System::getUnassignedWorker ( void )
 
    return NULL;
 }
+
+#if 0
+BaseThread * System::getInactiveWorker ( void )
+{
+   BaseThread *thread;
+
+   for ( unsigned i = 0; i < _workers.size(); i++ ) {
+      thread = _workers[i];
+      if ( !thread->hasTeam() && thread->isWaiting() ) {
+         // recheck availability with exclusive access
+         thread->lock();
+         if ( thread->hasTeam() || !thread->isWaiting() ) {
+            // we lost it
+            thread->unlock();
+            continue;
+         }
+         thread->reserve(); // set team flag only
+         thread->wakeup();
+         thread->unlock();
+
+         return thread;
+      }
+   }
+   return NULL;
+}
+
+
+BaseThread * System::getAssignedWorker ( ThreadTeam *team )
+{
+   BaseThread *thread;
+
+   ThreadList::reverse_iterator rit;
+   for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
+      thread = *rit;
+      thread->lock();
+      //! \note Checking thread availabitity.
+      if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
+         thread->unlock();
+         return thread;
+      }
+      thread->unlock();
+   }
+
+   //! \note If no thread has found, return NULL.
+   return NULL;
+}
+#endif
 
 BaseThread * System::getWorker ( unsigned int n )
 {
@@ -1246,19 +1316,6 @@ void System::acquireWorker ( ThreadTeam * team, BaseThread * thread, bool enter,
    else thread->setNextTeamData( data );
 
    debug( "added thread " << thread << " with id " << toString<int>(thId) << " to " << team );
-}
-
-void System::releaseWorker ( BaseThread * thread )
-{
-   ensure( myThread == thread, "Calling release worker from other thread context" );
-
-   //! \todo Destroy if too many?
-   debug("Releasing thread " << thread << " from team " << thread->getTeam() );
-
-   thread->lock();
-   thread->sleep();
-   thread->unlock();
-
 }
 
 int System::getNumWorkers( DeviceData *arch )
@@ -1314,7 +1371,10 @@ void System::endTeam ( ThreadTeam *team )
 {
    debug("Destroying thread team " << team << " with size " << team->size() );
 
-   dlb_returnCpusIfNeeded();
+   /* For OpenMP applications
+      At the end of the parallel return the claimed cpus
+   */
+   _threadManager->returnClaimedCpus();
    while ( team->size ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
@@ -1349,21 +1409,8 @@ void System::addPEsAndThreadsToTeam(PE **pes, int num_pes, BaseThread** threads,
     }
 }
 
-void System::admitCurrentThread ( bool isWorker )
-{
-   _smpPlugin->admitCurrentThread( _workers, isWorker );
-}
-
-void System::expelCurrentThread ( bool isWorker )
-{
-   _smpPlugin->expelCurrentThread( _workers, isWorker );
-}
-
 void System::environmentSummary( void )
 {
-   std::ostringstream mask;
-   _smpPlugin->getBindingMaskString( mask );
-
    /* Get Prog. Model string */
    std::string prog_model;
    switch ( getInitialMode() )
@@ -1381,20 +1428,20 @@ void System::environmentSummary( void )
 
    message0( "========== Nanos++ Initial Environment Summary ==========" );
    message0( "=== PID:                 " << getpid() );
-   //message0( "=== Num. SMP threads:        " << _smpPlugin->getNumThreads() );
-   //message0( "=== Num. SMP worker threads: " << _smpPlugin->getNumWorkers() );
    message0( "=== Num. worker threads: " << _workers.size() );
-   message0( "=== System CPUs:         " << mask.str() );
+   message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
    message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
    message0( "=== Prog. Model:         " << prog_model );
+   message0( "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed") << " / " << ( _defSchedulePolicy->usingPriorities() ? "enabled" : "disabled" ) );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it ) {
       message0( "=== Plugin:              " << (*it)->getName() );
       message0( "===  | PEs:              " << (*it)->getNumPEs() );
-      message0( "===  | Threads:          " << (*it)->getNumThreads() );
       message0( "===  | Worker Threads:   " << (*it)->getNumWorkers() );
    }
+
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->getInstrumentationDictionary()->printEventVerbosity(); )
 
    message0( "=========================================================" );
 

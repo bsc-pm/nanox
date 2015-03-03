@@ -22,7 +22,6 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-int size;
 /*
 typedef List<int,int> IntList;
 typedef ListNode<int,int> IntNode;
@@ -210,21 +209,17 @@ int main (int argc, char **argv)
 */
 
    cout << "start threaded tests" << endl;
+
    //all threads perform a barrier , before the barrier they will freely access the list
+   WD *wg = getMyThreadSafe()->getCurrentWD();
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
-   size = team.size();
-   for ( i = 1; i < team.size(); i++ ) {
-          WD * wd = new WD(new SMPDD(barrier_code));
-          wd->tieTo(team[i]);
-          sys.submit(*wd);
+   for ( i = 0; i < team.size(); i++ ) {
+      WD * wd = new WD(new SMPDD(barrier_code));
+      wg->addWork( *wd );
+      wd->tieTo(team[i]);
+      sys.submit(*wd);
    }
-   usleep(100);
-
-   WD *wd = getMyThreadSafe()->getCurrentWD();
-   wd->tieTo(*getMyThreadSafe());
-
-   mainWD = wd;
-   barrier_code(NULL);
+   wg->waitCompletion();
 
    cout << "end" << endl;
 }

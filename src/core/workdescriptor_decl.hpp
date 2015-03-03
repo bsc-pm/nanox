@@ -39,8 +39,8 @@
 #include "memcontroller_decl.hpp"
 
 #include "dependenciesdomain_decl.hpp"
+#include "task_reduction_decl.hpp"
 #include "simpleallocator_decl.hpp"
-
 #include "schedule_fwd.hpp"   // ScheduleWDData
 
 namespace nanos
@@ -222,6 +222,7 @@ typedef std::set<const Device *>  DeviceList;
          typedef int PriorityType;
          typedef enum { INIT, START, READY, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
+         typedef std::list<TaskReduction *>        task_reduction_list_t;  //< List of task reductions type
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
          int                           _hostId;                 //!< Work descriptor identifier @ host
@@ -252,8 +253,10 @@ typedef std::set<const Device *>  DeviceList;
          CopyData                     *_copies;                 //!< Copy-in / Copy-out data
          size_t                        _paramsSize;             //!< Total size of WD's parameters
          unsigned long                 _versionGroupId;         //!< The way to link different implementations of a task into the same group
-         double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time
-         double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time
+         double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time, accounting data transfers
+         double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time, accounting data transfers
+         double                        _runTime;          //!< FIXME:scheduler data. WD starting wall-clock time, without data transfers
+         double                        _estimatedRunTime;      //!< FIXME:scheduler data. WD estimated execution time, without data transfers
          DOSubmit                     *_doSubmit;               //!< DependableObject representing this WD in its parent's depsendencies domain
          LazyInit<DOWait>              _doWait;                 //!< DependableObject used by this task to wait on dependencies
          DependenciesDomain           *_depsDomain;             //!< Dependences domain. Each WD has one where DependableObjects can be submitted            //!< Directory to mantain cache coherence
@@ -266,6 +269,7 @@ typedef std::set<const Device *>  DeviceList;
          const char                   *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
+         task_reduction_list_t        _taskReductions;   //< List of task reductions
          int                           _criticality;
          //Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          //bool _listed;
@@ -542,17 +546,33 @@ typedef std::set<const Device *>  DeviceList;
           */
          void setVersionGroupId( unsigned long id );
 
-         /*! \brief returns the total execution time of the WD
+         /*! \brief returns the total execution time of the WD, accounting data transfers
           */
          double getExecutionTime() const;
 
-         /*! \brief returns the estimated execution time of the WD
+         /*! \brief returns the estimated execution time of the WD, accounting data transfers
           */
          double getEstimatedExecutionTime() const;
 
-         /*! \brief sets the estimated execution time of the WD
+         /*! \brief sets the estimated execution time of the WD, accounting data transfers
           */
          void setEstimatedExecutionTime( double time );
+
+         /*! \brief returns the running time of the WD, without data transfers
+          */
+         double getRunTime() const;
+
+         /*! \brief sets the running time of the WD, without data transfers
+          */
+         void setRunTime( double time );
+
+         /*! \brief returns the estimated execution time of the WD, without data transfers
+          */
+         double getEstimatedRunTime() const;
+
+         /*! \brief sets the estimated execution time of the WD, without data transfers
+          */
+         void setEstimatedRunTime( double time );
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */
@@ -670,8 +690,15 @@ typedef std::set<const Device *>  DeviceList;
          //!
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
-         void convertToRegularWD( void );
+         void convertToRegularWD();
 
+         void registerTaskReduction( void *p_orig, void *dep, size_t p_size, void (*p_init)( void *, void * ),
+                 void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ));
+
+         bool removeTaskReduction( void *p_orig, bool del = false );
+         void * getTaskReductionThreadStorage( void *p_orig, size_t id );
+         TaskReduction * getTaskReduction( const void *p_dep );
+         void copyReductions(WorkDescriptor *parent);
          bool resourceCheck( BaseThread const &thd, bool considerInvalidations ) const;
 
          void setId( unsigned int id );

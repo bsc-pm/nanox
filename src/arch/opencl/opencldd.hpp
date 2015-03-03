@@ -20,7 +20,7 @@
 #ifndef _NANOS_OpenCL_WD
 #define _NANOS_OpenCL_WD
 
-#include "workdescriptor.hpp"
+#include "workdescriptor_fwd.hpp"
 #include "debug.hpp"
 #include "opencldevice_decl.hpp"
 

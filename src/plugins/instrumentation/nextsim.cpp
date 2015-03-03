@@ -495,7 +495,7 @@ class InstrumentationTasksimTracePlugin : public Plugin {
       void init ()
       {
          sys.setInstrumentation( new InstrumentationTasksimTrace() );
-         sys.getSchedulerConf().setUseYield(true);
+         sys.getThreadManagerConf().setUseYield(true);
       }
 };
 

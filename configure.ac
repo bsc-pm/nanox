@@ -14,6 +14,9 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
+# Turn off static libraries.
+LT_INIT([disable-static])
+
 dnl Enable silent rules if available
 supported_silent_rules=1
 m4_ifdef([AM_SILENT_RULES],
@@ -1113,6 +1116,34 @@ AC_ARG_WITH([chapel],
 
 AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
+
+# Check for DLB support
+AC_MSG_CHECKING([for DLB support])
+AC_ARG_WITH([dlb],
+   AS_HELP_STRING([--with-dlb=dir], [Directory of DLB installation]),
+   [
+      dlb_path="$withval"
+   ],
+   [
+      dlb_path="not_set"
+   ]
+)
+
+if test ${dlb_path} != "no" -a ${dlb_path} != "not_set" ; then
+   DLB_INC="$dlb_path/include"
+   DLB_LIB="$dlb_path/lib"
+   if test ! -d ${dlb_path} -o ! -f ${DLB_INC}/DLB_interface.h -o ! -f ${DLB_LIB}/libdlb.so ; then
+      AC_MSG_ERROR([Attention! You have passed an invalid DLB location.])
+   fi
+   dlb=yes
+else
+   dlb=no
+fi
+AC_MSG_RESULT([${dlb}])
+
+AM_CONDITIONAL([DLB], [test x"$dlb" = "xyes"])
+AC_SUBST([DLB_INC])
+AC_SUBST([DLB_LIB])
 
 # Check MKL Support
 AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])

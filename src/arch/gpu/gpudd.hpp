@@ -21,7 +21,7 @@
 #define _NANOS_GPU_WD
 
 #include "gpudevice_decl.hpp"
-#include "workdescriptor.hpp"
+#include "workdescriptor_fwd.hpp"
 
 namespace nanos {
 namespace ext

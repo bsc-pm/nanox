@@ -37,10 +37,12 @@
 #include "archplugin_decl.hpp"
 #include "barrier_decl.hpp"
 #include "accelerator_decl.hpp"
-#include "location.hpp"
+#include "location_decl.hpp"
 #include "addressspace_decl.hpp"
 #include "smpbaseplugin_decl.hpp"
 #include "hwloc_decl.hpp"
+#include "threadmanager_decl.hpp"
+#include "router_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
 
@@ -80,6 +82,15 @@ namespace nanos
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          typedef std::vector<ArchPlugin*> ArchitecturePlugins;
          
+         //! \brief Compiler supplied flags in symbols
+         struct SuppliedFlags
+         {
+            //! If the program is using priorities
+            bool prioritiesNeeded : 1;
+         };
+         
+         SuppliedFlags        _compilerSuppliedFlags; /*!< \brief Compiler supplied flags */
+         
          // global seeds
          Atomic<int> _atomicWDSeed; /*!< \brief ID seed for new WD's */
          Atomic<int> _threadIdSeed; /*!< \brief ID seed for new threads */
@@ -97,8 +108,6 @@ namespace nanos
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _synchronizedStart;
-         //! Enable Dynamic Load Balancing library
-         bool                 _enableDLB;
          //! Maintain predecessors list, disabled by default, used by botlev and async threads (#1027)
          bool                 _predecessorLists;
 
@@ -191,7 +200,11 @@ namespace nanos
          unsigned int                                  _acceleratorCount;
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>                              _numaNodeMap;
-         
+
+         /*! Thread Manager members */
+         ThreadManagerConf                             _threadManagerConf;
+         ThreadManager *                               _threadManager;
+
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
@@ -215,23 +228,11 @@ namespace nanos
          System( const System &sys );
          const System & operator= ( const System &sys );
 
+         //! \brief Reads environment variables and compiler-supplied flags
          void config ();
          void loadModules();
          void unloadModules();
 
-         /*!
-          * \brief Updates team members so that it matches with system's _cpu_active_set
-          */
-         void applyCpuMask();
-
-         /*!
-          * \brief Processes the system's _cpu_active_set for later update the threads
-          *
-          * Depending on the system binding configuration, this function will update _bindings to be able
-          * later to create new PE's or just update the raw number of threads if binding is disabled
-          */
-         void processCpuMask( void );
-         
          Atomic<int> _atomicSeedWg;
          Atomic<unsigned int> _affinityFailureCount;
          bool                      _createLocalTasks;
@@ -239,6 +240,7 @@ namespace nanos
          bool _verboseCopies;
          bool _splitOutputForThreads;
          int _userDefinedNUMANode;
+         Router _router;
       public:
          Hwloc _hwloc;
 
@@ -299,12 +301,6 @@ namespace nanos
           */
          DeviceList & getSupportedDevices();
 
-         /*!
-          * \brief Add mas to the current system's _cpu_active_set
-          * \param[in] mask
-          */
-         void addCpuMask ( const cpu_set_t *mask );
-
          void setDeviceStackSize ( int stackSize );
 
          int getDeviceStackSize () const;
@@ -355,11 +351,6 @@ namespace nanos
          unsigned int nextPEId ();
 
          bool isSummaryEnabled() const;
-         
-         /*!
-          * \brief Returns whether DLB is enabled or not
-          */
-         bool dlbEnabled() const;
 
          /*!
           * \brief Returns the maximum number of times a task can try to recover from an error by re-executing itself.
@@ -372,16 +363,6 @@ namespace nanos
           */
          BaseThread * getUnassignedWorker ( void );
 
-         /*!
-          * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
-          */
-         //BaseThread * getAssignedWorker ( ThreadTeam *team );
-
-         /*!
-          * \brief Returns, if any, the worker thread is inactive
-          */
-         //BaseThread * getInactiveWorker ( void );
-  
          /*!
           * \brief Returns a new team of threads 
           * \param[in] nthreads Number of threads in the team.
@@ -396,16 +377,60 @@ namespace nanos
          void endTeam ( ThreadTeam *team );
 
          /*!
-          * \brief Releases a worker thread from its team
-          * \param[in,out] thread
-          */
-         void releaseWorker ( BaseThread * thread );
-
-         /*!
           * \brief Updates the number of active worker threads and adds them to the main team
           * \param[in] nthreads
           */
          void updateActiveWorkers ( int nthreads );
+
+         /*!
+          * \brief Get the process mask of active CPUs by reference
+          */
+         const cpu_set_t& getCpuProcessMask () const;
+
+         /*!
+          * \brief Get the process mask of active CPUs
+          * \param[out] mask
+          */
+         void getCpuProcessMask ( cpu_set_t *mask ) const;
+
+         /*!
+          * \brief Set the process mask
+          * \param[in] mask
+          * \return True if the mask was completely set,
+          *          False if the mask was either invalid or only partially set
+          */
+         bool setCpuProcessMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current process mask
+          * \param[in] mask
+          */
+         void addCpuProcessMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Get the current mask of active CPUs by reference
+          */
+         const cpu_set_t& getCpuActiveMask () const;
+
+         /*!
+          * \brief Get the current mask of active CPUs
+          * \param[out] mask
+          */
+         void getCpuActiveMask ( cpu_set_t *mask ) const;
+
+         /*!
+          * \brief Set the mask of active CPUs
+          * \param[in] mask
+          * \return True if the mask was completely set,
+          *          False if the mask was either invalid or only partially set
+          */
+         bool setCpuActiveMask ( const cpu_set_t *mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current mask of active CPUs
+          * \param[in] mask
+          */
+         void addCpuActiveMask ( const cpu_set_t *mask );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
@@ -519,9 +544,6 @@ namespace nanos
          size_t registerArchitecture( ArchPlugin * plugin );
 
 #ifdef GPU_DEV
-         char * getOmpssUsesCuda();
-         char * getOmpssUsesCublas();
-
          PinnedAllocator& getPinnedAllocatorCUDA();
 #endif
 
@@ -634,6 +656,14 @@ namespace nanos
 
          unsigned int getNumAccelerators() const;
          unsigned int getNewAcceleratorId();
+         memory_space_id_t getMemorySpaceIdOfAccelerator( unsigned int acceleratorId ) const;
+
+         const ThreadManagerConf& getThreadManagerConf() const;
+         ThreadManager* getThreadManager() const;
+         
+         //! \brief Returns true if the compiler says priorities are required
+         bool getPrioritiesNeeded() const;
+         Router& getRouter();
    };
 
    extern System sys;

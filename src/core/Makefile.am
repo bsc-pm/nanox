@@ -34,6 +34,7 @@ devinclude_HEADERS = \
 	barrier.hpp \
 	cachedaccelerator_decl.hpp \
 	cachedaccelerator.hpp \
+	threadmanager_decl.hpp \
 	threadteam_fwd.hpp \
 	threadteam_decl.hpp \
 	threadteam.hpp \
@@ -137,6 +138,11 @@ devinclude_HEADERS = \
 	trackableobject.hpp \
 	hwloc_decl.hpp \
 	regionset_decl.hpp \
+	router_fwd.hpp \
+	router_decl.hpp \
+	router.hpp \
+   task_reduction_decl.hpp \
+   task_reduction.hpp \
 	$(END)
 
 common_sources=\
@@ -278,6 +284,10 @@ common_sources=\
 	hwloc.cpp \
 	regionset_decl.hpp \
 	regionset.cpp \
+	threadmanager_decl.hpp \
+	threadmanager.cpp \
+   task_reduction_decl.hpp \
+   task_reduction.hpp \
 	$(END)
 
 instr_sources = \

@@ -29,6 +29,7 @@
 #include "system.hpp"
 #include "wddeque.hpp"
 #include "device_instrumentation.hpp"
+#include "basethread.hpp"
 
 #include <cuda_runtime.h>
 #ifdef NANOS_GPU_USE_CUDA32
@@ -102,57 +103,12 @@ void GPUThread::join()
 
 void GPUThread::wait()
 {
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t cpuid_key = ID->getEventKey("cpuid"); )
-   NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
-
-   lock();
-   _pthread.mutexLock();
-
-   ThreadTeam *team = getTeam();
-
-   if ( hasNextWD() ) {
-      WD *next = getNextWD();
-      next->untie();
-      team->getSchedulePolicy().queue( this, *next );
-   }
-   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
-
-   if ( team != NULL ) leaveTeam();
-
-   if ( isSleeping() ) {
-      BaseThread::wait();
-
-      unlock();
-      _pthread.condWait();
-
-      //! \note Then we call base thread wakeup, which just mark thread as active
-      lock();
-      BaseThread::resume();
-      BaseThread::wakeup();
-      unlock();
-   } else {
-      unlock();
-   }
-
-   _pthread.mutexUnlock();
-
-   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
-   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+   fatal("A GPUThread cannot call wait function.");
 }
 
 void GPUThread::wakeup()
 {
-   //! \note This function has to be in free race condition environment or externally
-   // protected, when called, with the thread common lock: lock() & unlock() functions.
-
-   //! \note If thread is not marked as waiting, just ignore wakeup
-   if ( !isSleeping() || !isWaiting() ) return;
-
-   _pthread.wakeup();
+   fatal("A GPUThread cannot call wakeup function.");
 }
 
 void GPUThread::switchTo( WD *work, SchedulerHelper *helper )
@@ -445,6 +401,10 @@ void GPUThread::raiseWDRunEvent ( WD * wd )
    //double tend = nanos::OS::getMonotonicTimeUs() - tstart;
 
    //std::cout << "Start  " << ( int ) tend << std::endl;
+
+   if ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ) {
+      wd->setRunTime( OS::getMonotonicTimeUs() );
+   }
 
 }
 
