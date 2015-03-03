@@ -503,6 +503,64 @@ namespace nanos
    }
 
 
+   /* !\brief Condition that calls a member function with 1 parameter
+    */
+   template <typename Class, typename T>
+   struct ConditionMemFunPtr1 : public Condition
+   {
+      public:
+         typedef bool ( Class::*MemFunPtr1 )( T );
+
+      private:
+         MemFunPtr1 _fptr;
+         Class &_obj;
+         T _param1;
+
+      public:
+         ConditionMemFunPtr1 ( MemFunPtr1 fptr, Class *obj, T param1 ) : _fptr( fptr ), _obj( obj ), _param1( param1 ) {}
+         virtual bool check() { return ( _obj.*_fptr )( _param1 ); }
+
+   };
+
+   /* !\brief Wrapper for member functions with 1 parameter
+    */
+   template <typename Class, typename Param>
+   Condition* new_condition( bool ( Class::*fun )( Param ), Class &obj, Param p );
+
+   template <typename Class, typename Param>
+   Condition* new_condition( bool ( Class::*fun )( Param ), Class &obj, Param p )
+   {
+      return NEW ConditionMemFunPtr1<Class, Param>( fun, obj, p );
+   }
+
+
+   /* !\brief NOT function implementation for 2 Condition objects
+    */
+   struct NotCondition : public Condition
+   {
+      private:
+         Condition * _cond;
+
+      public:
+         NotCondition ( Condition * cond ) : _cond( cond ) {}
+         virtual bool check() { return !_cond->check(); }
+   };
+
+
+   /* !\brief OR function implementation for 2 Condition objects
+    */
+   struct OrCondition : public Condition
+   {
+      private:
+         Condition * _condA;
+         Condition * _condB;
+
+      public:
+         OrCondition ( Condition * condA, Condition * condB ) : _condA( condA ), _condB( condB ) {}
+         virtual bool check() { return _condA->check() || _condB->check(); }
+   };
+
+
    class CustomEvent : public GenericEvent
    {
       protected:

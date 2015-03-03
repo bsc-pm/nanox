@@ -374,10 +374,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    unsigned int checks = (unsigned int) sys.getSchedulerConf().getNumChecks();
 
-   WD * current = myThread->getCurrentWD();
+   BaseThread *thread = getMyThreadSafe();
+   WD * current = thread->getCurrentWD();
    current->setSyncCond( condition );
    
-   BaseThread *thread = getMyThreadSafe();
    bool supportULT = thread->runningOn()->supportsUserLevelThreads();
 
    while ( !condition->check() /* FIXME:xteruel do we needed? && thread->isRunning() */) {
@@ -388,7 +388,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             //! If condition is not acomplished yet, release wd and get more work to do
 
             //! First checking prefetching queue
-            WD * next = myThread->getNextWD();
+            WD * next = thread->getNextWD();
 
             if ( !thread->isSleeping() ) {
                //! Second calling scheduler policy at block
@@ -402,7 +402,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             }
 
             //! Finally coming back to our Thread's WD (idle task)
-            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(myThread->getThreadWD());
+            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(thread->getThreadWD());
 
             //! If found a wd to switch to, execute it
             if ( next ) {

@@ -63,7 +63,8 @@ using namespace nanos;
 /**********************************/
 
 ThreadManagerConf::ThreadManagerConf()
-   : _tm(), _numYields(1), _useYield(false), _useBlock(false), _useDLB(false), _forceTieMaster(false)
+   : _tm(), _numYields(1), _useYield(false), _useBlock(false), _useDLB(false),
+   _forceTieMaster(false), _warmupThreads( false )
 {
 }
 
@@ -99,6 +100,10 @@ void ThreadManagerConf::config( Config &cfg )
    cfg.registerConfigOption( "force-tie-master", NEW Config::FlagOption ( _forceTieMaster ),
                               "Force Master WD (user code) to run on Master Thread" );
    cfg.registerArgOption( "force-tie-master", "force-tie-master" );
+
+   cfg.registerConfigOption( "warmup-threads", NEW Config::FlagOption( _warmupThreads, true ),
+            "Force the creation of as many threads as available CPUs at initialization time, then block them immediately if needed" );
+   cfg.registerArgOption( "warmup-threads", "warmup-threads" );
 }
 
 ThreadManager* ThreadManagerConf::create()
@@ -157,6 +162,11 @@ bool ThreadManagerConf::canUntieMaster() const
    }
 }
 
+bool ThreadManagerConf::threadWarmupEnabled() const
+{
+   return _warmupThreads;
+}
+
 /**********************************/
 /********* Thread Manager *********/
 /**********************************/
@@ -166,13 +176,23 @@ bool ThreadManagerConf::canUntieMaster() const
 bool ThreadManager::lastActiveThread()
 {
    // We omit the test if the cpu does not belong to my process_mask
-   int my_cpu = getMyThreadSafe()->getCpuId();
+   BaseThread *thread = getMyThreadSafe();
+   int my_cpu = thread->getCpuId();
    if ( !CPU_ISSET( my_cpu, &(sys.getCpuProcessMask()) ) ) return false;
 
    LockBlock Lock( _lock );
    cpu_set_t mine_and_active;
    CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
-   return ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) );
+
+   bool last = CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active );
+
+   if ( last ) {
+      // If we get here, my_cpu is the last active, but we must support thread oversubscription
+      if ( thread->runningOn()->getRunningThreads() > 1 ) {
+         last = false;
+      }
+   }
+   return last;
 }
 
 /**********************************/

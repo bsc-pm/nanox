@@ -130,6 +130,7 @@ namespace nanos
          virtual void sleepThreads();
 
          std::size_t getNumThreads() const;
+         std::size_t getRunningThreads() const;
    };
 
    typedef class ProcessingElement PE;

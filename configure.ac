@@ -14,6 +14,8 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
+# AM_PROG_AR must be called before LT_INIT or a warning ensues
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 # Turn off static libraries.
 LT_INIT([disable-static])
 
@@ -276,8 +278,6 @@ AC_SUBST([mpi_valid])
 
 
 # Check for programs (every compiler change should be done before this line)
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-AC_PROG_LIBTOOL
 AC_PROG_CC([$CC])
 AC_PROG_CPP
 AM_PROG_CC_C_O

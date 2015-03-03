@@ -66,7 +66,7 @@ namespace nanos
          int                          _idleThreads;
          int                          _numTasks;
          Barrier &                    _barrier;
-         int                          _singleGuardCount;
+         volatile int                 _singleGuardCount;
          SchedulePolicy &             _schedulePolicy;
          ScheduleTeamData *           _scheduleData;
          ThreadTeamData &             _threadTeamData;

@@ -355,6 +355,8 @@ inline DOSubmit * WorkDescriptor::getDOSubmit() { return _doSubmit; }
 
 inline int WorkDescriptor::getNumDepsPredecessors() { return ( _doSubmit == NULL ? 0 : _doSubmit->numPredecessors() ); }
 
+inline bool WorkDescriptor::hasDepsPredecessors() { return ( _doSubmit == NULL ? false : ( _doSubmit->numPredecessors() != 0 ) ); }
+
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
 {
    wd._doSubmit = NEW DOSubmit();

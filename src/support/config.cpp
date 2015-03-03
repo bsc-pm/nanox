@@ -41,7 +41,7 @@ Config::ConfigOrphansMap *Config::_orphanOptionsMap = NULL;
 
 void Config::NanosHelp::addHelpString ( const std::string &section, const HelpTriplet& ht )
 {
-   _helpSections[section].push_back( ht );
+   _helpSections[section].insert( ht );
 }
 
 void Config::NanosHelp::addSectionDescription ( const std::string &section, const std::string &description )
@@ -67,7 +67,7 @@ void Config::NanosHelp::buildSectionHelp( std::stringstream &helpString, const s
       std::stringstream envHelpString;
 
       for ( HelpStringList::iterator it = optionsHelpList.begin(); it != optionsHelpList.end(); it++ ) {
-         HelpTriplet& ht = *it;
+         const HelpTriplet& ht = *it;
          std::string argHelp = ht.getArgHelp(helpLength);
          std::string envHelp = ht.getEnvHelp(helpLength);
 
@@ -420,7 +420,7 @@ Config::HelpTriplet Config::BaseConfigOption::getHelp()
 }
 
 
-size_t Config::HelpTriplet::getHelpLength()
+size_t Config::HelpTriplet::getHelpLength() const
 {
    size_t envHelpSize = _envHelp.size();
    size_t argHelpSize = _argHelp.size();
@@ -429,7 +429,7 @@ size_t Config::HelpTriplet::getHelpLength()
    return argHelpSize;
 }
 
-std::string Config::HelpTriplet::getEnvHelp( size_t size )
+std::string Config::HelpTriplet::getEnvHelp( size_t size ) const
 {
    if ( _envHelp == "" ) return "";
    std::string help = "";
@@ -440,7 +440,7 @@ std::string Config::HelpTriplet::getEnvHelp( size_t size )
    return help;
 }
 
-std::string Config::HelpTriplet::getArgHelp( size_t size )
+std::string Config::HelpTriplet::getArgHelp( size_t size ) const
 {
    if ( _argHelp == "" ) return "";
    std::string help = "";
