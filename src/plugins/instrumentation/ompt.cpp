@@ -230,15 +230,12 @@ extern "C" {
          ancestor_level--;
       }
       if ( tt != NULL ) {
-         nanos::ompt::_lock.acquire();
 
+         nanos::ompt::_lock.acquire();
          if ( nanos::ompt::map_parallel_id.find((void *) tt ) != nanos::ompt::map_parallel_id.end() )
             rv = nanos::ompt::map_parallel_id[(void *) tt];
-         else {
-            rv = nanos::ompt::count_parallel_id++;
-            nanos::ompt::map_parallel_id[(void *) tt] = rv;
-         }
-
+         else
+            rv = (ompt_parallel_id_t) 0;
          nanos::ompt::_lock.release();
       }
       
@@ -349,6 +346,7 @@ namespace nanos
             static const nanos_event_value_t api_barrier = iD->getEventValue("api","omp_barrier");
 
             static const nanos_event_key_t parallel_outline = iD->getEventKey("parallel-outline-fct");
+            static const nanos_event_key_t team_info = iD->getEventKey("team-ptr");
             static const nanos_event_key_t dependence =  iD->getEventKey("dependence");
             static const nanos_event_key_t dep_direction = iD->getEventKey("dep-direction");
             static const nanos_event_key_t dep_address = iD->getEventKey("dep-address");
@@ -412,35 +410,38 @@ namespace nanos
                      {
                         nanos_event_value_t val = e.getValue();
 
-                        if ( val == api_create_team && ompt_nanos_event_parallel_begin ) {
-                           uint32_t team_size = 0;
-                           void *parallel_fct = NULL;
+                        // getting current team id
+                        ThreadTeam *tt = myThread->getTeam();
+                        ompt_parallel_id_t team_id = 0;
+                        if ( tt != NULL ) {
+                           nanos::ompt::_lock.acquire();
+                           if ( nanos::ompt::map_parallel_id.find((void *) tt ) != nanos::ompt::map_parallel_id.end() )
+                              team_id = nanos::ompt::map_parallel_id[(void *) tt];
+                           nanos::ompt::_lock.release();
+                        }
+
+                        if ( val == api_end_team && ompt_nanos_event_parallel_end ) {
+                           void *team_ptr = NULL;
+                           ompt_parallel_id_t p_id = 0;
                            while ( i < count ) {
                               Event &e1 = events[++i];
-                              if ( e1.getKey() == set_num_threads ) {
-                                 team_size = (uint32_t) e1.getValue();
-                              }
-                              else if ( e1.getKey() == parallel_outline ) {
-                                 parallel_fct = (void *) e1.getValue();
+                              if ( e1.getKey() == team_info) {
+                                 team_ptr = (void *) e1.getValue();
+                                 nanos::ompt::_lock.acquire();
+                                 if ( nanos::ompt::map_parallel_id.find((void *) team_ptr ) != nanos::ompt::map_parallel_id.end() ) {
+                                    p_id = nanos::ompt::map_parallel_id[(void *) team_ptr];
+                                 }
+                                 nanos::ompt::_lock.release();
                                  break;
                               }
                            }
-
-                           ompt_nanos_event_parallel_begin (
-                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
-                                 (ompt_frame_t) NULL,    // FIXME: frame data of parent task
-                                 (ompt_parallel_id_t) 0, // FIXME: parallel_id
-                                 (uint32_t) team_size,
-                                 (void *) parallel_fct  
-                                 );
-                        } else if ( val == api_end_team && ompt_nanos_event_parallel_end ) {
                            ompt_nanos_event_parallel_end (
-                                 (ompt_parallel_id_t) 0, // FIXME: parallel_id
+                                 (ompt_parallel_id_t) p_id,
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
                         } else if ( val == api_barrier && ompt_nanos_event_barrier_begin ) {
                            fprintf(stderr,"Hola\n"); // FIXME:xteruel
                            ompt_nanos_event_barrier_begin (
-                                 (ompt_parallel_id_t) 0, // FIXME: parallel_id
+                                 (ompt_parallel_id_t) team_id,
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
                         }
 
@@ -455,6 +456,38 @@ namespace nanos
                            ompt_nanos_event_barrier_end (
                                  (ompt_parallel_id_t) 0, // FIXME: parallel_id
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
+                        } else if ( val == api_create_team && ompt_nanos_event_parallel_begin ) {
+                           uint32_t team_size = 0;
+                           void *parallel_fct = NULL;
+                           void *team_ptr = NULL;
+                           ompt_parallel_id_t p_id = 0;
+
+                           while ( i < count ) {
+                              Event &e1 = events[++i];
+                              if ( e1.getKey() == set_num_threads ) {
+                                 team_size = (uint32_t) e1.getValue();
+                              }
+                              else if ( e1.getKey() == parallel_outline ) {
+                                 parallel_fct = (void *) e1.getValue();
+                              } else if ( e1.getKey() == team_info) {
+                                 team_ptr = (void *) e1.getValue();
+                                 nanos::ompt::_lock.acquire();
+                                 if ( nanos::ompt::map_parallel_id.find((void *) team_ptr ) == nanos::ompt::map_parallel_id.end() ) {
+                                    p_id = nanos::ompt::count_parallel_id++;
+                                    nanos::ompt::map_parallel_id[(void *) team_ptr] = p_id;
+                                 }
+                                 nanos::ompt::_lock.release();
+                                 break;
+                              }
+                           }
+
+                           ompt_nanos_event_parallel_begin (
+                                 (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId(),
+                                 (ompt_frame_t) NULL,    // FIXME: frame data of parent task
+                                 (ompt_parallel_id_t) p_id,
+                                 (uint32_t) team_size,
+                                 (void *) parallel_fct  
+                                 );
                         }
                      }
                      break;

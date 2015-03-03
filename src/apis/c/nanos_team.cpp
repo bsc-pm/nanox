@@ -58,8 +58,9 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    NANOS_INSTRUMENT( static nanos_event_value_t api_value = ID->getEventValue("api","create_team"); )
    NANOS_INSTRUMENT( static nanos_event_key_t threads_key = ID->getEventKey("set-num-threads"); )
    NANOS_INSTRUMENT( static nanos_event_key_t parallel_ol_key = ID->getEventKey("parallel-outline-fct"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t team_info_key = ID->getEventKey("team-ptr"); )
 
-   NANOS_INSTRUMENT( Instrumentation::Event events[4]; )
+   NANOS_INSTRUMENT( Instrumentation::Event events[5]; )
    NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
    NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], threads_key, (nanos_event_value_t ) *nthreads ); )
@@ -68,6 +69,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    NANOS_INSTRUMENT ( } else { )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) NULL ) ; )
    NANOS_INSTRUMENT ( } )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], team_info_key, (nanos_event_value_t ) 0 ); )
    NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
@@ -87,6 +89,14 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    } catch ( nanos_err_t e) {
       return e;
    }
+
+   NANOS_INSTRUMENT( i = 0; )
+   NANOS_INSTRUMENT( INS->returnPreviousStateEvent ( &events[i++] ); )
+   NANOS_INSTRUMENT( INS->closeBurstEvent ( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT ( i++; ) // nthreads
+   NANOS_INSTRUMENT ( i++; ) // parallel fct
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], team_info_key, (nanos_event_value_t ) *team ); )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    return NANOS_OK;
 }
@@ -125,13 +135,30 @@ NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
 
 NANOS_API_DEF(nanos_err_t, nanos_end_team, ( nanos_team_t team ))
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","end_team",NANOS_RUNTIME) );
+   NANOS_INSTRUMENT( unsigned i = 0; )
+   NANOS_INSTRUMENT( static Instrumentation *INS = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = INS->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT( static nanos_event_key_t api_key = ID->getEventKey("api"); )
+   NANOS_INSTRUMENT( static nanos_event_value_t api_value = ID->getEventValue("api","end_team"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t team_info_key = ID->getEventKey("team-ptr"); )
+
+   NANOS_INSTRUMENT( Instrumentation::Event events[3]; )
+   NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
+   NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], team_info_key, (nanos_event_value_t ) team ); )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
       sys.endTeam((ThreadTeam *)team);
    } catch ( nanos_err_t e) {
          return e;
    }
+
+   NANOS_INSTRUMENT( i = 0; )
+   NANOS_INSTRUMENT( INS->returnPreviousStateEvent ( &events[i++] ); )
+   NANOS_INSTRUMENT( INS->closeBurstEvent ( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
+
    return NANOS_OK;
 }
 
