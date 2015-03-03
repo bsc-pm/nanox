@@ -176,13 +176,23 @@ bool ThreadManagerConf::threadWarmupEnabled() const
 bool ThreadManager::lastActiveThread()
 {
    // We omit the test if the cpu does not belong to my process_mask
-   int my_cpu = getMyThreadSafe()->getCpuId();
+   BaseThread *thread = getMyThreadSafe();
+   int my_cpu = thread->getCpuId();
    if ( !CPU_ISSET( my_cpu, &(sys.getCpuProcessMask()) ) ) return false;
 
    LockBlock Lock( _lock );
    cpu_set_t mine_and_active;
    CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
-   return ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) );
+
+   bool last = CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active );
+
+   if ( last ) {
+      // If we get here, my_cpu is the last active, but we must support thread oversubscription
+      if ( thread->runningOn()->getRunningThreads() > 1 ) {
+         last = false;
+      }
+   }
+   return last;
 }
 
 /**********************************/
