@@ -440,6 +440,8 @@ namespace nanos {
             registerEventValue("api","memalign","nanos_memalign()");
             registerEventValue("api","cmalloc","nanos_cmalloc()");
             registerEventValue("api","stick_to_producer","nanos_stick_to_producer()");
+            registerEventValue("api","task_reduction_register","nanos_task_reduction_register()");
+            registerEventValue("api","task_reduction_get_thread_storage","nanos_task_reduction_get_thread_storage()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, EVENT_DEVELOPER, true);
 
