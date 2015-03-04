@@ -23,7 +23,7 @@ paraver_config_files = \
      paraver_configs/hwc/papi/performance/NoIssue_cycles_per_us.cfg\
      paraver_configs/hwc/papi/performance/MIPS.cfg\
      paraver_configs/hwc/papi/performance/3dh_cycles_per_us.cfg\
-     paraver_configs/hwc/papi/performance/ipc.cfg\
+     paraver_configs/hwc/papi/performance/IPC.cfg\
      paraver_configs/hwc/papi/performance/MLoadS.cfg\
      paraver_configs/hwc/papi/performance/MFLOPS.cfg\
      paraver_configs/hwc/papi/performance/MemBW_pernode.cfg\
