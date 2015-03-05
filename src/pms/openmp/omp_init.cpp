@@ -33,8 +33,25 @@ using namespace nanos;
 
 namespace nanos
 {
+   namespace PMInterfaceType {
+#ifdef NANOX_SS_SUPPORT
+      int * ssCompatibility = (int *) 1;
+#else
+      int * ssCompatibility = (int *) 0;
+#endif
+   void set_interface_cb( void * );
+   void set_interface_cb( void * p  )
+   {
+      if ( nanos::PMInterfaceType::ssCompatibility != NULL ) {
+         sys.setPMInterface(NEW nanos::OpenMP::OmpSsInterface());
+      } else {
+         sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
+      }
+   }
+   void (*set_interface)( void * ) = set_interface_cb;
+   }
+
    namespace OpenMP {
-      int * ssCompatibility __attribute__( ( weak ) );
       OmpState *globalState;
 
       nanos_ws_t OpenMPInterface::findWorksharing( nanos_omp_sched_t kind ) { return ws_plugins[kind]; }
@@ -453,18 +470,4 @@ namespace nanos
       }
 
    };
-}
-
-/*
-   This function must have C linkage to avoid that C applications need to link against the C++ library
-*/
-extern "C" {
-   void nanos_omp_set_interface( void * )
-   {
-      if ( nanos::OpenMP::ssCompatibility != NULL ) {
-         sys.setPMInterface(NEW nanos::OpenMP::OmpSsInterface());
-      } else {
-         sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
-      }
-   }
 }

@@ -14,6 +14,8 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
+# AM_PROG_AR must be called before LT_INIT or a warning ensues
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 # Turn off static libraries.
 LT_INIT([disable-static])
 
@@ -276,8 +278,6 @@ AC_SUBST([mpi_valid])
 
 
 # Check for programs (every compiler change should be done before this line)
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-AC_PROG_LIBTOOL
 AC_PROG_CC([$CC])
 AC_PROG_CPP
 AM_PROG_CC_C_O
@@ -384,7 +384,18 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=aarch64
     ;;
-  powerpc-*-linux* | powerpc64-*-linux*)
+  powerpc64??-*-linux* )
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+
+    if test $ac_cv_sizeof_size_t = 8 ; then
+        SMP_ARCH=ppc64_v2
+    fi
+    #FIXME ULT not supported yet
+    smp_ult=no
+    ;;
+
+  powerpc-*-linux* | powerpc64-*-linux* )
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
 

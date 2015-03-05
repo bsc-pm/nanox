@@ -379,6 +379,17 @@ class SMPPlugin : public SMPBasePlugin
       //FIXME: this makes sense in OpenMP, also, in OpenMP this value is already set (see omp_init.cpp)
       //       In OmpSs, this will make omp_get_max_threads to return the number of SMP worker threads.
       sys.getPMInterface().setNumThreads_globalState( _workers.size() );
+
+      // Remove from Active Mask those CPUs that do not contain any thread nor are reserved by any device
+      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         SMPProcessor *cpu = (*it);
+         int cpuid = cpu->getBindingId();
+         if ( CPU_ISSET( cpuid, &_cpuActiveMask )
+               && cpu->getNumThreads() == 0
+               && !cpu->isReserved() ) {
+            CPU_CLR( cpuid, &_cpuActiveMask );
+         }
+      }
    }
 
    virtual void setRequestedWorkers( int workers )
@@ -843,6 +854,19 @@ class SMPPlugin : public SMPBasePlugin
       SMPThread &thd = getFirstSMPProcessor()->associateThisThread( untie );
       _workers.push_back( &thd );
       return thd;
+   }
+
+   /*! \brief Force the creation of at least 1 thread per CPU.
+    */
+   virtual void forceMaxThreadCreation()
+   {
+      cpu_set_t mask;
+      // Save original active mask
+      getCpuActiveMask( &mask );
+      // Set all CPUs active
+      sys.setCpuActiveMask( &_cpuSystemMask );
+      // Fall back
+      sys.setCpuActiveMask( &mask );
    }
 
    /*! \brief returns a human readable string containing information about the binding mask, detecting ranks.

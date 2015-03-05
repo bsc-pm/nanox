@@ -174,6 +174,7 @@ namespace nanos
          bool                 _useBlock;        //!< Block is allowed
          bool                 _useDLB;          //!< DLB library will be used
          bool                 _forceTieMaster;  //!< Force Master WD (user code) to run on Master Thread
+         bool                 _warmupThreads;   //!< Force the initialization of as many threads as number of CPUs, then block them if needed
 
       public:
          ThreadManagerConf();
@@ -187,6 +188,7 @@ namespace nanos
          void config( Config &cfg );
          ThreadManager* create();
          bool canUntieMaster() const;
+         bool threadWarmupEnabled() const;
    };
 }
 #endif /* THREADMANAGER_DECL_HPP */

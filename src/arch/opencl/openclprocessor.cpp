@@ -234,6 +234,19 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
        cl_mem buf = clCreateSubBuffer(parentBuf,
                 CL_MEM_READ_WRITE, CL_BUFFER_CREATE_TYPE_REGION,
                 &regInfo, &errCode);
+
+	   if (errCode != CL_SUCCESS) {
+		  if (errCode == CL_MISALIGNED_SUB_BUFFER_OFFSET) {
+			 std::cerr << "Error trying to create a subbuffer whose offset "
+					   <<  "is not properly aligned." << std::endl;
+
+			 // The specification says that it has to be aligned to
+			 // CL_DEVICE_MEM_BASE_ADDR_ALIGN. However, sometimes work with
+			 // other values (depending on the vendor)
+		  }
+		  fatal0("Error creating a subbuffer");
+	   }
+
        _bufCache[std::make_pair(devAddr+baseAddress,size)]=buf;
        _sizeCache[devAddr+baseAddress]=size;
        NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
@@ -631,17 +644,36 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
    return kern;    
 }
 
-static void processOpenCLError(cl_int errCode){    
-      std::cerr << "Error code when executing kernel " << errCode << "\n"; 
-      if (errCode==-52){
-          std::cerr << "HINT: Check if the OpenCL kernel declaration in the header/interface file and the definition in .cl have the same parameters\n";
-      }
-      if (errCode==-5){
-          std::cerr << "HINT: Out of resources, make sure that ndrange local size fits in your device or that your kernel is not reading/writing outside of the buffer\n";
-      }
-      if (errCode==-14){
-          std::cerr << "HINT: Check if your input or output data sizes are correctly specified/accessed\n";
-      }
+
+static void processOpenCLError(cl_int errCode) {
+   std::cerr << "Error code when executing kernel " << errCode << "\n";
+   switch (errCode) {
+      case CL_OUT_OF_RESOURCES: // -5
+         {
+            std::cerr
+               << "HINT: Out of resources, make sure that ndrange local size "
+               << "fits in your device or that your kernel is not reading/writing outside of the buffer\n";
+            break;
+         }
+      case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST: // -14
+         {
+            std::cerr
+               << "HINT: Check if your input or output data sizes are correctly specified/accessed\n";
+            break;
+         }
+      case CL_INVALID_KERNEL_ARGS: // -52
+         {
+            std::cerr
+               << "HINT: Check if the OpenCL kernel declaration in the "
+               << "header/interface file and the definition in .cl have the same parameters\n";
+            break;
+         }
+      default:
+         {
+            // We don't have any hint for this error
+            break;
+         }
+   }
 }
 
 void OpenCLAdapter::execKernel(void* oclKernel, 

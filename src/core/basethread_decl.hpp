@@ -119,16 +119,16 @@ namespace nanos
       private:
          typedef void (*callback_t)(void);
          typedef struct StatusFlags_t{
-            bool is_main_thread:1;
-            bool has_started:1;
-            bool must_stop:1;
-            bool must_sleep:1;
-            bool is_idle:1;
-            bool is_paused:1;
-            bool has_team:1;
-            bool has_joined:1;
-            bool is_waiting:1;
-            bool can_get_work:1;    /**< Set whether the thread can get more WDs to run or not */
+            bool is_main_thread;
+            bool has_started;
+            bool must_stop;
+            bool must_sleep;
+            bool is_idle;
+            bool is_paused;
+            bool has_team;
+            bool has_joined;
+            bool is_waiting;
+            bool can_get_work;    /**< Set whether the thread can get more WDs to run or not */
 
             StatusFlags_t() { memset( this, 0, sizeof(*this)); }
          } StatusFlags;

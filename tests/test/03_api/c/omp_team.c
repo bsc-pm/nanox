@@ -91,6 +91,7 @@ int main()
         nanos_handle_error(err);
       }
   }
+  return 0;
 }
 
 static void smp_ol_main_0_unpacked(nanos_ws_desc_t *wsd_1)
@@ -251,6 +252,3 @@ static void smp_ol_main_1(struct nanos_args_1_t *const args)
     smp_ol_main_1_unpacked((*args).i);
   }
 }
-
-void nanos_omp_set_interface(void *);
-__attribute__((weak)) __attribute__((section("nanos_init"))) nanos_init_desc_t __section__nanos_init = {.func = nanos_omp_set_interface, .data = (void *)0};
