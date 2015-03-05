@@ -179,31 +179,23 @@ namespace nanos {
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
 
-         /*
-          *  First try to schedule the thread with a task from its queue
-          */
+         //! First try to schedule the thread with a task from its queue
          if ( ( wd = data._readyQueue->pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
-            /*
-            *  If the local queue is empty, try to steal the parent (possibly enqueued in the queue of another thread)
-            */
+            //! If the local queue is empty, try to steal the parent (possibly enqueued in the queue of another thread)
             if ( ( wd = thread->getCurrentWD()->getParent() ) != NULL ) {
-               //removing it from the queue. 
-               //Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
-               if ( wd->isEnqueued() ) {
-                  //not in queue = in execution, in queue = not in execution
-                  if ( wd->getMyQueue()->removeWD( thread, wd, &next ) ) { //found it!
-                     return next;
-                  }
+               WDPool *pq; //!< Parent queue
+               //! Removing it from the queue, if someone move it stop looking for it to avoid ping-pongs
+               if ( (pq = wd->getMyQueue()) != NULL ) {
+                  //! Not in queue = in execution, in queue = not in execution
+                  if ( pq->removeWD( thread, wd, &next ) ) return next; //!< Found it!
                }
             }
 
-            /*!
-            *  If also the parent is NULL or if someone moved it to another queue while was trying to steal it, 
-            *  try to steal tasks from other queues
-            *  \warning other queues are checked cyclically: should be random
-            */
+            //! If also the parent is NULL or if someone moved it to another queue while was trying to steal it, 
+            //! try to steal tasks from other queues
+            //! \warning other queues are checked cyclically: should be random
             int size = thread->getTeam()->getFinalSize();
             int thid = rand() % size;
             int count = 0;
