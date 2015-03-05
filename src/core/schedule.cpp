@@ -1069,15 +1069,16 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    //! \note If WorkDescriptor has been submitted update statistics
    updateExitStats (*wd);
 
-   BaseThread *thread = getMyThreadSafe();
-
-   //! \note Getting more work to do (only if not going to sleep)
-   ThreadTeam *thread_team = thread->getTeam();
-   if ( thread_team ) {
-      WD *prefetchedWD = thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule && !thread->isSleeping() );
-      if ( prefetchedWD ) {
-         prefetchedWD->_mcontrol.preInit();
-         thread->addNextWD( prefetchedWD );
+   //! \note getting more work to do (only if not going to sleep)
+   if ( !getMyThreadSafe()->isSleeping() ) {
+      BaseThread *thread = getMyThreadSafe();
+      ThreadTeam *thread_team = thread->getTeam();
+      if ( thread_team ) {
+         WD *prefetchedWD = thread_team->getSchedulePolicy().atBeforeExit( thread, *wd, schedule );
+         if ( prefetchedWD ) {
+            prefetchedWD->_mcontrol.preInit();
+            thread->addNextWD( prefetchedWD );
+         }
       }
    }
 
@@ -1350,12 +1351,10 @@ void Scheduler::exit ( void )
       sys.getThreadManager()->acquireResourcesIfNeeded();
    }
 
-   WD *next = NULL;
-
-   finishWork( oldwd, ( next == NULL ) );
+   finishWork( oldwd, true );
 
    /* update next WorkDescriptor (if any) */
-   next = ( next == NULL ) ? thread->getNextWD() : next;
+   WD *next = thread->getNextWD();
 
    if ( !next ) idleLoop<ExitBehaviour>();
    else Scheduler::exitTo(next);

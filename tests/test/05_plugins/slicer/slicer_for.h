@@ -15,6 +15,11 @@
       _loop_data.loop_info.chunk = chunk2; \
       WD *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
+      if ( sys.getPMInterface().getInternalDataSize() > 0 ) { \
+         char *idata = NEW char[sys.getPMInterface().getInternalDataSize()]; \
+         sys.getPMInterface().initInternalData( idata ); \
+         wd->setInternalData( idata ); \
+      } \
       sys.setupWD( *wd, (nanos::WD *) wg );\
       sys.submit( *wd );\
       wg->waitCompletion();\
@@ -35,6 +40,11 @@
       _loop_data.loop_info.chunk = chunk2; \
       WD *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
+      if ( sys.getPMInterface().getInternalDataSize() > 0 ) { \
+         char *idata = NEW char[sys.getPMInterface().getInternalDataSize()]; \
+         sys.getPMInterface().initInternalData( idata ); \
+         wd->setInternalData( idata ); \
+      } \
       sys.setupWD( *wd, (nanos::WD *) wg );\
       sys.submit( *wd );\
       wg->waitCompletion();\

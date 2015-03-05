@@ -67,6 +67,14 @@ using namespace nanos;
 
 System nanos::sys;
 
+namespace nanos {
+namespace PMInterfaceType
+{
+   extern int * ssCompatibility;
+   extern void (*set_interface)( void * );
+}
+}
+
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
@@ -174,8 +182,7 @@ void System::loadModules ()
    }
 #endif
 
-   verbose0( "Architectures loaded, stating PM interface.");
-   _pmInterface->start();
+   verbose0( "Architectures loaded");
 
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );   
@@ -245,21 +252,18 @@ void System::config ()
    const OS::InitList & externalInits = OS::getInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
    
+#if 0
    if ( !_pmInterface ) {
       // bare bone run
       _pmInterface = NEW PMInterface();
    }
+#endif
 
    //! Declare all configuration core's flags
    verbose0( "Preparing library configuration" );
 
    cfg.setOptionsSection( "Core", "Core options of the core of Nanos++ runtime" );
 
-//   cfg.registerConfigOption( "num_threads", NEW Config::PositiveVar( _numThreads ),
-//                             "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
-//   cfg.registerArgOption( "num_threads", "threads" );
-//   cfg.registerEnvOption( "num_threads", "NX_THREADS" );
-   
    cfg.registerConfigOption( "stack-size", NEW Config::PositiveVar( _deviceStackSize ),
                              "Defines the default stack size for all devices" );
    cfg.registerArgOption( "stack-size", "stack-size" );
@@ -375,7 +379,7 @@ void System::config ()
    cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
 
    _schedConf.config( cfg );
-   _pmInterface->config( cfg );
+
    _hwloc.config( cfg );
    _threadManagerConf.config( cfg );
 
@@ -401,6 +405,14 @@ void System::start ()
    // Modules can be loaded now
    loadModules();
 
+   verbose0( "Stating PM interface.");
+   Config cfg;
+   void (*f)(void *) = nanos::PMInterfaceType::set_interface;
+   f(NULL);
+   _pmInterface->config( cfg );
+   cfg.init();
+   _pmInterface->start();
+
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->initialize() );
@@ -421,9 +433,15 @@ void System::start ()
    }
 
    _smpPlugin->associateThisThread( getUntieMaster() );
+
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
    mainWD._mcontrol.setMainWD();
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( data );
+      mainWD.setInternalData( data );
+   }
 
    if ( _pmInterface->getInternalDataSize() > 0 ) {
       char *data = NEW char[_pmInterface->getInternalDataSize()];

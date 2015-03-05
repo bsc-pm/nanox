@@ -103,3 +103,4 @@ NANOS_API_DEF(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, in
    }
    return NANOS_OK;
 }
+
