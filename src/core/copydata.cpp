@@ -135,3 +135,15 @@ std::ostream& nanos::operator<< (std::ostream &o, CopyData const &cd) {
    return o;
 }
 
+bool CopyData::equalGeometry( CopyData const &cd ) const {
+   result = true;
+   if ( cd.dimension_count != this->dimension_count || cd.address != this->address ) {
+      result = false;
+   } else {
+      for ( unsigned int idx = 0; idx < this->dimension_count && result; idx += 1 ) {
+         result = cd.dimensions[idx].size == this->dimensions[idx].size;
+      }
+   }
+   return result;
+}
+

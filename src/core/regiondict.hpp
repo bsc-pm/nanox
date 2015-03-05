@@ -843,7 +843,7 @@ template < template <class> class Sparsity>
 reg_t RegionDictionary< Sparsity >::obtainRegionId( CopyData const &cd, WD const &wd, unsigned int idx ) {
    reg_t id = 0;
    CopyData *deductedCd = NULL;
-   if ( this->getRegisteredObject() != NULL ) {
+   if ( this->getRegisteredObject() != NULL && !this->getRegisteredObject()->equalGeometry( cd ) ) {
       CopyData *tmp = NEW CopyData( *this->getRegisteredObject() );
       nanos_region_dimension_internal_t *dims = NEW nanos_region_dimension_internal_t[tmp->getNumDimensions()];
       tmp->setDimensions( dims );
