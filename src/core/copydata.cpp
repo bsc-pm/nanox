@@ -136,7 +136,7 @@ std::ostream& nanos::operator<< (std::ostream &o, CopyData const &cd) {
 }
 
 bool CopyData::equalGeometry( CopyData const &cd ) const {
-   result = true;
+   bool result = true;
    if ( cd.dimension_count != this->dimension_count || cd.address != this->address ) {
       result = false;
    } else {
