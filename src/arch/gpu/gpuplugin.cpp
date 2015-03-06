@@ -305,6 +305,11 @@ virtual void finalize() {
       message0("GPUs Soft invalidations: " << soft_inv);
       message0("GPUs Hard invalidations: " << hard_inv);
    }
+
+   unsigned int i = 0;
+   for (std::vector<ext::GPUThread *>::const_iterator it = _gpuThreads->begin(); it != _gpuThreads->end(); it++ ) {
+      message0( "GPU Thread " << i << " prefetched " << (*it)->getPrefetchedWDsCount() << " WDs.");
+   }
 }
 
 

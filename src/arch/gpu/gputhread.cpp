@@ -177,6 +177,7 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
             } else {
                *(myThread->_file) << "------ failed allocation for wd " << next->getId() << std::endl;
             }
+            _prefetchedWDs += 1;
             addNextWD( next );
             last = next;
          } else {
@@ -278,4 +279,8 @@ void GPUThread::raiseWDClosingEvents ()
       );
       _wdClosingEvents = false;
    }
+}
+
+unsigned int GPUThread::getPrefetchedWDsCount() const {
+   return _prefetchedWDs;
 }
