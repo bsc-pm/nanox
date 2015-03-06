@@ -22,41 +22,62 @@ inline void Router::initialize() {
 inline memory_space_id_t Router::getSource( memory_space_id_t destination,
       std::set<memory_space_id_t> const &locs ) {
    memory_space_id_t selected;
-   //if ( locs.size() == 2 && locs.count(0) == 1 ) {
+   unsigned int destination_node = destination != 0 ? sys.getSeparateMemory( destination ).getNodeNumber() : 0;
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t deb = ID->getEventKey("debug"); )
    if ( locs.size() > 1 ) {
-      selected = *locs.begin();
+
+      //clasify the locations in remote (remote nodes) or local (host memory or accelerators)
+      memory_space_id_t tmp_locations[ locs.size() ];
+      int local_locations_idx = 0;
+      int remote_locations_idx = locs.size()-1;
       for (std::set<memory_space_id_t>::const_iterator it = locs.begin();
             it != locs.end(); it++ ) {
-         selected = ( _memSpaces[*it] < _memSpaces[selected] ) ? *it : selected;
+         if ( *it == 0 || sys.getSeparateMemory( *it ).getNodeNumber() ) {
+            tmp_locations[local_locations_idx] = *it;
+            local_locations_idx += 1;
+         } else {
+            tmp_locations[remote_locations_idx] = *it;
+            remote_locations_idx -= 1;
+         }
       }
+
+      if ( destination == 0 || destination_node == 0 ) {
+         //if destination is a local address space, priorize getting the data from a local location
+         if ( local_locations_idx == 0 ) {
+            //no local locations available
+            selected = tmp_locations[remote_locations_idx + 1];
+            for ( int idx = remote_locations_idx + 1; idx < (int) locs.size(); idx += 1 ) {
+               selected = ( _memSpaces[ tmp_locations[idx] ] < _memSpaces[selected] ) ? tmp_locations[idx] : selected;
+            }
+         } else if ( local_locations_idx == 1 ) {
+            //local location available and there is only one, use it
+            selected = tmp_locations[local_locations_idx - 1];
+         } else {
+            //more than one location available
+            selected = tmp_locations[0];
+            for ( int idx = 0; idx < local_locations_idx; idx += 1 ) {
+               selected = ( _memSpaces[ tmp_locations[idx] ] < _memSpaces[selected] ) ? tmp_locations[idx] : selected;
+            }
+         }
+      } else {
+         // remote destination, use 0 or remote nodes, not local accelerators if possible
+         selected = tmp_locations[0];
+         for ( int idx = remote_locations_idx + 1; idx < (int)locs.size(); idx += 1 ) {
+            selected = ( _memSpaces[ tmp_locations[idx] ] < _memSpaces[selected] ) ? tmp_locations[idx] : selected;
+         }
+      }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( deb, (nanos_event_value_t) selected ); )
    } else {
       selected = *locs.begin();
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( deb, (nanos_event_value_t) 100+selected ); )
    }
-   if ( destination != 0 && sys.getSeparateMemory( destination ).getNodeNumber() != 0 ) {
-      //compute this only for cluster nodes (getNodeNumber != 0)
+
+   unsigned int selected_node = selected != 0 ? sys.getSeparateMemory( selected ).getNodeNumber() : 0;
+   // To keep cluster balance we want to count transferences from node 0 to remote and NOT from node 0 to local accel
+   if ( !( selected_node == 0 && destination_node == 0 ) ) {
       _lastSource = selected;
       _memSpaces[selected] += 1;
-
-      //if ( sys.getNetwork()->getNodeNum() == 0 ) {
-      //   unsigned int min_non_zero = 0;
-      //   unsigned int max_node = 0;
-      //   std::cerr << "Dest: " << destination << " locs: [ ";
-      //   for (std::set<memory_space_id_t>::const_iterator it = locs.begin();
-      //         it != locs.end(); it++ ) {
-      //      std::cerr << *it << " ";
-      //   }
-      //   std::cerr << "] Selected source: " << selected << " occ [ "; 
-      //   for ( std::vector<unsigned int>::const_iterator vit = _memSpaces.begin(); vit != _memSpaces.end(); vit++ ) {
-      //      std::cerr << *vit << " ";
-      //      if ( min_non_zero == 0 && *vit != 0 ) {
-      //         min_non_zero = *vit; 
-      //      } else {
-      //         min_non_zero = *vit != 0 ? ( min_non_zero > *vit ? *vit : min_non_zero ) : min_non_zero;
-      //      }
-      //      max_node = ( *vit > max_node ) ? *vit : max_node;
-      //   }
-      //   std::cerr << "] inb: " << (max_node - min_non_zero) << std::endl;
-      //}
    }
    return selected;
 }
