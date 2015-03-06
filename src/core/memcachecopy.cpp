@@ -63,23 +63,39 @@ void MemCacheCopy::setVersion( unsigned int version ) {
 }
 
 bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
-   bool result;
-   if ( _locations.size() > 0 ) {
-      global_reg_t refReg( _locations.begin()->second, _reg.key );
-      result = true;
-      memory_space_id_t refloc = refReg.getFirstLocation();
-      for ( NewLocationInfoList::const_iterator it = _locations.begin(); it != _locations.end() && result; it++ ) {
-         global_reg_t thisReg( it->second, _reg.key );
-         result = ( thisReg.isRooted() && thisReg.getFirstLocation() == refloc );
-      }
-      if ( result ) loc = refloc;
-   } else {
-      result = _reg.isRooted();
-      if ( result ) {
-         loc = _reg.getFirstLocation();
-      }
+   //bool result;
+   //bool result2;
+   bool result3;
+
+   global_reg_t whole_obj( 1, _reg.key );
+   result3 = whole_obj.isRooted();
+   if ( result3 ) {
+      loc = whole_obj.getFirstLocation();
    }
-   return result;
+
+    //if ( _locations.size() > 0 ) {
+    //   global_reg_t refReg( _locations.begin()->second, _reg.key );
+    //   result = true;
+    //   result2 = true;
+    //   memory_space_id_t refloc = refReg.getFirstLocation();
+    //   for ( NewLocationInfoList::const_iterator it = _locations.begin(); it != _locations.end() && result; it++ ) {
+    //      global_reg_t thisReg( it->second, _reg.key );
+    //      result = ( thisReg.isRooted() && thisReg.getFirstLocation() == refloc );
+    //      result2 = ( thisReg.isRooted() && thisReg.getRootedLocation() == refloc );
+    //   }
+    //   if ( result ) loc = refloc;
+    //} else {
+    //   result = _reg.isRooted();
+    //   if ( result ) {
+    //      loc = _reg.getFirstLocation();
+    //   }
+    //}
+   //if ( sys.getNetwork()->getNodeNum() == 0 ) {
+   //   std::cerr << "whole object "; whole_obj.key->printRegion(std::cerr, whole_obj.id);
+   //   std::cerr << std::endl << "real reg "; _reg.key->printRegion(std::cerr, _reg.id);
+   //   std::cerr << std::endl << " copy root check result: " << result << " result2: " << result2 << " result3: " << result3 << std::endl;
+   //}
+   return result3;
 }
 
 void MemCacheCopy::printLocations( std::ostream &o ) const {

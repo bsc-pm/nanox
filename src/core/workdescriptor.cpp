@@ -248,15 +248,6 @@ void WorkDescriptor::submit( bool force_queue )
    if ( _slicer ) {
       _slicer->submit(*this);
    } else {
-      memory_space_id_t loc = 0;
-      if ( _mcontrol.isRooted( loc ) ) {
-         //std::cerr << " rooting " << this->getId()  << " to " << loc << std::endl;
-         this->tieToLocation( loc );
-         //if ( loc != 0 ) {
-         //   SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( loc );
-         //   this->tieTo( *(mem.getPE().getFirstThread()) );
-         //}
-      }
       Scheduler::submit(*this, force_queue );
    }
 } 
