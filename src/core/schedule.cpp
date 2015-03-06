@@ -270,7 +270,7 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT (time_scheds = 0; )
 
          spins = init_spins;
-         yields = init_yields;
+         if ( init_yields != 0 ) yields = init_yields;
 
       }//thread going to sleep, thread waiking up
 

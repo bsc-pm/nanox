@@ -216,8 +216,6 @@ void System::loadModules ()
       fatal0( "Could not load main barrier algorithm" );
 
    ensure0( _defBarrFactory,"No default system barrier factory" );
-
-   _threadManager = _threadManagerConf.create();
 }
 
 void System::unloadModules ()
@@ -412,6 +410,9 @@ void System::start ()
    _pmInterface->config( cfg );
    cfg.init();
    _pmInterface->start();
+
+   verbose0( "Starting Thread Manager" );
+   _threadManager = _threadManagerConf.create();
 
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
