@@ -194,8 +194,10 @@ void MemController::preInit( ) {
    //     }
    //  }
 
-
-
+   memory_space_id_t rooted_loc = 0;
+   if ( this->isRooted( rooted_loc ) ) {
+      _wd.tieToLocation( rooted_loc );
+   }
 
    if ( _VERBOSE_CACHE ) { 
       *(myThread->_file) << " (preinit)END OF INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << " &_preinitialized= "<< &_preinitialized<< std::endl;
