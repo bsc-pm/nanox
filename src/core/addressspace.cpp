@@ -29,7 +29,7 @@ MemSpace< HostAddressSpace >::MemSpace( Device &d ) : HostAddressSpace( d ) {
 }
 
 template <>
-MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide ) : SeparateAddressSpace( memSpaceId, d, allocWide ) {
+MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize ) : SeparateAddressSpace( memSpaceId, d, allocWide, slabSize ) {
 }
 
 HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
@@ -77,7 +77,7 @@ void HostAddressSpace::registerObject( nanos_copy_data_internal_t *obj ) {
    _directory.registerObject( obj );
 }
 
-SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
+SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
 }
 
 void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval ) {

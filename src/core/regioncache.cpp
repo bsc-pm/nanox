@@ -1155,8 +1155,12 @@ void RegionCache::NEWcopyOut( global_reg_t const &reg, unsigned int version, WD 
    copyOut( reg, origDevAddr, ops, f, wd );
 }
 
-RegionCache::RegionCache( memory_space_id_t memSpaceId, Device &cacheArch, enum CacheOptions flags ) : _chunks(), _lock(), _device( cacheArch ), _memorySpaceId( memSpaceId ),
-    _flags( flags ), _lruTime( 0 ), _softInvalidationCount( 0 ), _hardInvalidationCount( 0 ), _copyInObj( *this ), _copyOutObj( *this ) {
+RegionCache::RegionCache( memory_space_id_t memSpaceId, Device &cacheArch, enum CacheOptions flags, std::size_t slabSize ) : _chunks(), _lock(), _device( cacheArch ), _memorySpaceId( memSpaceId ),
+    _flags( flags ), _slabSize( slabSize ), _lruTime( 0 ), _softInvalidationCount( 0 ), _hardInvalidationCount( 0 ), _copyInObj( *this ), _copyOutObj( *this ) {
+   // FIXME : improve flags propagation from system/plugins to cache.
+   if ( _slabSize > 0 ) {
+      _flags = ALLOC_SLAB;
+   }
 }
 
 unsigned int RegionCache::getMemorySpaceId() const {
@@ -1568,6 +1572,13 @@ void RegionCache::getAllocatableRegion( global_reg_t const &reg, global_reg_t &a
       allocRegion.id = 1;
    } else if ( _flags == ALLOC_FIT ) {
       allocRegion.id = reg.getFitRegionId();
+   } else if ( _flags == ALLOC_SLAB ) {
+      //std::cerr << "####################################################" << std::endl;
+      //std::cerr << "# WHOLE: "; reg.key->printRegion(std::cerr, 1); std::cerr << std::endl;
+      //std::cerr << "# REG: "; reg.key->printRegion(std::cerr, reg.id); std::cerr << std::endl;
+      allocRegion.id = reg.getSlabRegionId( _slabSize );
+      //std::cerr << "# Return: "; reg.key->printRegion(std::cerr, allocRegion.id); std::cerr << std::endl;
+      //std::cerr << "####################################################" << std::endl;
    } else {
       std::cerr <<"RegionCache ERROR: Undefined _flags value."<<std::endl;
    }

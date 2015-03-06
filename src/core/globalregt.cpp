@@ -32,10 +32,15 @@ uint64_t global_reg_t::getKeyFirstAddress() const {
 uint64_t global_reg_t::getRealFirstAddress() const {
    uint64_t addr = 0;
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
-   ensure(entry != NULL, "invalid entry.");
-   addr = entry->getBaseAddress() == 0 ? key->getRealBaseAddress() : entry->getBaseAddress();
-   if ( addr != 0 ) {
-      addr = getFirstAddress( addr );
+   //ensure(entry != NULL, "invalid entry.");
+   if ( entry == NULL ) {
+      std::cerr << "Warning, getRealFirstAddress() w/NULL entry!" << std::endl;
+      addr = getFirstAddress( key->getRealBaseAddress() );
+   } else {
+      addr = entry->getBaseAddress() == 0 ? key->getRealBaseAddress() : entry->getBaseAddress();
+      if ( addr != 0 ) {
+         addr = getFirstAddress( addr );
+      }
    }
    return addr;
 }
@@ -186,6 +191,53 @@ reg_t global_reg_t::getFitRegionId() const {
          fitDimensions[ idx ].lower_bound = 0;
          fitDimensions[ idx ].accessed_length = sizes[ idx ];
       }
+   }
+   return key->obtainRegionId( fitDimensions );
+}
+
+reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
+   RegionNode *n = key->getRegionNode( id );
+   std::vector< std::size_t > const &sizes = key->getDimensionSizes();
+   std::size_t acc_size = 1;
+   nanos_region_dimension_internal_t fitDimensions[ key->getNumDimensions() ];
+   if ( slabSize < this->getBreadth() ) {
+      fatal("Can not allocate slab for this region. Not supported yet. slabSize "<< slabSize << " breadth " << this->getBreadth());
+   } else {
+
+      unsigned int lower_bounds[key->getNumDimensions()];
+      for ( int idx = key->getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
+         //std::size_t accessedLength = n->getValue();
+         n = n->getParent();
+         std::size_t lowerBound = n->getValue();
+         n = n->getParent();
+         lower_bounds[idx] = lowerBound;
+      }
+
+      bool keep_expanding = true;
+      for ( unsigned int idx = 0; idx < key->getNumDimensions(); idx += 1 ) {
+         fitDimensions[ idx ].size = sizes[ idx ];
+         //std::cerr << "This dimension size " << sizes[ idx ] << std::endl;
+         if ( keep_expanding ) {
+            acc_size *= sizes[ idx ];
+         //std::cerr << "This dimension acc_size " << acc_size << " slab size " << slabSize << std::endl;
+            if ( slabSize == acc_size || ( slabSize > acc_size && ( ( slabSize % acc_size ) == 0 ) ) ) {
+               fitDimensions[ idx ].lower_bound = 0;
+               fitDimensions[ idx ].accessed_length = sizes[ idx ];
+            } else if ( slabSize < acc_size && ( acc_size % slabSize ) == 0 ) {
+               std::size_t slab_elems = slabSize / ( acc_size / sizes[ idx ] );
+               //std::cerr << "slab_elems is " << slab_elems << " lb: " <<  lower_bounds[idx] << std::endl;
+               fitDimensions[ idx ].accessed_length = slab_elems;
+               fitDimensions[ idx ].lower_bound = ( lower_bounds[idx] / slab_elems ) * slab_elems;
+               keep_expanding = false;
+            } else {
+               fatal("invalid slabSize.");
+            }
+         } else {
+            fitDimensions[ idx ].accessed_length = 1;
+            fitDimensions[ idx ].lower_bound = 1;
+         }
+      }
+      (void ) fitDimensions;
    }
    return key->obtainRegionId( fitDimensions );
 }

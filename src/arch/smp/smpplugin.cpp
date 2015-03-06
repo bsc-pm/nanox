@@ -252,7 +252,7 @@ class SMPPlugin : public SMPBasePlugin
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
 #ifdef NANOX_MEMKIND_SUPPORT
       if ( _memkindSupport ) {
-         mem_id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
+         mem_id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide, sys.getRegionCacheSlabSize() );
          SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
          void *addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
          if ( addr == NULL ) {
@@ -275,7 +275,7 @@ class SMPPlugin : public SMPBasePlugin
          
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
@@ -356,7 +356,19 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void initialize() { }
 
-   virtual void finalize() { }
+   virtual void finalize() {
+      if ( _memkindSupport ) {
+         std::cerr << "memkind: SMP soft invalidations: " << sys.getSeparateMemory(1).getSoftInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP hard invalidations: " << sys.getSeparateMemory(1).getHardInvalidationCount() << std::endl;
+      } else if ( _smpPrivateMemory ) {
+         for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+            if ( (*it)->isActive() ) {
+               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft invalidations: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getSoftInvalidationCount() << std::endl;
+               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard invalidations: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getHardInvalidationCount() << std::endl;
+            }
+         }
+      }
+   }
 
    virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const
    {
