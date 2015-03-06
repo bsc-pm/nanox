@@ -46,7 +46,7 @@ Network::Network () : _numNodes(1), _api((NetworkAPI *) 0), _nodeNum(0),
    _delayedBySeqNumberPutReqs(), _delayedBySeqNumberPutReqsLock(),
    _forwardedRegions(NULL),_gpuPresend(1), _smpPresend(1),
    _metadataSequenceNumbers(NULL), _recvMetadataSeq(1), _syncReqs(),
-   _syncReqsLock(), _nodeBarrierCounter(0) {}
+   _syncReqsLock(), _nodeBarrierCounter(0), _parentWD(NULL) {}
 
 Network::~Network () {}
 
@@ -490,7 +490,7 @@ Network::ReceivedWDData::ReceivedWDData() : _recvWdDataMap(), _lock(), _received
 Network::ReceivedWDData::~ReceivedWDData() {
 }
 
-void Network::ReceivedWDData::addData( unsigned int wdId, std::size_t size ) {
+void Network::ReceivedWDData::addData( unsigned int wdId, std::size_t size, WD *parent ) {
    _lock.acquire();
    struct recvDataInfo &info = _recvWdDataMap[ wdId ];
    info._count += size;
@@ -503,7 +503,7 @@ void Network::ReceivedWDData::addData( unsigned int wdId, std::size_t size ) {
       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, 0, 0 ); )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wdId, 0, 0 );)
-      //sys.setupWD( *wd, parent );
+      sys.setupWD( *wd, parent );
       sys.submit( *wd );
       _receivedWDs++;
       //std::cerr <<"["<< gasnet_mynode()<< "] release wd (by data) new seq is " << _recvSeqN.value()   << std::endl;
@@ -512,7 +512,7 @@ void Network::ReceivedWDData::addData( unsigned int wdId, std::size_t size ) {
    }
 }
 
-void Network::ReceivedWDData::addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData ) {
+void Network::ReceivedWDData::addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData, WD *parent ) {
    _lock.acquire();
    struct recvDataInfo &info = _recvWdDataMap[ wdId ];
    info._wd = wd;
@@ -526,7 +526,7 @@ void Network::ReceivedWDData::addWD( unsigned int wdId, WorkDescriptor *wd, std:
       NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId)  )  ; )
       NANOS_INSTRUMENT ( instr->createDeferredPtPEnd ( *wd, NANOS_WD_REMOTE, id, 0, 0, 0 ); )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) wdId, 0, 0 );)
-      //sys.setupWD( *wd, parent );
+      sys.setupWD( *wd, parent );
       sys.submit( *wd );
       _receivedWDs++;
    //std::cerr <<"["<< gasnet_mynode()<< "] release wd (by wd) new seq is " << _recvSeqN.value()   << std::endl;
@@ -562,7 +562,7 @@ std::size_t Network::SentWDData::getSentData( unsigned int wdId ) {
 void Network::notifyWork(std::size_t expectedData, WD *delayedWD, unsigned int delayedSeq) {
    if ( _recvWdData.getReceivedWDsCount() == delayedSeq )
    {
-      _recvWdData.addWD( delayedWD->getHostId(), delayedWD, expectedData );
+      _recvWdData.addWD( delayedWD->getHostId(), delayedWD, expectedData, _parentWD );
       checkDeferredWorkReqs();
    } else { //not expected seq number, enqueue
       _deferredWorkReqsLock.acquire();
@@ -586,7 +586,7 @@ void Network::checkDeferredWorkReqs()
          if (dwd.first == _recvWdData.getReceivedWDsCount() ) 
          {
             _deferredWorkReqsLock.release();
-            _recvWdData.addWD( dwd.second.first->getHostId(), dwd.second.first, dwd.second.second );
+            _recvWdData.addWD( dwd.second.first->getHostId(), dwd.second.first, dwd.second.second, _parentWD );
             checkDeferredWorkReqs();
          } else {
             _deferredWorkReqs.push_back( dwd );
@@ -609,7 +609,7 @@ void Network::notifyPut( unsigned int from, unsigned int wdId, std::size_t len, 
       invalidateDataFromDevice( (uint64_t) realTag, len, count, ld, hostObject, hostRegId );
    }
    //std::cerr << "ADD wd data for wd "<< wdId << " len " << len*count << std::endl;
-   _recvWdData.addData( wdId, len*count );
+   _recvWdData.addData( wdId, len*count, _parentWD );
    if ( from != 0 ) { /* check for delayed putReqs or gets */
       _waitingPutRequestsLock.acquire();
       std::set<void *>::iterator it;
@@ -1008,4 +1008,8 @@ void Network::processSyncRequests() {
          _syncReqsLock.release();
       }
    }
+}
+
+void Network::setParentWD(WD *wd) {
+   _parentWD = wd;
 }

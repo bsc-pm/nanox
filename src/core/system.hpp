@@ -545,6 +545,10 @@ inline RegionCache::CachePolicy System::getRegionCachePolicy() const {
    return _regionCachePolicy;
 }
 
+inline std::size_t System::getRegionCacheSlabSize() const {
+   return _regionCacheSlabSize;
+}
+
 inline void System::createDependence( WD* pred, WD* succ)
 {
    DOSubmit *pred_do = pred->getDOSubmit(), *succ_do = succ->getDOSubmit();
@@ -605,6 +609,10 @@ inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int acc
 
 inline Router &System::getRouter() {
    return _router;
+}
+
+inline bool System::isImmediateSuccessorEnabled() const {
+   return !_immediateSuccessorDisabled;
 }
 
 #endif

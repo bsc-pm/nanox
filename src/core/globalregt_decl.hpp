@@ -34,6 +34,7 @@ struct global_reg_t {
    unsigned int getVersion() const;
    unsigned int getHostVersion( bool increaseVersion ) const;
    reg_t getFitRegionId() const;
+   reg_t getSlabRegionId( std::size_t slabSize ) const;
    uint64_t getRealBaseAddress() const;
    DeviceOps *getDeviceOps() const;
    void initializeGlobalEntryIfNeeded() const;

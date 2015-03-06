@@ -150,8 +150,8 @@ namespace nanos {
             public:
                ReceivedWDData();
                ~ReceivedWDData();
-               void addData( unsigned int wdId, std::size_t size );
-               void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData );
+               void addData( unsigned int wdId, std::size_t size, WD *parent );
+               void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData, WD *parent );
                unsigned int getReceivedWDsCount() const;
          };
 
@@ -243,6 +243,7 @@ namespace nanos {
 
          RequestQueue< SendDataRequest > _dataSendRequests;
          int _nodeBarrierCounter;
+         WD *_parentWD;
 
          // constructor
 
@@ -324,6 +325,7 @@ namespace nanos {
          unsigned int updateMetadataSequenceNumber( unsigned int value );
          void synchronizeDirectory();
          void processSyncRequests();
+         void setParentWD(WD *wd);
    };
 }
 
