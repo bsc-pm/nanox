@@ -1,4 +1,3 @@
-
 /*************************************************************************************/
 /*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
@@ -17,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #include "nanos-int.h"
 
 #ifndef _NANOS_WORK_SHARING_H
@@ -126,4 +126,3 @@ NOTAS:
 
 
 #endif
-

@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 /*************************************************************************************/
 /*  This program is part of the Barcelona OpenMP Tasks Suite                         */
 /*  Copyright (C) 2009 Barcelona Supercomputing Center - Centro Nacional de          */
@@ -36,12 +37,14 @@
 /*  along with this program; if not, write to the Free Software                      */
 /*  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA   */
 /*************************************************************************************/
+
 /*************************************************************************************/
 /*  Original code from the Cilk project                                              */
 /*                                                                                   */
 /* Copyright (c) 2000 Massachusetts Institute of Technology                          */
 /* Copyright (c) 2000 Matteo Frigo                                                   */
 /*************************************************************************************/
+
 /*
  * this program uses an algorithm that we call `cilksort'.
  * The algorithm is essentially mergesort:

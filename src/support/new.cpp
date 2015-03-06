@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #include "new_decl.hpp"
 
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED) // ----- debug AND memtracker -----
@@ -48,5 +49,3 @@ void operator delete[] ( void *p ) throw() { nanos::getAllocator().deallocate( p
 #endif
 
 #endif
-
-

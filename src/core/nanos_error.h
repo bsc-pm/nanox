@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef _NANOS_ERROR_H
 #define _NANOS_ERROR_H
 typedef enum { NANOS_OK = 0,

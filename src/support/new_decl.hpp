@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef _NANOS_NEW_DECL
 #define _NANOS_NEW_DECL
 
@@ -42,4 +43,3 @@
 #endif // ----- all versions -----
 
 #endif // _NANOS_NEW_DECL
-

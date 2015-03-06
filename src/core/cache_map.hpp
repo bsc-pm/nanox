@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef _NANOS_CACHE_MAP_HPP
 #define _NANOS_CACHE_MAP_HPP
 #include "cache_map_decl.hpp"
