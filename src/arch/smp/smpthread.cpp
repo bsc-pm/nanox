@@ -126,6 +126,7 @@ void SMPThread::wait()
 
       /* Whether the thread should wait for the cpu to be free before doing some work */
       ResourceManager::waitForCpuAvailability();
+      ResourceManager::returnMyCpuIfClaimed();
 
       if ( isSleeping() ) wait();
       else {
