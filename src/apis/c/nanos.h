@@ -261,6 +261,9 @@ NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, voi
 
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
+NANOS_API_DECL(nanos_err_t, nanos_task_reduction_register, ( void *orig, void *dep, size_t size, size_t align, void (*init)( void *, void * ), void (*reducer)( void *, void * ),  void (*reducer_orig_var)( void *, void * ) ) );
+NANOS_API_DECL(nanos_err_t, nanos_task_reduction_get_thread_storage, ( void *orig, void **tpd ) );
+
 NANOS_API_DECL(nanos_err_t, nanos_admit_current_thread, (void));
 NANOS_API_DECL(nanos_err_t, nanos_expel_current_thread, (void));
 

@@ -28,7 +28,6 @@ devinclude_HEADERS = \
 	regionpart_fwd.hpp \
 	regiontree_fwd.hpp \
 	regiontreenode_fwd.hpp \
-	resourcemanager.hpp\
 	new_decl.hpp\
 	allocator_fwd.hpp\
 	allocator_decl.hpp\
@@ -93,15 +92,12 @@ devinclude_HEADERS = \
 	functor_decl.hpp \
 	requestqueue_decl.hpp \
 	requestqueue.hpp \
-	printbt_decl.hpp \
         smpbaseplugin_decl.hpp \
 	pinnedallocator_decl.hpp \
 	genericevent_decl.hpp \
 	$(END) 
 
 support_sources = \
-	resourcemanager.hpp\
-	resourcemanager.cpp\
 	new_decl.hpp\
 	new.cpp\
 	allocator_fwd.hpp\
@@ -116,6 +112,7 @@ support_sources = \
 	queue_decl.hpp\
 	queue.hpp\
 	debug.hpp\
+	debug.cpp\
 	config_fwd.hpp\
 	config_decl.hpp\
 	config.hpp\
@@ -179,8 +176,6 @@ support_sources = \
 	functor_decl.hpp \
 	requestqueue_decl.hpp \
 	requestqueue.hpp \
-	printbt_decl.hpp \
-	printbt.cpp \
 	genericevent_decl.hpp \
 	genericevent.cpp \
 	$(END) 

@@ -30,6 +30,8 @@ EXTRA_DIST= \
 	ppc32/stack_asm.s \
 	ppc64/stack.cpp \
 	ppc64/stack_asm.s \
+	ppc64_v2/stack.cpp \
+	ppc64_v2/stack_asm.s \
 	armv71/stack.cpp \
 	armv71/stack_asm.s \
 	tile64/stack.cpp \

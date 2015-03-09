@@ -17,23 +17,33 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_RESOURCEMANAGER
-#define _NANOS_RESOURCEMANAGER
+#include "debug.hpp"
+#include "os.hpp"
+#include <stdlib.h>
+#include <execinfo.h>
+#include <iostream>
 
-// Sleep time in ns between each sched_yield
-#define NANOS_RM_YIELD_SLEEP_NS 20000
+void nanos::printBt( std::ostream &o ) {
+   void* tracePtrs[100];
+   int count = backtrace( tracePtrs, 100 );
+   char** funcNames = backtrace_symbols( tracePtrs, count );
+   o << "+--------------------------------------" << std::endl;
 
-namespace nanos {
-namespace ResourceManager {
-   void init( void );
-   void finalize( void );
-   void acquireResourcesIfNeeded( void );
-   void releaseCpu( void );
-   void returnClaimedCpus( void );
-   void returnMyCpuIfClaimed( void );
-   void waitForCpuAvailability( void );
-   bool lastActiveThread( void );
-   bool canUntieMaster( void );
-}}
+   // Print the stack trace
+   for( int ii = 0; ii < count; ii++ )
+      o << "| " << funcNames[ii] << std::endl;
 
-#endif /* _NANOS_RESOURCEMANAGER */
+   // Free the string pointers
+   free( funcNames );
+   o << "+--------------------------------------" << std::endl;
+}
+
+void nanos::printCpuSet( std::ostream &o, const std::string str, const cpu_set_t *cpu_set )
+{
+   std::ostringstream bitset;
+   for ( int i = 0; i < OS::getMaxProcessors(); i++ ) {
+      if ( i>0 && i%4 == 0 ) bitset << " ";
+      ( CPU_ISSET( i, cpu_set ) ) ? bitset << "1" : bitset << "0" ;
+   }
+   o << str << bitset.str() << std::endl;
+}

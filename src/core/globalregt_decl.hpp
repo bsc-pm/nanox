@@ -50,6 +50,7 @@ struct global_reg_t {
    unsigned int getNumLocations() const;
    ProcessingElement *getFirstWriterPE() const;
    uint64_t getFirstAddress(uint64_t baseAddress) const;
+   bool isLocatedInSeparateMemorySpaces() const;
 };
 
 }

@@ -40,6 +40,10 @@
 
 #endif
 
+// FIXME: Following macro must be architecture dependant (64 bytes)
+#define NANOS_ARCHITECTURE_PADDING_SIZE(size)\
+      size = size + (63 & (64 - (63 & size)));
+
 //! \addtogroup capi_types Types and Structures
 //! \ingroup capi
 //! \{

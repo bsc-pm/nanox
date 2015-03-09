@@ -22,6 +22,7 @@
 
 #include "dependableobject_decl.hpp"
 #include "basedependency_decl.hpp"
+#include "task_reduction_decl.hpp"
 
 namespace nanos
 {
@@ -35,11 +36,12 @@ namespace nanos
          BaseDependency*  _target;
          //! Flag to separate between concurrent and commutative accesses. 
          bool             _commutative; 
+         TaskReduction   *_taskReduction;
       public:
         /*! \brief Default constructor
          */
          CommutationDO ( BaseDependency const& target, bool isCommutativeFlag )
-            : DependableObject(), _target( target.clone() ), _commutative( isCommutativeFlag ) { }
+            : DependableObject(), _target( target.clone() ), _commutative( isCommutativeFlag ), _taskReduction(NULL) { }
 
         /*! \brief Copy constructor
          *  \param cdo another CommutationDO
@@ -73,6 +75,8 @@ namespace nanos
          /*! \brief Returns true if this is for commutative accesses rather than concurrent ones. 
           */ 
          bool isCommutative() const; 
+
+         void setTaskReduction( TaskReduction *tr );
    };
 };
 

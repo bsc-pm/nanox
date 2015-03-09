@@ -27,15 +27,31 @@
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
 #include "plugin.hpp"
-#include "resourcemanager.hpp"
 
 using namespace nanos;
 //using namespace nanos::OpenMP;
 
 namespace nanos
 {
+   namespace PMInterfaceType {
+#ifdef NANOX_SS_SUPPORT
+      int * ssCompatibility = (int *) 1;
+#else
+      int * ssCompatibility = (int *) 0;
+#endif
+   void set_interface_cb( void * );
+   void set_interface_cb( void * p  )
+   {
+      if ( nanos::PMInterfaceType::ssCompatibility != NULL ) {
+         sys.setPMInterface(NEW nanos::OpenMP::OmpSsInterface());
+      } else {
+         sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
+      }
+   }
+   void (*set_interface)( void * ) = set_interface_cb;
+   }
+
    namespace OpenMP {
-      int * ssCompatibility __attribute__( ( weak ) );
       OmpState *globalState;
 
       nanos_ws_t OpenMPInterface::findWorksharing( nanos_omp_sched_t kind ) { return ws_plugins[kind]; }
@@ -167,6 +183,19 @@ namespace nanos
          return (ThreadTeamData *) NEW OmpThreadTeamData();
       }
 
+      int OpenMPInterface::getMaxThreads() const
+      {
+         int max_threads = 0;
+         if ( myThread ) {
+            OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
+            max_threads = data->icvs()->getNumThreads();
+         } else {
+            // This function can be called at initialization when myThread == NULL
+            max_threads = globalState->getICVs().getNumThreads();
+         }
+         return max_threads;
+      }
+
       /*!
        * \brief specific setNumThreads implementation for OpenMP model
        * \param[in] nthreads Number of threads
@@ -191,12 +220,14 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      bool OpenMPInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
       {
-         sys.setCpuProcessMask( cpu_set );
+         bool success = sys.setCpuProcessMask( cpu_set );
 
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -226,12 +257,14 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
+      bool OpenMPInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
-         sys.setCpuActiveMask( cpu_set );
+         bool success = sys.setCpuActiveMask( cpu_set );
 
          OmpData *data = (OmpData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -293,7 +326,7 @@ namespace nanos
          _description = std::string("OmpSs");
          _malleable = true;
          sys.setInitialMode( System::POOL );
-         sys.setUntieMaster( ResourceManager::canUntieMaster() );
+         sys.setUntieMaster( sys.getThreadManagerConf().canUntieMaster() );
       }
 
       /*! \brief Get the size of OmpSsData */
@@ -332,6 +365,19 @@ namespace nanos
          data->setFinal(false);
       }
 
+      int OmpSsInterface::getMaxThreads() const
+      {
+         int max_threads = 0;
+         if ( myThread ) {
+            OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
+            max_threads = data->icvs()->getNumThreads();
+         } else {
+            // This function can be called at initialization when myThread == NULL
+            max_threads = globalState->getICVs().getNumThreads();
+         }
+         return max_threads;
+      }
+
       /*!
        * \brief specific setNumThreads implementation for OmpSs model
        * \param[in] nthreads Number of threads
@@ -356,14 +402,16 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      bool OmpSsInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
 
-         sys.setCpuProcessMask( cpu_set );
+         bool success = sys.setCpuProcessMask( cpu_set );
 
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -386,14 +434,16 @@ namespace nanos
        * \param[in] cpu_set cpu_set_t that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
+      bool OmpSsInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
       {
          LockBlock Lock( _lock );
 
-         sys.setCpuActiveMask( cpu_set );
+         bool success = sys.setCpuActiveMask( cpu_set );
 
          OmpSsData *data = (OmpSsData *) myThread->getCurrentWD()->getInternalData();
          data->icvs()->setNumThreads( sys.getSMPPlugin()->getMaxWorkers() );
+
+         return success;
       }
 
       /*!
@@ -420,18 +470,4 @@ namespace nanos
       }
 
    };
-}
-
-/*
-   This function must have C linkage to avoid that C applications need to link against the C++ library
-*/
-extern "C" {
-   void nanos_omp_set_interface( void * )
-   {
-      if ( nanos::OpenMP::ssCompatibility != NULL ) {
-         sys.setPMInterface(NEW nanos::OpenMP::OmpSsInterface());
-      } else {
-         sys.setPMInterface(NEW nanos::OpenMP::OpenMPInterface());
-      }
-   }
 }

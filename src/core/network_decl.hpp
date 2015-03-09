@@ -23,6 +23,8 @@
 
 #include <string>
 #include <set>
+#include <list>
+#include <vector>
 #include "functor_decl.hpp"
 #include "globalregt_decl.hpp"
 #include "requestqueue_decl.hpp"
@@ -196,6 +198,37 @@ namespace nanos {
          Atomic<unsigned int> *_metadataSequenceNumbers;
          Atomic<unsigned int> _recvMetadataSeq;
 
+         class SyncWDs {
+            unsigned int _numWDs;
+            WD **_wds;
+            public:
+            SyncWDs( int num, WD **wds ) : _numWDs( num ) {
+               _wds = NEW WD*[num];
+               for ( unsigned int idx = 0; idx < _numWDs; idx += 1 ) {
+                  _wds[idx] = wds[idx];
+               }
+            }
+            SyncWDs( SyncWDs const &s ) : _numWDs( s._numWDs ) {
+               _wds = NEW WD*[_numWDs];
+               for ( unsigned int idx = 0; idx < _numWDs; idx += 1 ) {
+                  _wds[idx] = s._wds[idx];
+               }
+            }
+            SyncWDs &operator=( SyncWDs const &s ) {
+               this->_numWDs = s._numWDs;
+               this->_wds = NEW WD*[this->_numWDs];
+               for ( unsigned int idx = 0; idx < this->_numWDs; idx += 1 ) {
+                  this->_wds[idx] = s._wds[idx];
+               }
+               return *this;
+            }
+            ~SyncWDs() { delete[] _wds; }
+            unsigned int getNumWDs() const { return _numWDs; }
+            WD **getWDs() const { return _wds; }
+         };
+         std::list<SyncWDs> _syncReqs;
+         RecursiveLock _syncReqsLock;
+
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
          typedef struct {
@@ -209,6 +242,7 @@ namespace nanos {
 
 
          RequestQueue< SendDataRequest > _dataSendRequests;
+         int _nodeBarrierCounter;
 
          // constructor
 
@@ -289,6 +323,7 @@ namespace nanos {
          unsigned int checkMetadataSequenceNumber( unsigned int dest );
          unsigned int updateMetadataSequenceNumber( unsigned int value );
          void synchronizeDirectory();
+         void processSyncRequests();
    };
 }
 

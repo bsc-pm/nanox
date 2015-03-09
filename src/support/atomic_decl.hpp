@@ -109,7 +109,7 @@ namespace nanos
    void memoryFence ();
 
    template<typename T>
-   bool compareAndSwap( T *ptr, T oldval, T  newval );
+   bool compareAndSwap( volatile T *ptr, T oldval, T  newval );
 
    class Lock : public nanos_lock_t
    {

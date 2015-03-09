@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include "smpdevice.hpp"
-#include "workdescriptor.hpp"
+#include "workdescriptor_fwd.hpp"
 #include "config.hpp"
 
 namespace nanos {

@@ -30,9 +30,9 @@
 #include <signal.h>
 #include <assert.h>
 #include "smp_ult.hpp"
+#include "basethread.hpp"
 #include "instrumentation.hpp"
 //#include "clusterdevice_decl.hpp"
-#include "resourcemanager.hpp"
 //#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
@@ -92,7 +92,7 @@ void SMPThread::wait()
    lock();
    _pthread.mutexLock();
 
-   if ( isSleeping() ) {
+   if ( isSleeping() && getNextWDQueue().size()<=1 && canBlock() ) {
 
       if ( hasNextWD() ) {
          WD *next = getNextWD();
@@ -125,8 +125,8 @@ void SMPThread::wait()
       _pthread.mutexUnlock();
 
       /* Whether the thread should wait for the cpu to be free before doing some work */
-      ResourceManager::waitForCpuAvailability();
-      ResourceManager::returnMyCpuIfClaimed();
+      sys.getThreadManager()->waitForCpuAvailability();
+      sys.getThreadManager()->returnMyCpuIfClaimed();
 
       if ( isSleeping() ) wait();
       else {

@@ -186,6 +186,9 @@ namespace nanos
          *  \return if there are any pendant write on the address passed as a parameter
          */
          virtual bool haveDependencePendantWrites ( void *addr ) ;
+
+         //! \brief Finalize all pendant reductions
+         virtual void finalizeAllReductions ( void ) ;
    };
    
    /*! \class DependenciesManager.

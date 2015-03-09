@@ -47,6 +47,7 @@ namespace ext {
          Network *_net;
          RemoteWorkDescriptor *_rwgGPU;
          RemoteWorkDescriptor *_rwgSMP;
+         RemoteWorkDescriptor *_rwgOCL;
 #ifndef GASNET_SEGMENT_EVERYTHING
          SimpleAllocator *_thisNodeSegment;
 #endif
@@ -156,6 +157,7 @@ namespace ext {
          std::size_t * _segmentLenList;
 
          WorkBufferManager _incomingWorkBuffers;
+         unsigned int _nodeBarrierCounter;
 
       public:
          GASNetAPI( ClusterPlugin &p );

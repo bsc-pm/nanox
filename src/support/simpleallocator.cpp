@@ -23,7 +23,6 @@
 #include "atomic.hpp"
 #include "system.hpp"
 #include "debug.hpp"
-#include "printbt_decl.hpp"
 
 using namespace nanos;
 

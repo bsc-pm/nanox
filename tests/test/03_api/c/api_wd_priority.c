@@ -22,8 +22,11 @@
 <testinfo>
 test_generator=gens/api-omp-generator
 test_schedule="bf --schedule-priority"
+test_LDFLAGS="-Wl,--export-dynamic"
 </testinfo>
 */
+
+unsigned int nanos_need_priorities_ __attribute__((common)) = 1;
 
 /*
  * Test description:

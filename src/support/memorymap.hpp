@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "memorymap_decl.hpp"
-#include "printbt_decl.hpp"
 
 namespace nanos {
 

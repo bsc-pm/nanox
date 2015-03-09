@@ -39,8 +39,8 @@
 #include "memcontroller_decl.hpp"
 
 #include "dependenciesdomain_decl.hpp"
+#include "task_reduction_decl.hpp"
 #include "simpleallocator_decl.hpp"
-
 #include "schedule_fwd.hpp"   // ScheduleWDData
 
 namespace nanos
@@ -208,20 +208,21 @@ typedef std::set<const Device *>  DeviceList;
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
-            bool is_final:1;         //!< Work descriptor will not create more work descriptors
-            bool is_initialized:1;   //!< Work descriptor is initialized
-            bool is_started:1;       //!< Work descriptor has been already started
-            bool is_ready:1;         //!< Work descriptor is ready to execute
-            bool to_tie:1;           //!< Work descriptor should to be tied to first thread executing it
-            bool is_submitted:1;     //!< Has this WD been submitted to the Scheduler?
-            bool is_configured:1;    //!< Has this WD been configured to the Scheduler?
+            bool is_final;         //!< Work descriptor will not create more work descriptors
+            bool is_initialized;   //!< Work descriptor is initialized
+            bool is_started;       //!< Work descriptor has been already started
+            bool is_ready;         //!< Work descriptor is ready to execute
+            bool to_tie;           //!< Work descriptor should to be tied to first thread executing it
+            bool is_submitted;     //!< Has this WD been submitted to the Scheduler?
+            bool is_configured;    //!< Has this WD been configured to the Scheduler?
             bool is_implicit;        //!< Is the WD an implicit task (in a team)?
-            bool is_recoverable:1;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
-            bool is_invalid:1;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
+            bool is_recoverable;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
+            bool is_invalid;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
          } WDFlags;
          typedef int PriorityType;
          typedef enum { INIT, START, READY, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
+         typedef std::list<TaskReduction *>        task_reduction_list_t;  //< List of task reductions type
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
          int                           _hostId;                 //!< Work descriptor identifier @ host
@@ -268,6 +269,7 @@ typedef std::set<const Device *>  DeviceList;
          const char                   *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
+         task_reduction_list_t        _taskReductions;   //< List of task reductions
          int                           _criticality;
          //Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          //bool _listed;
@@ -580,6 +582,10 @@ typedef std::set<const Device *>  DeviceList;
           */
          int getNumDepsPredecessors();
 
+         /*! \brief Returns if DOSubmit's has predecessors
+          */
+         bool hasDepsPredecessors();
+
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
           *  scheduler when its dependencies are satisfied.
@@ -688,8 +694,15 @@ typedef std::set<const Device *>  DeviceList;
          //!
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
-         void convertToRegularWD( void );
+         void convertToRegularWD();
 
+         void registerTaskReduction( void *p_orig, void *dep, size_t p_size, void (*p_init)( void *, void * ),
+                 void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ));
+
+         bool removeTaskReduction( void *p_orig, bool del = false );
+         void * getTaskReductionThreadStorage( void *p_orig, size_t id );
+         TaskReduction * getTaskReduction( const void *p_dep );
+         void copyReductions(WorkDescriptor *parent);
          bool resourceCheck( BaseThread const &thd, bool considerInvalidations ) const;
 
          void setId( unsigned int id );

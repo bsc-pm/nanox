@@ -30,11 +30,19 @@
 using namespace nanos;
 
 
-ProcessingElement::ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId,
+ProcessingElement::ProcessingElement ( const Device *arch, unsigned int memSpaceId,
    unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
    Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
-   _id ( sys.nextPEId() ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ),
-   _subDeviceNo ( NULL ), _threads(), _memorySpaceId( memSpaceId ) {}
+   _id ( sys.nextPEId() ), _supportedDevices( 1, arch ), _device ( arch ), _threads(), _memorySpaceId( memSpaceId ) {}
+
+ProcessingElement::ProcessingElement ( const Device **archs, unsigned int numArchs, unsigned int memSpaceId,
+   unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
+   Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
+   _id ( sys.nextPEId() ), _supportedDevices( numArchs, NULL ), _device ( archs[0] ), _threads(), _memorySpaceId( memSpaceId ) {
+      for(unsigned int idx = 0; idx < numArchs; idx += 1) {
+         _supportedDevices[idx] = archs[idx];
+      }
+   }
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
@@ -160,6 +168,8 @@ Device const *ProcessingElement::getCacheDeviceType() const {
 void ProcessingElement::wakeUpThreads()
 {
    ThreadTeam *team = myThread->getTeam();
+   if (!team) return;
+
    ThreadList::iterator it;
    for ( it = _threads.begin(); it != _threads.end(); ++it ) {
       (*it)->tryWakeUp( team );
@@ -172,4 +182,16 @@ void ProcessingElement::sleepThreads()
    for ( it = _threads.begin(); it != _threads.end(); ++it ) {
       (*it)->sleep();
    }
+}
+
+std::size_t ProcessingElement::getRunningThreads() const
+{
+   std::size_t num_threads = 0;
+   ThreadList::const_iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      if ( (*it)->isRunning() ) {
+         num_threads++;
+      }
+   }
+   return num_threads;
 }

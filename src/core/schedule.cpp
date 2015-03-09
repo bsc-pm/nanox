@@ -32,9 +32,9 @@
 #include "clusternode_decl.hpp"
 #include "gpudd.hpp"
 #include "smpdd.hpp"
+#include "opencldd.hpp"
 #endif
 #include "wddeque.hpp"
-#include "resourcemanager.hpp"
 #include "smpthread.hpp"
 #include "nanos-int.h"
 
@@ -46,23 +46,11 @@ void SchedulerConf::config (Config &cfg)
 {
    cfg.setOptionsSection ( "Core [Scheduler]", "Policy independent scheduler options"  );
 
-   cfg.registerConfigOption( "yield-opt", NEW Config::FlagOption( _useYield, true ),
-                             "Thread yield on idle and condition waits (default is disabled)" );
-   cfg.registerArgOption( "yield-opt", "enable-yield" );
-
-   cfg.registerConfigOption( "block-opt", NEW Config::FlagOption( _useBlock, true ),
-                             "Thread block on idle and condition waits (default is disabled)" );
-   cfg.registerArgOption( "block-opt", "enable-block" );
-
    cfg.registerConfigOption ( "num-spins", NEW Config::UintVar( _numSpins ), "Set number of spins on Idle before yield (default = 1)" );
    cfg.registerArgOption ( "num-spins", "spins" );
 
-   cfg.registerConfigOption ( "num-yields", NEW Config::UintVar( _numYields ), "Set number of yields on Idle before block (default = 1)" );
-   cfg.registerArgOption ( "num-yields", "yields" );
-
    cfg.registerConfigOption ( "num-checks", NEW Config::UintVar( _numChecks ), "Set number of checks before Idle (default = 1)" );
    cfg.registerArgOption ( "num-checks", "checks" );
-
 }
 
 void Scheduler::submit ( WD &wd, bool force_queue )
@@ -213,9 +201,7 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_IDLE) );
 
    const int init_spins = sys.getSchedulerConf().getNumSpins();
-   const int init_yields = sys.getSchedulerConf().getNumYields();
-   const bool use_yield = sys.getSchedulerConf().getUseYield();
-   const bool use_block = sys.getSchedulerConf().getUseBlock();
+   const int init_yields = sys.getThreadManagerConf().getNumYields();
    int spins = init_spins;
    int yields = init_yields;
 
@@ -227,6 +213,8 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( unsigned long long time_blocks = 0; ) /* Time of blocks by idle phase */
    NANOS_INSTRUMENT ( unsigned long long time_yields = 0; ) /* Time of yields by idle phase */
    NANOS_INSTRUMENT ( unsigned long long time_scheds = 0; ) /* Time of yields by idle phase */
+
+   ThreadManager *const thread_manager = sys.getThreadManager();
 
    WD *current = myThread->getCurrentWD();
    sys.getSchedulerStats()._idleThreads++;
@@ -244,13 +232,13 @@ inline void Scheduler::idleLoop ()
       }
 
       spins--;
-      
-      ResourceManager::returnMyCpuIfClaimed();
+
+      thread_manager->returnMyCpuIfClaimed();
 
       //! \note thread can only wait if not in exit behaviour, meaning that it has no user's work
       // descriptor in its stack frame
-      //if ( thread->isSleeping() && !behaviour::exiting() && !ResourceManager::lastActiveThread() ) {
-      if ( thread->isSleeping() && !ResourceManager::lastActiveThread() ) {
+      //if ( thread->isSleeping() && !behaviour::exiting() && !thread_manager->lastActiveThread() ) {
+      if ( thread->isSleeping() && !thread_manager->lastActiveThread() ) {
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
          NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
@@ -282,6 +270,7 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT (time_scheds = 0; )
 
          spins = init_spins;
+         yields = init_yields;
 
       }//thread going to sleep, thread waiking up
 
@@ -359,29 +348,13 @@ inline void Scheduler::idleLoop ()
       if ( spins == 0 ) {
          NANOS_INSTRUMENT ( total_spins += init_spins; )
 
-         //! Resource Manager may ask to return cpus claimed by another process
-         ResourceManager::returnClaimedCpus();
+         // Perform yield and/or block
+         thread_manager->idle( yields
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+               , total_yields, total_blocks, time_yields, time_blocks
+#endif
+               );
 
-         if ( sys.getPMInterface().isMalleable() ) ResourceManager::acquireResourcesIfNeeded();
-
-         if ( yields == 0 || !use_yield ) {
-            if ( use_block && thread->canBlock() ) {
-               NANOS_INSTRUMENT ( total_blocks++; )
-               NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-               ResourceManager::releaseCpu();
-               NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-               NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-            }
-            yields = init_yields;
-
-         } else if ( use_yield ) {
-            NANOS_INSTRUMENT ( total_yields++; )
-            NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-            thread->yield();
-            NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-            NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
-            if ( use_block ) yields--;
-         }
          spins = init_spins;
       }
    }
@@ -401,10 +374,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
    unsigned int checks = (unsigned int) sys.getSchedulerConf().getNumChecks();
 
-   WD * current = myThread->getCurrentWD();
+   BaseThread *thread = getMyThreadSafe();
+   WD * current = thread->getCurrentWD();
    current->setSyncCond( condition );
    
-   BaseThread *thread = getMyThreadSafe();
    bool supportULT = thread->runningOn()->supportsUserLevelThreads();
 
    while ( !condition->check() /* FIXME:xteruel do we needed? && thread->isRunning() */) {
@@ -415,19 +388,21 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
             //! If condition is not acomplished yet, release wd and get more work to do
 
             //! First checking prefetching queue
-            WD * next = myThread->getNextWD();
+            WD * next = thread->getNextWD();
 
-            //! Second calling scheduler policy at block
-            if ( !next ) {
-               memoryFence();
-               if ( sys.getSchedulerStats()._readyTasks > 0 ) {
-                  if ( sys.getSchedulerConf().getSchedulerEnabled() )
-                     next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+            if ( !thread->isSleeping() ) {
+               //! Second calling scheduler policy at block
+               if ( !next ) {
+                  memoryFence();
+                  if ( sys.getSchedulerStats()._readyTasks > 0 ) {
+                     if ( sys.getSchedulerConf().getSchedulerEnabled() )
+                        next = thread->getTeam()->getSchedulePolicy().atBlock( thread, current );
+                  }
                }
             }
 
             //! Finally coming back to our Thread's WD (idle task)
-            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(myThread->getThreadWD());
+            if ( !next && supportULT && sys.getSchedulerConf().getSchedulerEnabled() ) next = &(thread->getThreadWD());
 
             //! If found a wd to switch to, execute it
             if ( next ) {
@@ -513,11 +488,13 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
    if ( thread->getTeam() != NULL ) {
       wd = thread->getNextWD();
       if ( wd ) {
-#ifdef GPU_DEV
-         if ( ( inGPU == 1 && !wd->canRunIn( ext::GPU ) ) || ( inGPU == 0 && !wd->canRunIn( ext::SMP ) ) )
-#else
-         if ( inGPU == 0 && !wd->canRunIn( ext::SMP ) )
-#endif
+// #ifdef GPU_DEV
+//          if ( ( inGPU == 1 && !wd->canRunIn( ext::GPU ) ) || ( inGPU == 0 && !wd->canRunIn( ext::SMP ) ) )
+// #else
+//          if ( ( inGPU == 1 && !wd->canRunIn( ext::OpenCLDev ) ) || ( inGPU == 0 && !wd->canRunIn( ext::SMP ) ) )
+//          //if ( inGPU == 0 && !wd->canRunIn( ext::SMP ) )
+// #endif
+         if ( !wd->canRunIn( *thread->runningOn()->getDeviceType() ) ) 
          { // found a non compatible wd in "nextWD", ignore it
             wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
             //if(wd!=NULL)std::cerr << "GN got a wd with depth " <<wd->getDepth() << std::endl;
@@ -548,7 +525,7 @@ void Scheduler::workerClusterLoop ()
          ext::ClusterThread * volatile myClusterThread = dynamic_cast< ext::ClusterThread * >( myThread );
          if ( myClusterThread->tryLock() ) {
             ext::ClusterNode *thisNode = dynamic_cast< ext::ClusterNode * >( myThread->runningOn() );
-            thisNode->disableDevice( 1 ); 
+            thisNode->setCurrentDevice( 0 ); 
             myClusterThread->clearCompletedWDsSMP2();
 
             if ( myClusterThread->hasWaitingDataWDs() ) {
@@ -653,9 +630,8 @@ void Scheduler::workerClusterLoop ()
                   }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
                }
             }
-            thisNode->enableDevice( 1 ); 
 #ifdef GPU_DEV
-            thisNode->disableDevice( 0 ); 
+            thisNode->setCurrentDevice( 1 ); 
             myClusterThread->clearCompletedWDsGPU2();
 
             if ( myClusterThread->hasWaitingDataWDs() ) {
@@ -760,8 +736,116 @@ void Scheduler::workerClusterLoop ()
                   }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
                }
             }
-            thisNode->enableDevice( 0 ); 
 #endif
+
+#ifdef OpenCL_DEV
+            thisNode->setCurrentDevice( 2 ); 
+            myClusterThread->clearCompletedWDsOCL2();
+
+            if ( myClusterThread->hasWaitingDataWDs() ) {
+               WD * wd_waiting = myClusterThread->getWaitingDataWD();
+               if ( wd_waiting->isInputDataReady() ) {
+                  myClusterThread->addRunningWDOCL( wd_waiting );
+                  outlineWork( myThread, wd_waiting );
+               } else {
+                  myClusterThread->addWaitingDataWD( wd_waiting );
+
+
+// Try to get a WD normally, this is needed because otherwise we will keep only checking the WaitingData WDs
+               if ( myClusterThread->hasAPendingWDToInit() ) {
+                  WD * wd = myClusterThread->getPendingInitWD();
+                  if ( Scheduler::tryPreOutlineWork(wd) ) {
+                     myThread->preOutlineWorkDependent( *wd );
+                     //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     if ( wd->isInputDataReady() ) {
+                        myClusterThread->addRunningWDOCL( wd );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                        outlineWork( myThread, wd );
+                     //NANOS_INSTRUMENT( inst2.close(); );
+                     } else {
+                        myClusterThread->addWaitingDataWD( wd );
+                     }
+                  } else {
+                     //std::cerr << "REPEND WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     myClusterThread->setPendingInitWD( wd );
+                  }
+               } else {
+                  if ( myClusterThread->acceptsWDsOCL() )
+                  {
+                     WD * wd = getClusterWD( myThread, 0 );
+                     if ( wd )
+                     {
+                        Scheduler::prePreOutlineWork(wd); 
+                        if ( Scheduler::tryPreOutlineWork(wd) ) {
+                           myThread->preOutlineWorkDependent( *wd );
+                           if ( wd->isInputDataReady() ) {
+                              //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                              myClusterThread->addRunningWDOCL( wd );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              outlineWork( myThread, wd );
+                              //NANOS_INSTRUMENT( inst2.close(); );
+                           } else {
+                              myClusterThread->addWaitingDataWD( wd );
+                           }
+                        } else {
+                           //std::cerr << "ADDED A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                           myClusterThread->setPendingInitWD( wd );
+                        }
+                     }
+                  }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+               }
+
+
+
+
+               }
+            } else {
+
+               if ( myClusterThread->hasAPendingWDToInit() ) {
+                  WD * wd = myClusterThread->getPendingInitWD();
+                  if ( Scheduler::tryPreOutlineWork(wd) ) {
+                     myThread->preOutlineWorkDependent( *wd );
+                     //std::cerr << "GOT A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     if ( wd->isInputDataReady() ) {
+                        myClusterThread->addRunningWDOCL( wd );
+                     //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                        outlineWork( myThread, wd );
+                     //NANOS_INSTRUMENT( inst2.close(); );
+                     } else {
+                        myClusterThread->addWaitingDataWD( wd );
+                     }
+                  } else {
+                     //std::cerr << "REPEND WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                     myClusterThread->setPendingInitWD( wd );
+                  }
+               } else {
+                  if ( myClusterThread->acceptsWDsOCL() )
+                  {
+                     WD * wd = getClusterWD( myThread, 0 );
+                     if ( wd )
+                     {
+                        Scheduler::prePreOutlineWork(wd); 
+                        if ( Scheduler::tryPreOutlineWork(wd) ) {
+                           myThread->preOutlineWorkDependent( *wd );
+                           if ( wd->isInputDataReady() ) {
+                              //std::cerr << "SUCCED WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                              myClusterThread->addRunningWDOCL( wd );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK); );
+                              outlineWork( myThread, wd );
+                              //NANOS_INSTRUMENT( inst2.close(); );
+                           } else {
+                              myClusterThread->addWaitingDataWD( wd );
+                           }
+                        } else {
+                           //std::cerr << "ADDED A PENDIGN WD for thd " << myThread->getId() <<" wd is " << wd->getId() << std::endl;
+                           myClusterThread->setPendingInitWD( wd );
+                        }
+                     }
+                  }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+               }
+            }
+#endif
+
             myClusterThread->unlock();
          }
       }
@@ -985,8 +1069,8 @@ void Scheduler::finishWork( WD * wd, bool schedule )
    //! \note If WorkDescriptor has been submitted update statistics
    updateExitStats (*wd);
 
-   //! \note Getting more work to do (only if not going to sleep)
-   if ( schedule && !getMyThreadSafe()->isSleeping() ) {
+   //! \note getting more work to do (only if not going to sleep)
+   if ( !getMyThreadSafe()->isSleeping() ) {
       BaseThread *thread = getMyThreadSafe();
       ThreadTeam *thread_team = thread->getTeam();
       if ( thread_team ) {
@@ -1057,14 +1141,6 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    thread->setCurrentWD( *oldwd );
 
-//   if ( &(thread->getThreadWD()) == thread->getCurrentWD()){
-      /* DLB: 
-         If slave, check if I must release my cpu
-         if so do not get next WD and go to sleep*/
-      
-//      dlb_returnMyCpuIfClaimed();
-//   }
-
    // While we tie the inlined tasks this is not needed
    // as we will always return to the current thread
    #if 0
@@ -1074,14 +1150,15 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
-   
+
    /* If DLB, perform the adjustment of resources
          If master: Return claimed cpus
          claim cpus and update_resources 
    */
-   ResourceManager::returnClaimedCpus();
-   if ( sys.getPMInterface().isMalleable() )
-      ResourceManager::acquireResourcesIfNeeded();
+   sys.getThreadManager()->returnClaimedCpus();
+   if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->acquireResourcesIfNeeded();
+   }
 
   return done;
 }
@@ -1269,24 +1346,15 @@ void Scheduler::exit ( void )
          If master: Return claimed cpus
          claim cpus and update_resources 
    */
-   ResourceManager::returnClaimedCpus();
-   if ( sys.getPMInterface().isMalleable() )
-      ResourceManager::acquireResourcesIfNeeded();
+   sys.getThreadManager()->returnClaimedCpus();
+   if ( sys.getPMInterface().isMalleable() ) {
+      sys.getThreadManager()->acquireResourcesIfNeeded();
+   }
 
-   WD *next = NULL;
-   /* DLB: 
-      If slave, check if I must release my cpu
-      if so do not get next WD and go to sleep
-   */
-//   if (!dlb_returnMyCpuIfClaimed()){
-      /* get next WorkDescriptor (if any) */
-//      next =  thread->getNextWD();
-//   }
-
-   finishWork( oldwd, ( next == NULL ) );
+   finishWork( oldwd, true );
 
    /* update next WorkDescriptor (if any) */
-   next = ( next == NULL ) ? thread->getNextWD() : next;
+   WD *next = thread->getNextWD();
 
    if ( !next ) idleLoop<ExitBehaviour>();
    else Scheduler::exitTo(next);

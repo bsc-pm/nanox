@@ -37,6 +37,8 @@ using namespace nanos;
 
 NANOS_API_DEF(nanos_err_t, nanos_wg_wait_completion, ( nanos_wg_t uwg, bool avoid_flush ))
 {
+   if ( myThread->getCurrentWD()->isFinal() ) return NANOS_OK;
+
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","wg_wait_completion",NANOS_SYNCHRONIZATION) );
 
    NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )

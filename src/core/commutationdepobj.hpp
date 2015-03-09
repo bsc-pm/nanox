@@ -21,6 +21,7 @@
 #define _NANOS_COMMUTATIONDEPOBJ
 
 #include "commutationdepobj_decl.hpp"
+#include "task_reduction.hpp"
 
 
 using namespace nanos;
@@ -31,6 +32,18 @@ inline void CommutationDO::dependenciesSatisfied ( )
    if ( domain ) {
       domain->removeCommDO ( this, *_target );
    }
+   if ( _taskReduction != NULL ) {
+      void *addr = _taskReduction->finalize();
+#ifndef ON_TASK_REDUCTION
+      myThread->getTeam()->removeTaskReduction( addr );
+#else
+      bool b = true; //!< delete reduction structure by default
+      WD *parent = myThread->getCurrentWD()->getParent();
+      if ( parent ) b = parent->removeTaskReduction( addr, true );
+      myThread->getCurrentWD()->removeTaskReduction( addr, !b );
+#endif
+
+   }
    
    finished();
 }
@@ -39,6 +52,11 @@ inline bool CommutationDO::isCommutative() const
 { 
    return _commutative; 
 } 
+
+inline void CommutationDO::setTaskReduction( TaskReduction *tr )
+{
+   _taskReduction = tr;
+}
 
 #endif
 

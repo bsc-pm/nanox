@@ -19,6 +19,7 @@
 /*************************************************************************************/
 
 #include "openclprocessor.hpp"
+#include "basethread.hpp"
 #include "openclthread.hpp"
 #include "pthread.hpp"
 #include "openclevent.hpp"
@@ -46,11 +47,6 @@ void OpenCLThread::runDependent() {
    OpenCLDD &dd = static_cast<OpenCLDD &> (wd.activateDevice(OpenCLDev));
 
    while ( getTeam() == NULL ) { OS::nanosleep( 100 ); }
-
-   if ( getTeam() == NULL ) {
-      warning( "This OpenCLThread needs a team to work, but no team was found. The thread will exit.");
-      return;
-   }
     
    dd.getWorkFct()(wd.getData());    
    ( ( OpenCLProcessor * ) myThread->runningOn() )->cleanUp();

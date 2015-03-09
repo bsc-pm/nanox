@@ -1,7 +1,6 @@
 #ifndef VERSION_HPP
 #define VERSION_HPP
 #include "system_decl.hpp"
-#include "printbt_decl.hpp"
 using namespace nanos;
 
 inline Version::Version() : _version( 0 ) {

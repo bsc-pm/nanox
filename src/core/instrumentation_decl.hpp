@@ -440,6 +440,8 @@ namespace nanos {
             registerEventValue("api","memalign","nanos_memalign()");
             registerEventValue("api","cmalloc","nanos_cmalloc()");
             registerEventValue("api","stick_to_producer","nanos_stick_to_producer()");
+            registerEventValue("api","task_reduction_register","nanos_task_reduction_register()");
+            registerEventValue("api","task_reduction_get_thread_storage","nanos_task_reduction_get_thread_storage()");
 
             /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, EVENT_DEVELOPER, true);
 
@@ -644,6 +646,7 @@ namespace nanos {
             registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_H2D_GPU_EVENT", "Host to GPU device transfer (CUDA)" );                     /* 1 */
             registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_D2H_GPU_EVENT", "GPU device to host transfer (CUDA)" );                     /* 2 */
             /* 61 */ registerEventKey("concurrent-tasks", "Number of concurrent tasks in the ready queue", false, EVENT_DEVELOPER );
+            /* 62 */ registerEventKey("network-transfer", "Network transfer to node ", false, EVENT_DEVELOPER);
                      
             /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }

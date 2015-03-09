@@ -105,7 +105,8 @@ enum OmpSsMPIType {
     mpitype_ompss_bool = 12,
     mpitype_ompss_byte = 13,
     mpitype_ompss_unsigned_long = 14,
-    mpitype_ompss_unsigned_long_long = 15
+    mpitype_ompss_unsigned_long_long = 15,
+    mpitype_ompss_signed_long_long = 16
 };
 
 #endif

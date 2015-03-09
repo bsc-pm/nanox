@@ -462,7 +462,9 @@ namespace nanos {
 
 
             // constructor
-            ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {}
+            ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {
+               _usePriority = _usePriority && sys.getPrioritiesNeeded();
+            }
 
             // destructor
             virtual ~ReadyCacheSchedPolicy() {}
@@ -760,6 +762,11 @@ namespace nanos {
                   //propagatePriority( obj );
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority;
+            }
       };
 
       inline WD *ReadyCacheSchedPolicy::fetchWD( BaseThread *thread, WD *current )
@@ -954,8 +961,7 @@ namespace nanos {
          tdata._queues->pushBack( &wd, winner );
       }
 
-
-      bool ReadyCacheSchedPolicy::_usePriority = false;
+      bool ReadyCacheSchedPolicy::_usePriority = true;
       int ReadyCacheSchedPolicy::_priorityPropagation = 5;
       bool ReadyCacheSchedPolicy::_noSteal = false;
       bool ReadyCacheSchedPolicy::_noInvalAware = false;

@@ -30,7 +30,7 @@
 #include "atomic.hpp"
 #include "system.hpp"
 #include "wddeque.hpp"
-#include "printbt_decl.hpp"
+#include "smpthread.hpp"
 #include <stdio.h>
 
 namespace nanos
@@ -111,9 +111,13 @@ namespace nanos
       _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL )
    {
          if ( sys.getSplitOutputForThreads() ) {
-            char tmpbuf[64];
-            sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
-            _file = NEW std::ofstream(tmpbuf);
+            if ( _parent != NULL ) {
+               _file = _parent->_file;
+            } else {
+               char tmpbuf[64];
+               sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
+               _file = NEW std::ofstream(tmpbuf);
+            }
          } else {
             _file = &std::cerr;
          }
@@ -135,7 +139,7 @@ namespace nanos
    inline void BaseThread::stop() { _status.must_stop = true; }
 
    inline void BaseThread::sleep() {
-      if (!_status.must_sleep) {
+      if (!_status.must_sleep && canBlock()) {
          _status.must_sleep = true;
          if ( ThreadTeam *team = getTeam() )
             team->decreaseFinalSize();

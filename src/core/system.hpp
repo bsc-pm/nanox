@@ -407,14 +407,6 @@ inline size_t System::registerArchitecture( ArchPlugin * plugin )
 }
 
 #ifdef GPU_DEV
-//TODO: remove this from system, should be inside gpuconfig.cpp, but weak attributes don't seem to be working inside gpu device
-//This var name has to be consistant with the one which the compiler "fills" (basically, do not rename it)
-extern __attribute__((weak)) char ompss_uses_cuda;
-extern __attribute__((weak)) char gpu_cublas_init;
-
-inline char *  System::getOmpssUsesCuda() { return &ompss_uses_cuda; }
-inline char *  System::getOmpssUsesCublas() { return &gpu_cublas_init; }
-
 inline PinnedAllocator& System::getPinnedAllocatorCUDA() { return _pinnedMemoryCUDA; }
 #endif
 
@@ -508,8 +500,6 @@ inline unsigned int System::nextPEId () { return _peIdSeed++; }
 
 inline Lock * System::getLockAddress ( void *addr ) const { return &_lockPool[((((uintptr_t)addr)>>8)%_lockPoolSize)];} ;
 
-inline bool System::dlbEnabled() const { return _enableDLB; }
-
 inline bool System::haveDependencePendantWrites ( void *addr ) const
 {
    return myThread->getCurrentWD()->getDependenciesDomain().haveDependencePendantWrites ( addr );
@@ -596,6 +586,18 @@ inline unsigned int System::getNewAcceleratorId() {
    return _acceleratorCount++;
 }
 
+inline const ThreadManagerConf& System::getThreadManagerConf() const {
+   return _threadManagerConf;
+}
+
+inline ThreadManager* System::getThreadManager() const {
+   return _threadManager;
+}
+
+inline bool System::getPrioritiesNeeded() const {
+   return _compilerSuppliedFlags.prioritiesNeeded;
+}
+
 /* SMPPlugin functions */
 inline void System::admitCurrentThread ( bool isWorker ) { _smpPlugin->admitCurrentThread( _workers, isWorker ); }
 inline void System::expelCurrentThread ( bool isWorker ) { _smpPlugin->expelCurrentThread( _workers, isWorker ); }
@@ -604,13 +606,28 @@ inline void System::updateActiveWorkers ( int nthreads ) { _smpPlugin->updateAct
 
 inline const cpu_set_t& System::getCpuProcessMask () const { return _smpPlugin->getCpuProcessMask(); }
 inline void System::getCpuProcessMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuProcessMask( mask ); }
-inline void System::setCpuProcessMask ( const cpu_set_t *mask ) { _smpPlugin->setCpuProcessMask( mask, _workers ); }
+inline bool System::setCpuProcessMask ( const cpu_set_t *mask ) { return _smpPlugin->setCpuProcessMask( mask, _workers ); }
 inline void System::addCpuProcessMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuProcessMask( mask, _workers ); }
 
 inline const cpu_set_t& System::getCpuActiveMask () const { return _smpPlugin->getCpuActiveMask(); }
 inline void System::getCpuActiveMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuActiveMask( mask ); }
-inline void System::setCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->setCpuActiveMask( mask, _workers ); }
+inline bool System::setCpuActiveMask ( const cpu_set_t *mask ) { return _smpPlugin->setCpuActiveMask( mask, _workers ); }
 inline void System::addCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
+
+inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int accelerator_id ) const {
+   memory_space_id_t id = ( memory_space_id_t ) -1;
+   for ( memory_space_id_t mem_idx = 1; mem_idx < _separateMemorySpacesCount; mem_idx += 1 ) {
+      if ( _separateAddressSpaces[ mem_idx ]->getAcceleratorNumber() == accelerator_id ) {
+         id = mem_idx;
+         break;
+      }
+   }
+   return id;
+}
+
+inline Router &System::getRouter() {
+   return _router;
+}
 
 #endif
 

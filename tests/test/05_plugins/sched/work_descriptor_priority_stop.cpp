@@ -17,13 +17,17 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-// FIXME: add priority queue option to this benchmark see #807
 /*
 <testinfo>
 test_generator=gens/mixed-generator
 test_schedule="bf --schedule-priority"
+test_LDFLAGS="-Wl,--export-dynamic"
 </testinfo>
 */
+
+extern "C"{
+   unsigned int nanos_need_priorities_ __attribute__((common)) = 1;
+}
 
 #include "config.hpp"
 #include "nanos.h"

@@ -25,6 +25,7 @@
 #include "smpprocessor.hpp"
 #include "schedule.hpp"
 #include "simpleallocator.hpp"
+#include "basethread.hpp"
 
 #include "cuda_runtime.h"
 
@@ -35,7 +36,7 @@ Atomic<int> GPUProcessor::_deviceSeed = 0;
 
 
 GPUProcessor::GPUProcessor( int gpuId, memory_space_id_t memId, SMPProcessor *core, GPUMemorySpace &gpuMem ) :
-      ProcessingElement( &GPU, NULL, memId, 0 /* local node */, core->getNumaNode() /* numa */, true, 0 /* socket: n/a */, false ),
+      ProcessingElement( &GPU, memId, 0 /* local node */, core->getNumaNode() /* numa */, true, 0 /* socket: n/a */, false ),
       _gpuDevice( _deviceSeed++ ), _gpuProcessorStats(),
       _initialized( false ), _gpuMemory( gpuMem ), _core( core ), _thread( NULL)
 {

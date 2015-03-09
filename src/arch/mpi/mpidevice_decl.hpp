@@ -101,10 +101,6 @@ namespace nanos
          
          static void remoteNodeCacheWorker();
          
-         static void taskPreInit(MPI_Comm& comm, int pendingCopies);
-         
-         static void taskPostFinish(MPI_Comm& comm);
-         
          
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx);
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem );

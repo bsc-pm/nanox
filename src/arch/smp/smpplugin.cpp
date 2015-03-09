@@ -24,7 +24,7 @@
 #include "os.hpp"
 #include "osallocator_decl.hpp"
 #include "system.hpp"
-#include "printbt_decl.hpp"
+#include "basethread.hpp"
 #include <limits>
 
 //#include <numa.h>
@@ -379,6 +379,17 @@ class SMPPlugin : public SMPBasePlugin
       //FIXME: this makes sense in OpenMP, also, in OpenMP this value is already set (see omp_init.cpp)
       //       In OmpSs, this will make omp_get_max_threads to return the number of SMP worker threads.
       sys.getPMInterface().setNumThreads_globalState( _workers.size() );
+
+      // Remove from Active Mask those CPUs that do not contain any thread nor are reserved by any device
+      for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         SMPProcessor *cpu = (*it);
+         int cpuid = cpu->getBindingId();
+         if ( CPU_ISSET( cpuid, &_cpuActiveMask )
+               && cpu->getNumThreads() == 0
+               && !cpu->isReserved() ) {
+            CPU_CLR( cpuid, &_cpuActiveMask );
+         }
+      }
    }
 
    virtual void setRequestedWorkers( int workers )
@@ -438,6 +449,19 @@ class SMPPlugin : public SMPBasePlugin
       return target;
    }
 
+   virtual ext::SMPProcessor *getLastSMPProcessor() {
+      ensure( _cpus != NULL, "Uninitialized SMP plugin.");
+      ext::SMPProcessor *target = NULL;
+      for ( std::vector<ext::SMPProcessor *>::const_reverse_iterator it = _cpus->rbegin();
+            it != _cpus->rend() && !target;
+            it++ ) {
+         if ( (*it)->isActive() ) {
+            target = *it;
+         }
+      }
+      return target;
+   }
+
    virtual ext::SMPProcessor *getFreeSMPProcessorByNUMAnodeAndReserve(int node)
    {
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
@@ -492,10 +516,10 @@ class SMPPlugin : public SMPBasePlugin
             _numSockets = 1;
          }
       }
-      ensure(_numSockets > 0, "Invalid number of sockets!");
+      ensure0(_numSockets > 0, "Invalid number of sockets!");
       if ( _CPUsPerSocket == 0 )
          _CPUsPerSocket = std::ceil( _cpus->size() / static_cast<float>( _numSockets ) );
-      ensure(_CPUsPerSocket > 0, "Invalid number of CPUs per socket!");
+      ensure0(_CPUsPerSocket > 0, "Invalid number of CPUs per socket!");
       verbose0( toString( "[NUMA] " ) + toString( _numSockets ) + toString( " NUMA nodes, " ) +
             toString( _CPUsPerSocket ) + toString( " HW threads each." ) );
    }
@@ -543,11 +567,24 @@ class SMPPlugin : public SMPBasePlugin
       ::memcpy( mask, &_cpuProcessMask , sizeof(cpu_set_t) );
    }
 
-   virtual void setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual bool setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      ::memcpy( &_cpuProcessMask, mask, sizeof(cpu_set_t) );
-      ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
-      applyCpuMask( workers );
+      bool success = false;
+      if ( isValidMask( mask ) ) {
+         ::memcpy( &_cpuProcessMask, mask, sizeof(cpu_set_t) );
+         ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         int master_cpu = workers[0]->getCpuId();
+         if ( !sys.getUntieMaster() && !CPU_ISSET( master_cpu, mask ) ) {
+            // If master thread is tied and mask does not include master's cpu, force it
+            CPU_SET( master_cpu, &_cpuProcessMask );
+            CPU_SET( master_cpu, &_cpuActiveMask );
+         } else {
+            // Return only true success when we have set an unmodified user mask
+            success = true;
+         }
+         applyCpuMask( workers );
+      }
+      return success;
    }
 
    virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
@@ -567,10 +604,22 @@ class SMPPlugin : public SMPBasePlugin
       ::memcpy( mask, &_cpuActiveMask, sizeof(cpu_set_t) );
    }
 
-   virtual void setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual bool setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
-      applyCpuMask( workers );
+      bool success = false;
+      if ( isValidMask( mask ) ) {
+         ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         int master_cpu = workers[0]->getCpuId();
+         if ( !sys.getUntieMaster() && !CPU_ISSET( master_cpu, mask ) ) {
+            // If master thread is tied and mask does not include master's cpu, force it
+            CPU_SET( master_cpu, &_cpuActiveMask );
+         } else {
+            // Return only true success when we have set an unmodified user mask
+            success = true;
+         }
+         applyCpuMask( workers );
+      }
+      return success;
    }
 
    virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
@@ -807,6 +856,19 @@ class SMPPlugin : public SMPBasePlugin
       return thd;
    }
 
+   /*! \brief Force the creation of at least 1 thread per CPU.
+    */
+   virtual void forceMaxThreadCreation()
+   {
+      cpu_set_t mask;
+      // Save original active mask
+      getCpuActiveMask( &mask );
+      // Set all CPUs active
+      sys.setCpuActiveMask( &_cpuSystemMask );
+      // Fall back
+      sys.setCpuActiveMask( &mask );
+   }
+
    /*! \brief returns a human readable string containing information about the binding mask, detecting ranks.
     *       format e.g.,
     *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]
@@ -920,6 +982,14 @@ private:
          threadWD.setInternalData( data );
       }
       sys.getPMInterface().setupWD( threadWD );
+   }
+
+   bool isValidMask( const cpu_set_t *mask )
+   {
+      // A mask is valid if it shares at least 1 bit with the system mask
+      cpu_set_t m;
+      CPU_AND( &m, mask, &_cpuSystemMask );
+      return CPU_COUNT( &m ) > 0;
    }
 
 };

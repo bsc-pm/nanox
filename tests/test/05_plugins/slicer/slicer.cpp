@@ -102,9 +102,20 @@ int main ( int argc, char **argv )
    wg->addWork( *wd1 );
    wg->addWork( *wd2 );
 
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( idata );
+      wd1->setInternalData( idata );
+   }
    sys.setupWD(*wd1, (nanos::WD *) wg);
    sys.submit( *wd1 );
 
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( idata );
+      wd2->setInternalData( idata );
+   }
+   sys.setupWD(*wd1, (nanos::WD *) wg);
    sys.setupWD(*wd2, (nanos::WD *) wg);
    sys.submit( *wd2 );
 

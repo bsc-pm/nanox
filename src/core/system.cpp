@@ -28,9 +28,9 @@
 #include "basethread.hpp"
 #include "malign.hpp"
 #include "processingelement.hpp"
+#include "basethread.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
-#include "resourcemanager.hpp"
 #include <assert.h>
 #include <string.h>
 #include <signal.h>
@@ -39,6 +39,8 @@
 #include "smpthread.hpp"
 #include "regiondict.hpp"
 #include "smpprocessor.hpp"
+#include "location.hpp"
+#include "router.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -65,13 +67,21 @@ using namespace nanos;
 
 System nanos::sys;
 
+namespace nanos {
+namespace PMInterfaceType
+{
+   extern int * ssCompatibility;
+   extern void (*set_interface)( void * );
+}
+}
+
 // default system values go here
 System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
-      _enableDLB( false ), _predecessorLists( false ), _throttlePolicy ( NULL ),
+      _predecessorLists( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
@@ -79,7 +89,8 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0)
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0),
+      _numaNodeMap(), _threadManagerConf(), _threadManager( NULL )
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -92,6 +103,7 @@ System::System () :
       , _verboseCopies( false )
       , _splitOutputForThreads( false )
       , _userDefinedNUMANode( -1 )
+      , _router()
       , _hwloc()
 {
    verbose0 ( "NANOS++ initializing... start" );
@@ -170,8 +182,7 @@ void System::loadModules ()
    }
 #endif
 
-   verbose0( "Architectures loaded, stating PM interface.");
-   _pmInterface->start();
+   verbose0( "Architectures loaded");
 
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );   
@@ -205,8 +216,8 @@ void System::loadModules ()
       fatal0( "Could not load main barrier algorithm" );
 
    ensure0( _defBarrFactory,"No default system barrier factory" );
-   
 
+   _threadManager = _threadManagerConf.create();
 }
 
 void System::unloadModules ()
@@ -241,21 +252,18 @@ void System::config ()
    const OS::InitList & externalInits = OS::getInitializationFunctions();
    std::for_each(externalInits.begin(),externalInits.end(), ExecInit());
    
+#if 0
    if ( !_pmInterface ) {
       // bare bone run
       _pmInterface = NEW PMInterface();
    }
+#endif
 
    //! Declare all configuration core's flags
    verbose0( "Preparing library configuration" );
 
    cfg.setOptionsSection( "Core", "Core options of the core of Nanos++ runtime" );
 
-//   cfg.registerConfigOption( "num_threads", NEW Config::PositiveVar( _numThreads ),
-//                             "Defines the number of threads. Note that OMP_NUM_THREADS is an alias to this." );
-//   cfg.registerArgOption( "num_threads", "threads" );
-//   cfg.registerEnvOption( "num_threads", "NX_THREADS" );
-   
    cfg.registerConfigOption( "stack-size", NEW Config::PositiveVar( _deviceStackSize ),
                              "Defines the default stack size for all devices" );
    cfg.registerArgOption( "stack-size", "stack-size" );
@@ -330,10 +338,6 @@ void System::config ()
    cfg.registerArgOption( "instrument-cpuid", "instrument-cpuid" );
 #endif
 
-   cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _enableDLB ),
-                              "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
-   cfg.registerArgOption( "enable-dlb", "enable-dlb" );
-
    /* Cluster: load the cluster support */
    cfg.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _usingCluster, true ), "Enables the usage of Nanos++ Cluster" );
    cfg.registerArgOption ( "enable-cluster", "cluster" );
@@ -375,13 +379,23 @@ void System::config ()
    cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
 
    _schedConf.config( cfg );
-   _pmInterface->config( cfg );
-   
+
    _hwloc.config( cfg );
+   _threadManagerConf.config( cfg );
 
    verbose0 ( "Reading Configuration" );
 
    cfg.init();
+   
+   // Now read compiler-supplied flags
+   // Open the own executable
+   void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
+
+   // Check if the compiler marked myself as requiring priorities (#1041)
+   _compilerSuppliedFlags.prioritiesNeeded = dlsym(myself, "nanos_need_priorities_") != NULL;
+   
+   // Close handle to myself
+   dlclose( myself );
 }
 
 void System::start ()
@@ -390,6 +404,14 @@ void System::start ()
    
    // Modules can be loaded now
    loadModules();
+
+   verbose0( "Stating PM interface.");
+   Config cfg;
+   void (*f)(void *) = nanos::PMInterfaceType::set_interface;
+   f(NULL);
+   _pmInterface->config( cfg );
+   cfg.init();
+   _pmInterface->start();
 
    // Instrumentation startup
    NANOS_INSTRUMENT ( sys.getInstrumentation()->filterEvents( _instrumentDefault, _enableEvents, _disableEvents ) );
@@ -411,9 +433,15 @@ void System::start ()
    }
 
    _smpPlugin->associateThisThread( getUntieMaster() );
+
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
    mainWD._mcontrol.setMainWD();
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( data );
+      mainWD.setInternalData( data );
+   }
 
    if ( _pmInterface->getInternalDataSize() > 0 ) {
       char *data = NEW char[_pmInterface->getInternalDataSize()];
@@ -421,6 +449,12 @@ void System::start ()
       mainWD.setInternalData( data );
    }
    _pmInterface->setupWD( mainWD );
+
+   if ( _defSchedulePolicy->getWDDataSize() > 0 ) {
+      char *data = NEW char[ _defSchedulePolicy->getWDDataSize() ];
+      _defSchedulePolicy->initWDData( data );
+      mainWD.setSchedulerData( reinterpret_cast<ScheduleWDData*>( data ), /* ownedByWD */ true );
+   }
 
    /* Renaming currend thread as Master */
    myThread->rename("Master");
@@ -545,7 +579,15 @@ void System::start ()
          break;
    }
 
-   if ( usingCluster() ) _net.nodeBarrier();
+   if ( _threadManagerConf.threadWarmupEnabled() ) {
+      _smpPlugin->forceMaxThreadCreation();
+   }
+
+   _router.initialize();
+   if ( usingCluster() )
+   {
+      _net.nodeBarrier();
+   }
 
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
@@ -570,8 +612,6 @@ void System::start ()
    Config::deleteOrphanOptions();
       
    if ( _summary ) environmentSummary();
-
-   ResourceManager::init();
 }
 
 System::~System ()
@@ -581,8 +621,6 @@ System::~System ()
 
 void System::finish ()
 {
-   ResourceManager::finalize();
-
    //! \note Instrumentation: first removing RUNNING state from top of the state stack
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
@@ -664,6 +702,9 @@ void System::finish ()
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+
+   //! \note stopping and deleting the thread manager
+   delete _threadManager;
 
    //! \note stopping and deleting the programming model interface
    _pmInterface->finish();
@@ -902,9 +943,6 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // set properties
    if ( props != NULL ) {
       if ( props->tied ) wd->tied();
-      wd->setPriority( dyn_props->priority );
-      wd->setFinal ( dyn_props->flags.is_final );
-      wd->setRecoverable ( dyn_props->flags.is_recover);
    }
 
    // Set dynamic properties
@@ -921,13 +959,18 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
    // every 10 tasks created I'll check if I must return claimed cpus
    // or there are available cpus idle
    if(_atomicWDSeed.value()%10==0){
-      ResourceManager::returnClaimedCpus();
-      ResourceManager::acquireResourcesIfNeeded();
+      _threadManager->returnClaimedCpus();
+      _threadManager->acquireResourcesIfNeeded();
    }
 
    if (_createLocalTasks) {
       wd->tieToLocation( 0 );
    }
+
+#ifndef ON_TASK_REDUCTION
+#else
+   wd->copyReductions((WorkDescriptor *)uwg);
+#endif
 }
 
 /*! \brief Duplicates the whole structure for a given WD
@@ -1341,8 +1384,12 @@ void System::endTeam ( ThreadTeam *team )
    /* For OpenMP applications
       At the end of the parallel return the claimed cpus
    */
-   ResourceManager::returnClaimedCpus();
+   _threadManager->returnClaimedCpus();
    while ( team->size ( ) > 0 ) {
+      // FIXME: Is it really necessary?
+      memoryFence();
+   }
+   while ( team->getFinalSize ( ) > 0 ) {
       // FIXME: Is it really necessary?
       memoryFence();
    }
@@ -1399,6 +1446,7 @@ void System::environmentSummary( void )
    message0( "=== System CPUs:         " << _smpPlugin->getBindingMaskString() );
    message0( "=== Binding:             " << std::boolalpha << _smpPlugin->getBinding() );
    message0( "=== Prog. Model:         " << prog_model );
+   message0( "=== Priorities:          " << (getPrioritiesNeeded() ? "Needed" : "Not needed") << " / " << ( _defSchedulePolicy->usingPriorities() ? "enabled" : "disabled" ) );
 
    for ( ArchitecturePlugins::const_iterator it = _archs.begin();
         it != _archs.end(); ++it ) {

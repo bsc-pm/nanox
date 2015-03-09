@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <vector>
 #include <list>
+#include <set>
 #include "compatibility.hpp"
 #include <memory>
 #include <sstream>
@@ -505,11 +506,13 @@ namespace nanos
 
                const HelpTriplet& operator=( const HelpTriplet& ht );
 
+               bool operator<( const HelpTriplet& ht ) const { return _argHelp < ht._argHelp; }
+
                ~HelpTriplet() {}
 
-               size_t getHelpLength();
-               std::string getEnvHelp( size_t size );
-               std::string getArgHelp( size_t size );
+               size_t getHelpLength() const;
+               std::string getEnvHelp( size_t size ) const;
+               std::string getArgHelp( size_t size ) const;
          };
 
         /* \brief High-Level Instances of configuration options
@@ -649,7 +652,7 @@ namespace nanos
 //                typedef std::pair<std::string, std::string> argAndEnvHelps;
                 /**< List of helps in a section */
 //                typedef std::vector<argAndEnvHelps> HelpStringList;
-                typedef std::vector<HelpTriplet> HelpStringList;
+                typedef std::set<HelpTriplet> HelpStringList;
                 /**< Sections by name */
                 typedef TR1::unordered_map<std::string, HelpStringList> SectionsMap;
                 /**< Section descriptions by name */

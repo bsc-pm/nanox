@@ -58,12 +58,13 @@ namespace nanos
 
             virtual ThreadTeamData * getThreadTeamData();
 
+            virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
             virtual void getCpuProcessMask( cpu_set_t *cpu_set ) const;
-            virtual void setCpuProcessMask( const cpu_set_t *cpu_set );
+            virtual bool setCpuProcessMask( const cpu_set_t *cpu_set );
             virtual void addCpuProcessMask( const cpu_set_t *cpu_set );
             virtual void getCpuActiveMask( cpu_set_t *cpu_set ) const;
-            virtual void setCpuActiveMask( const cpu_set_t *cpu_set );
+            virtual bool setCpuActiveMask( const cpu_set_t *cpu_set );
             virtual void addCpuActiveMask( const cpu_set_t *cpu_set );
 
          public:
@@ -82,11 +83,12 @@ namespace nanos
             virtual int getInternalDataAlignment() const ;
             virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
+            virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
             virtual void setNumThreads_globalState ( int nthreads );
-            virtual void setCpuProcessMask( const cpu_set_t *cpu_set );
+            virtual bool setCpuProcessMask( const cpu_set_t *cpu_set );
             virtual void addCpuProcessMask( const cpu_set_t *cpu_set );
-            virtual void setCpuActiveMask( const cpu_set_t *cpu_set );
+            virtual bool setCpuActiveMask( const cpu_set_t *cpu_set );
             virtual void addCpuActiveMask( const cpu_set_t *cpu_set );
          public:
             virtual PMInterface::Interfaces getInterface() const;

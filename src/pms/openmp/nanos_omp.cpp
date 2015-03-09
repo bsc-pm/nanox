@@ -21,9 +21,10 @@ NANOS_API_DEF(void, nanos_omp_get_process_mask, ( nanos_cpu_set_t cpu_set ))
    sys.getPMInterface().getCpuProcessMask( (cpu_set_t *) cpu_set );
 }
 
-NANOS_API_DEF(void, nanos_omp_set_process_mask, ( const nanos_cpu_set_t cpu_set ))
+NANOS_API_DEF(int, nanos_omp_set_process_mask, ( const nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().setCpuProcessMask( (cpu_set_t *) cpu_set );
+   bool b = sys.getPMInterface().setCpuProcessMask( (cpu_set_t *) cpu_set );
+   return (b) ? 0 : -1;
 }
 
 NANOS_API_DEF(void, nanos_omp_add_process_mask, ( const nanos_cpu_set_t cpu_set ))
@@ -36,9 +37,10 @@ NANOS_API_DEF(void, nanos_omp_get_active_mask, ( nanos_cpu_set_t cpu_set ))
    sys.getPMInterface().getCpuActiveMask( (cpu_set_t *) cpu_set );
 }
 
-NANOS_API_DEF(void, nanos_omp_set_active_mask, ( const nanos_cpu_set_t cpu_set ))
+NANOS_API_DEF(int, nanos_omp_set_active_mask, ( const nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().setCpuActiveMask( (cpu_set_t *) cpu_set );
+   bool b = sys.getPMInterface().setCpuActiveMask( (cpu_set_t *) cpu_set );
+   return (b) ? 0 : -1;
 }
 
 NANOS_API_DEF(void, nanos_omp_add_active_mask, ( const nanos_cpu_set_t cpu_set ))
@@ -101,3 +103,4 @@ NANOS_API_DEF(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, in
    }
    return NANOS_OK;
 }
+

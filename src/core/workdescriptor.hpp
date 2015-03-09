@@ -56,6 +56,7 @@ inline WorkDescriptor::WorkDescriptor ( int ndevices, DeviceData **devs, size_t 
                                  _translateArgs( translate_args ),
                                  _priority( 0 ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
                                  _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
+                                 _taskReductions(),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
                                     _flags.is_final = 0;
@@ -87,7 +88,7 @@ inline WorkDescriptor::WorkDescriptor ( DeviceData *device, size_t data_size, si
                                  _doSubmit(NULL), _doWait(), _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _translateArgs( translate_args ),
                                  _priority( 0 ),  _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL),
+                                 _copiesNotInChunk(false), _description(description), _instrumentationContextData(), _slicer(NULL), _taskReductions(),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
                                      _devices = new DeviceData*[1];
@@ -122,7 +123,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _depsDomain( sys.getDependenciesManager()->createDependenciesDomain() ),
                                  _translateArgs( wd._translateArgs ),
                                  _priority( wd._priority ), _commutativeOwnerMap(NULL), _commutativeOwners(NULL),
-                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer),
+                                 _copiesNotInChunk( wd._copiesNotInChunk), _description(description), _instrumentationContextData(), _slicer(wd._slicer), _taskReductions(),
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
                                     if ( wd._parent != NULL ) wd._parent->addWork(*this);
@@ -354,6 +355,8 @@ inline DOSubmit * WorkDescriptor::getDOSubmit() { return _doSubmit; }
 
 inline int WorkDescriptor::getNumDepsPredecessors() { return ( _doSubmit == NULL ? 0 : _doSubmit->numPredecessors() ); }
 
+inline bool WorkDescriptor::hasDepsPredecessors() { return ( _doSubmit == NULL ? false : ( _doSubmit->numPredecessors() != 0 ) ); }
+
 inline void WorkDescriptor::submitWithDependencies( WorkDescriptor &wd, size_t numDeps, DataAccess* deps )
 {
    wd._doSubmit = NEW DOSubmit();
@@ -501,6 +504,11 @@ inline bool WorkDescriptor::dequeue ( WorkDescriptor **slice )
 inline void WorkDescriptor::convertToRegularWD()
 {
    _slicer = NULL;
+}
+
+inline void WorkDescriptor::copyReductions(WorkDescriptor *parent)
+{
+   _taskReductions = parent->_taskReductions;
 }
 
 inline void WorkDescriptor::setId( unsigned int id ) {
