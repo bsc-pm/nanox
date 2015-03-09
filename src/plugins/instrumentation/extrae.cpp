@@ -519,7 +519,7 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Values[j++] = cvalue;
                   }
                   // Add hwc only for user-funct events
-                  if ( ckey != 0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                  if ( ckey != 0 && ( ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") || ckey ==  getInstrumentationDictionary()->getEventKey("cpuid") ) )
                      ce.HardwareCounters = 1;
                   break;
                case NANOS_BURST_END:
@@ -528,7 +528,7 @@ class InstrumentationExtrae: public Instrumentation
                      ce.Types[j] = _eventBase + ckey;
                      ce.Values[j++] = 0; // end
                   }
-                  if ( ckey !=0 && ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") )
+                  if ( ckey !=0 && (ckey ==  getInstrumentationDictionary()->getEventKey("user-funct-location") || ckey ==  getInstrumentationDictionary()->getEventKey("cpuid") ) )
                      ce.HardwareCounters = 1;
                   break;
                default: break;
