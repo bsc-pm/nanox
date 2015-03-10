@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2012 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef _NANOS_BASE_DEPENDENCY_DECL_H
 #define _NANOS_BASE_DEPENDENCY_DECL_H
 

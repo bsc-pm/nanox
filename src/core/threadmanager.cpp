@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -52,19 +52,19 @@ extern "C" {
          DLB_Update )
 #endif
 
-// Sleep time in ns between each sched_yield
-#define NANOS_YIELD_SLEEP_NS 20000
-
-
 using namespace nanos;
+
+const unsigned int ThreadManagerConf::DEFAULT_SLEEP_NS = 20000;
+const unsigned int ThreadManagerConf::DEFAULT_YIELDS = 10;
 
 /**********************************/
 /****** Thread Manager Conf *******/
 /**********************************/
 
 ThreadManagerConf::ThreadManagerConf()
-   : _tm(), _numYields(1), _useYield(false), _useBlock(false), _useDLB(false),
-   _forceTieMaster(false), _warmupThreads( false )
+   : _tm(TM_UNDEFINED), _numYields(DEFAULT_YIELDS), _sleepTime(DEFAULT_SLEEP_NS),
+   _useYield(false), _useBlock(false), _useDLB(false),
+   _forceTieMaster(false), _warmupThreads(false)
 {
 }
 
@@ -73,75 +73,84 @@ void ThreadManagerConf::config( Config &cfg )
    cfg.setOptionsSection("Thread Manager specific","Thread Manager related options");
 
    Config::MapVar<ThreadManagerOption>* tm_options = NEW Config::MapVar<ThreadManagerOption>( _tm );
-   tm_options->addOption( "none", NONE );
-   tm_options->addOption( "basic", BASIC );
-   tm_options->addOption( "dlb", GENERIC_DLB );
-   tm_options->addOption( "basic-dlb", BASIC_DLB );
-   tm_options->addOption( "auto-dlb", AUTO_DLB );
-   cfg.registerConfigOption ( "thread-manager", tm_options, "Selects which Thread Manager will be used" );
+   tm_options->addOption( "none", TM_NONE );
+   tm_options->addOption( "nanos", TM_NANOS );
+   tm_options->addOption( "dlb", TM_DLB );
+   cfg.registerConfigOption ( "thread-manager", tm_options, "Select which Thread Manager will be used" );
    cfg.registerArgOption( "thread-manager", "thread-manager" );
 
-   cfg.registerConfigOption( "enable-yield", NEW Config::FlagOption( _useYield, true ),
-                             "Thread yield on idle and condition waits (default is disabled)" );
-   cfg.registerArgOption( "enable-yield", "enable-yield" );
-
    cfg.registerConfigOption( "enable-block", NEW Config::FlagOption( _useBlock, true ),
-                             "Thread block on idle and condition waits (default is disabled)" );
+         "Thread block on idle and condition waits" );
    cfg.registerArgOption( "enable-block", "enable-block" );
 
-   cfg.registerConfigOption ( "num-yields", NEW Config::UintVar( _numYields ),
-         "Set number of yields on Idle before block (default = 1)" );
+   cfg.registerConfigOption( "enable-sleep", NEW Config::FlagOption( _useSleep, true ),
+         "Thread sleep on idle and condition waits" );
+   cfg.registerArgOption( "enable-sleep", "enable-sleep" );
+
+   cfg.registerConfigOption( "enable-yield", NEW Config::FlagOption( _useYield, true ),
+         "Thread yield on idle and condition waits" );
+   cfg.registerArgOption( "enable-yield", "enable-yield" );
+
+   std::ostringstream sleep_sstream;
+   sleep_sstream << "Set the amount of time (in nsec) in each sleeping phase (default = " << DEFAULT_SLEEP_NS << ")";
+   cfg.registerConfigOption ( "sleep-time", NEW Config::UintVar( _sleepTime ), sleep_sstream.str() );
+   cfg.registerArgOption ( "sleep-time", "sleep-time" );
+
+   std::ostringstream yield_sstream;
+   yield_sstream << "Set number of yields on idle before blocking (default = " << DEFAULT_YIELDS << ")";
+   cfg.registerConfigOption ( "num-yields", NEW Config::UintVar( _numYields ), yield_sstream.str() );
    cfg.registerArgOption ( "num-yields", "yields" );
 
    cfg.registerConfigOption( "enable-dlb", NEW Config::FlagOption ( _useDLB ),
-                              "Tune Nanos Runtime to be used with Dynamic Load Balancing library)" );
+         "Tune Nanos Runtime to be used with Dynamic Load Balancing library" );
    cfg.registerArgOption( "enable-dlb", "enable-dlb" );
 
    cfg.registerConfigOption( "force-tie-master", NEW Config::FlagOption ( _forceTieMaster ),
-                              "Force Master WD (user code) to run on Master Thread" );
+         "Force Master WD (user code) to run on Master Thread" );
    cfg.registerArgOption( "force-tie-master", "force-tie-master" );
 
    cfg.registerConfigOption( "warmup-threads", NEW Config::FlagOption( _warmupThreads, true ),
-            "Force the creation of as many threads as available CPUs at initialization time, then block them immediately if needed" );
+         "Force the creation of as many threads as available CPUs at initialization time, then block them immediately if needed" );
    cfg.registerArgOption( "warmup-threads", "warmup-threads" );
 }
 
 ThreadManager* ThreadManagerConf::create()
 {
    // Choose default if _tm not specified
-   if ( _tm == UNDEFINED ) {
-      if  ( _useYield || _useBlock ) {
-         // yield or block enabled implies a basic thread manager
-         _tm = BASIC;
+   if ( _tm == TM_UNDEFINED ) {
+      if  ( _useYield || _useBlock || _useSleep || _useDLB) {
+         _tm = TM_NANOS;
       } else {
-         // default Thread Manager
-         _tm = NONE;
+         _tm = TM_NONE;
       }
    }
 
-   // Choose specific DLB when generic DLB was chosen
-   if ( _tm == GENERIC_DLB ) {
-      const char *lb_policy = OS::getEnvironmentVariable( "LB_POLICY" );
-      if ( lb_policy == NULL ) {
-         warning0( "Generic thread manager DLB was chosen but LB_POLICY cannot be determined. Please recheck your DLB configuration." );
+   // Some safety cheks
+   if ( _useBlock && _useSleep ) {
+      warning0( "Thread Manager: Flags --enable-block and --enable-sleep are mutually exclusive. Block takes precedence." );
+      _useSleep = false;
+   }
+   if ( _tm == TM_NONE && (_useYield || _useBlock || _useSleep || _useDLB) ) {
+      warning0( "Thread Manager: Block, sleep, yield or dlb options are ignored when you explicitly choose --thread-manager=none" );
+   }
+#ifndef DLB
+   if ( _useDLB  || _tm == TM_DLB ) {
+      fatal_cond0( !DLB_SYMBOLS_DEFINED,
+            "Thread Manager: Some DLB option was enabled but DLB symbols were not found. "
+            "Either add DLB support at configure time or link your application against DLB libraries." );
+   }
+#endif
+
+   if ( _tm == TM_NONE ) {
+      return NEW ThreadManager( _warmupThreads );
+   } else if ( _tm == TM_NANOS ) {
+      if ( _useSleep || (_useDLB && !_useBlock) ) {
+         return NEW BusyWaitThreadManager( _numYields, _sleepTime, _useSleep, _useDLB, _warmupThreads );
       } else {
-         std::string dlb_policy( lb_policy );
-         _tm = (dlb_policy == "auto_LeWI_mask") ? AUTO_DLB : BASIC_DLB;
+         return NEW BlockingThreadManager( _numYields, _useBlock, _useDLB, _warmupThreads );
       }
-   }
-
-   if ( _tm == NONE && (_useYield || _useBlock || _useDLB) ) {
-      warning0( "Block, yield or dlb options are ignored when you explicitly choose --thread-manager=none" );
-   }
-
-   if ( _tm == NONE ) {
-      return NEW ThreadManager();
-   } else if ( _tm == BASIC ) {
-      return NEW BasicThreadManager( _numYields, _useYield, _useBlock, _useDLB );
-   } else if ( _tm == BASIC_DLB ) {
-      return NEW BasicDlbThreadManager( _numYields, _useYield, _useBlock, _useDLB );
-   } else if ( _tm == AUTO_DLB ) {
-      return NEW AutoDlbThreadManager( _numYields, _useYield, _useBlock, _useDLB );
+   } else if ( _tm == TM_DLB ) {
+      return NEW DlbThreadManager( _numYields, _warmupThreads );
    }
 
    fatal0( "Unknown Thread Manager" );
@@ -162,19 +171,27 @@ bool ThreadManagerConf::canUntieMaster() const
    }
 }
 
-bool ThreadManagerConf::threadWarmupEnabled() const
-{
-   return _warmupThreads;
-}
-
 /**********************************/
 /********* Thread Manager *********/
 /**********************************/
 
-/* Non virtual methods, common to all Thread Managers */
+ThreadManager::ThreadManager( bool warmup )
+   : _lock(), _initialized(false), _warmupThreads(warmup)
+{}
+
+void ThreadManager::init()
+{
+   if ( _warmupThreads ) {
+      sys.getSMPPlugin()->forceMaxThreadCreation();
+   }
+   _initialized = true;
+}
 
 bool ThreadManager::lastActiveThread()
 {
+   // We omit the test if the Thread Manager is not yet initializated
+   if ( !_initialized ) return false;
+
    // We omit the test if the cpu does not belong to my process_mask
    BaseThread *thread = getMyThreadSafe();
    int my_cpu = thread->getCpuId();
@@ -196,68 +213,70 @@ bool ThreadManager::lastActiveThread()
 }
 
 /**********************************/
-/****** Basic Thread Manager ******/
+/**** Blocking Thread Manager *****/
 /**********************************/
 
-BasicThreadManager::BasicThreadManager( unsigned int num_yields, bool use_yield,
-                                          bool use_block, bool use_dlb )
-   : ThreadManager(), _maxCPUs(OS::getMaxProcessors()),
-   _isMalleable(sys.getPMInterface().isMalleable()), _numYields(num_yields),
-   _useYield(use_yield), _useBlock(use_block), _useDLB(use_dlb)
+BlockingThreadManager::BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb, bool warmup )
+   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
+   _numYields(num_yields), _useBlock(use_block), _useDLB(use_dlb)
+{}
+
+BlockingThreadManager::~BlockingThreadManager()
 {
-#ifndef DLB
-   if (_useDLB) {
-      fatal_cond0( !DLB_SYMBOLS_DEFINED, "Flag --enable-dlb detected but DLB symbols were not found" );
-   }
-#endif
-   if ( _useDLB) DLB_Init();
+   if ( _useDLB ) DLB_Finalize();
 }
 
-BasicThreadManager::~BasicThreadManager()
+void BlockingThreadManager::init()
 {
-   if ( _useDLB) DLB_Finalize();
+   ThreadManager::init();
+   _isMalleable = sys.getPMInterface().isMalleable();
+   if ( _useDLB ) DLB_Init();
 }
 
-void BasicThreadManager::idle( int& yields
+void BlockingThreadManager::idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    , unsigned long long& total_yields, unsigned long long& total_blocks
    , unsigned long long& time_yields, unsigned long long& time_blocks
 #endif
    )
 {
+   if ( !_initialized ) return;
+
    if ( _isMalleable ) {
       acquireResourcesIfNeeded();
    }
 
    BaseThread *thread = getMyThreadSafe();
 
-   if ( !_useYield || yields == 0 ) {
-      if ( _useBlock && thread->canBlock() ) {
-         NANOS_INSTRUMENT ( total_blocks++; )
-         NANOS_INSTRUMENT ( unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         releaseCpu();
-         NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-      }
-
-   } else if ( _useYield ) {
+   if ( yields > 0 ) {
       NANOS_INSTRUMENT ( total_yields++; )
       NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
       thread->yield();
       NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
       NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
       if ( _useBlock ) yields--;
+   } else {
+      if ( _useBlock && thread->canBlock() ) {
+         NANOS_INSTRUMENT ( total_blocks++; )
+         NANOS_INSTRUMENT ( unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
+         releaseCpu();
+         NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
+         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+         if ( _numYields != 0 ) yields = _numYields;
+      }
    }
 }
 
-void BasicThreadManager::acquireResourcesIfNeeded()
+void BlockingThreadManager::acquireResourcesIfNeeded()
 {
+   if ( !_initialized ) return;
+
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
 
-   ThreadTeam *team;
+   ThreadTeam *team = getMyThreadSafe()->getTeam();
 
-   if ( !(team = getMyThreadSafe()->getTeam()) ) return;
+   if ( !team ) return;
 
    if ( _useDLB ) DLB_Update();
 
@@ -303,8 +322,9 @@ void BasicThreadManager::acquireResourcesIfNeeded()
    }
 }
 
-void BasicThreadManager::releaseCpu()
+void BlockingThreadManager::releaseCpu()
 {
+   if ( !_initialized ) return;
    if ( !_isMalleable ) return;
    if ( !_useBlock ) return;
 
@@ -330,77 +350,80 @@ void BasicThreadManager::releaseCpu()
    sys.setCpuActiveMask( &new_active_cpus );
 }
 
-void BasicThreadManager::returnClaimedCpus() {}
+void BlockingThreadManager::returnClaimedCpus() {}
 
-void BasicThreadManager::returnMyCpuIfClaimed() {}
+void BlockingThreadManager::returnMyCpuIfClaimed() {}
 
-void BasicThreadManager::waitForCpuAvailability() {}
+void BlockingThreadManager::waitForCpuAvailability() {}
 
 
 /**********************************/
-/**** Basic DLB Thread Manager ****/
+/**** BusyWait Thread Manager *****/
 /**********************************/
 
-BasicDlbThreadManager::BasicDlbThreadManager( unsigned int num_yields, bool use_yield,
-                                          bool use_block, bool use_dlb )
-   : ThreadManager(), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()),
-   _isMalleable(sys.getPMInterface().isMalleable()), _numYields(num_yields),
-   _useYield(use_yield), _useBlock(use_block), _useDLB(true)
+BusyWaitThreadManager::BusyWaitThreadManager( unsigned int num_yields, unsigned int sleep_time,
+                                                bool use_sleep, bool use_dlb, bool warmup )
+   : ThreadManager(warmup), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
+   _numYields(num_yields), _sleepTime(sleep_time), _useSleep(use_sleep), _useDLB(use_dlb)
 {
-#ifndef DLB
-   fatal_cond0( !DLB_SYMBOLS_DEFINED, "Using the DLB thread manager but DLB symbols were not found" );
-#endif
-   LockBlock Lock( _lock );
    CPU_ZERO( &_waitingCPUs );
-
-   DLB_Init();
 }
 
-BasicDlbThreadManager::~BasicDlbThreadManager()
+BusyWaitThreadManager::~BusyWaitThreadManager()
 {
-   DLB_Finalize();
+   if ( _useDLB ) DLB_Finalize();
 }
 
-void BasicDlbThreadManager::idle( int& yields
+void BusyWaitThreadManager::init()
+{
+   ThreadManager::init();
+   _isMalleable = sys.getPMInterface().isMalleable();
+   if ( _useDLB ) DLB_Init();
+}
+
+void BusyWaitThreadManager::idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    , unsigned long long& total_yields, unsigned long long& total_blocks
    , unsigned long long& time_yields, unsigned long long& time_blocks
 #endif
    )
 {
-   if ( _isMalleable ) acquireResourcesIfNeeded();
+   if ( !_initialized ) return;
 
-   if ( !_useYield || yields == 0 ) {
-      if ( _useBlock ) {
-         NANOS_INSTRUMENT ( total_blocks++; )
-         NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         // we cannot release the cpu using basic DLB, just get out of the cpu ready queue for a little while
-         OS::nanosleep( NANOS_YIELD_SLEEP_NS );
-         NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-         yields = _numYields;
-      }
-   } else if ( _useYield ) {
+   if ( _useDLB && _isMalleable ) acquireResourcesIfNeeded();
+
+   if ( yields > 0 ) {
       NANOS_INSTRUMENT ( total_yields++; )
       NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
       getMyThreadSafe()->yield();
       NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
       NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
-      if ( _useBlock ) yields--;
+      if ( _useSleep ) yields--;
+   } else {
+      if ( _useSleep ) {
+         NANOS_INSTRUMENT ( total_blocks++; )
+         NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+         OS::nanosleep( _sleepTime );
+         NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+         if ( _numYields != 0 ) yields = _numYields;
+      }
    }
 }
 
-void BasicDlbThreadManager::acquireResourcesIfNeeded ()
+void BusyWaitThreadManager::acquireResourcesIfNeeded ()
 {
+   if ( !_initialized ) return;
+   if ( !_useDLB ) return;
+
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
 
-   ThreadTeam *team;
    BaseThread *thread = getMyThreadSafe();
+   ThreadTeam *team = thread->getTeam();
 
    if ( !thread->isMainThread() ) return;
-
-   if ( !(team = thread->getTeam()) ) return;
+   if ( !team ) return;
 
    DLB_Update();
 
@@ -441,10 +464,12 @@ void BasicDlbThreadManager::acquireResourcesIfNeeded ()
    }
 }
 
-void BasicDlbThreadManager::releaseCpu() {}
+void BusyWaitThreadManager::releaseCpu() {}
 
-void BasicDlbThreadManager::returnClaimedCpus()
+void BusyWaitThreadManager::returnClaimedCpus()
 {
+   if ( !_initialized ) return;
+   if ( !_useDLB ) return;
    if ( !_isMalleable ) return;
    if ( !getMyThreadSafe()->isMainThread() ) return;
 
@@ -460,84 +485,92 @@ void BasicDlbThreadManager::returnClaimedCpus()
    }
 }
 
-void BasicDlbThreadManager::returnMyCpuIfClaimed() {}
+void BusyWaitThreadManager::returnMyCpuIfClaimed() {}
 
-void BasicDlbThreadManager::waitForCpuAvailability()
+void BusyWaitThreadManager::waitForCpuAvailability()
 {
+   if ( !_initialized ) return;
+   if ( !_useDLB ) return;
    int cpu = getMyThreadSafe()->getCpuId();
    CPU_SET( cpu, &_waitingCPUs );
    while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
       // Sleep and Yield the thread to reduce cycle consumption
-      OS::nanosleep( NANOS_YIELD_SLEEP_NS );
+      OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
       sched_yield();
    }
    CPU_CLR( cpu, &_waitingCPUs );
 }
 
 /**********************************/
-/**** Auto DLB Thread Manager *****/
+/******* DLB Thread Manager *******/
 /**********************************/
 
-AutoDlbThreadManager::AutoDlbThreadManager( unsigned int num_yields, bool use_yield,
-                                          bool use_block, bool use_dlb )
-   : ThreadManager(), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()),
-   _isMalleable(sys.getPMInterface().isMalleable()), _numYields(num_yields),
-   _useYield(use_yield), _useBlock(true), _useDLB(true)
+DlbThreadManager::DlbThreadManager( unsigned int num_yields, bool warmup )
+   : ThreadManager(warmup), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()),
+   _isMalleable(false), _numYields(num_yields)
 {
-#ifndef DLB
-   fatal_cond0( !DLB_SYMBOLS_DEFINED, "Using the DLB thread manager but DLB symbols were not found" );
-#endif
-   LockBlock Lock( _lock );
    CPU_ZERO( &_waitingCPUs );
-
-   DLB_Init();
 }
 
-AutoDlbThreadManager::~AutoDlbThreadManager()
+DlbThreadManager::~DlbThreadManager()
 {
    DLB_Finalize();
 }
 
-void AutoDlbThreadManager::idle( int& yields
+void DlbThreadManager::init()
+{
+   ThreadManager::init();
+   _isMalleable = sys.getPMInterface().isMalleable();
+   DLB_Init();
+}
+
+void DlbThreadManager::idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
    , unsigned long long& total_yields, unsigned long long& total_blocks
    , unsigned long long& time_yields, unsigned long long& time_blocks
 #endif
    )
 {
+   if ( !_initialized ) return;
+
    if ( _isMalleable ) {
       acquireResourcesIfNeeded();
    }
 
    BaseThread *thread = getMyThreadSafe();
 
-   if ( !_useYield || yields == 0 ) {
-      if ( _useBlock && thread->canBlock() ) {
-         NANOS_INSTRUMENT ( total_blocks++; )
-         NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         releaseCpu();
-         NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
-      }
-
-   } else if ( _useYield ) {
+   if ( yields > 0 ) {
       NANOS_INSTRUMENT ( total_yields++; )
       NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
       thread->yield();
       NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
       NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
-      if ( _useBlock ) yields--;
+      yields--;
+   } else {
+      if ( thread->canBlock() ) {
+         // releaseCpu only gives the sleep order, we can skip instrumentation
+         //NANOS_INSTRUMENT ( total_blocks++; )
+         //NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+         releaseCpu();
+         //NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
+         //NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
+         if ( _numYields != 0 ) yields = _numYields;
+      }
    }
 }
 
-void AutoDlbThreadManager::acquireResourcesIfNeeded ()
+void DlbThreadManager::acquireResourcesIfNeeded ()
 {
+   if ( !_initialized ) return;
+
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
 
-   ThreadTeam *team;
+   ThreadTeam *team = getMyThreadSafe()->getTeam();
 
-   if ( !(team = getMyThreadSafe()->getTeam()) ) return;
+   if ( !team ) return;
+
+   DLB_Update();
 
    if ( _isMalleable ) {
       /* OmpSs*/
@@ -576,8 +609,9 @@ void AutoDlbThreadManager::acquireResourcesIfNeeded ()
    }
 }
 
-void AutoDlbThreadManager::releaseCpu()
+void DlbThreadManager::releaseCpu()
 {
+   if ( !_initialized ) return;
    if ( !_isMalleable ) return;
 
    BaseThread *thread = getMyThreadSafe();
@@ -597,10 +631,11 @@ void AutoDlbThreadManager::releaseCpu()
    DLB_ReleaseCpu( my_cpu );
 }
 
-void AutoDlbThreadManager::returnClaimedCpus() {}
+void DlbThreadManager::returnClaimedCpus() {}
 
-void AutoDlbThreadManager::returnMyCpuIfClaimed()
+void DlbThreadManager::returnMyCpuIfClaimed()
 {
+   if ( !_initialized ) return;
    if ( !_isMalleable ) return;
 
    // Return if my cpu belongs to the default mask
@@ -616,13 +651,13 @@ void AutoDlbThreadManager::returnMyCpuIfClaimed()
    }
 }
 
-void AutoDlbThreadManager::waitForCpuAvailability()
+void DlbThreadManager::waitForCpuAvailability()
 {
    int cpu = getMyThreadSafe()->getCpuId();
    CPU_SET( cpu, &_waitingCPUs );
    while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
       // Sleep and Yield the thread to reduce cycle consumption
-      OS::nanosleep( NANOS_YIELD_SLEEP_NS );
+      OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
       sched_yield();
    }
    CPU_CLR( cpu, &_waitingCPUs );

@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -41,7 +41,22 @@ remove-old-libraries:
 	    done \
 	done
 
-install-exec-hook: remove-old-libraries
+REMOVE_CFGS = \
+	      paraver_configs/hwc/papi/performance/ipc.cfg \
+	      $(END)
+
+remove-old-cfgs:
+	@for cfg in $(REMOVE_CFGS); do \
+	    for f in $(docdir)/$${cfg}; do \
+	        if test -e $${f}; then \
+	            echo "Removing old cfg $${f}"; \
+	            rm -f $${f}; \
+	        fi \
+	    done \
+	done
+
+
+install-exec-hook: remove-old-libraries remove-old-cfgs
 
 rpm: dist-gzip
 	$(MAKE) -C scripts rpm
