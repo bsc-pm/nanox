@@ -64,7 +64,7 @@ const unsigned int ThreadManagerConf::DEFAULT_YIELDS = 10;
 ThreadManagerConf::ThreadManagerConf()
    : _tm(TM_UNDEFINED), _numYields(DEFAULT_YIELDS), _sleepTime(DEFAULT_SLEEP_NS),
    _useYield(false), _useBlock(false), _useDLB(false),
-   _forceTieMaster(false), _warmupThreads( false )
+   _forceTieMaster(false), _warmupThreads(false)
 {
 }
 
@@ -134,26 +134,23 @@ ThreadManager* ThreadManagerConf::create()
       warning0( "Thread Manager: Block, sleep, yield or dlb options are ignored when you explicitly choose --thread-manager=none" );
    }
 #ifndef DLB
-   if ( _useDLB ) {
+   if ( _useDLB  || _tm == TM_DLB ) {
       fatal_cond0( !DLB_SYMBOLS_DEFINED,
-            "Thread Manager: Flag --enable-dlb detected but DLB symbols were not found. "
+            "Thread Manager: Some DLB option was enabled but DLB symbols were not found. "
             "Either add DLB support at configure time or link your application against DLB libraries." );
-   }
-   if ( _tm == TM_DLB ) {
-      fatal_cond0( !DLB_SYMBOLS_DEFINED, "Using the DLB thread manager but DLB symbols were not found" );
    }
 #endif
 
    if ( _tm == TM_NONE ) {
-      return NEW ThreadManager();
+      return NEW ThreadManager( _warmupThreads );
    } else if ( _tm == TM_NANOS ) {
       if ( _useSleep || (_useDLB && !_useBlock) ) {
-         return NEW BusyWaitThreadManager( _numYields, _sleepTime, _useSleep, _useDLB );
+         return NEW BusyWaitThreadManager( _numYields, _sleepTime, _useSleep, _useDLB, _warmupThreads );
       } else {
-         return NEW BlockingThreadManager( _numYields, _useBlock, _useDLB );
+         return NEW BlockingThreadManager( _numYields, _useBlock, _useDLB, _warmupThreads );
       }
    } else if ( _tm == TM_DLB ) {
-      return NEW DlbThreadManager( _numYields );
+      return NEW DlbThreadManager( _numYields, _warmupThreads );
    }
 
    fatal0( "Unknown Thread Manager" );
@@ -174,19 +171,27 @@ bool ThreadManagerConf::canUntieMaster() const
    }
 }
 
-bool ThreadManagerConf::threadWarmupEnabled() const
-{
-   return _warmupThreads;
-}
-
 /**********************************/
 /********* Thread Manager *********/
 /**********************************/
 
-/* Non virtual methods, common to all Thread Managers */
+ThreadManager::ThreadManager( bool warmup )
+   : _lock(), _initialized(false), _warmupThreads(warmup)
+{}
+
+void ThreadManager::init()
+{
+   if ( _warmupThreads ) {
+      sys.getSMPPlugin()->forceMaxThreadCreation();
+   }
+   _initialized = true;
+}
 
 bool ThreadManager::lastActiveThread()
 {
+   // We omit the test if the Thread Manager is not yet initializated
+   if ( !_initialized ) return false;
+
    // We omit the test if the cpu does not belong to my process_mask
    BaseThread *thread = getMyThreadSafe();
    int my_cpu = thread->getCpuId();
@@ -211,17 +216,21 @@ bool ThreadManager::lastActiveThread()
 /**** Blocking Thread Manager *****/
 /**********************************/
 
-BlockingThreadManager::BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb )
-   : ThreadManager(), _maxCPUs(OS::getMaxProcessors()),
-   _isMalleable(sys.getPMInterface().isMalleable()), _numYields(num_yields),
-   _useBlock(use_block), _useDLB(use_dlb)
-{
-   if ( _useDLB) DLB_Init();
-}
+BlockingThreadManager::BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb, bool warmup )
+   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
+   _numYields(num_yields), _useBlock(use_block), _useDLB(use_dlb)
+{}
 
 BlockingThreadManager::~BlockingThreadManager()
 {
-   if ( _useDLB) DLB_Finalize();
+   if ( _useDLB ) DLB_Finalize();
+}
+
+void BlockingThreadManager::init()
+{
+   ThreadManager::init();
+   _isMalleable = sys.getPMInterface().isMalleable();
+   if ( _useDLB ) DLB_Init();
 }
 
 void BlockingThreadManager::idle( int& yields
@@ -231,6 +240,8 @@ void BlockingThreadManager::idle( int& yields
 #endif
    )
 {
+   if ( !_initialized ) return;
+
    if ( _isMalleable ) {
       acquireResourcesIfNeeded();
    }
@@ -258,6 +269,8 @@ void BlockingThreadManager::idle( int& yields
 
 void BlockingThreadManager::acquireResourcesIfNeeded()
 {
+   if ( !_initialized ) return;
+
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
 
@@ -311,6 +324,7 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
 
 void BlockingThreadManager::releaseCpu()
 {
+   if ( !_initialized ) return;
    if ( !_isMalleable ) return;
    if ( !_useBlock ) return;
 
@@ -348,20 +362,23 @@ void BlockingThreadManager::waitForCpuAvailability() {}
 /**********************************/
 
 BusyWaitThreadManager::BusyWaitThreadManager( unsigned int num_yields, unsigned int sleep_time,
-                                                bool use_sleep, bool use_dlb )
-   : ThreadManager(), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()),
-   _isMalleable(sys.getPMInterface().isMalleable()), _numYields(num_yields),
-   _sleepTime(sleep_time), _useSleep(use_sleep), _useDLB(use_dlb)
+                                                bool use_sleep, bool use_dlb, bool warmup )
+   : ThreadManager(warmup), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
+   _numYields(num_yields), _sleepTime(sleep_time), _useSleep(use_sleep), _useDLB(use_dlb)
 {
-   LockBlock Lock( _lock );
    CPU_ZERO( &_waitingCPUs );
-
-   if ( _useDLB ) DLB_Init();
 }
 
 BusyWaitThreadManager::~BusyWaitThreadManager()
 {
    if ( _useDLB ) DLB_Finalize();
+}
+
+void BusyWaitThreadManager::init()
+{
+   ThreadManager::init();
+   _isMalleable = sys.getPMInterface().isMalleable();
+   if ( _useDLB ) DLB_Init();
 }
 
 void BusyWaitThreadManager::idle( int& yields
@@ -371,6 +388,8 @@ void BusyWaitThreadManager::idle( int& yields
 #endif
    )
 {
+   if ( !_initialized ) return;
+
    if ( _useDLB && _isMalleable ) acquireResourcesIfNeeded();
 
    if ( yields > 0 ) {
@@ -394,10 +413,11 @@ void BusyWaitThreadManager::idle( int& yields
 
 void BusyWaitThreadManager::acquireResourcesIfNeeded ()
 {
+   if ( !_initialized ) return;
+   if ( !_useDLB ) return;
+
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
-
-   if ( !_useDLB ) return;
 
    BaseThread *thread = getMyThreadSafe();
    ThreadTeam *team = thread->getTeam();
@@ -448,6 +468,7 @@ void BusyWaitThreadManager::releaseCpu() {}
 
 void BusyWaitThreadManager::returnClaimedCpus()
 {
+   if ( !_initialized ) return;
    if ( !_useDLB ) return;
    if ( !_isMalleable ) return;
    if ( !getMyThreadSafe()->isMainThread() ) return;
@@ -468,6 +489,7 @@ void BusyWaitThreadManager::returnMyCpuIfClaimed() {}
 
 void BusyWaitThreadManager::waitForCpuAvailability()
 {
+   if ( !_initialized ) return;
    if ( !_useDLB ) return;
    int cpu = getMyThreadSafe()->getCpuId();
    CPU_SET( cpu, &_waitingCPUs );
@@ -483,22 +505,23 @@ void BusyWaitThreadManager::waitForCpuAvailability()
 /******* DLB Thread Manager *******/
 /**********************************/
 
-DlbThreadManager::DlbThreadManager( unsigned int num_yields )
-   : ThreadManager(), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()),
-   _isMalleable(sys.getPMInterface().isMalleable()), _numYields(num_yields)
+DlbThreadManager::DlbThreadManager( unsigned int num_yields, bool warmup )
+   : ThreadManager(warmup), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()),
+   _isMalleable(false), _numYields(num_yields)
 {
-#ifndef DLB
-   fatal_cond0( !DLB_SYMBOLS_DEFINED, "Using the DLB thread manager but DLB symbols were not found" );
-#endif
-   LockBlock Lock( _lock );
    CPU_ZERO( &_waitingCPUs );
-
-   DLB_Init();
 }
 
 DlbThreadManager::~DlbThreadManager()
 {
    DLB_Finalize();
+}
+
+void DlbThreadManager::init()
+{
+   ThreadManager::init();
+   _isMalleable = sys.getPMInterface().isMalleable();
+   DLB_Init();
 }
 
 void DlbThreadManager::idle( int& yields
@@ -508,6 +531,8 @@ void DlbThreadManager::idle( int& yields
 #endif
    )
 {
+   if ( !_initialized ) return;
+
    if ( _isMalleable ) {
       acquireResourcesIfNeeded();
    }
@@ -536,6 +561,8 @@ void DlbThreadManager::idle( int& yields
 
 void DlbThreadManager::acquireResourcesIfNeeded ()
 {
+   if ( !_initialized ) return;
+
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t ready_tasks_key = ID->getEventKey("concurrent-tasks"); )
 
@@ -584,6 +611,7 @@ void DlbThreadManager::acquireResourcesIfNeeded ()
 
 void DlbThreadManager::releaseCpu()
 {
+   if ( !_initialized ) return;
    if ( !_isMalleable ) return;
 
    BaseThread *thread = getMyThreadSafe();
@@ -607,6 +635,7 @@ void DlbThreadManager::returnClaimedCpus() {}
 
 void DlbThreadManager::returnMyCpuIfClaimed()
 {
+   if ( !_initialized ) return;
    if ( !_isMalleable ) return;
 
    // Return if my cpu belongs to the default mask

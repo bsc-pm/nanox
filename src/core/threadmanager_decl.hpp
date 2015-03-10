@@ -38,10 +38,18 @@ namespace nanos
    {
       protected:
          Lock              _lock;
+         bool              _initialized;
+
+      private:
+         bool              _warmupThreads;
 
       public:
-         ThreadManager() : _lock() {}
+         ThreadManager( bool warmup=false );
          virtual ~ThreadManager() {}
+
+         virtual void init();
+         bool lastActiveThread();
+
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
@@ -53,8 +61,6 @@ namespace nanos
          virtual void returnClaimedCpus() {}
          virtual void returnMyCpuIfClaimed() {}
          virtual void waitForCpuAvailability() {}
-
-         bool lastActiveThread();
    };
 
    //! BlockingThreadManager class
@@ -76,8 +82,9 @@ namespace nanos
          bool              _useDLB;
 
       public:
-         BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb );
+         BlockingThreadManager( unsigned int num_yields, bool use_block, bool use_dlb, bool warmup );
          virtual ~BlockingThreadManager();
+         virtual void init();
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
@@ -112,8 +119,9 @@ namespace nanos
 
       public:
          BusyWaitThreadManager( unsigned int num_yields, unsigned int sleep_time,
-                                 bool use_sleep, bool use_dlb );
+                                 bool use_sleep, bool use_dlb, bool warmup );
          virtual ~BusyWaitThreadManager();
+         virtual void init();
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
@@ -143,8 +151,9 @@ namespace nanos
          unsigned int      _numYields;
 
       public:
-         DlbThreadManager( unsigned int num_yields );
+         DlbThreadManager( unsigned int num_yields, bool warmup );
          virtual ~DlbThreadManager();
+         virtual void init();
          virtual void idle( int& yields
 #ifdef NANOS_INSTRUMENTATION_ENABLED
                      , unsigned long long& total_yields, unsigned long long& total_blocks
@@ -158,6 +167,15 @@ namespace nanos
          virtual void waitForCpuAvailability();
    };
 
+   //! ThreadManagerConf class
+   /*!
+    * This class is used to construct the right Thread Manager object.
+    *
+    * It firsts implements a Config method to configure the user options.
+    * The create method work as a factory method according to the user options.
+    * The other methods are needed by other classes when maybe the thread manager
+    * is not yet created.
+    */
    class ThreadManagerConf
    {
       private:
@@ -188,7 +206,6 @@ namespace nanos
          void config( Config &cfg );
          ThreadManager* create();
          bool canUntieMaster() const;
-         bool threadWarmupEnabled() const;
    };
 }
 #endif /* THREADMANAGER_DECL_HPP */
