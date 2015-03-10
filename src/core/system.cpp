@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -217,6 +217,7 @@ void System::loadModules ()
 
    ensure0( _defBarrFactory,"No default system barrier factory" );
 
+   verbose0( "Starting Thread Manager" );
    _threadManager = _threadManagerConf.create();
 }
 
@@ -579,10 +580,6 @@ void System::start ()
          break;
    }
 
-   if ( _threadManagerConf.threadWarmupEnabled() ) {
-      _smpPlugin->forceMaxThreadCreation();
-   }
-
    _router.initialize();
    if ( usingCluster() )
    {
@@ -604,6 +601,9 @@ void System::start ()
 
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
+
+   // Thread Manager initialization is delayed until a safe point
+   _threadManager->init();
 
    // List unrecognised arguments
    std::string unrecog = Config::getOrphanOptions();

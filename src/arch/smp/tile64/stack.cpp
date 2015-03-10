@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -15,6 +15,8 @@
 /*                                                                                   */
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 /*************************************************************************************/
 /*      Port Tilera Tile64PRO by Artur Podobas (podobas@kth.se) under prof. Mats     */
 /*      Brorsson (matsbror@kth.se)  and Vladimir Vlassov (vladv@kth.se) for the      */
