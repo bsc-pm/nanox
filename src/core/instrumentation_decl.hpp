@@ -465,7 +465,7 @@ namespace nanos {
             /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps.", true, EVENT_ADVANCED );
             /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer", true, EVENT_ADVANCED );
 
-            /* 17 */ registerEventKey("lock-addr","Lock address", true, EVENT_ADVANCED );
+            /* 17 */ registerEventKey("lock-addr","Lock address", true, EVENT_DEVELOPER );
 
             /* 18 */ registerEventKey("num-spins","Number of Spins", true, EVENT_DEVELOPER );
             /* 19 */ registerEventKey("num-yields","Number of Yields", true, EVENT_DEVELOPER );

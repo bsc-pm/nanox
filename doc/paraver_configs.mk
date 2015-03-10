@@ -256,9 +256,11 @@ paraver_config_files = \
      paraver_configs/ompss/graph_and_scheduling/creating_submitting_task.cfg\
      paraver_configs/ompss/runtime/3dh_duration_state.cfg\
      paraver_configs/ompss/runtime/thread_state.cfg\
+     paraver_configs/ompss/runtime/thread_state_with_locks.cfg\
      paraver_configs/ompss/runtime/spins_yields.cfg\
      paraver_configs/ompss/runtime/average_sleep_time.cfg\
      paraver_configs/ompss/runtime/nanos_API.cfg\
+     paraver_configs/ompss/runtime/nanos_locks.cfg\
      paraver_configs/ompss/runtime/waiting_task.cfg\
      paraver_configs/ompss/runtime/2dp_thread_state.cfg\
      paraver_configs/ompss/runtime/num_threads.cfg\
