@@ -31,6 +31,7 @@
    test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
                         "NX_TEST_SCHEDULE=bf"
                         "test_architecture=smp")
+   test_exec_command="timeout 1m"
 </testinfo>
 */
 
