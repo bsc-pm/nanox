@@ -664,6 +664,7 @@ namespace nanos
          //! \brief Returns true if the compiler says priorities are required
          bool getPrioritiesNeeded() const;
          Router& getRouter();
+         void switchToThread( unsigned int thid );
    };
 
    extern System sys;

@@ -1554,3 +1554,9 @@ void System::registerObject(int numObjects, nanos_copy_data_internal_t *obj) {
       _hostMemory.registerObject( &obj[i] );
    }
 }
+
+void System::switchToThread( unsigned int thid )
+{
+   if ( thid > _workers.size() ) return;
+   Scheduler::switchToThread(_workers[thid]);
+}

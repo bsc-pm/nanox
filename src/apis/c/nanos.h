@@ -231,6 +231,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked
 
 NANOS_API_DECL(nanos_err_t, nanos_in_final, ( bool *result ));
 NANOS_API_DECL(nanos_err_t, nanos_set_final, ( bool value ));
+NANOS_API_DECL(nanos_err_t, nanos_switch_to_thread, ( unsigned int thid ));
 
 // Team related functions
 
