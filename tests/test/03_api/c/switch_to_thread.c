@@ -19,7 +19,8 @@
 
 /*
 <testinfo>
-test_generator=gens/api-omp-generator
+test_generator=gens/mixed-generator
+test_schedule="bf"
 </testinfo>
 */
 
@@ -971,7 +972,7 @@ struct  mcc_struct_anon_15
 typedef struct mcc_struct_anon_15 nanos_smp_args_t;
 struct  nanos_args_0_t
 {
-  int *rv;
+  volatile int *rv;
 };
 static void smp_ol_main_0(struct nanos_args_0_t *const args);
 struct  mcc_struct_anon_11
@@ -1066,8 +1067,8 @@ extern nanos_err_t nanos_wg_wait_completion(nanos_wg_t wg, _Bool avoid_flush);
 int main(int argc, char **argv)
 {
   int i;
-  int rv = 0;
-  for (i = 0; i < 100; i++)
+  volatile int rv = 0;
+  for (i = 0; i < 1000; i++)
     {
       {
         _Bool mcc_is_in_final;
@@ -1145,7 +1146,7 @@ int main(int argc, char **argv)
     }
   return rv;
 }
-static void smp_ol_main_0_unpacked(int *const rv)
+static void smp_ol_main_0_unpacked(volatile int *const rv)
 {
   {
     {
