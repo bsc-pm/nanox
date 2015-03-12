@@ -112,9 +112,12 @@ extern "C" {
          case ompt_event_idle_end:
             return 1;
          case ompt_event_wait_barrier_begin:
+         case ompt_event_wait_barrier_end:
+            return 1;
+         case ompt_event_barrier_begin:
             ompt_nanos_event_barrier_begin = (ompt_parallel_callback_t) callback;
             return 4;
-         case ompt_event_wait_barrier_end:
+         case ompt_event_barrier_end:
             ompt_nanos_event_barrier_end = (ompt_parallel_callback_t) callback;
             return 4;
          case ompt_event_wait_taskwait_begin:
@@ -146,8 +149,6 @@ extern "C" {
          case ompt_event_workshare_end:
          case ompt_event_master_begin:
          case ompt_event_master_end:
-         case ompt_event_barrier_begin:
-         case ompt_event_barrier_end:
          case ompt_event_taskwait_begin:
          case ompt_event_taskwait_end:
          case ompt_event_taskgroup_begin:
@@ -458,7 +459,6 @@ namespace nanos
                                  (ompt_parallel_id_t) p_id,
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
                         } else if ( val == api_barrier && ompt_nanos_event_barrier_begin ) {
-                           fprintf(stderr,"Hola\n"); // FIXME:xteruel
                            ompt_nanos_event_barrier_begin (
                                  (ompt_parallel_id_t) team_id,
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
