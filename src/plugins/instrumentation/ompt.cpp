@@ -470,10 +470,20 @@ namespace nanos
                      if ( e.getKey( ) == api )
                      {
                         nanos_event_value_t val = e.getValue();
+                        
+                        // getting current team id
+                        ThreadTeam *tt = myThread->getTeam();
+                        ompt_parallel_id_t team_id = 0;
+                        if ( tt != NULL ) {
+                           nanos::ompt::_lock.acquire();
+                           if ( nanos::ompt::map_parallel_id.find((void *) tt ) != nanos::ompt::map_parallel_id.end() )
+                              team_id = nanos::ompt::map_parallel_id[(void *) tt];
+                           nanos::ompt::_lock.release();
+                        }
 
                         if ( val == api_barrier && ompt_nanos_event_barrier_end ) {
                            ompt_nanos_event_barrier_end (
-                                 (ompt_parallel_id_t) 0, // FIXME: parallel_id
+                                 (ompt_parallel_id_t) team_id,
                                  (ompt_task_id_t) nanos::myThread->getCurrentWD()->getId() );
                         } else if ( val == api_create_team && ompt_nanos_event_parallel_begin ) {
                            uint32_t team_size = 0;
