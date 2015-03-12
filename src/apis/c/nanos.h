@@ -231,6 +231,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked
 
 NANOS_API_DECL(nanos_err_t, nanos_in_final, ( bool *result ));
 NANOS_API_DECL(nanos_err_t, nanos_set_final, ( bool value ));
+NANOS_API_DECL(nanos_err_t, nanos_switch_to_thread, ( unsigned int thid ));
 
 // Team related functions
 
@@ -253,8 +254,6 @@ NANOS_API_DECL(nanos_err_t, nanos_release_sync_init, ( void ));
 
 NANOS_API_DECL(nanos_err_t, nanos_memory_fence, (void));
 
-NANOS_API_DECL(nanos_err_t, nanos_team_get_num_starring_threads_FIXME, ( int *n ) );
-NANOS_API_DECL(nanos_err_t, nanos_team_get_starring_threads_FIXME, ( int *n, nanos_thread_t *list_of_threads ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_num_supporting_threads, ( int *n ) );
 NANOS_API_DECL(nanos_err_t, nanos_team_get_supporting_threads, ( int *n, nanos_thread_t *list_of_threads) );
 NANOS_API_DECL(nanos_err_t, nanos_register_reduction, ( nanos_reduction_t *red) );

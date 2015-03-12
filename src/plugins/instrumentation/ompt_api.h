@@ -56,7 +56,7 @@ OMPT_API int ompt_get_parallel_team_size( /* query # threads in a parallel regio
       int ancestor_level /* how many levels the ancestor is removed from the current region */
       );
 /* task inquiry */
-OMPT_API ompt_task_id_t *ompt_get_task_id( /* identify a task */
+OMPT_API ompt_task_id_t ompt_get_task_id( /* identify a task */
       int depth /* how many levels removed from the current task */
       );
 OMPT_API ompt_frame_t *ompt_get_task_frame(

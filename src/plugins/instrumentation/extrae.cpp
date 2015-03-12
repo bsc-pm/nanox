@@ -402,7 +402,7 @@ class InstrumentationExtrae: public Instrumentation
                "STARTUP", "SHUTDOWN", "ERROR", "IDLE",
                "RUNTIME", "RUNNING", "SYNCHRONIZATION", "SCHEDULING", "CREATION",
                "DATA TRANSFER ISSUE", "CACHE ALLOC/FREE", "YIELD", "ACQUIRING LOCK", "CONTEXT SWITCH",
-               "FILL COLOR", "WAKING UP", "STOPPED" , "DEBUG"};
+               "FILL COLOR", "WAKING UP", "STOPPED", "SYNCED RUNNING", "DEBUG"};
 
             for ( i = 0; i < (nval - 1); i++ ) { // Do not show the DEBUG state
                values[i] = i;

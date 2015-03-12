@@ -465,7 +465,7 @@ namespace nanos {
             /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps.", true, EVENT_ADVANCED );
             /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer", true, EVENT_ADVANCED );
 
-            /* 17 */ registerEventKey("lock-addr","Lock address", true, EVENT_ADVANCED );
+            /* 17 */ registerEventKey("lock-addr","Lock address", true, EVENT_DEVELOPER );
 
             /* 18 */ registerEventKey("num-spins","Number of Spins", true, EVENT_DEVELOPER );
             /* 19 */ registerEventKey("num-yields","Number of Yields", true, EVENT_DEVELOPER );
@@ -648,6 +648,7 @@ namespace nanos {
             registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_D2H_GPU_EVENT", "GPU device to host transfer (CUDA)" );                     /* 2 */
             /* 61 */ registerEventKey("concurrent-tasks", "Number of concurrent tasks in the ready queue", false, EVENT_DEVELOPER );
             /* 62 */ registerEventKey("network-transfer", "Network transfer to node ", false, EVENT_DEVELOPER);
+            /* 63 */ registerEventKey("team-ptr", "Team info", false, EVENT_DEVELOPER);
                      
             /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }
