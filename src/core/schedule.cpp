@@ -448,7 +448,9 @@ void Scheduler::wakeUp ( WD *wd )
       
       if ( sys.getSchedulerConf().getSchedulerEnabled() ) {
          /* atWakeUp must check basic constraints */
-         ThreadTeam *myTeam = getMyThreadSafe()->getTeam();
+         // FIXME: this only works with tied tasks, generalize to untied
+         BaseThread *thread = wd->isTied()? wd->isTiedTo(): getMyThreadSafe();
+         ThreadTeam *myTeam = thread->getTeam();
          if ( myTeam ) next = myTeam->getSchedulePolicy().atWakeUp( myThread, *wd );
          else fatal("Trying to wake up a WD from a thread without team.");
       }

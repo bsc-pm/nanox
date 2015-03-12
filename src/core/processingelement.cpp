@@ -149,8 +149,10 @@ void ProcessingElement::stopAllThreads ()
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
+      thread->lock();
       thread->stop();
       if ( thread->isWaiting() ) thread->wakeup();
+      thread->unlock();
    }
 
    //! \note joining threads
