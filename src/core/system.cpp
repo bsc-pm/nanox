@@ -602,9 +602,6 @@ void System::start ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseOpenStateEvent (NANOS_RUNNING) );
 
-   // Thread Manager initialization is delayed until a safe point
-   _threadManager->init();
-
    // List unrecognised arguments
    std::string unrecog = Config::getOrphanOptions();
    if ( !unrecog.empty() )
@@ -612,6 +609,9 @@ void System::start ()
    Config::deleteOrphanOptions();
       
    if ( _summary ) environmentSummary();
+
+   // Thread Manager initialization is delayed until a safe point
+   _threadManager->init();
 }
 
 System::~System ()
