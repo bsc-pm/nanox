@@ -24,6 +24,8 @@
 #include "openclevent.hpp"
 #include <iostream>
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 using namespace nanos;
 using namespace nanos::ext;
 
