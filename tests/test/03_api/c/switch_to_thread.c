@@ -964,7 +964,7 @@ extern nanos_err_t nanos_in_final(_Bool *result);
 extern void nanos_handle_error(nanos_err_t err);
 extern int printf(const char *__restrict __format, ...);
 extern int omp_get_thread_num(void);
-extern nanos_err_t nanos_switch_to_thread(unsigned int thid);
+extern nanos_err_t nanos_switch_to_thread(unsigned int *thid);
 struct  mcc_struct_anon_15
 {
   void (*outline)(void *);
@@ -1080,8 +1080,9 @@ int main(int argc, char **argv)
         if (mcc_is_in_final)
           {
             {
+              unsigned int thread = 0;
               printf("[%d]", omp_get_thread_num());
-              nanos_switch_to_thread(0);
+              nanos_switch_to_thread( &thread );
               printf("<%d>", omp_get_thread_num());
               if (omp_get_thread_num() != 0)
                 {
@@ -1151,10 +1152,11 @@ static void smp_ol_main_0_unpacked(volatile int *const rv)
   {
     {
       printf("[%d]", omp_get_thread_num());
+      unsigned int thread = 0;
       int tied ;
       nanos_is_tied(&tied);
       if (!tied) {
-	      nanos_switch_to_thread(0);
+	      nanos_switch_to_thread( &thread );
 	      printf("<%d>", omp_get_thread_num());
 	      if (omp_get_thread_num() != 0) {
 		      (*rv) = 1;
