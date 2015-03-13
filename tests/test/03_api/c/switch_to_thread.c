@@ -1151,12 +1151,15 @@ static void smp_ol_main_0_unpacked(volatile int *const rv)
   {
     {
       printf("[%d]", omp_get_thread_num());
-      nanos_switch_to_thread(0);
-      printf("<%d>", omp_get_thread_num());
-      if (omp_get_thread_num() != 0)
-        {
-          (*rv) = 1;
-        }
+      int tied ;
+      nanos_is_tied(&tied);
+      if (!tied) {
+	      nanos_switch_to_thread(0);
+	      printf("<%d>", omp_get_thread_num());
+	      if (omp_get_thread_num() != 0) {
+		      (*rv) = 1;
+	      }
+      }
     }
   }
 }

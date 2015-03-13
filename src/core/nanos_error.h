@@ -24,5 +24,6 @@ typedef enum { NANOS_OK = 0,
                NANOS_UNIMPLEMENTED,        // service not implemented
                NANOS_ENOMEM,               // not enough memory
                NANOS_INVALID_PARAM,        // invalid parameter
+               NANOS_INVALID_REQUEST,      // invalid request
 } nanos_err_t;
 #endif
