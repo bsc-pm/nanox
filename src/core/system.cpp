@@ -950,6 +950,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->setPriority( dyn_props->priority );
       wd->setFinal ( dyn_props->flags.is_final );
       wd->setRecoverable ( dyn_props->flags.is_recover);
+      if ( dyn_props->flags.is_implicit ) wd->setImplicit();
    }
 
    if ( dyn_props && dyn_props->tie_to ) wd->tieTo( *( BaseThread * )dyn_props->tie_to );
