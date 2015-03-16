@@ -81,10 +81,8 @@ AC_ARG_ENABLE([allocator],
     AC_MSG_RESULT([no])
   ]
 )
-
-if test x$allocator_enabled = xno; then
-	CFLAGS="$CFLAGS -DNANOS_DISABLE_ALLOCATOR"
-	CXXFLAGS="$CXXFLAGS -DNANOS_DISABLE_ALLOCATOR"
+if test x$allocator_enabled = xyes; then
+	AC_DEFINE(["NANOS_USE_ALLOCATOR"],[1])
 fi
 
 # Memtracker support
@@ -100,128 +98,12 @@ AC_ARG_ENABLE([memtracker],
     AC_MSG_RESULT([no])
   ]
 )
-
 if test x$memtracker_enabled = xyes; then
-	CFLAGS="$CFLAGS -DNANOS_MEMTRACKER_ENABLED"
-	CXXFLAGS="$CXXFLAGS -DNANOS_MEMTRACKER_ENABLED"
-fi
-
-AC_MSG_CHECKING([for Linux Intel C compiler mode])
-AC_ARG_ENABLE([icc],
-  AC_HELP_STRING([--enable-icc],[Enable support for Intel compiler (off by default)]),
-  [
-    use_icc=yes
-    AC_MSG_RESULT([yes])
-  ],
-  [
-    use_icc=no
-    AC_MSG_RESULT([no])
-  ]
-)
-
-AC_MSG_CHECKING([for Linux IBM C compiler mode])
-AC_ARG_ENABLE([xlc],
-  AC_HELP_STRING([--enable-xlc],[Enable support for IBM compiler (off by default)]),
-  [
-    use_xlc=yes
-    AC_MSG_RESULT([yes])
-  ],
-  [
-    use_xlc=no
-    AC_MSG_RESULT([no])
-  ]
-)
-
-AC_MSG_CHECKING([for Linux Intel MIC C compiler mode])
-AC_ARG_ENABLE([mic],
-  AC_HELP_STRING([--enable-mic],[Enable support for Intel MIC compiler (off by default)]),
-  [
-    use_icc=yes
-    host_alias=$host
-    cross_compiling=maybe
-    CFLAGS="$CFLAGS -mmic"
-    CXXFLAGS="$CXXFLAGS -mmic"
-    FCFLAGS="$FCFLAGS -mmic"
-    LDFLAGS="$LDFLAGS -lsvml -limf -lintlc"
-    AC_MSG_RESULT([yes])
-  ],
-  [
-    AC_MSG_RESULT([no])
-  ]
-)
-
-AC_MSG_CHECKING([for IBM BlueGene/Q mode])
-AC_ARG_ENABLE([bgq],
-  AC_HELP_STRING([--enable-bgq],[Enable support for IBM BlueGene/Q (off by default)]),
-  [
-    use_bgq=yes
-    AC_MSG_RESULT([yes])
-  ],
-  [
-    case $host in
-      powerpc64-bgq-linux*)
-         use_bgq=yes
-         AC_MSG_RESULT([yes])
-         ;;
-      *)
-         use_bgq=no
-         AC_MSG_RESULT([no])
-         ;;
-    esac
-  ]
-)
-
-if test x$use_icc = xyes; then
-    if test x$use_xlc = xyes; then
-        AC_MSG_ERROR([Both Intel and IBM compilers support is enabled. Please, choose only one of them.])
-    else
-	: ${CC="icc"}
-	: ${CXX="icpc"}
-	: ${FC="ifort"}
-	CFLAGS="$CFLAGS -wd873 -wd1419 -lifcore"
-	CXXFLAGS="$CXXFLAGS -wd873 -wd1419 -lifcore"
-    fi
-else
-    if test x$use_xlc = xyes; then
-        : ${CC="xlc"}
-        : ${CXX="xlc++"}
-        : ${FC="xlf"}
-    else
-	: ${CC="gcc"}
-	: ${CXX="g++"}
-	: ${FC="gfortran"}
-    fi
+	AC_DEFINE(["NANOS_MEMTRACKER_ENABLED"],[1])
 fi
 
 # Check for programs
-# Override all the options if we're compiling for BG/Q
-if test x$use_bgq = xyes; then
-    if test x$use_xlc = xyes; then
-        AC_CHECK_PROGS([BGQ_CC],[bgxlc_r bgxlc],[no])
-        AC_CHECK_PROGS([BGQ_CXX],[bgxlc++_r bgxlC_r bgxlc++ bgxlC],[no])
-        AC_CHECK_PROGS([BGQ_FC],[bgxlf90_r bgxlf90 bgxlf_r bgxlf],[no])
-    else
-        AC_CHECK_PROGS([BGQ_CC],[powerpc64-bgq-linux-gcc bgxlc_r bgxlc],[no])
-        AC_CHECK_PROGS([BGQ_CXX],[powerpc64-bgq-linux-g++ bgxlc++_r bgxlC_r bgxlc++ bgxlC],[no])
-        AC_CHECK_PROGS([BGQ_FC],[powerpc64-bgq-linux-gfortran bgxlf90_r bgxlf90 bgxlf_r bgxlf],[no])
-    fi
-    CC=$BGQ_CC
-    CXX=$BGQ_CXX
-    FC=$BGQ_FC
-    CPPFLAGS="$CPPFLAGS -I/bgsys/drivers/V1R2M1/ppc64 -I/bgsys/drivers/V1R2M1/ppc64/spi/include/kernel/cnk"
-
-    if test x$BGQ_CC = xno; then
-        AC_MSG_ERROR([No BG/Q C cross-compiler can be found. Please update your PATH.])
-    fi
-    if test x$BGQ_CXX = xno; then
-        AC_MSG_ERROR([No BG/Q C++ cross-compiler can be found. Please update your PATH.])
-    fi
-    if test x$BGQ_FC = xno; then
-        AC_MSG_ERROR([No BG/Q Fortran cross-compiler can be found. Please update your PATH.])
-    fi
-
-    AC_DEFINE([IS_BGQ_MACHINE], [1], [Defined if this machine is a BGQ machine])
-fi
+# BG/Q cppflags: -I/bgsys/drivers/V1R2M1/ppc64 -I/bgsys/drivers/V1R2M1/ppc64/spi/include/kernel/cnk
 
 # Check for architecture
 ARCHITECTURES=
@@ -266,8 +148,7 @@ AC_ARG_ENABLE([mpi],
 
 if test x$mpi_enabled = xyes; then
 	ARCHITECTURES="$ARCHITECTURES mpi"
-	CFLAGS="$CFLAGS -DMPI_DEV"
-	CXXFLAGS="$CXXFLAGS -DMPI_DEV"	
+	AC_DEFINE(["MPI_DEV"],[yes])
 	NANOX_MPI_PREFIX=$prefix
 	AC_SUBST([NANOX_MPI_PREFIX])
 	AC_SUBST([NANOX_OFFL_FLAGS])
@@ -276,8 +157,7 @@ fi
 
 AC_SUBST([mpi_valid])
 
-
-# Check for programs (every compiler change should be done before this line)
+# Check for programs
 AC_PROG_CC([$CC])
 AC_PROG_CPP
 AM_PROG_CC_C_O
@@ -286,26 +166,25 @@ AM_PROG_AS
 
 AC_PROG_SED
 
-# Fortran
-AC_PROG_FC([$FC])
-AC_PROG_FC_C_O
-
 # Flags & Compiler dependent stuff
-if test x$ac_cv_cxx_compiler_gnu = xyes; then
-    use_gnu=yes
+if test x$CC=xicc -o x$CXX=xicpc; then
+	cc_intel=yes;
 fi
+
+if test x$ac_cv_cxx_compiler_gnu = xyes; then
+   cc_gnu_compatible=yes
+fi
+
 if test x$ac_cv_prog_cc_xlc_c_o = xyes; then
-    use_xlc=yes
+   cc_xlc=yes
 fi
 if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
-    use_xlc=yes
+   cc_xlc=yes
 fi
 
-if test x$use_gnu = xyes; then
-    if test x$use_bgq = xno -a x$use_icc = xno; then
+if test x$cc_gnu_compatible=yes -a $cc_xlc=xno -a $cc_intel=xno; then
         CFLAGS="$CFLAGS -Wredundant-decls"
         CXXFLAGS="$CXXFLAGS -Wredundant-decls"
-    fi
 fi
 
 if test x$use_bgq = xyes; then
@@ -319,7 +198,7 @@ fi
 
 AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
 AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
-AM_CONDITIONAL([INTEL_C], [test x$use_icc = xyes])
+AM_CONDITIONAL([INTEL_C], [test x$cc_intel = xyes])
 
 # Check for libraries
 
@@ -358,6 +237,36 @@ AC_ARG_ENABLE([ult],
 )
 
 case $host in
+  x86_64-k1om-linux*) # Intel MIC (KNF/ KNC)
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=x86-64 # warning: might not be compatible
+    if test x$CC!=xicc -o x$CXX!=xicpc; then
+      AC_MSG_ERROR(
+[-------------------------------
+Compilation for Intel MIC detected, but Intel compilers
+were not properly configured.
+Please, specify CC=icc and CXX=icpc when cross-compiling for MIC architectures.
+-------------------------------])
+    else
+      AC_MSG_NOTICE([Intel MIC cross compilation detected.])
+    fi
+    AX_CHECK_COMPILE_FLAG([-mmic],
+      [
+         CFLAGS="$CFLAGS -mmic"
+         CXXFLAGS="$CXXFLAGS -mmic"
+         LDFLAGS="$LDFLAGS -mmic"
+      ],
+      [
+      AC_MSG_ERROR(
+[-------------------------------
+Compilation for Intel MIC detected, but selected compiler
+does not support it.
+Please, specify CC=icc and CXX=icpc when cross-compiling for MIC architectures.
+Also make sure that they support -mmic compilation and link flag.
+-------------------------------])
+      ],[-Werror])
+    ;;
   i?86-*-linux*)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
