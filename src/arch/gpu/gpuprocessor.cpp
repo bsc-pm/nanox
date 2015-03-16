@@ -258,7 +258,7 @@ void GPUProcessor::GPUProcessorInfo::initTransferStreams ( bool &inputStream, bo
 
       // Create as many kernel streams as the number of prefetching tasks
       _numExecStreams = GPUConfig::isConcurrentExecutionEnabled() ? GPUConfig::getNumPrefetch() + 1 : 1;
-      std::cout << "Creating " << _numExecStreams << " exec streams" << std::endl;
+
       _kernelExecStream = ( cudaStream_t * ) malloc( _numExecStreams * sizeof( cudaStream_t ) );
       for ( int i = 0; i < _numExecStreams; i++ ) {
          NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_STREAM_CREATE_EVENT );
