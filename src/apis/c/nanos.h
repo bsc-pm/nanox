@@ -113,6 +113,7 @@
  *   - 5022: Adding const char* description in task creation.
  *   - 5024: Adding is final attribute in wd's dynamic properties.
  *   - 5025: Changed WD priority from unsigned to int.
+ *   - 5029: Adding implicit parameter to work descriptor flags.
  * - nanos interface family: worksharing
  *   - 1000: First implementation of work-sharing services (create and next-item)
  * - nanos interface family: deps_api
