@@ -1013,7 +1013,7 @@ struct  mcc_struct_anon_12
 {
   _Bool is_final:1;
   _Bool is_recover:1;
-  _Bool reserved2:1;
+  _Bool is_implicit:1;
   _Bool reserved3:1;
   _Bool reserved4:1;
   _Bool reserved5:1;
@@ -1103,6 +1103,7 @@ int main(int argc, char **argv)
               nanos_wd_dyn_props.tie_to = 0;
               nanos_wd_dyn_props.priority = 0;
               nanos_wd_dyn_props.flags.is_final = 0;
+              nanos_wd_dyn_props.flags.is_implicit = 0;
               ol_args = (struct nanos_args_0_t *)0;
               nanos_wd_t nanos_wd_ = (void *)0;
               nanos_err = nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_0_t), (void **)&ol_args, nanos_current_wd(), (nanos_copy_data_t **)0, (nanos_region_dimension_internal_t **)0);
