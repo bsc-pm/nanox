@@ -20,7 +20,6 @@
 #ifndef _NANOS_OpenCL_PROCESSOR_DECL
 #define _NANOS_OpenCL_PROCESSOR_DECL
 
-#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include "cachedaccelerator.hpp"
 #include "openclcache.hpp"
 #include "openclconfig.hpp"

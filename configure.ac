@@ -495,9 +495,9 @@ AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
 	[
       #tests if headers and libraries are usable and correct
       #backup vars before we do the tests
-      CFLAGSBACKUP="$CFLAGS"
-      CPPFLAGSBACKUP="$CPPFLAGS"
-      CXXFLAGSBACKUP="$CXXFLAGS"
+      CFLAGSBACKUP="$CFLAGS -DCL_USE_DEPRECATED_OPENCL_2_0_APIS"
+      CPPFLAGSBACKUP="$CPPFLAGS -DCL_USE_DEPRECATED_OPENCL_2_0_APIS"
+      CXXFLAGSBACKUP="$CXXFLAGS -DCL_USE_DEPRECATED_OPENCL_2_0_APIS"
       LDFLAGSBACKUP="$LDFLAGS"
 
       CFLAGS="$CFLAGS -L$OPENCLBASE/lib64/"
