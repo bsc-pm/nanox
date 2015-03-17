@@ -1058,8 +1058,8 @@ extern void *nanos_smp_factory(void *args);
 struct  mcc_struct_anon_17
 {
   _Bool is_final:1;
-  _Bool reserved1:1;
-  _Bool reserved2:1;
+  _Bool is_recover:1;
+  _Bool is_implicit:1;
   _Bool reserved3:1;
   _Bool reserved4:1;
   _Bool reserved5:1;
@@ -1178,6 +1178,7 @@ int main(int argc, char **argv)
           nanos_wd_dyn_props.tie_to = 0;
           nanos_wd_dyn_props.priority = 0;
           nanos_wd_dyn_props.flags.is_final = 0;
+          nanos_wd_dyn_props.flags.is_implicit = 0;
           ol_args = (struct nanos_args_0_t *)0;
           nanos_wd_t nanos_wd_ = (void *)0;
           nanos_copy_data_t *ol_copy_data = (nanos_copy_data_t *)0;
@@ -1285,6 +1286,7 @@ int main(int argc, char **argv)
               nanos_wd_dyn_props.tie_to = 0;
               nanos_wd_dyn_props.priority = 0;
               nanos_wd_dyn_props.flags.is_final = 0;
+              nanos_wd_dyn_props.flags.is_implicit = 0;
               ol_args = (struct nanos_args_1_t *)0;
               nanos_wd_t nanos_wd_ = (void *)0;
               nanos_err = nanos_task_reduction_register((void *)&red, (void *)&red, sizeof(int), __alignof__(int), (void (*)(void *, void *))&nanos_ini_0x2584520_380301290, (void (*)(void *, void *))&nanos_red_0x2584520_380301290, (void (*)(void *, void *))&nanos_red_0x2584520_380301290);
@@ -1352,6 +1354,7 @@ int main(int argc, char **argv)
           nanos_wd_dyn_props.tie_to = 0;
           nanos_wd_dyn_props.priority = 0;
           nanos_wd_dyn_props.flags.is_final = 0;
+          nanos_wd_dyn_props.flags.is_implicit = 0;
           ol_args = (struct nanos_args_2_t *)0;
           nanos_wd_t nanos_wd_ = (void *)0;
           nanos_copy_data_t *ol_copy_data = (nanos_copy_data_t *)0;
