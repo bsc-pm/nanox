@@ -78,9 +78,7 @@ if DEBUG_VERSION
 debug_LTLIBRARIES=debug/libnanox-c.la
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
-nanos_debug_fcflags=$(common_includes) $(common_debug_fcflags)
 
-debug_libnanox_c_la_FCFLAGS=$(nanos_debug_fcflags)
 debug_libnanox_c_la_CXXFLAGS=$(nanos_debug_cxxflags)
 debug_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 debug_libnanox_c_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la
@@ -93,9 +91,7 @@ if INSTRUMENTATION_VERSION
 instrumentation_LTLIBRARIES=instrumentation/libnanox-c.la
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
-nanos_instr_fcflags=$(common_includes) $(common_instr_fcflags)
 
-instrumentation_libnanox_c_la_FCFLAGS=$(nanos_instr_fcflags)
 instrumentation_libnanox_c_la_CXXFLAGS=$(nanos_instr_cxxflags)
 instrumentation_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 instrumentation_libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la
@@ -107,9 +103,7 @@ if INSTRUMENTATION_DEBUG_VERSION
 instrumentation_debug_LTLIBRARIES=instrumentation-debug/libnanox-c.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
-nanos_instrdebug_fcflags=$(common_includes) $(common_instrdebug_fcflags)
 
-instrumentation_debug_libnanox_c_la_FCFLAGS=$(nanos_instrdebug_fcflags)
 instrumentation_debug_libnanox_c_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
 instrumentation_debug_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 instrumentation_debug_libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
@@ -121,9 +115,7 @@ if PERFORMANCE_VERSION
 performance_LTLIBRARIES=performance/libnanox-c.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
-nanos_perfo_fcflags=$(common_includes) $(common_perfo_fcflags)
 
-performance_libnanox_c_la_FCFLAGS=$(nanos_perfo_fcflags)
 performance_libnanox_c_la_CXXFLAGS=$(nanos_perfo_cxxflags)
 performance_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 performance_libnanox_c_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la

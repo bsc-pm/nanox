@@ -66,7 +66,6 @@ AC_SUBST([DEB_RELEASE])
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
-: ${FCFLAGS=""}
 
 # Allocator support
 AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
@@ -82,7 +81,7 @@ AC_ARG_ENABLE([allocator],
   ]
 )
 if test x$allocator_enabled = xyes; then
-	AC_DEFINE(["NANOS_USE_ALLOCATOR"],[1])
+	AC_DEFINE([NANOS_USE_ALLOCATOR],[1],[Specifies whether Nanos++ allocator has been enabled or not])
 fi
 
 # Memtracker support
@@ -99,7 +98,7 @@ AC_ARG_ENABLE([memtracker],
   ]
 )
 if test x$memtracker_enabled = xyes; then
-	AC_DEFINE(["NANOS_MEMTRACKER_ENABLED"],[1])
+	AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled or not])
 fi
 
 # Check for programs
@@ -148,7 +147,7 @@ AC_ARG_ENABLE([mpi],
 
 if test x$mpi_enabled = xyes; then
 	ARCHITECTURES="$ARCHITECTURES mpi"
-	AC_DEFINE(["MPI_DEV"],[yes])
+	AC_DEFINE([MPI_DEV],[yes],[Specifies whether MPI Offload architecture is enabled or not.])
 	NANOX_MPI_PREFIX=$prefix
 	AC_SUBST([NANOX_MPI_PREFIX])
 	AC_SUBST([NANOX_OFFL_FLAGS])
@@ -158,10 +157,11 @@ fi
 AC_SUBST([mpi_valid])
 
 # Check for programs
-AC_PROG_CC([$CC])
 AC_PROG_CPP
-AM_PROG_CC_C_O
+AC_PROG_CC([$CC])
 AC_PROG_CXX([$CXX])
+AC_PROG_LD([$LD])
+AM_PROG_CC_C_O
 AM_PROG_AS
 
 AC_PROG_SED
@@ -180,11 +180,6 @@ if test x$ac_cv_prog_cc_xlc_c_o = xyes; then
 fi
 if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
    cc_xlc=yes
-fi
-
-if test x$cc_gnu_compatible=yes -a $cc_xlc=xno -a $cc_intel=xno; then
-        CFLAGS="$CFLAGS -Wredundant-decls"
-        CXXFLAGS="$CXXFLAGS -Wredundant-decls"
 fi
 
 if test x$use_bgq = xyes; then
@@ -241,31 +236,42 @@ case $host in
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=x86-64 # warning: might not be compatible
-    if test x$CC!=xicc -o x$CXX!=xicpc; then
-      AC_MSG_ERROR(
-[-------------------------------
-Compilation for Intel MIC detected, but Intel compilers
-were not properly configured.
-Please, specify CC=icc and CXX=icpc when cross-compiling for MIC architectures.
--------------------------------])
-    else
-      AC_MSG_NOTICE([Intel MIC cross compilation detected.])
-    fi
+
     AX_CHECK_COMPILE_FLAG([-mmic],
-      [
-         CFLAGS="$CFLAGS -mmic"
-         CXXFLAGS="$CXXFLAGS -mmic"
-         LDFLAGS="$LDFLAGS -mmic"
-      ],
-      [
-      AC_MSG_ERROR(
-[-------------------------------
+      [],[
+        mic_error=unsupported-flag
+      ],[-Werror])
+
+    case $mic_error in
+      unsupported-flag)
+        AC_MSG_ERROR([
+-------------------------------
 Compilation for Intel MIC detected, but selected compiler
 does not support it.
 Please, specify CC=icc and CXX=icpc when cross-compiling for MIC architectures.
 Also make sure that they support -mmic compilation and link flag.
 -------------------------------])
-      ],[-Werror])
+        ;;
+      no-mmic-flag)
+        AC_MSG_ERROR([
+-------------------------------
+Compilation for Intel MIC detected, but the user
+did not set -mmic compiler and link flag.
+Please, specify CFLAGS=-mmic CXXFLAGS=-mmic LDFLAGS=-mmic
+-------------------------------])
+        ;;
+    esac
+
+    if test x$LD_LIBRARY_PATH != x; then
+      AC_MSG_WARN([
+-------------------------------
+Cross-compiling for Intel MIC architecture.
+The use of LD_LIBRARY_PATH is discouraged for this build, as
+binary incompatible libraries may interfer in the link process.
+-------------------------------])
+    fi
+
+    AC_SUBST([INTEL_MIC_FLAGS],[-mmic])
     ;;
   i?86-*-linux*)
     OS=unix-os
@@ -480,250 +486,11 @@ AM_CONDITIONAL([CONDUIT_DBG_UDP], [test x$with_udp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
 
-# Check if it has nVidia GPUs / CUDA is installed
-gpu_valid=no
-gpu_enabled=yes
-CUDA=""
-CUDA_RPATH=""
+# Check if NVidia CUDA device has been selected 
+AX_CHECK_CUDA
 
-AC_MSG_CHECKING([if the use of GPU devices was disabled])
-AC_ARG_ENABLE([gpu-arch],
-  AS_HELP_STRING([--disable-gpu-arch], [Disables the use of GPU devices]),
-  [
-    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
-    then
-        gpu_enabled="yes"
-        AC_MSG_RESULT([no])
-    else if test x"$enableval" = x"no";
-         then
-            AC_MSG_RESULT([yes])
-            gpu_enabled="no"
-         else
-            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-         fi
-    fi
-  ],
-  [
-    gpu_enabled="yes"
-    AC_MSG_RESULT([no])
-  ]
-)
-
-AC_ARG_WITH([cuda],
-AS_HELP_STRING([--with-cuda=dir], [Directory of CUDA installation]),
-	[
-		CUDADIR="${withval}"
-	],
-	[
-		CUDADIR="/usr/local/cuda"
-	])
-
-if test x$gpu_enabled = xyes ; then
-    if test -d "$CUDADIR" ;
-    then
-        AC_PATH_PROG([NVCC], [nvcc], [], [$PATH$PATH_SEPARATOR$CUDADIR/bin])
-        if test x$NVCC = x ; then
-            AC_MSG_WARN([nvcc not found. Disabling GPU support])
-            gpu_valid=no
-        else
-            CUDA_INC="$CUDADIR/include"
-            CUDA_LIB="$CUDADIR/lib"
-            if test -d "$CUDADIR/lib64" ;
-	    then
-                CUDA_LIB="$CUDADIR/lib64"
-            fi
-            CUDA_RPATH="-Xlinker -rpath -Xlinker $CUDA_LIB"
-
-            AC_SUBST([CUDA_INC])
-            AC_SUBST([CUDA_LIB])
-            AC_SUBST([CUDA_RPATH])
-
-            cuda_version_h="$CUDA_INC/cuda.h"
-            if test -e $cuda_version_h ;
-            then
-               cuda_version_string=`sed -ne '/^\s*#\s*define\s\+CUDA_VERSION .*$/p' $cuda_version_h`
-               cuda_version=`echo $cuda_version_string | sed -e 's/#define CUDA_VERSION \([0-9]*\).*$/\1/'`
-            else
-               cuda_version=0
-            fi
-
-            #if [ $cuda_version -lt 5000 ]
-            if test "$cuda_version" -lt 5000;
-            then
-               AC_MSG_ERROR([checking if CUDA library is compatible... no (CUDA >= 5.0 needed)])
-               gpu_valid=no
-            else
-               AC_MSG_RESULT([checking if CUDA library is compatible... yes])
-               gpu_valid=yes
-            fi
-        fi
-    else
-             AC_MSG_WARN([Directory "$CUDADIR" does not exist. Disabling GPU Support])
-             gpu_valid=no
-    fi
-fi
-
-if test x$gpu_valid = xyes; then
-	CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
-	CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
-        LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
-	ARCHITECTURES="$ARCHITECTURES gpu"
-
-	# This path is used to compile CUDA tests
-	cuda_dir="$CUDADIR"
-fi
-
-AM_CONDITIONAL([GPU_SUPPORT],[test $gpu_valid = yes])
-
-AC_SUBST([gpu_valid])
-AC_SUBST([cuda_dir])
-
-#only show warnings when the user tries to specify opencl folders
-opencl_showwarn="no"
-#Check if an OpenCL implementation is installed.
-OPENCLBASE="/usr"
-AC_ARG_WITH([opencl],
-AS_HELP_STRING([--with-opencl=dir], [Directory of OpenCL installation]),
-	[
-		OPENCLBASE="${withval}"
-      opencl_showwarn="yes"
-	],
-	[
-		OPENCLBASE="/usr"
-	]
-)
-
-AC_ARG_WITH([opencl-include],
-AS_HELP_STRING([--with-opencl-include=dir], [Directory of OpenCL includes]),
-	[
-		OPENCL_INC="${withval}"
-      opencl_showwarn="yes"
-	],
-	[
-		OPENCL_INC="$OPENCLBASE/include/"
-	]
-)
-
-AC_ARG_WITH([opencl-lib],
-AS_HELP_STRING([--with-opencl-lib=dir], [Directory of OpenCL libraries]),
-	[
-		OPENCL_LIB="${withval}"
-      opencl_showwarn="yes"
-	],
-	[
-      #tests if headers and libraries are usable and correct
-      #backup vars before we do the tests
-      CFLAGSBACKUP="$CFLAGS"
-      CPPFLAGSBACKUP="$CPPFLAGS"
-      CXXFLAGSBACKUP="$CXXFLAGS"
-      LDFLAGSBACKUP="$LDFLAGS"
-      LIBSBACKUP="$LIBS"
-
-      CFLAGS="$CFLAGS -L$OPENCLBASE/lib64/"
-      CPPFLAGS="$CPPFLAGS -L$OPENCLBASE/lib64/"
-      CFLAGS="$CXXFLAGS -L$OPENCLBASE/lib64/"
-      LDFLAGS="$LDFLAGS -L$OPENCLBASE/lib64/"
-      AC_SEARCH_LIBS([clGetPlatformIDs],
-                     [OpenCL mali],
-                     [OPENCL_LIB="$OPENCLBASE/lib64/"],
-                     [OPENCL_LIB="$OPENCLBASE/lib/"])
-
-      CFLAGS="$CFLAGSBACKUP"
-      CPPFLAGS="$CPPFLAGSBACKUP"
-      CXXFLAGS="$CXXFLAGSBACKUP"
-      LDFLAGS="$LDFLAGSBACKUP"
-      LIBS="$LIBSBACKUP"
-      #endtest
-	]
-)
-
-AC_MSG_CHECKING([if the use of OpenCL devices was disabled])
-AC_ARG_ENABLE([opencl-arch],
-  AS_HELP_STRING([--disable-opencl-arch], [Disables the use of OpenCL devices]),
-  [
-    if test x"$enableval" = x"yes" -o x"$enableval" = x"";
-    then
-        opencl_enabled="yes"        
-        opencl_showwarn="yes"
-        AC_MSG_RESULT([no])
-    else if test x"$enableval" = x"no";
-        then
-            opencl_enabled="no"
-            AC_MSG_RESULT([yes])
-        else
-            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-        fi    
-    fi
-  ],
-  [
-    opencl_enabled="yes"
-    AC_MSG_RESULT([no])
-  ]
-)
-
-if test x"$opencl_enabled" = x"yes" ; then
-
-    opencl_valid="no"
-    opencl_libs="no"
-    opencl_headers="no"
-
-    #tests if headers and libraries are usable and correct
-    #backup vars before we do the tests
-    CFLAGSBACKUP="$CFLAGS"
-    CPPFLAGSBACKUP="$CPPFLAGS"
-    CXXFLAGSBACKUP="$CXXFLAGS"
-    LDFLAGSBACKUP="$LDFLAGS"
-
-    CFLAGS="$CFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
-    CPPFLAGS="$CPPFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
-    CXXFLAGS="$CXXFLAGS -I$OPENCL_INC -L$OPENCL_LIB"
-    LDFLAGS="$LDFLAGS -L$OPENCL_LIB"
-
-    AC_CHECK_HEADER([CL/opencl.h], [opencl_headers="yes"],[])
-    AC_CHECK_HEADER([OpenCL/opencl.h], [opencl_headers="yes"],[])
-    #this will add the correct library to LIBS var
-    AC_SEARCH_LIBS([clGetPlatformIDs],
-                   [OpenCL mali],
-                   [opencl_libs="yes"],
-                   [])
-
-    CFLAGS="$CFLAGSBACKUP"
-    CPPFLAGS="$CPPFLAGSBACKUP"
-    CXXFLAGS="$CXXFLAGSBACKUP"
-    LDFLAGS="$LDFLAGSBACKUP"
-    #endtest
-
-    if test x"$opencl_libs" = x"yes" ; then
-         if test x"$opencl_headers" = x"yes" ; then
-            opencl_valid="yes"
-         fi
-    fi
-
-    if test x"$opencl_showwarn" = x"yes" ; then
-         if test x"$opencl_libs" = x"no" ; then
-            AC_MSG_WARN([OpenCL library not found in $OPENCL_LIB, specify location using -with-opencl-lib. Disabling OpenCL support])
-         fi
-         if test x"$opencl_headers" = x"no" ; then
-            AC_MSG_WARN([OpenCL headers not found in $OPENCL_INC, specify location using -with-opencl-include. Disabling OpenCL support])
-         fi
-    fi
-else
-    opencl_valid="no"
-fi
-
-if test x"$opencl_valid" = x"yes"; then
-    OPENCL_LD=$OPENCL_LIB
-    OPENCL_INC=$OPENCL_INC
-    CFLAGS="$CFLAGS -L$OPENCL_LIB -isystem $OPENCL_INC -DOpenCL_DEV"
-    CXXFLAGS="$CXXFLAGS -L$OPENCL_LIB -isystem $OPENCL_INC -DOpenCL_DEV"
-    ARCHITECTURES="$ARCHITECTURES opencl"
-    AC_SUBST([OPENCL_LD])
-    AC_SUBST([OPENCL_INC])
-fi
-
-AM_CONDITIONAL([OPENCL_SUPPORT],[test $opencl_valid = yes]) 
-
-AC_SUBST([opencl_valid])
+# Check if OpenCL device has been selected
+AX_CHECK_OPENCL
 
 # mcc support
 AC_ARG_WITH([mcc],
