@@ -245,6 +245,7 @@ namespace nanos
       public:
          Hwloc _hwloc;
          bool _immediateSuccessorDisabled;
+         bool _predecessorCopyInfoDisabled;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -669,6 +670,7 @@ namespace nanos
          Router& getRouter();
          void switchToThread( unsigned int thid );
          bool isImmediateSuccessorEnabled() const;
+         bool usePredecessorCopyInfo() const;
    };
 
    extern System sys;
