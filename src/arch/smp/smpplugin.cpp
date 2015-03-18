@@ -708,7 +708,13 @@ class SMPPlugin : public SMPBasePlugin
 
       //! \note Probably it can be relaxed, but at the moment running in a safe mode
       //! waiting for the team to be stable
-      while ( !(team->isStable()) ) memoryFence();
+      while ( !(team->isStable()) ) {
+         memoryFence();
+         // weird scenario: Only one thread left to leave the team, but it's me and I'm blocked here
+         if ( myThread->isSleeping() && team->size() == team->getFinalSize()+1  ) {
+            team->setStable(true);
+         }
+      }
       if ( num_threads < 0 ) team->setStable(false);
 
       //! \note Creating new workers (if needed)
