@@ -34,7 +34,7 @@ uint64_t global_reg_t::getRealFirstAddress() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    //ensure(entry != NULL, "invalid entry.");
    if ( entry == NULL ) {
-      std::cerr << "Warning, getRealFirstAddress() w/NULL entry!" << std::endl;
+      //std::cerr << "Warning, getRealFirstAddress() w/NULL entry!" << std::endl;
       addr = getFirstAddress( key->getRealBaseAddress() );
    } else {
       addr = entry->getBaseAddress() == 0 ? key->getRealBaseAddress() : entry->getBaseAddress();
