@@ -236,7 +236,7 @@ void Network::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void 
    }
 }
 
-void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req,
+void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req,
    void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
@@ -255,7 +255,7 @@ void Network::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAdd
 }
 
 void Network::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size,
-   std::size_t count, std::size_t ld, volatile int* req, void *hostObject, reg_t hostRegId )
+   std::size_t count, std::size_t ld, GetRequestStrided* req, void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
    {
