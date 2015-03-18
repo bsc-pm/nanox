@@ -409,7 +409,7 @@ namespace nanos
                      }
                      if ( e.getKey() == dependence ) {
                         nanos_event_value_t dependence_value = e.getValue();
-                        int sender_id = (int) ( dependence_value >> 32 );
+                        int sender_id = (int) ( dependence_value >> 32 ) & 0xFFFFFFFF;
                         int receiver_id = (int) ( dependence_value & 0xFFFFFFFF );
 
                         void * address_id = 0;
@@ -565,7 +565,8 @@ namespace nanos
          void addSuspendTask( WorkDescriptor &w, bool last )
          {
             int thid = (int) nanos::myThread->getId();
-            _previousTask[thid] = (ompt_task_id_t) w.getId();
+            if (last) _previousTask[thid] = (ompt_task_id_t) 0;
+            else _previousTask[thid] = (ompt_task_id_t) w.getId();
 
             if (ompt_nanos_event_task_end && last) {
                ompt_nanos_event_task_end((ompt_task_id_t) w.getId());

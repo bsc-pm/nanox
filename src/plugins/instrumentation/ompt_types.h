@@ -117,11 +117,19 @@ typedef enum {
    ompt_state_first = 0x71, /* initial enumeration state */
 } ompt_state_t;
 
-typedef unsigned int ompt_thread_id_t;
-typedef unsigned int ompt_wait_id_t;
-typedef unsigned int ompt_task_id_t;
-typedef unsigned int ompt_parallel_id_t;
-typedef unsigned int ompt_frame_t;
+typedef uint64_t ompt_thread_id_t;
+typedef uint64_t ompt_wait_id_t;
+typedef uint64_t ompt_task_id_t;
+typedef uint64_t ompt_parallel_id_t;
+#if 0
+typedef struct ompt_frame_s
+{
+	void *exit_runtime_frame; /* next frame is user code */
+	void *reenter_runtime_frame; /* previous frame is user code */
+} ompt_frame_t;
+#else
+typedef uint64_t ompt_frame_t;
+#endif
 
 typedef enum {
    ompt_dependence_raw = 1,
