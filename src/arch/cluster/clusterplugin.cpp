@@ -87,7 +87,7 @@ void ClusterPlugin::init()
          #endif
          _nodes = NEW std::vector<nanos::ext::ClusterNode *>(_gasnetApi.getNumNodes(), (nanos::ext::ClusterNode *) NULL); 
          for ( unsigned int nodeC = 1; nodeC < _gasnetApi.getNumNodes(); nodeC++ ) {
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ) );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ), 0 );
             SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
             nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) _gasnetApi.getSegmentAddr( nodeC ), _gasnetApi.getSegmentLen( nodeC ) ) );
             nodeMemory.setNodeNumber( nodeC );
