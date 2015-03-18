@@ -98,6 +98,7 @@ System::System () :
       , _router()
       , _hwloc()
       , _immediateSuccessorDisabled( false )
+      , _predecessorCopyInfoDisabled( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -386,6 +387,10 @@ void System::config ()
    cfg.registerConfigOption( "disable-immediate-succ", NEW Config::FlagOption( _immediateSuccessorDisabled ),
                              "Disables the usage of getImmediateSuccessor" );
    cfg.registerArgOption( "disable-immediate-succ", "disable-immediate-successor" );
+
+   cfg.registerConfigOption( "disable-predecessor-info", NEW Config::FlagOption( _predecessorCopyInfoDisabled ),
+                             "Disables sending the copy_data info to successor WDs." );
+   cfg.registerArgOption( "disable-predecessor-info", "disable-predecessor-info" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );

@@ -615,5 +615,9 @@ inline bool System::isImmediateSuccessorEnabled() const {
    return !_immediateSuccessorDisabled;
 }
 
+inline bool System::usePredecessorCopyInfo() const {
+   return !_predecessorCopyInfoDisabled;
+}
+
 #endif
 

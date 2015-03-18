@@ -20,79 +20,6 @@ MemController::MemController( WD &wd ) : _initialized( false ), _preinitialized(
    }
 }
 
-#if 0
-bool MemController::hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations ) {
-   bool resultHIT = false;
-   bool resultSUBR = false;
-   bool resultSUPER = false;
-   std::map<NewNewRegionDirectory::RegionDirectoryKey, std::map< reg_t, unsigned int > >::iterator wantedDir = _providedRegions.find( reg.key );
-   if ( wantedDir != _providedRegions.end() ) {
-      unsigned int versionHIT = 0;
-      std::map< reg_t, unsigned int >::iterator wantedReg = wantedDir->second.find( reg.id );
-      if ( wantedReg != wantedDir->second.end() ) {
-         versionHIT = wantedReg->second;
-         //double check the directory because a there may be WDs that have not been detected as predecessors
-         NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( wantedReg->first );
-         if ( entry->getVersion() > versionHIT ) {
-            versionHIT = entry->getVersion();
-         }
-         resultHIT = true;
-         wantedDir->second.erase( wantedReg );
-      }
-      //if ( resultHIT ) {
-      //   std::cerr << " HIT got version " << versionHIT << " for region " << reg.id << std::endl;
-      //}
-
-      unsigned int versionSUPER = 0;
-      reg_t superPart = wantedDir->first->isThisPartOf( reg.id, wantedDir->second.begin(), wantedDir->second.end(), versionSUPER ); 
-      if ( superPart != 0 ) {
-         resultSUPER = true;
-      }
-
-      unsigned int versionSUBR = 0;
-      if ( wantedDir->first->doTheseRegionsForm( reg.id, wantedDir->second.begin(), wantedDir->second.end(), versionSUBR ) ) {
-         if ( versionHIT < versionSUBR && versionSUPER < versionSUBR ) {
-            NewNewDirectoryEntryData *dirEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
-            if ( dirEntry != NULL ) { /* if entry is null, do check directory, because we need to insert the region info in the intersect maps */
-               for ( std::map< reg_t, unsigned int >::const_iterator it = wantedDir->second.begin(); it != wantedDir->second.end(); it++ ) {
-                  global_reg_t r( it->first, wantedDir->first );
-                  reg_t intersect = r.key->computeIntersect( reg.id, r.id );
-                  if ( it->first == intersect ) {
-                     locations.push_back( std::make_pair( it->first, it->first ) );
-                  }
-               }
-               version = versionSUBR;
-            } else {
-               sys.getHostMemory().getVersionInfo( reg, version, locations );
-            }
-            resultSUBR = true;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS FORM THIS REG!!! and version computed is " << version << std::endl;
-         }
-      }
-      if ( !resultSUBR && ( resultSUPER || resultHIT ) ) {
-         if ( versionHIT >= versionSUPER ) {
-            version = versionHIT;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS HIT!!! and version computed is " << version << std::endl;
-            locations.push_back( std::make_pair( reg.id, reg.id ) );
-         } else {
-            version = versionSUPER;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
-            NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
-            if ( firstEntry != NULL ) {
-               locations.push_back( std::make_pair( reg.id, superPart ) );
-               NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( superPart );
-               if (secondEntry == NULL) std::cerr << "LOLWTF!"<< std::endl;
-               *firstEntry = *secondEntry;
-            } else {
-               sys.getHostMemory().getVersionInfo( reg, version, locations );
-            }
-         }
-      }
-   }
-   return (resultSUBR || resultSUPER || resultHIT) ;
-}
-#endif
-
 bool MemController::ownsRegion( global_reg_t const &reg ) {
    bool i_has_it = _ownedRegions.hasObjectOfRegion( reg );
    bool parent_has_it  = _parentRegions.hasObjectOfRegion( reg );
@@ -130,9 +57,11 @@ void MemController::preInit( ) {
 
       // o << "## " << (_wd.getCopies()[index].isInput() ? "in" : "") << (_wd.getCopies()[index].isOutput() ? "out" : "") << " " <<  _wd.getCopies()[index] << std::endl; 
 
-      unsigned int predecessorsVersion;
-      if ( _providedRegions.hasVersionInfoForRegion( _memCacheCopies[ index ]._reg, predecessorsVersion, _memCacheCopies[ index ]._locations ) ) {
-         _memCacheCopies[ index ].setVersion( predecessorsVersion );
+      if ( sys.usePredecessorCopyInfo() ) {
+         unsigned int predecessorsVersion;
+         if ( _providedRegions.hasVersionInfoForRegion( _memCacheCopies[ index ]._reg, predecessorsVersion, _memCacheCopies[ index ]._locations ) ) {
+            _memCacheCopies[ index ].setVersion( predecessorsVersion );
+         }
       }
       if ( _memCacheCopies[ index ].getVersion() != 0 ) {
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " " <<(_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a") << " copy "<< index <<" got location info from predecessor, reg [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<< _memCacheCopies[ index ]._reg.id << " ] got version " << _memCacheCopies[ index ].getVersion()<< " "; }
@@ -320,38 +249,21 @@ uint64_t MemController::getAddress( unsigned int index ) const {
 }
 
 void MemController::getInfoFromPredecessor( MemController const &predecessorController ) {
-   for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
-      unsigned int version = predecessorController._memCacheCopies[ index ].getChildrenProducedVersion(); 
-      unsigned int predecessorProducedVersion = predecessorController._memCacheCopies[ index ].getVersion() + (predecessorController._wd.getCopies()[ index ].isOutput() ? 1 : 0);
-      if ( predecessorProducedVersion == version ) {
-         // if the predecessor's children produced new data, then the father can not
-         // guarantee that the version is correct (the children may have produced a subchunk
-         // of the region). The version is not added here and then the global directory is checked.
-         //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy version " << version << std::endl;
-         _providedRegions.addRegion( predecessorController._memCacheCopies[ index ]._reg, version );
-      } else {
-         //(*myThread->_file) << _preinitialized << " " << _initialized <<" SKIP getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy CP version " << version << " predec Produced version " << predecessorProducedVersion << std::endl;
-      }
-   }
-#if 0
-   _provideLock.acquire();
-   for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
-      std::map< reg_t, unsigned int > &regs = _providedRegions[ predecessorController._memCacheCopies[ index ]._reg.key ];
-      std::map< reg_t, unsigned int >::iterator elem = regs.find( predecessorController._memCacheCopies[ index ]._reg.id );
-
-      unsigned int version = predecessorController._memCacheCopies[ index ].getVersion() + ( predecessorController._wd.getCopies()[index].isOutput() ? 1 : 0 );
-      //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << std::endl;
-      if ( elem != regs.end() ) {
-         if ( elem->second < version ) {
-            regs[ elem->first ] = version;
+   if ( sys.usePredecessorCopyInfo() ) {
+      for( unsigned int index = 0; index < predecessorController._wd.getNumCopies(); index += 1) {
+         unsigned int version = predecessorController._memCacheCopies[ index ].getChildrenProducedVersion(); 
+         unsigned int predecessorProducedVersion = predecessorController._memCacheCopies[ index ].getVersion() + (predecessorController._wd.getCopies()[ index ].isOutput() ? 1 : 0);
+         if ( predecessorProducedVersion == version ) {
+            // if the predecessor's children produced new data, then the father can not
+            // guarantee that the version is correct (the children may have produced a subchunk
+            // of the region). The version is not added here and then the global directory is checked.
+            //(*myThread->_file) << "getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy version " << version << std::endl;
+            _providedRegions.addRegion( predecessorController._memCacheCopies[ index ]._reg, version );
+         } else {
+            //(*myThread->_file) << _preinitialized << " " << _initialized <<" SKIP getInfoFromPredecessor[ " << _wd.getId() << " : "<< _wd.getDescription()<< " key: " << (void*)predecessorController._memCacheCopies[ index ]._reg.key << " ] adding version " << version << " from wd " << predecessorController._wd.getId() << " : " << predecessorController._wd.getDescription() << " : " << index << " copy CP version " << version << " predec Produced version " << predecessorProducedVersion << std::endl;
          }
-      } else {
-         regs[ predecessorController._memCacheCopies[ index ]._reg.id ] = version;
       }
-      //std::cerr << "from wd " << predecessorController._wd.getId() << " to wd " << _wd.getId()  << " provided data for copy " << index << " reg ("<<predecessorController._memCacheCopies[ index ]._reg.key<<"," << predecessorController._memCacheCopies[ index ]._reg.id << ") with version " << ( ( predecessorController._wd.getCopies()[index].isOutput() ) ? predecessorController._memCacheCopies[ index ].getVersion() + 1 : predecessorController._memCacheCopies[ index ].getVersion() ) << " isOut "<< predecessorController._wd.getCopies()[index].isOutput()<< " isIn "<< predecessorController._wd.getCopies()[index].isInput() << std::endl;
    }
-   _provideLock.release();
-#endif
 }
  
 bool MemController::isDataReady( WD const &wd ) {
