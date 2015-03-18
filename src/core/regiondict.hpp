@@ -773,7 +773,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
          if ( !subpart ) {
             missingParts.push_back( *it );
             missingPartsOrderedByVersion[ itVersion ].push_back( *it );
-            version = itVersion;
+            version = itVersion > version ? itVersion : version;
          }
       }
    }
