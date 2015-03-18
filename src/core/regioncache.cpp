@@ -278,23 +278,27 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                         CachedRegionStatus *entryToCopy = ( CachedRegionStatus * ) _newRegions->getRegionData( region_shape.id );
                         DeviceOps *entryToCopyOps = entryToCopy->getDeviceOps();
                         if ( entryToCopy != thisRegEntry ) {
-                           if ( !entryToCopyOps->addCacheOp( /* debug: */ &wd, 2 ) ) {
-                              o << "ERROR " << __FUNCTION__ << std::endl;
+                           if ( entryToCopyOps->addCacheOp( /* debug: */ &wd, 2 ) ) {
+ //                             o << "ERROR " << __FUNCTION__ << std::endl;
+                              NewNewDirectoryEntryData *target_dentry = NewNewRegionDirectory::getDirectoryEntry( *key, it->first );
+                              if ( target_dentry == NULL ) {
+                                 NewNewRegionDirectory::initializeEntryWithAnother( key, it->first, data_source.id );
+                              }
+                              ops.insertOwnOp( entryToCopyOps, global_reg_t( locIt->first, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
+                              if ( location == 0 ) {
+                                 ops.addOpFromHost( region_shape, version, this, copyIdx );
+                              } else if ( location != _owner.getMemorySpaceId() ) {
+                                 ops.addOp( &sys.getSeparateMemory( location ) , region_shape, version, this, copyIdx );
+                              }
+                           } else {
+                              ops.getOtherOps().insert( entryToCopyOps );
                            }
-                           //FIXME: this now updates the metadata of reg: which is redundant but updating the metadata of region_shape it's not possible since it could not have a directory entry, and its not right to update the source region since we may be copying just a piece.
-                           //ops.insertOwnOp( entryToCopyOps, global_reg_t( reg, _newRegions->getGlobalDirectoryKey() ), version + (output ? 1 : 0), _owner.getMemorySpaceId() ); 
-
-                           NewNewDirectoryEntryData *target_dentry = NewNewRegionDirectory::getDirectoryEntry( *key, it->first );
-                           if ( target_dentry == NULL ) {
-                              NewNewRegionDirectory::initializeEntryWithAnother( key, it->first, data_source.id );
+                        } else {
+                           if ( location == 0 ) {
+                              ops.addOpFromHost( region_shape, version, this, copyIdx );
+                           } else if ( location != _owner.getMemorySpaceId() ) {
+                              ops.addOp( &sys.getSeparateMemory( location ) , region_shape, version, this, copyIdx );
                            }
-                           ops.insertOwnOp( entryToCopyOps, global_reg_t( locIt->first, _newRegions->getGlobalDirectoryKey() ), version, _owner.getMemorySpaceId() );
-                        }
-
-                        if ( location == 0 ) {
-                           ops.addOpFromHost( region_shape, version, this, copyIdx );
-                        } else if ( location != _owner.getMemorySpaceId() ) {
-                           ops.addOp( &sys.getSeparateMemory( location ) , region_shape, version, this, copyIdx );
                         }
                      }// else {
                       //  o << "Ooops! no copy!" << std::endl;
@@ -536,7 +540,9 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
 
                      NewNewDirectoryEntryData *subEntry = NewNewRegionDirectory::getDirectoryEntry( *key, lit->first );
                      if ( !subEntry ) {
-                        std::cerr << "FIXME: Invalidation, and found a region shape (" << lit->first << ") with no entry, a new Entry may be needed." << std::endl;
+                        //std::cerr << "FIXME: Invalidation, and found a region shape (" << lit->first << ") with no entry, a new Entry may be needed." << std::endl;
+                        //NewNewDirectoryEntryData *subEntryData = NewNewRegionDirectory::getDirectoryEntry( *key, lit->second );
+                        //this->prepareRegion( lit->first, subEntryData->getVersion() );
                      } else if ( VERBOSE_INVAL ) {
                         std::cerr << " Fragment " << lit->first << " has entry! " << subEntry << std::endl;
                      }
@@ -566,7 +572,8 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                if ( thisChunkOps->addCacheOp( /* debug: */ &wd, 6 ) ) { // FIXME: others may believe there's an ongoing op for the full region!
                  invalOps.insertOwnOp( thisChunkOps, data_source, entry->getVersion(), 0 );
                } else {
-                 std::cerr << "ERROR, could not add an inval cache op " << std::endl;
+                 //it could have been added on a previous iteration
+                 //std::cerr << "ERROR, could not add an inval cache op " << std::endl;
                }
             }
             entry->resetVersion();
