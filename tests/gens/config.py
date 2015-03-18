@@ -103,7 +103,7 @@ config_lines=[]
 versions=''
 i=1
 for c in configs:
-	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\''
+	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\$NX_ARGS\' '
 	versions+='ver'+str(i)+' '
 	for entry in c:
 		line = line + ' ' +entry

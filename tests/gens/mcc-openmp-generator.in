@@ -29,15 +29,15 @@ compile_versions="@COMPILE_VERSIONS@"
 test_CC=@MCC@
 test_CXX=@MCC@
 
-test_CFLAGS="\$common_includes --nanox"
-test_CXXFLAGS="\$common_includes --nanox"
+test_CFLAGS="\$common_includes"
+test_CXXFLAGS="\$common_includes"
 
 test_CFLAGS_performance="\$PERFO_CFLAGS"
 test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
 test_CFLAGS_debug="\$DEBUG_CFLAGS --debug"
 test_CXXFLAGS_debug="\$DEBUG_CXXFLAGS --debug"
-test_CFLAGS_instrumentation="\$INSTR_CFLAGS --instruments"
-test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS --instruments"
+test_CFLAGS_instrumentation="\$INSTR_CFLAGS --instrument"
+test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS --instrument"
 test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
 test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
 
