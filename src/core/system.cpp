@@ -1382,6 +1382,11 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
    while ( nthreads > 0 ) {
 
       BaseThread *thread = getUnassignedWorker();
+      // Check if we don't have a worker because it needs to be created
+      if ( !thread && _workers.size() < team->getFinalSize() ) {
+         _smpPlugin->createWorker( _workers );
+         continue;
+      }
       ensure( thread != NULL, "I could not get the required threads to create the team");
 
       acquireWorker( team, thread, /*enter*/ enter, /* staring */ parallel, /* creator */ false );

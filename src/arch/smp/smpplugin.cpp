@@ -922,6 +922,26 @@ class SMPPlugin : public SMPBasePlugin
       sys.setCpuActiveMask( &mask );
    }
 
+   /*! \brief Create a worker in a suitable CPU
+    */
+   void createWorker( std::map<unsigned int, BaseThread *> &workers )
+   {
+      unsigned int active_cpus = 0;
+      std::vector<ext::SMPProcessor *>::const_iterator cpu_it;
+      for ( cpu_it = _cpus->begin(); cpu_it != _cpus->end(); ++cpu_it ) {
+         if ( (*cpu_it)->isActive() ) active_cpus++;
+      }
+
+      unsigned int max_thds_per_cpu = std::ceil( (_workers.size()+1) / static_cast<float>(active_cpus) );
+      for ( cpu_it = _cpus->begin(); cpu_it != _cpus->end(); ++cpu_it ) {
+         SMPProcessor *cpu = (*cpu_it);
+         if ( cpu->isActive() && cpu->getNumThreads() < max_thds_per_cpu ) {
+            createWorker( cpu, workers );
+            break;
+         }
+      }
+   }
+
    /*! \brief returns a human readable string containing information about the binding mask, detecting ranks.
     *       format e.g.,
     *           active[ i-j, m, o-p, ] - inactive[ k-l, n, ]
