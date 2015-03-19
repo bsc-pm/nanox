@@ -560,7 +560,7 @@ namespace nanos
             int thid = (int) nanos::myThread->getId();
             ompt_task_id_t pre = (ompt_task_id_t) _previousTask[thid];
 
-            if ( pre ) ompt_nanos_event_task_switch ( pre, post );
+            ompt_nanos_event_task_switch ( pre, post );
          }
          void addSuspendTask( WorkDescriptor &w, bool last )
          {
