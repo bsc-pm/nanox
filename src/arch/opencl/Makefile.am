@@ -74,7 +74,7 @@ pe_opencl_sources = \
 
 opencl_api_flags = -I$(srcdir)/../../apis/c
 opencl_ldflags = -L@OPENCL_LD@ -lOpenCL
-opencl_includes = -isystem @OPENCL_INC@
+opencl_includes = -isystem @OPENCL_INC@ -DCL_USE_DEPRECATED_OPENCL_2_0_APIS
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =

@@ -118,7 +118,8 @@ namespace nanos {
          enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE };
          enum CacheOptions {
             ALLOC_FIT,
-            ALLOC_WIDE
+            ALLOC_WIDE,
+            ALLOC_SLAB
          };
       private:
          MemoryMap<AllocatedChunk>  _chunks;
@@ -127,6 +128,7 @@ namespace nanos {
          //ProcessingElement         &_pe;
          memory_space_id_t          _memorySpaceId;
          CacheOptions               _flags;
+         std::size_t                _slabSize;
          unsigned int               _lruTime;
          Atomic<unsigned int>       _softInvalidationCount;
          Atomic<unsigned int>       _hardInvalidationCount;
@@ -162,7 +164,7 @@ namespace nanos {
          void doOp( Op *opObj, global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd ); 
 
       public:
-         RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags );
+         RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags, std::size_t slabSize );
          AllocatedChunk *tryGetAddress( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *getOrCreateChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const;

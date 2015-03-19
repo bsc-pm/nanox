@@ -89,7 +89,7 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _clusterNodes(), _numaNodes(), _acceleratorCount(0),
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(), _acceleratorCount(0),
       _numaNodeMap(), _threadManagerConf(), _threadManager( NULL )
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
@@ -105,6 +105,8 @@ System::System () :
       , _userDefinedNUMANode( -1 )
       , _router()
       , _hwloc()
+      , _immediateSuccessorDisabled( false )
+      , _predecessorCopyInfoDisabled( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -379,6 +381,18 @@ void System::config ()
    cfg.registerArgOption ( "regioncache-policy", "cache-policy" );
    cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
 
+   cfg.registerConfigOption ( "regioncache-slab-size", NEW Config::SizeVar ( _regionCacheSlabSize ), "Region slab size." );
+   cfg.registerArgOption ( "regioncache-slab-size", "cache-slab-size" );
+   cfg.registerEnvOption ( "regioncache-slab-size", "NX_CACHE_SLAB_SIZE" );
+
+   cfg.registerConfigOption( "disable-immediate-succ", NEW Config::FlagOption( _immediateSuccessorDisabled ),
+                             "Disables the usage of getImmediateSuccessor" );
+   cfg.registerArgOption( "disable-immediate-succ", "disable-immediate-successor" );
+
+   cfg.registerConfigOption( "disable-predecessor-info", NEW Config::FlagOption( _predecessorCopyInfoDisabled ),
+                             "Disables sending the copy_data info to successor WDs." );
+   cfg.registerArgOption( "disable-predecessor-info", "disable-predecessor-info" );
+
    _schedConf.config( cfg );
 
    _hwloc.config( cfg );
@@ -583,6 +597,9 @@ void System::start ()
    _router.initialize();
    if ( usingCluster() )
    {
+      if ( sys.getNetwork()->getNodeNum() > 0 ) {
+         sys.getNetwork()->setParentWD( &mainWD );
+      }
       _net.nodeBarrier();
    }
 
@@ -1543,9 +1560,9 @@ void System::setCreateLocalTasks( bool value ) {
    _createLocalTasks = value;
 }
 
-memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allocWide ) {
+memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize ) {
    memory_space_id_t id = getNewSeparateMemoryAddressSpaceId();
-   SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide );
+   SeparateMemoryAddressSpace *mem = NEW SeparateMemoryAddressSpace( id, arch, allocWide, slabSize );
    _separateAddressSpaces[ id ] = mem;
    return id;
 }

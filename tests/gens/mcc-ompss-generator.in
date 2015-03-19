@@ -29,8 +29,10 @@ compile_versions="@COMPILE_VERSIONS@"
 test_CC=@MCC@
 test_CXX=@MCC@
 
-test_CFLAGS="\$common_includes"
-test_CXXFLAGS="\$common_includes"
+
+
+test_CFLAGS="\$common_includes --ompss"
+test_CXXFLAGS="\$common_includes --ompss"
 
 test_CFLAGS_performance="\$PERFO_CFLAGS"
 test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
