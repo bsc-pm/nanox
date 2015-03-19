@@ -77,16 +77,16 @@ AC_ARG_WITH(opencl-lib,
 #                       --without-opencl, $with_opencl value will be 'no'
 #                       --with-opencl=somevalue, $with_opencl value will be 'somevalue'
 if test "x$with_opencl" != xyes -a "x$with_opencl" != xno; then
-  openclinc="$with_opencl/include"
+  openclinc="-I$with_opencl/include"
   AC_CHECK_FILE([$with_opencl/lib64],
-    [opencllib=$with_opencl/lib64],
-    [opencllib=$with_opencl/lib])
+    [opencllib=-L$with_opencl/lib64],
+    [opencllib=-L$with_opencl/lib])
 fi
 if test "x$with_opencl_include" != x; then
-  openclinc="$with_opencl_include"
+  openclinc="-I$with_opencl_include"
 fi
 if test "x$with_opencl_lib" != x; then
-  opencllib="$with_opencl_lib"
+  opencllib="-L$with_opencl_lib"
 fi
 
 # This is fulfilled even if $with_opencl="yes" 
@@ -103,9 +103,9 @@ if test "x$with_opencl" != xno -a "x$with_opencl$with_opencl_include$with_opencl
 
     CFLAGS=
     CXXFLAGS=
-    CPPFLAGS=-I$openclinc
+    CPPFLAGS=$openclinc
     LIBS=
-    LDFLAGS=-L$opencllib
+    LDFLAGS=$opencllib
 
     # One of the following two header files has to exist
     AC_CHECK_HEADERS([CL/opencl.h OpenCL/opencl.h], [opencl=yes; break])
@@ -118,54 +118,56 @@ if test "x$with_opencl" != xno -a "x$with_opencl$with_opencl_include$with_opencl
     fi
 
     if test x$opencl = xyes; then
-        AC_MSG_CHECKING([OpenCL version])
-        AC_RUN_IFELSE(
-               [AC_LANG_PROGRAM(
-                 [
-                    #ifdef HAVE_CL_OPENCL_H
-                        #include <CL/opencl.h>
-                    #else if HAVE_OPENCL_OPENCL_H
-                        #include <OpenCL/opencl.h>
-                    #endif
-                    #include <stdio.h>
-                    #include <stdlib.h>
+      AC_CACHE_CHECK([OpenCL version],[ac_cv_opencl_version],
+        [AC_RUN_IFELSE(
+          [AC_LANG_PROGRAM(
+            [
+               #ifdef HAVE_CL_OPENCL_H
+                   #include <CL/opencl.h>
+               #elif HAVE_OPENCL_OPENCL_H
+                   #include <OpenCL/opencl.h>
+               #endif
+               #include <stdio.h>
+               #include <stdlib.h>
 
-                    cl_int err;
-                    cl_platform_id platform = 0;
-                    cl_device_id device = 0;
-                    size_t len;
-                    char *ocl_ver;
-                    int ret = 0;],
-                 [
-                    /* Setup OpenCL environment. */
-                    err = clGetPlatformIDs(1, &platform, NULL);
-                    if (err != CL_SUCCESS) {
-                        printf( "clGetPlatformIDs() failed with %d\n", err );
-                        return 1;
-                    }
-                    
-                    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, NULL);
-                    if (err != CL_SUCCESS) {
-                        printf( "clGetDeviceIDs() failed with %d\n", err );
-                        return 1;
-                    }
-                    
-                    err = clGetDeviceInfo(device,  CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &len);
-                    ocl_ver = (char *)malloc(sizeof(char)*len);
-                    err = clGetDeviceInfo(device,  CL_DEVICE_OPENCL_C_VERSION, len, ocl_ver, NULL);
+               cl_int err;
+               cl_platform_id platform = 0;
+               cl_device_id device = 0;
+               size_t len;
+               char *ocl_ver;
+               int ret = 0;
+            ],
+            [
+               /* Setup OpenCL environment. */
+               err = clGetPlatformIDs(1, &platform, NULL);
+               if (err != CL_SUCCESS) {
+                   printf( "clGetPlatformIDs() failed with %d\n", err );
+                   return 1;
+               }
+               
+               err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, NULL);
+               if (err != CL_SUCCESS) {
+                   printf( "clGetDeviceIDs() failed with %d\n", err );
+                   return 1;
+               }
+               
+               err = clGetDeviceInfo(device,  CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &len);
+               ocl_ver = (char *)malloc(sizeof(char)*len);
+               err = clGetDeviceInfo(device,  CL_DEVICE_OPENCL_C_VERSION, len, ocl_ver, NULL);
 
-                    FILE* out = fopen("conftest.out","w");
-                    fprintf(out,"%s\n", ocl_ver);
-                    fclose(out);
-                    
-                    free(ocl_ver);
-                    return ret;
-                 ])],
-               [oclversion=$(cat conftest.out)
-                AC_MSG_RESULT([$oclversion])
-                oclversion=$(expr "x$oclversion" : 'xOpenCL [a-zA-Z\+]* \(.*\)$')
-               ],
-               [AC_MSG_FAILURE([OpenCL version test execution failed])])
+               FILE* out = fopen("conftest.out","w");
+               fprintf(out,"%s\n", ocl_ver);
+               fclose(out);
+               
+               free(ocl_ver);
+               return ret;
+            ])],
+          [ac_cv_opencl_version=$(cat conftest.out)
+          ],
+          [AC_MSG_FAILURE([OpenCL version test execution failed])])
+        ])
+      AC_MSG_RESULT([$ac_cv_opencl_version])
+      ac_cv_opencl_version=$(expr "x$ac_cv_opencl_version" : 'xOpenCL [a-zA-Z\+]* \(.*\)$')
     fi
 
 
