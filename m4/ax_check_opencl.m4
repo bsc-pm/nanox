@@ -73,15 +73,20 @@ AC_ARG_WITH(opencl-lib,
 [AS_HELP_STRING([--with-opencl-lib=PATH],
                 [specify directory for the installed OpenCL library])])
 
+# If the user specifies --with-opencl, $with_opencl value will be 'yes'
+#                       --without-opencl, $with_opencl value will be 'no'
+#                       --with-opencl=somevalue, $with_opencl value will be 'somevalue'
 if test "x$with_opencl" != xyes -a "x$with_opencl" != xno; then
-  openclinc="-I$with_opencl/include"
-  opencllib="-L$with_opencl/lib"
+  openclinc="$with_opencl/include"
+  AC_CHECK_FILE([$with_opencl/lib64],
+    [opencllib=$with_opencl/lib64],
+    [opencllib=$with_opencl/lib])
 fi
 if test "x$with_opencl_include" != x; then
-  openclinc="-I$with_opencl_include"
+  openclinc="$with_opencl_include"
 fi
 if test "x$with_opencl_lib" != x; then
-  opencllib="-L$with_opencl_lib"
+  opencllib="$with_opencl_lib"
 fi
 
 # This is fulfilled even if $with_opencl="yes" 
@@ -91,41 +96,46 @@ fi
 if test "x$with_opencl" != xno -a "x$with_opencl$with_opencl_include$with_opencl_lib" != x; then
     #tests if provided headers and libraries are usable and correct
     bak_CFLAGS="$CFLAGS"
+    bak_CxXFLAGS="$CXXFLAGS"
     bak_CPPFLAGS="$CPPFLAGS"
+    bak_LIBS="$LIBS"
     bak_LDFLAGS="$LDFLAGS"
 
     CFLAGS=
-    CPPFLAGS=$openclinc
-    LDFLAGS=$opencllib
+    CXXFLAGS=
+    CPPFLAGS=-I$openclinc
+    LIBS=
+    LDFLAGS=-L$opencllib
 
     # One of the following two header files has to exist
-    AC_CHECK_HEADER([CL/opencl.h], [opencl=yes])
-    AC_CHECK_HEADER([OpenCL/opencl.h], [opencl=yes])
+    AC_CHECK_HEADERS([CL/opencl.h OpenCL/opencl.h], [opencl=yes; break])
     # Look for clGetPlatformIDs function in either libmali.so or libOpenCL.so libraries
-    AC_SEARCH_LIBS([clGetPlatformIDs],
-                   [OpenCL mali],
-                   [opencl=yes])
+    if test x$opencl = xyes; then
+        AC_SEARCH_LIBS([clGetPlatformIDs],
+                  [mali OpenCL],
+                  [opencl=yes],
+                  [opencl=no])
+    fi
 
     CFLAGS="$bak_CFLAGS"
     CPPFLAGS="$bak_CPPFLAGS"
+    LIBS="$bak_LIBS"
     LDFLAGS="$bak_LDFLAGS"
 
-    if test x$opencl == xno; then
+    if test x$opencl != xyes; then
         AC_MSG_ERROR([OpenCL was not found. Please, check that the provided directories are correct.])
     fi
 fi
 
 if test x$opencl = xyes; then
-    OPENCL_LD=$OPENCL_LIB
-    OPENCL_INC=$OPENCL_INC
-    CFLAGS="$CFLAGS -L$OPENCL_LIB -isystem $OPENCL_INC -DOpenCL_DEV"
-    CXXFLAGS="$CXXFLAGS -L$OPENCL_LIB -isystem $OPENCL_INC -DOpenCL_DEV"
     ARCHITECTURES="$ARCHITECTURES opencl"
-    AC_SUBST([OPENCL_LD])
-    AC_SUBST([OPENCL_INC])
+
+    AC_DEFINE([OpenCL_DEV],[],[Indicates the presence of the OpenCL arch plugin.])
+    AC_SUBST([openclinc])
+    AC_SUBST([opencllib])
 fi
 
 AM_CONDITIONAL([OPENCL_SUPPORT],[test x$opencl = xyes])
 
 AC_SUBST([opencl])
-])dnl AX_CHECK_COMPILE_FLAGS
+])dnl AX_CHECK_OPENCL

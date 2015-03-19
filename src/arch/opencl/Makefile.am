@@ -73,8 +73,8 @@ pe_opencl_sources = \
 	$(END)
 
 opencl_api_flags = -I$(srcdir)/../../apis/c
-opencl_ldflags = -L@OPENCL_LD@ -lOpenCL
-opencl_includes = -isystem @OPENCL_INC@
+opencl_ldflags = -L@opencllib@ -lOpenCL
+opencl_includes = -isystem @openclinc@
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =

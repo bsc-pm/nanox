@@ -46,7 +46,7 @@ ignore_muldefs= -Wl,-z,muldefs
 endif
 
 if INTEL_C
-common_cflags=-Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -pthread  $(hwloc_cxxflags) $(ft_cxxflags) @INTEL_MIC_FLAGS@
+common_cflags=-Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -pthread  $(hwloc_cxxflags) $(ft_cxxflags)
 endif
 
 bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL 

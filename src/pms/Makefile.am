@@ -55,7 +55,7 @@ omp_stub_sources = \
 
 local_includes = -I$(srcdir)/../apis/c
 if GPU_SUPPORT
-local_includes += -I@CUDA_INC@
+local_includes += @cudainc@
 endif
 
 pkginclude_HEADERS+=\

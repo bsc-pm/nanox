@@ -102,59 +102,10 @@ if test x$memtracker_enabled = xyes; then
 fi
 
 # Check for programs
-# BG/Q cppflags: -I/bgsys/drivers/V1R2M1/ppc64 -I/bgsys/drivers/V1R2M1/ppc64/spi/include/kernel/cnk
 
 # Check for architecture
 ARCHITECTURES=
 OS=
-
-mpi_enabled=no
-mpi_valid=no
-#mpi support
-AC_ARG_WITH([mpi],
-AS_HELP_STRING([--with-mpi=dir], [Directory of mpi installation]),
-	[
-		MPIPATH="${withval}"
-		mpi_enabled=yes
-	],
-	[
-		MPIPATH=""
-	]
-)
-
-AC_MSG_CHECKING([if MPI Offload architecture was requested])
-AC_ARG_ENABLE([mpi],
-    AS_HELP_STRING([--enable-mpi], [Enables mpi offload support/architecture]),
-    [
-        if test x$enableval = xyes -o x$enableval = x;
-        then
-            mpi_enabled="yes"
-            AC_MSG_RESULT([yes])
-        else if test x$enableval = xno;
-            then
-                AC_MSG_RESULT([no])
-                mpi_enabled="no"
-             else
-                AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-             fi
-        fi
-    ],
-    [
-        mpi_enabled="yes"
-        AC_MSG_RESULT([yes])
-    ]
-)
-
-if test x$mpi_enabled = xyes; then
-	ARCHITECTURES="$ARCHITECTURES mpi"
-	AC_DEFINE([MPI_DEV],[yes],[Specifies whether MPI Offload architecture is enabled or not.])
-	NANOX_MPI_PREFIX=$prefix
-	AC_SUBST([NANOX_MPI_PREFIX])
-	AC_SUBST([NANOX_OFFL_FLAGS])
-	mpi_valid=yes
-fi
-
-AC_SUBST([mpi_valid])
 
 # Check for programs
 AC_PROG_CPP
@@ -184,10 +135,10 @@ fi
 
 if test x$use_bgq = xyes; then
     if test x$use_gnu = xyes; then
-        LDFLAGS="$LDFLAGS -dynamic"
+        AC_SUBST([BGQ_DYNAMIC_LINK],[-dynamic])
     fi
     if test x$use_xlc = xyes; then
-        LDFLAGS="$LDFLAGS -qnostaticlink"
+        AC_SUBST([BGQ_DYNAMIC_LINK],[-qnostaticlink])
     fi
 fi
 
@@ -235,43 +186,9 @@ case $host in
   x86_64-k1om-linux*) # Intel MIC (KNF/ KNC)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=x86-64 # warning: might not be compatible
+    SMP_ARCH=x86-64 # User level threads implementation for x86_64 might not be compatible with MIC
 
-    AX_CHECK_COMPILE_FLAG([-mmic],
-      [],[
-        mic_error=unsupported-flag
-      ],[-Werror])
-
-    case $mic_error in
-      unsupported-flag)
-        AC_MSG_ERROR([
--------------------------------
-Compilation for Intel MIC detected, but selected compiler
-does not support it.
-Please, specify CC=icc and CXX=icpc when cross-compiling for MIC architectures.
-Also make sure that they support -mmic compilation and link flag.
--------------------------------])
-        ;;
-      no-mmic-flag)
-        AC_MSG_ERROR([
--------------------------------
-Compilation for Intel MIC detected, but the user
-did not set -mmic compiler and link flag.
-Please, specify CFLAGS=-mmic CXXFLAGS=-mmic LDFLAGS=-mmic
--------------------------------])
-        ;;
-    esac
-
-    if test x$LD_LIBRARY_PATH != x; then
-      AC_MSG_WARN([
--------------------------------
-Cross-compiling for Intel MIC architecture.
-The use of LD_LIBRARY_PATH is discouraged for this build, as
-binary incompatible libraries may interfer in the link process.
--------------------------------])
-    fi
-
-    AC_SUBST([INTEL_MIC_FLAGS],[-mmic])
+    AX_CHECK_MIC_SUPPORT
     ;;
   i?86-*-linux*)
     OS=unix-os
@@ -298,6 +215,16 @@ binary incompatible libraries may interfer in the link process.
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=aarch64
+    ;;
+  powerpc64-bgq-linux-gnu)
+    # BlueGene/Q
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+
+    SMP_ARCH=ppc64
+
+    AX_CHECK_BGQ
+
     ;;
   powerpc64??-*-linux* )
     OS=unix-os
@@ -485,6 +412,9 @@ AM_CONDITIONAL([CONDUIT_DBG_MPI], [test x$with_mpi_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_UDP], [test x$with_udp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
+
+#MPI Support
+AX_CHECK_MPI
 
 # Check if NVidia CUDA device has been selected 
 AX_CHECK_CUDA

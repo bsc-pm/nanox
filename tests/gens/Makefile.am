@@ -147,7 +147,7 @@ gpu-generator: gpu-generator.in
 		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
 		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
 		-e's,@GPU_VALID\@,'"$$tmp_gpu_valid"',g' \
-		-e's,@CUDA_DIR\@,'"$$tmp_cuda_dir"',g' \
+		-e's,@cuda_prefix\@,'"$$tmp_cuda_dir"',g' \
 		$(srcdir)/gpu-generator.in > gpu-generator.tmp
 	mv gpu-generator.tmp gpu-generator
 	chmod 755 gpu-generator
