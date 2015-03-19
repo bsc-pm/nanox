@@ -35,6 +35,11 @@ namespace nanos {
          private:
             DepsMap _addressDependencyMap; /**< Used to track dependencies between DependableObject */
          private:
+            void clearDependenciesDomain ( void )
+            {
+               _addressDependencyMap.clear(); 
+            }
+
             /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
              *  \param dep Dependency to be checked.
              *  \sa Dependency TrackableObject
