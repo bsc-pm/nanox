@@ -117,6 +117,58 @@ if test "x$with_opencl" != xno -a "x$with_opencl$with_opencl_include$with_opencl
                   [opencl=no])
     fi
 
+    if test x$opencl = xyes; then
+        AC_MSG_CHECKING([OpenCL version])
+        AC_RUN_IFELSE(
+               [AC_LANG_PROGRAM(
+                 [
+                    #ifdef HAVE_CL_OPENCL_H
+                        #include <CL/opencl.h>
+                    #else if HAVE_OPENCL_OPENCL_H
+                        #include <OpenCL/opencl.h>
+                    #endif
+                    #include <stdio.h>
+                    #include <stdlib.h>
+
+                    cl_int err;
+                    cl_platform_id platform = 0;
+                    cl_device_id device = 0;
+                    size_t len;
+                    char *ocl_ver;
+                    int ret = 0;],
+                 [
+                    /* Setup OpenCL environment. */
+                    err = clGetPlatformIDs(1, &platform, NULL);
+                    if (err != CL_SUCCESS) {
+                        printf( "clGetPlatformIDs() failed with %d\n", err );
+                        return 1;
+                    }
+                    
+                    err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, NULL);
+                    if (err != CL_SUCCESS) {
+                        printf( "clGetDeviceIDs() failed with %d\n", err );
+                        return 1;
+                    }
+                    
+                    err = clGetDeviceInfo(device,  CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &len);
+                    ocl_ver = (char *)malloc(sizeof(char)*len);
+                    err = clGetDeviceInfo(device,  CL_DEVICE_OPENCL_C_VERSION, len, ocl_ver, NULL);
+
+                    FILE* out = fopen("conftest.out","w");
+                    fprintf(out,"%s\n", ocl_ver);
+                    fclose(out);
+                    
+                    free(ocl_ver);
+                    return ret;
+                 ])],
+               [oclversion=$(cat conftest.out)
+                AC_MSG_RESULT([$oclversion])
+                oclversion=$(expr "x$oclversion" : 'xOpenCL [a-zA-Z\+]* \(.*\)$')
+               ],
+               [AC_MSG_FAILURE([OpenCL version test execution failed])])
+    fi
+
+
     CFLAGS="$bak_CFLAGS"
     CPPFLAGS="$bak_CPPFLAGS"
     LIBS="$bak_LIBS"
@@ -133,6 +185,8 @@ if test x$opencl = xyes; then
     AC_DEFINE([OpenCL_DEV],[],[Indicates the presence of the OpenCL arch plugin.])
     AC_SUBST([openclinc])
     AC_SUBST([opencllib])
+
+    AC_DEFINE([CL_USE_DEPRECATED_OPENCL_2_0_APIS],[],[Disables warnings when using functions deprecated in OpenCL 2.0])
 fi
 
 AM_CONDITIONAL([OPENCL_SUPPORT],[test x$opencl = xyes])
