@@ -63,16 +63,16 @@ AC_DEFUN([AX_CHECK_CUDA],[
     else
       cuda_prefix=$with_cuda
     fi
-    cudainc="$with_cuda/include"
+    cudainc="-isystem $with_cuda/include"
     AC_CHECK_FILE([$with_cuda/lib64],
-      [cudalib=$with_cuda/lib64],
-      [cudalib=$with_cuda/lib])
+      [cudalib=-L$with_cuda/lib64],
+      [cudalib=-L$with_cuda/lib])
   fi
   if test "x$with_cuda_include" != x; then
-    cudainc=$with_cuda_include
+    cudainc="-isystem $with_cuda_include"
   fi
   if test "x$with_cuda_lib" != x; then
-    cudalib=$with_cuda_lib
+    cudalib="-L$with_cuda_lib"
   fi
   
   # This is fulfilled even if $with_cuda="yes" 
@@ -89,9 +89,9 @@ AC_DEFUN([AX_CHECK_CUDA],[
       bak_LDFLAGS="$LDFLAGS"
   
       CFLAGS=
-      CPPFLAGS="-isystem $cudainc"
+      CPPFLAGS=$cudainc
       LIBS=
-      LDFLAGS="-L$cudalib"
+      LDFLAGS=$cudalib
   
       # Check if cuda.h header file exists and compiles
       AC_CHECK_HEADER([cuda.h], [cuda=yes])
@@ -129,23 +129,21 @@ CUDA 5 or greater is required.
   if test x$cuda = xyes; then
       ARCHITECTURES="$ARCHITECTURES gpu"
   
-      cuda_rpath="-Xlinker -rpath -Xlinker $cudalib"
-  
       AC_DEFINE_UNQUOTED([NANOS_CUDA_VERSION],[$cuda_version],[API version of the CUDA package specified by the user])
       AC_DEFINE([GPU_DEV],[],[Indicates the presence of the GPU arch plugin.])
-      CPPFLAGS="$CPPFLAGS -isystem $cudainc"
-      LDFLAGS="$LDFLAGS $cuda_rpath -L$cudalib -lcudart" # In theory, -lcudart is not needed, as autoconf already includes libcudart in LIBS after AC_CHECK_LIBS
+      #CPPFLAGS="$CPPFLAGS -isystem $cudainc"
+      #LDFLAGS="$LDFLAGS $cuda_rpath -L$cudalib -lcudart" # In theory, -lcudart is not needed, as autoconf already includes libcudart in LIBS after AC_CHECK_LIBS
       
       #CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
       #CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
       #LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
   
-      AC_SUBST([cudainc])
-      AC_SUBST([cudalib])
-      AC_SUBST([cuda_rpath])
   fi
   
   AC_SUBST([cuda])
   AC_SUBST([cuda_prefix])
+  AC_SUBST([cudainc])
+  AC_SUBST([cudalib])
+
   AM_CONDITIONAL([GPU_SUPPORT],[test x$cuda = xyes])
 ])dnl AX_CHECK_CUDA

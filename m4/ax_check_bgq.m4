@@ -4,14 +4,13 @@
 #
 # SYNOPSIS
 #
-#   AX_CHECK_BGQ(FLAG, [ACTION-SUCCESS], [ACTION-FAILURE], [EXTRA-FLAGS], [INPUT])
+#   AX_CHECK_BGQ
 #
 # DESCRIPTION
 #
-#   Check whether OpenCL path to the headers and libraries are correctly specified.
-#
-#   ACTION-SUCCESS/ACTION-FAILURE are shell commands to execute on
-#   success/failure.
+#   Check that required header files for BlueGene/Q drivers are present.
+#   Also finds whether -dynamic or -qnostaticbuild flags are necesary
+#   to allow dynamic linkage.
 #
 # LICENSE
 #

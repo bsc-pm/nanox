@@ -4,14 +4,15 @@
 #
 # SYNOPSIS
 #
-#   AX_CHECK_MPI(FLAG, [ACTION-SUCCESS], [ACTION-FAILURE], [EXTRA-FLAGS], [INPUT])
+#   AX_CHECK_MPI
 #
 # DESCRIPTION
 #
-#   Check whether OpenCL path to the headers and libraries are correctly specified.
-#
-#   ACTION-SUCCESS/ACTION-FAILURE are shell commands to execute on
-#   success/failure.
+#   Check whether MPI architecture has been enabled or not.
+#   We do not include header/library checks in this macro because
+#   we do not want Nanos++ to be bound to a specific MPI implementation.
+#   MPI dependent plugin source code will be compiled in the user program
+#   build stage.
 #
 # LICENSE
 #

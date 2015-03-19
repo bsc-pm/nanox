@@ -86,9 +86,9 @@ gpu_cublas_sources = \
 	
 gpu_api_flags = -I$(srcdir)/../../apis/c
 
-gpu_ldflags = -L@cudalib@ -lcublas
+gpu_ldflags = @cudalib@
 #995 Already included in CFLAGS
-gpu_includes = -isystem @cudainc@ -I$(srcdir)/../common
+gpu_includes = @cudainc@ -I$(srcdir)/../common
 
 gpu_cublas_ldflags = -lcublas
 gpu_cublas_includes =
