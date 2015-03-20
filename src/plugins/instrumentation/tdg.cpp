@@ -124,15 +124,17 @@ private:
         return std::string(indentation + ss.str()) + "[" + node_attrs + "];\n";
     }
     
-    inline std::string print_edge(Edge* e, std::string indentation) {
+    inline std::string print_edge(Edge* e, std::string indentation)
+    {
+
         std::string edge_attrs = "style=\"";
         
         // Compute the style of the edge
         edge_attrs += ((!e->is_dependency() || 
-                        e->is_true_dependency()) ? "solid" 
-                                                 : (e->is_anti_dependency() ? "dashed" 
-                                                                            : "dotted"));
-        edge_attrs += ( (e->get_source()->is_critical() && e->get_target()->is_critical()) ? ",bold" : "" ); //Mark the edges of the critical path as bold
+                        e->is_true_dependency()) ? "solid" : (e->is_anti_dependency() ? "dashed" : "dotted"));
+
+        //Mark the edges of the critical path as bold
+        edge_attrs += ( (e->get_source()->is_critical() && e->get_target()->is_critical()) ? ",bold" : "" );
  
         // Compute the color of the edge
         edge_attrs += "\", color=\"";
@@ -143,7 +145,7 @@ private:
         // Print the edge
         std::stringstream sss; sss << e->get_source()->get_wd_id();
         std::stringstream sst; sst << e->get_target()->get_wd_id();
-        return std::string(indentation + sss.str() + " -> " + sst.str() + "[" + edge_attrs + "];\n");
+        return std::string(indentation + sss.str() + " -> " + sst.str() + " [" + edge_attrs + "];\n");
     }
     
     inline std::string print_nested_nodes(Node* n, std::string indentation) {
@@ -359,65 +361,48 @@ private:
 
                 // Check whether there is a block of commutative
                 std::vector<Node*> out_commutatives;
-                for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
-                {
+                for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
                     if ((*it)->is_commutative_dep())
                         out_commutatives.push_back((*it)->get_target());
                 }
 
                 // Print the current node and, if that is the case, its commutative nodes too
-                if (out_commutatives.empty())
-                {
+                if (out_commutatives.empty()) {
                     // Print the node
                     dot_file << print_node_and_its_nested(n, /*indentation*/"  ");
+                    std::stringstream sss; sss << n->get_wd_id();
 
                     // Print the relations with its children (or the children of the children if they are a virtual node)
-                    for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it)
-                    {
-                        if ((*it)->is_nesting())
-                            continue;
-
+                    for (std::vector<Edge*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+                        if ((*it)->is_nesting()) continue;
                         Node* t = (*it)->get_target();
-                        std::stringstream sss; sss << n->get_wd_id();
-                        if (t->is_concurrent() || t->is_commutative())
-                        {
+
+                        if (t->is_concurrent() || t->is_commutative()) {
                             std::vector<Edge*> const &it_exits = t->get_exits();
                             for (std::vector<Edge*>::const_iterator itt = it_exits.begin();
-                                 itt != it_exits.end(); ++itt)
-                            {
-                                std::stringstream sst;
-                                sst << (*itt)->get_target()->get_wd_id();
-                                dot_file << "  " << sss.str() + " -> " + sst.str() + ";\n";
-
-                                // Prepare the next iteration
-                                worklist.push((*itt)->get_target());
+                                 itt != it_exits.end(); ++itt) {
+                               std::stringstream sst;
+                               sst << (*itt)->get_target()->get_wd_id();
+                               dot_file << "  " << sss.str() + " -> " + sst.str() + ";\n"; //TODO attributes?
+                               worklist.push((*itt)->get_target());
                             }
-                        }
-                        else
-                        {
-                            std::stringstream sst; sst << t->get_wd_id();
-                            dot_file << "  " << sss.str() + " -> " + sst.str() + ";\n";
-
-                            // Prepare the next iteration
-                            worklist.push(t);
+                        } else {
+                           dot_file << print_edge( *it, /*indentation*/"  " );
+                           worklist.push(t);
                         }
                     }
-                }
-                else
-                {
+                } else {
                     // Since Graphviz does not allow boxes intersections and
                     // multiple dependencies in a commutative clause may cause that situation,
                     // we enclose all tasks in the same box and then print the dependencies individually
                     // 1.- Get all nodes that must be in the commutative box
                     std::vector<Node*> commutative_box;
                     for (std::vector<Node*>::const_iterator it = out_commutatives.begin();
-                         it != out_commutatives.end(); ++it)
-                    {
+                         it != out_commutatives.end(); ++it) {
                         // Gather all siblings (parents of the out_commutative nodes)
                         std::vector<Edge*> const &it_entries = (*it)->get_entries();
                         for (std::vector<Edge*>::const_iterator itt = it_entries.begin();
-                             itt != it_entries.end(); ++itt)
-                        {
+                             itt != it_entries.end(); ++itt) {
                             commutative_box.push_back((*itt)->get_source());
                         }
                     }
@@ -426,42 +411,32 @@ private:
                     dot_file << "  subgraph cluster_" << ss.str() << "{\n";
                         dot_file << "    rank=\"same\"; style=\"rounded\"; label=\"Commutative\";\n";
                         for (std::vector<Node*>::iterator it = commutative_box.begin();
-                             it != commutative_box.end(); ++it)
-                        {
+                             it != commutative_box.end(); ++it) {
                             dot_file << print_node_and_its_nested(*it, /*indentation*/"    ");
                         }
                     dot_file << "  }\n";
                     // 3.- Print the edges connecting each sibling node with its corresponding real children
                     for (std::vector<Node*>::iterator it = commutative_box.begin();
-                         it != commutative_box.end(); ++it)
-                    {
+                         it != commutative_box.end(); ++it) {
                         std::stringstream sss; sss << (*it)->get_wd_id();
                         std::vector<Edge*> const &it_exits = (*it)->get_exits();
                         for (std::vector<Edge*>::const_iterator itt = it_exits.begin();
-                             itt != it_exits.end(); ++itt)
-                        {
+                             itt != it_exits.end(); ++itt) {
                             Node* t = (*itt)->get_target();
-                            if ((*itt)->is_nesting())
-                                continue;
+                            if ((*itt)->is_nesting()) continue;
 
                             if (t->is_commutative() || t->is_concurrent())
                             {   // If the exit is commutative|concurrent, get the exit of the exit
                                 std::vector<Edge*> const &itt_exits = t->get_exits();
                                 for (std::vector<Edge*>::const_iterator ittt = itt_exits.begin();
-                                     ittt != itt_exits.end(); ++ittt)
-                                {
+                                     ittt != itt_exits.end(); ++ittt) {
                                     std::stringstream sst; sst << (*ittt)->get_target()->get_wd_id();
                                     dot_file << "    " << sss.str() + " -> " + sst.str() + ";\n";
-
                                     // Prepare the next iteration
                                     worklist.push((*ittt)->get_target());
                                 }
-                            }
-                            else
-                            {
-                                std::stringstream sst; sst << t->get_wd_id();
-                                dot_file << "    " << sss.str() + " -> " + sst.str() + ";\n";
-
+                            } else {
+                                dot_file << print_edge( *itt, /*indentation*/"  " );
                                 // Prepare the next iteration
                                 worklist.push(t);
                             }

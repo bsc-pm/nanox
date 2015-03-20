@@ -80,7 +80,7 @@ scheduling_large=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--sc
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 barriers=['--barrier=centralized','--barrier=tree']
 binding=['--disable-binding','--no-disable-binding']
-architecture=['--architecture=smp','--architecture=smp-numa']
+architecture=['--architecture=smp']
 
 if test_schedule is not None:
    scheduling_performance=['--schedule='+test_schedule]
@@ -103,7 +103,7 @@ config_lines=[]
 versions=''
 i=1
 for c in configs:
-	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\''
+	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\$NX_ARGS\' '
 	versions+='ver'+str(i)+' '
 	for entry in c:
 		line = line + ' ' +entry

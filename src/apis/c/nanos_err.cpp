@@ -48,7 +48,6 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
       case NANOS_UNKNOWN_ERR:
          fprintf( stderr,"Nanox: Unknown NANOS error detected\n" );
          break;
-
       case NANOS_UNIMPLEMENTED:
          fprintf( stderr,"Nanox: Requested NANOS service not implemented\n" );
          break;
@@ -57,6 +56,9 @@ NANOS_API_DEF(void, nanos_handle_error, ( nanos_err_t err ))
          break;
       case NANOS_INVALID_PARAM:
          fprintf( stderr, "Nanox: invalid parameter\n" );
+         break;
+      case NANOS_INVALID_REQUEST:
+         fprintf( stderr, "Nanox: invalid request\n" );
          break;
    }
 

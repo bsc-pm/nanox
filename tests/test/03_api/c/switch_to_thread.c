@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -19,25 +19,11 @@
 
 /*
 <testinfo>
-test_generator=gens/api-generator
+test_generator=gens/mixed-generator
+test_schedule="bf"
 </testinfo>
 */
 
-extern char **__environ;
-extern char *optarg;
-extern int optind;
-extern int opterr;
-extern int optopt;
-struct _IO_FILE_plus;
-extern struct _IO_FILE_plus _IO_2_1_stdin_;
-extern struct _IO_FILE_plus _IO_2_1_stdout_;
-extern struct _IO_FILE_plus _IO_2_1_stderr_;
-struct _IO_FILE;
-extern struct _IO_FILE *stdin;
-extern struct _IO_FILE *stdout;
-extern struct _IO_FILE *stderr;
-extern int sys_nerr;
-extern const char *const sys_errlist[];
 typedef unsigned long int size_t;
 struct  cudaPitchedPtr
 {
@@ -756,7 +742,7 @@ static __inline  double4 make_double4(double x, double y, double z, double w)
   return t;
 }
 extern int signgam;
-enum mcc_enum_anon_10
+enum mcc_enum_anon_7
 {
   _IEEE_ =  -1,
   _SVID_ = 0,
@@ -764,7 +750,7 @@ enum mcc_enum_anon_10
   _POSIX_ = 2,
   _ISOC_ = 3
 };
-typedef enum mcc_enum_anon_10 _LIB_VERSION_TYPE;
+typedef enum mcc_enum_anon_7 _LIB_VERSION_TYPE;
 extern _LIB_VERSION_TYPE _LIB_VERSION;
 typedef float2 cuFloatComplex;
 static __inline  float cuCrealf(cuFloatComplex x)
@@ -955,12 +941,17 @@ static __inline  cuDoubleComplex cuCfma(cuDoubleComplex x, cuDoubleComplex y, cu
   imag_res = cuCimag(x) * cuCreal(y) + imag_res;
   return make_cuDoubleComplex(real_res, imag_res);
 }
-int red = 0;
-struct  nanos_args_0_t
-{
-  int *red;
-};
-enum mcc_enum_anon_8
+struct _IO_FILE_plus;
+extern struct _IO_FILE_plus _IO_2_1_stdin_;
+extern struct _IO_FILE_plus _IO_2_1_stdout_;
+extern struct _IO_FILE_plus _IO_2_1_stderr_;
+struct _IO_FILE;
+extern struct _IO_FILE *stdin;
+extern struct _IO_FILE *stdout;
+extern struct _IO_FILE *stderr;
+extern int sys_nerr;
+extern const char *const sys_errlist[];
+enum mcc_enum_anon_5
 {
   NANOS_OK = 0,
   NANOS_UNKNOWN_ERR = 1,
@@ -968,60 +959,23 @@ enum mcc_enum_anon_8
   NANOS_ENOMEM = 3,
   NANOS_INVALID_PARAM = 4
 };
-typedef enum mcc_enum_anon_8 nanos_err_t;
-typedef unsigned int nanos_copy_id_t;
-typedef void *nanos_wd_t;
-extern nanos_err_t nanos_get_addr(nanos_copy_id_t copy_id, void **addr, nanos_wd_t cwd);
-extern void nanos_handle_error(nanos_err_t err);
-static void nanos_xlate_fun_testc_0(struct nanos_args_0_t *const arg, void *wd)
-{
-  {
-    void *device_base_address;
-    nanos_err_t nanos_err;
-    device_base_address = 0;
-    nanos_err = nanos_get_addr(0, &device_base_address, wd);
-    if (nanos_err != NANOS_OK)
-      {
-        nanos_handle_error(nanos_err);
-      }
-    (*arg).red = (int *)device_base_address;
-  }
-}
-void nanos_red_0x2584520_380301290(int *const omp_out, int *const omp_in)
-{
-  (*omp_out) += (*omp_in);
-}
-void nanos_ini_0x2584520_380301290(int *const omp_priv, int *const omp_orig)
-{
-  (*omp_priv) = 0;
-}
-struct  nanos_args_2_t
-{
-  int *red;
-  struct _IO_FILE **stderr;
-};
-static void nanos_xlate_fun_testc_1(struct nanos_args_2_t *const arg, void *wd)
-{
-  {
-    void *device_base_address;
-    nanos_err_t nanos_err;
-    device_base_address = 0;
-    nanos_err = nanos_get_addr(0, &device_base_address, wd);
-    if (nanos_err != NANOS_OK)
-      {
-        nanos_handle_error(nanos_err);
-      }
-    (*arg).red = (int *)device_base_address;
-  }
-}
+typedef enum mcc_enum_anon_5 nanos_err_t;
 extern nanos_err_t nanos_in_final(_Bool *result);
-struct  mcc_struct_anon_20
+extern void nanos_handle_error(nanos_err_t err);
+extern int printf(const char *__restrict __format, ...);
+extern int omp_get_thread_num(void);
+extern nanos_err_t nanos_switch_to_thread(unsigned int *thid);
+struct  mcc_struct_anon_15
 {
   void (*outline)(void *);
 };
-typedef struct mcc_struct_anon_20 nanos_smp_args_t;
+typedef struct mcc_struct_anon_15 nanos_smp_args_t;
+struct  nanos_args_0_t
+{
+  volatile int *rv;
+};
 static void smp_ol_main_0(struct nanos_args_0_t *const args);
-struct  mcc_struct_anon_16
+struct  mcc_struct_anon_11
 {
   _Bool mandatory_creation:1;
   _Bool tied:1;
@@ -1032,7 +986,7 @@ struct  mcc_struct_anon_16
   _Bool reserved3:1;
   _Bool reserved4:1;
 };
-typedef struct mcc_struct_anon_16 nanos_wd_props_t;
+typedef struct mcc_struct_anon_11 nanos_wd_props_t;
 struct  nanos_const_wd_definition_tag
 {
   nanos_wd_props_t props;
@@ -1043,19 +997,19 @@ struct  nanos_const_wd_definition_tag
   const char *description;
 };
 typedef struct nanos_const_wd_definition_tag nanos_const_wd_definition_t;
-struct  mcc_struct_anon_19
+struct  mcc_struct_anon_14
 {
   void *(*factory)(void *);
   void *arg;
 };
-typedef struct mcc_struct_anon_19 nanos_device_t;
+typedef struct mcc_struct_anon_14 nanos_device_t;
 struct  nanos_const_wd_definition_1
 {
   nanos_const_wd_definition_t base;
   nanos_device_t devices[1];
 };
 extern void *nanos_smp_factory(void *args);
-struct  mcc_struct_anon_17
+struct  mcc_struct_anon_12
 {
   _Bool is_final:1;
   _Bool is_recover:1;
@@ -1066,31 +1020,30 @@ struct  mcc_struct_anon_17
   _Bool reserved6:1;
   _Bool reserved7:1;
 };
-typedef struct mcc_struct_anon_17 nanos_wd_dyn_flags_t;
+typedef struct mcc_struct_anon_12 nanos_wd_dyn_flags_t;
 typedef void *nanos_thread_t;
-struct  mcc_struct_anon_18
+struct  mcc_struct_anon_13
 {
   nanos_wd_dyn_flags_t flags;
   nanos_thread_t tie_to;
   int priority;
 };
-typedef struct mcc_struct_anon_18 nanos_wd_dyn_props_t;
-struct mcc_struct_anon_9;
-typedef struct mcc_struct_anon_9 nanos_copy_data_internal_t;
+typedef struct mcc_struct_anon_13 nanos_wd_dyn_props_t;
+typedef void *nanos_wd_t;
+struct mcc_struct_anon_4;
+typedef struct mcc_struct_anon_4 nanos_copy_data_internal_t;
 typedef nanos_copy_data_internal_t nanos_copy_data_t;
-struct mcc_struct_anon_5;
-typedef struct mcc_struct_anon_5 nanos_region_dimension_internal_t;
+struct mcc_struct_anon_0;
+typedef struct mcc_struct_anon_0 nanos_region_dimension_internal_t;
 typedef void *nanos_wg_t;
 extern nanos_err_t nanos_create_wd_compact(nanos_wd_t *wd, nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props, size_t data_size, void **data, nanos_wg_t wg, nanos_copy_data_t **copies, nanos_region_dimension_internal_t **dimensions);
 extern nanos_wd_t nanos_current_wd(void);
-struct  mcc_struct_anon_5
-{
-  size_t size;
-  size_t lower_bound;
-  size_t accessed_length;
-};
-typedef nanos_region_dimension_internal_t nanos_region_dimension_t;
-struct  mcc_struct_anon_6
+struct mcc_struct_anon_2;
+typedef struct mcc_struct_anon_2 nanos_data_access_internal_t;
+typedef nanos_data_access_internal_t nanos_data_access_t;
+typedef void *nanos_team_t;
+extern nanos_err_t nanos_submit(nanos_wd_t wd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team);
+struct  mcc_struct_anon_1
 {
   _Bool input:1;
   _Bool output:1;
@@ -1098,9 +1051,9 @@ struct  mcc_struct_anon_6
   _Bool concurrent:1;
   _Bool commutative:1;
 };
-typedef struct mcc_struct_anon_6 nanos_access_type_internal_t;
+typedef struct mcc_struct_anon_1 nanos_access_type_internal_t;
 typedef long int ptrdiff_t;
-struct  mcc_struct_anon_7
+struct  mcc_struct_anon_2
 {
   void *address;
   nanos_access_type_internal_t flags;
@@ -1108,147 +1061,14 @@ struct  mcc_struct_anon_7
   const nanos_region_dimension_internal_t *dimensions;
   ptrdiff_t offset;
 };
-typedef struct mcc_struct_anon_7 nanos_data_access_internal_t;
-typedef nanos_data_access_internal_t nanos_data_access_t;
-enum mcc_enum_anon_3
-{
-  NANOS_PRIVATE = 0,
-  NANOS_SHARED = 1
-};
-typedef enum mcc_enum_anon_3 nanos_sharing_t;
-struct  mcc_struct_anon_10
-{
-  _Bool input:1;
-  _Bool output:1;
-};
-struct  mcc_struct_anon_9
-{
-  void *address;
-  nanos_sharing_t sharing;
-  struct mcc_struct_anon_10 flags;
-  short int dimension_count;
-  const nanos_region_dimension_internal_t *dimensions;
-  ptrdiff_t offset;
-};
 typedef void (*nanos_translate_args_t)(void *, nanos_wd_t);
-extern nanos_err_t nanos_set_translate_function(nanos_wd_t wd, nanos_translate_args_t translate_args);
-typedef void *nanos_team_t;
-extern nanos_err_t nanos_submit(nanos_wd_t wd, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_team_t team);
 extern nanos_err_t nanos_create_wd_and_run_compact(nanos_const_wd_definition_t *const_data, nanos_wd_dyn_props_t *dyn_props, size_t data_size, void *data, size_t num_data_accesses, nanos_data_access_t *data_accesses, nanos_copy_data_t *copies, nanos_region_dimension_internal_t *dimensions, nanos_translate_args_t translate_args);
-extern nanos_err_t nanos_task_reduction_get_thread_storage(void *orig, void **tpd);
-struct  nanos_args_1_t
-{
-  int *red;
-};
-static void smp_ol_main_1(struct nanos_args_1_t *const args);
-extern nanos_err_t nanos_task_reduction_register(void *orig, void *dep, size_t size, size_t align, void (*init)(void *, void *), void (*reducer)(void *, void *), void (*reducer_orig_var)(void *, void *));
-typedef struct _IO_FILE FILE;
-extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);
-extern struct _IO_FILE *stderr;
-static void smp_ol_main_2(struct nanos_args_2_t *const args);
 extern nanos_err_t nanos_wg_wait_completion(nanos_wg_t wg, _Bool avoid_flush);
 int main(int argc, char **argv)
 {
   int i;
-  int rv = 0;
-  {
-    _Bool mcc_is_in_final;
-    nanos_err_t mcc_err_in_final = nanos_in_final(&mcc_is_in_final);
-    if (mcc_err_in_final != NANOS_OK)
-      {
-        nanos_handle_error(mcc_err_in_final);
-      }
-    if (mcc_is_in_final)
-      {
-        {
-          red = 0;
-        }
-      }
-    else
-      {
-        {
-          nanos_wd_dyn_props_t nanos_wd_dyn_props;
-          struct nanos_args_0_t *ol_args;
-          nanos_err_t nanos_err;
-          struct nanos_args_0_t imm_args;
-          nanos_region_dimension_t dimensions_0[1];
-          nanos_data_access_t dependences[1];
-          static nanos_smp_args_t smp_ol_main_0_args = {.outline = (void (*)(void *))(void (*)(struct nanos_args_0_t *))&smp_ol_main_0};
-          static struct nanos_const_wd_definition_1 nanos_wd_const_data = {.base = {.props = {.mandatory_creation = 0, .tied = 0, .clear_chunk = 0, .reserved0 = 0, .reserved1 = 0, .reserved2 = 0, .reserved3 = 0, .reserved4 = 0}, .data_alignment = __alignof__(struct nanos_args_0_t), .num_copies = 1, .num_devices = 1, .num_dimensions = 1, .description = "main"}, .devices = {[0] = {.factory = &nanos_smp_factory, .arg = &smp_ol_main_0_args}}};
-          nanos_wd_dyn_props.tie_to = 0;
-          nanos_wd_dyn_props.priority = 0;
-          nanos_wd_dyn_props.flags.is_final = 0;
-          nanos_wd_dyn_props.flags.is_implicit = 0;
-          ol_args = (struct nanos_args_0_t *)0;
-          nanos_wd_t nanos_wd_ = (void *)0;
-          nanos_copy_data_t *ol_copy_data = (nanos_copy_data_t *)0;
-          nanos_region_dimension_internal_t *ol_copy_dimensions = (nanos_region_dimension_internal_t *)0;
-          nanos_err = nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_0_t), (void **)&ol_args, nanos_current_wd(), &ol_copy_data, &ol_copy_dimensions);
-          if (nanos_err != NANOS_OK)
-            {
-              nanos_handle_error(nanos_err);
-            }
-          dimensions_0[0].size = sizeof(int);
-          dimensions_0[0].lower_bound = 0;
-          dimensions_0[0].accessed_length = sizeof(int);
-          dependences[0].address = (void *)&red;
-          dependences[0].offset = 0;
-          dependences[0].flags.input = 0;
-          dependences[0].flags.output = 1;
-          dependences[0].flags.can_rename = 0;
-          dependences[0].flags.concurrent = 0;
-          dependences[0].flags.commutative = 0;
-          dependences[0].dimension_count = 1;
-          dependences[0].dimensions = dimensions_0;
-          if (nanos_wd_ != (void *)0)
-            {
-              (*ol_args).red = &red;
-              ol_copy_dimensions[0 + 0].size = 1 * sizeof(int);
-              ol_copy_dimensions[0 + 0].lower_bound = 0 * sizeof(int);
-              ol_copy_dimensions[0 + 0].accessed_length = (0 - 0 + 1) * sizeof(int);
-              ol_copy_data[0].sharing = NANOS_SHARED;
-              ol_copy_data[0].address = (void *)&red;
-              ol_copy_data[0].flags.input = 0;
-              ol_copy_data[0].flags.output = 1;
-              ol_copy_data[0].dimension_count = (short int)1;
-              ol_copy_data[0].dimensions = &ol_copy_dimensions[0];
-              ol_copy_data[0].offset = 0;
-              nanos_err = nanos_set_translate_function(nanos_wd_, (void (*)(void *, nanos_wd_t))nanos_xlate_fun_testc_0);
-              if (nanos_err != NANOS_OK)
-                {
-                  nanos_handle_error(nanos_err);
-                }
-              nanos_err = nanos_submit(nanos_wd_, 1, &dependences[0], (void *)0);
-              if (nanos_err != NANOS_OK)
-                {
-                  nanos_handle_error(nanos_err);
-                }
-            }
-          else
-            {
-              nanos_region_dimension_internal_t imm_copy_dimensions[1];
-              nanos_copy_data_t imm_copy_data[1];
-              imm_args.red = &red;
-              imm_copy_dimensions[0 + 0].size = 1 * sizeof(int);
-              imm_copy_dimensions[0 + 0].lower_bound = 0 * sizeof(int);
-              imm_copy_dimensions[0 + 0].accessed_length = (0 - 0 + 1) * sizeof(int);
-              imm_copy_data[0].sharing = NANOS_SHARED;
-              imm_copy_data[0].address = (void *)&red;
-              imm_copy_data[0].flags.input = 0;
-              imm_copy_data[0].flags.output = 1;
-              imm_copy_data[0].dimension_count = (short int)1;
-              imm_copy_data[0].dimensions = &imm_copy_dimensions[0];
-              imm_copy_data[0].offset = 0;
-              nanos_err = nanos_create_wd_and_run_compact(&nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_0_t), &imm_args, 1, &dependences[0], imm_copy_data, imm_copy_dimensions, (void (*)(void *, nanos_wd_t))nanos_xlate_fun_testc_0);
-              if (nanos_err != NANOS_OK)
-                {
-                  nanos_handle_error(nanos_err);
-                }
-            }
-        }
-      }
-  }
-  for (i = 0; i < 100; i++)
+  volatile int rv = 0;
+  for (i = 0; i < 1000; i++)
     {
       {
         _Bool mcc_is_in_final;
@@ -1260,57 +1080,41 @@ int main(int argc, char **argv)
         if (mcc_is_in_final)
           {
             {
-              nanos_err_t nanos_err;
-              int *red_storage;
-              nanos_err = nanos_task_reduction_get_thread_storage((void *)&red, (void **)&red_storage);
-              if (red_storage == 0)
+              unsigned int thread = 0;
+              printf("[%d]", omp_get_thread_num());
+              nanos_switch_to_thread( &thread );
+              printf("<%d>", omp_get_thread_num());
+              if (omp_get_thread_num() != 0)
                 {
-                  red_storage = &red;
+                  rv = 1;
                 }
-              {
-                (*red_storage)++;
-              }
             }
           }
         else
           {
             {
               nanos_wd_dyn_props_t nanos_wd_dyn_props;
-              struct nanos_args_1_t *ol_args;
+              struct nanos_args_0_t *ol_args;
               nanos_err_t nanos_err;
-              struct nanos_args_1_t imm_args;
-              nanos_region_dimension_t dimensions_1[1];
+              struct nanos_args_0_t imm_args;
               nanos_data_access_t dependences[1];
-              static nanos_smp_args_t smp_ol_main_1_args = {.outline = (void (*)(void *))(void (*)(struct nanos_args_1_t *))&smp_ol_main_1};
-              static struct nanos_const_wd_definition_1 nanos_wd_const_data = {.base = {.props = {.mandatory_creation = 0, .tied = 0, .clear_chunk = 0, .reserved0 = 0, .reserved1 = 0, .reserved2 = 0, .reserved3 = 0, .reserved4 = 0}, .data_alignment = __alignof__(struct nanos_args_1_t), .num_copies = 0, .num_devices = 1, .num_dimensions = 0, .description = "main"}, .devices = {[0] = {.factory = &nanos_smp_factory, .arg = &smp_ol_main_1_args}}};
+              static nanos_smp_args_t smp_ol_main_0_args = {.outline = (void (*)(void *))(void (*)(struct nanos_args_0_t *))&smp_ol_main_0};
+              static struct nanos_const_wd_definition_1 nanos_wd_const_data = {.base = {.props = {.mandatory_creation = 0, .tied = 0, .clear_chunk = 0, .reserved0 = 0, .reserved1 = 0, .reserved2 = 0, .reserved3 = 0, .reserved4 = 0}, .data_alignment = __alignof__(struct nanos_args_0_t), .num_copies = 0, .num_devices = 1, .num_dimensions = 0, .description = "main"}, .devices = {[0] = {.factory = &nanos_smp_factory, .arg = &smp_ol_main_0_args}}};
               nanos_wd_dyn_props.tie_to = 0;
               nanos_wd_dyn_props.priority = 0;
               nanos_wd_dyn_props.flags.is_final = 0;
               nanos_wd_dyn_props.flags.is_implicit = 0;
-              ol_args = (struct nanos_args_1_t *)0;
+              ol_args = (struct nanos_args_0_t *)0;
               nanos_wd_t nanos_wd_ = (void *)0;
-              nanos_err = nanos_task_reduction_register((void *)&red, (void *)&red, sizeof(int), __alignof__(int), (void (*)(void *, void *))&nanos_ini_0x2584520_380301290, (void (*)(void *, void *))&nanos_red_0x2584520_380301290, (void (*)(void *, void *))&nanos_red_0x2584520_380301290);
-              nanos_err = nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_1_t), (void **)&ol_args, nanos_current_wd(), (nanos_copy_data_t **)0, (nanos_region_dimension_internal_t **)0);
+              nanos_err = nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_0_t), (void **)&ol_args, nanos_current_wd(), (nanos_copy_data_t **)0, (nanos_region_dimension_internal_t **)0);
               if (nanos_err != NANOS_OK)
                 {
                   nanos_handle_error(nanos_err);
                 }
-              dimensions_1[0].size = sizeof(int);
-              dimensions_1[0].lower_bound = 0;
-              dimensions_1[0].accessed_length = sizeof(int);
-              dependences[0].address = (void *)&red;
-              dependences[0].offset = 0;
-              dependences[0].flags.input = 1;
-              dependences[0].flags.output = 1;
-              dependences[0].flags.can_rename = 0;
-              dependences[0].flags.concurrent = 1;
-              dependences[0].flags.commutative = 0;
-              dependences[0].dimension_count = 1;
-              dependences[0].dimensions = dimensions_1;
               if (nanos_wd_ != (void *)0)
                 {
-                  (*ol_args).red = &red;
-                  nanos_err = nanos_submit(nanos_wd_, 1, &dependences[0], (void *)0);
+                  (*ol_args).rv = &rv;
+                  nanos_err = nanos_submit(nanos_wd_, 0, &dependences[0], (void *)0);
                   if (nanos_err != NANOS_OK)
                     {
                       nanos_handle_error(nanos_err);
@@ -1318,8 +1122,8 @@ int main(int argc, char **argv)
                 }
               else
                 {
-                  imm_args.red = &red;
-                  nanos_err = nanos_create_wd_and_run_compact(&nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_1_t), &imm_args, 1, &dependences[0], (nanos_copy_data_t *)0, (nanos_region_dimension_internal_t *)0, (void (*)(void *, nanos_wd_t))0);
+                  imm_args.rv = &rv;
+                  nanos_err = nanos_create_wd_and_run_compact(&nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_0_t), &imm_args, 0, &dependences[0], (nanos_copy_data_t *)0, (nanos_region_dimension_internal_t *)0, (void (*)(void *, nanos_wd_t))0);
                   if (nanos_err != NANOS_OK)
                     {
                       nanos_handle_error(nanos_err);
@@ -1329,103 +1133,6 @@ int main(int argc, char **argv)
           }
       }
     }
-  {
-    _Bool mcc_is_in_final;
-    nanos_err_t mcc_err_in_final = nanos_in_final(&mcc_is_in_final);
-    if (mcc_err_in_final != NANOS_OK)
-      {
-        nanos_handle_error(mcc_err_in_final);
-      }
-    if (mcc_is_in_final)
-      {
-        fprintf(stderr, "Result = %d\n", red);
-      }
-    else
-      {
-        {
-          nanos_wd_dyn_props_t nanos_wd_dyn_props;
-          struct nanos_args_2_t *ol_args;
-          nanos_err_t nanos_err;
-          struct nanos_args_2_t imm_args;
-          nanos_region_dimension_t dimensions_2[1];
-          nanos_data_access_t dependences[1];
-          static nanos_smp_args_t smp_ol_main_2_args = {.outline = (void (*)(void *))(void (*)(struct nanos_args_2_t *))&smp_ol_main_2};
-          static struct nanos_const_wd_definition_1 nanos_wd_const_data = {.base = {.props = {.mandatory_creation = 0, .tied = 0, .clear_chunk = 0, .reserved0 = 0, .reserved1 = 0, .reserved2 = 0, .reserved3 = 0, .reserved4 = 0}, .data_alignment = __alignof__(struct nanos_args_2_t), .num_copies = 1, .num_devices = 1, .num_dimensions = 1, .description = "main"}, .devices = {[0] = {.factory = &nanos_smp_factory, .arg = &smp_ol_main_2_args}}};
-          nanos_wd_dyn_props.tie_to = 0;
-          nanos_wd_dyn_props.priority = 0;
-          nanos_wd_dyn_props.flags.is_final = 0;
-          nanos_wd_dyn_props.flags.is_implicit = 0;
-          ol_args = (struct nanos_args_2_t *)0;
-          nanos_wd_t nanos_wd_ = (void *)0;
-          nanos_copy_data_t *ol_copy_data = (nanos_copy_data_t *)0;
-          nanos_region_dimension_internal_t *ol_copy_dimensions = (nanos_region_dimension_internal_t *)0;
-          nanos_err = nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_2_t), (void **)&ol_args, nanos_current_wd(), &ol_copy_data, &ol_copy_dimensions);
-          if (nanos_err != NANOS_OK)
-            {
-              nanos_handle_error(nanos_err);
-            }
-          dimensions_2[0].size = sizeof(int);
-          dimensions_2[0].lower_bound = 0;
-          dimensions_2[0].accessed_length = sizeof(int);
-          dependences[0].address = (void *)&red;
-          dependences[0].offset = 0;
-          dependences[0].flags.input = 1;
-          dependences[0].flags.output = 0;
-          dependences[0].flags.can_rename = 0;
-          dependences[0].flags.concurrent = 0;
-          dependences[0].flags.commutative = 0;
-          dependences[0].dimension_count = 1;
-          dependences[0].dimensions = dimensions_2;
-          if (nanos_wd_ != (void *)0)
-            {
-              (*ol_args).red = &red;
-              (*ol_args).stderr = &stderr;
-              ol_copy_dimensions[0 + 0].size = 1 * sizeof(int);
-              ol_copy_dimensions[0 + 0].lower_bound = 0 * sizeof(int);
-              ol_copy_dimensions[0 + 0].accessed_length = (0 - 0 + 1) * sizeof(int);
-              ol_copy_data[0].sharing = NANOS_SHARED;
-              ol_copy_data[0].address = (void *)&red;
-              ol_copy_data[0].flags.input = 1;
-              ol_copy_data[0].flags.output = 0;
-              ol_copy_data[0].dimension_count = (short int)1;
-              ol_copy_data[0].dimensions = &ol_copy_dimensions[0];
-              ol_copy_data[0].offset = 0;
-              nanos_err = nanos_set_translate_function(nanos_wd_, (void (*)(void *, nanos_wd_t))nanos_xlate_fun_testc_1);
-              if (nanos_err != NANOS_OK)
-                {
-                  nanos_handle_error(nanos_err);
-                }
-              nanos_err = nanos_submit(nanos_wd_, 1, &dependences[0], (void *)0);
-              if (nanos_err != NANOS_OK)
-                {
-                  nanos_handle_error(nanos_err);
-                }
-            }
-          else
-            {
-              nanos_region_dimension_internal_t imm_copy_dimensions[1];
-              nanos_copy_data_t imm_copy_data[1];
-              imm_args.red = &red;
-              imm_args.stderr = &stderr;
-              imm_copy_dimensions[0 + 0].size = 1 * sizeof(int);
-              imm_copy_dimensions[0 + 0].lower_bound = 0 * sizeof(int);
-              imm_copy_dimensions[0 + 0].accessed_length = (0 - 0 + 1) * sizeof(int);
-              imm_copy_data[0].sharing = NANOS_SHARED;
-              imm_copy_data[0].address = (void *)&red;
-              imm_copy_data[0].flags.input = 1;
-              imm_copy_data[0].flags.output = 0;
-              imm_copy_data[0].dimension_count = (short int)1;
-              imm_copy_data[0].dimensions = &imm_copy_dimensions[0];
-              imm_copy_data[0].offset = 0;
-              nanos_err = nanos_create_wd_and_run_compact(&nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_2_t), &imm_args, 1, &dependences[0], imm_copy_data, imm_copy_dimensions, (void (*)(void *, nanos_wd_t))nanos_xlate_fun_testc_1);
-              if (nanos_err != NANOS_OK)
-                {
-                  nanos_handle_error(nanos_err);
-                }
-            }
-        }
-      }
-  }
   {
     nanos_err_t nanos_err;
     nanos_wd_t nanos_wd_ = nanos_current_wd();
@@ -1435,51 +1142,33 @@ int main(int argc, char **argv)
         nanos_handle_error(nanos_err);
       }
   }
-  if (red != 100) rv = 1;
+  if (rv)
+    {
+      printf("\nERROR: some tasks have not switch to master thread\n");
+    }
   return rv;
 }
-static void smp_ol_main_0_unpacked(int *const red)
+static void smp_ol_main_0_unpacked(volatile int *const rv)
 {
   {
     {
-      (*red) = 0;
+      printf("[%d]", omp_get_thread_num());
+      unsigned int thread = 0;
+      int tied ;
+      nanos_is_tied(&tied);
+      if (!tied) {
+	      nanos_switch_to_thread( &thread );
+	      printf("<%d>", omp_get_thread_num());
+	      if (omp_get_thread_num() != 0) {
+		      (*rv) = 1;
+	      }
+      }
     }
   }
 }
 static void smp_ol_main_0(struct nanos_args_0_t *const args)
 {
   {
-    smp_ol_main_0_unpacked((*args).red);
-  }
-}
-static void smp_ol_main_1_unpacked(int *const red)
-{
-  {
-    {
-      nanos_err_t nanos_err;
-      int *red_storage;
-      nanos_err = nanos_task_reduction_get_thread_storage((void *)(int *) red, (void **)&red_storage);
-      {
-        (*red_storage)++;
-      }
-    }
-  }
-}
-static void smp_ol_main_1(struct nanos_args_1_t *const args)
-{
-  {
-    smp_ol_main_1_unpacked((*args).red);
-  }
-}
-static void smp_ol_main_2_unpacked(int *const red, struct _IO_FILE **const stderr)
-{
-  {
-    fprintf((*stderr), "Result = %d\n", (*red));
-  }
-}
-static void smp_ol_main_2(struct nanos_args_2_t *const args)
-{
-  {
-    smp_ol_main_2_unpacked((*args).red, (*args).stderr);
+    smp_ol_main_0_unpacked((*args).rv);
   }
 }

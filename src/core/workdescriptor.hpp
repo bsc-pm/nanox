@@ -395,7 +395,7 @@ class DOIsSchedulable : public DependableObjectPredicate
 
 inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thread )
 {
-   if ( _doSubmit == NULL ) return NULL;
+   if ( _doSubmit == NULL || !sys.isImmediateSuccessorEnabled() ) return NULL;
    else {
       DOIsSchedulable predicate( thread );
       DependableObject * found = _doSubmit->releaseImmediateSuccessor( predicate, thread.keepWDDeps() );

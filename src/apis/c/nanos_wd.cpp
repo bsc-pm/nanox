@@ -573,11 +573,25 @@ NANOS_API_DEF(nanos_err_t, nanos_set_create_local_tasks, ( bool value ))
     return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_switch_to_thread, ( unsigned int thid ))
+NANOS_API_DEF(nanos_err_t, nanos_switch_to_thread, ( unsigned int *thid ))
 {
     // FIXME NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","switch_to_thread",NANOS_RUNTIME) );
     try {
-       sys.switchToThread( thid );
+       if ( myThread->getCurrentWD()->isTiedTo() ) {
+          return NANOS_INVALID_REQUEST;
+       }
+       sys.switchToThread( *thid );
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_is_tied, ( bool *result ))
+{
+    // FIXME NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","is_tied",NANOS_RUNTIME) );
+    try {
+       *result = myThread->getCurrentWD()->isTiedTo() != NULL;
     } catch ( nanos_err_t e) {
        return e;
     }

@@ -190,6 +190,9 @@ namespace nanos
 
          //! \brief Finalize all pendant reductions
          virtual void finalizeAllReductions ( void ) ;
+
+         //! \brief Clear all pendants references
+         virtual void clearDependenciesDomain ( void ) ;
    };
    
    /*! \class DependenciesManager.

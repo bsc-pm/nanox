@@ -41,7 +41,8 @@ inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread 
    bool result = wd.canRunIn(*thread.runningOn()) &&
       ( !wd.isTied() || wd.isTiedTo() == &thread ) &&
       ( !wd.isTiedLocation() || tied_node == this_node ) &&
-      wd.tryAcquireCommutativeAccesses();
+      wd.tryAcquireCommutativeAccesses() &&
+      ( wd.getDepth() == 1 || this_node == 0 );
    //if ( thread.getId() > 0 ) *thread._file << "checkBasicConstraints says " << result << " this_node " << this_node << " tied_node " << tied_node << " isTiedToLocation " << wd.isTiedToLocation()<< std::endl;
    return result;
 }

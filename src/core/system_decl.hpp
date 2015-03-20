@@ -193,6 +193,7 @@ namespace nanos
          HostMemoryAddressSpace                        _hostMemory;
          RegionCache::CachePolicy                      _regionCachePolicy;
          std::string                                   _regionCachePolicyStr;
+         std::size_t                                   _regionCacheSlabSize;
 
          std::set<unsigned int>                        _clusterNodes;
          std::set<unsigned int>                        _numaNodes;
@@ -243,6 +244,8 @@ namespace nanos
          Router _router;
       public:
          Hwloc _hwloc;
+         bool _immediateSuccessorDisabled;
+         bool _predecessorCopyInfoDisabled;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -634,7 +637,7 @@ namespace nanos
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
-         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide );
+         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize );
          void setSMPPlugin(SMPBasePlugin *p);
          SMPBasePlugin *getSMPPlugin() const;
          bool isSimulator() const;
@@ -643,6 +646,7 @@ namespace nanos
          bool getVerboseCopies() const;
          bool getSplitOutputForThreads() const;
          RegionCache::CachePolicy getRegionCachePolicy() const;
+         std::size_t getRegionCacheSlabSize() const;
          void createDependence( WD* pred, WD* succ);
          unsigned int getNumClusterNodes() const;
          unsigned int getNumNumaNodes() const;
@@ -665,6 +669,8 @@ namespace nanos
          bool getPrioritiesNeeded() const;
          Router& getRouter();
          void switchToThread( unsigned int thid );
+         bool isImmediateSuccessorEnabled() const;
+         bool usePredecessorCopyInfo() const;
    };
 
    extern System sys;
