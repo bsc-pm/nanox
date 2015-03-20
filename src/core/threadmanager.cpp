@@ -38,6 +38,7 @@ extern "C" {
    void DLB_Finalize ( void ) __attribute__(( weak ));
    int DLB_Is_auto( void ) __attribute__(( weak ));
    void DLB_Update( void ) __attribute__(( weak ));
+   void DLB_AcquireCpu( int cpu ) __attribute__(( weak ));
 }
 #define DLB_SYMBOLS_DEFINED ( \
          DLB_UpdateResources_max && \
@@ -49,6 +50,7 @@ extern "C" {
          DLB_CheckCpuAvailability && \
          DLB_Init && \
          DLB_Finalize && \
+         DLB_AcquireCpu && \
          DLB_Update )
 #endif
 
@@ -356,6 +358,7 @@ void BlockingThreadManager::returnMyCpuIfClaimed() {}
 
 void BlockingThreadManager::waitForCpuAvailability() {}
 
+void BlockingThreadManager::acquireThread(BaseThread* thread){} 
 
 /**********************************/
 /**** BusyWait Thread Manager *****/
@@ -501,6 +504,9 @@ void BusyWaitThreadManager::waitForCpuAvailability()
    CPU_CLR( cpu, &_waitingCPUs );
 }
 
+void BusyWaitThreadManager::acquireThread(BaseThread* thread){} 
+
+
 /**********************************/
 /******* DLB Thread Manager *******/
 /**********************************/
@@ -618,6 +624,8 @@ void DlbThreadManager::releaseCpu()
    if ( !thread->getTeam() ) return;
    if ( thread->isSleeping() ) return;
 
+   if ( thread->isMainThread() && !sys.getUntieMaster() ) return; /* Do not release master thread if master WD is tied*/
+
    int my_cpu = thread->getCpuId();
 
    LockBlock Lock( _lock );
@@ -661,4 +669,12 @@ void DlbThreadManager::waitForCpuAvailability()
       sched_yield();
    }
    CPU_CLR( cpu, &_waitingCPUs );
+}
+
+void DlbThreadManager::acquireThread(BaseThread* thread) {
+   int cpu= thread->getCpuId();
+   if (!CPU_ISSET(cpu, &(sys.getCpuActiveMask()))){
+    //If the cpu is not active claim it and wake up thread
+        DLB_AcquireCpu( cpu );        
+    }
 }

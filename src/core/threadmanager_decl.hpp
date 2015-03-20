@@ -22,6 +22,7 @@
 
 #include "config.hpp"
 #include "atomic_decl.hpp"
+#include "basethread_decl.hpp"
 
 namespace nanos
 {
@@ -61,6 +62,7 @@ namespace nanos
          virtual void returnClaimedCpus() {}
          virtual void returnMyCpuIfClaimed() {}
          virtual void waitForCpuAvailability() {}
+         virtual void acquireThread(BaseThread*) {}
    };
 
    //! BlockingThreadManager class
@@ -96,6 +98,7 @@ namespace nanos
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void acquireThread(BaseThread*);
    };
 
    //! BusyWaitThreadManager class
@@ -133,6 +136,7 @@ namespace nanos
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void acquireThread(BaseThread*);
    };
 
    //! DlbThreadManager class
@@ -165,6 +169,7 @@ namespace nanos
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void acquireThread(BaseThread*);
    };
 
    //! ThreadManagerConf class
