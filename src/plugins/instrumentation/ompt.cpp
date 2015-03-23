@@ -334,6 +334,7 @@ namespace nanos
    {
       private:
          ompt_task_id_t * _previousTask;
+         int            * _threadActive;
       public:
          InstrumentationOMPT( ) : Instrumentation( *NEW InstrumentationContextDisabled()), _previousTask(NULL) {}
          ~InstrumentationOMPT() { }
@@ -342,8 +343,11 @@ namespace nanos
             ompt_initialize ( ompt_nanos_lookup, "Nanos++ 0.8a", 1);
             int nthreads = sys.getSMPPlugin()->getNumThreads();
             _previousTask = ( ompt_task_id_t *) malloc ( nthreads * sizeof(ompt_task_id_t) );
-            for ( int i = 0; i < nthreads; i++ )
+            _threadActive = ( int *) malloc ( nthreads * sizeof(int) );
+            for ( int i = 0; i < nthreads; i++ ){
                _previousTask[i] = (ompt_task_id_t) 0;
+               _threadActive[i] = 0;
+            }
 
             // initialize() cannot reference myThead object
             if (ompt_nanos_event_thread_begin) {
@@ -558,6 +562,8 @@ namespace nanos
             ompt_task_id_t post = (ompt_task_id_t) w.getId();
 
             int thid = (int) nanos::myThread->getId();
+            if (!_threadActive[thid]) return;
+
             ompt_task_id_t pre = (ompt_task_id_t) _previousTask[thid];
 
             ompt_nanos_event_task_switch ( pre, post );
@@ -578,9 +584,12 @@ namespace nanos
             thread.setSteps (1);
             thread.setCallBack ( breakPointCallBack );
 
+            int thid = nanos::myThread->getId();
+
             if (ompt_nanos_event_thread_begin) {
-               ompt_nanos_event_thread_begin( (ompt_thread_type_t) ompt_thread_worker, (ompt_thread_id_t) nanos::myThread->getId());
+               ompt_nanos_event_thread_begin( (ompt_thread_type_t) ompt_thread_worker, (ompt_thread_id_t) thid );
             }
+            _threadActive[thid] = 1;
          }
          void threadFinish ( BaseThread &thread )
          {
