@@ -63,11 +63,11 @@ AC_DEFUN([AX_CHECK_CUDA],[
     else
       cuda_prefix=$with_cuda
     fi
-    cudainc="-isystem $with_cuda/include"
-    cuda_h="$with_cuda/include/cuda.h"
-    AC_CHECK_FILE([$with_cuda/lib64],
-      [cudalib=-L$with_cuda/lib64],
-      [cudalib=-L$with_cuda/lib])
+    cudainc="-isystem $cuda_prefix/include"
+    cuda_h="$cuda_prefix/include/cuda.h"
+    AC_CHECK_FILE([$cuda_prefix/lib64],
+      [cudalib=-L$cuda_prefix/lib64],
+      [cudalib=-L$cuda_prefix/lib])
   fi
   if test "x$with_cuda_include" != x; then
     cudainc="-isystem $with_cuda_include"
@@ -131,7 +131,7 @@ Please, check that the provided directories are correct.
       AC_CACHE_CHECK([CUDA API version],[ac_cv_cuda_version],
         [
           ac_cv_cuda_version=$(grep 'define CUDA_VERSION' "$cuda_h")
-          ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \([0-9]*\)')
+          ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \(@<:@0-9@:>@*\)')
         ])
 
       if test "x$ac_cv_cuda_version" == "x" -o "$ac_cv_cuda_version" -lt 5000; then
