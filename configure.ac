@@ -414,7 +414,7 @@ AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
 
 #MPI Support
-AX_CHECK_MPI
+#AX_CHECK_MPI
 
 # Check if NVidia CUDA device has been selected 
 AX_CHECK_CUDA
@@ -676,37 +676,7 @@ AC_SUBST([AYUDAME_BIN])
 AM_CONDITIONAL([INSTRUMENTATION_AYUDAME], test x"$AYUDAME_HOME" != x)
 
 # Check hwloc availability
-AC_ARG_WITH([hwloc],
-           AS_HELP_STRING([--with-hwloc=dir], [Directory of Hardware Locality (hwloc) installation]),
-           [
-                hwloc_h=$withval/include/hwloc.h
-                if test -e $hwloc_h ;
-                then
-                   hwloc_version_string=`sed -ne '/^\s*#\s*define\s\+HWLOC_API_VERSION .*$/p' $hwloc_h`
-                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION 0x[0]\+\([0-9]\+\).*$/\1/'`
-                   if test "$hwloc_version" -ge 10200;
-                   then
-                      HWLOC_HOME="$withval"
-                      HWLOC_INC="$withval/include"
-                      HWLOC_LIB="$withval/lib"
-                      HWLOC_BIN="$withval/bin"
-                      AC_MSG_RESULT([checking if Hardware Locality library is compatible... yes])
-                      OPTIONS="$OPTIONS hwloc"
-                   else
-                      AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
-                   fi
-                else
-                   AC_MSG_ERROR([checking if Hardware Locality library is compatible... no (hwloc > 1.2.0 needed)])
-                fi
-           ]
-)
-
-AC_SUBST([HWLOC_HOME])
-AC_SUBST([HWLOC_INC])
-AC_SUBST([HWLOC_LIB])
-AC_SUBST([HWLOC_BIN])
-
-AM_CONDITIONAL([HWLOC], test x"$HWLOC_HOME" != x)
+AX_CHECK_HWLOC
 
 # Check for Chapel support
 AC_ARG_WITH([chapel],
@@ -759,21 +729,21 @@ AC_SUBST([MKL_LIBS])
 # Task-level resiliency support
 AC_MSG_CHECKING([if task resiliency is enabled])
 AC_ARG_ENABLE([resiliency],
-  AS_HELP_STRING([--disable-resiliency], [Disables task-level resiliency]),
+  AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency]),
+  [
+    AC_MSG_RESULT([$enableval])
+    if test "x$enableval" = "xyes"; then
+      AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],
+        [],
+        [AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])],
+        [-Werror])
+    fi
+  ],
   [
     resiliency=no
     AC_MSG_RESULT([no])
-  ],
-  [
-    AC_MSG_RESULT([yes])
-    AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],[resiliency=yes],[resiliency=no],[-Werror])
-    if test "x$resiliency" = "xno";
-    then
-        AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])
-    fi
   ]
 )
-
 
 AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
 AC_SUBST([resiliency])
