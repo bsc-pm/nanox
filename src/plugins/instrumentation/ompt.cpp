@@ -353,6 +353,7 @@ namespace nanos
             if (ompt_nanos_event_thread_begin) {
                ompt_nanos_event_thread_begin( (ompt_thread_type_t) ompt_thread_initial, (ompt_thread_id_t) 0);
             }
+            _threadActive[0] = 1;
          }
          void finalize( void )
          {
