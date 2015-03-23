@@ -819,6 +819,9 @@ unsigned int AllocatedChunk::getVersion( global_reg_t const &reg ) {
 
 DeviceOps *AllocatedChunk::getDeviceOps( global_reg_t const &reg ) {
    CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg.id );
+   if ( entry == NULL ) {
+      printBt(*(myThread->_file) );
+   }
    ensure(entry != NULL, "CacheEntry not found!");
    return entry->getDeviceOps();
 }
@@ -930,8 +933,8 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
          if ( other_referenced_chunks == 0 ) {
          fatal("Unable to free enough space to allocate task data, probably a fragmentation issue. Try increasing the available device memory.");
          } else {
-            *(myThread->_file) << "Unable to invalidate using selectChunksToInvalidate, wd: " << wd.getId() << " other_referenced_chunks: " << other_referenced_chunks << std::endl;
-            printReferencedChunksAndWDs();
+            //*(myThread->_file) << "Unable to invalidate using selectChunksToInvalidate, wd: " << wd.getId() << " other_referenced_chunks: " << other_referenced_chunks << std::endl;
+            //printReferencedChunksAndWDs();
             return NULL;
          }
       }
@@ -1467,43 +1470,57 @@ bool RegionCache::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopie
    }
    if ( total_allocatable_size <= _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) ) {
       //_lock.acquire();
-      while ( !_lock.tryAcquire() ) {
-         //myThread->idle();
-      }
-      //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << std::endl;
-      //attempt to allocate regions without triggering invalidations, this will reserve any chunk used by this WD
-      for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
-         if ( memCopies[ idx ]._chunk == NULL ) {
-      //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << " alloc using tryGetAddress " << std::endl;
-            memCopies[ idx ]._chunk = tryGetAddress( memCopies[ idx ]._reg, wd, idx );
-            if ( memCopies[ idx ]._chunk != NULL ) {
-               //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
-               //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
-               //std::cerr << std::endl;
-   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false, wd, idx );
-               //std::cerr << "--1--> chunk is " << (void *) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk<< std::endl;
-               memCopies[ idx ]._chunk->unlock();
-            }
-         }
-      }
-      for ( unsigned int idx = 0; idx < numCopies && result; idx += 1 ) {
-         if ( memCopies[ idx ]._chunk == NULL ) {
-      //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << " alloc using getOrCreateChunk " << std::endl;
-            memCopies[ idx ]._chunk = getOrCreateChunk( memCopies[ idx ]._reg, wd, idx );
+      //while ( !_lock.tryAcquire() ) {
+      //   myThread->idle();
+      //}
+      if ( _lock.tryAcquire() ) {
+         //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << std::endl;
+         //attempt to allocate regions without triggering invalidations, this will reserve any chunk used by this WD
+         for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
             if ( memCopies[ idx ]._chunk == NULL ) {
-               result = false;
-            } else {
-               //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
-               //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
-               //std::cerr << std::endl;
-   //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false, wd, idx );
-               //std::cerr << "--2--> chunk is " << (void*) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk << std::endl;
-               memCopies[ idx ]._chunk->unlock();
+               //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << " alloc using tryGetAddress " << std::endl;
+               memCopies[ idx ]._chunk = tryGetAddress( memCopies[ idx ]._reg, wd, idx );
+               if ( memCopies[ idx ]._chunk != NULL ) {
+                  //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
+                  //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
+                  //std::cerr << std::endl;
+                  //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false, wd, idx );
+                  //std::cerr << "--1--> chunk is " << (void *) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk<< std::endl;
+                  memCopies[ idx ]._chunk->unlock();
+               }
             }
          }
+         for ( unsigned int idx = 0; idx < numCopies && result; idx += 1 ) {
+            if ( memCopies[ idx ]._chunk == NULL ) {
+               //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << " alloc using getOrCreateChunk " << std::endl;
+               memCopies[ idx ]._chunk = getOrCreateChunk( memCopies[ idx ]._reg, wd, idx );
+               if ( memCopies[ idx ]._chunk == NULL ) {
+                  result = false;
+               } else {
+                  //std::cerr << "Allocated region for wd " << wd.getId() << std::endl;
+                  //memCopies[ idx ]._reg.key->printRegion(memCopies[ idx ]._reg.id);
+                  //std::cerr << std::endl;
+                  //AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, false, false, wd, idx );
+                  //std::cerr << "--2--> chunk is " << (void*) memCopies[ idx ]._chunk << " other chunk " << (void*) chunk << std::endl;
+                  memCopies[ idx ]._chunk->unlock();
+               }
+            }
+         }
+         //release the allocated chunks if the allocation fails, this avoids
+         //deadlocks if other threads are trying to allocate in the same cache.
+         if ( !result ) {
+            for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
+               if ( memCopies[ idx ]._chunk != NULL ) {
+                  memCopies[ idx ]._chunk->removeReference( wd.getId() );
+                  memCopies[ idx ]._chunk = NULL;
+               }
+            }
+         }
+         //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << " finished. result: " << result << " count chunks: " << countxx << std::endl;
+         _lock.release();
+      } else {
+         result = false;
       }
-      //*(myThread->_file) << "prepareRegions wd " << wd.getId() << " total mem " << total_allocatable_size << " finished " << std::endl;
-      _lock.release();
    } else {
       result = false;
       std::cerr << "This device can not hold this task, not enough memory. Needed: "<< total_allocatable_size << " max avalilable " << _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) << " wd " << wd.getId() << " allocWide " << ( _flags == ALLOC_WIDE )  << std::endl;
