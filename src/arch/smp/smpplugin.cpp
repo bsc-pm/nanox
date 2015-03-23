@@ -297,6 +297,7 @@ class SMPPlugin : public SMPBasePlugin
                fatal0("Could not allocate memory with a regullar allocator.");
             }
          }
+         message0("Memkind address range: " << addr << " - " << (void *) ((uintptr_t)addr + _memkindMemorySize ));
          memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
       }
 #endif
