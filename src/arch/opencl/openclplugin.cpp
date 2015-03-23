@@ -17,46 +17,25 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "debug.hpp"
-#include "openclconfig.hpp"
-#include "os.hpp"
-#include "processingelement_fwd.hpp"
 #include "plugin.hpp"
-#include "archplugin.hpp"
-#include "openclprocessor.hpp"
-#include "openclthread_decl.hpp"
-#include "smpprocessor.hpp"
-
+#include "openclconfig.hpp"
+#include "openclplugin.hpp"
 #include <dlfcn.h>
 
-using namespace nanos;
-using namespace nanos::ext;
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
+#include <CL/opencl.h>
+#endif
 
 namespace nanos {
 namespace ext {
-
-class OpenCLPlugin : public ArchPlugin
-{
    
-private:
-    
-   static std::string _devTy;
-  // All found devices.
-   static std::map<cl_device_id, cl_context> _devices;
-   std::vector<ext::OpenCLProcessor *> *_opencls;
-   std::vector<ext::OpenCLThread *>    *_openclThreads;
+   std::string OpenCLPlugin::_devTy = "ALL";
+   // All found devices
+   std::map<cl_device_id, cl_context> OpenCLPlugin::_devices;
 
-   friend class OpenCLConfig;
-   
-public:
-   OpenCLPlugin() : ArchPlugin( "OpenCL PE Plugin", 1 )
-      , _opencls( NULL )
-      , _openclThreads( NULL )
-   { }
-
-   ~OpenCLPlugin() { }
-
-   void config( Config &cfg )
+   void OpenCLPlugin::config( Config &cfg )
    {
       cfg.setOptionsSection( "OpenCL Arch", "OpenCL specific options" );
       // Select the device to use.
@@ -70,9 +49,9 @@ public:
       OpenCLConfig::prepare( cfg );
    }
 
-   void init()
+   void OpenCLPlugin::init()
    {
-      OpenCLConfig::apply(_devTy,_devices);
+      OpenCLConfig::apply( this );
       _opencls = NEW std::vector<nanos::ext::OpenCLProcessor *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLProcessor *) NULL); 
       _openclThreads = NEW std::vector<nanos::ext::OpenCLThread *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLThread *) NULL); 
       for ( unsigned int openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {
@@ -91,29 +70,29 @@ public:
       }
    }
    
-   /*virtual unsigned getPEsInNode( unsigned node ) const
+   /*unsigned OpenCLPlugin::getPEsInNode( unsigned node ) const
    {
       // TODO: make it work correctly
       // If it is the last node, assign
       //if ( node == ( sys.getNumSockets() - 1 ) )
    }*/
    
-   virtual unsigned getNumHelperPEs() const
+   unsigned OpenCLPlugin::getNumHelperPEs() const
    {
       return OpenCLConfig::getOpenCLDevicesCount();
    }
 
-//   virtual unsigned getNumPEs() const
+//   unsigned OpenCLPlugin::getNumPEs() const
 //   {
 //      return OpenCLConfig::getOpenCLDevicesCount();
 //   }
    
-   virtual unsigned getNumThreads() const
+   unsigned OpenCLPlugin::getNumThreads() const
    {
       return OpenCLConfig::getOpenCLDevicesCount();
    }
    
-   virtual void createBindingList()
+   void OpenCLPlugin::createBindingList()
    {
 ////      /* As we now how many devices we have and how many helper threads we
 ////       * need, reserve a PE for them */
@@ -131,7 +110,7 @@ public:
 //      }
    }
 
-   virtual PE* createPE( unsigned id, unsigned uid )
+   PE* OpenCLPlugin::createPE( unsigned id, unsigned uid )
    {
       //pe->setNUMANode( sys.getNodeOfPE( pe->getId() ) );
 //      memory_space_id_t mid = sys.getNewSeparateMemoryAddressSpaceId();
@@ -147,53 +126,35 @@ public:
       return NULL;
    }
 
-virtual void addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
-   for ( std::vector<OpenCLProcessor *>::const_iterator it = _opencls->begin(); it != _opencls->end(); it++ ) {
-      pes.insert( std::make_pair( (*it)->getId(), *it ) );
+   void OpenCLPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+      for ( std::vector<OpenCLProcessor *>::const_iterator it = _opencls->begin(); it != _opencls->end(); it++ ) {
+         pes.insert( std::make_pair( (*it)->getId(), *it ) );
+      }
    }
-}
-
-virtual void addDevices( DeviceList &devices ) const
-{
-   if ( !_opencls->empty() )
-      devices.insert( ( *_opencls->begin() )->getDeviceType() );
-}
-
-
-virtual void startSupportThreads() {
-   for ( unsigned int openclC = 0; openclC < _opencls->size(); openclC += 1 ) {
-      OpenCLProcessor *ocl = (*_opencls)[openclC];
-      (*_openclThreads)[openclC] = (ext::OpenCLThread *) &ocl->startOpenCLThread();
+   
+   void OpenCLPlugin::addDevices( DeviceList &devices ) const
+   {
+      if ( !_opencls->empty() )
+         devices.insert( ( *_opencls->begin() )->getDeviceType() );
    }
-}
-
-virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
-   for ( std::vector<OpenCLThread *>::iterator it = _openclThreads->begin(); it != _openclThreads->end(); it++ ) {
-      workers.insert( std::make_pair( (*it)->getId(), *it ) );
+   
+   
+   void OpenCLPlugin::startSupportThreads() {
+      for ( unsigned int openclC = 0; openclC < _opencls->size(); openclC += 1 ) {
+         OpenCLProcessor *ocl = (*_opencls)[openclC];
+         (*_openclThreads)[openclC] = (ext::OpenCLThread *) &ocl->startOpenCLThread();
+      }
    }
-}
+   
+   void OpenCLPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
+      for ( std::vector<OpenCLThread *>::iterator it = _openclThreads->begin(); it != _openclThreads->end(); it++ ) {
+         workers.insert( std::make_pair( (*it)->getId(), *it ) );
+      }
+   }
+   
+   void OpenCLPlugin::finalize() {
+   }
 
-virtual unsigned int getNumPEs() const {
-   return _opencls->size();
-}
-virtual unsigned int getMaxPEs() const {
-   return _opencls->size();
-}
-virtual unsigned int getNumWorkers() const {
-   return _opencls->size();
-}
-virtual unsigned int getMaxWorkers() const {
-   return _opencls->size();
-}
-
-virtual void finalize() {
-}      
-
-};
-
-std::string OpenCLPlugin::_devTy = "ALL";
-// All found devices.
-std::map<cl_device_id, cl_context> OpenCLPlugin::_devices;
 } // End namespace ext.
 } // End namespace nanos.
 

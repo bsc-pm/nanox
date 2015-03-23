@@ -979,6 +979,7 @@ BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd, SMPMultiThread *p
 {
 
    OpenCLThread &thr = *NEW OpenCLThread( wd, this, _core );
+   thr.setMaxPrefetch( nanos::ext::OpenCLConfig::getPrefetchNum() );
 
    return thr;
 }

@@ -46,11 +46,6 @@
 #include "spuprocessor.hpp"
 #endif
 
-#ifdef GPU_DEV
-#include "gpuprocessor_decl.hpp"
-#include "gpumemoryspace_decl.hpp"
-#include "gpudd.hpp"
-#endif
 
 #ifdef CLUSTER_DEV
 #include "clusternode_decl.hpp"
@@ -59,9 +54,6 @@
 
 #include "addressspace.hpp"
 
-#ifdef OpenCL_DEV
-#include "openclprocessor.hpp"
-#endif
 
 using namespace nanos;
 

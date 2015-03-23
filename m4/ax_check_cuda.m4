@@ -64,19 +64,21 @@ AC_DEFUN([AX_CHECK_CUDA],[
       cuda_prefix=$with_cuda
     fi
     cudainc="-isystem $with_cuda/include"
+    cuda_h="$with_cuda/include/cuda.h"
     AC_CHECK_FILE([$with_cuda/lib64],
       [cudalib=-L$with_cuda/lib64],
       [cudalib=-L$with_cuda/lib])
   fi
   if test "x$with_cuda_include" != x; then
     cudainc="-isystem $with_cuda_include"
+    cuda_h="$with_cuda_include/cuda.h"
   fi
   if test "x$with_cuda_lib" != x; then
     cudalib="-L$with_cuda_lib"
   fi
   
   # This is fulfilled even if $with_cuda="yes" 
-  # This happens when user leaves --with-value empty
+  # This happens when user leaves --with-value alone
   if test x$with_cuda$with_cuda_include$with_cuda_lib != x; then
   
       # Check for Nvidia Cuda Compiler NVCC
@@ -94,18 +96,31 @@ AC_DEFUN([AX_CHECK_CUDA],[
       LDFLAGS=$cudalib
   
       # Check if cuda.h header file exists and compiles
-      AC_CHECK_HEADER([cuda.h], [cuda=yes])
+      AC_CHECK_HEADER([cuda.h], [cuda=yes],[cuda=no])
+
       # Look for cudaMemcpy function in libcudart.so library
-      AC_SEARCH_LIBS([cudaMemcpy],
-                     [cudart],
-                     [cuda=yes])
+      if test x$cuda == xyes; then
+        AC_CHECK_LIB([cudart],
+                       [cudaMemcpy],
+                       [cuda=yes],[cuda=no])
+      fi
+
+      # Look for cublasDrotmg function in libcublas.so library
+      if test x$cuda == xyes; then
+        AC_CHECK_LIB([cublas],
+                       [cublasDrotmg],
+                       [cuda=yes],[cuda=no],
+                       [-lcudart])
+      fi
+
+      cudalib="$cudalib $LIBS"
   
       CFLAGS="$bak_CFLAGS"
       CPPFLAGS="$bak_CPPFLAGS"
       LIBS="$bak_LIBS"
       LDFLAGS="$bak_LDFLAGS"
   
-      if test x$cuda == xno; then
+      if test x$cuda != xyes; then
           AC_MSG_ERROR([
 ------------------------------
 CUDA path was not correctly specified. 
@@ -113,11 +128,13 @@ Please, check that the provided directories are correct.
 ------------------------------])
       fi
   
-      AC_MSG_CHECKING([CUDA API version])
-      cuda_version=$(grep 'define CUDA_VERSION' "$cudainc/cuda.h")
-      cuda_version=$(expr "x$cuda_version" : 'x#define CUDA_VERSION \([0-9]*\)')
-      AC_MSG_RESULT([$cuda_version])
-      if test "x$cuda_version" = x -o "$cuda_version" -lt 5000; then
+      AC_CACHE_CHECK([CUDA API version],[ac_cv_cuda_version],
+        [
+          ac_cv_cuda_version=$(grep 'define CUDA_VERSION' "$cuda_h")
+          ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \([0-9]*\)')
+        ])
+
+      if test "x$ac_cv_cuda_version" == "x" -o "$ac_cv_cuda_version" -lt 5000; then
           AC_MSG_ERROR([
 ------------------------------
 Version of the provided CUDA package is too old.
@@ -131,13 +148,6 @@ CUDA 5 or greater is required.
   
       AC_DEFINE_UNQUOTED([NANOS_CUDA_VERSION],[$cuda_version],[API version of the CUDA package specified by the user])
       AC_DEFINE([GPU_DEV],[],[Indicates the presence of the GPU arch plugin.])
-      #CPPFLAGS="$CPPFLAGS -isystem $cudainc"
-      #LDFLAGS="$LDFLAGS $cuda_rpath -L$cudalib -lcudart" # In theory, -lcudart is not needed, as autoconf already includes libcudart in LIBS after AC_CHECK_LIBS
-      
-      #CFLAGS="$CFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
-      #CXXFLAGS="$CXXFLAGS -DGPU_DEV -DNANOS_CUDA_VERSION=$cuda_version -isystem $CUDA_INC"
-      #LDFLAGS="$LDFLAGS $CUDA_RPATH -L$CUDA_LIB -lcudart"
-  
   fi
   
   AC_SUBST([cuda])

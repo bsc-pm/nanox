@@ -35,18 +35,18 @@ dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
 endif
 
 if GNU_C
-common_cflags= -Wall -Wextra -Werror -Wmissing-declarations -Wno-unused-parameter -Wredundant-decls -Wshadow -include"new_decl.hpp" -pthread $(hwloc_cxxflags) $(ft_cflags) $(dlb_cppflags)
+common_cflags= -Wall -Wextra -Werror -Wmissing-declarations -Wno-unused-parameter -Wredundant-decls -Wshadow -include"new_decl.hpp" -include"config.h" -pthread $(hwloc_cxxflags) $(ft_cflags) $(dlb_cppflags)
 no_inline_flag= -fno-inline
 endif
 
 if IBM_C
-common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags) $(dlb_cppflags)
+common_cflags= -qinclude="new_decl.hpp" -qinclude="config.h" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags) $(dlb_cppflags)
 no_inline_flag= -qnoinline
 ignore_muldefs= -Wl,-z,muldefs
 endif
 
 if INTEL_C
-common_cflags=-Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -pthread  $(hwloc_cxxflags) $(ft_cxxflags)
+common_cflags=-Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -include"config.h" -pthread  $(hwloc_cxxflags) $(ft_cxxflags)
 endif
 
 bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL 

@@ -61,16 +61,18 @@ AC_ARG_WITH(opencl-lib,
 # If the user specifies --with-opencl, $with_opencl value will be 'yes'
 #                       --without-opencl, $with_opencl value will be 'no'
 #                       --with-opencl=somevalue, $with_opencl value will be 'somevalue'
-if test "x$with_opencl" != xyes -a "x$with_opencl" != xno; then
+if [[[ ! "x$with_opencl" =~  x"yes"|"no"|"" ]]]; then
   openclinc="-I$with_opencl/include"
   AC_CHECK_FILE([$with_opencl/lib64],
     [opencllib=-L$with_opencl/lib64],
     [opencllib=-L$with_opencl/lib])
 fi
-if test "x$with_opencl_include" != x; then
+
+if test $with_opencl_include; then
   openclinc="-I$with_opencl_include"
 fi
-if test "x$with_opencl_lib" != x; then
+
+if test $with_opencl_lib; then
   opencllib="-L$with_opencl_lib"
 fi
 
@@ -149,12 +151,16 @@ if test "x$with_opencl" != xno -a "x$with_opencl$with_opencl_include$with_opencl
             ])],
           [ac_cv_opencl_version=$(cat conftest.out)
           ],
-          [AC_MSG_FAILURE([OpenCL version test execution failed])])
+          [AC_MSG_FAILURE([
+------------------------------
+OpenCL version test execution failed
+------------------------------])
+          ])
         ])
-      AC_MSG_RESULT([$ac_cv_opencl_version])
       ac_cv_opencl_version=$(expr "x$ac_cv_opencl_version" : 'xOpenCL [a-zA-Z\+]* \(.*\)$')
     fi
 
+    opencllib="$opencllib $LIBS"
 
     CFLAGS="$bak_CFLAGS"
     CPPFLAGS="$bak_CPPFLAGS"
@@ -162,21 +168,35 @@ if test "x$with_opencl" != xno -a "x$with_opencl$with_opencl_include$with_opencl
     LDFLAGS="$bak_LDFLAGS"
 
     if test x$opencl != xyes; then
-        AC_MSG_ERROR([OpenCL was not found. Please, check that the provided directories are correct.])
+        AC_MSG_ERROR([
+------------------------------
+OpenCL path was not correctly specified. 
+Please, check that the provided directories are correct.
+------------------------------])
     fi
+
+    AX_COMPARE_VERSION([$ac_cv_opencl_version],[lt],[1.1],[opencl=no])
+    if test x$opencl != xyes; then
+      AC_MSG_ERROR([
+------------------------------
+Version of the provided OpenCL package is too old.
+OpenCL 1.1 or greater is required.
+------------------------------])
+    fi
+        
 fi
 
 if test x$opencl = xyes; then
     ARCHITECTURES="$ARCHITECTURES opencl"
 
     AC_DEFINE([OpenCL_DEV],[],[Indicates the presence of the OpenCL arch plugin.])
-    AC_SUBST([openclinc])
-    AC_SUBST([opencllib])
-
     AC_DEFINE([CL_USE_DEPRECATED_OPENCL_2_0_APIS],[],[Disables warnings when using functions deprecated in OpenCL 2.0])
 fi
 
 AM_CONDITIONAL([OPENCL_SUPPORT],[test x$opencl = xyes])
 
 AC_SUBST([opencl])
+AC_SUBST([openclinc])
+AC_SUBST([opencllib])
+
 ])dnl AX_CHECK_OPENCL

@@ -90,9 +90,6 @@ gpu_ldflags = @cudalib@
 #995 Already included in CFLAGS
 gpu_includes = @cudainc@ -I$(srcdir)/../common
 
-gpu_cublas_ldflags = -lcublas
-gpu_cublas_includes =
-
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
 instrumentation_LTLIBRARIES =
@@ -118,7 +115,7 @@ debug_libnanox_pe_gpu_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 debug_libnanox_pe_gpu_la_SOURCES=$(pe_gpu_sources)
 
 debug_libnanox_gpu_cublas_la_CXXFLAGS=$(nanos_debug_cxxflags)
-debug_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_cublas_ldflags)
+debug_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 debug_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 endif
 
@@ -142,7 +139,7 @@ instrumentation_libnanox_pe_gpu_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 instrumentation_libnanox_pe_gpu_la_SOURCES=$(pe_gpu_sources)
 
 instrumentation_libnanox_gpu_cublas_la_CXXFLAGS=$(nanos_instr_cxxflags)
-instrumentation_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_cublas_ldflags)
+instrumentation_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 instrumentation_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 endif
 
@@ -165,7 +162,7 @@ instrumentation_debug_libnanox_pe_gpu_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflag
 instrumentation_debug_libnanox_pe_gpu_la_SOURCES=$(pe_gpu_sources)
 
 instrumentation_debug_libnanox_gpu_cublas_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
-instrumentation_debug_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_cublas_ldflags)
+instrumentation_debug_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 instrumentation_debug_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 endif
 
@@ -189,7 +186,7 @@ performance_libnanox_pe_gpu_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 performance_libnanox_pe_gpu_la_SOURCES=$(pe_gpu_sources)
 
 performance_libnanox_gpu_cublas_la_CXXFLAGS=$(nanos_perfo_cxxflags)
-performance_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_cublas_ldflags)
+performance_libnanox_gpu_cublas_la_LDFLAGS=$(ld_plugin_flags) $(gpu_ldflags)
 performance_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 endif
 

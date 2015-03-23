@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "openclconfig.hpp"
+#include "openclplugin.hpp"
 #include "system.hpp"
 #include <dlfcn.h>
 
@@ -130,8 +131,9 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerArgOption( "opencl-cache-policy", "opencl-cache-policy" );
 }
 
-void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices) {
-    _devicesPtr = &_devices;
+void OpenCLConfig::apply( OpenCLPlugin const* plugin ) {
+    std::string _devTy = plugin->getSelectedDeviceType();
+    _devicesPtr = plugin->getDevices();
     
     //ompss_uses_opencl pointer will be null if the compiler did not fill it (#1050)
     void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
@@ -227,7 +229,7 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
                 continue;
 
             unsigned int maxDevs= (unsigned int) _devNum;
-            if (available && _devices.size() + devicesToUse < maxDevs) {
+            if (available && _devicesPtr->size() + devicesToUse < maxDevs) {
                 avaiableDevs[devicesToUse++] = *j;
             }
         }
@@ -242,12 +244,12 @@ void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>
         //NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
         // Put all available devices inside the vector.
         for (cl_device_id *j = avaiableDevs, *f = avaiableDevs + devicesToUse; j != f; ++j) {
-            _devices.insert(std::make_pair(*j, ctx));
+            _devicesPtr->insert(std::make_pair(*j, ctx));
         }
 
         delete [] devs;
     }   
-    _currNumDevices = _devices.size();
+    _currNumDevices = _devicesPtr->size();
     
     if ( _currNumDevices == 0 ) {
        if ( mercuriumHasTasks ) {
