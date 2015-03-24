@@ -855,8 +855,8 @@ AC_ARG_WITH([hwloc],
                 if test -e $hwloc_h ;
                 then
                    hwloc_version_string=`sed -ne '/^\s*#\s*define\s\+HWLOC_API_VERSION .*$/p' $hwloc_h`
-                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION 0x[0]\+\([0-9]\+\).*$/\1/'`
-                   if test "$hwloc_version" -ge 10200;
+                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION \(0x[0]\+[0-9a-f]\+\).*$/\1/'`
+                   if [[[ "$hwloc_version" -ge 0x00010200 ]]];
                    then
                       HWLOC_HOME="$withval"
                       HWLOC_INC="$withval/include"
