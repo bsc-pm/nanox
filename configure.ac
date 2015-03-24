@@ -786,6 +786,7 @@ echo "Host arch:               " $SMP_ARCH
 echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
 echo "Configured versions:     " $VERSIONS
+echo "Extra options:           " $OPTIONS
 if test x$memtracker_enabled = xyes ; then
    echo "Memory tracker:           enabled"
 else

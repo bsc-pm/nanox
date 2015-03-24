@@ -47,10 +47,8 @@ AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
 
 #Check if an OpenCL implementation is installed.
 AC_ARG_WITH(opencl,
-[AS_HELP_STRING([--with-opencl=PATH],
-                [specify prefix directory for installed OpenCL package.
-                 Equivalent to --with-opencl-include=PATH/include
-                 plus --with-opencl-lib=PATH/lib])])
+[AS_HELP_STRING([--with-opencl,--with-opencl=PATH],
+                [search in system directories or specify prefix directory for installed OpenCL package.])])
 AC_ARG_WITH(opencl-include,
 [AS_HELP_STRING([--with-opencl-include=PATH],
                 [specify directory for installed OpenCL include files])])

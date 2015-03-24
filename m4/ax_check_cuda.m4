@@ -48,8 +48,8 @@ AC_DEFUN([AX_CHECK_CUDA],[
   
   #Check if an CUDA implementation is installed.
   AC_ARG_WITH(cuda,
-  [AS_HELP_STRING([--with-cuda=PATH],
-                  [specify prefix directory for installed cuda package])])
+  [AS_HELP_STRING([--with-cuda,--with-cuda=PATH],
+                  [search in system directories or specify prefix directory for installed cuda package])])
   AC_ARG_WITH(cuda-include,
   [AS_HELP_STRING([--with-cuda-include=PATH],
                   [specify directory for installed cuda include files])])

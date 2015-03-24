@@ -45,8 +45,8 @@ AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
 
 #Check if an HWLOC implementation is installed.
 AC_ARG_WITH(hwloc,
-[AS_HELP_STRING([--with-hwloc=PATH],
-                [specify prefix directory for installed hwloc package])])
+[AS_HELP_STRING([--with-hwloc,--with-hwloc=PATH],
+                [search in system directories or specify prefix directory for installed hwloc package])])
 AC_ARG_WITH(hwloc-include,
 [AS_HELP_STRING([--with-hwloc-include=PATH],
                 [specify directory for installed hwloc include files])])
