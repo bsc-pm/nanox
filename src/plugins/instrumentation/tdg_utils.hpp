@@ -252,7 +252,6 @@ namespace nanos {
             if( !source->is_connected_with( target ) || 
                 ( source->get_connection( target )->get_kind( ) != kind ) ||
                 ( source->get_connection( target )->get_dependency_type( ) != dep_type ) ) {
-fprintf(stderr,"New edge: kind %d, type %d, source %d, target %d\n", kind, dep_type, (int) source->get_wd_id(), (int) target->get_wd_id());
                 Edge* new_edge = new Edge( kind, dep_type, source, target );
                 source->_exit_edges.push_back( new_edge );
                 target->_entry_lock.acquire();
