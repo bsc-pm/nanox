@@ -70,6 +70,8 @@ inline bool DependenciesDomain::haveDependencePendantWrites ( void *addr )
    return true;
 }
 
+inline void DependenciesDomain::clearDependenciesDomain ( ) { }
+
 }
 
 #endif
