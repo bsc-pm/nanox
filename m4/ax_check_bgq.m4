@@ -1,6 +1,3 @@
-# ===========================================================================
-#   http://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html
-# ===========================================================================
 #
 # SYNOPSIS
 #
@@ -100,7 +97,6 @@ or -qnostaticlink flags.
 fi
 
 AC_SUBST([BGQ_DYNAMIC_LINK],["$dyn_link_flag"])
-AC_DEFINE([IS_BGQ_MACHINE])
-AM
+AC_DEFINE([IS_BGQ_MACHINE],[],[BlueGene/Q host compatibility is enabled.])
 
 ])dnl AX_CHECK_BGQ

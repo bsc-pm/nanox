@@ -15,56 +15,28 @@ common_includes= \
 
 devincludedir = $(prefix)/include/nanox-dev
 
-if HWLOC 
-hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@ 
-hwloc_rpath = -Xlinker -rpath -Xlinker @HWLOC_LIB@
-hwloc_ldflags = $(hwloc_rpath) -L@HWLOC_LIB@ -lhwloc 
-endif 
-
-
-if RESILIENCY
-ft_cflags = -fnon-call-exceptions -DNANOS_RESILIENCY_ENABLED
-endif
-
 if DLB
-dlb_cppflags = -DDLB -I@DLB_INC@
+dlb_cppflags = -I@DLB_INC@
 dlb_perfo_ldflags = -L@DLB_LIB@ -ldlb
 dlb_debug_ldflags = -L@DLB_LIB@ -ldlb_dbg
 dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_instr
 dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
 endif
 
-if GNU_C
-common_cflags= -Wall -Wextra -Werror -Wmissing-declarations -Wno-unused-parameter -Wredundant-decls -Wshadow -include"new_decl.hpp" -include"config.h" -pthread $(hwloc_cxxflags) $(ft_cflags) $(dlb_cppflags)
-no_inline_flag= -fno-inline
-endif
-
-if IBM_C
-common_cflags= -qinclude="new_decl.hpp" -qinclude="config.h" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags) $(dlb_cppflags)
-no_inline_flag= -qnoinline
-ignore_muldefs= -Wl,-z,muldefs
-endif
-
-if INTEL_C
-common_cflags=-Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -include"config.h" -pthread  $(hwloc_cxxflags) $(ft_cxxflags)
-endif
-
-bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL 
-
 global_perfo_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3
-common_perfo_cxxflags= $(global_perfo_cxxflags) -D_NANOS_INTERNAL
+common_perfo_cxxflags= $(global_perfo_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 perfo_cflags=-O3
 
 global_debug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED
-common_debug_cxxflags= $(global_debug_cxxflags) -D_NANOS_INTERNAL
+common_debug_cxxflags= $(global_debug_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 debug_cflags=-O0 -g2
 
 global_instr_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
-common_instr_cxxflags= $(global_instr_cxxflags) -D_NANOS_INTERNAL
+common_instr_cxxflags= $(global_instr_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 instr_cflags=-O3
 
 global_instrdebug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED
-common_instrdebug_cxxflags= $(global_instrdebug_cxxflags) -D_NANOS_INTERNAL
+common_instrdebug_cxxflags= $(global_instrdebug_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 instrdebug_cflags=-O0 -g2
 
 version_flags= -version-info 1:0:0

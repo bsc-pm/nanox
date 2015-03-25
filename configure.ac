@@ -1,8 +1,6 @@
 AC_INIT([nanox], [0.9a], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
-configure_orig_arguments="$@"
-
 # New comment
 
 # Environment
@@ -38,8 +36,8 @@ then
    if test x"$GIT" != x;
    then
       echo "$GIT" "$srcdir" >& AS_MESSAGE_LOG_FD
-      run_gitversion=`"$GIT" --git-dir=$srcdir/.git show "--pretty=format:%h %ci" HEAD | head -n 1`
-      run_gitbranch=`"$GIT" --git-dir=$srcdir/.git branch | grep ^* | sed s/*\ //g`
+      run_gitversion=$($GIT --git-dir=$srcdir/.git log --pretty='format:%h %ci' -1)
+      run_gitbranch=$($GIT --git-dir=$srcdir/.git rev-parse --abbrev-ref HEAD)
       build_version="\"git $run_gitbranch $run_gitversion developer version\""
    fi
    if test x"$GIT" = x -o x"$run_gitversion" = x;
@@ -54,10 +52,10 @@ then
      build_version="\"$run_gitversion\""
      AC_MSG_RESULT([$build_version])
 fi
-AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 
-nanox_config_args='"'$(echo "$0 $configure_orig_arguments")'"'
-AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$nanox_config_args], [Configure line])
+AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$0 $@], [Configure line])
+AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
+AC_DEFINE_UNQUOTED([LIBDIR],[$(libdir)], [Path to the directory containing Nanos++ libraries])
 
 # Debian release
 AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
@@ -69,43 +67,19 @@ AC_SUBST([DEB_RELEASE])
 
 # Allocator support
 AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
-AC_ARG_ENABLE([allocator],
-  AS_HELP_STRING([--enable-allocator], [Enables Allocator module]),
-  [
-    allocator_enabled=$enableval
-    AC_MSG_RESULT([$enableval])
-  ],
-  [
-    allocator_enabled=no
-    AC_MSG_RESULT([no])
-  ]
-)
-if test x$allocator_enabled = xyes; then
+AC_ARG_ENABLE([allocator], [AS_HELP_STRING([--enable-allocator], [Enables Allocator module])])
+AC_MSG_RESULT([$enable_allocator])
+if test x$enable_allocator = xyes; then
 	AC_DEFINE([NANOS_USE_ALLOCATOR],[1],[Specifies whether Nanos++ allocator has been enabled or not])
 fi
 
 # Memtracker support
 AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
-AC_ARG_ENABLE([memtracker],
-  AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module]),
-  [
-    memtracker_enabled=$enableval
-    AC_MSG_RESULT([$enableval])
-  ],
-  [
-    memtracker_enabled=no
-    AC_MSG_RESULT([no])
-  ]
-)
-if test x$memtracker_enabled = xyes; then
+AC_ARG_ENABLE([memtracker],[AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module])])
+AC_MSG_RESULT([$enable_memtracker])
+if test x$enable_memtracker = xyes; then
 	AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled or not])
 fi
-
-# Check for programs
-
-# Check for architecture
-ARCHITECTURES=
-OS=
 
 # Check for programs
 AC_PROG_CPP
@@ -118,33 +92,7 @@ AM_PROG_AS
 AC_PROG_SED
 
 # Flags & Compiler dependent stuff
-if test x$CC=xicc -o x$CXX=xicpc; then
-	cc_intel=yes;
-fi
-
-if test x$ac_cv_cxx_compiler_gnu = xyes; then
-   cc_gnu_compatible=yes
-fi
-
-if test x$ac_cv_prog_cc_xlc_c_o = xyes; then
-   cc_xlc=yes
-fi
-if test x$ac_cv_prog_cc_xlc_r_c_o = xyes; then
-   cc_xlc=yes
-fi
-
-if test x$use_bgq = xyes; then
-    if test x$use_gnu = xyes; then
-        AC_SUBST([BGQ_DYNAMIC_LINK],[-dynamic])
-    fi
-    if test x$use_xlc = xyes; then
-        AC_SUBST([BGQ_DYNAMIC_LINK],[-qnostaticlink])
-    fi
-fi
-
-AM_CONDITIONAL([GNU_C], [test x$use_gnu = xyes])
-AM_CONDITIONAL([IBM_C], [test x$use_xlc = xyes])
-AM_CONDITIONAL([INTEL_C], [test x$cc_intel = xyes])
+AX_CONFIG_CC
 
 # Check for libraries
 
@@ -166,7 +114,9 @@ AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
+ARCHITECTURES=
 OPTIONS=
+OS=
 
 AC_SUBST([ARCHITECTURES])
 AC_SUBST([OS])
@@ -712,6 +662,7 @@ if test ${dlb_path} != "no" -a ${dlb_path} != "not_set" ; then
       AC_MSG_ERROR([Attention! You have passed an invalid DLB location.])
    fi
    dlb=yes
+   AC_DEFINE([DLB],[],[Enables DLB support.])
 else
    dlb=no
 fi
@@ -728,25 +679,18 @@ AC_SUBST([MKL_LIBS])
 
 # Task-level resiliency support
 AC_MSG_CHECKING([if task resiliency is enabled])
-AC_ARG_ENABLE([resiliency],
-  AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency]),
-  [
-    AC_MSG_RESULT([$enableval])
-    if test "x$enableval" = "xyes"; then
-      AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],
-        [],
-        [AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])],
-        [-Werror])
-    fi
-  ],
-  [
-    resiliency=no
-    AC_MSG_RESULT([no])
-  ]
-)
+AC_ARG_ENABLE([resiliency],[AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency])])
+AC_MSG_RESULT([$enable_resiliency])
+if test x$enable_resiliency = xyes; then
+  AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],
+    [],
+    [AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])],
+    [-Werror])
 
-AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
-AC_SUBST([resiliency])
+  AC_DEFINE([NANOS_RESILIENCY_ENABLED],[],[Indicates whether resiliency features should be used or not.])
+  extra_CXXFLAGS=-fnon-call-exceptions
+fi
+AC_SUBST([enable_resiliency])
 
 
 # Output files

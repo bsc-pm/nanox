@@ -1,6 +1,3 @@
-# ===========================================================================
-#   http://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html
-# ===========================================================================
 #
 # SYNOPSIS
 #
@@ -57,8 +54,9 @@ AC_DEFUN([AX_CHECK_CUDA],[
   [AS_HELP_STRING([--with-cuda-lib=PATH],
                   [specify directory for the installed cuda library])])
   
+  # Search for Cuda by default
   if test "x$with_cuda" != xno; then
-    if test "x$with_cuda" = xyes; then
+    if [[[ "x$with_cuda" =~ x"yes"|"" ]]]; then
       cuda_prefix=/usr/local/cuda
     else
       cuda_prefix=$with_cuda
@@ -113,7 +111,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
                        [-lcudart])
       fi
 
-      cudalib="$cudalib $LIBS"
+      cudalibs=$LIBS
   
       CFLAGS="$bak_CFLAGS"
       CPPFLAGS="$bak_CPPFLAGS"
@@ -154,6 +152,7 @@ CUDA 5 or greater is required.
   AC_SUBST([cuda_prefix])
   AC_SUBST([cudainc])
   AC_SUBST([cudalib])
+  AC_SUBST([cudalibs])
 
   AM_CONDITIONAL([GPU_SUPPORT],[test x$cuda = xyes])
 ])dnl AX_CHECK_CUDA
