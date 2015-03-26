@@ -1,91 +1,53 @@
 #!/bin/bash
 
-cat <<EOF
+common_includes="\
+-I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/apis/c \
+-I@abs_top_builddir@/src/apis/c \
+$END"
 
-SRC=@SRCDIR@/src
-BUILD=@BUILDDIR@/src
+VERSIONS="@VERSIONS@"
 
-PERFO_CFLAGS=@PERFO_CFLAGS@
-PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
-DEBUG_CFLAGS=@DEBUG_CFLAGS@
-DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
-INSTR_CFLAGS=@INSTR_CFLAGS@
-INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
-INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
-INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
+@DEBUG_VERSION_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@DEBUG_VERSION_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@DEBUG_VERSION_TRUE@ debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@DEBUG_VERSION_TRUE@ debug_LIBADD="@extra_LIBS@"
+@DEBUG_VERSION_TRUE@ debug_PLUGINS=
 
-PLUGINS_performance=@PLUGINS_PERFORMANCE@
-PLUGINS_debug=@PLUGINS_DEBUG@
-PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
-PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
-
-common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$BUILD/apis/c"
-
-compile_versions="@COMPILE_VERSIONS@"
-
-test_CC=@CONFIG_CC@
-test_CXX=@CONFIG_CXX@
-
-test_CFLAGS="\$common_includes"
-test_CXXFLAGS="\$common_includes"
-
-test_CFLAGS_performance="\$PERFO_CFLAGS"
-test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
-test_CFLAGS_debug="\$DEBUG_CFLAGS"
-test_CXXFLAGS_debug="\$DEBUG_CXXFLAGS"
-test_CFLAGS_instrumentation="\$INSTR_CFLAGS"
-test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS"
-test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
-test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
-
-test_LDFLAGS_performance=" -Wl,--no-as-needed \
-\$BUILD/core/performance/.libs/libnanox.so \
-\$BUILD/pms/performance/.libs/libnanox-ompss.so \
-\$BUILD/apis/performance/.libs/libnanox-c.so \
--pthread"
-
-test_ENV_performance="LD_LIBRARY_PATH=\
-\$BUILD/core/performance/.libs:\
-\$BUILD/pms/performance/.libs:\
-\$BUILD/apis/performance/.libs:\
-\$PLUGINS_performance:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_debug=" -Wl,--no-as-needed \
-\$BUILD/pms/debug/.libs/libnanox-ompss.so \
-\$BUILD/core/debug/.libs/libnanox.so \
-\$BUILD/apis/debug/.libs/libnanox-c.so \
--pthread"
-
-test_ENV_debug="LD_LIBRARY_PATH=\
-\$BUILD/core/debug/.libs:\
-\$BUILD/apis/debug/.libs:\
-\$BUILD/pms/debug/.libs:\
-\$PLUGINS_debug:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation="-Wl,--no-as-needed \
-\$BUILD/core/instrumentation/.libs/libnanox.so \
-\$BUILD/pms/instrumentation/.libs/libnanox-ompss.so \
-\$BUILD/apis/instrumentation/.libs/libnanox-c.so \
--pthread"
-
-test_ENV_instrumentation="LD_LIBRARY_PATH=\
-\$BUILD/core/instrumentation/.libs:\
-\$BUILD/pms/instrumentation/.libs:\
-\$BUILD/apis/instrumentation/.libs:\
-\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation_debug="-Wl,--no-as-needed \
-\$BUILD/core/instrumentation-debug/.libs/libnanox.so \
-\$BUILD/pms/instrumentation-debug/.libs/libnanox-ompss.so \
-\$BUILD/apis/instrumentation-debug/.libs/libnanox-c.so \
--pthread"
-
-test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\
-\$BUILD/core/instrumentation-debug/.libs:\
-\$BUILD/apis/instrumentation-debug/.libs:\
-\$BUILD/pms/instrumentation-debug/.libs:\
-\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
-
-`@SRCDIR@/tests/gens/config.py $*`
+# Common to all versions
+cat << EOF
+CC=@CC@
+CXX=@CXX@
 EOF
+
+# Specific to each version
+for version in @VERSIONS@; do
+
+for plugin in "@PLUGINS@"; do
+  $(eval ${version}_PLUGINS="\$${version}_PLUGINS @abs_top_builddir@/src/$plugin/.libs")
+done
+
+
+cat <<EOF
+${version}_CPPFLAGS="$(eval echo \${${version}_CPPFLAGS})"
+${version}_CXXFLAGS="$(eval echo \${${version}_CXXFLAGS})"
+${version}_LDFLAGS="$(eval echo \${${version}_LDFLAGS})"
+${version}_LIBADD="$(eval echo \${${version}_LIBADD})"
+${version}_PLUGINS="$(eval echo \${${version}_PLUGINS})"
+
+test_LDFLAGS_$version=" -Wl,--no-as-needed \
+@buildir@/pms/$version/.libs/libnanox-ompss.so \
+@buildir@/core/$version/.libs/libnanox.so \
+@buildir@/apis/$version/.libs/libnanox-c.so \
+-pthread"
+
+test_ENV_$version="LD_LIBRARY_PATH=\
+@buildir@/core/$version/.libs:\
+@buildir@/apis/$version/.libs:\
+@buildir@/pms/$version/.libs:\
+\$PLUGINS_$version:\$LD_LIBRARY_PATH"
+
+\$(@srcdir@/tests/gens/config.py $*)
+EOF
+done;
 

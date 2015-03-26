@@ -506,7 +506,6 @@ AC_SUBST([instrumentation_debug_CXXFLAGS])
 AC_SUBST([performance_CPPFLAGS])
 AC_SUBST([performance_CXXFLAGS])
 
-
 # Check for atomic builtins in GCC
 AC_CHECK_GXX_ATOMIC_BUILTINS()
 
@@ -657,6 +656,13 @@ AC_SUBST([extra_CXXFLAGS])
 AC_SUBST([extra_LDFLAGS])
 AC_SUBST([extra_LIBS])
 
+# Generate plugin list
+PLUGINS="plugins pms/openmp pms/chapel"
+for arch in $ARCHITECTURES; do
+  PLUGINS+=" arch/$arch"
+done
+AC_SUBST([PLUGINS])
+
 # Output files
 AC_CONFIG_HEADERS([config.h])
 
@@ -680,6 +686,15 @@ AC_CONFIG_FILES([Makefile
                  scripts/Makefile
                  tests/Makefile
                  tests/gens/Makefile
+                 tests/gens/api-generator
+                 tests/gens/api-omp-generator
+                 tests/gens/core-generator
+                 tests/gens/gpu-generator
+                 tests/gens/mcc-openmp-generator
+                 tests/gens/mixed-generator
+                 tests/gens/mpi-offload-generator
+                 tests/gens/nanox-creation-generator
+                 tests/gens/resiliency-generator
                  doc/Makefile
                  doc/doxy-nanox
        ])
