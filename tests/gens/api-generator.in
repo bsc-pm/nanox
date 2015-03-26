@@ -7,47 +7,65 @@ common_includes="\
 $END"
 
 VERSIONS="@VERSIONS@"
+PLUGINS="@PLUGINS@"
 
 @DEBUG_VERSION_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
 @DEBUG_VERSION_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
 @DEBUG_VERSION_TRUE@ debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
-@DEBUG_VERSION_TRUE@ debug_LIBADD="@extra_LIBS@"
+@DEBUG_VERSION_TRUE@ debug_LIBS="@extra_LIBS@"
 @DEBUG_VERSION_TRUE@ debug_PLUGINS=
+
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LIBS="@extra_LIBS@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_PLUGINS=
+
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_PLUGINS=
+
+@PERFORMANCE_VERSION_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@PERFORMANCE_VERSION_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@PERFORMANCE_VERSION_TRUE@ performance_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@PERFORMANCE_VERSION_TRUE@ performance_LIBS="@extra_LIBS@"
+@PERFORMANCE_VERSION_TRUE@ performance_PLUGINS=
 
 # Common to all versions
 cat << EOF
-CC=@CC@
-CXX=@CXX@
+test_CC=@CC@
+test_CXX=@CXX@
 EOF
 
 # Specific to each version
-for version in @VERSIONS@; do
+for version in $VERSIONS; do
 
-for plugin in "@PLUGINS@"; do
-  $(eval ${version}_PLUGINS="\$${version}_PLUGINS @abs_top_builddir@/src/$plugin/.libs")
-done
+  for plugin in $PLUGINS; do
+    eval ${version}_PLUGINS+="' @abs_top_builddir@/src/$plugin/.libs'"
+  done
 
+  eval ${version}_ENV="'LD_LIBRARY_PATH=\
+@abs_top_builddir@/core/$version/.libs:\
+@abs_top_builddir@/apis/$version/.libs:\
+@abs_top_builddir@/pms/$version/.libs:\
+\$${version}_PLUGINS:$LD_LIBRARY_PATH'"
+
+  eval ${version}_LDFLAGS+="' -Wl,--no-as-needed \
+@abs_top_builddir@/pms/${version}/.libs/libnanox-ompss.so \
+@abs_top_builddir@/core/${version}/.libs/libnanox.so \
+@abs_top_builddir@/apis/${version}/.libs/libnanox-c.so \
+@PTHREAD_LIBS@'"
 
 cat <<EOF
-${version}_CPPFLAGS="$(eval echo \${${version}_CPPFLAGS})"
-${version}_CXXFLAGS="$(eval echo \${${version}_CXXFLAGS})"
-${version}_LDFLAGS="$(eval echo \${${version}_LDFLAGS})"
-${version}_LIBADD="$(eval echo \${${version}_LIBADD})"
-${version}_PLUGINS="$(eval echo \${${version}_PLUGINS})"
+test_CPPFLAGS_${version}="$(eval echo \${${version}_CPPFLAGS})"
+test_CXXFLAGS_${version}="$(eval echo \${${version}_CXXFLAGS})"
+test_LDFLAGS_${version}="$(eval echo \${${version}_LDFLAGS} \${${version}_LIBS})"
+test_PLUGINS_${version}="$(eval echo \${${version}_PLUGINS})"
+test_ENV_${version}="$(eval echo \${${version}_ENV})"
 
-test_LDFLAGS_$version=" -Wl,--no-as-needed \
-@buildir@/pms/$version/.libs/libnanox-ompss.so \
-@buildir@/core/$version/.libs/libnanox.so \
-@buildir@/apis/$version/.libs/libnanox-c.so \
--pthread"
-
-test_ENV_$version="LD_LIBRARY_PATH=\
-@buildir@/core/$version/.libs:\
-@buildir@/apis/$version/.libs:\
-@buildir@/pms/$version/.libs:\
-\$PLUGINS_$version:\$LD_LIBRARY_PATH"
-
-\$(@srcdir@/tests/gens/config.py $*)
+$(@abs_top_srcdir@/tests/gens/config.py $*)
 EOF
 done;
 

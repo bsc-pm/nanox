@@ -192,11 +192,14 @@ compile_c ()
    #test values
    cc=${test_CC:-$cc}
    cflags=${test_CFLAGS:-$CFLAGS}
+   cppflags=${test_CPPFLAGS:-$CPPFLAGS}
    ldflags=${test_LDFLAGS:-$LDFLAGS}
 
    #version values
    eval tmp=\${test_CC_$version}
    cc=${tmp:-$cc}
+   eval tmp=\"\${test_CPPFLAGS_$version}\"
+   cppflags="$tmp $cppflags"
    eval tmp=\"\${test_CFLAGS_$version}\"
    cflags="$tmp $cflags"
    out_param=""
@@ -212,7 +215,7 @@ compile_c ()
    unset current_test_nolink
 
    pushd $tmpdir
-   logcmd $cc $cflags $out_param $srcdir/$source $ldflags 
+   logcmd $cc $cppflags $cflags $out_param $srcdir/$source $ldflags 
    local ret=$?
    popd
 
@@ -236,12 +239,15 @@ compile_cpp ()
 
    #test values
    cxx=${test_CXX:-$cxx}
+   cppflags=${test_CPPFLAGS:-$CPPFLAGS}
    cxxflags=${test_CXXFLAGS:-$CXXFLAGS}
    ldflags=${test_LDFLAGS:-$LDFLAGS}
 
    #version values
    eval tmp=\${test_CXX_$version}
    cxx=${tmp:-$cxx}
+   eval tmp=\"\${test_CPPFLAGS_$version}\"
+   cppflags="$tmp $cppflags"
    eval tmp=\"\${test_CXXFLAGS_$version}\"
    cxxflags="$tmp $cxxflags"
    out_param=""
@@ -257,7 +263,7 @@ compile_cpp ()
    unset current_test_nolink
 
    pushd $tmpdir
-   logcmd $cxx $cxxflags $out_param $srcdir/$source $ldflags 
+   logcmd $cxx $cppflags $cxxflags $out_param $srcdir/$source $ldflags 
    local ret=$?
    popd
 

@@ -35,12 +35,12 @@
 AC_DEFUN([AX_CONFIG_CC],[
 AC_PREREQ(2.59)
 
-cc_dep_CPPFLAGS=-D_NANOS_INTERNAL
+cc_dep_CPPFLAGS=
 cc_dep_CXXFLAGS=
 cc_dep_LDFLAGS=
 
 if test x$ac_cv_cxx_compiler_gnu = xyes; then
-  cc_dep_CPPFLAGS="$cc_dep_CPPFLAGS -include new_decl.hpp -include config.h"
+  cc_dep_CPPFLAGS="$cc_dep_CPPFLAGS -include new_decl.hpp"
   cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter"
   no_inline_flag=-fno-inline
 fi

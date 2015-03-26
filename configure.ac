@@ -384,6 +384,7 @@ AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
 	[
       mcc_valid=yes
 		MCC="${withval}/bin/mcc"
+		MCXX="${withval}/bin/mcxx"
 	],
 	[
       mcc_valid=no
@@ -392,6 +393,7 @@ AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
 
 AC_SUBST([mcc_valid])
 AC_SUBST([MCC])
+AC_SUBST([MCXX])
 
 AC_MSG_CHECKING([for architecture])
 

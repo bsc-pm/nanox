@@ -1,97 +1,81 @@
 #!/bin/bash
 
-cat <<EOF
+#common_includes=" 
+# -I\$SRC/arch/unix-os \
+# -I\$SRC/support \
+# -I\$SRC/core \
+# -I\$SRC/arch/smp \
+# -I\$SRC/arch/gpu \
+# -I\$SRC/arch/opencl \
+# -I\$SRC/arch/spu \
+# -I\$SRC/arch/cluster"
 
-SRC=@SRCDIR@/src
-BUILD=@BUILDDIR@/src
+common_includes="\
+-I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/apis/c \
+-I@abs_top_builddir@/src/apis/c \
+$END"
 
-PERFO_CFLAGS=@PERFO_CFLAGS@
-PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
-DEBUG_CFLAGS=@DEBUG_CFLAGS@
-DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
-INSTR_CFLAGS=@INSTR_CFLAGS@
-INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
-INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
-INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
+VERSIONS="@VERSIONS@"
+PLUGINS="@PLUGINS@"
 
-PLUGINS_performance=@PLUGINS_PERFORMANCE@
-PLUGINS_debug=@PLUGINS_DEBUG@
-PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
-PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
+@DEBUG_VERSION_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@DEBUG_VERSION_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@DEBUG_VERSION_TRUE@ debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@DEBUG_VERSION_TRUE@ debug_LIBS="@extra_LIBS@"
+@DEBUG_VERSION_TRUE@ debug_PLUGINS=
 
-common_includes="-I\$SRC/core -I\$SRC/apis/c"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LIBS="@extra_LIBS@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_PLUGINS=
 
-common_includes=" 
-        -I\$SRC/arch/unix-os \
-        -I\$SRC/support \
-        -I\$SRC/core \
-        -I\$SRC/arch/smp \
-        -I\$SRC/arch/gpu \
-        -I\$SRC/arch/opencl \
-        -I\$SRC/arch/spu \
-        -I\$SRC/arch/cluster"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_PLUGINS=
 
-compile_versions="@COMPILE_VERSIONS@"
+@PERFORMANCE_VERSION_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@PERFORMANCE_VERSION_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@PERFORMANCE_VERSION_TRUE@ performance_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@PERFORMANCE_VERSION_TRUE@ performance_LIBS="@extra_LIBS@"
+@PERFORMANCE_VERSION_TRUE@ performance_PLUGINS=
 
-test_CC=@CONFIG_CC@
-test_CXX=@CONFIG_CXX@
-
-test_CFLAGS="\$common_includes"
-test_CXXFLAGS="\$common_includes"
-
-test_CFLAGS_performance="\$PERFO_CFLAGS"
-test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
-test_CFLAGS_debug="\$DEBUG_CFLAGS"
-test_CXXFLAGS_debug="\$DEBUG_CXXFLAGS"
-test_CFLAGS_instrumentation="\$INSTR_CFLAGS"
-test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS"
-test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
-test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
-
-test_LDFLAGS_performance="-Wl,--no-as-needed \
-\$BUILD/core/performance/.libs/libnanox.so \
-\$BUILD/apis/performance/.libs/libnanox-c.so \
-\$BUILD/pms/performance/.libs/libnanox-ompss.so"
-
-test_ENV_performance="LD_LIBRARY_PATH=\
-\$BUILD/core/performance/.libs:\
-\$BUILD/apis/performance/.libs:\
-\$BUILD/pms/performance/.libs:\
-\$PLUGINS_performance:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_debug="-Wl,--no-as-needed \
-\$BUILD/core/debug/.libs/libnanox.so \
-\$BUILD/apis/debug/.libs/libnanox-c.so \
-\$BUILD/pms/debug/.libs/libnanox-ompss.so"
-
-test_ENV_debug="LD_LIBRARY_PATH=\
-\$BUILD/core/debug/.libs:\
-\$BUILD/apis/debug/.libs:\
-\$BUILD/pms/debug/.libs:\
-\$PLUGINS_debug:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation=" -Wl,--no-as-needed \
-\$BUILD/core/instrumentation/.libs/libnanox.so \
-\$BUILD/apis/instrumentation/.libs/libnanox-c.so \
-\$BUILD/pms/instrumentation/.libs/libnanox-ompss.so"
-
-test_ENV_instrumentation="LD_LIBRARY_PATH=\
-\$BUILD/core/instrumentation/.libs:\
-\$BUILD/apis/instrumentation/.libs:\
-\$BUILD/pms/instrumentation/.libs:\
-\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation_debug=" -Wl,--no-as-needed \
-\$BUILD/core/instrumentation-debug/.libs/libnanox.so \
-\$BUILD/apis/instrumentation-debug/.libs/libnanox-c.so \
-\$BUILD/pms/instrumentation-debug/.libs/libnanox-ompss.so"
-
-test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\
-\$BUILD/core/instrumentation-debug/.libs:\
-\$BUILD/apis/instrumentation-debug/.libs:\
-\$BUILD/pms/instrumentation-debug/.libs:\
-\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
-
-`@SRCDIR@/tests/gens/config.py $*`
+# Common to all versions
+cat << EOF
+test_CC=@CC@
+test_CXX=@CXX@
 EOF
+
+# Specific to each version
+for version in $VERSIONS; do
+
+  for plugin in $PLUGINS; do
+    eval ${version}_PLUGINS+="' @abs_top_builddir@/src/$plugin/.libs'"
+  done
+
+  eval ${version}_ENV="'LD_LIBRARY_PATH=\
+@abs_top_builddir@/core/$version/.libs:\
+@abs_top_builddir@/apis/$version/.libs:\
+@abs_top_builddir@/pms/$version/.libs:\
+\$${version}_PLUGINS:$LD_LIBRARY_PATH'"
+
+  eval ${version}_LDFLAGS+="' -Wl,--no-as-needed \
+@abs_top_builddir@/pms/${version}/.libs/libnanox-ompss.so \
+@abs_top_builddir@/core/${version}/.libs/libnanox.so \
+@abs_top_builddir@/apis/${version}/.libs/libnanox-c.so \
+@PTHREAD_LIBS@'"
+
+cat <<EOF
+test_CPPFLAGS_${version}="$(eval echo \${${version}_CPPFLAGS})"
+test_CXXFLAGS_${version}="$(eval echo \${${version}_CXXFLAGS})"
+test_LDFLAGS_${version}="$(eval echo \${${version}_LDFLAGS} \${${version}_LIBS})"
+test_PLUGINS_${version}="$(eval echo \${${version}_PLUGINS})"
+test_ENV_${version}="$(eval echo \${${version}_ENV})"
+
+$(@abs_top_srcdir@/tests/gens/config.py $*)
+EOF
+done;
 
