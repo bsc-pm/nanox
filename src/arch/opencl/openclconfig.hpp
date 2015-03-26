@@ -32,6 +32,18 @@ public:
 
   static bool isSaveKernelEnabled(){ return _saveBinaryKernel; }
 
+	static bool isOclSleepEnable() { return _oclSleepEnable; }
+
+	static unsigned int getOclSleepNsec() { return _oclSleepNsec; }
+
+	static unsigned int getOclSleepSec() { return _oclSleepSec; }
+
+	void setOclSleepEnable(bool oclSleepEnable) { _oclSleepEnable = oclSleepEnable; }
+
+	void setOclSleepNsec(unsigned int oclSleepNsec) { _oclSleepNsec = oclSleepNsec; }
+
+	void setOclSleepSec(unsigned int oclSleepSec) { _oclSleepSec = oclSleepSec; }
+
 private:
   static void prepare( Config &cfg );
   static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
@@ -74,6 +86,15 @@ private:
 
   //! If kernels should be saved to a binary file or not
   static bool _saveBinaryKernel;
+
+  // Determines if opencl thread should sleep or not
+  static bool _oclSleepEnable;
+
+  // Number of seconds to sleep the opencl thread
+  static int _oclSleepSec;
+
+  // Number of nanoseconds to sleep the opencl thread
+  static int _oclSleepNsec;
 
   friend class OpenCLPlugin;
 };

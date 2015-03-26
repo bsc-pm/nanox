@@ -28,12 +28,22 @@ using namespace nanos::ext;
 // OpenCLLocalThread implementation.
 //
 
+void OpenCLThread::initSleep() {
+
+	_sleepT1.tv_sec = nanos::ext::OpenCLConfig::getOclSleepSec();
+	_sleepT1.tv_nsec = nanos::ext::OpenCLConfig::getOclSleepNsec();
+
+	setShouldSleep(nanos::ext::OpenCLConfig::isOclSleepEnable());
+}
+
 void OpenCLThread::initializeDependent() {
     // Since we create an OpenCLLocalThread for each OpenCLProcessor, and an
     // OpenCLProcessor for each OpenCL device, force device initialization here, in
     // order to be executed in parallel.
     OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
     myProc->initialize();
+
+    this->initSleep();
 }
 
 void OpenCLThread::runDependent() {    
@@ -74,6 +84,12 @@ void OpenCLThread::idle() {
 
    // proc.execTransfers();
 
+	if ( isShouldSleep() ) {
+		if(nanosleep(&(_sleepT1) , &(_sleepT2)) < 0 )
+		{
+			warning("Error when doing sleep");
+		}
+	}
 }
 
 void OpenCLThread::enableWDClosingEvents ()

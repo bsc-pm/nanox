@@ -59,7 +59,7 @@ public:
                                 "(ALL, CPU, GPU, ACCELERATOR)" );
       cfg.registerEnvOption( "opencl-device-type", "NX_OPENCL_DEVICE_TYPE" );
       cfg.registerArgOption( "opencl-device-type", "opencl-device-type" );
-   
+
       OpenCLConfig::prepare( cfg );
    }
 

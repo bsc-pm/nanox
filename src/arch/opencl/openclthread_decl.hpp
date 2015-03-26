@@ -32,6 +32,10 @@ class OpenCLThread : public SMPThread
 private:
    bool _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
    
+   struct timespec _sleepT1, _sleepT2;
+
+   bool _shouldSleep;
+
    OpenCLThread( const OpenCLThread &thr ); // Do not implement.
    const OpenCLThread &operator=( const OpenCLThread &thr ); // Do not implement.
    
@@ -39,6 +43,8 @@ private:
    void prefetchNextTask( WD * next );
    void raiseWDClosingEvents ();
    
+   void initSleep();
+
 public:
    OpenCLThread( WD &wd, PE *pe ) : SMPThread( wd, pe ) {}
    ~OpenCLThread() {}
@@ -49,6 +55,14 @@ public:
    void yield();
    void idle();
    void enableWDClosingEvents ();
+
+	bool isShouldSleep() const {
+		return _shouldSleep;
+	}
+
+	void setShouldSleep(bool shouldSleep) {
+		_shouldSleep = shouldSleep;
+	}
 
 private:
 
