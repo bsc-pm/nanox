@@ -29,7 +29,6 @@ using namespace nanos::ext;
 //
 
 void OpenCLThread::initSleep() {
-	warning("Using sleep mode by default");
 
 	_sleepT1.tv_sec = nanos::ext::OpenCLConfig::getOclSleepSec();
 	_sleepT1.tv_nsec = nanos::ext::OpenCLConfig::getOclSleepNsec();
