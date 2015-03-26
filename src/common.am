@@ -23,19 +23,26 @@ dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_instr
 dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
 endif
 
-global_perfo_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3
+AM_CPPFLAGS=@cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $(common_includes)
+AM_CXXFLAGS=@cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@
+AM_LDFLAGS=@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@
+AM_LIBS=@extra_LIBS@
+
+common_cxxflags=$(AM_CXXFLAGS)
+
+global_perfo_cxxflags= $(common_cxxflags) -DLIBDIR=\"$(libdir)\" -O3
 common_perfo_cxxflags= $(global_perfo_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 perfo_cflags=-O3
 
-global_debug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED
+global_debug_cxxflags= $(common_cxxflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED
 common_debug_cxxflags= $(global_debug_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 debug_cflags=-O0 -g2
 
-global_instr_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
+global_instr_cxxflags= $(common_cxxflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
 common_instr_cxxflags= $(global_instr_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 instr_cflags=-O3
 
-global_instrdebug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED
+global_instrdebug_cxxflags= $(common_cxxflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED
 common_instrdebug_cxxflags= $(global_instrdebug_cxxflags) -D_NANOS_INTERNAL $(dlb_cppflags)
 instrdebug_cflags=-O0 -g2
 

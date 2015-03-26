@@ -10,8 +10,9 @@
 #
 #   Checks that selected compilers are able to build binaries for Intel K1OM
 #   architecture.
-#   Also issues a warning when LD_LIBRARY_PATH variable is set, as it can cause
+#   Issues a warning when LD_LIBRARY_PATH variable is set, as it can cause
 #   problems later in the link stage.
+#   Sets variables host_dep_CXXFLAGS and host_dep_LDFLAGS.
 #
 # LICENSE
 #
@@ -77,6 +78,7 @@ binary incompatible libraries may interfer in the link process.
 -------------------------------])
 fi
 
-AC_SUBST([INTEL_MIC_FLAGS],[-mmic])
+host_dep_CXXFLAGS=-mmic
+host_dep_LDFLAGS=-mmic
 
-])dnl AX_CHECK_MIC
+]) #AX_CHECK_MIC

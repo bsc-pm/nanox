@@ -32,24 +32,28 @@
 #   or distributing such scripts, even though portions of the text of the
 #   Macro appear in them. The GNU General Public License (GPL) does govern
 
+AC_DEFUN([AX_CONFIG_CC],[
+AC_PREREQ(2.59)
+
 cc_dep_CPPFLAGS=-D_NANOS_INTERNAL
 cc_dep_CXXFLAGS=
 cc_dep_LDFLAGS=
 
 if test x$ac_cv_cxx_compiler_gnu = xyes; then
-   cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unusued-parameter -include"new_decl.hpp" -include"config.h"
-	no_inline_flag=-fno-inline
+  cc_dep_CPPFLAGS="$cc_dep_CPPFLAGS -include new_decl.hpp -include config.h"
+  cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter"
+  no_inline_flag=-fno-inline
 fi
 
-case $CXX in 
-	*icpc)
-	  ;;
-	*g++)
-	  ;;
-	*xlC)
-	  cc_dep_CXXFLAGS= -qinclude="new_decl.hpp" -qinclude="config.h" -qlanglvl=variadictemplates
-	  cc_dep_LDFLAGS=$cc_dep_LDFLAGS -Wl,-z,muldefs
+if [[[ x$CXX =~ .*"xlC" ]]]; then
+      cc_dep_CPPFLAGS="$cc_dep_CPPFLAGS -qinclude=\"new_decl.hpp\" -qinclude=\"config.h\""
+	  cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -qlanglvl=variadictemplates"
+	  cc_dep_LDFLAGS="$cc_dep_LDFLAGS -Wl,-z,muldefs"
 	  no_inline_flag=-qno-inline
-	  ;;
-esac
+fi
 
+AC_SUBST([cc_dep_CPPFLAGS])
+AC_SUBST([cc_dep_CXXFLAGS])
+AC_SUBST([cc_dep_LDFLAGS])
+
+]) # AX_CONFIG_CC

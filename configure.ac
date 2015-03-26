@@ -1,7 +1,7 @@
 AC_INIT([nanox], [0.9a], [pm-tools@bsc.es])
+AC_LANG([C++])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
-
-# New comment
+AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], ["$0 $@"], [Configure line])
 
 # Environment
 AC_CANONICAL_BUILD
@@ -52,10 +52,7 @@ then
      build_version="\"$run_gitversion\""
      AC_MSG_RESULT([$build_version])
 fi
-
-AC_DEFINE_UNQUOTED([NANOX_CONFIGURE_ARGS], [$0 $@], [Configure line])
 AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
-AC_DEFINE_UNQUOTED([LIBDIR],[$(libdir)], [Path to the directory containing Nanos++ libraries])
 
 # Debian release
 AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
@@ -131,6 +128,15 @@ AC_ARG_ENABLE([ult],
   [smp_ult=no],
   [smp_ult=yes]
 )
+
+# Use these for flags that depend on the host arch
+host_dep_CPPFLAGS=
+host_dep_CXXFLAGS=
+host_dep_LDFLAGS=
+
+AC_SUBST([host_dep_CPPFLAGS])
+AC_SUBST([host_dep_CXXFLAGS])
+AC_SUBST([host_dep_LDFLAGS])
 
 case $host in
   x86_64-k1om-linux*) # Intel MIC (KNF/ KNC)
@@ -364,7 +370,7 @@ AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
 
 #MPI Support
-#AX_CHECK_MPI
+AX_CHECK_MPI
 
 # Check if NVidia CUDA device has been selected 
 AX_CHECK_CUDA
@@ -407,144 +413,98 @@ AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
-USED_VERSION=""
 VERSIONS=""
 
-# Enable instrumentation-debug version
-instrumentation_debug_disabled="yes"
-AC_MSG_CHECKING([if instrumentation-debug version was enabled])
-AC_ARG_ENABLE([instrumentation-debug],
-  AS_HELP_STRING([--enable-instrumentation-debug], [Enables generation of instrumentation-debug version]),
-  [
-    if test x$enableval = xyes -o x$enableval = x;
-    then
-        instrumentation_debug_disabled="no"
-        AC_MSG_RESULT([yes])
-        USED_VERSION="instrumentation-debug"
-        VERSIONS+=" instrumentation-debug"
-    else if test x$enableval = xno;
-         then
-            AC_MSG_RESULT([no])
-            instrumentation_debug_disabled="yes"
-         else
-            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-         fi
-    fi
-  ],
-  [
-      AC_MSG_RESULT([no])
-      instrumentation_debug_disabled="yes"
-  ]
-)
-
-AM_CONDITIONAL([INSTRUMENTATION_DEBUG_VERSION], [test x$instrumentation_debug_disabled = xno])
-AC_SUBST([instrumentation_debugdir],['${libdir}/instrumentation-debug'])
-
-# Enable instrumentation version
-instrumentation_disabled="no"
-AC_MSG_CHECKING([if instrumentation version was disabled])
-AC_ARG_ENABLE([instrumentation],
-  AS_HELP_STRING([--disable-instrumentation], [Disables generation of instrumentation version]),
-  [
-    if test x$disableval = xyes -o x$enableval = xno;
-    then
-        instrumentation_disabled="yes"
-        AC_MSG_RESULT([yes])
-    else if test x$disableval = xno -o x$disableval = x;
-         then
-            AC_MSG_RESULT([no])
-            instrumentation_disabled="no"
-            USED_VERSION="instrumentation"
-            VERSIONS+=" instrumentation"
-         else
-            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-         fi
-    fi
-  ],
-  [
-      AC_MSG_RESULT([no])
-      instrumentation_disabled="no"
-      USED_VERSION="instrumentation"
-      VERSIONS+=" instrumentation"
-  ]
-)
-
-AM_CONDITIONAL([INSTRUMENTATION_VERSION], [test x$instrumentation_disabled = xno])
-AC_SUBST([instrumentationdir],['${libdir}/instrumentation'])
-
 # Enable debug version
-debug_disabled="no"
-AC_MSG_CHECKING([if debug version was disabled])
+AC_MSG_CHECKING([if debug version is enabled])
 AC_ARG_ENABLE([debug],
-  AS_HELP_STRING([--disable-debug], [Disables generation of debug version]),
-  [
-    if test x$disableval = xyes -o x$enableval = xno;
-    then
-        debug_disabled="yes"
-        AC_MSG_RESULT([yes])
-    else if test x$disableval = xno -o x$disableval = x;
-         then
-            AC_MSG_RESULT([no])
-            debug_disabled="no"
-            USED_VERSION="debug"
-            VERSIONS+=" debug"
-         else
-            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-         fi
-    fi
-  ],
-  [
-      AC_MSG_RESULT([no])
-      debug_disabled="no"
-      USED_VERSION="debug"
-      VERSIONS+=" debug"
-  ]
-)
+  [AS_HELP_STRING([--disable-debug], [Disables generation of debug version])],
+  [enable_debug=$enableval],[enable_debug=yes])
 
-AM_CONDITIONAL([DEBUG_VERSION], [test x$debug_disabled = xno])
+if test x$enable_debug = xyes; then
+  AC_MSG_RESULT([yes])
+  VERSIONS+=" debug"
+
+  debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED"
+  debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
+else
+  AC_MSG_RESULT([no])
+fi
+
+AM_CONDITIONAL([DEBUG_VERSION], [test x$enable_debug = xyes])
 AC_SUBST([debugdir],['${libdir}/debug'])
 
-# Enable performance version
-performance_disabled="no"
-AC_MSG_CHECKING([if performance version was disabled])
-AC_ARG_ENABLE([performance],
-  AS_HELP_STRING([--disable-performance], [Disables generation of performance version]),
-  [
-    if test x$disableval = xyes -o x$enableval = xno;
-    then
-        performance_disabled="yes"
-        AC_MSG_RESULT([yes])
-    else if test x$disableval = xno -o x$disableval = x;
-         then
-            AC_MSG_RESULT([no])
-            performance_disabled="no"
-            USED_VERSION="performance"
-            VERSIONS+=" performance"
-         else
-            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
-         fi
-    fi
-  ],
-  [
-      AC_MSG_RESULT([no])
-      performance_disabled="no"
-      USED_VERSION="performance"
-      VERSIONS+=" performance"
-  ]
-)
+# Enable instrumentation version
+AC_MSG_CHECKING([if instrumentation version is enabled])
+AC_ARG_ENABLE([instrumentation],
+  [AS_HELP_STRING([--disable-instrumentation], [Disables generation of instrumentation version])],
+  [enable_instrumentation=$enableval],[enable_instrumentation=yes])
 
-AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$performance_disabled = xno])
+if test x$enable_instrumentation = xyes; then
+  AC_MSG_RESULT([yes])
+  VERSIONS+=" instrumentation"
+
+  instrumentation_CPPFLAGS="-DNANOS_INSTRUMENTATION_ENABLED"
+  instrumentation_CXXFLAGS="-O3"
+else
+  AC_MSG_RESULT([no])
+fi
+
+AM_CONDITIONAL([INSTRUMENTATION_VERSION], [test x$enable_instrumentation = xyes])
+AC_SUBST([instrumentationdir],['${libdir}/instrumentation'])
+
+# Enable instrumentation-debug version
+AC_MSG_CHECKING([if instrumentation-debug version was enabled])
+AC_ARG_ENABLE([instrumentation-debug],
+  [AS_HELP_STRING([--enable-instrumentation-debug], [Enables generation of instrumentation-debug version])],
+  [enable_instrumentation_debug=$enableval],[enable_instrumentation_debug=no])
+
+if test x$enable_instrumentation_debug = xyes; then
+  AC_MSG_RESULT([yes])
+  VERSIONS+=" instrumentation-debug"
+
+  instrumentation_debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED"
+  instrumentation_debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
+else
+  AC_MSG_RESULT([no])
+fi
+
+AM_CONDITIONAL([INSTRUMENTATION_DEBUG_VERSION], [test x$enable_instrumentation_debug = xyes])
+AC_SUBST([instrumentation_debugdir],['${libdir}/instrumentation-debug'])
+
+# Enable performance version
+AC_MSG_CHECKING([if performance version is enabled])
+AC_ARG_ENABLE([performance],
+  AS_HELP_STRING([--disable-performance], [Disables generation of performance version])],
+  [enable_performance=$enableval],[enable_performance=yes])
+
+if test x$enable_performance = xyes; then
+  AC_MSG_RESULT([yes])
+  VERSIONS+=" performance"
+
+  performance_CPPFLAGS=
+  performance_CXXFLAGS="-O3"
+else
+  AC_MSG_RESULT([no])
+fi
+
+AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$enable_performance = xyes])
 AC_SUBST([performancedir],['${libdir}/performance'])
 
-AC_MSG_CHECKING([if any version is to be compiled])
-if test x$performance_disabled = xyes -a x$debug_disabled = xyes -a x$instrumentation_disabled = xyes -a x$instrumentation_debug_disabled = xyes;
+if test "x$VERSIONS" = x;
 then
-	AC_MSG_RESULT([no])
 	AC_MSG_ERROR([At least one version needs to be compiled])
-else
-	AC_MSG_RESULT([yes])
 fi
-AC_SUBST([USED_VERSION])
+AC_SUBST([VERSIONS])
+
+AC_SUBST([debug_CPPFLAGS])
+AC_SUBST([debug_CXXFLAGS])
+AC_SUBST([instrumentation_CPPFLAGS])
+AC_SUBST([instrumentation_CXXFLAGS])
+AC_SUBST([instrumentation_debug_CPPFLAGS])
+AC_SUBST([instrumentation_debug_CXXFLAGS])
+AC_SUBST([performance_CPPFLAGS])
+AC_SUBST([performance_CXXFLAGS])
 
 
 # Check for atomic builtins in GCC
@@ -587,7 +547,6 @@ AC_SUBST([MPITRACE_HOME])
 AC_SUBST([MPITRACE_INC])
 AC_SUBST([MPITRACE_LIB])
 AC_SUBST([MPITRACE_BIN])
-
 
 AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
 
@@ -679,7 +638,8 @@ AC_SUBST([MKL_LIBS])
 
 # Task-level resiliency support
 AC_MSG_CHECKING([if task resiliency is enabled])
-AC_ARG_ENABLE([resiliency],[AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency])])
+AC_ARG_ENABLE([resiliency],[AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency])],
+              [enable_resiliency=$enableval],[enable_resiliency=no])
 AC_MSG_RESULT([$enable_resiliency])
 if test x$enable_resiliency = xyes; then
   AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],
@@ -692,6 +652,10 @@ if test x$enable_resiliency = xyes; then
 fi
 AC_SUBST([enable_resiliency])
 
+AC_SUBST([extra_CPPFLAGS])
+AC_SUBST([extra_CXXFLAGS])
+AC_SUBST([extra_LDFLAGS])
+AC_SUBST([extra_LIBS])
 
 # Output files
 AC_CONFIG_HEADERS([config.h])
@@ -755,5 +719,4 @@ if test x$cluster_enabled = xyes ; then
       echo "GASNet was configured also with a debug installation, with these conduits: " $CONDUITS_DBG
    fi
 fi
-echo ""
-echo "Extra options:" $OPTIONS
+

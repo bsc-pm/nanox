@@ -1,7 +1,7 @@
 #
 # SYNOPSIS
 #
-#   AX_CHECK_CUDA(FLAG, [ACTION-SUCCESS], [ACTION-FAILURE], [EXTRA-FLAGS], [INPUT])
+#   AX_CHECK_CUDA
 #
 # DESCRIPTION
 #
@@ -100,14 +100,18 @@ AC_DEFUN([AX_CHECK_CUDA],[
       if test x$cuda == xyes; then
         AC_CHECK_LIB([cudart],
                        [cudaMemcpy],
-                       [cuda=yes],[cuda=no])
+                       [cuda=yes
+                        LIBS="$LIBS -lcudart"],
+                       [cuda=no])
       fi
 
       # Look for cublasDrotmg function in libcublas.so library
       if test x$cuda == xyes; then
         AC_CHECK_LIB([cublas],
                        [cublasDrotmg],
-                       [cuda=yes],[cuda=no],
+                       [cuda=yes
+                        LIBS="$LIBS -lcublas"],
+                       [cuda=no],
                        [-lcudart])
       fi
 

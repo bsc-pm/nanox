@@ -8,6 +8,7 @@
 #   Check that required header files for BlueGene/Q drivers are present.
 #   Also finds whether -dynamic or -qnostaticbuild flags are necesary
 #   to allow dynamic linkage.
+#   Sets variables host_dep_CPPFLAGS and host_dep_LDFLAGS.
 #
 # LICENSE
 #
@@ -57,11 +58,11 @@ bak_CFLAGS=$CFLAGS
 #include <spi/include/kernel/process.h>
 #endif
 
-CPPFLAGS=-I/bgsys/drivers/ppcfloor/ppc64/spi/include/kernel
+CPPFLAGS=-I/bgsys/drivers/ppcfloor/ppc64
 CFLAGS=
 
-AC_CHECK_HEADER([location.h],[location_h_present=yes])
-AC_CHECK_HEADER([process.h] ,[process_h_present=yes],[])
+AC_CHECK_HEADER([spi/include/kernel/location.h],[location_h_present=yes])
+AC_CHECK_HEADER([spi/include/kernel/process.h] ,[process_h_present=yes],[])
 
 if "x$location_h_present" != xyes -o "x$process_h_present" != xyes; then
   AC_MSG_ERROR([
@@ -74,12 +75,14 @@ fi
 
 # Flags & Compiler dependent stuff
 AX_CHECK_COMPILE_FLAG([-dynamic],
-    [dyn_link_flag= -dynamic],
+    [host_dep_LDFLAGS=-dynamic],
     [],[-Werror])
         
 AX_CHECK_COMPILE_FLAG([-qnostaticlink],
-    [dyn_ink_flag= -qnostaticlink],
+    [host_dep_LDFLAGS=-qnostaticlink],
     [],[-Werror])
+
+host_dep_CPPFLAGS=$CPPFLAGS
 
 CPPFLAGS=bak_$CPPFLAGS
 CFLAGS=bak_$CFLAGS
@@ -96,7 +99,6 @@ or -qnostaticlink flags.
 ------------------------------])
 fi
 
-AC_SUBST([BGQ_DYNAMIC_LINK],["$dyn_link_flag"])
 AC_DEFINE([IS_BGQ_MACHINE],[],[BlueGene/Q host compatibility is enabled.])
 
-])dnl AX_CHECK_BGQ
+]) # AX_CHECK_BGQ
