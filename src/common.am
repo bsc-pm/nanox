@@ -24,9 +24,9 @@ dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
 endif
 
 AM_CPPFLAGS="-D_NANOS_INTERNAL -include config.h @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $(common_includes)"
-AM_CXXFLAGS="@cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+AM_CXXFLAGS="@cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@ @PTHREAD_CFLAGS@"
 AM_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
-AM_LIBS="@extra_LIBS@"
+AM_LIBS="@extra_LIBS@ @PTHREAD_LIBS@"
 
 common_cxxflags=$(AM_CXXFLAGS)
 

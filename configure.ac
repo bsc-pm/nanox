@@ -369,6 +369,9 @@ AM_CONDITIONAL([CONDUIT_DBG_UDP], [test x$with_udp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
 
+# Pthreads
+AX_PTHREAD
+
 #MPI Support
 AX_CHECK_MPI
 
