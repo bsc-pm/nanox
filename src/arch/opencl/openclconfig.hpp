@@ -34,15 +34,9 @@ public:
 
 	static bool isOclSleepEnable() { return _oclSleepEnable; }
 
-	static unsigned int getOclSleepNsec() { return _oclSleepNsec; }
-
-	static unsigned int getOclSleepSec() { return _oclSleepSec; }
-
 	void setOclSleepEnable(bool oclSleepEnable) { _oclSleepEnable = oclSleepEnable; }
 
-	void setOclSleepNsec(unsigned int oclSleepNsec) { _oclSleepNsec = oclSleepNsec; }
-
-	void setOclSleepSec(unsigned int oclSleepSec) { _oclSleepSec = oclSleepSec; }
+	static int getOclSleepUsec() { return _oclSleepUsec; }
 
 private:
   static void prepare( Config &cfg );
@@ -90,11 +84,8 @@ private:
   // Determines if opencl thread should sleep or not
   static bool _oclSleepEnable;
 
-  // Number of seconds to sleep the opencl thread
-  static int _oclSleepSec;
-
-  // Number of nanoseconds to sleep the opencl thread
-  static int _oclSleepNsec;
+  // Number of microseconds to sleep the opencl thread
+  static int _oclSleepUsec;
 
   friend class OpenCLPlugin;
 };

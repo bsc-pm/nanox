@@ -25,8 +25,7 @@ using namespace nanos;
 using namespace nanos::ext;
 
 bool OpenCLConfig::_oclSleepEnable = false;
-int OpenCLConfig::_oclSleepSec = 0;
-int OpenCLConfig::_oclSleepNsec = 1000000;
+int OpenCLConfig::_oclSleepUsec = 1000;
 bool OpenCLConfig::_enableOpenCL = false;
 bool OpenCLConfig::_forceShMem = false;
 bool OpenCLConfig::_forceDisableOpenCL = false;
@@ -123,25 +122,17 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerConfigOption( "opencl-sleep",
  		  	  	  	  	  	NEW Config::FlagOption( _oclSleepEnable ),
  		  	  	  	  	  	"Determines if the opencl thread should sleep"
- 		  	  	  	  	  	" or not" );
+ 		  	  	  	  	  	" or not. Disabled by default" );
    cfg.registerEnvOption( "opencl-sleep", "NX_OPENCL_SLEEP" );
    cfg.registerArgOption( "opencl-sleep", "opencl-sleep" );
 
-   // Select how long should take the opencl sleep time in seconds
-   cfg.registerConfigOption( "opencl-sleep-sec",
- 		  	  	  	  	  	NEW Config::IntegerVar( _oclSleepSec ),
- 		  	  	  	  	  	"Defines the sleep time in seconds to use"
- 		  	  	  	  	  	" in the OpenCL thread. Default 0" );
-   cfg.registerEnvOption( "opencl-sleep-sec", "NX_OPENCL_SLEEP_SEC" );
-   cfg.registerArgOption( "opencl-sleep-sec", "opencl-sleep-sec" );
-
-   // Select how long should take the opencl sleep time in nanoseconds
-   cfg.registerConfigOption( "opencl-sleep-nsec",
- 		  	  	  	  	  	NEW Config::IntegerVar( _oclSleepNsec ),
- 		  	  	  	  	  	"Defines the sleep time in nanoseconds to use"
- 		  	  	  	  	  	" in the OpenCL thread. Default 1000000" );
-   cfg.registerEnvOption( "opencl-sleep-nsec", "NX_OPENCL_SLEEP_NSEC" );
-   cfg.registerArgOption( "opencl-sleep-nsec", "opencl-sleep-nsec" );
+   // Select how long should take the opencl sleep time in microseconds
+   cfg.registerConfigOption( "opencl-sleep-usec",
+ 		  	  	  	  	  	NEW Config::IntegerVar( _oclSleepUsec ),
+ 		  	  	  	  	  	"Defines the sleep time in microseconds to use"
+ 		  	  	  	  	  	" in the OpenCL thread. Default 1000" );
+   cfg.registerEnvOption( "opencl-sleep-usec", "NX_OPENCL_SLEEP_USEC" );
+   cfg.registerArgOption( "opencl-sleep-usec", "opencl-sleep-usec" );
 }
 
 void OpenCLConfig::apply(std::string &_devTy, std::map<cl_device_id, cl_context>& _devices)

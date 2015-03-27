@@ -29,9 +29,8 @@ using namespace nanos::ext;
 //
 
 void OpenCLThread::initSleep() {
-
-	_sleepT1.tv_sec = nanos::ext::OpenCLConfig::getOclSleepSec();
-	_sleepT1.tv_nsec = nanos::ext::OpenCLConfig::getOclSleepNsec();
+	_sleepT1.tv_sec = nanos::ext::OpenCLConfig::getOclSleepUsec() / 1000000;
+	_sleepT1.tv_nsec = 1000 * ( nanos::ext::OpenCLConfig::getOclSleepUsec() % 1000000 );
 
 	setShouldSleep(nanos::ext::OpenCLConfig::isOclSleepEnable());
 }
