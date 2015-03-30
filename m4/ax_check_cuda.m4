@@ -53,7 +53,13 @@ AC_DEFUN([AX_CHECK_CUDA],[
   AC_ARG_WITH(cuda-lib,
   [AS_HELP_STRING([--with-cuda-lib=PATH],
                   [specify directory for the installed cuda library])])
-  
+
+  # Check if user specifically requested this package.
+  # It will generate errors if we are not able to find headers/libs
+  if test "x$with_cuda$with_cuda_include$with_cuda_lib" != x; then
+    user_requested="yes"
+  fi
+
   # Search for Cuda by default
   if test "x$with_cuda" != xno; then
     if [[[ "x$with_cuda" =~ x"yes"|"" ]]]; then
@@ -77,7 +83,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
   
   # This is fulfilled even if $with_cuda="yes" 
   # This happens when user leaves --with-value alone
-  if test x$with_cuda$with_cuda_include$with_cuda_lib != x; then
+  if test x$with_cuda != xno; then
   
       # Check for Nvidia Cuda Compiler NVCC
       AC_PATH_PROG([NVCC], [nvcc], [], [$cuda_prefix/bin$PATH_SEPARATOR$PATH])
@@ -122,7 +128,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
       LIBS="$bak_LIBS"
       LDFLAGS="$bak_LDFLAGS"
   
-      if test x$cuda != xyes; then
+      if test x$user_requested = xyes -a x$cuda != xyes; then
           AC_MSG_ERROR([
 ------------------------------
 CUDA path was not correctly specified. 
@@ -136,12 +142,14 @@ Please, check that the provided directories are correct.
           ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \(@<:@0-9@:>@*\)')
         ])
 
-      if test "x$ac_cv_cuda_version" == "x" -o "$ac_cv_cuda_version" -lt 5000; then
+      if test x$user_requested = xyes; then
+        if test "x$ac_cv_cuda_version" == "x" -o "$ac_cv_cuda_version" -lt 5000; then
           AC_MSG_ERROR([
 ------------------------------
 Version of the provided CUDA package is too old.
 CUDA 5 or greater is required.
 ------------------------------])
+        fi
       fi
   fi
   

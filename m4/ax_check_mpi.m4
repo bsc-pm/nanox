@@ -47,14 +47,13 @@
 AC_DEFUN([AX_CHECK_MPI],
 [
 AC_MSG_CHECKING([if MPI Offload architecture was requested])
-AC_ARG_ENABLE([mpi], AS_HELP_STRING([--enable-mpi], [Enables mpi offload support/architecture]))
+AC_ARG_ENABLE([mpi], AS_HELP_STRING([--enable-mpi], [Enables mpi offload support/architecture]),
+				 [enable_mpi=$enableval],[enable_mpi=yes])
+AC_MSG_RESULT([$enable_mpi])
 
 if test "x$enable_mpi" = xyes; then
 	ARCHITECTURES="$ARCHITECTURES mpi"
 	AC_DEFINE([MPI_DEV],[],[Specifies whether MPI Offload architecture is enabled or not.])
-    mpi_valid=yes
-else
-    mpi_valid=no
 fi
 
 ])dnl AX_CHECK_MPI

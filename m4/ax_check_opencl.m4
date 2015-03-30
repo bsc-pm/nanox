@@ -82,7 +82,7 @@ fi
 # This happens when user leaves --with-value empty
 # In this case, both openclinc and opencllib will be empty
 # so the test should search in default locations and LD_LIBRARY_PATH
-if test "x$with_opencl" != xno -a "x$with_opencl$with_opencl_include$with_opencl_lib" != x; then
+if test "x$with_opencl" != xno; then
     #tests if provided headers and libraries are usable and correct
     bak_CFLAGS="$CFLAGS"
     bak_CxXFLAGS="$CXXFLAGS"
@@ -169,7 +169,7 @@ OpenCL version test execution failed
     LIBS="$bak_LIBS"
     LDFLAGS="$bak_LDFLAGS"
 
-    if test x$opencl != xyes; then
+    if test x$user_requested = xyes -a x$opencl != xyes; then
         AC_MSG_ERROR([
 ------------------------------
 OpenCL path was not correctly specified. 
@@ -178,7 +178,7 @@ Please, check that the provided directories are correct.
     fi
 
     AX_COMPARE_VERSION([$ac_cv_opencl_version],[lt],[1.1],[opencl=no])
-    if test x$opencl != xyes; then
+    if test x$user_requested = xyes -a x$opencl != xyes; then
       AC_MSG_ERROR([
 ------------------------------
 Version of the provided OpenCL package is too old.
