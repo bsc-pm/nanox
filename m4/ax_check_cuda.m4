@@ -64,8 +64,8 @@ AC_DEFUN([AX_CHECK_CUDA],[
     cudainc="-isystem $cuda_prefix/include"
     cuda_h="$cuda_prefix/include/cuda.h"
     AC_CHECK_FILE([$cuda_prefix/lib64],
-      [cudalib=-L$cuda_prefix/lib64],
-      [cudalib=-L$cuda_prefix/lib])
+      [cudalib=-L$cuda_prefix/lib64 -Wl,-rpath=$cuda_prefix/lib64],
+      [cudalib=-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib])
   fi
   if test "x$with_cuda_include" != x; then
     cudainc="-isystem $with_cuda_include"

@@ -19,11 +19,11 @@
 
 include $(top_srcdir)/src/common.am
 
-EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in resiliency-generator.in config.py mpi-offload-generator.in
+EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in resiliency-generator.in config.py
 
-noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator mpi-offload-generator
+noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator
 
-CLEANFILES = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator mpi-offload-generator
+CLEANFILES = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator resiliency-generator
 
 all:
 	chmod 755 api-generator

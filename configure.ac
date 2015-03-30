@@ -697,7 +697,6 @@ AC_CONFIG_FILES([Makefile
                  tests/gens/gpu-generator
                  tests/gens/mcc-openmp-generator
                  tests/gens/mixed-generator
-                 tests/gens/mpi-offload-generator
                  tests/gens/nanox-creation-generator
                  tests/gens/resiliency-generator
                  doc/Makefile

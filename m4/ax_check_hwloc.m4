@@ -55,8 +55,8 @@ if [[[ ! "x$with_hwloc" =~  x"yes"|"no"|"" ]]]; then
   hwlocinc="-I $with_hwloc/include"
   hwloc_h="$with_hwloc/include/hwloc.h"
   AC_CHECK_FILE([$with_hwloc/lib64],
-    [hwloclib=-L$with_hwloc/lib64],
-    [hwloclib=-L$with_hwloc/lib])
+    [hwloclib=-L$with_hwloc/lib64 -Wl,-rpath=$with_hwloc/lib64],
+    [hwloclib=-L$with_hwloc/lib -Wl,-rpath=$with_hwloc/lib])
 fi
 if test "x$with_hwloc_include" != x; then
   hwlocinc="-isystem $with_hwloc_include"

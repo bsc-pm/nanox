@@ -2,6 +2,7 @@
 
 common_includes="\
 -I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/support \
 -I@abs_top_srcdir@/src/apis/c \
 -I@abs_top_builddir@/src/apis/c \
 $END"
@@ -37,25 +38,27 @@ PLUGINS="@PLUGINS@"
 cat << EOF
 test_CC=@CC@
 test_CXX=@CXX@
+
+compile_versions="@VERSIONS@"
 EOF
 
 # Specific to each version
 for version in $VERSIONS; do
 
   for plugin in $PLUGINS; do
-    eval ${version}_PLUGINS+="' @abs_top_builddir@/src/$plugin/.libs'"
+    eval ${version}_PLUGINS+="' @abs_top_builddir@/src/$plugin/$version/.libs'"
   done
 
-  eval ${version}_ENV="'LD_LIBRARY_PATH=\
-@abs_top_builddir@/core/$version/.libs:\
-@abs_top_builddir@/apis/$version/.libs:\
-@abs_top_builddir@/pms/$version/.libs:\
-\$${version}_PLUGINS:$LD_LIBRARY_PATH'"
+  eval ${version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
+@abs_top_builddir@/src/core/$version/.libs:\
+@abs_top_builddir@/src/apis/$version/.libs:\
+@abs_top_builddir@/src/pms/$version/.libs:\
+\${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
 
   eval ${version}_LDFLAGS+="' -Wl,--no-as-needed \
-@abs_top_builddir@/pms/${version}/.libs/libnanox-ompss.so \
-@abs_top_builddir@/core/${version}/.libs/libnanox.so \
-@abs_top_builddir@/apis/${version}/.libs/libnanox-c.so \
+@abs_top_builddir@/src/pms/${version}/.libs/libnanox-ompss.so \
+@abs_top_builddir@/src/core/${version}/.libs/libnanox.so \
+@abs_top_builddir@/src/apis/${version}/.libs/libnanox-c.so \
 @PTHREAD_LIBS@'"
 
 cat <<EOF
