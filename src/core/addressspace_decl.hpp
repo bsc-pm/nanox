@@ -159,7 +159,7 @@ template <class T>
 class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
-   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize );
+   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize = 0 );
    void copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const &wd, bool inval = false );
 };
 

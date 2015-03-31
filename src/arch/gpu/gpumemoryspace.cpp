@@ -36,13 +36,13 @@ void GPUMemorySpace::initialize( bool allocateInputMem, bool allocateOutputMem, 
       std::size_t max_mem = gpu->getGPUProcessorInfo()->getMaxMemoryAvailable();
       _allocator = NEW SimpleAllocator( (uint64_t) gpu->getGPUProcessorInfo()->getBaseAddress(), max_mem );
 
-      if ( allocateInputMem ) {
+      if ( allocateInputMem && GPUConfig::isAllocatePinnedBuffersEnabled() ) {
          size_t pinnedSize = std::min( max_mem, ( size_t ) 2*1024*1024*1024 );
          void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
          _inputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );
       }
 
-      if ( allocateOutputMem ) {
+      if ( allocateOutputMem && GPUConfig::isAllocatePinnedBuffersEnabled() ) {
          size_t pinnedSize = std::min( max_mem, ( size_t ) 2*1024*1024*1024 );
          void * pinnedAddress = GPUDevice::allocatePinnedMemory( pinnedSize );
          _outputPinnedMemoryBuffer.init( pinnedAddress, pinnedSize );

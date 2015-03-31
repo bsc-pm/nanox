@@ -40,6 +40,7 @@ bool GPUConfig::_overlapInputs = true;
 bool GPUConfig::_overlapOutputs = true;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
+bool GPUConfig::_allocatePinnedBuffers = true;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
 void * GPUConfig::_gpusProperties = NULL;
@@ -114,6 +115,13 @@ void GPUConfig::prepare( Config& config )
                                  "Defines the maximum amount of GPU memory (in bytes) to use for each GPU (defaults to the total amount of shared memory that each GPU has). If this number is below 100, the amount of memory is taken as a percentage of the total device memory" );
    config.registerEnvOption ( "gpu-max-memory", "NX_GPUMAXMEM" );
    config.registerArgOption ( "gpu-max-memory", "gpu-max-memory" );
+
+   // Enable / disable overlapping of outputs
+   config.registerConfigOption( "gpu-pinned-buffers", NEW Config::FlagOption( _allocatePinnedBuffers ),
+                                "Set whether GPU component should allocate pinned buffers used by data transfers (enabled by default)" );
+   config.registerEnvOption( "gpu-pinned-buffers", "NX_GPU_PINNED_BUFFERS" );
+   config.registerArgOption( "gpu-pinned-buffers", "gpu-pinned-buffers" );
+
 
    // Enable / disable GPU warmup
    config.registerConfigOption( "gpu-warmup", NEW Config::FlagOption( _gpuWarmup ),
@@ -303,6 +311,7 @@ void GPUConfig::printConfiguration()
    else {
       verbose0( "  Limited memory: Disabled" );
    }
+   verbose0( "  Allocate pinned buffers: " << ( _allocatePinnedBuffers ? "Enabled" : "Disabled" ) );
    verbose0( "  GPU warm up: " << ( _gpuWarmup ? "Enabled" : "Disabled" ) );
    verbose0( "  CUBLAS initialization: " << ( _initCublas ? "Enabled" : "Disabled" ) );
 

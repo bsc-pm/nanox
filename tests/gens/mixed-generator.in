@@ -81,7 +81,7 @@ test_ENV_instrumentation="LD_LIBRARY_PATH=\
 \$BUILD/pms/instrumentation/.libs/:\
 \$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
 
-test_LDFLAGS_instrumentation_debug=" -Wl,--no-as-needed\
+test_LDFLAGS_instrumentation_debug=" -Wl,--no-as-needed \
 \$BUILD/core/instrumentation-debug/.libs/libnanox.so \
 \$BUILD/pms/instrumentation-debug/.libs/libnanox-ompss.so \
 \$BUILD/apis/instrumentation-debug/.libs/libnanox-c.so"
