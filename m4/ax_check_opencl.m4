@@ -66,8 +66,8 @@ fi
 if [[[ ! "x$with_opencl" =~  x"yes"|"no"|"" ]]]; then
   openclinc="-I$with_opencl/include"
   AC_CHECK_FILE([$with_opencl/lib64],
-    [opencllib=-L$with_opencl/lib64 -Wl,-rpath=$with_opencl/lib64],
-    [opencllib=-L$with_opencl/lib -Wl,-rpath=$with_opencl/lib])
+    [opencllib="-L$with_opencl/lib64 -Wl,-rpath=$with_opencl/lib64"],
+    [opencllib="-L$with_opencl/lib -Wl,-rpath=$with_opencl/lib"])
 fi
 
 if test $with_opencl_include; then

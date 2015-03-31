@@ -70,8 +70,8 @@ AC_DEFUN([AX_CHECK_CUDA],[
     cudainc="-isystem $cuda_prefix/include"
     cuda_h="$cuda_prefix/include/cuda.h"
     AC_CHECK_FILE([$cuda_prefix/lib64],
-      [cudalib=-L$cuda_prefix/lib64 -Wl,-rpath=$cuda_prefix/lib64],
-      [cudalib=-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib])
+      [cudalib="-L$cuda_prefix/lib64 -Wl,-rpath=$cuda_prefix/lib64"],
+      [cudalib="-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib"])
   fi
   if test "x$with_cuda_include" != x; then
     cudainc="-isystem $with_cuda_include"
@@ -103,7 +103,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
       AC_CHECK_HEADER([cuda.h], [cuda=yes],[cuda=no])
 
       # Look for cudaMemcpy function in libcudart.so library
-      if test x$cuda == xyes; then
+      if test x$cuda = xyes; then
         AC_CHECK_LIB([cudart],
                        [cudaMemcpy],
                        [cuda=yes
@@ -112,7 +112,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
       fi
 
       # Look for cublasDrotmg function in libcublas.so library
-      if test x$cuda == xyes; then
+      if test x$cuda = xyes; then
         AC_CHECK_LIB([cublas],
                        [cublasDrotmg],
                        [cuda=yes
@@ -136,11 +136,13 @@ Please, check that the provided directories are correct.
 ------------------------------])
       fi
   
-      AC_CACHE_CHECK([CUDA API version],[ac_cv_cuda_version],
-        [
-          ac_cv_cuda_version=$(grep 'define CUDA_VERSION' "$cuda_h")
-          ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \(@<:@0-9@:>@*\)')
-        ])
+		if test x$cuda = xyes; then
+        AC_CACHE_CHECK([CUDA API version],[ac_cv_cuda_version],
+          [
+            ac_cv_cuda_version=$(grep 'define CUDA_VERSION' "$cuda_h")
+            ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \(@<:@0-9@:>@*\)')
+          ])
+		fi
 
       if test x$user_requested = xyes; then
         if test "x$ac_cv_cuda_version" == "x" -o "$ac_cv_cuda_version" -lt 5000; then

@@ -25,9 +25,9 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-@DEBUG_VERSION_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@DEBUG_VERSION_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
-@DEBUG_VERSION_TRUE@ debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@ @cudalib@"
+@DEBUG_VERSION_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@DEBUG_VERSION_TRUE@ debug_CXXFLAGS="@extra_CXXFLAGS@"
+@DEBUG_VERSION_TRUE@ debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
 @DEBUG_VERSION_TRUE@ debug_LIBS="@extra_LIBS@ @cudalibs@"
 @DEBUG_VERSION_TRUE@ debug_PLUGINS=
 
@@ -70,11 +70,11 @@ for version in $VERSIONS; do
 @abs_top_builddir@/src/pms/$version/.libs:\
 \${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
 
-  eval ${version}_LDFLAGS+="' -Wl,--no-as-needed \
+  eval ${version}_LDFLAGS+="' --linker-options --no-as-needed \
 @abs_top_builddir@/src/pms/${version}/.libs/libnanox-ompss.so \
 @abs_top_builddir@/src/core/${version}/.libs/libnanox.so \
 @abs_top_builddir@/src/apis/${version}/.libs/libnanox-c.so \
-@abs_top_builddir@/arch/${version}/gpu/.libs/libnanox-gpu-api.so \
+@abs_top_builddir@/src/arch/gpu/${version}/.libs/libnanox-gpu-api.so \
 @PTHREAD_LIBS@'"
 
 cat <<EOF
