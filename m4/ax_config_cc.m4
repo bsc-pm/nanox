@@ -40,18 +40,19 @@ cc_dep_CXXFLAGS=
 cc_dep_LDFLAGS=
 
 if test x$ac_cv_cxx_compiler_gnu = xyes; then
-  cc_dep_CPPFLAGS="$cc_dep_CPPFLAGS -include new_decl.hpp"
+  cc_dep_CPPFLAGS="-include new_decl.hpp -include config.h"
   cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter"
   no_inline_flag=-fno-inline
 fi
 
 if [[[ x$CXX =~ .*"xlC" ]]]; then
-      cc_dep_CPPFLAGS="$cc_dep_CPPFLAGS -qinclude=\"new_decl.hpp\" -qinclude=\"config.h\""
+     cc_dep_CPPFLAGS="-qinclude=\"new_decl.hpp\" -qinclude=\"config.h\""
 	  cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -qlanglvl=variadictemplates"
 	  cc_dep_LDFLAGS="$cc_dep_LDFLAGS -Wl,-z,muldefs"
 	  no_inline_flag=-qno-inline
 fi
 
+# internal headers are put in a separate 
 AC_SUBST([cc_dep_CPPFLAGS])
 AC_SUBST([cc_dep_CXXFLAGS])
 AC_SUBST([cc_dep_LDFLAGS])

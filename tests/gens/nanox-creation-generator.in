@@ -10,6 +10,7 @@
 #        -I\$SRC/arch/spu"
 
 common_includes="\
+-I@abs_top_builddir@ \
 -I@abs_top_srcdir@/src/core \
 -I@abs_top_srcdir@/src/apis/c \
 -I@abs_top_builddir@/src/apis/c \
@@ -54,13 +55,13 @@ EOF
 for version in $VERSIONS; do
 
   for plugin in $PLUGINS; do
-    eval ${version}_PLUGINS+="' @abs_top_builddir@/src/$plugin/$version/.libs'"
+    eval ${version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
   done
 
-  eval ${version}_ENV="'LD_LIBRARY_PATH=\
+  eval ${version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
 @abs_top_builddir@/src/core/$version/.libs:\
 @abs_top_builddir@/src/apis/$version/.libs:\
-\$${version}_PLUGINS:$LD_LIBRARY_PATH'"
+\${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
 
   eval ${version}_LDFLAGS+="' -Wl,--no-as-needed \
 @abs_top_builddir@/src/core/${version}/.libs/libnanox.so \
