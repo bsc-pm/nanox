@@ -51,7 +51,7 @@ AC_ARG_WITH(hwloc-lib,
 [AS_HELP_STRING([--with-hwloc-lib=PATH],
                 [specify directory for the installed hwloc library])])
 
-if [[[ ! "x$with_hwloc" =~  x"yes"|"no"|"" ]]]; then
+if [[[ ! "x$with_hwloc" =~  x(yes|no|)$ ]]]; then
   hwlocinc="-I $with_hwloc/include"
   hwloc_h="$with_hwloc/include/hwloc.h"
   AC_CHECK_FILE([$with_hwloc/lib64],

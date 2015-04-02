@@ -1,6 +1,6 @@
 END=
 
-# Common flags and files
+# Generate include list
 common_includes= \
 	-I$(top_srcdir)/src/arch/@OS@ \
 	-I$(top_srcdir)/src/support \

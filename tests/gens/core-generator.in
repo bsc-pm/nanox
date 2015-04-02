@@ -18,6 +18,10 @@ common_includes="\
 -I@abs_top_builddir@/src/apis/c \
 -I@abs_top_srcdir@/src/arch/smp \
 -I@abs_top_srcdir@/src/arch/unix-os
+-I@abs_top_srcdir@/src/arch/gpu \
+-I@abs_top_srcdir@/src/arch/opencl \
+-I@abs_top_srcdir@/src/arch/spu \
+-I@abs_top_srcdir@/src/arch/cluster \
 $END"
 
 VERSIONS="@VERSIONS@"

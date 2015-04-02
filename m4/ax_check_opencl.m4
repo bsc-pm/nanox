@@ -58,12 +58,14 @@ AC_ARG_WITH(opencl-lib,
 # It will generate errors if we are not able to find headers/libs
 if test "x$with_opencl$with_opencl_include$with_opencl_lib" != x; then
   user_requested="yes"
+else
+  user_requested="no"
 fi
 
 # If the user specifies --with-opencl, $with_opencl value will be 'yes'
 #                       --without-opencl, $with_opencl value will be 'no'
 #                       --with-opencl=somevalue, $with_opencl value will be 'somevalue'
-if [[[ ! "x$with_opencl" =~  x"yes"|"no"|"" ]]]; then
+if [[[ ! "x$with_opencl" =~  x(yes|no|)$ ]]]; then
   openclinc="-I$with_opencl/include"
   AC_CHECK_FILE([$with_opencl/lib64],
     [opencllib="-L$with_opencl/lib64 -Wl,-rpath=$with_opencl/lib64"],

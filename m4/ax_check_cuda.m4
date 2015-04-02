@@ -58,11 +58,13 @@ AC_DEFUN([AX_CHECK_CUDA],[
   # It will generate errors if we are not able to find headers/libs
   if test "x$with_cuda$with_cuda_include$with_cuda_lib" != x; then
     user_requested="yes"
+  else
+    user_requested="no"
   fi
 
-  # Search for Cuda by default
+  # Search for Cuda by default (no --with-cuda specified by the user)
   if test "x$with_cuda" != xno; then
-    if [[[ "x$with_cuda" =~ x"yes"|"" ]]]; then
+    if [[[ "x$with_cuda" =~ x(yes|)$ ]]]; then
       cuda_prefix=/usr/local/cuda
     else
       cuda_prefix=$with_cuda

@@ -70,26 +70,41 @@ for version in $VERSIONS; do
 @abs_top_builddir@/src/pms/$version/.libs:\
 \${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
 
-  eval ${version}_LDFLAGS+="' --linker-options --no-as-needed \
+  eval ${version}_LDFLAGS+="'--no-as-needed \
 @abs_top_builddir@/src/pms/${version}/.libs/libnanox-ompss.so \
 @abs_top_builddir@/src/core/${version}/.libs/libnanox.so \
 @abs_top_builddir@/src/apis/${version}/.libs/libnanox-c.so \
 @abs_top_builddir@/src/arch/gpu/${version}/.libs/libnanox-gpu-api.so \
 @PTHREAD_LIBS@'"
 
-cat <<EOF
-test_CPPFLAGS_${version}="$(eval echo \${${version}_CPPFLAGS})"
-test_CXXFLAGS_${version}="$(eval echo \${${version}_CXXFLAGS})"
-test_LDFLAGS_${version}="$(eval echo \${${version}_LDFLAGS} \${${version}_LIBS})"
-test_PLUGINS_${version}="$(eval echo \${${version}_PLUGINS})"
+echo "test_CPPFLAGS_${version}=\"\\"
+for cppoption in $(eval echo \${${version}_CPPFLAGS}); do
+    echo "  -Xcompiler $cppoption \\"
+done
+echo '"'
+
+echo "test_CXXFLAGS_${version}=\"\\"
+for cppoption in $(eval echo \${${version}_CXXFLAGS}); do
+    echo "  -Xcompiler $cxxoption \\"
+done
+echo '"'
+
+echo "test_LDFLAGS_${version}=\"\\"
+for ldoption in $(eval echo \${${version}_LDFLAGS} \${${version}_LIBS}); do
+    echo "  -Xlinker $ldoption \\"
+done
+echo '"'
+
+cat << EOF
 test_ENV_${version}="$(eval echo \${${version}_ENV})"
 
 $(@abs_top_srcdir@/tests/gens/config.py $*)
 EOF
-done;
+
+done # for version 
 
 else
-cat <<EOF
+cat << EOF
 test_ignore=yes
 EOF
 
