@@ -269,11 +269,9 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       
       // Set WD's socket
       wd.setNUMANode( sys.getUserDefinedNUMANode() );
-#ifndef ON_TASK_REDUCTION
-#else
+
       wd.copyReductions (myThread->getCurrentWD() );
-#endif
-      
+
       if ( wd.getNUMANode() >= (int)sys.getNumNumaNodes() )
          throw NANOS_INVALID_PARAM;
 

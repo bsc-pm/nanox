@@ -74,8 +74,6 @@ namespace nanos
          int                          _level;            /**< Nesting level of the team */
          int                          _creatorId;        /**< Team Id of the thread that created the team */
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
-         Lock                         _lockTaskReductions; //!< Task reductions lock
-         task_reduction_list_t        _taskReductions;   //< List of task reductions
          ReductionList                _redList;          /**< Reduction List */
          Lock                         _lock;
          bool                         _stable; 
@@ -218,10 +216,6 @@ namespace nanos
          void decreaseFinalSize ( void );
          void setStable ( bool value ) ;
          bool isStable ( void ) const;
-         void removeTaskReduction( void *orig );
-         void registerTaskReduction( void *orig, void *dep, size_t size, void (*init)( void *, void *), void (*reducer)( void *, void * ), void (*reducer_orig_var)( void *, void * ) );
-         void * getTaskReductionThreadStorage( void *p_orig, size_t id );
-         TaskReduction * getTaskReduction( const void *p_dep );
    };
 
 }

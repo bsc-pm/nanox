@@ -985,10 +985,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->tieToLocation( 0 );
    }
 
-#ifndef ON_TASK_REDUCTION
-#else
    wd->copyReductions((WorkDescriptor *)uwg);
-#endif
 }
 
 /*! \brief Duplicates the whole structure for a given WD
