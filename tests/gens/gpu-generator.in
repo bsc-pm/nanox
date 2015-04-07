@@ -3,18 +3,6 @@
 if [ x@cuda@ = xyes ];
 then
 
-#common_includes="
-#	-I\$SRC/apis/c \
-#	-I\$BUILD/apis/c \
-#	-I\$SRC/arch/unix-os \
-#	-I\$SRC/support \
-#	-I\$SRC/core \
-#	-I\$SRC/arch/smp \
-#	-I\$SRC/arch/gpu \
-#	-I\$SRC/arch/spu \
-#	-I\$SRC/arch/opencl \
-#	-I\$SRC/arch/cluster"
-
 common_includes="\
 -I@abs_top_builddir@ \
 -I@abs_top_srcdir@/src/core \
@@ -31,23 +19,24 @@ PLUGINS="@PLUGINS@"
 @DEBUG_VERSION_TRUE@ debug_LIBS="@extra_LIBS@ @cudalibs@"
 @DEBUG_VERSION_TRUE@ debug_PLUGINS=
 
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@ @cudalib@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CXXFLAGS="@extra_CXXFLAGS@"
+@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
 @INSTRUMENTATION_VERSION_TRUE@ instrumentation_LIBS="@extra_LIBS@ @cudalibs@"
 @INSTRUMENTATION_VERSION_TRUE@ instrumentation_PLUGINS=
 
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@ @cudalib@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CXXFLAGS="@extra_CXXFLAGS@"
+@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
 @INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@ @cudalibs@"
 @INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_PLUGINS=
 
-@PERFORMANCE_VERSION_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@PERFORMANCE_VERSION_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
-@PERFORMANCE_VERSION_TRUE@ performance_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@ @cudalib@"
+@PERFORMANCE_VERSION_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@PERFORMANCE_VERSION_TRUE@ performance_CXXFLAGS="@extra_CXXFLAGS@"
+@PERFORMANCE_VERSION_TRUE@ performance_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
 @PERFORMANCE_VERSION_TRUE@ performance_LIBS="@extra_LIBS@ @cudalibs@"
 @PERFORMANCE_VERSION_TRUE@ performance_PLUGINS=
+
 
 # Common to all versions
 cat << EOF

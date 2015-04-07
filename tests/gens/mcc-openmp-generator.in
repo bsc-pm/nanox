@@ -3,7 +3,6 @@
 if [ x@MCC_SUPPORT@ = xyes ];
 then
 
-#common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$SRC/pms/openmp -I\$SRC/../tests/test/pfm"
 common_includes="\
 -I@abs_top_builddir@ \
 -I@abs_top_srcdir@/src/core \
