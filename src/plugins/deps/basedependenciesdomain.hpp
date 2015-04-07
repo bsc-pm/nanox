@@ -36,12 +36,7 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
       status.setCommDO( NULL );
       status.setLastWriter( *commDO );
 
-#ifndef ON_TASK_REDUCTION
-      TaskReduction *tr = myThread->getTeam()->getTaskReduction( (const void *) target.getAddress() );
-#else
       TaskReduction *tr = myThread->getCurrentWD()->getTaskReduction( (const void *) target.getAddress() );
-#endif
-
       if ( tr != NULL ) {
          if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() ) commDO->setTaskReduction( tr );
       }
