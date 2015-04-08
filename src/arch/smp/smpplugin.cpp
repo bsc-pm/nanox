@@ -414,9 +414,16 @@ class SMPPlugin : public SMPBasePlugin
       }
 
       int current_workers = 1;
-      int idx = _bindingStart + _bindingStride;
+      int worker_overflow = 0;
+      int bindingStart = _bindingStart % _cpus->size();
+      int idx = bindingStart + _bindingStride;
       while ( current_workers < max_workers ) {
-         idx = idx % _cpus->size();
+         worker_overflow = std::max(worker_overflow, (((unsigned int)idx) >= _cpus->size())?1:0);
+         idx = (idx % _cpus->size());
+         if ((idx >= bindingStart ) && worker_overflow ) {
+            idx++;
+            worker_overflow=0;
+         }
          SMPProcessor *cpu = (*_cpus)[idx];
          if ( cpu->isActive() && (!cpu->isReserved() || ignore_reserved_cpus) ) {
             BaseThread *thd = &cpu->startWorker();
