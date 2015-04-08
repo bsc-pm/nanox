@@ -421,7 +421,7 @@ class SMPPlugin : public SMPBasePlugin
          worker_overflow = std::max(worker_overflow, (((unsigned int)idx) >= _cpus->size())?1:0);
          idx = (idx % _cpus->size());
          if ((idx >= bindingStart ) && worker_overflow ) {
-            idx++;
+            idx = ((idx+1) % _cpus->size());
             worker_overflow=0;
          }
          SMPProcessor *cpu = (*_cpus)[idx];
