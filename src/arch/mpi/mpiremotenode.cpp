@@ -619,6 +619,17 @@ void MPIRemoteNode::callMPISpawn(
             if (!strict) {
                 MPI_Info_set(info, const_cast<char*> ("soft"), const_cast<char*> ("0:N"));
             }
+            // In case the MPI implementation supports tpp (threads per process) key...
+            char* tpp = getenv("OFFL_OMP_NUM_THREADS");
+            if( !tpp )
+               tpp = getenv("OFFL_NX_SMP_WORKERS");
+            if( !tpp ) {
+               tpp = malloc( 32 );
+               // MaxWorkers default value is 1, so this wil always set a valid value for tpp
+               std::sprintf( max_workers, "%u", nanos::ext::MPIProcessor::getMaxWorkers() );
+            }
+            MPI_Info_set(info, const_cast<char*> ("tpp"), const_cast<char*>(tpp) );
+
             arrOfInfo[spawnedHosts]=info;
             hostfile.close();
 
