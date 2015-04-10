@@ -138,7 +138,7 @@ static void releaseLock( int fd, char const *lockName )
     lock.l_start   = 0;
     lock.l_whence  = SEEK_SET;
     lock.l_len     = 0;        
-    fcntl(fd, F_SETLKW, &lock);  /* Overwrites lock structure with preventors. */
+    fcntl(fd, F_UNLCK, &lock);  /* Overwrites lock structure with preventors. */
     //remove( lockName );
     close( fd );
 }
