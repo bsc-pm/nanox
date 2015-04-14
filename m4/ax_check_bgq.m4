@@ -75,14 +75,19 @@ fi
 
 # Flags & Compiler dependent stuff
 AX_CHECK_COMPILE_FLAG([-dynamic],
-    [host_dep_LDFLAGS=-dynamic],
-    [],[-Werror])
-        
-AX_CHECK_COMPILE_FLAG([-qnostaticlink],
-    [host_dep_LDFLAGS=-qnostaticlink],
+    [dyn_link_flag=-dynamic],
     [],[-Werror])
 
+if [[[ x$CC =~ x.*gcc  ]]]; then
+# Old gcc versions do not return error (!=0) when compiling
+# with an unknown option starting with "-q"
+AX_CHECK_COMPILE_FLAG([-qnostaticlink],
+    [dyn_link_flag=-qnostaticlink],
+    [],[-Werror])
+fi
+
 host_dep_CPPFLAGS=$CPPFLAGS
+host_dep_LDFLAGS=$dyn_link_flag
 
 CPPFLAGS=bak_$CPPFLAGS
 CFLAGS=bak_$CFLAGS

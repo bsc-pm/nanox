@@ -41,7 +41,7 @@ cc_dep_LDFLAGS=
 
 if test x$ac_cv_cxx_compiler_gnu = xyes; then
   cc_dep_CPPFLAGS="-include new_decl.hpp -include config.h"
-  cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter"
+  cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter -Werror"
   no_inline_flag=-fno-inline
 fi
 
