@@ -22,6 +22,7 @@
 
 #include <set>
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 #include "deviceops_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 

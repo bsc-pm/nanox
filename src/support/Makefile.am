@@ -37,7 +37,6 @@ devinclude_HEADERS = \
 	lock_decl.hpp\
 	lock.hpp\
 	recursivelock_decl.hpp\
-	recursivelock.hpp\
 	lazy.hpp\
 	lazy_decl.hpp\
 	compatibility.hpp\
@@ -115,7 +114,7 @@ support_sources = \
 	lock_decl.hpp\
 	lock.hpp\
 	recursivelock_decl.hpp\
-	recursivelock.hpp\
+	recursivelock.cpp\
 	lazy.hpp\
 	lazy_decl.hpp\
 	compatibility.hpp\

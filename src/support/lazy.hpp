@@ -22,6 +22,7 @@
 
 #include "lazy_decl.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 
 template <class T>
 inline void LazyInit<T>::construct ()

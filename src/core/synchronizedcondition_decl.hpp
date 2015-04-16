@@ -28,6 +28,7 @@
 #include <list>
 #include <vector>
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 #include "debug.hpp"
 #include "workdescriptor_fwd.hpp"
 

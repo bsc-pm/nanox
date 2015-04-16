@@ -22,6 +22,7 @@
 #include <list>
 #include <map>
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 namespace nanos {
 template <class T>
 class RequestQueue {

@@ -25,6 +25,7 @@
 #include "trackableobject_decl.hpp"
 #include "dependableobject.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 
 using namespace nanos;
 

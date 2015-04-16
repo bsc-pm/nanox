@@ -17,36 +17,34 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_ATOMIC
-#define _NANOS_ATOMIC
-
-#include "recursivelock_decl.hpp"
-#include "basethread_decl.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
+#include "basethread.hpp"
+#include "recursivelock_decl.hpp"
 
 using namespace nanos;
 
-inline RecursiveLock::state_t RecursiveLock::operator* () const
+RecursiveLock::state_t RecursiveLock::operator* () const
 {
    return state_;
 }
 
-inline RecursiveLock::state_t RecursiveLock::getState () const
+RecursiveLock::state_t RecursiveLock::getState () const
 {
    return state_;
 }
 
-inline void RecursiveLock::operator++ ( int )
+void RecursiveLock::operator++ ( int )
 {
    acquire( );
 }
 
-inline void RecursiveLock::operator-- ( int )
+void RecursiveLock::operator-- ( int )
 {
    release( );
 }
 
-inline void RecursiveLock::acquire ( )
+void RecursiveLock::acquire ( )
 {
    if ( _holderThread == getMyThreadSafe() )
    {
@@ -63,7 +61,7 @@ spin:
    _recursionCount++;
 }
 
-inline bool RecursiveLock::tryAcquire ( )
+bool RecursiveLock::tryAcquire ( )
 {
    if ( _holderThread == getMyThreadSafe() ) {
       _recursionCount++;
@@ -81,7 +79,7 @@ inline bool RecursiveLock::tryAcquire ( )
    } else return false;
 }
 
-inline void RecursiveLock::release ( )
+void RecursiveLock::release ( )
 {
    _recursionCount--;
    if ( _recursionCount == 0UL )
@@ -91,34 +89,33 @@ inline void RecursiveLock::release ( )
    }
 }
 
-inline RecursiveLockBlock::RecursiveLockBlock ( RecursiveLock & lock ) : _lock(lock)
+RecursiveLockBlock::RecursiveLockBlock ( RecursiveLock & lock ) : _lock(lock)
 {
    acquire();
 }
 
-inline RecursiveLockBlock::~RecursiveLockBlock ( )
+RecursiveLockBlock::~RecursiveLockBlock ( )
 {
    release();
 }
 
-inline void RecursiveLockBlock::acquire()
+void RecursiveLockBlock::acquire()
 {
    _lock++;
 }
 
-inline void RecursiveLockBlock::release()
+void RecursiveLockBlock::release()
 {
    _lock--;
 }
 
-inline SyncRecursiveLockBlock::SyncRecursiveLockBlock ( RecursiveLock & lock ) : RecursiveLockBlock(lock)
+SyncRecursiveLockBlock::SyncRecursiveLockBlock ( RecursiveLock & lock ) : RecursiveLockBlock(lock)
 {
-   memoryFence();
+   nanos::memoryFence();
 }
 
-inline SyncRecursiveLockBlock::~SyncRecursiveLockBlock ( )
+SyncRecursiveLockBlock::~SyncRecursiveLockBlock ( )
 {
-   memoryFence();
+   nanos::memoryFence();
 }
 
-#endif

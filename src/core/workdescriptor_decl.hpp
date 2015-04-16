@@ -23,6 +23,13 @@
 #include <stdlib.h>
 #include <utility>
 #include <vector>
+
+#include "workdescriptor_fwd.hpp"
+#include "slicer_fwd.hpp"
+#include "basethread_fwd.hpp"
+#include "processingelement_fwd.hpp"
+#include "wddeque_fwd.hpp"
+
 #include "dependableobjectwd_decl.hpp"
 #include "copydata_decl.hpp"
 #include "synchronizedcondition_decl.hpp"
@@ -31,10 +38,6 @@
 #include "instrumentationcontext_decl.hpp"
 #include "compatibility.hpp"
 
-#include "slicer_fwd.hpp"
-#include "basethread_fwd.hpp"
-#include "processingelement_fwd.hpp"
-#include "wddeque_fwd.hpp"
 #include "regioncache_decl.hpp"
 #include "memcontroller_decl.hpp"
 
@@ -219,8 +222,8 @@ typedef std::set<const Device *>  DeviceList;
             bool is_recoverable;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
             bool is_invalid;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
          } WDFlags;
-         typedef int PriorityType;
          typedef enum { INIT, START, READY, BLOCKED } State;
+         typedef int PriorityType;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
          typedef std::vector<TaskReduction *>        task_reduction_vector_t;  //< List of task reductions type
       private: /* data members */

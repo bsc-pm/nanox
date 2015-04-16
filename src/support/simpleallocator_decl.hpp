@@ -23,7 +23,10 @@
 #include <stdint.h>
 #include <map>
 #include <list>
+#include <ostream>
+
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 
 namespace nanos {
 

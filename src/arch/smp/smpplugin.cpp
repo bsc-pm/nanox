@@ -17,22 +17,22 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <iostream>
+
+#include "atomic.hpp"
+#include "debug.hpp"
 #include "smpbaseplugin_decl.hpp"
 #include "plugin.hpp"
 #include "smpprocessor.hpp"
-#include "smpdd.hpp"
 #include "os.hpp"
 #include "osallocator_decl.hpp"
-#include "system.hpp"
-#include "basethread.hpp"
+
 #include "cpuset.hpp"
 #include <limits>
 
 #ifdef HAVE_MEMKIND_H
 #include <memkind.h>
 #endif
-
-//#include <numa.h>
 
 namespace nanos {
 namespace ext {

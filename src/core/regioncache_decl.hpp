@@ -24,6 +24,8 @@
 #include "memorymap_decl.hpp"
 #include "copydata_decl.hpp"
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
+#include "recursivelock_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "processingelement_fwd.hpp"
 #include "deviceops_decl.hpp"

@@ -17,6 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <assert.h>
+#include <string.h>
+#include <signal.h>
+#include <set>
+#include <climits>
+
+#include "atomic.hpp"
 #include "system.hpp"
 #include "config.hpp"
 #include "plugin.hpp"
@@ -31,11 +38,6 @@
 #include "basethread.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
-#include <assert.h>
-#include <string.h>
-#include <signal.h>
-#include <set>
-#include <climits>
 #include "smpthread.hpp"
 #include "regiondict.hpp"
 #include "smpprocessor.hpp"

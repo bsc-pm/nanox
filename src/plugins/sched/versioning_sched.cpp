@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "schedule.hpp"
+#include "atomic.hpp"
 #include "wddeque.hpp"
 #include "plugin.hpp"
 #include "system.hpp"

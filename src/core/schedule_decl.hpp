@@ -27,12 +27,16 @@
 #include <stddef.h>
 #include <string>
 
+#include "debug.hpp"
+
+#include "synchronizedcondition_fwd.hpp"
+#include "system_fwd.hpp"
+
 #include "workdescriptor_decl.hpp"
 #include "atomic_decl.hpp"
 #include "functors_decl.hpp"
-#include "synchronizedcondition_fwd.hpp"
-#include "system_fwd.hpp"
 #include "basethread_decl.hpp"
+
 
 namespace nanos
 {

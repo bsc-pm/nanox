@@ -22,6 +22,7 @@
 
 #include "regiondict_decl.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 #include "memorymap.hpp"
 #include "system_decl.hpp"
 #include "os.hpp"

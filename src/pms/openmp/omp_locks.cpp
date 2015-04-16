@@ -20,6 +20,7 @@
 #include "omp.h"
 #include "nanos.h"
 #include "atomic.hpp"
+#include "lock.hpp"
 
 extern "C"
 {

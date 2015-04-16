@@ -23,12 +23,17 @@
 #include <list>
 #include <set>
 #include <vector>
+
 #include "atomic.hpp"
+#include "lock.hpp"
+
 #include "dependableobject_decl.hpp"
-#include "dataaccess.hpp"
 #include "basedependency_decl.hpp"
-#include "functors.hpp"
 #include "workdescriptor_decl.hpp"
+#include "system_decl.hpp"
+
+#include "dataaccess.hpp"
+#include "functors.hpp"
 
 using namespace nanos;
 

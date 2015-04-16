@@ -22,6 +22,7 @@
 
 #include <map>
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 #include "globalregt_decl.hpp"
 #include "newregiondirectory_decl.hpp"
 

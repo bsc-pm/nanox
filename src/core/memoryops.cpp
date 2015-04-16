@@ -18,13 +18,22 @@
 /*************************************************************************************/
 
 #include <iostream>
+#include <limits>
+#include <iomanip>
+
 #include "memoryops_decl.hpp"
 #include "system_decl.hpp"
-#include "addressspace.hpp"
+
+#include "instrumentationmodule_decl.hpp"
+#include "instrumentation.hpp"
 #include "workdescriptor.hpp"
+
+#include "addressspace.hpp"
 #include "deviceops.hpp"
 #include "regiondict.hpp"
 #include "regioncache.hpp"
+#include "memcachecopy.hpp"
+#include "globalregt.hpp"
 
 #if VERBOSE_CACHE
  #define _VERBOSE_CACHE 1
