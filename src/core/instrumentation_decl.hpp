@@ -206,6 +206,7 @@
 #include "debug.hpp"
 #include "nanos-int.h"
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 #include "instrumentationcontext_fwd.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "allocator_decl.hpp"

@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <string>
 #include "atomic.hpp"
+#include "lock.hpp"
 #include <tr1/unordered_map>
 
 #define HASH_SIZE 655

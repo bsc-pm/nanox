@@ -55,6 +55,8 @@
 #include <vector>
 #include <string>
 #include "atomic_decl.hpp"
+#include "recursivelock_decl.hpp"
+#include "lock_decl.hpp"
 #include "dependableobject_decl.hpp"
 #include "trackableobject_decl.hpp"
 #include "dataaccess_decl.hpp"

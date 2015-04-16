@@ -22,14 +22,16 @@
 
 #include <stddef.h>
 #include <string>
+#include <algorithm>
+
+#include "atomic.hpp"
+#include "synchronizedcondition_fwd.hpp"
 
 #include "schedule_decl.hpp"
 #include "workdescriptor_decl.hpp"
-#include "atomic.hpp"
+#include "system_decl.hpp"
+
 #include "functors.hpp"
-#include <algorithm>
-#include "synchronizedcondition_fwd.hpp"
-#include "system_fwd.hpp"
 #include "basethread.hpp"
 
 using namespace nanos;

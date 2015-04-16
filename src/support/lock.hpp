@@ -20,10 +20,10 @@
 #ifndef _NANOS_LOCK
 #define _NANOS_LOCK
 
-#include "lock_decl.hpp"
 #include "atomic.hpp"
+#include "lock_decl.hpp"
 
-using namespace nanos;
+namespace nanos {
 
 inline Lock::state_t Lock::operator* () const
 {
@@ -129,6 +129,8 @@ inline SyncLockBlock::SyncLockBlock ( Lock & lock ) : LockBlock(lock)
 inline SyncLockBlock::~SyncLockBlock ( )
 {
    memoryFence();
+}
+
 }
 
 #endif

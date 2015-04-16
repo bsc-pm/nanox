@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "nanos-int.h"
+#include "atomic.hpp"
 #include "loop.hpp"
 #include "plugin.hpp"
 #include "system.hpp"

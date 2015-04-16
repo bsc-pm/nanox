@@ -24,6 +24,7 @@
 #include "memorymap.hpp"
 #include "copydata.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 #include "processingelement.hpp"
 #include "system.hpp"
 #include "deviceops.hpp"

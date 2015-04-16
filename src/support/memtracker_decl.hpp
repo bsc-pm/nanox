@@ -25,6 +25,7 @@
 #include "memtracker_fwd.hpp"
 #include "debug.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 #include "allocator.hpp"
 #include <iostream>
 #include <vector>

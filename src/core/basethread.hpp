@@ -20,18 +20,21 @@
 #ifndef _BASE_THREAD_ELEMENT
 #define _BASE_THREAD_ELEMENT
 
-#include "workdescriptor_fwd.hpp"
+#include <stdio.h>
+
 #include "atomic.hpp"
-#include "processingelement.hpp"
 #include "debug.hpp"
+
 #include "schedule_fwd.hpp"
 #include "threadteam_fwd.hpp"
+
+#include "workdescriptor_decl.hpp"
+#include "processingelement.hpp"
 #include "basethread_decl.hpp"
-#include "atomic.hpp"
-#include "system.hpp"
 #include "wddeque.hpp"
 #include "smpthread.hpp"
-#include <stdio.h>
+
+#include "system.hpp"
 
 namespace nanos
 {

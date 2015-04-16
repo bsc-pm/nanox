@@ -18,6 +18,7 @@
 /*************************************************************************************/
 
 #include "schedule.hpp"
+#include "atomic.hpp"
 #include "processingelement.hpp"
 #include "basethread.hpp"
 #include "smpthread.hpp"

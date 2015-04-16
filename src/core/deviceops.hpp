@@ -22,8 +22,9 @@
 
 #include <iostream>
 
-#include "deviceops_decl.hpp"
 #include "atomic.hpp"
+#include "debug.hpp"
+#include "deviceops_decl.hpp"
 #include "os.hpp"
 
 #define VERBOSE_CACHE_OPS 0

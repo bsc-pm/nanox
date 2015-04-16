@@ -30,7 +30,7 @@
 */
 
 
-using namespace nanos;
+namespace nanos {
 
 template<typename T>
 inline T Atomic<T>::fetchAndAdd ( const T& val )
@@ -212,7 +212,7 @@ inline Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
    return operator=( val._value );
 }
 
-inline void nanos::memoryFence ()
+inline void memoryFence ()
 {
 #ifndef __MIC__
     __sync_synchronize();
@@ -222,9 +222,10 @@ inline void nanos::memoryFence ()
 }
 
 template<typename T>
-inline bool nanos::compareAndSwap( volatile T *ptr, T oldval, T  newval )
+inline bool compareAndSwap( volatile T *ptr, T oldval, T  newval )
 {
     return __sync_bool_compare_and_swap ( ptr, oldval, newval );
 }
 
+}
 #endif

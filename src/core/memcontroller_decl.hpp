@@ -22,6 +22,7 @@
 #include <map>
 #include "workdescriptor_fwd.hpp"
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 #include "newregiondirectory_decl.hpp"
 #include "addressspace_decl.hpp"
 #include "memoryops_decl.hpp"
