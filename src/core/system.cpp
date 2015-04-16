@@ -135,23 +135,12 @@ struct LoadModule
    }
 };
 
-void System::loadModules ()
+void System::loadArchitectures()
 {
    verbose0 ( "Configuring module manager" );
-
    _pluginManager.init();
+   verbose0 ( "Loading architectures" );
 
-   verbose0 ( "Loading modules" );
-
-   const OS::ModuleList & modules = OS::getRequestedModules();
-   std::for_each(modules.begin(),modules.end(), LoadModule());
-   
-#ifdef MPI_DEV
-   char* isOffloadSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE")); 
-   //Plugin->init of MPI will initialize MPI when we are slaves so MPI spawn returns ASAP in the master
-   //This plugin does not reserve any PE at initialization time, just perform MPI Init and other actions
-   if ( isOffloadSlave ) sys.loadPlugin("arch-mpi");
-#endif
    
    // load host processor module
    if ( _hostFactory == NULL ) {
@@ -161,7 +150,7 @@ void System::loadModules ()
        fatal0 ( "Couldn't load host support" );
    }
    ensure0( _hostFactory,"No default host factory" );
-   
+
 #ifdef GPU_DEV
    verbose0( "loading GPU support" );
 
@@ -186,6 +175,21 @@ void System::loadModules ()
 
    verbose0( "Architectures loaded");
 
+#ifdef MPI_DEV
+   char* isOffloadSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE")); 
+   //Plugin->init of MPI will initialize MPI when we are slaves so MPI spawn returns ASAP in the master
+   //This plugin does not reserve any PE at initialization time, just perform MPI Init and other actions
+   if ( isOffloadSlave ) sys.loadPlugin("arch-mpi");
+#endif
+}
+
+void System::loadModules ()
+{
+   verbose0 ( "Loading modules" );
+
+   const OS::ModuleList & modules = OS::getRequestedModules();
+   std::for_each(modules.begin(),modules.end(), LoadModule());
+   
    if ( !loadPlugin( "instrumentation-"+getDefaultInstrumentation() ) )
       fatal0( "Could not load " + getDefaultInstrumentation() + " instrumentation" );   
 
@@ -220,6 +224,7 @@ void System::loadModules ()
    ensure0( _defBarrFactory,"No default system barrier factory" );
 
    verbose0( "Starting Thread Manager" );
+
    _threadManager = _threadManagerConf.create();
 }
 
@@ -418,6 +423,7 @@ void System::start ()
    _hwloc.loadHwloc();
    
    // Modules can be loaded now
+   loadArchitectures();
    loadModules();
 
    verbose0( "Stating PM interface.");
@@ -1353,6 +1359,12 @@ int System::getNumWorkers( DeviceData *arch )
    return n;
 }
 
+int System::getNumThreads( void ) const
+{
+   int n = 0;
+   n = _smpPlugin->getNumThreads();
+   return n;
+}
 ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuse, bool enter, bool parallel )
 {
    //! \note Getting default scheduler

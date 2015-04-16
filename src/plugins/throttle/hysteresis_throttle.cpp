@@ -37,8 +37,14 @@ namespace nanos {
             const HysteresisThrottle & operator= ( const HysteresisThrottle & );
 
          public:
-            HysteresisThrottle( int upper, int lower ) : _upper( upper ), _lower( lower ),
-                                                      _syncCond( LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getTotalTasksAddr(), lower )) {}
+            HysteresisThrottle( int upper, int lower ) : _upper( upper * sys.getNumThreads() ),
+               _lower( lower * sys.getNumThreads() ),
+               _syncCond( LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getTotalTasksAddr(), lower * sys.getNumThreads()) )
+            {
+               verbose0( "Throttle hysteresis created");
+               verbose0( "   lower bound: " << lower * sys.getNumThreads() );
+               verbose0( "   upper bound: " << upper * sys.getNumThreads() );
+            }
 
             void setUpper( int upper ) { _upper = upper; };
             void setLower( int lower ) { _lower = lower; };
@@ -54,12 +60,12 @@ namespace nanos {
          // If it's OpenMP, first level tasks will have depth 1
          unsigned maxDepth = ( sys.getPMInterface().getInterface() == PMInterface::OpenMP ) ? 2 : 1;
          // Only dealing with first level tasks
-         if ( ( (myThread->getCurrentWD())->getDepth() < maxDepth ) && ( sys.getTaskNum() > (_upper * sys.getNumWorkers()) ) ) _syncCond.wait();
+         if ( ( (myThread->getCurrentWD())->getDepth() < maxDepth ) && ( sys.getTaskNum() > _upper ) ) _syncCond.wait();
          return true;
       }
       void HysteresisThrottle::throttleOut ( void )
       {
-         if ( sys.getTaskNum() <= ( _lower * sys.getNumWorkers() ) ) _syncCond.signal();
+         if ( sys.getTaskNum() <= _lower ) _syncCond.signal();
       }
 
       class HysteresisThrottlePlugin : public Plugin

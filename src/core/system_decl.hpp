@@ -232,6 +232,7 @@ namespace nanos
          //! \brief Reads environment variables and compiler-supplied flags
          void config ();
          void loadModules();
+         void loadArchitectures();
          void unloadModules();
 
          Atomic<int> _atomicSeedWg;
@@ -337,6 +338,7 @@ namespace nanos
 
          int getNumWorkers( DeviceData *arch );
 
+         int getNumThreads() const;
 
          void setUntieMaster ( bool value );
 
