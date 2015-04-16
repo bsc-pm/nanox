@@ -524,53 +524,58 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
-void WorkDescriptor::registerTaskReduction( void *p_orig, void *p_dep, size_t p_size, void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) )
+void WorkDescriptor::registerTaskReduction( void *p_orig, void *p_dep, size_t p_size,
+      void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) )
 {
-   //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+   //! Check if p_orig is already registered
+   task_reduction_vector_t::reverse_iterator it;
+   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
       if ( (*it)->have( p_orig, 0 ) ) break;
    }
 
-
-   NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
-   if ( it == _taskReductions.end() ) {
-      _taskReductions.push_front( new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var, p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+   //! p_orig is a new reduction, so we have to register it
+   if ( it == _taskReductions.rend() ) {
+      NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+      _taskReductions.push_back(
+            new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var,
+               p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
    }
-}
-
-bool WorkDescriptor::removeTaskReduction( void *p_orig, bool del )
-{
-   //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      if ( (*it)->have_dependence( p_orig, 0 ) ) break;
-   }
-
-   if ( it != _taskReductions.end() ) {
-       if ( del ) delete (*it);
-       _taskReductions.erase( it );
-       return true;
-   }
-   return false;
 }
 
 void * WorkDescriptor::getTaskReductionThreadStorage( void *p_orig, size_t id )
 {
    //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+   task_reduction_vector_t::reverse_iterator it;
+   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
       void *ptr = (*it)->have( p_orig, id );
       if ( ptr != NULL ) return ptr;
    }
    return NULL;
 }
 
+bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
+{
+   //! Check if orig is already registered
+   task_reduction_vector_t::reverse_iterator it;
+   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
+      if ( (*it)->have_dependence( p_dep, 0 ) ) break;
+   }
+
+   if ( it != _taskReductions.rend() ) {
+      if ( del ) delete (*it);
+      // Reverse iterators cannot be erased directly, we need to transform them
+      // to common iterators
+      _taskReductions.erase( --(it.base()) );
+      return true;
+   }
+   return false;
+}
+
 TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
 {
    //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
+   task_reduction_vector_t::reverse_iterator it;
+   for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
       void *ptr = (*it)->have_dependence( p_dep, 0 );
       if ( ptr != NULL ) return (*it);
    }
