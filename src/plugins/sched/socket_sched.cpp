@@ -361,10 +361,8 @@ namespace nanos {
                if( isInitTask( wd ) )
                {
                   wdata._initTask = true;
-                  winner = tdata._next.value();
+                  winner = tdata._next++ % sys.getNumNumaNodes();
                   
-                  // FIXME
-                  tdata._next = ( winner+1 ) % sys.getNumNumaNodes();
                   verbose0( toString( "[NUMA] wd ") + toString( wd.getId() ) + toString( "(" ) + toString( wd.getDescription() )
                      + toString(")") + toString( " is init task, assigned to NUMA node " ) + toString( winner ) );
                   //fprintf( stderr, "[socket] Round.robbin next = %d\n", tdata._next.value() );
