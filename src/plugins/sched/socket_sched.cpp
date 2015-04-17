@@ -427,8 +427,6 @@ namespace nanos {
                   // FIXME: Add mechanism to solve ties
                }
 
-               
-               winner = sys.getVirtualNUMANode( winner );
                //fprintf( stderr, "[socket] Winner is %d\n", winner );
                return (unsigned ) winner;
             }
