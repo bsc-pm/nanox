@@ -392,8 +392,9 @@ namespace nanos {
                               
                               if ( loc != NULL  )
                               {
-                                 int numaNode = loc->getNumaNode();
-                                 numaRanks[ numaNode ] += reg.getDataSize();
+				 int pNumaNode = loc->getNumaNode();
+				 int vNumaNode = sys.getVirtualNUMANode(pNumaNode);
+				 numaRanks[ vNumaNode ] += reg.getDataSize();
                               }
                            }
                         }
