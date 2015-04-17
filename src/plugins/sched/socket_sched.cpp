@@ -497,13 +497,15 @@ namespace nanos {
                   // Clear stringstream to reuse it
                   ss.str( std::string() );
                   
-                  ss     << "=== NUMA node mapping:   ";
-                  for ( int i = 0; i < sys.getSMPPlugin()->getNumSockets(); ++i )
+                  ss     << "=== NUMA node mapping (virtual -> physical):   ";
+
+		  const std::vector<int> &numaNodeMap = sys.getNumaNodeMap();
+                  for ( int pNode = 0; pNode < (int)numaNodeMap.size(); ++pNode )
                   {
-                     int vNode = sys.getVirtualNUMANode( i );
+                     int vNode = numaNodeMap[pNode];
                      // If this real node has a valid virtual mapping
                      if ( vNode != INT_MIN )
-                        ss << vNode << "->" << i << ", ";
+                        ss << vNode << "->" << pNode << ", ";
                   }
                   message0( ss.str() );
                   

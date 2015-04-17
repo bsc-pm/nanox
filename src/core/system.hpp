@@ -110,6 +110,12 @@ inline int System::getVirtualNUMANode( int physicalNode ) const
 {
    return ( physicalNode < (int)_numaNodeMap.size() ) ? _numaNodeMap[ physicalNode ] : INT_MIN;
 }
+
+inline const std::vector<int> & System::getNumaNodeMap() const
+{
+	return _numaNodeMap;
+}
+
 //
 //inline int System::getCurrentSocket() const { return _currentSocket; }
 //inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }

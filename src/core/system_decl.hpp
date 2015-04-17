@@ -651,7 +651,10 @@ namespace nanos
          std::size_t getRegionCacheSlabSize() const;
          void createDependence( WD* pred, WD* succ);
          unsigned int getNumClusterNodes() const;
-         unsigned int getNumNumaNodes() const;
+	 unsigned int getNumNumaNodes() const;
+	 //! Return a vector which maps physical NUMA nodes (vector indexes)
+	 //! with virtual nodes (vector values)
+	 const std::vector<int>& getNumaNodeMap() const;
          //! Return INT_MIN if physicalNode does not have a mapping.
          int getVirtualNUMANode( int physicalNode ) const;
          std::set<unsigned int> const &getClusterNodeSet() const;
