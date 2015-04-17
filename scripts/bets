@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #constants
-readonly bets_version=0.9.6
+readonly bets_version=0.9.6a
 
 #color constants
 
@@ -956,8 +956,11 @@ define_colors
 START_TIME=$SECONDS
 
 do_$mode $*
+bets_exit_code=$?
 
 END_TIME=$SECONDS
 ELAPSED_TIME=$(($END_TIME - $START_TIME))
 
 echo Duration: $(($ELAPSED_TIME / 60))min $(($ELAPSED_TIME % 60))sec
+
+exit $bets_exit_code
