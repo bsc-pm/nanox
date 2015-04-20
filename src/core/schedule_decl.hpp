@@ -157,6 +157,7 @@ namespace nanos
 
          int getCreatedTasks();
          int getReadyTasks();
+         volatile int * getReadyTasksAddr( void ) { return &_readyTasks.override(); }
          int getTotalTasks();
          volatile int * getTotalTasksAddr( void ) { return &_totalTasks.override(); }
    };

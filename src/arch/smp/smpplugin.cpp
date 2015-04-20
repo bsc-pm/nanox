@@ -340,7 +340,6 @@ class SMPPlugin : public SMPBasePlugin
       } else {
          count = active_cpus - reserved_cpus;
       }
-      debug0( __FUNCTION__ << " called before creating the SMP workers, the estimated number of workers is: " << count);
       return count + future_threads;
 
    }
