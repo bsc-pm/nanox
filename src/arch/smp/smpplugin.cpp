@@ -412,26 +412,60 @@ class SMPPlugin : public SMPBasePlugin
          warning0( "You have explicitly requested more SMP workers than available CPUs" );
       }
 
-      int current_workers = 1;
-      int worker_overflow = 0;
+      //! These variables are used to support oversubscription of threads
+      int limit_workers_per_cpu = 1;
+      int num_cpus_with_current_limit = 0;
+
+      int workers_per_cpu[_cpus->size()];
+      for (unsigned int i = 0; i < _cpus->size(); ++i)
+          workers_per_cpu[i] = 0;
+
       int bindingStart = _bindingStart % _cpus->size();
+      //! \bug FIXME: This may be wrong in some cases...
+      workers_per_cpu[bindingStart] = 1;
+      num_cpus_with_current_limit++;
+
+      if (active_cpus == 1) {
+         //! This is a special case, we have to increase the limit of workers
+         //! per cpu because we have already added a worker to the first (and
+         //! unique) CPU
+         limit_workers_per_cpu++;
+         num_cpus_with_current_limit = 0;
+      }
+
+      int current_workers = 1;
       int idx = bindingStart + _bindingStride;
       while ( current_workers < max_workers ) {
-         worker_overflow = std::max(worker_overflow, (((unsigned int)idx) >= _cpus->size())?1:0);
+
          idx = (idx % _cpus->size());
-         if ((idx >= bindingStart ) && worker_overflow ) {
-            idx = ((idx+1) % _cpus->size());
-            worker_overflow=0;
-         }
+
          SMPProcessor *cpu = (*_cpus)[idx];
-         if ( cpu->isActive() && (!cpu->isReserved() || ignore_reserved_cpus) ) {
+         if ( cpu->isActive()
+               && (workers_per_cpu[idx] < limit_workers_per_cpu)
+               && (!cpu->isReserved() || ignore_reserved_cpus) ) {
+
             BaseThread *thd = &cpu->startWorker();
             _workers.push_back( (SMPThread *) thd );
             workers.insert( std::make_pair( thd->getId(), thd ) );
-            current_workers += 1;
+
+            workers_per_cpu[idx]++;
+            num_cpus_with_current_limit++;
+
+            current_workers++;
             idx += _bindingStride;
+
+            if (num_cpus_with_current_limit == active_cpus) {
+               //! All the enabled cpus have the same number of workers. So, if
+               //! we need to add more workers, we have to increase the limit of
+               //! workers per cpu
+               limit_workers_per_cpu++;
+
+               //! No cpu has reached the current limit because we have
+               //! increased it in the previous statement
+               num_cpus_with_current_limit = 0;
+            }
          } else {
-            idx += 1;
+            idx++;
          }
       }
       _workersCreated = true;
