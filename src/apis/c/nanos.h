@@ -360,8 +360,9 @@ NANOS_API_DECL(nanos_err_t, nanos_set_create_local_tasks, ( bool value ));
 #endif
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr));
-
 NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
+NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst_with_val, (nanos_string_t key, nanos_string_t key_descr, nanos_event_value_t *val));
+NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst_with_val, (nanos_string_t key, nanos_event_value_t *val));
 
 #ifdef _MF03
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, ptrdiff_t n));
