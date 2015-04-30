@@ -240,6 +240,7 @@ paraver_config_files = \
      paraver_configs/ompss/tasks/task_number.cfg\
      paraver_configs/ompss/tasks/3dh_ipc_task.cfg\
      paraver_configs/ompss/tasks/2dp_tasks.cfg\
+     paraver_configs/ompss/tasks/task_numa_node.cfg\
      paraver_configs/ompss/worksharing_loops.cfg\
      paraver_configs/ompss/cuda/3dh_duration_CUDAruntime.cfg\
      paraver_configs/ompss/cuda/Non_overlapped_CUDA_Transfer_Direction.cfg\
@@ -265,6 +266,7 @@ paraver_config_files = \
      paraver_configs/ompss/runtime/3dh_duration_state.cfg\
      paraver_configs/ompss/runtime/thread_state.cfg\
      paraver_configs/ompss/runtime/thread_state_with_locks.cfg\
+     paraver_configs/ompss/runtime/thread_numa_node.cfg\
      paraver_configs/ompss/runtime/spins_yields.cfg\
      paraver_configs/ompss/runtime/average_sleep_time.cfg\
      paraver_configs/ompss/runtime/nanos_API.cfg\

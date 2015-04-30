@@ -489,9 +489,22 @@ void System::start ()
       (*it)->addDevices( _devices );
    }
    
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      (*it)->startSupportThreads();
+   }   
+   
+   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
+        it != _archs.end(); ++it )
+   {
+      (*it)->startWorkerThreads( _workers );
+   }   
+
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       _clusterNodes.insert( it->second->getClusterNode() );
-      if ( it->second->isInNumaNode() ) {
+      // If this PE is in a NUMA node and has workers
+      if ( it->second->isInNumaNode() && ( it->second->getNumThreads() > 0  ) ) {
          // Add the node of this PE to the set of used NUMA nodes
          unsigned node = it->second->getNumaNode() ;
          _numaNodes.insert( node );
@@ -524,18 +537,6 @@ void System::start ()
       // Otherwise, do nothing
    }
    verbose0( "[NUMA] " << availNUMANodes << " NUMA node(s) available for the user." );
-
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it )
-   {
-      (*it)->startSupportThreads();
-   }   
-   
-   for ( ArchitecturePlugins::const_iterator it = _archs.begin();
-        it != _archs.end(); ++it )
-   {
-      (*it)->startWorkerThreads( _workers );
-   }   
 
    // For each plugin, notify it's the way to reserve PEs if they are required
    //for ( ArchitecturePlugins::const_iterator it = _archs.begin();
