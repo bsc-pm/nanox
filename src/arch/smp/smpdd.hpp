@@ -34,9 +34,9 @@ namespace ext
    class SMPDD : public DD
    {
       private:
-         intptr_t *     _stack;
-         intptr_t *     _state;
-         static size_t     _stackSize;
+         intptr_t           *_stack;
+         intptr_t           *_state;
+         static size_t       _stackSize;
 
       protected:
          SMPDD( work_fct w, Device *dd ) : DD( dd, w ),_stack( 0 ),_state( 0 ) {}

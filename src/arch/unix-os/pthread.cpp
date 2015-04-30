@@ -69,13 +69,12 @@ void PThread::start ( BaseThread * th )
    pthread_attr_t attr;
    pthread_attr_init( &attr );
 
-   // user-defined stack size
+   //! \note Checking user-defined stack size
    if ( _stackSize > 0 ) {
       if ( _stackSize < PTHREAD_STACK_MIN ) {
          warning("specified thread stack too small, adjusting it to minimum size");
          _stackSize = PTHREAD_STACK_MIN;
       }
-
       if (pthread_attr_setstacksize( &attr, _stackSize ) )
          warning( "couldn't set pthread stack size stack" );
    }

@@ -33,32 +33,23 @@ SMPDevice nanos::ext::SMP("SMP");
 
 size_t SMPDD::_stackSize = 32 * 1024;
 
-/*!
- \brief Registers the Device's configuration options
- \param reference to a configuration object.
- \sa Config System
- */
+//! \brief Registers the Device's configuration options
+//! \param reference to a configuration object.
+//! \sa Config System
 void SMPDD::prepareConfig ( Config &config )
 {
-   /*!
-    Get the stack size from system configuration
-    */
+   //! \note Get the stack size from system configuration
    size_t size = sys.getDeviceStackSize();
-   if (size > 0)
-      _stackSize = size;
+   if (size > 0) _stackSize = size;
 
-   /*!
-    Get the stack size for this device
-    */
-   config.registerConfigOption ( "smp-stack-size", NEW Config::SizeVar( _stackSize ), "Defines SMP workdescriptor stack size" );
+   //! \note Get the stack size for this specific device
+   config.registerConfigOption ( "smp-stack-size", NEW Config::SizeVar( _stackSize ), "Defines SMP::task stack size" );
    config.registerArgOption("smp-stack-size", "smp-stack-size");
-   config.registerEnvOption("smp-stack-size", "NX_SMP_STACK_SIZE");
 }
 
 void SMPDD::initStack ( WD *wd )
 {
-   _state = ::initContext(_stack, _stackSize, &workWrapper, wd,
-         (void *) Scheduler::exit, 0);
+   _state = ::initContext(_stack, _stackSize, &workWrapper, wd, (void *) Scheduler::exit, 0);
 }
 
 void SMPDD::workWrapper ( WD &wd )
@@ -79,16 +70,16 @@ void SMPDD::workWrapper ( WD &wd )
 
 void SMPDD::lazyInit ( WD &wd, bool isUserLevelThread, WD *previous )
 {
+   verbose0("Task " << wd.getId() << ", lazy initialization"); // FIXME:extra verbosity, remove it
    if (isUserLevelThread) {
-      if (previous == NULL)
-         _stack = NEW
-         intptr_t[_stackSize];
-      else {
+      if (previous == NULL) {
+         _stack = NEW intptr_t[_stackSize];
+         verbose0("   new stack created: " << _stackSize << " bytes");
+      } else {
+         verbose0("   reusing stacks");
          SMPDD &oldDD = (SMPDD &) previous->getActiveDevice();
-
          std::swap(_stack, oldDD._stack);
       }
-
       initStack(&wd);
    }
 }
