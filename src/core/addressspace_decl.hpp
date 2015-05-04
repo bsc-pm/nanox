@@ -81,6 +81,7 @@ class HostAddressSpace {
    reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
    NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
    void registerObject( nanos_copy_data_internal_t *obj );
+   void unregisterObject( void *baseAddr );
 };
 
 

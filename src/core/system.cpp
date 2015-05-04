@@ -1532,3 +1532,7 @@ void System::registerObject(int numObjects, nanos_copy_data_internal_t *obj) {
       _hostMemory.registerObject( &obj[i] );
    }
 }
+
+void System::unregisterObject( void *base_addr ) {
+   _hostMemory.unregisterObject( base_addr );
+}

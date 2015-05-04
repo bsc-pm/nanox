@@ -636,6 +636,7 @@ namespace nanos
          int getUserDefinedNUMANode() const;
          void setUserDefinedNUMANode( int nodeId );
          void registerObject( int numObjects, nanos_copy_data_internal_t *obj );
+         void unregisterObject( void *base_addr );
 
          unsigned int getNumAccelerators() const;
          unsigned int getNewAcceleratorId();
