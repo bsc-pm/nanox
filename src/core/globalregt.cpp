@@ -184,6 +184,8 @@ reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
    nanos_region_dimension_internal_t fitDimensions[ key->getNumDimensions() ];
    if ( slabSize < this->getBreadth() ) {
       fatal("Can not allocate slab for this region. Not supported yet. slabSize "<< slabSize << " breadth " << this->getBreadth());
+   } else if ( this->getBreadth() < slabSize && id == 1 ) {
+      return id;
    } else {
 
       unsigned int lower_bounds[key->getNumDimensions()];
@@ -212,7 +214,7 @@ reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
                fitDimensions[ idx ].lower_bound = ( lower_bounds[idx] / slab_elems ) * slab_elems;
                keep_expanding = false;
             } else {
-               fatal("invalid slabSize.");
+               fatal("invalid slabSize: " << slabSize << " reg size is " << this->getBreadth() );
             }
          } else {
             fitDimensions[ idx ].accessed_length = 1;
