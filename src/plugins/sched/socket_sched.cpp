@@ -43,6 +43,8 @@ namespace nanos {
       class SocketSchedPolicy : public SchedulePolicy
       {
          public:
+            /*! \brief Value returned by getNode() when it does not find a suitable nod. */
+            const static int UnassignedNode = -1;
          
          private:
             /*! \brief Steal work from other sockets? */
@@ -235,7 +237,7 @@ namespace nanos {
                      // Convert to virtual
                      int vNode = sys.getVirtualNUMANode( node );
                      _gpuNodes.insert( vNode );
-                     verbose0( "Found GPU Worker in node " << node << " (virtual " << vNode << ")" );
+                     verbose0( "[NUMA] Found GPU Worker in node " << node << " (virtual " << vNode << ")" );
                   }
 #endif
                   // Avoid unused variable warning.
@@ -280,7 +282,7 @@ namespace nanos {
                fatal_cond( _gpuNodes.count( newNode ) == 0, "Cannot find a node with GPUs to move the task to." );
                
                
-               verbose( "WD " << wd.getId() << " cannot run in node " << node << ", moved to " << newNode );
+               verbose( "[NUMA] WD " << wd.getId() << " cannot run in node " << node << ", moved to " << newNode );
                return newNode;
             //#endif
             }
@@ -328,10 +330,6 @@ namespace nanos {
                for ( unsigned int idx = 0; idx < wd.getNumCopies(); ++idx )
                {
                   if ( !copies[idx].isPrivate() ) {
-                     //rw_copies += (  copies[idx].isInput() &&  copies[idx].isOutput() );
-                     // If the next one is uncommented, stream initialisation tasks will not work
-                     //ro_copies += (  copies[idx].isInput() && !copies[idx].isOutput() );
-                     //wo_copies += ( !copies[idx].isInput() &&  copies[idx].isOutput() );
                      if ( wd._mcontrol._memCacheCopies[ idx ].getVersion() == 1 && copies[idx].isOutput() )
                         createdDataSize += copies[idx].getSize();
                   }
@@ -343,16 +341,32 @@ namespace nanos {
             
             /*!
              *  \brief Returns the node this WD should run on, based on copies
-             *  information.
+             *  information if _useCopies is enabled.
+             *  Otherwise, it will use the node set by the user.
+             *
+             *  It will also set the WD NUMA node when using copies, since in
+             *  that case that property is set to -1.
              *
              *  Init tasks will be distributed in round robbin.
              *  FIXME (gmiranda): round robin should be for available nodes!
+             *
+             *  If there's a tie (i.e. some nodes have as much data as others),
+             *  the node will be chosen randomly.
+             *
+             * \retval UnassignedNode If no suitable node was found to execute
+             * this task, meaning that it should go to the general queue.
+             * \retval >=0 The node to execute this task that has at least as
+             * much data as the others.
              */
-            inline unsigned getNode( BaseThread *thread, const WD& wd ) const
+            inline int getNode( BaseThread *thread, WD& wd ) const
             {
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
                WDData & wdata = *dynamic_cast<WDData*>( wd.getSchedulerData() );
-               
+
+               // If copies are disabled, simply return the node set by current_socket
+               if ( !_useCopies )
+                  return wd.getNUMANode();
+
                const CopyData * copies = wd.getCopies();
                unsigned numNodes = sys.getNumNumaNodes();
                
@@ -392,9 +406,9 @@ namespace nanos {
                               
                               if ( loc != NULL  )
                               {
-				 int pNumaNode = loc->getNumaNode();
-				 int vNumaNode = sys.getVirtualNUMANode(pNumaNode);
-				 numaRanks[ vNumaNode ] += reg.getDataSize();
+                                 int pNumaNode = loc->getNumaNode();
+                                 int vNumaNode = sys.getVirtualNUMANode(pNumaNode);
+                                 numaRanks[ vNumaNode ] += reg.getDataSize();
                               }
                            }
                         }
@@ -402,8 +416,8 @@ namespace nanos {
                   }
                   
                   #if 0
-                  fprintf(stderr, "[socket] Numa ranks for wd %d (%s): {", wd.getId(), wd.getDescription() );
-                  for( int x = 0; x < sys.getNumSockets(); ++x )
+                  fprintf(stderr, "[NUMA] Numa ranks for wd %d (%s): {", wd.getId(), wd.getDescription() );
+                  for( unsigned int x = 0; x < sys.getNumNumaNodes(); ++x )
                   {
                      fprintf(stderr, "%d, ", numaRanks[ x ] );
                   }
@@ -411,24 +425,67 @@ namespace nanos {
                   
                   #endif
                   
-                  winner = -1;
+                  winner = UnassignedNode;
+                  // Nodes with the highest rank (equal!)
+                  std::set<unsigned> candidateRanks;
+                  // Highest rank until now.
+                  unsigned int maxRank = 0;
                   // FIXME: review the use of start
                   unsigned int start = 0 ;
-                  unsigned int maxRank = 0;
-                  // Find the node with the higher rank
+                  // Find the nodes with the highest rank
                   for ( unsigned i = start; i < ( sys.getNumNumaNodes() ); i++ ) {
+                     // If this rank is higher than the previous one,
                      if ( numaRanks[i] > maxRank ) {
-                        winner = i;
+                        // Discard all previous nodes
+                        candidateRanks.clear();
+                        // Add this one to the set
+                        candidateRanks.insert( i );
+                        // And save the new max rank
                         maxRank = numaRanks[i];
+                        continue;
+                     }
+                     /* If this rank is the same as the previous max
+                        and max != 0 to prevent having ranks with 0 bytes in
+                        the set */
+                     if ( numaRanks[i] == maxRank && maxRank != 0 ) {
+                        // Simply add this node to the candidate set
+                        candidateRanks.insert( i );
+                        continue;
                      }
                   }
-                  if ( winner == -1 )
-                     winner = start;
-                  // FIXME: Add mechanism to solve ties
+                  /* Now we've got a set with nodes that are equally good.
+                   * Always choosing the same would not be wise: there would be imbalance,
+                   * that node will always get more tasks.
+                   * Round robbin would work if all the tasks access the same nodes,
+                   * but if task A is accessed by nodes #0 and #1, you give it to node #0,
+                   * the next task should be given to node #1. Then task B comes and it is
+                   * accessed by nodes #2 and #3, so you can't give it to node #1.
+                   * I think random is the best way for now.
+                   */
+                  // If there's a tie
+                  if ( candidateRanks.size() > 1 ) {
+                     unsigned pos = std::rand() % candidateRanks.size();
+                     std::set<unsigned>::const_iterator it( candidateRanks.begin() );
+                     // Move the iterator to the random position
+                     advance( it, pos );
+                     winner = *it;
+                     verbose0( toString( "[NUMA] Tie resolved, candidate is pos: " ) + toString( pos ) + toString( " (node " ) + toString( winner ) );
+                  }
+                  // If there's only one element
+                  else if ( candidateRanks.size() == 1 ) {
+                     winner = *( candidateRanks.begin() );
+                  }
+                  // Otherwise, it seems there's no NUMA access
+                  else {
+                     winner = UnassignedNode;
+                  }
                }
 
-               //fprintf( stderr, "[socket] Winner is %d\n", winner );
-               return (unsigned ) winner;
+               verbose0( "[NUMA] Winner is " + toString( winner ) );
+
+               wd.setNUMANode( winner );
+
+               return winner;
             }
 
          public:
@@ -441,20 +498,6 @@ namespace nanos {
                _useSuccessor( useSuccessor ), _smartPriority( smartPriority ),
                _spins ( spins ), _randomSteal( randomSteal ), _useCopies( useCopies )
             {
-               //int numSockets = sys.getNumSockets();
-               //int coresPerSocket = sys.getCoresPerSocket();
-               
-               //fprintf( stderr, "Steal: %d, successor: %d, smart: %d, spins: %d\n", steal, useSuccessor, smartPriority, spins );
-               
-               // Check config
-               // gmiranda: disabled temporary since NumPES < numWorkers when using GPUS
-               //if ( numSockets != std::ceil( sys.getNumPEs() / static_cast<float>( coresPerSocket) ) )
-               //{
-               //   unsigned validSockets = std::ceil( sys.getNumPEs() / static_cast<float>(coresPerSocket) );
-               //   warning0( "Adjusting num-sockets from " << numSockets << " to " << validSockets );
-               //   sys.setNumSockets( validSockets );
-               //}
-               
             }
 
             // destructor
@@ -496,7 +539,7 @@ namespace nanos {
                   
                   ss     << "=== NUMA node mapping (virtual -> physical):   ";
 
-		  const std::vector<int> &numaNodeMap = sys.getNumaNodeMap();
+                  const std::vector<int> &numaNodeMap = sys.getNumaNodeMap();
                   for ( int pNode = 0; pNode < (int)numaNodeMap.size(); ++pNode )
                   {
                      int vNode = numaNodeMap[pNode];
@@ -606,15 +649,15 @@ namespace nanos {
                      tdata._readyQueues[0].push_back ( &wd );
                      break;
                   case 1:
-                     // If a node was not selected
-                     if ( !_useCopies && wd.getNUMANode() == -1 )
+                     node = ( unsigned ) getNode( thread, wd );
+                     // If a node was not selected (either by the user, or because there were no copies)
+                     if ( wd.getNUMANode() == UnassignedNode )
                         // Go to the general queue
                         index = 0;
                      // Otherwise, do the usual stuff.
                      else
                      {
                         // Use copy information if enabled, otherwise, use info by nanos_current_socket()
-                        node = _useCopies ? getNode( thread, wd ) : wd.getNUMANode();
                         // If the node cannot execute this WD
                         if ( !canRunInNode( wd, node ) ){
                            node = findBetterNode( wd, node );
@@ -629,7 +672,7 @@ namespace nanos {
                         wdata._wakeUpQueue = index;
                      }
                      
-                     //fprintf( stderr, "Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.getNUMANode() );
+                     //fprintf( stderr, "[NUMA] Depth 1, inserting WD %d in queue number %d (curr socket %d)\n", wd.getId(), index, wd.getNUMANode() );
                      
                      // Insert at the front (these will have higher priority)
                      tdata._readyQueues[index].push_back ( &wd );
