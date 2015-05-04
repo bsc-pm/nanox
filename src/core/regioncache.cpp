@@ -471,7 +471,7 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
             if ( thisChunkOps->addCacheOp( /* debug: */ &wd, 3 ) ) {
                invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
                invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), _allocatedRegion, alloc_entry->getVersion(), NULL, this, wd, copyIdx );
-               alloc_entry->resetVersion();
+               //alloc_entry->resetVersion();
             } else {
                std::cerr << " ERROR: could not add a cache op to my ops!"<<std::endl;
             }
@@ -510,7 +510,7 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                   unsigned int version;
                   if ( entry ) {
                      version = entry->getVersion();
-                     entry->resetVersion();
+                     //entry->resetVersion();
                   } else {
                      version = NewNewRegionDirectory::getVersion( data_source.key, data_source.id, false );
                   }
@@ -591,15 +591,22 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
 
             if ( subChunkInval ) {
                //FIXME I think this is wrong, can potentially affect regions that are not there, 
+               unsigned int version;
+               if ( entry ) {
+                  version = entry->getVersion();
+                  //entry->resetVersion();
+               } else {
+                  version = NewNewRegionDirectory::getVersion( data_source.key, data_source.id, false );
+               }
                hard = true;
                if ( thisChunkOps->addCacheOp( /* debug: */ &wd, 6 ) ) { // FIXME: others may believe there's an ongoing op for the full region!
-                 invalOps.insertOwnOp( thisChunkOps, data_source, entry->getVersion(), 0 );
+                 invalOps.insertOwnOp( thisChunkOps, data_source, version, 0 );
                } else {
                  //it could have been added on a previous iteration
                  //std::cerr << "ERROR, could not add an inval cache op " << std::endl;
                }
             }
-            entry->resetVersion();
+            //entry->resetVersion();
          }
       }
 
@@ -610,7 +617,7 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                hard = true;
                if ( thisChunkOps->addCacheOp( /* debug: */ &wd, 7 ) ) {
                   invalOps.insertOwnOp( thisChunkOps, _allocatedRegion, alloc_entry->getVersion(), 0 );
-                  alloc_entry->resetVersion();
+                  //alloc_entry->resetVersion();
                }
             } else {
                std::cerr << " ERROR: could not add a cache op to my ops!"<<std::endl;
