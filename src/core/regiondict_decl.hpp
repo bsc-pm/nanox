@@ -75,6 +75,7 @@ typedef unsigned int reg_t;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
+      ~ContainerDense();
       RegionNode *getRegionNode( reg_t id ) const;
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
@@ -101,12 +102,14 @@ typedef unsigned int reg_t;
    template < class T >
    class ContainerSparse {
       std::map< reg_t, T > _container;
+      Lock                       _lock;
       //ContainerDense< T > &_orig;
       protected:
       RegionDictionary< ContainerDense > &_orig;
       public:
       bool sparse;
       ContainerSparse( RegionDictionary< ContainerDense > &orig );
+      ~ContainerSparse();
       RegionNode *getRegionNode( reg_t id ) const;
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
@@ -150,6 +153,7 @@ typedef unsigned int reg_t;
 
       RegionDictionary( CopyData const &cd );
       RegionDictionary( GlobalRegionDictionary &dict );
+      ~RegionDictionary();
       //reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, WD const &wd, unsigned int idx );
       reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );

@@ -69,7 +69,8 @@ AllocatedChunk::~AllocatedChunk() {
 }
 
 void AllocatedChunk::clearNewRegions( global_reg_t const &reg ) {
-   //delete _newRegions;
+   // *myThread->_file << "clear regions for chunk " << (void *) this << " w/hAddr " << (void*) this->getHostAddress() << " - " << (void*)(this->getHostAddress() +this->getSize() ) << std::endl;
+   delete _newRegions;
    _newRegions = NEW CacheRegionDictionary( *(reg.key) );
    _allocatedRegion = reg;
 }

@@ -18,6 +18,10 @@ ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(), _leafC
 }
 
 template <class T>
+ContainerDense< T >::~ContainerDense() {
+}
+
+template <class T>
 RegionNode * ContainerDense< T >::getRegionNode( reg_t id ) const {
    return _container[ id ].getLeaf();
 }
@@ -131,6 +135,11 @@ CopyData *ContainerDense< T >::getRegisteredObject() const {
 
 template <class T>
 ContainerSparse< T >::ContainerSparse( RegionDictionary< ContainerDense > &orig ) : _container(), _orig( orig ), sparse( true ) {
+}
+
+
+template <class T>
+ContainerSparse< T >::~ContainerSparse() {
 }
 
 template <class T>
@@ -254,6 +263,10 @@ template < template <class> class Sparsity>
 RegionDictionary< Sparsity >::RegionDictionary( GlobalRegionDictionary &dict ) : Sparsity< RegionVectorEntry >( dict ), _intersects( dict.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
       _keyBaseAddress( dict.getKeyBaseAddress() ), _realBaseAddress( dict.getRealBaseAddress() ), _lock() {
    //std::cerr << "CREATING CACHE DICT: tree: " << (void *) &_tree << " orig tree: " << (void *) &dict._tree << std::endl;
+}
+
+template < template <class> class Sparsity>
+RegionDictionary< Sparsity >::~RegionDictionary() {
 }
 
 template < template <class> class Sparsity>
