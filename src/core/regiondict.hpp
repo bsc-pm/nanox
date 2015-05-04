@@ -1210,5 +1210,26 @@ bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::list< 
    return ( totalSize == gtarget.getDataSize() );
 }
 
+template < template <class> class Sparsity>
+void RegionDictionary< Sparsity >::printRegionGeom( std::ostream &o, reg_t region ) const {
+   RegionNode const *regNode = this->getRegionNode( region );
+   global_reg_t reg( region, this );
+   //fprintf(stderr, "%p:%d", this, region);
+   o << (void *) this << ":" << std::dec << region;
+   if ( regNode == NULL ) {
+      //fprintf(stderr, "NULL LEAF !");
+      o << "NULL LEAF !";
+      return;
+   }
+   for ( int dimensionCount = this->getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {  
+      std::size_t accessedLength = regNode->getValue();
+      regNode = regNode->getParent();
+      std::size_t lowerBound = regNode->getValue();
+      //fprintf(stderr, "[%zu;%zu]", lowerBound, accessedLength);
+      o << "[" << std::dec << lowerBound << ";" << std::dec << accessedLength << "]";
+      regNode = regNode->getParent();
+   }
+}
+
 }
 #endif /* REGIONDICT_H */

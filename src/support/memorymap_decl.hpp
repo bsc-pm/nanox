@@ -127,7 +127,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       void getOrAddChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
-      void print() const;
+      void print(std::ostream &o) const;
       bool canPack() const;
       void removeChunks( uint64_t addr, std::size_t len );
       _Type **getExactInsertIfNotFound( uint64_t addr, std::size_t len );

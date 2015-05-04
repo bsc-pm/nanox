@@ -166,6 +166,7 @@ typedef unsigned int reg_t;
       uint64_t getRealBaseAddress() const;
 
       void printRegion( std::ostream &o, reg_t ) const;
+      void printRegionGeom( std::ostream &o, reg_t ) const;
 
       bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId ) const;
       reg_t computeTestIntersect( reg_t regionIdA, reg_t regionIdB ) ;

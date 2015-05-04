@@ -249,8 +249,9 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                   //}
                   //key->printRegion(o, locIt->first); o << std::endl;
 
-                  //if ( locIt->first == it->first || chunkReg.contains( locReg ) ) {
-                  if ( locReg.id == chunkReg.id || locReg.key->checkIntersect( locReg.id, chunkReg.id ) ) {
+                  //if ( locIt->first == it->first || chunkReg.contains( locReg ) )
+                  if ( locReg.id == chunkReg.id || locReg.key->checkIntersect( locReg.id, chunkReg.id ) )
+                  {
 
                      reg_t target = 0;
                      if ( locReg.id == chunkReg.id ) {
@@ -262,13 +263,14 @@ bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, u
                      global_reg_t region_shape( target , key );
                      global_reg_t data_source( locIt->second, key );
 
-                     if ( reg != region_shape.id || ( reg == region_shape.id && _newRegions->getRegionData( region_shape.id ) == NULL ) ) {
+                     if ( reg != region_shape.id || _newRegions->getRegionData( region_shape.id ) == NULL ) {
                         prepareRegion( region_shape.id, version );
                      }
-                     //o << "shape: "<< it->first << " data source: " << it->second << std::endl;
+                     //o << "shape: "<< locIt->first << " data source: " << locIt->second << std::endl;
                      //o <<" CHECKING THIS SHIT ID " << data_source.id << std::endl;
-                     //if ( location == 0 || location != _owner.getMemorySpaceId() ) {
-                     if ( !data_source.isLocatedIn( _owner.getMemorySpaceId() ) ) {
+                     //if ( location == 0 || location != _owner.getMemorySpaceId() )
+                     if ( !data_source.isLocatedIn( _owner.getMemorySpaceId() ) )
+                     {
                         memory_space_id_t location = data_source.getPreferedSourceLocation( _owner.getMemorySpaceId() );
                         //o << "add copy from host, reg " << region_shape.id << " version " << ops.getVersionNoLock( data_source, wd, copyIdx ) << std::endl;
                         if ( _VERBOSE_CACHE ) {
@@ -372,6 +374,16 @@ void AllocatedChunk::prepareRegion( reg_t reg, unsigned int version ) {
 void AllocatedChunk::setRegionVersion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
    unsigned int currentVersion = 0;
    CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg );
+   NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
+   if ( entry == NULL ) {
+      key->printRegion(*myThread->_file, reg);
+      *myThread->_file << " not found, this is chunk " << (void*)this << " w/hAddr " << (void*) this->getHostAddress() << " - " << (void*)(this->getHostAddress() +this->getSize() ) << " wd " << wd.getId() << " idx " << copyIdx << std::endl;
+      *myThread->_file << "Regions contained: "  << std::endl;
+      for ( CacheRegionDictionaryIterator it = _newRegions->begin(); it != _newRegions->end(); it++) {
+         *myThread->_file << "Region: " << it->first << " "; _newRegions->printRegion( *myThread->_file, it->first ); *myThread->_file << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : -1)<< std::endl;
+      }
+      *myThread->_file << "End of regions contained: "  << std::endl;
+   }
    ensure(entry != NULL, "CacheEntry not found!");
    currentVersion = entry->getVersion();
    entry->setVersion( version );
@@ -406,6 +418,7 @@ void AllocatedChunk::NEWaddWriteRegion( reg_t reg, unsigned int version, WD cons
 Atomic<int> AllocatedChunk::numCall(0);
 bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigned int copyIdx, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess, std::set< NewNewRegionDirectory::RegionDirectoryKey > &alreadyLockedObjects ) {
    bool hard=false;
+   //std::ostream &o = *(myThread->_file);
    NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
 
    std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator dict_it = alreadyLockedObjects.find( key );
@@ -417,6 +430,15 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
 
    std::list< std::pair< reg_t, reg_t > > missing;
    unsigned int ver = 0;
+
+   // *myThread->_file << this << " hAddr: " << (void *) this->getHostAddress() << " - " << (void*)(this->getHostAddress() + this->getSize() ) << " single chunk inval of region: ";
+   // _allocatedRegion.key->printRegion( *myThread->_file, _allocatedRegion.id );
+   // *myThread->_file << std::endl;
+
+   // for ( CacheRegionDictionaryIterator it = _newRegions->begin(); it != _newRegions->end(); it++) {
+   //    o << "Region: " << it->first << " "; _newRegions->printRegion( o, it->first ); o << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : -1)<< std::endl;
+   // }
+
    _allocatedRegion.key->registerRegionReturnSameVersionSubparts( _allocatedRegion.id, missing, ver );
    //_newRegions->registerRegionReturnSameVersionSubparts( _allocatedRegion.id, missing, ver );
 
@@ -794,21 +816,6 @@ void RegionCache::selectChunksToInvalidate( std::size_t allocSize, std::set< All
    }
 }
 
-//void AllocatedChunk::confirmCopyIn( reg_t id, unsigned int version ) {
-//   unsigned int currentVersion = 0;
-//   std::list< std::pair< reg_t, reg_t > > components;
-//   _newRegions->registerRegion( id, components, currentVersion );
-//
-//   std::cerr << __FUNCTION__ << " reg " << id << std::endl;
-//
-//   CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( id );
-//   if ( !entry ) {
-//      entry = NEW CachedRegionStatus();
-//      _newRegions->setRegionData( id, entry );
-//   }
-//   entry->setVersion( version );
-//}
-
 unsigned int AllocatedChunk::getVersion( global_reg_t const &reg ) {
    unsigned int version = 0;
    CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg.id );
@@ -918,13 +925,22 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
    if ( allocChunkPtrPtr != NULL ) {
       chunks_to_invalidate.insert( allocChunkPtrPtr );
       allocChunkPtr = *allocChunkPtrPtr;
-      if ( allocChunkPtr->invalidate( this, wd, copyIdx, inval_ops, regions_to_remove_access, locked_objects ) ) {
+      bool hard_inval = allocChunkPtr->invalidate( this, wd, copyIdx, inval_ops, regions_to_remove_access, locked_objects );
+      if ( hard_inval ) {
          _hardInvalidationCount++;
       } else {
          _softInvalidationCount++;
       }
+      // *(myThread->_file) << "[" << myThread->getId() << "] single chunk invalidation ( "<<
+      //    (hard_inval ? "hard" : "soft" ) <<" ):  memspace=" << _memorySpaceId <<
+      //    ", neededSize="<< allocatedRegion.getDataSize() << ", selectedDevAddr=" <<
+      //    (void*)allocChunkPtr->getAddress() << ", chunkSize=" << allocChunkPtr->getSize() <<
+      //    ", wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") <<
+      //    "], copyIdx="<< copyIdx << ", reg " << allocatedRegion.id << " chunk " <<
+      //    (void*)(*allocChunkPtrPtr) << " will use for allocRegion "<<
+      //    (void*)allocatedRegion.getRealFirstAddress() << " - " << (void *)(allocatedRegion.getRealFirstAddress() + allocatedRegion.getBreadth()) << std::endl;
       if ( VERBOSE_DEV_OPS ) {
-         *(myThread->_file) << "[" << myThread->getId() << "] single chunk invalidation:  memspace=" << _memorySpaceId <<", neededSize="<< allocatedRegion.getDataSize() << ", selectedDevAddr=" << (void*)allocChunkPtr->getAddress() << ", chunkSize=" << allocChunkPtr->getSize() << ", wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "], copyIdx="<< copyIdx << std::endl;
+         *(myThread->_file) << "[" << myThread->getId() << "] single chunk invalidation ( "<< (hard_inval ? "hard" : "soft" ) <<" ):  memspace=" << _memorySpaceId <<", neededSize="<< allocatedRegion.getDataSize() << ", selectedDevAddr=" << (void*)allocChunkPtr->getAddress() << ", chunkSize=" << allocChunkPtr->getSize() << ", wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "], copyIdx="<< copyIdx << ", reg " << allocatedRegion.id << " chunk " << (void*)(*allocChunkPtrPtr) << std::endl;
       }
    } else {
       //try to invalidate a set of chunks
@@ -972,6 +988,8 @@ AllocatedChunk *RegionCache::invalidate( global_reg_t const &allocatedRegion, WD
 
    for ( std::set< AllocatedChunk ** >::iterator it = chunks_to_invalidate.begin(); it != chunks_to_invalidate.end(); it++ ) {
       //FIXME do we need to call removeChunk? I think so
+      // AllocatedChunk * chunk = *(*it);
+      // *myThread->_file << "inval due to wd " << wd.getId() << ", idx " << copyIdx << " chunk entry holding chunk " << (void *) chunk << " w/hAddr " << (void*)chunk->getHostAddress() << " - " << (void*)(chunk->getHostAddress() + chunk->getSize()) << " now set to null, map entry addr " << (void *) *it << std::endl;
       *(*it) = NULL;
    }
 
@@ -1102,12 +1120,12 @@ AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg, WD cons
    return _getAllocatedChunk( reg, true, true, wd, copyIdx );
 }
 
-AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg, bool complain, WD const &wd, unsigned int copyIdx ) {
-   _lock.acquire();
-   AllocatedChunk *chunk = _getAllocatedChunk( reg, complain, true, wd, copyIdx );
-   _lock.release();
-   return chunk;
-}
+//AllocatedChunk *RegionCache::getAllocatedChunk( global_reg_t const &reg, bool complain, WD const &wd, unsigned int copyIdx ) {
+//   _lock.acquire();
+//   AllocatedChunk *chunk = _getAllocatedChunk( reg, complain, true, wd, copyIdx );
+//   _lock.release();
+//   return chunk;
+//}
 
 AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool complain, bool lockChunk, WD const &wd, unsigned int copyIdx ) const {
    ConstChunkList results;
@@ -1118,6 +1136,12 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
          allocChunkPtr = *(results.front().second);
       else
          allocChunkPtr = NULL;
+      if ( ! allocChunkPtr ) {
+         *myThread->_file << __func__ << " allocChunkPtr " << (void *) allocChunkPtr <<
+            " results.front().second " << (void *) results.front().second <<
+            " entry addr " << (void *) &(results.front().second) <<
+            " w/key " << (void*) reg.getRealFirstAddress() << " - " << (void*)(reg.getRealFirstAddress()+reg.getBreadth()) <<
+            " results key: " << (void *)results.front().first->getAddress() << " - " << (void *)(results.front().first->getAddress() + results.front().first->getLength()) << std::endl; }
    } else if ( results.size() > 1 ) {
          *(myThread->_file) <<"Requested addr " << (void *) reg.getRealFirstAddress() << " size " << reg.getBreadth() << std::endl;
       message0( "I think we need to realloc " << __FUNCTION__ << " @ " << __FILE__ << ":" << __LINE__ );
@@ -1132,6 +1156,7 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
    }
    if ( !allocChunkPtr && complain ) {
       printBt(*(myThread->_file) ); *(myThread->_file) << "Error, null region at spaceId "<< _memorySpaceId << " "; reg.key->printRegion( *(myThread->_file), reg.id ); *(myThread->_file) << std::endl;
+      _chunks.print( *myThread->_file );
       ensure(allocChunkPtr != NULL, "Chunk not found!");
    }
    if ( allocChunkPtr && lockChunk ) {
@@ -1184,7 +1209,7 @@ void RegionCache::_copyIn( global_reg_t const &reg, uint64_t devAddr, uint64_t h
    ensure( f == NULL, " Error, functor received is not null.");
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
    if ( VERBOSE_DEV_OPS ) {
-      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyIn( copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "] );" <<std::endl;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyIn( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "] );" <<std::endl;
    }
    if (!fake) _device._copyIn( devAddr, hostAddr, len, sys.getSeparateMemory( _memorySpaceId ), ops, (CompleteOpFunctor *) NULL, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );
    //NANOS_INSTRUMENT( inst.close(); );
@@ -1194,7 +1219,7 @@ void RegionCache::_copyInStrided1D( global_reg_t const &reg, uint64_t devAddr, u
    ensure( f == NULL, " Error, functor received is not null.");
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_IN); );
    if ( VERBOSE_DEV_OPS ) {
-      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyInStrided1D( copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len, numChunks, ld, _pe, ops="<< (void*)ops<<", wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") <<"] );" <<std::endl;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyInStrided1D( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<" ["<< *((double*) hostAddr) <<"]"<<", devAddr="<< (void*)devAddr <<", len="<< len << ", numChunks=" << numChunks <<", ld=" << ld << ", _pe, ops="<< (void*)ops<<", wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") <<"] );" <<std::endl;
    }
    if (!fake) _device._copyInStrided1D( devAddr, hostAddr, len, numChunks, ld, sys.getSeparateMemory( _memorySpaceId ), ops, (CompleteOpFunctor *) NULL, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );
    //NANOS_INSTRUMENT( inst.close(); );
@@ -1204,7 +1229,7 @@ void RegionCache::_copyOut( global_reg_t const &reg, uint64_t hostAddr, uint64_t
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
    ensure( f != NULL, " Error, functor received is null.");
    if ( VERBOSE_DEV_OPS ) {
-      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyOut( copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< (&wd != NULL ? wd.getId() : -1 ) << " ["<< ( &wd != NULL && wd.getDescription() != NULL ? wd.getDescription() : "no description") <<"] );" <<std::endl;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyOut( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len=" << len << ", _pe, ops, wd="<< (&wd != NULL ? wd.getId() : -1 ) << " ["<< ( &wd != NULL && wd.getDescription() != NULL ? wd.getDescription() : "no description") <<"] );" <<std::endl;
    }
    if (!fake) _device._copyOut( hostAddr, devAddr, len, sys.getSeparateMemory( _memorySpaceId ), ops, f, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );
    //NANOS_INSTRUMENT( inst.close(); );
@@ -1214,7 +1239,7 @@ void RegionCache::_copyOutStrided1D( global_reg_t const &reg, uint64_t hostAddr,
    ensure( f != NULL, " Error, functor received is null.");
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_OUT); );
    if ( VERBOSE_DEV_OPS ) {
-      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyOutStrided1D( copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len, numChunks, ld, _pe, ops="<< (void*)ops <<", wd="<< (&wd != NULL ? wd.getId() : -1 )  << " ["<< (&wd != NULL && wd.getDescription() != NULL ? wd.getDescription() : "no description") << "] );" <<std::endl;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyOutStrided1D( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", len="<< len <<", numChunks="<< numChunks <<", ld=" << ld << ", _pe, ops="<< (void*)ops <<", wd="<< (&wd != NULL ? wd.getId() : -1 )  << " ["<< (&wd != NULL && wd.getDescription() != NULL ? wd.getDescription() : "no description") << "] );" <<std::endl;
    }
    if (!fake) _device._copyOutStrided1D( hostAddr, devAddr, len, numChunks, ld, sys.getSeparateMemory( _memorySpaceId ), ops, f, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );
    //NANOS_INSTRUMENT( inst.close(); );
@@ -1256,7 +1281,7 @@ bool RegionCache::_copyDevToDev( global_reg_t const &reg, memory_space_id_t copy
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
    if ( VERBOSE_DEV_OPS ) {
-      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyDevToDev( copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len=" << len << ", _pe, sys.getSeparateMemory( copyFrom="<< copyFrom<<" ), ops, wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "], f="<< f <<" );" <<std::endl;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device(" << _device.getName() << ")._copyDevToDev( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len=" << len << ", _pe, sys.getSeparateMemory( copyFrom="<< copyFrom<<" ), ops, wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "], f="<< f <<" );" <<std::endl;
    }
    if (!fake) {
       result = _device._copyDevToDev( devAddr, origDevAddr, len, sys.getSeparateMemory( _memorySpaceId ), sys.getSeparateMemory( copyFrom ), ops, fsource, wd, (void *) reg.key->getKeyBaseAddress(), reg.id );
@@ -1274,7 +1299,7 @@ bool RegionCache::_copyDevToDevStrided1D( global_reg_t const &reg, memory_space_
    ensure( f == NULL, " Error, functor received is not null.");
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
    if ( VERBOSE_DEV_OPS ) {
-      *(myThread->_file) << "[" << myThread->getId() << "] _device._copyDevToDevStrided1D( copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len, _pe, sys.getCaches()[ copyFrom="<< copyFrom<<" ]->_pe, ops, wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "], f="<< f <<" );"<<std::endl;
+      *(myThread->_file) << "[" << myThread->getId() << "] _device._copyDevToDevStrided1D( reg=["; reg.key->printRegionGeom( *myThread->_file, reg.id ); *myThread->_file << "] copyFrom=" << copyFrom << ", copyTo=" << _memorySpaceId <<", hostAddr="<< (void*)hostAddr <<", devAddr="<< (void*)devAddr <<", origDevAddr="<< (void*)origDevAddr <<", len, _pe, sys.getCaches()[ copyFrom="<< copyFrom<<" ]->_pe, ops, wd="<< wd.getId() << " ["<< (wd.getDescription() != NULL ? wd.getDescription() : "no description") << "], f="<< f <<" );"<<std::endl;
    }
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_CC_COPY_DEV_TO_DEV); );
    if (!fake) {

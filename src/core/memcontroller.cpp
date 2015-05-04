@@ -137,13 +137,15 @@ bool MemController::allocateTaskMemory() {
       result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
    }
    if ( result ) {
-      //*(myThread->_file) << "++++ Succeeded allocation for wd " << _wd.getId() << std::endl;
+      // *(myThread->_file) << "++++ Succeeded allocation for wd " << _wd.getId();
       for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
+         // *myThread->_file << " [c: " << (void *) _memCacheCopies[idx]._chunk << " w/hAddr " << (void *) _memCacheCopies[idx]._chunk->getHostAddress() << " - " << (void*)(_memCacheCopies[idx]._chunk->getHostAddress() + _memCacheCopies[idx]._chunk->getSize()) << "]";
          if ( _memCacheCopies[idx]._reg.key->getKeepAtOrigin() ) {
             //std::cerr << "WD " << _wd.getId() << " rooting to memory space " << _pe->getMemorySpaceId() << std::endl;
             _memCacheCopies[idx]._reg.setOwnedMemory( _pe->getMemorySpaceId() );
          }
       }
+      //*(myThread->_file)  << std::endl;
    }
    _memoryAllocated = result;
    return result;
@@ -235,7 +237,13 @@ uint64_t MemController::getAddress( unsigned int index ) const {
       addr = ((uint64_t) _wd.getCopies()[ index ].getBaseAddress());
    } else {
       addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
-      //std::cerr << "Hola: HostBaseAddr: " << (void*) _wd.getCopies()[ index ].getHostBaseAddress() << " BaseAddr: " << (void*)_wd.getCopies()[ index ].getBaseAddress() << std::endl;
+      //std::cerr << "getDevAddr: HostBaseAddr: " << (void*) _wd.getCopies()[ index ].getHostBaseAddress() << " BaseAddr: " << (void*)_wd.getCopies()[ index ].getBaseAddress() << std::endl;
+      //std::cerr << "getDevAddr: chunk->getAddress(): " << (void*) _memCacheCopies[ index ]._chunk->getAddress() <<
+      //   " - " << (void *) (_memCacheCopies[ index ]._chunk->getAddress() +  _memCacheCopies[ index ]._chunk->getSize()) <<
+      //   " chunk size "<< _memCacheCopies[ index ]._chunk->getSize() <<
+      //   " chunk->getHostAddress(): " << (void*)_memCacheCopies[ index ]._chunk->getHostAddress() <<
+      //   " baseAddress " << (void *) _wd.getCopies()[ index ].getBaseAddress() <<
+      //   " offset from _chunk->getHostAddr() - baseAddr: " << ( _memCacheCopies[ index ]._chunk->getHostAddress() - (uint64_t)_wd.getCopies()[ index ].getBaseAddress()) << std::endl;
       //if ( _wd.getCopies()[ index ].isRemoteHost() || _wd.getCopies()[ index ].getHostBaseAddress() == 0 ) {
       //   std::cerr << "Hola" << std::endl;
       //   addr = sys.getSeparateMemory( _pe->getMemorySpaceId() ).getDeviceAddress( _memCacheCopies[ index ]._reg, (uint64_t) _wd.getCopies()[ index ].getBaseAddress(), _memCacheCopies[ index ]._chunk );
