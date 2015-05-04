@@ -271,7 +271,16 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
          bool active = ( (count < _currentCPUs) && CPU_ISSET( *it, &_cpuProcessMask) );
-         unsigned numaNode = getNodeOfPE( *it );
+         unsigned numaNode;
+
+         // If this PE can't be seen by hwloc (weird case in Altix 2, for instance)
+         if ( !sys._hwloc.isCpuAvailable( *it ) ) {
+            /* There's a problem: we can't query it's numa
+            node. Let's give it 0 (ticket #1090), consider throwing a warning */
+            numaNode = 0;
+         }
+         else
+            numaNode = getNodeOfPE( *it );
          unsigned socket = numaNode;   /* FIXME: socket */
          
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
