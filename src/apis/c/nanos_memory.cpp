@@ -143,6 +143,13 @@ NANOS_API_DEF(nanos_err_t, nanos_register_object, (int num_objects, nanos_copy_d
    sys.registerObject( num_objects, obj );
    return NANOS_OK;
 }
+
+NANOS_API_DEF(nanos_err_t, nanos_unregister_object, (void *base_addr))
+{
+   sys.unregisterObject( base_addr );
+   return NANOS_OK;
+}
+
 /*!
  * \}
  */ 

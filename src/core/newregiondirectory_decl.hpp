@@ -212,6 +212,7 @@ namespace nanos
          reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
 
          void registerObject(nanos_copy_data_internal_t *obj);
+         void unregisterObject(void *baseAddr);
    };
 }
 

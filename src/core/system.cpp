@@ -1605,3 +1605,7 @@ void System::switchToThread( unsigned int thid )
 
    Scheduler::switchToThread(_workers[thid]);
 }
+
+void System::unregisterObject( void *base_addr ) {
+   _hostMemory.unregisterObject( base_addr );
+}
