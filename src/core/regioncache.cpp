@@ -842,10 +842,16 @@ unsigned int AllocatedChunk::getVersion( global_reg_t const &reg ) {
    return version;
 }
 
-DeviceOps *AllocatedChunk::getDeviceOps( global_reg_t const &reg ) {
+DeviceOps *AllocatedChunk::getDeviceOps( global_reg_t const &reg, WD const &wd, unsigned int idx ) {
    CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg.id );
+   std::ostream &o = *(myThread->_file);
    if ( entry == NULL ) {
+      *myThread->_file << "wd " << wd.getId() << " w/cIdx " << idx << ": Not found entry for chunk " << (void *) this << " w/hAddr " << (void *)this->getHostAddress() << " - " << (void *) (this->getHostAddress() + this->getSize()) << " ";
+      reg.key->printRegion(*myThread->_file, reg.id); *myThread->_file << std::endl;
       printBt(*(myThread->_file) );
+      for ( CacheRegionDictionaryIterator it = _newRegions->begin(); it != _newRegions->end(); it++) {
+         o << "Region: " << it->first << " "; _newRegions->printRegion( o, it->first ); o << " has entry with version " << (( (it->second).getData() ) ? (it->second).getData()->getVersion() : -1)<< std::endl;
+      }
    }
    ensure(entry != NULL, "CacheEntry not found!");
    return entry->getDeviceOps();
@@ -1186,7 +1192,7 @@ AllocatedChunk *RegionCache::_getAllocatedChunk( global_reg_t const &reg, bool c
 void RegionCache::NEWcopyIn( unsigned int srcLocation, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *givenOps, AllocatedChunk *chunk ) {
    //AllocatedChunk *chunk = getAllocatedChunk( reg );
    uint64_t origDevAddr = chunk->getAddress() + ( reg.getRealFirstAddress() - chunk->getHostAddress() );
-   DeviceOps *ops = ( givenOps != NULL ) ? givenOps : chunk->getDeviceOps( reg );
+   DeviceOps *ops = ( givenOps != NULL ) ? givenOps : chunk->getDeviceOps( reg, wd, copyIdx );
    //chunk->unlock();
    //std::cerr << " COPY REGION ID " << reg.id << " OPS " << (void*)ops << std::endl;
    if ( srcLocation != 0 ) {

@@ -92,7 +92,7 @@ namespace nanos {
          //unsigned int getVersionSetVersion( global_reg_t const &reg, unsigned int newVersion );
          //void removeRegionAndMarkForChunkDeallocation( reg_t reg, WD const &wd, unsigned int copyIdx );
 
-         DeviceOps *getDeviceOps( global_reg_t const &reg );
+         DeviceOps *getDeviceOps( global_reg_t const &reg, WD const &wd, unsigned int idx);
          void prepareRegion( reg_t reg, unsigned int version );
          global_reg_t getAllocatedRegion() const;
          bool isRooted() const;
