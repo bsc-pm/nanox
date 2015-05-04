@@ -533,7 +533,15 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                     ( data_source.getVersion() >  region_shape.getVersion() && NewNewRegionDirectory::isOnlyLocated( data_source.key,  data_source.id,  _owner.getMemorySpaceId() ) )
                   )
                ) {
+               //std::cerr << "added fragmented region: rs " << region_shape.id << " , w ds " << data_source.id << " c_ds_entry " << c_ds_entry << " dentry " << dentry /*<< " data_source.getVersion() "<< data_source.getVersion() << " region_shape.getVersion() " << region_shape.getVersion() << " isLin " << NewNewRegionDirectory::isOnlyLocated( region_shape.key, region_shape.id, _owner.getMemorySpaceId() ) << " isLin2 " <<  NewNewRegionDirectory::isOnlyLocated( data_source.key,  data_source.id,  _owner.getMemorySpaceId() ) */<< std::endl;
                fragmented_regions[ data_source.id ].insert( region_shape.id );
+            } else {
+               NewNewDirectoryEntryData *d_ds_entry = NewNewRegionDirectory::getDirectoryEntry( *data_source.key, data_source.id );
+               if ( d_ds_entry != NULL && NewNewRegionDirectory::isOnlyLocated( data_source.key,  data_source.id,  _owner.getMemorySpaceId() ) ) {
+                  fragmented_regions[ data_source.id ].insert( region_shape.id );
+               } else {
+                  //std::cerr << "ignored fragmented region: rs " << region_shape.id << " , w ds " << data_source.id << " c_ds_entry " << c_ds_entry << " dentry " << dentry /*<< " data_source.getVersion() "<< data_source.getVersion() << " region_shape.getVersion() " << region_shape.getVersion() << " isLin " << NewNewRegionDirectory::isOnlyLocated( region_shape.key, region_shape.id, _owner.getMemorySpaceId() ) << " isLin2 " <<  NewNewRegionDirectory::isOnlyLocated( data_source.key,  data_source.id,  _owner.getMemorySpaceId() ) */ << std::endl;
+               }
             }
          }
       }
@@ -561,7 +569,8 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                      global_reg_t new_data_source( lit->second, key );
                      if ( VERBOSE_INVAL ) { std::cerr << " DIR CHECK WITH FRAGMENT: "<< lit->first << " - " << lit->second << " " << std::endl; }
 
-                     NewNewDirectoryEntryData *subEntry = NewNewRegionDirectory::getDirectoryEntry( *key, lit->first );
+                     NewNewDirectoryEntryData *subEntry = NewNewRegionDirectory::getDirectoryEntry( *key, region_shape.id );
+                     NewNewDirectoryEntryData *subDSEntry = NewNewRegionDirectory::getDirectoryEntry( *key, new_data_source.id );
                      if ( !subEntry ) {
                         //std::cerr << "FIXME: Invalidation, and found a region shape (" << lit->first << ") with no entry, a new Entry may be needed." << std::endl;
                         //NewNewDirectoryEntryData *subEntryData = NewNewRegionDirectory::getDirectoryEntry( *key, lit->second );
@@ -572,16 +581,17 @@ bool AllocatedChunk::invalidate( RegionCache *targetCache, WD const &wd, unsigne
                      if ( new_data_source.id == data_source.id || NewNewRegionDirectory::isOnlyLocated( key, new_data_source.id, _owner.getMemorySpaceId() ) ) {
                         subChunkInval = true;
                         if ( VERBOSE_INVAL ) { std::cerr << " COPY subReg " << lit->first << " comes from subreg "<< subReg.id << " new DS " << new_data_source.id << std::endl; }
-                        invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), region_shape, entry->getVersion(), thisChunkOps, this, wd, copyIdx );
+                        invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), region_shape, subDSEntry->getVersion(), thisChunkOps, this, wd, copyIdx );
                      }
                   }
                } else {
                   DeviceOps *subRegOps = subReg.getDeviceOps();
                   hard = true;
                   if ( subRegOps->addCacheOp( /* debug: */ &wd, 5 ) ) {
+                     NewNewDirectoryEntryData *dsentry = NewNewRegionDirectory::getDirectoryEntry( *key, data_source.id );
                      regionsToRemoveAccess.insert( subReg );
-                     invalOps.insertOwnOp( subRegOps, data_source, entry->getVersion(), 0 );
-                     invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), subReg, entry->getVersion(), subRegOps, this, wd, copyIdx );
+                     invalOps.insertOwnOp( subRegOps, data_source, dsentry->getVersion(), 0 );
+                     invalOps.addOp( &sys.getSeparateMemory( _owner.getMemorySpaceId() ), subReg, dsentry->getVersion(), subRegOps, this, wd, copyIdx );
                   } else {
                      invalOps.getOtherOps().insert( subRegOps );
                      std::cerr << "FIXME " << __FUNCTION__ << std::endl;
