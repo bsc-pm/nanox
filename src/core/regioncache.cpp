@@ -1401,7 +1401,8 @@ void RegionCache::doOp( Op *opObj, global_reg_t const &hostMem, uint64_t devBase
             } else {
                for ( unsigned int i = 0; i < _region[ idx ].accessed_length; i += 1 ) {
                   //std::cerr <<"_recursive call " << idx << " "<< offset << " : " <<  offset + leadingDim * ( i + _region[ idx ].lower_bound ) <<std::endl;
-                  issueOpsRecursive( idx + 1, offset + leadingDim * ( i /*+ _region[ idx ].lower_bound*/ ), leadingDim * _region[ idx ].size ); 
+                  //issueOpsRecursive( idx + 1, offset + leadingDim * ( i /*+ _region[ idx ].lower_bound*/ ), leadingDim * _region[ idx ].size ); 
+                  issueOpsRecursive( idx + 1, offset + leadingDim * ( i + _region[ idx ].lower_bound ), leadingDim * _region[ idx ].size ); 
                }
             }
          }
