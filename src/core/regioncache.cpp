@@ -1156,12 +1156,14 @@ void RegionCache::NEWcopyIn( unsigned int srcLocation, global_reg_t const &reg, 
 }
 
 void RegionCache::NEWcopyOut( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *givenOps, bool inval ) {
+   _lock.acquire();
    AllocatedChunk *origChunk = getAllocatedChunk( reg, wd, copyIdx );
    uint64_t origDevAddr = origChunk->getAddress() + ( reg.getRealFirstAddress() - origChunk->getHostAddress() );
    DeviceOps *ops = ( givenOps != NULL ) ? givenOps : reg.getDeviceOps();
    //origChunk->clearDirty( reg );
    if ( !inval ) origChunk->NEWaddWriteRegion( reg.id, version, wd, copyIdx );// this is needed in case we are copying out a fragment of a region, ignore in case of invalidation
    origChunk->unlock();
+   _lock.release();
    CompleteOpFunctor *f = NEW CompleteOpFunctor( ops, origChunk );
    copyOut( reg, origDevAddr, ops, f, wd );
 }
@@ -1554,9 +1556,12 @@ void RegionCache::_prepareRegionToBeCopied( global_reg_t const &reg, unsigned in
 }
 
 void RegionCache::setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   //FIXME: this can be improved if we use the chunk directly (memCacheCopy has a pointer to it), this avoids having to query the map in "getAllocatedChunk" and having to lock the cache
+   _lock.acquire();
    AllocatedChunk *chunk = getAllocatedChunk( hostMem, wd, copyIdx );
    chunk->setRegionVersion( hostMem.id, version, wd, copyIdx );
    chunk->unlock();
+   _lock.release();
 }
 
 void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {

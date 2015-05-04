@@ -162,13 +162,16 @@ void ContainerSparse< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
 
 template <class T>
 Version *ContainerSparse< T >::getRegionData( reg_t id ) {
+   _lock.acquire();
    std::map< reg_t, RegionVectorEntry >::iterator it = _container.lower_bound( id );
    if ( it == _container.end() || _container.key_comp()(id, it->first) ) {
       //fatal0(  "Error, RegionMap::getRegionData does not contain region " );
       it = _container.insert( it, std::map< reg_t, RegionVectorEntry >::value_type( id, RegionVectorEntry() ) );
       it->second.setLeaf( _orig.getRegionNode( id ) );
+      _lock.release();
       return NULL;
    }
+   _lock.release();
    return it->second.getData();
 }
 
