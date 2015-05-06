@@ -97,7 +97,7 @@ namespace nanos
          Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
 
          // configuration variables
-         int                  _deviceStackSize;
+         size_t               _deviceStackSize;
          bool                 _profile;
          bool                 _instrument;
          bool                 _verboseMode;
@@ -305,9 +305,9 @@ namespace nanos
           */
          DeviceList & getSupportedDevices();
 
-         void setDeviceStackSize ( int stackSize );
+         void setDeviceStackSize ( size_t stackSize );
 
-         int getDeviceStackSize () const;
+         size_t getDeviceStackSize () const;
 
          ExecutionMode getExecutionMode () const;
 

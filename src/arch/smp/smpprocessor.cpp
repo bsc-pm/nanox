@@ -38,11 +38,12 @@ SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active,
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
-   config.registerConfigOption( "user-threads", NEW Config::FlagOption( _useUserThreads, false), "Disable the use of ULT" );
+   config.registerConfigOption( "user-threads", NEW Config::FlagOption( _useUserThreads, false), "Disable User Level Threads" );
    config.registerArgOption( "user-threads", "disable-ut" );
 
-   config.registerConfigOption ( "pthreads-stack-size", NEW Config::SizeVar( _threadsStackSize ), "Defines pthreads stack size" );
-   config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
+   config.registerConfigOption ( "thread-stack-size", NEW Config::SizeVar( _threadsStackSize ), "Defines thread stack size" );
+   config.registerArgOption( "thread-stack-size", "thread-stack-size" );
+   config.registerEnvOption( "thread-stack-size", "OMP_STACKSIZE" );
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const

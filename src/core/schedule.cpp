@@ -382,8 +382,10 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
    
    bool supportULT = thread->runningOn()->supportsUserLevelThreads();
 
+   verbose("Wait on condition");
    while ( !condition->check() /* FIXME:xteruel do we needed? && thread->isRunning() */) {
       if ( checks == 0 ) {
+         verbose("   starting idle loop"); //FIXME:xteruel
          condition->lock();
          if ( !( condition->check() ) ) {
 
@@ -408,15 +410,8 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
 
             //! If found a wd to switch to, execute it
             if ( next ) {
-               if ( next->started() || next->getParent() != current ){
-                  switchTo ( next );
-               } else {
-                  condition->unlock();
-                  if ( Scheduler::inlineWork ( next, true ) ) {
-                     next->~WorkDescriptor();
-                     delete[] (char *)next;
-                  }
-               }
+               verbose("   switching to " << next->getId() ); //FIXME:xteruel
+               switchTo ( next );
                thread = getMyThreadSafe();
                supportULT = thread->runningOn()->supportsUserLevelThreads();
                thread->step();
@@ -1255,7 +1250,7 @@ void Scheduler::switchTo ( WD *to )
             " to " << to << ":" << to->getId() );
 
       NANOS_INSTRUMENT( WD *oldWD = myThread->getCurrentWD(); )
-         NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldWD, to, false ) );
+      NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldWD, to, false ) );
 
       myThread->switchTo( to, switchHelper );
 

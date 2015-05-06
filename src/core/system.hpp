@@ -53,9 +53,9 @@ using namespace nanos;
 
 inline DeviceList & System::getSupportedDevices() { return _devices; }
 
-inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
+inline void System::setDeviceStackSize ( size_t stackSize ) { _deviceStackSize = stackSize; }
 
-inline int System::getDeviceStackSize () const {return _deviceStackSize; }
+inline size_t System::getDeviceStackSize () const {return _deviceStackSize; }
 
 inline System::ExecutionMode System::getExecutionMode () const { return _executionMode; }
 

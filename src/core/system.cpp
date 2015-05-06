@@ -272,10 +272,8 @@ void System::config ()
 
    cfg.setOptionsSection( "Core", "Core options of the core of Nanos++ runtime" );
 
-   cfg.registerConfigOption( "stack-size", NEW Config::PositiveVar( _deviceStackSize ),
-                             "Defines the default stack size for all devices" );
+   cfg.registerConfigOption( "stack-size", NEW Config::SizeVar( _deviceStackSize ), "Default stack size (all devices)" );
    cfg.registerArgOption( "stack-size", "stack-size" );
-   cfg.registerEnvOption( "stack-size", "NX_STACK_SIZE" );
 
    cfg.registerConfigOption( "verbose", NEW Config::FlagOption( _verboseMode ),
                              "Activates verbose mode" );
