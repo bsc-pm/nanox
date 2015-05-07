@@ -166,4 +166,12 @@ unsigned int Hwloc::getNumaNodeOfGpu( unsigned int gpu ) {
    return node;
 }
 
+bool Hwloc::isCpuAvailable( unsigned int cpu ) const 
+{
+#ifndef HWLOC
+   return true;
+#else
+   return hwloc_get_pu_obj_by_os_index( _hwlocTopology, cpu ) != NULL;
+#endif
+}
 }
