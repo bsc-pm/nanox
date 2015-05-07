@@ -22,28 +22,29 @@
 
 extern "C"
 {
-// low-level helper routine to start a new user-thread
+   //! \brief Low-level helper routine: start a new user-thread
    void startHelper ();
 }
 
-
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
-                          void *cleanup, void *cleanupArg )
+void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+                     void *cleanup, void *cleanupArg )
 {
-   intptr_t * state = stack;
-   state += stackSize - 1;
+   //! In this architecture the stack grows down
+   intptr_t * state = (intptr_t *) stack;
+   state += (stackSize/sizeof(intptr_t)) - 1;
 
-   *state = ( intptr_t )cleanup;
+   *state = (intptr_t) cleanup;                  //!< Cleanup function
    state--;
-   *state = ( intptr_t )cleanupArg;
+   *state = (intptr_t) cleanupArg;               //!< Cleanup argument
    state --;
-   *state = ( intptr_t )wrapperFunction;
+   *state = (intptr_t) wrapperFunction;          //!< Wrapper fucntion
    state--;
-   *state = ( intptr_t )wd;
+   *state = (intptr_t) wd;                       //!< Wrapper argument
    state--;
-   *state = ( intptr_t )startHelper;
-   // skip first _state
+   *state = (intptr_t) startHelper;              //!< Start helper function (no argument)
+
+   //! Skip first _state
    state -= 6;
 
-   return state;
+   return (void *) state;
 }

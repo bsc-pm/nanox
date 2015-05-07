@@ -58,12 +58,13 @@ extern "C"
  * \sa switchStacks
  */
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
-                          void *cleanup, void *cleanupArg )
+void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+                     void *cleanup, void *cleanupArg )
 {
-   // stack grows down
-   intptr_t *state = stack;
-   state += stackSize;
+   //! In this architecture stack grows down
+   intptr_t *state = (intptr_t *) stack;
+   state += (stackSize/sizeof(intptr_t));
+
    intptr_t *tmpStartHelperPtr = ( intptr_t * ) startHelper;
 
    state -= 53; // (368 + 56)/sizeof(intptr_t)
@@ -82,6 +83,6 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFuncti
    // (r17) cleanup arg
    state[12] = (intptr_t) cleanupArg;
 
-   return state;
+   return (void *) state;
 }
 

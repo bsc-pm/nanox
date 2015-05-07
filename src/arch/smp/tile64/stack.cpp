@@ -31,12 +31,12 @@ extern "C"
    void startHelper();
 }
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
-                         void *cleanup, void *cleanupArg )
+void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+                     void *cleanup, void *cleanupArg )
 {
-   intptr_t * state = stack;
+   intptr_t * state = (intptr_t *) stack;
 
-   state += stackSize - 96;
+   state += (stackSize/sizeof(intptr_t)) - 96;
 
    state[0]  = ( intptr_t ) startHelper;
    state[1]  = ( intptr_t ) wrapperFunction; // r31
@@ -45,6 +45,6 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFuncti
    state[4]  = ( intptr_t ) cleanupArg; // r34
    state[21] = ( intptr_t ) &state[0];
 
-   return &state[0];
+   return (void *) &state[0];
 }
 

@@ -31,7 +31,7 @@ using namespace nanos::ext;
 
 SMPDevice nanos::ext::SMP("SMP");
 
-size_t SMPDD::_stackSize = 32 * 1024;
+size_t SMPDD::_stackSize = 256*1024;
 
 //! \brief Registers the Device's configuration options
 //! \param reference to a configuration object.
@@ -70,10 +70,10 @@ void SMPDD::workWrapper ( WD &wd )
 
 void SMPDD::lazyInit ( WD &wd, bool isUserLevelThread, WD *previous )
 {
-   verbose0("Task " << wd.getId() << ", lazy initialization"); // FIXME:extra verbosity, remove it
+   verbose0("Task " << wd.getId() << " initialization"); 
    if (isUserLevelThread) {
       if (previous == NULL) {
-         _stack = NEW intptr_t[_stackSize];
+         _stack = (void *) NEW char[_stackSize];
          verbose0("   new stack created: " << _stackSize << " bytes");
       } else {
          verbose0("   reusing stacks");
