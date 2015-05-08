@@ -276,7 +276,9 @@ class SMPPlugin : public SMPBasePlugin
          } else {
             cpu = NEW SMPProcessor( *it, sys.getRootMemorySpaceId(), active, numaNode, socket );
          }
-         CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
+         if( active ) {
+            CPU_SET( cpu->getBindingId() , &_cpuActiveSet );
+         }
          //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
          (*_cpus)[count] = cpu;
          (*_cpusByCpuId)[ *it ] = cpu;
