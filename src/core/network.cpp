@@ -283,7 +283,7 @@ void * Network::malloc ( unsigned int remoteNode, std::size_t size )
    {
       _api->malloc( remoteNode, size, ( void * ) &request );
 
-#ifndef HAVE_NEW_GCC_ATOMIC_OPS
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
       while ( __atomic_load_n( &request.complete, __ATOMIC_SEQ_CST) == 0 )
 #else
       while ( ( (volatile int) request.complete ) == 0 )
