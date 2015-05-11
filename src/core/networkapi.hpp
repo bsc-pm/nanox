@@ -20,6 +20,10 @@
 #ifndef _NANOX_NETWORK_API
 #define _NANOX_NETWORK_API
 
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
+
 #include <stdint.h>
 #include <vector>
 #include "functor_decl.hpp"

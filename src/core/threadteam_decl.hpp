@@ -20,6 +20,10 @@
 #ifndef _NANOS_THREAD_TEAM_DECL_H
 #define _NANOS_THREAD_TEAM_DECL_H
 
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
+
 #include <vector>
 #include <list>
 #include "basethread_decl.hpp"
@@ -66,7 +70,11 @@ namespace nanos
          int                          _idleThreads;
          int                          _numTasks;
          Barrier &                    _barrier;
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         int                 _singleGuardCount;
+#else
          volatile int                 _singleGuardCount;
+#endif
          SchedulePolicy &             _schedulePolicy;
          ScheduleTeamData *           _scheduleData;
          ThreadTeamData &             _threadTeamData;

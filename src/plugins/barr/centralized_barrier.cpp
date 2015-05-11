@@ -35,7 +35,11 @@ namespace nanos {
 
          private:
             Atomic<int> _sem;
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            bool _flag;
+#else
             volatile bool _flag;
+#endif
             MultipleSyncCond<EqualConditionChecker<bool> > _syncCondTrue;
             MultipleSyncCond<EqualConditionChecker<bool> > _syncCondFalse;
             int _numParticipants;

@@ -62,7 +62,11 @@ namespace nanos {
    };
 
    struct GetRequest {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+      int _complete;
+#else
       volatile int _complete;
+#endif
       char* _hostAddr;
       std::size_t _size;
       char* _recvAddr;

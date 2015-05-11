@@ -529,9 +529,10 @@ void Scheduler::workerClusterLoop ()
       if ( parent != current_thread ) // if parent == myThread, then there are no "soft" threads and just do nothing but polling.
       {
          ext::ClusterThread *myClusterThread = ( ext::ClusterThread * ) current_thread;
+
          if ( myClusterThread->tryLock() ) {
             ext::ClusterNode *thisNode = ( ext::ClusterNode * ) current_thread->runningOn();
-            thisNode->setCurrentDevice( 0 ); 
+            thisNode->setCurrentDevice( 0 );
             myClusterThread->clearCompletedWDsSMP2();
 
             if ( myClusterThread->hasWaitingDataWDs() ) {

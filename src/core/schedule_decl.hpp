@@ -20,6 +20,10 @@
 #ifndef _NANOS_SCHEDULE_DECL_H
 #define _NANOS_SCHEDULE_DECL_H
 
+#ifdef HAVE_CONFIG_H
+  #include <config.h>
+#endif
+
 #include <stddef.h>
 #include <string>
 
@@ -157,9 +161,17 @@ namespace nanos
 
          int getCreatedTasks();
          int getReadyTasks();
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         int * getReadyTasksAddr( void ) { return &_readyTasks.override(); }
+#else
          volatile int * getReadyTasksAddr( void ) { return &_readyTasks.override(); }
+#endif
          int getTotalTasks();
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         int * getTotalTasksAddr( void ) { return &_totalTasks.override(); }
+#else
          volatile int * getTotalTasksAddr( void ) { return &_totalTasks.override(); }
+#endif
    };
 
    class ScheduleTeamData {

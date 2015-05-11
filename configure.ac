@@ -992,7 +992,8 @@ AC_SUBST([USED_VERSION])
 
 
 # Check for atomic builtins in GCC
-AC_CHECK_GXX_ATOMIC_BUILTINS()
+AC_CHECK_GXX_LEGACY_ATOMIC_BUILTINS()
+AC_CHECK_GXX_NEW_ATOMIC_BUILTINS()
 
 MPITRACE_HOME=""
 MPITRACE_INC=""
@@ -1249,6 +1250,14 @@ echo "Host arch:               " $SMP_ARCH
 echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
 echo "Configured versions:     " $VERSIONS
+gcc_builtins_used="unknown"
+if test "$new_gcc_builtins" = yes;
+then
+    gcc_builtins_used="new gcc __atomic builtins"
+else
+    gcc_builtins_used="legacy gcc __sync builtins"
+fi
+echo "GCC atomics:             " $gcc_builtins_used
 if test x$memtracker_enabled = xyes ; then
    echo "Memory tracker:           enabled"
 else

@@ -40,31 +40,51 @@ using namespace nanos;
 template<typename T>
 inline T Atomic<T>::fetchAndAdd ( const T& val )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_fetch_add(&_value, val, __ATOMIC_SEQ_CST);
+#else
    return __sync_fetch_and_add( &_value,val );
+#endif
 }
 
 template<typename T>
 inline T Atomic<T>::addAndFetch ( const T& val )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_add_fetch(&_value, val, __ATOMIC_SEQ_CST);
+#else
    return __sync_add_and_fetch( &_value,val );
+#endif
 }
 
 template<typename T>
 inline T Atomic<T>::fetchAndSub ( const T& val )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_fetch_sub( &_value, val, __ATOMIC_SEQ_CST);
+#else
    return __sync_fetch_and_sub( &_value,val );
+#endif
 }
 
 template<typename T>
 inline T Atomic<T>::subAndFetch ( const T& val )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_sub_fetch( &_value, val, __ATOMIC_SEQ_CST);
+#else
    return __sync_sub_and_fetch( &_value,val );
+#endif
 }
 
 template<typename T>
 inline T Atomic<T>::value() const
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_load_n(&_value, __ATOMIC_SEQ_CST);
+#else
    return _value;
+#endif
 }
 
 template<typename T>
@@ -154,19 +174,40 @@ inline bool Atomic<T>::operator>= ( const Atomic<T> &val )
 template<typename T>
 inline bool Atomic<T>::cswap ( const Atomic<T> &oldval, const Atomic<T> &newval )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   // FIXME: The atomics passed are const
+   T* oldv = const_cast<T*>(&oldval._value);
+   T* newv = const_cast<T*>(&newval._value);
+   return __atomic_compare_exchange_n( &_value, oldv, newv,
+         /* weak */ false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST );
+#else
    return __sync_bool_compare_and_swap ( &_value, oldval.value(), newval.value() );
+#endif
 }
 
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
 template<typename T>
-inline volatile T & Atomic<T>::override ()
+inline T& Atomic<T>::override()
 {
-    return _value;
+   return _value;
 }
+#else
+template<typename T>
+inline volatile T& Atomic<T>::override()
+{
+   // Kludgy
+   return _value;
+}
+#endif
 
 template<typename T>
 inline Atomic<T> & Atomic<T>::operator= ( const T val )
 {
-   this->_value = val;
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_store_n(&_value, val, __ATOMIC_SEQ_CST);
+#else
+   _value = val;
+#endif
    return *this;
 }
 
@@ -178,73 +219,114 @@ inline Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
 
 inline Lock::state_t Lock::operator* () const
 {
-   return state_;
+   return this->getState();
 }
 
 inline Lock::state_t Lock::getState () const
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_load_n(&state_, __ATOMIC_SEQ_CST);
+#else
    return state_;
+#endif
 }
 
-inline void Lock::operator++ ( int val )
+inline void Lock::operator++ ( int )
 {
    acquire();
 }
 
-inline void Lock::operator-- ( int val )
+inline void Lock::operator-- ( int )
 {
    release();
 }
 
 inline void Lock::acquire ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   acquire_noinst();
+#else
    if ( (state_ == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return;
 
    // Disabling lock instrumentation; do not remove follow code which can be reenabled for testing purposes
    // NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
-
 spin:
-
    while ( state_ == NANOS_LOCK_BUSY ) {}
 
    if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
 
    // NANOS_INSTRUMENT( inst.close() )
+#endif
 }
 
 inline void Lock::acquire_noinst ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   while (__atomic_exchange_n( &state_, NANOS_LOCK_BUSY, __ATOMIC_SEQ_CST) == NANOS_LOCK_BUSY ) { }
+#else
 spin:
    while ( state_ == NANOS_LOCK_BUSY ) {}
    if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
+#endif
 }
 
 inline bool Lock::tryAcquire ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if (__atomic_load_n(&state_, __ATOMIC_SEQ_CST) == NANOS_LOCK_FREE)
+   {
+      if (__atomic_exchange_n(&state_, NANOS_LOCK_BUSY, __ATOMIC_SEQ_CST) == NANOS_LOCK_BUSY)
+         return false;
+      else // will return NANOS_LOCK_FREE
+         return true;
+   }
+   else
+   {
+      return false;
+   }
+#else
    if ( state_ == NANOS_LOCK_FREE ) {
       if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
       else return true;
    } else return false;
+#endif
 }
 
 inline void Lock::release ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_store_n(&state_, 0, __ATOMIC_SEQ_CST);
+#else
    __sync_lock_release( &state_ );
+#endif
 }
 
 inline void nanos::memoryFence ()
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_thread_fence(__ATOMIC_SEQ_CST);
+#else
 #ifndef __MIC__
     __sync_synchronize();
 #else
     __asm__ __volatile__("" ::: "memory");
 #endif
+#endif
 }
 
 template<typename T>
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+inline bool nanos::compareAndSwap( T *ptr, T oldval, T  newval )
+#else
 inline bool nanos::compareAndSwap( volatile T *ptr, T oldval, T  newval )
+#endif
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_compare_exchange_n(ptr, &oldval, newval,
+         /* weak */ false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST );
+#else
     return __sync_bool_compare_and_swap ( ptr, oldval, newval );
+#endif
 }
 
 inline LockBlock::LockBlock ( Lock & lock ) : _lock(lock)
@@ -319,6 +401,19 @@ inline void RecursiveLock::operator-- ( int )
 
 inline void RecursiveLock::acquire ( )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if ( __atomic_load_n(&_holderThread, __ATOMIC_SEQ_CST) == getMyThreadSafe() )
+   {
+      __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_SEQ_CST);
+      return;
+   }
+
+   while (__atomic_exchange_n( &state_, NANOS_LOCK_BUSY, __ATOMIC_SEQ_CST) == NANOS_LOCK_BUSY ) { }
+
+   __atomic_store_n(&_holderThread, getMyThreadSafe(), __ATOMIC_SEQ_CST);
+   __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_SEQ_CST);
+
+#else
    if ( _holderThread == getMyThreadSafe() )
    {
       _recursionCount++;
@@ -329,13 +424,39 @@ spin:
    while ( state_ == NANOS_LOCK_BUSY ) {}
 
    if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
-   
+
    _holderThread = getMyThreadSafe();
    _recursionCount++;
+#endif
 }
 
 inline bool RecursiveLock::tryAcquire ( )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if ( __atomic_load_n(&_holderThread, __ATOMIC_SEQ_CST) == getMyThreadSafe() )
+   {
+      __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_SEQ_CST);
+      return true;
+   }
+
+   if ( __atomic_load_n(&state_, __ATOMIC_SEQ_CST) == NANOS_LOCK_FREE )
+   {
+      if ( __atomic_exchange_n( &state_, NANOS_LOCK_BUSY, __ATOMIC_SEQ_CST ) == NANOS_LOCK_BUSY )
+      {
+         return false;
+      }
+      else
+      {
+         __atomic_store_n(&_holderThread, getMyThreadSafe(), __ATOMIC_SEQ_CST);
+         __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_SEQ_CST);
+         return true;
+      }
+   }
+   else
+   {
+      return false;
+   }
+#else
    if ( _holderThread == getMyThreadSafe() ) {
       _recursionCount++;
       return true;
@@ -350,16 +471,25 @@ inline bool RecursiveLock::tryAcquire ( )
          return true;
       }
    } else return false;
+#endif
 }
 
 inline void RecursiveLock::release ( )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if ( __atomic_sub_fetch(&_recursionCount, 1, __ATOMIC_SEQ_CST) == 0 )
+   {
+      _holderThread = 0UL;
+      __atomic_store_n(&state_, NANOS_LOCK_FREE, __ATOMIC_SEQ_CST);
+   }
+#else
    _recursionCount--;
    if ( _recursionCount == 0UL )
    {
       _holderThread = 0UL;
       __sync_lock_release( &state_ );
    }
+#endif
 }
 
 inline RecursiveLockBlock::RecursiveLockBlock ( RecursiveLock & lock ) : _lock(lock)

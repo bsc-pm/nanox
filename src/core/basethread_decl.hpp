@@ -118,7 +118,42 @@ namespace nanos
       friend class Scheduler;
       private:
          typedef void (*callback_t)(void);
-         typedef struct StatusFlags_t{
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         template <int MemoryModel>
+             struct AtomicBool
+             {
+                 private:
+                     bool value;
+                 public:
+                     AtomicBool() : value() { }
+                     /* explicit */ operator bool() const {
+                         return __atomic_load_n(&value, MemoryModel);
+                     };
+                     AtomicBool& operator=(bool b)
+                     {
+                         __atomic_store_n(&value, b, MemoryModel);
+                         return *this;
+                     }
+
+                     bool operator!() const
+                     {
+                         return !this->operator bool();
+                     }
+             };
+#endif
+         struct StatusFlags {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            AtomicBool<__ATOMIC_SEQ_CST> is_main_thread;
+            AtomicBool<__ATOMIC_SEQ_CST> has_started;
+            AtomicBool<__ATOMIC_SEQ_CST> must_stop;
+            AtomicBool<__ATOMIC_SEQ_CST> must_sleep;
+            AtomicBool<__ATOMIC_SEQ_CST> is_idle;
+            AtomicBool<__ATOMIC_SEQ_CST> is_paused;
+            AtomicBool<__ATOMIC_SEQ_CST> has_team;
+            AtomicBool<__ATOMIC_SEQ_CST> has_joined;
+            AtomicBool<__ATOMIC_SEQ_CST> is_waiting;
+            AtomicBool<__ATOMIC_SEQ_CST> can_get_work;    /**< Set whether the thread can get more WDs to run or not */
+#else
             bool is_main_thread;
             bool has_started;
             bool must_stop;
@@ -129,15 +164,24 @@ namespace nanos
             bool has_joined;
             bool is_waiting;
             bool can_get_work;    /**< Set whether the thread can get more WDs to run or not */
+#endif
 
-            StatusFlags_t() { memset( this, 0, sizeof(*this)); }
-         } StatusFlags;
+            StatusFlags()
+                : is_main_thread(), has_started(), must_stop(),
+                must_sleep(), is_idle(), is_paused(), has_team(), has_joined(),
+                is_waiting(), can_get_work()
+             { }
+         };
       private:
          // Thread info/status
          unsigned short          _id;            /**< Thread identifier */
          unsigned int            _osId;          /**< OS Thread identifier */
          unsigned short          _maxPrefetch;   /**< Maximum number of tasks that the thread can be running simultaneously */
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         StatusFlags    _status;        /**< BaseThread status flags */
+#else
          volatile StatusFlags    _status;        /**< BaseThread status flags */
+#endif
          ext::SMPMultiThread    *_parent;
          // Relationships:
          ProcessingElement      *_pe;            /**< Threads are binded to a PE for its life-time */

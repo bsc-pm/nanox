@@ -28,14 +28,22 @@ using namespace nanos;
 
 bool ThreadTeam::singleGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   // Double check of locks is an antipattern
+#else
    if ( local <= _singleGuardCount ) return false;
+#endif
    
    return compareAndSwap( &_singleGuardCount, local-1, local );
 }
 
 bool ThreadTeam::enterSingleBarrierGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   // Double check of locks is an antipattern
+#else
    if ( local <= _singleGuardCount ) return false;
+#endif
    
    return compareAndSwap( &_singleGuardCount, local-2, local-1 );
 
@@ -43,12 +51,20 @@ bool ThreadTeam::enterSingleBarrierGuard( int local )
 
 void ThreadTeam::releaseSingleBarrierGuard( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_fetch_add(&_singleGuardCount, 1, __ATOMIC_SEQ_CST);
+#else
    _singleGuardCount++;
+#endif
 }
 
 void ThreadTeam::waitSingleBarrierGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   while ( local > __atomic_load_n(&_singleGuardCount, __ATOMIC_SEQ_CST) ) { }
+#else
    while ( local > _singleGuardCount ) { memoryFence(); }
+#endif
 }
 
 void ThreadTeam::cleanUpReductionList( void ) 
