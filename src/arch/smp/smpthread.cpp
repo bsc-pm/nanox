@@ -91,7 +91,7 @@ void SMPThread::wait()
    lock();
    _pthread.mutexLock();
 
-     if ( isSleeping() ) {
+   if ( isSleeping() && !hasNextWD() && canBlock() ) {
 
       if ( team != NULL ) leaveTeam();
       BaseThread::wait();
