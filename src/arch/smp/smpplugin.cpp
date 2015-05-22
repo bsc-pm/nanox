@@ -731,20 +731,6 @@ class SMPPlugin : public SMPBasePlugin
       applyCpuMask( workers );
    }
 
-#if 0
-   SMPThread * getInactiveWorker( void )
-   {
-      SMPThread *thread;
-
-      for ( unsigned i = 0; i < _workers.size(); i++ ) {
-         thread = _workers[i];
-         if ( thread->tryWakeUp() ) {
-            return thread;
-         }
-      }
-      return NULL;
-   }
-#endif
 
    virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team )
    {
@@ -753,19 +739,13 @@ class SMPPlugin : public SMPBasePlugin
       NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-      int num_threads = nthreads - team->getFinalSize();
       int new_workers = nthreads - _workers.size();
 
       //! \note Probably it can be relaxed, but at the moment running in a safe mode
       //! waiting for the team to be stable
       while ( !(team->isStable()) ) {
          memoryFence();
-         // weird scenario: Only one thread left to leave the team, but it's me and I'm blocked here
-         if ( myThread->isSleeping() && team->size() == team->getFinalSize()+1  ) {
-            team->setStable(true);
-         }
       }
-      if ( num_threads < 0 ) team->setStable(false);
 
       //! \note Creating new workers (if needed)
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
@@ -783,88 +763,21 @@ class SMPPlugin : public SMPBasePlugin
       int active_threads_checked = 0;
       std::vector<ext::SMPThread *>::const_iterator w_it;
       for ( w_it = _workers.begin(); w_it != _workers.end(); ++w_it ) {
+         BaseThread *thread = *w_it;
          if ( active_threads_checked < nthreads ) {
-            (*w_it)->tryWakeUp( team );
+            thread->tryWakeUp( team );
             active_threads_checked++;
          } else {
-            (*w_it)->sleep();
-         }
-      }
-
-#if 0
-      BaseThread *thread;
-      //! \note If requested threads are more than current increase number of threads
-      while ( num_threads > 0 ) {
-         thread = getUnassignedWorker();
-         if (!thread) thread = getInactiveWorker();
-         if (thread) {
-            team->increaseFinalSize();
-            sys.acquireWorker( team, thread, /* enter */ true, /* starring */ false, /* creator */ false );
-            num_threads--;
-         }
-      }
-
-      //! \note If requested threads are less than current decrease number of threads
-      while ( num_threads < 0 ) {
-         thread = getAssignedWorker( team );
-         if ( thread ) {
+            // \note Leave team only if the thread does not belong to the process mask
+            bool leave_team = CPU_ISSET( thread->getCpuId(), &_cpuProcessMask );
+            thread->lock();
+            thread->setLeaveTeam(leave_team);
             thread->sleep();
             thread->unlock();
-            num_threads++;
          }
       }
-#endif
-
    }
 
-#if 0
-   SMPThread * getUnassignedWorker ( void )
-   {
-      SMPThread *thread;
-
-      for ( unsigned i = 0; i < _workers.size(); i++ ) {
-         thread = _workers[i];
-         if ( !thread->hasTeam() && !thread->isSleeping() ) {
-
-            // recheck availability with exclusive access
-            thread->lock();
-
-            if ( thread->hasTeam() || thread->isSleeping()) {
-               // we lost it
-               thread->unlock();
-               continue;
-            }
-
-            thread->reserve(); // set team flag only
-            thread->unlock();
-
-            return thread;
-         }
-      }
-      return NULL;
-   }
-
-
-   SMPThread * getAssignedWorker ( ThreadTeam *team )
-   {
-      SMPThread *thread;
-
-      std::vector<SMPThread *>::reverse_iterator rit;
-      for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
-         thread = *rit;
-         thread->lock();
-         //! \note Checking thread availabitity.
-         if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
-            //! \note return this thread LOCKED!!!
-            return thread;
-         }
-         thread->unlock();
-      }
-
-      //! \note If no thread has found, return NULL.
-      return NULL;
-   }
-#endif
 
    virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker )
    {
@@ -969,13 +882,11 @@ class SMPPlugin : public SMPBasePlugin
     */
    virtual void forceMaxThreadCreation()
    {
-      cpu_set_t mask;
-      // Save original active mask
-      getCpuActiveMask( &mask );
       // Set all CPUs active
       sys.setCpuActiveMask( &_cpuSystemMask );
-      // Fall back
-      sys.setCpuActiveMask( &mask );
+
+      // Now, set requested only
+      sys.updateActiveWorkers( _requestedWorkers );
    }
 
    /*! \brief Create a worker in a suitable CPU
@@ -1084,11 +995,7 @@ private:
          for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
-            if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
-               if ( !target->isActive() ) {
-                  target->setActive();
-               }
-            }
+            target->setActive( CPU_ISSET( binding_id, &_cpuActiveMask ) );
          }
       }
    }

@@ -83,17 +83,18 @@ void SMPThread::wait()
    NANOS_INSTRUMENT ( nanos_event_value_t cpuid_value = (nanos_event_value_t) 0; )
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 
-   ThreadTeam *team = getTeam();
-
-   /* Put WD's from local to global queue, leave team, and set flag
-    * Locking pthread mutex assures us that the sleep flag is still set when we get here
-    */
    lock();
    _pthread.mutexLock();
 
    if ( isSleeping() && !hasNextWD() && canBlock() ) {
 
-      if ( team != NULL ) leaveTeam();
+      /* Only leave team if it's been told to */
+      ThreadTeam *team = getTeam() ? getTeam() : getNextTeam();
+      if ( team && isLeavingTeam() ) {
+         leaveTeam();
+      }
+
+      /* Set 'is_waiting' flag */
       BaseThread::wait();
 
       unlock();
@@ -111,7 +112,7 @@ void SMPThread::wait()
       NANOS_INSTRUMENT( InstrumentState state_wake(NANOS_WAKINGUP) );
    //WORKAROUND for deadlock. Waiting for correctness checking
    //   lock();
-      /* Set waiting status flag */
+      /* Unset 'is_waiting' flag */
       BaseThread::resume();
    //   unlock();
       _pthread.mutexUnlock();
@@ -125,6 +126,18 @@ void SMPThread::wait()
          NANOS_INSTRUMENT ( if ( sys.getSMPPlugin()->getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
          NANOS_INSTRUMENT ( if ( !sys.getSMPPlugin()->getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
          NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+
+         lock();
+         // FIXME: consider OpenMP? An OMP thread should not enter any team at this point
+         /* Enter team if the thread is teamless */
+         if ( getTeam() == NULL ) {
+            team = getNextTeam();
+            if ( team ) {
+               reserve();
+               sys.acquireWorker( team, this, true, false, false );
+            }
+         };
+         unlock();
       }
    }
    else {

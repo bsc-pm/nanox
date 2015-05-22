@@ -393,12 +393,23 @@ void BusyWaitThreadManager::idle( int& yields
 {
    if ( !_initialized ) return;
 
+   BaseThread *thread = getMyThreadSafe();
+   thread->lock();
+   if ( !thread->hasTeam() && !thread->runningOn()->isActive() ) {
+      // Sleep teamless threads only if the PE has been deactivated
+      thread->setNextTeam(NULL);
+      thread->sleep();
+      thread->unlock();
+      return;
+   }
+   thread->unlock();
+
    if ( _useDLB && _isMalleable ) acquireResourcesIfNeeded();
 
    if ( yields > 0 ) {
       NANOS_INSTRUMENT ( total_yields++; )
       NANOS_INSTRUMENT ( unsigned long long begin_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-      getMyThreadSafe()->yield();
+      thread->yield();
       NANOS_INSTRUMENT ( unsigned long long end_yield = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
       NANOS_INSTRUMENT ( time_yields += ( end_yield - begin_yield ); )
       if ( _useSleep ) yields--;

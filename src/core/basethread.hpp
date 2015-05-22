@@ -108,7 +108,7 @@ namespace nanos
    inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
       _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
       _threadWD( wd ), _currentWD( NULL ), _nextWDs( /* enableDeviceCounter */ false ), _teamData( NULL ), _nextTeamData( NULL ),
-      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL )
+      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL ), _nextTeam( NULL )
    {
          if ( sys.getSplitOutputForThreads() ) {
             if ( _parent != NULL ) {
@@ -123,6 +123,7 @@ namespace nanos
          }
 
          _status.can_get_work = true;
+         _status.must_leave_team = false;
    }
 
    inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
@@ -137,14 +138,6 @@ namespace nanos
    inline void BaseThread::unlock () { _mlock--; }
  
    inline void BaseThread::stop() { _status.must_stop = true; }
-
-   inline void BaseThread::sleep() {
-      if (!_status.must_sleep && canBlock()) {
-         _status.must_sleep = true;
-         if ( ThreadTeam *team = getTeam() )
-            team->decreaseFinalSize();
-      }
-   }
 
    inline void BaseThread::wakeup() { _status.must_sleep = false; }
 
@@ -200,22 +193,6 @@ namespace nanos
    }
  
    inline bool BaseThread::hasTeam() const { return _status.has_team; }
- 
-   inline void BaseThread::leaveTeam()
-   {
-      ensure( this == myThread, "thread is not leaving team by itself" );
-      if ( _teamData ) 
-      {
-         TeamData *td = _teamData;
-         debug( "removing thread " << this << " with id " << toString<int>(getTeamId()) << " from " << _teamData->getTeam() );
-
-         size_t final_size = td->getTeam()->removeThread( getTeamId() );
-         if ( final_size == td->getTeam()->getFinalSize() ) td->getTeam()->setStable(true);
-         _teamData = _teamData->getParentTeamData();
-         _status.has_team = _teamData != NULL;
-         delete td;
-      }
-   }
 
    inline ThreadTeam * BaseThread::getTeam() const { return _teamData ? _teamData->getTeam() : NULL; }
  
@@ -255,7 +232,9 @@ namespace nanos
    inline bool BaseThread::isWaiting () const { return _status.is_waiting; }
 
    inline bool BaseThread::isPaused () const { return _status.is_paused; }
- 
+
+   inline bool BaseThread::isLeavingTeam () const { return _status.must_leave_team; }
+
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
    
    inline void BaseThread::setRunningOn(ProcessingElement* element) { _pe=element; }
@@ -312,6 +291,9 @@ namespace nanos
 
    inline void BaseThread::setSteps ( unsigned short s ) { _steps = s; }
 
+   inline ThreadTeam* BaseThread::getNextTeam() const { return _nextTeam; }
+
+   inline void BaseThread::setNextTeam( ThreadTeam *team ) { _nextTeam = team; }
 }
 
 #endif

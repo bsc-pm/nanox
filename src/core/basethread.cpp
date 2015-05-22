@@ -126,70 +126,58 @@ int BaseThread::getCpuId() const {
    return _parent->getCpuId();
 }
 
-#if 0
-bool BaseThread::tryWakeUp() {
-   bool result = false;
-   if ( !this->hasTeam() && this->isWaiting() ) {
-      // recheck availability with exclusive access
-      this->lock();
-      if ( this->hasTeam() || !this->isWaiting() ) {
-         // we lost it
-         this->unlock();
-      } else {
-         this->reserve(); // set team flag only
-         this->wakeup();
-         this->unlock();
+void BaseThread::leaveTeam()
+{
+   ensure( this == myThread, "thread is not leaving team by itself" );
+   if ( _teamData )
+   {
+      TeamData *td = _teamData;
+      debug( "removing thread " << this << " with id " << toString<int>(getTeamId()) << " from " << _teamData->getTeam() );
 
-         result = true;
-      }
+      td->getTeam()->removeThread( getTeamId() );
+      _teamData = _teamData->getParentTeamData();
+      _status.has_team = _teamData != NULL;
+      _status.must_leave_team = false;
+      delete td;
    }
-   return result;
 }
-#endif
+
+void BaseThread::setLeaveTeam( bool leave )
+{
+   _status.must_leave_team = leave;
+   if ( leave ) {
+      // Remove myself from the expected list,
+      // either from my current team or from my next one
+      ThreadTeam *team = getTeam() ? getTeam() : getNextTeam();
+      if ( team ) team->removeExpectedThread( this );
+   }
+}
+
+void BaseThread::sleep()
+{
+   if ( !_status.must_sleep && canBlock() ) {
+      _status.must_sleep = true;
+   }
+}
 
 void BaseThread::tryWakeUp( ThreadTeam *team )
 {
-   // Make sure thread is waiting, tagged to sleep, or teamless
-   if ( this->isWaiting() || this->isSleeping() || !this->hasTeam() ) {
-      this->lock();
-      // Thread has been already told to wake up, and it is ready. Skipping
-      if ( this->isWaiting() && !this->isSleeping() ) {
-         ensure( this->getTeam(), "A ready thread has not a valid team" );
-         ensure( this->hasTeam(), "A ready thread has not been flagged" );
-      }
-      // Thread was ready to wake up and then flagged to sleep, but it was unable to set the
-      // right flags because of the lock
-      else if ( this->isWaiting() && this->hasTeam() ) {
-         ensure( this->getTeam(), "A ready thread has not a valid team(2)" );
-         team->increaseFinalSize();
-         this->wakeup();
-      }
-      // Thread is already waiting
-      else if ( this->isWaiting() ) {
-         ensure( !this->getTeam(), "A waiting thread has already a valid team" );
-         this->reserve();
-         sys.acquireWorker( team, this, true, false, false );
-         team->increaseFinalSize();
-         this->wakeup();
-      }
-      // Thread is only tagged to sleep
-      else if ( this->isSleeping() ) {
-         ensure( this->getTeam(), "A just tagged thread has not a valid team" );
-         ensure( this->hasTeam(), "A just tagged thread has not a team flag" );
-         team->increaseFinalSize();
-         this->wakeup();
-      }
-      // Thread is just orhpan
-      else if ( !this->hasTeam() ) {
-         this->reserve();
-         sys.acquireWorker( team, this, true, false, false );
-         team->increaseFinalSize();
-      }
-      // Thread was waken up while acquiring the lock. Skipping
-      else {
-      }
-      this->unlock();
+   lock();
+   if ( isSleeping() ) {
+      // Thread is waiting and no wake up order has been sent yet
+      reserve();
+      setNextTeam( team );
+      wakeup();
    }
+   else if ( !isWaiting() && !hasTeam() ) {
+      // Thread is already running but without team
+      reserve();
+      setNextTeam( NULL );
+      sys.acquireWorker( team, this, true, false, false );
+   }
+   // either way, this thread must be in the expected set
+   team->addExpectedThread(this);
+   unlock();
 }
 
 unsigned int BaseThread::getOsId() const {
