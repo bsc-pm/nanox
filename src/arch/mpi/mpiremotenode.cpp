@@ -935,7 +935,9 @@ void MPIRemoteNode::nanosSyncDevPointers(int* file_mask, unsigned int* file_name
         for ( int k=0;k<arr_size;k++ ) {
            //Files which have 0 tasks, may add a NULL to the pointer array
            //if this is the case their number of tasks for reordering purposes is 1
-           if (task_per_file[k]==0 &&  ((void*) *ompss_mpi_func_ptrs_dev+total_size)==NULL ) task_per_file[k]=1;
+           size_t element_offset=total_size*sizeof(void*);
+           //All these many transformations are used to avoid warnings on gcc
+           if (task_per_file[k]==0 &&  ((void*) *(void**)(((uint64_t)ompss_mpi_func_ptrs_dev)+element_offset))==NULL ) task_per_file[k]=1;
            total_size+=task_per_file[k];
         }
 
