@@ -261,7 +261,7 @@ void BlockingThreadManager::idle( int& yields
       if ( _useBlock && thread->canBlock() ) {
          NANOS_INSTRUMENT ( total_blocks++; )
          NANOS_INSTRUMENT ( unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         releaseCpu();
+         releaseThread( thread );
          NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
          NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
          if ( _numYields != 0 ) yields = _numYields;
@@ -324,16 +324,22 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
    }
 }
 
-void BlockingThreadManager::releaseCpu()
+void BlockingThreadManager::returnClaimedCpus() {}
+
+void BlockingThreadManager::returnMyCpuIfClaimed() {}
+
+void BlockingThreadManager::waitForCpuAvailability() {}
+
+void BlockingThreadManager::releaseThread( BaseThread *thread )
 {
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
    if ( !_useBlock ) return;
-
-   BaseThread *thread = getMyThreadSafe();
    if ( !thread->getTeam() ) return;
    if ( thread->isSleeping() ) return;
-   if ( thread->isMainThread() && !sys.getUntieMaster() ) return; /* Do not release master thread if master WD is tied*/
+
+   /* Do not release master thread if master WD is tied*/
+   if ( thread->isMainThread() && !sys.getUntieMaster() ) return;
 
    int my_cpu = thread->getCpuId();
 
@@ -345,20 +351,11 @@ void BlockingThreadManager::releaseCpu()
    if ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) )
       return;
 
-   // Clear CPU from active mask
-   cpu_set_t new_active_cpus = sys.getCpuActiveMask();
-   ensure( CPU_ISSET(my_cpu, &new_active_cpus), "Trying to release a non active CPU" );
-   CPU_CLR( my_cpu, &new_active_cpus );
-   sys.setCpuActiveMask( &new_active_cpus );
+   // FIXME: Clear CPU from active mask when all threads of a process are blocked
+   thread->sleep();
 }
 
-void BlockingThreadManager::returnClaimedCpus() {}
-
-void BlockingThreadManager::returnMyCpuIfClaimed() {}
-
-void BlockingThreadManager::waitForCpuAvailability() {}
-
-void BlockingThreadManager::acquireThread(BaseThread* thread){} 
+void BlockingThreadManager::acquireThread(BaseThread* thread){}
 
 /**********************************/
 /**** BusyWait Thread Manager *****/
@@ -478,8 +475,6 @@ void BusyWaitThreadManager::acquireResourcesIfNeeded ()
    }
 }
 
-void BusyWaitThreadManager::releaseCpu() {}
-
 void BusyWaitThreadManager::returnClaimedCpus()
 {
    if ( !_initialized ) return;
@@ -515,7 +510,9 @@ void BusyWaitThreadManager::waitForCpuAvailability()
    CPU_CLR( cpu, &_waitingCPUs );
 }
 
-void BusyWaitThreadManager::acquireThread(BaseThread* thread){} 
+void BusyWaitThreadManager::releaseThread(BaseThread *thread){}
+
+void BusyWaitThreadManager::acquireThread(BaseThread* thread){}
 
 
 /**********************************/
@@ -565,10 +562,10 @@ void DlbThreadManager::idle( int& yields
       yields--;
    } else {
       if ( thread->canBlock() ) {
-         // releaseCpu only gives the sleep order, we can skip instrumentation
+         // releaseThread only gives the sleep order, we can skip instrumentation
          //NANOS_INSTRUMENT ( total_blocks++; )
          //NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         releaseCpu();
+         releaseThread( thread );
          //NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
          //NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
          if ( _numYields != 0 ) yields = _numYields;
@@ -626,30 +623,6 @@ void DlbThreadManager::acquireResourcesIfNeeded ()
    }
 }
 
-void DlbThreadManager::releaseCpu()
-{
-   if ( !_initialized ) return;
-   if ( !_isMalleable ) return;
-
-   BaseThread *thread = getMyThreadSafe();
-   if ( !thread->getTeam() ) return;
-   if ( thread->isSleeping() ) return;
-
-   if ( thread->isMainThread() && !sys.getUntieMaster() ) return; /* Do not release master thread if master WD is tied*/
-
-   int my_cpu = thread->getCpuId();
-
-   LockBlock Lock( _lock );
-
-   // Do not release if this CPU is the last active within the process_mask
-   cpu_set_t mine_and_active;
-   CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
-   if ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) )
-      return;
-
-   DLB_ReleaseCpu( my_cpu );
-}
-
 void DlbThreadManager::returnClaimedCpus() {}
 
 void DlbThreadManager::returnMyCpuIfClaimed()
@@ -682,10 +655,33 @@ void DlbThreadManager::waitForCpuAvailability()
    CPU_CLR( cpu, &_waitingCPUs );
 }
 
+void DlbThreadManager::releaseThread( BaseThread *thread )
+{
+   if ( !_initialized ) return;
+   if ( !_isMalleable ) return;
+   if ( !thread->getTeam() ) return;
+   if ( thread->isSleeping() ) return;
+
+   /* Do not release master thread if master WD is tied*/
+   if ( thread->isMainThread() && !sys.getUntieMaster() ) return;
+
+   int my_cpu = thread->getCpuId();
+
+   LockBlock Lock( _lock );
+
+   // Do not release if this CPU is the last active within the process_mask
+   cpu_set_t mine_and_active;
+   CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
+   if ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) )
+      return;
+
+   DLB_ReleaseCpu( my_cpu );
+}
+
 void DlbThreadManager::acquireThread(BaseThread* thread) {
    int cpu= thread->getCpuId();
    if (!CPU_ISSET(cpu, &(sys.getCpuActiveMask()))){
-    //If the cpu is not active claim it and wake up thread
-        DLB_AcquireCpu( cpu );        
-    }
+      //If the cpu is not active claim it and wake up thread
+      DLB_AcquireCpu( cpu );
+   }
 }

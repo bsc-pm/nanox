@@ -58,10 +58,10 @@ namespace nanos
 #endif
                      ) {}
          virtual void acquireResourcesIfNeeded() {}
-         virtual void releaseCpu() {}
          virtual void returnClaimedCpus() {}
          virtual void returnMyCpuIfClaimed() {}
          virtual void waitForCpuAvailability() {}
+         virtual void releaseThread(BaseThread*) {}
          virtual void acquireThread(BaseThread*) {}
    };
 
@@ -94,10 +94,10 @@ namespace nanos
 #endif
                      );
          virtual void acquireResourcesIfNeeded();
-         virtual void releaseCpu();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void releaseThread(BaseThread*);
          virtual void acquireThread(BaseThread*);
    };
 
@@ -132,10 +132,10 @@ namespace nanos
 #endif
                      );
          virtual void acquireResourcesIfNeeded();
-         virtual void releaseCpu();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void releaseThread(BaseThread*);
          virtual void acquireThread(BaseThread*);
    };
 
@@ -165,10 +165,10 @@ namespace nanos
 #endif
                      );
          virtual void acquireResourcesIfNeeded();
-         virtual void releaseCpu();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void releaseThread(BaseThread*);
          virtual void acquireThread(BaseThread*);
    };
 

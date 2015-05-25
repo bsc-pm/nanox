@@ -108,6 +108,10 @@ namespace nanos
           */
          ~ThreadTeam ();
 
+         // atomic access
+         void lock();
+         void unlock();
+
          unsigned size() const;
 
          /*! \brief Initializes team structures dependent on the number of threads.

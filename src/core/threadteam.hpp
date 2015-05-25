@@ -45,6 +45,16 @@ inline ThreadTeam::~ThreadTeam ()
    delete &_threadTeamData;
 }
 
+inline void ThreadTeam::lock()
+{
+   _lock.acquire();
+}
+
+inline void ThreadTeam::unlock()
+{
+   _lock.release();
+}
+
 inline unsigned ThreadTeam::size() const
 {
    return _threads.size();
