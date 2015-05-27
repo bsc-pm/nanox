@@ -612,17 +612,6 @@ void System::finish ()
    
    ensure( getMyThreadSafe()->isMainThread(), "Main thread not finishing the application!");
    
-   
-   if ( sys.getSchedulerConf().getUseBlock() )
-   {
-      for ( int t = 1; t < sys.getNumWorkers(); ++t )
-      {
-         BaseThread * worker = sys.getWorker( t );
-         // wake up, Neo
-         worker->unblock();
-      }
-   }
-
    //! \note stopping all threads
    verbose ( "Joining threads..." );
    for ( unsigned p = 0; p < _pes.size() ; p++ ) {

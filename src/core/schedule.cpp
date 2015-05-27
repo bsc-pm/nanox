@@ -69,43 +69,43 @@ void Scheduler::submit ( WD &wd, bool force_queue )
       } else {
          wd_tiedto->getTeam()->getSchedulePolicy().queue( wd_tiedto, wd );
       }
-      return;
-   }
-
-   /* handle tasks which cannot run in current thread */
-   if ( force_queue || !wd.canRunIn(*mythread->runningOn()) ) {
+   } else if ( force_queue || !wd.canRunIn(*mythread->runningOn()) ) {
      /* We have to avoid work-first scheduler to return this kind of tasks, so we enqueue
       * it in our scheduler system. Global ready task queue will take care about task/thread
       * architecture, while local ready task queue will wait until stealing. */
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
-      return;
-   }
-
-   //! \todo (#581): move this to the upper if
-   if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
+   } else  if ( !sys.getSchedulerConf().getSchedulerEnabled() ) {
       // Pause this thread
       mythread->pause();
       // Scheduler stopped, queue work.
       mythread->getTeam()->getSchedulePolicy().queue( mythread, wd );
-      return;
-   }
-   // The thread is not paused, mark it as so
-   myThread->unpause();
-   // And go on
-   WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
+   } else {
+      // The thread is not paused, mark it as so
+      myThread->unpause();
+      // And go on
+      WD *next = getMyThreadSafe()->getTeam()->getSchedulePolicy().atSubmit( myThread, wd );
 
-   /* If SchedulePolicy have returned a 'next' value, we have to context switch to
-      that WorkDescriptor */
-   if ( next ) {
-      WD *slice;
-      /* We must ensure this 'next' has no sliced components. If it have them we have to
-       * queue the remaining parts of 'next' */
-      if ( !next->dequeue(&slice) ) {
-         mythread->getTeam()->getSchedulePolicy().queue( mythread, *next );
+      /* If SchedulePolicy have returned a 'next' value, we have to context switch to
+         that WorkDescriptor */
+      if ( next ) {
+         WD *slice;
+         /* We must ensure this 'next' has no sliced components. If it have them we have to
+          * queue the remaining parts of 'next' */
+         if ( !next->dequeue(&slice) ) {
+            mythread->getTeam()->getSchedulePolicy().queue( mythread, *next );
+         }
+         switchTo ( slice );
       }
-      switchTo ( slice );
    }
 
+   // Unblock same architecture thread 
+   for ( int t = 1; t < sys.getNumWorkers(); t++ ) {
+      BaseThread *worker = (sys.getWorker(t));
+      if ( wd.canRunIn(*(worker->runningOn()))) {
+         worker->unblock();
+         break;
+      }
+   }
 }
 
 void Scheduler::submit ( WD ** wds, size_t numElems )
@@ -142,6 +142,20 @@ void Scheduler::submit ( WD ** wds, size_t numElems )
    // Call the scheduling policy
    mythread->getTeam()->getSchedulePolicy().queue( threadList, wds, numElems );
    
+   // Unblock same architecture thread 
+   int t = 1;
+   for ( size_t w = 0; w < numElems; w++ ) {
+      for ( ; t < sys.getNumWorkers(); t++ ) {
+         BaseThread *worker = (sys.getWorker(t));
+         if ( wds[w]->canRunIn(*(worker->runningOn()))) {
+            worker->unblock();
+            t++;
+            break;
+         }
+      }
+      if ( t == sys.getNumWorkers() ) t = 1;
+   }
+
    // Release
    delete[] threadList;
 }
@@ -305,7 +319,7 @@ inline void Scheduler::idleLoop ()
                
                NANOS_INSTRUMENT ( total_blocks++; )
                NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-               thread->block(); //FIXME:xteruel
+               thread->block();
                NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
                      
@@ -525,7 +539,7 @@ void Scheduler::waitOnCondition (GenericSyncCond *condition)
                         
                         NANOS_INSTRUMENT ( total_blocks++; )
                         NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-                        thread->block(); //FIXME:xteruel
+                        thread->block();
                         NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
                         NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
                         
@@ -623,6 +637,15 @@ void Scheduler::wakeUp ( WD *wd )
             myThread->getTeam()->getSchedulePolicy().queue( myThread, *next );
          }
          switchTo ( slice );
+      }
+   }
+
+   // Unblock same architecture thread 
+   for ( int t = 1; t < sys.getNumWorkers(); t++ ) {
+      BaseThread *worker = (sys.getWorker(t));
+      if ( wd->canRunIn(*(worker->runningOn()))) {
+         worker->unblock();
+         break;
       }
    }
 }
