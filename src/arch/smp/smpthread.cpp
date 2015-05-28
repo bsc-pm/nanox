@@ -24,7 +24,6 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include <iostream>
-#include <sched.h>
 #include <unistd.h>
 #include <signal.h>
 #include <assert.h>

@@ -17,7 +17,6 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <sched.h>
 #include "basethread.hpp"
 #include "threadteam.hpp"
 #include "system.hpp"

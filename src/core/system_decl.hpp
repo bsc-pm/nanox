@@ -390,13 +390,7 @@ namespace nanos
          /*!
           * \brief Get the process mask of active CPUs by reference
           */
-         const cpu_set_t& getCpuProcessMask () const;
-
-         /*!
-          * \brief Get the process mask of active CPUs
-          * \param[out] mask
-          */
-         void getCpuProcessMask ( cpu_set_t *mask ) const;
+         const CpuSet& getCpuProcessMask () const;
 
          /*!
           * \brief Set the process mask
@@ -404,24 +398,18 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuProcessMask ( const cpu_set_t *mask );
+         bool setCpuProcessMask ( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current process mask
           * \param[in] mask
           */
-         void addCpuProcessMask ( const cpu_set_t *mask );
+         void addCpuProcessMask ( const CpuSet& mask );
 
          /*!
           * \brief Get the current mask of active CPUs by reference
           */
-         const cpu_set_t& getCpuActiveMask () const;
-
-         /*!
-          * \brief Get the current mask of active CPUs
-          * \param[out] mask
-          */
-         void getCpuActiveMask ( cpu_set_t *mask ) const;
+         const CpuSet& getCpuActiveMask () const;
 
          /*!
           * \brief Set the mask of active CPUs
@@ -429,13 +417,13 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuActiveMask ( const cpu_set_t *mask );
+         bool setCpuActiveMask ( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current mask of active CPUs
           * \param[in] mask
           */
-         void addCpuActiveMask ( const cpu_set_t *mask );
+         void addCpuActiveMask ( const CpuSet& mask );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

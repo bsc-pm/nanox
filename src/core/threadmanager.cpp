@@ -178,7 +178,7 @@ bool ThreadManagerConf::canUntieMaster() const
 /**********************************/
 
 ThreadManager::ThreadManager( bool warmup )
-   : _lock(), _initialized(false), _warmupThreads(warmup)
+   : _lock(), _initialized(false), _cpuProcessMask(NULL), _cpuActiveMask(NULL), _warmupThreads(warmup)
 {}
 
 void ThreadManager::init()
@@ -186,6 +186,8 @@ void ThreadManager::init()
    if ( _warmupThreads ) {
       sys.getSMPPlugin()->forceMaxThreadCreation();
    }
+   _cpuProcessMask = &sys.getCpuProcessMask();
+   _cpuActiveMask = &sys.getCpuActiveMask();
    _initialized = true;
 }
 
@@ -197,13 +199,12 @@ bool ThreadManager::lastActiveThread()
    // We omit the test if the cpu does not belong to my process_mask
    BaseThread *thread = getMyThreadSafe();
    int my_cpu = thread->getCpuId();
-   if ( !CPU_ISSET( my_cpu, &(sys.getCpuProcessMask()) ) ) return false;
+   if ( !_cpuProcessMask->isSet( my_cpu ) ) return false;
 
    LockBlock Lock( _lock );
-   cpu_set_t mine_and_active;
-   CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
 
-   bool last = CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active );
+   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   bool last = mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu);
 
    if ( last ) {
       // If we get here, my_cpu is the last active, but we must support thread oversubscription
@@ -292,34 +293,31 @@ void BlockingThreadManager::acquireResourcesIfNeeded()
 
          LockBlock Lock( _lock );
 
-         const cpu_set_t& process_mask = sys.getCpuProcessMask();
-         cpu_set_t new_active_cpus = sys.getCpuActiveMask();
-         cpu_set_t mine_and_active;
-         CPU_AND( &mine_and_active, &process_mask, &new_active_cpus );
+         CpuSet new_active_cpus = *_cpuActiveMask;
+         CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+
          // Check first that we have some owned CPU not active
-         if ( !CPU_EQUAL(&mine_and_active, &process_mask) ) {
+         if ( mine_and_active != *_cpuProcessMask ) {
             bool dirty = false;
             // Iterate over default cpus not running and wake them up if needed
             for (int i=0; i<_maxCPUs; i++) {
-               if ( CPU_ISSET( i, &process_mask) && !CPU_ISSET( i, &new_active_cpus ) ) {
-                  CPU_SET( i, &new_active_cpus );
+               if ( _cpuProcessMask->isSet(i) && !new_active_cpus.isSet(i) ) {
+                  new_active_cpus.set(i);
                   dirty = true;
                   if ( --ready_tasks == 0 )
                      break;
                }
             }
             if (dirty) {
-               sys.setCpuActiveMask( &new_active_cpus );
+               sys.setCpuActiveMask( new_active_cpus );
             }
          }
       }
    } else {
       /* OpenMP */
       LockBlock Lock( _lock );
-      const cpu_set_t& process_mask = sys.getCpuProcessMask();
-      const cpu_set_t& active_mask = sys.getCpuActiveMask();
-      if ( !CPU_EQUAL( &process_mask, &active_mask ) ) {
-         sys.setCpuActiveMask( &process_mask );
+      if ( *_cpuProcessMask != *_cpuActiveMask ) {
+         sys.setCpuActiveMask( *_cpuProcessMask );
       }
    }
 }
@@ -346,9 +344,8 @@ void BlockingThreadManager::releaseThread( BaseThread *thread )
    LockBlock Lock( _lock );
 
    // Do not release if this CPU is the last active within the process_mask
-   cpu_set_t mine_and_active;
-   CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
-   if ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) )
+   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   if ( mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu) )
       return;
 
    // FIXME: Clear CPU from active mask when all threads of a process are blocked
@@ -363,10 +360,9 @@ void BlockingThreadManager::acquireThread(BaseThread* thread){}
 
 BusyWaitThreadManager::BusyWaitThreadManager( unsigned int num_yields, unsigned int sleep_time,
                                                 bool use_sleep, bool use_dlb, bool warmup )
-   : ThreadManager(warmup), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
+   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()), _isMalleable(false),
    _numYields(num_yields), _sleepTime(sleep_time), _useSleep(use_sleep), _useDLB(use_dlb)
 {
-   CPU_ZERO( &_waitingCPUs );
 }
 
 BusyWaitThreadManager::~BusyWaitThreadManager()
@@ -451,11 +447,8 @@ void BusyWaitThreadManager::acquireResourcesIfNeeded ()
          int needed_resources = ready_tasks - team->getFinalSize();
          if ( needed_resources > 0 ) {
             // If ready tasks > num threads I claim my cpus being used by someone else
-            const cpu_set_t& process_mask = sys.getCpuProcessMask();
-            const cpu_set_t& active_mask = sys.getCpuActiveMask();
-            cpu_set_t mine_and_active;
-            CPU_AND( &mine_and_active, &process_mask, &active_mask );
-            if ( !CPU_EQUAL(&mine_and_active, &process_mask) ) {
+            CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+            if ( mine_and_active != *_cpuProcessMask ) {
                // Only claim if some of my CPUs are not active
                DLB_ClaimCpus( needed_resources );
             }
@@ -484,11 +477,8 @@ void BusyWaitThreadManager::returnClaimedCpus()
 
    LockBlock Lock( _lock );
 
-   const cpu_set_t& process_mask = sys.getCpuProcessMask();
-   const cpu_set_t& active_mask = sys.getCpuActiveMask();
-   cpu_set_t mine_or_active;
-   CPU_OR( &mine_or_active, &process_mask, &active_mask );
-   if ( CPU_COUNT(&mine_or_active) > CPU_COUNT(&process_mask) ) {
+   CpuSet mine_or_active = *_cpuProcessMask | *_cpuActiveMask;
+   if ( mine_or_active.size() > _cpuProcessMask->size() ) {
       // Only return if I am using external CPUs
       DLB_ReturnClaimedCpus();
    }
@@ -501,13 +491,11 @@ void BusyWaitThreadManager::waitForCpuAvailability()
    if ( !_initialized ) return;
    if ( !_useDLB ) return;
    int cpu = getMyThreadSafe()->getCpuId();
-   CPU_SET( cpu, &_waitingCPUs );
    while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
       // Sleep and Yield the thread to reduce cycle consumption
       OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
       sched_yield();
    }
-   CPU_CLR( cpu, &_waitingCPUs );
 }
 
 void BusyWaitThreadManager::releaseThread(BaseThread *thread){}
@@ -520,10 +508,9 @@ void BusyWaitThreadManager::acquireThread(BaseThread* thread){}
 /**********************************/
 
 DlbThreadManager::DlbThreadManager( unsigned int num_yields, bool warmup )
-   : ThreadManager(warmup), _waitingCPUs(), _maxCPUs(OS::getMaxProcessors()),
+   : ThreadManager(warmup), _maxCPUs(OS::getMaxProcessors()),
    _isMalleable(false), _numYields(num_yields)
 {
-   CPU_ZERO( &_waitingCPUs );
 }
 
 DlbThreadManager::~DlbThreadManager()
@@ -599,11 +586,8 @@ void DlbThreadManager::acquireResourcesIfNeeded ()
          int needed_resources = ready_tasks - team->getFinalSize();
          if ( needed_resources > 0 ) {
             // If ready tasks > num threads I claim my cpus being used by someone else
-            const cpu_set_t& process_mask = sys.getCpuProcessMask();
-            const cpu_set_t& active_mask = sys.getCpuActiveMask();
-            cpu_set_t mine_and_active;
-            CPU_AND( &mine_and_active, &process_mask, &active_mask );
-            if ( !CPU_EQUAL(&mine_and_active, &process_mask) ) {
+            CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+            if ( mine_and_active != *_cpuProcessMask ) {
                // Only claim if some of my CPUs are not active
                DLB_ClaimCpus( needed_resources );
             }
@@ -632,9 +616,8 @@ void DlbThreadManager::returnMyCpuIfClaimed()
 
    // Return if my cpu belongs to the default mask
    BaseThread *thread = getMyThreadSafe();
-   const cpu_set_t& process_mask = sys.getCpuProcessMask();
    int my_cpu = thread->getCpuId();
-   if ( CPU_ISSET( my_cpu, &process_mask ) )
+   if ( _cpuProcessMask->isSet(my_cpu) )
       return;
 
    if ( !thread->isSleeping() ) {
@@ -646,13 +629,11 @@ void DlbThreadManager::returnMyCpuIfClaimed()
 void DlbThreadManager::waitForCpuAvailability()
 {
    int cpu = getMyThreadSafe()->getCpuId();
-   CPU_SET( cpu, &_waitingCPUs );
    while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
       // Sleep and Yield the thread to reduce cycle consumption
       OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
       sched_yield();
    }
-   CPU_CLR( cpu, &_waitingCPUs );
 }
 
 void DlbThreadManager::releaseThread( BaseThread *thread )
@@ -670,17 +651,16 @@ void DlbThreadManager::releaseThread( BaseThread *thread )
    LockBlock Lock( _lock );
 
    // Do not release if this CPU is the last active within the process_mask
-   cpu_set_t mine_and_active;
-   CPU_AND( &mine_and_active, &(sys.getCpuProcessMask()), &(sys.getCpuActiveMask()) );
-   if ( CPU_COUNT( &mine_and_active ) == 1 && CPU_ISSET( my_cpu, &mine_and_active ) )
+   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   if ( mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu) )
       return;
 
    DLB_ReleaseCpu( my_cpu );
 }
 
 void DlbThreadManager::acquireThread(BaseThread* thread) {
-   int cpu= thread->getCpuId();
-   if (!CPU_ISSET(cpu, &(sys.getCpuActiveMask()))){
+   int cpu = thread->getCpuId();
+   if ( !_cpuActiveMask->isSet(cpu) ) {
       //If the cpu is not active claim it and wake up thread
       DLB_AcquireCpu( cpu );
    }

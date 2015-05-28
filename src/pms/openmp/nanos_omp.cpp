@@ -19,6 +19,7 @@
 
 #include "nanos.h"
 #include "os.hpp"
+#include "cpuset_decl.hpp"
 #include "omp_init.hpp"
 #include "nanos_omp.h"
 #include "omp_wd_data.hpp"
@@ -37,34 +38,36 @@ using namespace nanos::OpenMP;
 
 NANOS_API_DEF(void, nanos_omp_get_process_mask, ( nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().getCpuProcessMask( (cpu_set_t *) cpu_set );
+   const CpuSet& process_mask = sys.getPMInterface().getCpuProcessMask();
+   process_mask.copyTo( static_cast<cpu_set_t*>(cpu_set) );
 }
 
 NANOS_API_DEF(int, nanos_omp_set_process_mask, ( const nanos_cpu_set_t cpu_set ))
 {
-   bool b = sys.getPMInterface().setCpuProcessMask( (cpu_set_t *) cpu_set );
+   bool b = sys.getPMInterface().setCpuProcessMask( static_cast<cpu_set_t*>(cpu_set) );
    return (b) ? 0 : -1;
 }
 
 NANOS_API_DEF(void, nanos_omp_add_process_mask, ( const nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().addCpuProcessMask( (cpu_set_t *) cpu_set );
+   sys.getPMInterface().addCpuProcessMask( static_cast<cpu_set_t*>(cpu_set) );
 }
 
 NANOS_API_DEF(void, nanos_omp_get_active_mask, ( nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().getCpuActiveMask( (cpu_set_t *) cpu_set );
+   const CpuSet& active_mask = sys.getCpuActiveMask();
+   active_mask.copyTo( static_cast<cpu_set_t*>(cpu_set) );
 }
 
 NANOS_API_DEF(int, nanos_omp_set_active_mask, ( const nanos_cpu_set_t cpu_set ))
 {
-   bool b = sys.getPMInterface().setCpuActiveMask( (cpu_set_t *) cpu_set );
+   bool b = sys.getPMInterface().setCpuActiveMask( static_cast<cpu_set_t*>(cpu_set) );
    return (b) ? 0 : -1;
 }
 
 NANOS_API_DEF(void, nanos_omp_add_active_mask, ( const nanos_cpu_set_t cpu_set ))
 {
-   sys.getPMInterface().addCpuActiveMask( (cpu_set_t *) cpu_set );
+   sys.getPMInterface().addCpuActiveMask( static_cast<cpu_set_t*>(cpu_set) );
 }
 
 NANOS_API_DEF ( int, nanos_omp_get_max_processors, (void ) )

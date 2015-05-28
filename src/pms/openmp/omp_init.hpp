@@ -20,13 +20,13 @@
 #ifndef _NANOX_OMP_INIT
 #define _NANOX_OMP_INIT
 
-#include <sched.h>
 #include "system.hpp"
 #include <cstdlib>
 #include "config.hpp"
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
+#include "cpuset_decl.hpp"
 
 namespace nanos
 {
@@ -59,12 +59,12 @@ namespace nanos
 
             virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
-            virtual void getCpuProcessMask( cpu_set_t *cpu_set ) const;
-            virtual bool setCpuProcessMask( const cpu_set_t *cpu_set );
-            virtual void addCpuProcessMask( const cpu_set_t *cpu_set );
-            virtual void getCpuActiveMask( cpu_set_t *cpu_set ) const;
-            virtual bool setCpuActiveMask( const cpu_set_t *cpu_set );
-            virtual void addCpuActiveMask( const cpu_set_t *cpu_set );
+            virtual const CpuSet& getCpuProcessMask() const;
+            virtual bool setCpuProcessMask( const CpuSet& cpu_set );
+            virtual void addCpuProcessMask( const CpuSet& cpu_set );
+            virtual const CpuSet& getCpuActiveMask() const;
+            virtual bool setCpuActiveMask( const CpuSet& cpu_set );
+            virtual void addCpuActiveMask( const CpuSet& cpu_set );
 
          public:
             nanos_ws_t findWorksharing( nanos_omp_sched_t kind ) ;
@@ -85,10 +85,10 @@ namespace nanos
             virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
             virtual void setNumThreads_globalState ( int nthreads );
-            virtual bool setCpuProcessMask( const cpu_set_t *cpu_set );
-            virtual void addCpuProcessMask( const cpu_set_t *cpu_set );
-            virtual bool setCpuActiveMask( const cpu_set_t *cpu_set );
-            virtual void addCpuActiveMask( const cpu_set_t *cpu_set );
+            virtual bool setCpuProcessMask( const CpuSet& cpu_set );
+            virtual void addCpuProcessMask( const CpuSet& cpu_set );
+            virtual bool setCpuActiveMask( const CpuSet& cpu_set );
+            virtual void addCpuActiveMask( const CpuSet& cpu_set );
          public:
             virtual PMInterface::Interfaces getInterface() const;
       };

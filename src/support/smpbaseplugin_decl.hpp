@@ -21,7 +21,7 @@
 #define _NANOS_SMPBASEPLUGIN_DECL
 
 #include <fstream>
-#include <sched.h>
+#include "cpuset_decl.hpp"
 #include "smpprocessor_fwd.hpp"
 #include "smpthread_fwd.hpp"
 #include "threadteam_fwd.hpp"
@@ -49,14 +49,12 @@ class SMPBasePlugin : public ArchPlugin {
       virtual int getCPUsPerSocket() const = 0;
       virtual unsigned int getNewSMPThreadId() = 0;
       virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team ) = 0;
-      virtual const cpu_set_t& getCpuProcessMask() const = 0 ;
-      virtual void getCpuProcessMask ( cpu_set_t *mask ) const = 0;
-      virtual bool setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
-      virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
-      virtual const cpu_set_t& getCpuActiveMask() const = 0 ;
-      virtual void getCpuActiveMask ( cpu_set_t *mask ) const = 0;
-      virtual bool setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
-      virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual const CpuSet& getCpuProcessMask() const = 0 ;
+      virtual bool setCpuProcessMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void addCpuProcessMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual const CpuSet& getCpuActiveMask() const = 0 ;
+      virtual bool setCpuActiveMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
+      virtual void addCpuActiveMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers ) = 0;
       virtual ext::SMPThread &associateThisThread( bool untie ) = 0;
       virtual void setRequestedWorkers( int workers ) = 0;
       virtual int getRequestedWorkers() const = 0;

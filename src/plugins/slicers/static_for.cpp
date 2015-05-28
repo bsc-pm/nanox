@@ -215,7 +215,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          BaseThread &target_thread = (*team)[j];
          slice->tieTo( target_thread );
          target_thread.addNextWD(slice);
-         target_thread.wakeup();
+         sys.getThreadManager()->acquireThread( &target_thread );
       }
    }
 

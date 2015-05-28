@@ -23,6 +23,7 @@
 #include "config_fwd.hpp"
 #include "workdescriptor_decl.hpp"
 #include "threadteam_decl.hpp"
+#include "cpuset_decl.hpp"
 
 namespace nanos
 {
@@ -69,12 +70,12 @@ namespace nanos
          virtual void setNumThreads( int nthreads ) {}
          virtual void setNumThreads_globalState( int nthreads ) {}
 
-         virtual void getCpuProcessMask( cpu_set_t *cpu_set ) const {}
-         virtual bool setCpuProcessMask( const cpu_set_t *cpu_set ) { return false; }
-         virtual void addCpuProcessMask( const cpu_set_t *cpu_set ) {}
-         virtual void getCpuActiveMask( cpu_set_t *cpu_set ) const {}
-         virtual bool setCpuActiveMask( const cpu_set_t *cpu_set ) { return false; }
-         virtual void addCpuActiveMask( const cpu_set_t *cpu_set ) {}
+         virtual const CpuSet& getCpuProcessMask() const = 0;
+         virtual bool setCpuProcessMask( const CpuSet& cpu_set ) { return false; }
+         virtual void addCpuProcessMask( const CpuSet& cpu_set ) {}
+         virtual const CpuSet& getCpuActiveMask() const = 0;
+         virtual bool setCpuActiveMask( const CpuSet& cpu_set ) { return false; }
+         virtual void addCpuActiveMask( const CpuSet& cpu_set ) {}
 
          //! By default, OmpSs is assumed (required for the bare run in system.cpp)
          virtual Interfaces getInterface() const { return PMInterface::OmpSs; }

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <iostream>
 #include "os.hpp"
+#include "cpuset_decl.hpp"
 #include "nanos.h"
 #include "system.hpp"
 
@@ -80,7 +81,8 @@ int main ( int argc, char *argv[])
    CPU_ZERO( &sched_mask2 );
 
    // init
-   sys.getCpuActiveMask( &nanos_mask1 );
+   const CpuSet &active_mask = sys.getCpuActiveMask();
+   active_mask.copyTo( &nanos_mask1 );
    sched_getaffinity( 0, sizeof(cpu_set_t), &sched_mask1 );
 
    // test
