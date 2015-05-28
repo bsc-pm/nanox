@@ -64,8 +64,8 @@ namespace nanos
          virtual void returnClaimedCpus() {}
          virtual void returnMyCpuIfClaimed() {}
          virtual void waitForCpuAvailability() {}
-         virtual void releaseThread(BaseThread*) {}
-         virtual void acquireThread(BaseThread*) {}
+         virtual void blockThread(BaseThread*) {}
+         virtual void unblockThread(BaseThread*) {}
    };
 
    //! BlockingThreadManager class
@@ -100,8 +100,8 @@ namespace nanos
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
-         virtual void releaseThread(BaseThread*);
-         virtual void acquireThread(BaseThread*);
+         virtual void blockThread(BaseThread*);
+         virtual void unblockThread(BaseThread*);
    };
 
    //! BusyWaitThreadManager class
@@ -137,8 +137,8 @@ namespace nanos
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
-         virtual void releaseThread(BaseThread*);
-         virtual void acquireThread(BaseThread*);
+         virtual void blockThread(BaseThread*);
+         virtual void unblockThread(BaseThread*);
    };
 
    //! DlbThreadManager class
@@ -169,8 +169,8 @@ namespace nanos
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
-         virtual void releaseThread(BaseThread*);
-         virtual void acquireThread(BaseThread*);
+         virtual void blockThread(BaseThread*);
+         virtual void unblockThread(BaseThread*);
    };
 
    //! ThreadManagerConf class

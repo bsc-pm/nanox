@@ -764,6 +764,16 @@ class SMPPlugin : public SMPBasePlugin
       }
    }
 
+   virtual void updateCpuStatus( int cpuid )
+   {
+      SMPProcessor *cpu = _cpusByCpuId->at(cpuid);
+      if ( cpu->getRunningThreads() > 0 ) {
+         _cpuActiveMask.set( cpuid );
+      } else {
+         _cpuActiveMask.clear( cpuid );
+      }
+   }
+
 
    virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker )
    {

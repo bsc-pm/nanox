@@ -262,7 +262,7 @@ void BlockingThreadManager::idle( int& yields
       if ( _useBlock && thread->canBlock() ) {
          NANOS_INSTRUMENT ( total_blocks++; )
          NANOS_INSTRUMENT ( unsigned long long begin_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         releaseThread( thread );
+         blockThread( thread );
          NANOS_INSTRUMENT ( unsigned long long end_block = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
          NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
          if ( _numYields != 0 ) yields = _numYields;
@@ -328,12 +328,9 @@ void BlockingThreadManager::returnMyCpuIfClaimed() {}
 
 void BlockingThreadManager::waitForCpuAvailability() {}
 
-void BlockingThreadManager::releaseThread( BaseThread *thread )
+void BlockingThreadManager::blockThread( BaseThread *thread )
 {
    if ( !_initialized ) return;
-   if ( !_isMalleable ) return;
-   if ( !_useBlock ) return;
-   if ( !thread->getTeam() ) return;
    if ( thread->isSleeping() ) return;
 
    /* Do not release master thread if master WD is tied*/
@@ -348,11 +345,21 @@ void BlockingThreadManager::releaseThread( BaseThread *thread )
    if ( mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu) )
       return;
 
-   // FIXME: Clear CPU from active mask when all threads of a process are blocked
+   // Clear CPU from active mask when all threads of a process are blocked
    thread->sleep();
+   sys.getSMPPlugin()->updateCpuStatus( my_cpu );
 }
 
-void BlockingThreadManager::acquireThread(BaseThread* thread){}
+void BlockingThreadManager::unblockThread( BaseThread* thread )
+{
+   if ( !_initialized ) return;
+
+   /* This method should only be called after a simple block call.
+    * Also, the thread should be in a team */
+   ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
+   thread->wakeup();
+   sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+}
 
 /**********************************/
 /**** BusyWait Thread Manager *****/
@@ -391,7 +398,7 @@ void BusyWaitThreadManager::idle( int& yields
    if ( !thread->hasTeam() && !thread->runningOn()->isActive() ) {
       // Sleep teamless threads only if the PE has been deactivated
       thread->setNextTeam(NULL);
-      thread->sleep();
+      blockThread(thread);
       thread->unlock();
       return;
    }
@@ -498,9 +505,38 @@ void BusyWaitThreadManager::waitForCpuAvailability()
    }
 }
 
-void BusyWaitThreadManager::releaseThread(BaseThread *thread){}
+void BusyWaitThreadManager::blockThread(BaseThread *thread)
+{
+   if ( !_initialized ) return;
+   if ( thread->isSleeping() ) return;
 
-void BusyWaitThreadManager::acquireThread(BaseThread* thread){}
+   /* Do not release master thread if master WD is tied*/
+   if ( thread->isMainThread() && !sys.getUntieMaster() ) return;
+
+   int my_cpu = thread->getCpuId();
+
+   LockBlock Lock( _lock );
+
+   // Do not release if this CPU is the last active within the process_mask
+   CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
+   if ( mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu) )
+      return;
+
+   // Clear CPU from active mask when all threads of a process are blocked
+   thread->sleep();
+   sys.getSMPPlugin()->updateCpuStatus( my_cpu );
+}
+
+void BusyWaitThreadManager::unblockThread( BaseThread* thread )
+{
+   if ( !_initialized ) return;
+
+   /* This method should only be called after a simple block call.
+    * Also, the thread should be in a team */
+   ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
+   thread->wakeup();
+   sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+}
 
 
 /**********************************/
@@ -549,10 +585,10 @@ void DlbThreadManager::idle( int& yields
       yields--;
    } else {
       if ( thread->canBlock() ) {
-         // releaseThread only gives the sleep order, we can skip instrumentation
+         // blockThread only gives the sleep order, we can skip instrumentation
          //NANOS_INSTRUMENT ( total_blocks++; )
          //NANOS_INSTRUMENT ( unsigned long begin_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
-         releaseThread( thread );
+         blockThread( thread );
          //NANOS_INSTRUMENT ( unsigned long end_block = (unsigned long) ( OS::getMonotonicTime() * 1.0e9  ); )
          //NANOS_INSTRUMENT ( time_blocks += ( end_block - begin_block ); )
          if ( _numYields != 0 ) yields = _numYields;
@@ -636,7 +672,7 @@ void DlbThreadManager::waitForCpuAvailability()
    }
 }
 
-void DlbThreadManager::releaseThread( BaseThread *thread )
+void DlbThreadManager::blockThread( BaseThread *thread )
 {
    if ( !_initialized ) return;
    if ( !_isMalleable ) return;
@@ -658,7 +694,7 @@ void DlbThreadManager::releaseThread( BaseThread *thread )
    DLB_ReleaseCpu( my_cpu );
 }
 
-void DlbThreadManager::acquireThread(BaseThread* thread) {
+void DlbThreadManager::unblockThread(BaseThread* thread) {
    int cpu = thread->getCpuId();
    if ( !_cpuActiveMask->isSet(cpu) ) {
       //If the cpu is not active claim it and wake up thread

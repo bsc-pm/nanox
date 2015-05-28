@@ -176,7 +176,7 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          BaseThread &target_thread = (*team)[j];
          slice->tieTo( target_thread );
          target_thread.addNextWD(slice);
-         target_thread.wakeup();
+         sys.getThreadManager()->unblockThread( &target_thread );
       }
    } else {
       // Computing offset between threads
@@ -215,17 +215,18 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
          BaseThread &target_thread = (*team)[j];
          slice->tieTo( target_thread );
          target_thread.addNextWD(slice);
-         sys.getThreadManager()->acquireThread( &target_thread );
+         sys.getThreadManager()->unblockThread( &target_thread );
       }
    }
 
-   // Only 1 WD left, we can unlock
+   // Only 1 WD left, we can unlock after obtaining the last target
+   BaseThread &first_thread = (*team)[first_valid_thread];
    team->unlock();
 
    // Submit: work (WorkDescriptor 0, running on thread 'first')
    work.convertToRegularWD();
-   work.tieTo( (*team)[first_valid_thread] );
-   if ( mythread == &((*team)[first_valid_thread]) ) {
+   work.tieTo( first_thread );
+   if ( mythread == &first_thread ) {
       if ( Scheduler::inlineWork( &work, false ) ) {
          work.~WorkDescriptor();
          delete[] (char *) &work;
@@ -233,8 +234,9 @@ void SlicerStaticFor::submit ( WorkDescriptor &work )
    }
    else
    {
-      (*team)[first_valid_thread].addNextWD( (WorkDescriptor *) &work);
+      first_thread.addNextWD( (WorkDescriptor *) &work);
    }
+   sys.getThreadManager()->unblockThread( &first_thread );
 }
 
 class SlicerStaticForPlugin : public Plugin {

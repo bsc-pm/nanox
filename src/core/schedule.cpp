@@ -1286,7 +1286,7 @@ void Scheduler::switchToThread ( BaseThread *thread )
       if ( next ) switchTo(next);
 
       // We must notify the thread manager to wake up the thread in case it is sleeping
-      sys.getThreadManager()->acquireThread(thread);
+      sys.getThreadManager()->unblockThread(thread);
    }
 }
 
