@@ -144,8 +144,8 @@ void SeparateAddressSpace::setSpecificData( void *data ) {
    _sdata = data;
 }
 
-void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
-   _cache.copyInputData( ops, reg, version, locations, chunk, wd, copyIdx );
+void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   _cache.copyInputData( ops, reg, version, locations, policy, chunk, wd, copyIdx );
 }
 
 void SeparateAddressSpace::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {

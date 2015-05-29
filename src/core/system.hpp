@@ -619,5 +619,17 @@ inline bool System::usePredecessorCopyInfo() const {
    return !_predecessorCopyInfoDisabled;
 }
 
+inline bool System::invalControlEnabled() const {
+   return _invalControl;
+}
+
+inline std::set<memory_space_id_t> const &System::getActiveMemorySpaces() const {
+   return _activeMemorySpaces;
+}
+
+inline std::map<unsigned int, PE *> const &System::getPEs() const {
+   return _pes;
+}
+
 #endif
 

@@ -601,6 +601,7 @@ namespace nanos {
             /* 50 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
             /* 51 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false);
             /* 52 */ registerEventKey("network-transfer", "Network transfer to node ", false);
+            /* 52 */ registerEventKey("cache-evict", "Cache eviction", false);
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }

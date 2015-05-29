@@ -48,12 +48,11 @@ namespace nanos {
          bool                              _dirty;
          bool                              _rooted;
          unsigned int                      _lruStamp;
-         std::size_t                       _roBytes;
-         std::size_t                       _rwBytes;
          Atomic<unsigned int>              _refs;
-         std::map<int, unsigned int>       _refWdId;
+         std::map<WD const *, unsigned int>      _refWdId;
          std::map<int, std::set<int> >     _refLoc;
          global_reg_t                      _allocatedRegion;
+         bool                              _flushable;
          
          CacheRegionDictionary *_newRegions;
 
@@ -84,8 +83,8 @@ namespace nanos {
          bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
          void NEWaddWriteRegion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          void setRegionVersion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
-         void addReference(int wdId, unsigned int loc);
-         void removeReference(int wdId);
+         void addReference(WD const& wd, unsigned int loc);
+         void removeReference(WD const &wd);
          unsigned int getReferenceCount() const;
          //void confirmCopyIn( reg_t id, unsigned int version );
          unsigned int getVersion( global_reg_t const &reg );
@@ -101,6 +100,8 @@ namespace nanos {
          void copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          //void clearDirty( global_reg_t const &reg );
          void printReferencingWDs() const;
+         void makeFlushable();
+         bool isFlushable() const;
    };
 
    class CompleteOpFunctor : public Functor {
@@ -115,7 +116,7 @@ namespace nanos {
 
    class RegionCache {
       public:
-         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE };
+         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE, FPGA };
          enum CacheOptions {
             ALLOC_FIT,
             ALLOC_WIDE,
@@ -132,6 +133,9 @@ namespace nanos {
          unsigned int               _lruTime;
          Atomic<unsigned int>       _softInvalidationCount;
          Atomic<unsigned int>       _hardInvalidationCount;
+         Atomic<std::size_t>        _inBytes;
+         Atomic<std::size_t>        _outBytes;
+         Atomic<std::size_t>        _outRepalcementBytes;
 
          typedef MemoryMap<AllocatedChunk>::MemChunkList ChunkList;
          typedef MemoryMap<AllocatedChunk>::ConstMemChunkList ConstChunkList;
@@ -209,7 +213,7 @@ namespace nanos {
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx );
 
-         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
          void allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx );
 
          unsigned int getSoftInvalidationCount() const;
@@ -224,6 +228,14 @@ namespace nanos {
 
          void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
          void printReferencedChunksAndWDs() const;
+
+         void increaseTransferredInData(size_t bytes);
+         void increaseTransferredOutData(size_t bytes);
+         void increaseTransferredReplacedOutData(size_t bytes);
+         size_t getTransferredInData() const;
+         size_t getTransferredOutData() const;
+         size_t getTransferredReplacedOutData() const;
+         bool shouldWriteThrough() const;
    };
 }
 

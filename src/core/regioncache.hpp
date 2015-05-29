@@ -22,18 +22,18 @@ inline std::size_t AllocatedChunk::getSize() const {
    return _size;
 }
 
-inline void AllocatedChunk::addReference( int wdId, unsigned int loc ) {
+inline void AllocatedChunk::addReference( WD const &wd, unsigned int loc ) {
    _refs++;
-   _refWdId[wdId]++;
-   _refLoc[wdId].insert(loc);
+   _refWdId[&wd]++;
+   _refLoc[wd.getId()].insert(loc);
    //std::cerr << "add ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
 }
 
-inline void AllocatedChunk::removeReference( int wdId ) {
+inline void AllocatedChunk::removeReference( WD const &wd ) {
    _refs--;
-   _refWdId[wdId]--;
-   if ( _refWdId[wdId] == 0 ) {
-      _refLoc[wdId].clear();
+   _refWdId[&wd]--;
+   if ( _refWdId[&wd] == 0 ) {
+      _refLoc[wd.getId()].clear();
    }
    
    //std::cerr << "del ref to chunk "<< (void*)this << " " << _refs.value() << std::endl;
@@ -89,6 +89,30 @@ inline unsigned int RegionCache::getSoftInvalidationCount() const {
 
 inline unsigned int RegionCache::getHardInvalidationCount() const {
    return _hardInvalidationCount.value();
+}
+
+inline void RegionCache::increaseTransferredInData(size_t bytes) {
+   _inBytes += bytes;
+
+}
+inline void RegionCache::increaseTransferredOutData(size_t bytes) {
+   _outBytes += bytes;
+}
+
+inline void RegionCache::increaseTransferredReplacedOutData(size_t bytes) {
+   _outRepalcementBytes += bytes;
+}
+
+inline size_t RegionCache::getTransferredInData() const {
+   return _inBytes.value();
+}
+
+inline size_t RegionCache::getTransferredOutData() const {
+   return _outBytes.value();
+}
+
+inline size_t RegionCache::getTransferredReplacedOutData() const {
+   return _outRepalcementBytes.value();
 }
 
 

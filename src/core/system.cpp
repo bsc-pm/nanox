@@ -82,7 +82,8 @@ System::System () :
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(), _acceleratorCount(0)
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(),
+      _activeMemorySpaces(), _acceleratorCount(0)
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -99,6 +100,7 @@ System::System () :
       , _hwloc()
       , _immediateSuccessorDisabled( false )
       , _predecessorCopyInfoDisabled( false )
+      , _invalControl( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -376,7 +378,7 @@ void System::config ()
    cfg.registerConfigOption ( "thd-output", NEW Config::FlagOption ( _splitOutputForThreads, true ), "Create separate files for each thread" );
    cfg.registerArgOption ( "thd-output", "thd-output" );
 
-   cfg.registerConfigOption ( "regioncache-policy", NEW Config::StringVar ( _regionCachePolicyStr ), "Region cache policy, accepted values are : nocache, writethrough, writeback. Default is writeback." );
+   cfg.registerConfigOption ( "regioncache-policy", NEW Config::StringVar ( _regionCachePolicyStr ), "Region cache policy, accepted values are : nocache, writethrough, writeback, fpga. Default is writeback." );
    cfg.registerArgOption ( "regioncache-policy", "cache-policy" );
    cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
 
@@ -391,6 +393,9 @@ void System::config ()
    cfg.registerConfigOption( "disable-predecessor-info", NEW Config::FlagOption( _predecessorCopyInfoDisabled ),
                              "Disables sending the copy_data info to successor WDs." );
    cfg.registerArgOption( "disable-predecessor-info", "disable-predecessor-info" );
+   cfg.registerConfigOption( "inval-control", NEW Config::FlagOption( _invalControl ),
+                             "Inval control." );
+   cfg.registerArgOption( "inval-control", "inval-control" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -423,6 +428,8 @@ void System::start ()
          _regionCachePolicy = RegionCache::WRITE_THROUGH;
       } else if ( _regionCachePolicyStr.compare("writeback") == 0 ) {
          _regionCachePolicy = RegionCache::WRITE_BACK;
+      } else if ( _regionCachePolicyStr.compare("fpga") == 0 ) {
+         _regionCachePolicy = RegionCache::FPGA;
       } else {
          warning0("Invalid option for region cache policy '" << _regionCachePolicyStr << "', using default value.");
       }
@@ -452,8 +459,6 @@ void System::start ()
       (*it)->addDevices( _devices );
    }
 
-   
-   
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
       _clusterNodes.insert( it->second->getClusterNode() );
       if ( it->second->isInNumaNode() ) {
@@ -461,6 +466,7 @@ void System::start ()
          unsigned node = it->second->getNumaNode() ;
          _numaNodes.insert( node );
       }
+      _activeMemorySpaces.insert( it->second->getMemorySpaceId() );
    }
    
    // gmiranda: was completeNUMAInfo() We must do this after the

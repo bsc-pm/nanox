@@ -178,7 +178,7 @@ void BaseAddressSpaceInOps::lockSourceChunks( global_reg_t const &reg, unsigned 
 
 void BaseOps::releaseLockedSourceChunks( WD const &wd ) {
    for ( std::set< AllocatedChunk * >::iterator it = _lockedChunks.begin(); it != _lockedChunks.end(); it++ ) {
-      (*it)->removeReference( wd.getId() );
+      (*it)->removeReference( wd );
    }
    _lockedChunks.clear();
 }
@@ -297,7 +297,7 @@ unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &re
 
 void SeparateAddressSpaceInOps::copyInputData( MemCacheCopy const& memCopy, WD const &wd, unsigned int copyIdx ) {
    lockSourceChunks( memCopy._reg, memCopy.getVersion(), memCopy._locations, _destination.getMemorySpaceId(), wd, copyIdx );
-   _destination.copyInputData( *this, memCopy._reg, memCopy.getVersion(), memCopy._locations, memCopy._chunk, wd, copyIdx );
+   _destination.copyInputData( *this, memCopy._reg, memCopy.getVersion(), memCopy._locations, memCopy._policy, memCopy._chunk, wd, copyIdx );
 }
 
 void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
@@ -317,7 +317,7 @@ void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global
    TransferList &list = _transfers[ from ];
    if ( _lockedChunks.count( chunk ) == 0 ) {
       chunk->lock();
-      chunk->addReference( wd.getId(), 1 ); //Out addOp( with chunk )
+      chunk->addReference( wd, 1 ); //Out addOp( with chunk )
       _lockedChunks.insert( chunk );
       chunk->unlock();
    }

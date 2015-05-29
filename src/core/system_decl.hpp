@@ -187,6 +187,7 @@ namespace nanos
 
          std::set<unsigned int>                        _clusterNodes;
          std::set<unsigned int>                        _numaNodes;
+         std::set<memory_space_id_t>                   _activeMemorySpaces;
 
          unsigned int                                  _acceleratorCount;
          //! Maps from a physical NUMA node to a user-selectable node
@@ -250,6 +251,7 @@ namespace nanos
          Hwloc _hwloc;
          bool _immediateSuccessorDisabled;
          bool _predecessorCopyInfoDisabled;
+         bool _invalControl;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -644,6 +646,9 @@ namespace nanos
          Router& getRouter();
          bool isImmediateSuccessorEnabled() const;
          bool usePredecessorCopyInfo() const;
+         bool invalControlEnabled() const;
+         std::set<memory_space_id_t> const &getActiveMemorySpaces() const;
+         PEList const &getPEs() const;
    };
 
    extern System sys;

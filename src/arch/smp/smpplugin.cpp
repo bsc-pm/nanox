@@ -299,6 +299,7 @@ class SMPPlugin : public SMPBasePlugin
          }
          message0("Memkind address range: " << addr << " - " << (void *) ((uintptr_t)addr + _memkindMemorySize ));
          memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
+         memkindMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
       }
 #endif
 
@@ -403,13 +404,16 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void finalize() {
       if ( _memkindSupport ) {
-         std::cerr << "memkind: SMP soft invalidations: " << sys.getSeparateMemory(1).getSoftInvalidationCount() << std::endl;
-         std::cerr << "memkind: SMP hard invalidations: " << sys.getSeparateMemory(1).getHardInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP soft replacements: " << sys.getSeparateMemory(1).getSoftInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP hard replacements: " << sys.getSeparateMemory(1).getHardInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP Xfer IN bytes: " << sys.getSeparateMemory(1).getCache().getTransferredInData() << std::endl;
+         std::cerr << "memkind: SMP Xfer OUT bytes: " << sys.getSeparateMemory(1).getCache().getTransferredOutData() << std::endl;
+         std::cerr << "memkind: SMP Xfer OUT (Replacements) bytes: " << sys.getSeparateMemory(1).getCache().getTransferredReplacedOutData() << std::endl;
       } else if ( _smpPrivateMemory ) {
          for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             if ( (*it)->isActive() ) {
-               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft invalidations: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getSoftInvalidationCount() << std::endl;
-               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard invalidations: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getHardInvalidationCount() << std::endl;
+               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getSoftInvalidationCount() << std::endl;
+               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getHardInvalidationCount() << std::endl;
             }
          }
       }
