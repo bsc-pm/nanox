@@ -91,14 +91,7 @@ void SMPThread::wait()
    lock();
    _pthread.mutexLock();
 
-   if ( isSleeping() && getNextWDQueue().size()<=1 && canBlock() ) {
-
-      if ( hasNextWD() ) {
-         WD *next = getNextWD();
-         next->untie();
-         team->getSchedulePolicy().queue( this, *next );
-      }
-      fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+   if ( isSleeping() && !hasNextWD() && canBlock() ) {
 
       if ( team != NULL ) leaveTeam();
       BaseThread::wait();
