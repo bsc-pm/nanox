@@ -114,6 +114,7 @@
  *   - 5024: Adding is final attribute in wd's dynamic properties.
  *   - 5025: Changed WD priority from unsigned to int.
  *   - 5029: Adding implicit parameter to work descriptor flags.
+ *   - 5030: Adding instrumentation support to wrap main function.
  * - nanos interface family: worksharing
  *   - 1000: First implementation of work-sharing services (create and next-item)
  * - nanos interface family: deps_api
@@ -382,9 +383,18 @@ NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_get_stealing, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_set_stealing, ( bool value ));
 
-//funtion which will be called by mercurium
-//on first line of user main (in some cases, offload and cluster)
+// This funtion tells the runtime that we are at the entry point of the program
+// (typically the main)
+NANOS_API_DECL(void, ompss_nanox_main_begin, (void *addr, const char* filename, int line));
+// This funtion tells the runtime that we have just left (or about to leave)
+// the top level function of the program (typically the main)
+NANOS_API_DECL(void, ompss_nanox_main_end, ());
+
+// DEPRECATED API: OLD API, do not use, kept here for binary compatibility
 NANOS_API_DECL(void, ompss_nanox_main, ());
+
+// Small wrapper around atexit to be useable from Fortran
+NANOS_API_DECL(void, nanos_atexit, (void*));
 
 // utility macros
 

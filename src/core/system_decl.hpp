@@ -631,10 +631,26 @@ namespace nanos
          void admitCurrentThread ( bool isWorker );
          void expelCurrentThread ( bool isWorker );
          
-         //This main will do nothing normally
-         //It will act as an slave and call exit(0) when we need slave behaviour
-         //in offload or cluster version
-         void ompss_nanox_main ();         
+         /*! \brief Setup of the runtime at the beginning of the top level function of the program
+          *
+          * Some devices (like MPI and cluster) may require extra
+          * initialization steps, this function performs them.
+          *
+          * Also resilency support uses this function to set up signal handlers.
+          *
+          * Under instrumentation, this function emits an initial event that it
+          * is used to track the entry point of the program.
+          */
+         void ompss_nanox_main(void *addr, const char* file, int line);
+
+         /*! \brief Shutdown notification of leaving the top level function of the program
+          *
+          * This function is typically called from an atexit handler and
+          * currently it only emits an event to track finalization of the
+          * program.
+          */
+         void ompss_nanox_main_end ();
+
          void _registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len);
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);

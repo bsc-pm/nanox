@@ -1503,9 +1503,18 @@ void System::executionSummary( void )
    message0( "=========================================================" );
 }
 
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+// XXX Temporary hack, do not commit
+namespace {
+   void * main_addr = 0;
+   std::stringstream main_value;
+   std::stringstream main_descr;
+}
+#endif
+
 //If someone needs argc and argv, it may be possible, but then a fortran 
 //main should be done too
-void System::ompss_nanox_main(){
+void System::ompss_nanox_main(void *addr, const char* file, int line){
     #ifdef MPI_DEV
     if (getenv("OMPSS_OFFLOAD_SLAVE")){
         //Plugin->init of MPI will do everything and then exit(0)
@@ -1519,6 +1528,37 @@ void System::ompss_nanox_main(){
     #ifdef NANOS_RESILIENCY_ENABLED
         getMyThreadSafe()->setupSignalHandlers();
     #endif
+
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   Instrumentation* instr = sys.getInstrumentation();
+   InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+
+   main_addr = addr;
+   main_value << "main@" << file << "@" << line << "@FUNCTION";
+   main_descr << "int main(int, char**)@" << file << "@" << line << "@FUNCTION";
+
+   nanos_event_key_t user_funct_location   = iD->getEventKey("user-funct-location");
+   iD->registerEventValue(
+           /* key */ "user-funct-location",
+           /* value */ main_value.str(),
+           /* val */ (nanos_event_value_t)main_addr,
+           /* description */ main_descr.str(),
+           /* abort_when_registered */ true
+           );
+
+   instr->raiseOpenBurstEvent(user_funct_location, (nanos_event_value_t)main_addr);
+#endif
+}
+
+void System::ompss_nanox_main_end()
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+   Instrumentation* instr = sys.getInstrumentation();
+   InstrumentationDictionary *iD = sys.getInstrumentation()->getInstrumentationDictionary();
+
+   nanos_event_key_t user_funct_location   = iD->getEventKey("user-funct-location");
+   instr->raiseCloseBurstEvent(user_funct_location, (nanos_event_value_t)main_addr);
+#endif
 }
 
 void System::_registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len) {
