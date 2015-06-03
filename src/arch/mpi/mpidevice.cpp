@@ -402,7 +402,8 @@ void MPIDevice::remoteNodeCacheWorker() {
                     case OPID_ALLOCATE:           
                     {
                         NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
-                        char* ptr;                        
+                        char* ptr;
+						ptr = NULL;
                         if (order.size<alignThreshold){
                            ptr = (char*) malloc(order.size);
                         } else {
@@ -417,7 +418,8 @@ void MPIDevice::remoteNodeCacheWorker() {
                     {
                         NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
                         std::free((char *) order.devAddr);
-                        char* ptr;                        
+                        char* ptr;
+						ptr = NULL;                        
                         if (order.size<alignThreshold){
                            ptr = (char*) malloc(order.size);
                         } else {
