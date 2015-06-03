@@ -56,6 +56,11 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerArgOption("offl-launcher", "offl-launcher");
     config.registerEnvOption("offl-launcher", "NX_OFFL_LAUNCHER");
     
+    config.registerConfigOption("offl-nodetype", NEW Config::StringVar(_mpiNodeType), "Defines which type of nodes will be used for Offload. "
+                                                                                      "Only applies for Parastation MPI. Values: {cluster, booster}");
+    config.registerArgOption("offl-nodetype", "offl-nodetype");
+    config.registerEnvOption("offl-nodetype", "NX_OFFL_NODETYPE");
+    
 
     config.registerConfigOption("offl-hostfile", NEW Config::StringVar(_mpiHostsFile), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\nThe format of the file is: "
     "One host per line with blank lines and lines beginning with # ignored\n"

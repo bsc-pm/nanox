@@ -43,6 +43,7 @@ size_t MPIProcessor::_alignment = 4096;
 size_t MPIProcessor::_maxWorkers = 1;
 std::string MPIProcessor::_mpiExecFile;
 std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/offload_slave_launch.sh";
+std::string MPIProcessor::_mpiNodeType;
 std::string MPIProcessor::_mpiHosts;
 std::string MPIProcessor::_mpiHostsFile;
 int MPIProcessor::_numPrevPEs=-1;
@@ -93,6 +94,10 @@ bool MPIProcessor::isUseMultiThread() {
 
 std::string MPIProcessor::getMpiLauncherFile() {
     return _mpiLauncherFile;
+}
+
+std::string MPIProcessor::getMpiNodeType() {
+    return _mpiNodeType;
 }
 
 size_t MPIProcessor::getAlignment() {

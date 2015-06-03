@@ -629,6 +629,8 @@ void MPIRemoteNode::callMPISpawn(
                std::sprintf( tpp, "%lu", nanos::ext::MPIProcessor::getMaxWorkers() );
             }
             MPI_Info_set(info, const_cast<char*> ("tpp"), const_cast<char*>(tpp) );
+            // In case the MPI implementation supports nodetype (cluster/booster) key...
+            MPI_Info_set(info, const_cast<char*> ("nodetype"), const_cast<char*>( nanos::ext::MPIProcessor::getMpiNodeType().c_str() ) );
 
             arrOfInfo[spawnedHosts]=info;
             hostfile.close();

@@ -45,6 +45,7 @@ namespace nanos {
             //! Save OmpSS-mpi filename
             static std::string _mpiExecFile;
             static std::string _mpiLauncherFile;
+            static std::string _mpiNodeType;
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;    
             static bool _useMultiThread;
@@ -99,6 +100,8 @@ namespace nanos {
             static std::string getMpiExecFile();
 
             static std::string getMpiLauncherFile();
+
+            static std::string getMpiNodeType();
             
             static size_t getAlignment();
             
