@@ -52,7 +52,8 @@ namespace ext
         
       public:
          // constructor
-         SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ),_stackSize(0), _useUserThreads(true) {}
+         SMPThread( WD &w, PE *pe ) : BaseThread( w,pe ), _pth(), _stackSize(0), _useUserThreads(true), _condWait(),
+                                      _completionWait(), _completionMutex() {}
 
          // named parameter idiom
          SMPThread & stackSize( size_t size ) { _stackSize = size; return *this; }
