@@ -32,9 +32,19 @@ unset NX_SMP_WORKERS
 second="="
 first=${@}
 first=${first//EQUAL/$second}
+first=${first//COMMA/$comma}
 export "${first}" 
+
+if [ $(which taskset) ]; then
+    TASKSET_BIN=taskset
+else
+    if [ -n $TASKSET_BIN ]; then
+        TASKSET_BIN=@prefix@/bin/taskset
+    fi
+fi
+
 if [ "x$TASKSET" != "x" ]; then 
-	taskset -cp $TASKSET $$ > /dev/null 2>&1
+	$TASKSET_BIN -cp $TASKSET $$
 elif [ "x$NX_BINDING_START" == "x" ]; then
    #thread 0 on MIC is last core so we start on first core by default
    export NX_BINDING_START=1

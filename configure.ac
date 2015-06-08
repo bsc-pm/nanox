@@ -1152,6 +1152,7 @@ AC_CONFIG_FILES([Makefile
                  src/arch/mpi/Makefile
                  src/utils/Makefile
                  scripts/Makefile
+                 scripts/offload_slave_launch.sh
                  tests/Makefile
                  tests/gens/Makefile
                  doc/Makefile
