@@ -1276,12 +1276,17 @@ void Scheduler::switchToThread ( BaseThread *thread )
    {
       NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING, true) );
 
+      // Tie wd to target thread
+      WD *wd = myThread->getCurrentWD();
+      wd->tieTo( *thread );
 
-      WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, myThread->getCurrentWD() );
+      // Get a candidate to execute in current thread
+      WD *next = myThread->getTeam()->getSchedulePolicy().atYield( myThread, wd );
       if ( next == NULL ) next = &(myThread->getThreadWD());
       if ( next ) switchTo(next);
-    //We must notify the thread manager to wake up the thread in case it is sleeping
-     sys.getThreadManager()->acquireThread(thread);
+
+      // We must notify the thread manager to wake up the thread in case it is sleeping
+      sys.getThreadManager()->acquireThread(thread);
    }
 }
 

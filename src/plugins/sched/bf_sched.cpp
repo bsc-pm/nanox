@@ -74,9 +74,13 @@ namespace nanos {
 
            virtual void queue ( BaseThread *thread, WD &wd )
            {
-              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              if ( _useStack ) return tdata._readyQueue->push_front( &wd );
-              else tdata._readyQueue->push_back( &wd );
+              BaseThread *targetThread = wd.isTiedTo();
+              if ( targetThread ) targetThread->addNextWD(&wd);
+              else {
+                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+                 if ( _useStack ) return tdata._readyQueue->push_front( &wd );
+                 else tdata._readyQueue->push_back( &wd );
+              }
            }
 
             virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
