@@ -27,7 +27,8 @@
 # Override prefix if _rpm_prefix is given
 %{?_rpm_prefix: %define _prefix  %{_rpm_prefix} }
 # Override distribution flags
-%define configure ./configure --host=%{_host} --build=%{_build} \\\
+%define configure ./configure --disable-static \\\
+        --host=%{_host} --build=%{_build} \\\
         --program-prefix=%{?_program_prefix} \\\
         --prefix=%{_prefix} \\\
         --exec-prefix=%{_exec_prefix} \\\
