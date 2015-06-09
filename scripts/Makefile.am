@@ -37,6 +37,7 @@ dist_bin_SCRIPTS=\
 	offload_slave_launch.sh \
 	offload_instrumentation.sh \
 	nanox\
+	create_mic_nx_hostlist
 	$(END)
 
 rpm:

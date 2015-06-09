@@ -1,0 +1,40 @@
+#!/usr/bin/python
+# Usage: <script> bn ppn
+# bn: number of booster nodes (mandatory)
+# ppn: number of mpi processes per booster node
+import sys
+import os
+import itertools
+
+bn=int(sys.argv[1])
+bn_pph=int(sys.argv[2])
+
+total_cores=240
+mics_per_node=2
+hosts = os.environ['LSB_MCPU_HOSTS'].split(' ')[0:-1:2]
+
+# Build mic list:
+mic_list=[]
+for i in range(mics_per_node) :
+  for host in hosts :
+    mic_list.append('{0}-mic{1}'.format(host,i))
+
+step=total_cores/bn_pph
+beg=range(0,total_cores,step)
+end=range(step,total_cores+1,step)
+
+# Print hostfile
+for b, e in zip(beg, end) :
+    for i in range(bn):
+      if e == total_cores :
+        print '{host} < TASKSET=0COMMA{pin_beg}-{pin_end}'.format(
+          host=mic_list[i], 
+          pin_beg=b+1, 
+          pin_end=e-1
+        )
+      else :
+        print '{host} < TASKSET={pin_beg}-{pin_end}'.format(
+          host=mic_list[i], 
+          pin_beg=b+1, 
+          pin_end=e
+        )
