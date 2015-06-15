@@ -23,7 +23,7 @@
 #include "config_fwd.hpp"
 #include "workdescriptor_decl.hpp"
 #include "threadteam_decl.hpp"
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 
 namespace nanos
 {

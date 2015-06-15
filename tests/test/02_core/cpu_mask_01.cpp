@@ -22,7 +22,7 @@
 #include <string.h>
 #include <iostream>
 #include "os.hpp"
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 #include "nanos.h"
 #include "system.hpp"
 

@@ -19,7 +19,7 @@
 
 #include "nanos.h"
 #include "os.hpp"
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 #include "omp_init.hpp"
 #include "nanos_omp.h"
 #include "omp_wd_data.hpp"

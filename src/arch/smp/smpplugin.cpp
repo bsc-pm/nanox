@@ -25,7 +25,7 @@
 #include "osallocator_decl.hpp"
 #include "system.hpp"
 #include "basethread.hpp"
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 #include <limits>
 
 #ifdef NANOX_MEMKIND_SUPPORT

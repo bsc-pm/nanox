@@ -17,8 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef CPUSET_DECL_HPP
-#define CPUSET_DECL_HPP
+#ifndef CPUSET_HPP
+#define CPUSET_HPP
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -27,11 +27,14 @@
 #include <string.h>
 #include "compatibility.hpp"
 
+namespace nanos
+{
 class CpuSet
 {
    private:
       cpu_set_t _mask;
    public:
+      // Constructors
       CpuSet()
       {
          CPU_ZERO( &_mask );
@@ -52,6 +55,7 @@ class CpuSet
          ::memcpy( &_mask, &(set._mask), sizeof(cpu_set_t));
       }
 
+      // Assignment operators
       CpuSet& operator=( const cpu_set_t& set )
       {
          ::memcpy( &_mask, &set, sizeof(cpu_set_t));
@@ -64,6 +68,8 @@ class CpuSet
          return *this;
       }
 
+      // Arithmetic and logical operators.
+      // All of them are friend methods because both operands are const
       friend CpuSet operator|( const CpuSet& set1, const CpuSet& set2 );
       friend CpuSet operator&( const CpuSet& set1, const CpuSet& set2 );
       friend CpuSet operator+( const CpuSet& set1, const CpuSet& set2 );
@@ -116,7 +122,13 @@ class CpuSet
       // low level
       cpu_set_t& get_cpu_set() { return _mask; }
       const cpu_set_t& get_cpu_set() const { return _mask; }
+
+      // verbose methods
+      std::string toString() const;
 };
+
+
+// Non-member functions
 
 inline CpuSet operator|( const CpuSet& set1, const CpuSet& set2 )
 {
@@ -152,4 +164,12 @@ inline bool operator!=( const CpuSet& set1, const CpuSet& set2 )
    return !( set2 == set1 );
 }
 
-#endif /* CPUSET_DECL_HPP */
+inline std::ostream& operator<<(std::ostream& os, const CpuSet& set)
+{
+   os << set.toString();
+   return os;
+}
+
+} // namespace
+
+#endif /* CPUSET_HPP */

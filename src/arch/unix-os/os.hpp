@@ -30,7 +30,7 @@
 #include <dlfcn.h>
 #include <time.h>
 #include "nanos-int.h"
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 
 namespace nanos
 {

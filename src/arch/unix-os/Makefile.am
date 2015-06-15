@@ -26,7 +26,8 @@ devinclude_HEADERS = \
 	$(END) 
 
 os_sources = \
-	cpuset_decl.hpp \
+	cpuset.cpp \
+	cpuset.hpp \
 	os.hpp \
 	os.cpp \
 	osallocator_decl.hpp \

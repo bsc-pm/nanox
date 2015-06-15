@@ -21,7 +21,7 @@
 #define _NANOS_SMPBASEPLUGIN_DECL
 
 #include <fstream>
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 #include "smpprocessor_fwd.hpp"
 #include "smpthread_fwd.hpp"
 #include "threadteam_fwd.hpp"

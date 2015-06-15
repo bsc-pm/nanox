@@ -26,7 +26,7 @@
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 
 namespace nanos
 {

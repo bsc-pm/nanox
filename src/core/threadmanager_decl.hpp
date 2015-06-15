@@ -22,7 +22,7 @@
 
 #include "config.hpp"
 #include "atomic_decl.hpp"
-#include "cpuset_decl.hpp"
+#include "cpuset.hpp"
 #include "basethread_decl.hpp"
 
 namespace nanos
