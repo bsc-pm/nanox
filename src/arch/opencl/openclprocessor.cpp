@@ -52,7 +52,12 @@ OpenCLAdapter::~OpenCLAdapter()
   errCode = clReleaseCommandQueue( _copyOutQueue );
   if( errCode != CL_SUCCESS )
      warning0( "Unable to release the command queue" );
+  errCode = clReleaseCommandQueue( _profilingQueue );
+  if( errCode != CL_SUCCESS )
+     warning0( "Unable to release the command queue" );
   
+  // TODO: release the memory of _executions and _bestExec;
+
   for( ProgramCache::iterator i = _progCache.begin(),
                               e = _progCache.end();
                               i != e;
@@ -101,10 +106,13 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _currQueue=0;
    _copyInQueue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE , &errCode );
    if( errCode != CL_SUCCESS )
-     fatal0( "Cannot create a command queue" );
+     fatal0( "Cannot create a command queue for in transfers" );
    _copyOutQueue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE , &errCode );
    if( errCode != CL_SUCCESS )
      fatal0( "Cannot create a command queue" );
+   _profilingQueue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_PROFILING_ENABLE , &errCode );
+   if( errCode != CL_SUCCESS )
+     fatal0( "Cannot create a command queue for profiling" );
 
    std::string deviceVendor = getDeviceVendor();
    setSynchronization(deviceVendor);
@@ -755,6 +763,193 @@ void OpenCLAdapter::execKernel(void* oclKernel,
    }
 }
 
+void OpenCLAdapter::profileKernel(void* oclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize)
+{
+	unsigned int xMin, xMax, yMin, yMax, zMin, zMax, step;
+	xMin = 1;
+	xMax = 2;
+	yMin = 0;
+	yMax = 0;
+	zMin = 0;
+	zMax = 0;
+	step = 2;
+
+	cl_kernel kernel = (cl_kernel) oclKernel;
+
+	switch ( workDim )
+	{
+	// One dimension
+		case 1:
+			for ( unsigned int x=xMin; x<=xMax; x*=step )
+			{
+				   ndrLocalSize[0] = x;
+				   Execution *execution = singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize);
+				   execution->getNdims();
+				   sleep(1); // FIXME: have a look this problem
+				   updateProfiling(kernel, execution);
+			}
+			break;
+	// Two dimensions
+		case 2:
+			for ( unsigned int x=xMin; x<=xMax; x*=step )
+			{
+				ndrLocalSize[0] = x;
+				for ( unsigned int y=yMin; y<=yMax; y*=step )
+				{
+					   ndrLocalSize[1] = y;
+					   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize));
+				}
+			}
+			break;
+	// Three dimensions
+		case 3:
+			for ( unsigned int x=xMin; x<=xMax; x*=step )
+			{
+				ndrLocalSize[0] = x;
+				for ( unsigned int y=yMin; y<=yMax; y*=step )
+				{
+					ndrLocalSize[1] = y;
+					for ( unsigned int z=zMin; z<=zMax; z*=step )
+					{
+						   ndrLocalSize[2] = z;
+						   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize));
+					}
+				}
+			}
+			break;
+		default:
+			throw;
+	}
+}
+
+Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize)
+{
+   cl_kernel openclKernel=(cl_kernel) oclKernel;
+   cl_int errCode;
+   cl_event event;
+
+   debug0( "[opencl] global size: " + toString( *ndrGlobalSize ) + ", local size: " + toString( *ndrLocalSize ) );
+   // Exec it.
+
+   errCode = clEnqueueNDRangeKernel( _profilingQueue,
+                                       openclKernel,
+                                       workDim,
+                                       ndrOffset,
+                                       ndrGlobalSize,
+                                       ndrLocalSize,
+                                       0,
+                                       NULL,
+                                       &event
+                                     );
+
+   if( errCode != CL_SUCCESS )
+   {
+      // Don't worry about exit code, we are cleaning an error.
+      clReleaseKernel( openclKernel );
+      processOpenCLError(errCode);
+      fatal0kernelNameErr(oclKernel,"Error launching OpenCL kernel",errCode);
+   }
+
+   clCheckError(clWaitForEvents(1, &event), (char *) "Error when waiting for events");
+
+   cl_ulong startTime, endTime;
+   clCheckError(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), (char *)"Error reading start execution");
+   clCheckError(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), (char *)"Error reading end execution");
+
+   unsigned int x, y, z;
+   x = ndrLocalSize[0];
+   if ( workDim > 1) {
+   	y = ndrLocalSize[1];
+	   if ( workDim> 2)
+		   z =ndrLocalSize[2];
+	   else
+		   z = 0;
+   } else {
+	  y = z = 0;
+   }
+
+   return new Execution(workDim,x,y,z,endTime-startTime);
+}
+
+void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution)
+{
+	if ( _bestExec.count(kernel) > 0 ) {
+		// We have at least one execution for this kernel
+		Execution *bestExecution = _bestExec[kernel];
+
+		// Update best execution
+		if ( *execution < *bestExecution )
+		{
+			_bestExec[kernel] = execution;
+		}
+
+		// Add current execution to the kernel queue
+		Executions *kernelExecutions;
+		kernelExecutions = _executions[kernel];
+		kernelExecutions->push(execution);
+	} else {
+		// This is the first execution for this kernel
+		Executions executions;
+		executions.push(execution);
+		_executions[kernel] = &executions;
+		_bestExec[kernel] = execution;
+	}
+}
+
+void OpenCLAdapter::printProfiling()
+{
+	if ( _executions.size() > 0 ) {
+		std::cout << "-------------------------------------------------" << std::endl;
+		std::cout << "OpenCL Performance Profile" << std::endl;
+		std::cout << "-------------------------------------------------" << std::endl;
+		for (std::map<cl_kernel, Executions*>::iterator executionsIt = _executions.begin(); executionsIt != _executions.end(); ++executionsIt)
+		{
+			cl_kernel kernel = executionsIt->first;
+			size_t size;
+			cl_ulong localMemSize = 0, privateMemSize = 0;
+			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, 0, NULL, &size), (char *)"Error reading kernel info");
+			char *kernelName = (char*)malloc(size);
+			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, size, kernelName, &size), (char *)"Error reading kernel info 2");
+			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL), (char *)"Error reading local memory size");
+			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_PRIVATE_MEM_SIZE, sizeof(cl_ulong), &privateMemSize, NULL), (char *)"Error reading private memory size");
+			Execution* bestExecution = _bestExec[kernel];
+
+			std::cout << "###########" << std::endl;
+			std::cout << "Kernel: " << kernelName << std::endl;
+			std::cout << "###########" << std::endl;
+			std::cout << "Best configuration found:" << std::endl;
+			switch (bestExecution->getNdims()) {
+				case 1:
+					std::cout << "X=" << bestExecution->getX() << std::endl;
+					break;
+				case 2:
+					std::cout << "X=" << bestExecution->getX() << ", Y=" << bestExecution->getY() << std::endl;
+					break;
+				case 3:
+					std::cout << "X=" << bestExecution->getX() << ", Y=" << bestExecution->getY() << std::cout << ", Z=" << bestExecution->getZ();
+					break;
+			default:
+				throw;
+			}
+			std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
+			std::cout << "Total configurations tested: " << executionsIt->second->size() << std::endl; // FIXME: have a look this number
+			std::cout << "Local memory size (in bytes): " << localMemSize << std::endl; // FIXME: why is is zero?
+			std::cout << "Private memory size (in bytes): " << privateMemSize << std::endl; // FIXME: why is is zero?
+
+			free(kernelName);
+		}
+		std::cout << "-------------------------------------------------" << std::endl;
+	}
+}
+
 size_t OpenCLAdapter::getGlobalSize()
 {
    cl_int errCode;
@@ -1056,6 +1251,18 @@ void OpenCLProcessor::execKernel(void* openclKernel,
                             ndrGlobalSize);
 }
 
+void OpenCLProcessor::profileKernel(void* openclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize){
+    _openclAdapter.profileKernel(openclKernel,
+                            workDim,
+                            ndrOffset,
+                            ndrLocalSize,
+                            ndrGlobalSize);
+}
+
 static inline std::string bytesToHumanReadable ( size_t bytes )
  {
     double b = bytes;
@@ -1108,11 +1315,16 @@ void OpenCLProcessor::printStats ()
    message("    Total output transfers: " << bytesToHumanReadable( _cache._bytesOut.value() ) );
    message("    Total dev2dev(in) transfers: " << bytesToHumanReadable( _cache._bytesDevice.value() ) );
 }
- 
+
+void OpenCLProcessor::printProfiling()
+{
+	_openclAdapter.printProfiling();
+}
 
 void OpenCLProcessor::cleanUp()
 {
    printStats();
+   printProfiling();
 }
 
 void* OpenCLProcessor::allocateSharedMemory( size_t size ){    

@@ -38,11 +38,51 @@
 namespace nanos {
 namespace ext {
 
+/**
+ * @brief This class keep the useful data to obtain the best configuration for a given kernel
+ */
+class Execution
+{
+private:
+	unsigned char _ndims;
+	unsigned int _x;
+	unsigned int _y;
+	unsigned int _z;
+	cl_ulong _time;
+
+public:
+	Execution(unsigned int ndims, unsigned int x, unsigned int y, unsigned int z, long long int time) :
+			_ndims(ndims), _x(x), _y(y), _z(z), _time(time) { }
+
+	unsigned char getNdims() const {
+		return _ndims;
+	}
+
+	cl_ulong getTime() const {
+		return _time;
+	}
+
+	unsigned int getX() const {
+		return _x;
+	}
+
+	unsigned int getY() const {
+		return _y;
+	}
+
+	unsigned int getZ() const {
+		return _z;
+	}
+
+	bool operator<(const Execution& execution) { return _time < execution.getTime(); }
+};
+
 class OpenCLAdapter
 {
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
    typedef std::map<std::pair<uint64_t,size_t>, cl_mem> BufferCache;
+   typedef std::queue<Execution*> Executions;
 
 public:
    ~OpenCLAdapter();
@@ -104,6 +144,35 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
 
+   /**
+    * @brief This function performs kernel executions to determine
+    * the best work-group parameters.
+    */
+   void profileKernel( void* oclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
+   /**
+    * @brief Function to launch an OpenCL kernel under profiling mode
+    */
+   Execution* singleExecKernel( void* oclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function update the profiling data during the execution
+    */
+   void updateProfiling(cl_kernel kernel, Execution *execution);
+
+   /**
+    * @brief Show kernel profiling and information
+    */
+   void printProfiling();
+
    // TODO: replace with new APIs.
    size_t getGlobalSize();
    
@@ -162,16 +231,27 @@ private:
 
    void setSynchronization( std::string &vendor );
 
+   static inline void clCheckError(cl_int clError, char* errorString) {
+	   if (clError != CL_SUCCESS) {
+		   fprintf(stderr,"ERROR: %d, %s\n", clError, errorString);
+		   exit( EXIT_FAILURE );
+	   }
+   }
+
 private:
+
    cl_device_id _dev;
    cl_context _ctx;
    cl_command_queue* _queues;
    int _currQueue;
    cl_command_queue _copyInQueue;
    cl_command_queue _copyOutQueue;
+   cl_command_queue _profilingQueue;
    BufferCache _bufCache;
    std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
+   std::map<cl_kernel,Executions*> _executions;
+   std::map<cl_kernel,Execution*> _bestExec;
    bool _preallocateWholeMemory;
    bool _synchronize;
 
@@ -229,9 +309,20 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
+   void profileKernel(void* openclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
    void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);
    
    void printStats();
+
+   /**
+    * @brief This shows the kernel profiling info and some kernel properties
+    */
+   void printProfiling();
       
    void cleanUp();
      
