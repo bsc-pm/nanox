@@ -17,33 +17,30 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <sched.h>
 #include <iostream>
 #include <unistd.h>
 #include "os.hpp"
 #include "system.hpp"
 #include "debug.hpp"
+#include "cpuset.hpp"
 
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255
 #endif
 
+using namespace nanos;
+
 int main( int argc, char *argv[] )
 {
    int pid = getpid();
-   char hostname[HOST_NAME_MAX];
-   std::ostringstream output;
-   cpu_set_t cpu_set = sys.getCpuProcessMask();
 
+   const CpuSet& cpu_set = sys.getCpuProcessMask();
+
+   char hostname[HOST_NAME_MAX];
    gethostname( hostname, HOST_NAME_MAX );
 
-   output << "Nanos++: " << hostname << "::" << pid << " [ ";
-   for ( int i=0; i<OS::getMaxProcessors(); i++ )
-      if ( CPU_ISSET(i, &cpu_set) )
-         output << i << " ";
-
-   output << "]" << std::endl;
-   std::cout << output.str();
+   std::cout << "Nanos++: " << hostname << "::" << pid
+      << " [ " << cpu_set.toString() << " ]" << std::endl;
 
    return 0;
 }

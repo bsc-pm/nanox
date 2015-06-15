@@ -35,8 +35,8 @@ int main ( int argc, char **argv )
    ThreadTeam *team = sys.createTeam( 1, NULL, true );
 
    // nanos_enter_team
+   myThread->setLeaveTeam(true);
    myThread->leaveTeam( );
-   team->decreaseFinalSize();
 
    // nanos_end_team
    sys.endTeam( team );

@@ -108,7 +108,7 @@ void GPUThread::wait()
 
 void GPUThread::wakeup()
 {
-   fatal("A GPUThread cannot call wakeup function.");
+   // For convenience we may call wakeup for all threads, just ignore then
 }
 
 void GPUThread::switchTo( WD *work, SchedulerHelper *helper )

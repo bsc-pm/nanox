@@ -25,6 +25,7 @@
 #include "osallocator_decl.hpp"
 #include "system.hpp"
 #include "basethread.hpp"
+#include "cpuset.hpp"
 #include <limits>
 
 #ifdef NANOX_MEMKIND_SUPPORT
@@ -67,9 +68,9 @@ class SMPPlugin : public SMPBasePlugin
    bool                         _workersCreated;
 
    // Nanos++ scheduling domain
-   cpu_set_t                    _cpuSystemMask;   /*!< \brief system's default cpu_set */
-   cpu_set_t                    _cpuProcessMask;  /*!< \brief process' default cpu_set */
-   cpu_set_t                    _cpuActiveMask;   /*!< \brief mask of current active cpus */
+   CpuSet                       _cpuSystemMask;   /*!< \brief system's default cpu_set */
+   CpuSet                       _cpuProcessMask;  /*!< \brief process' default cpu_set */
+   CpuSet                       _cpuActiveMask;   /*!< \brief mask of current active cpus */
 
    //! Physical NUMA nodes
    int                          _numSockets;
@@ -192,10 +193,10 @@ class SMPPlugin : public SMPBasePlugin
       sys.setSMPPlugin( this );
 
       //! \note Set initial CPU architecture variables
-      OS::getSystemAffinity( &_cpuSystemMask );
-      OS::getProcessAffinity( &_cpuProcessMask );
-      int available_cpus_by_mask = CPU_COUNT( &_cpuSystemMask );
+      _cpuSystemMask = OS::getSystemAffinity();
+      _cpuProcessMask = OS::getProcessAffinity();
       _availableCPUs = OS::getMaxProcessors();
+      int available_cpus_by_mask = _cpuSystemMask.size();
 
       if ( _availableCPUs == 0 ) {
          if ( available_cpus_by_mask > 0 ) {
@@ -229,12 +230,12 @@ class SMPPlugin : public SMPBasePlugin
       //! \note Fill _bindings vector with the active CPUs first, then the not active
       _bindings.reserve( _availableCPUs );
       for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( CPU_ISSET(i, &_cpuProcessMask) ) {
+         if ( _cpuProcessMask.isSet(i) ) {
             _bindings.push_back(i);
          }
       }
       for ( int i = 0; i < _availableCPUs; i++ ) {
-         if ( !CPU_ISSET(i, &_cpuProcessMask) ) {
+         if ( !_cpuProcessMask.isSet(i) ) {
             _bindings.push_back(i);
          }
       }
@@ -244,10 +245,6 @@ class SMPPlugin : public SMPBasePlugin
       _cpusByCpuId = NEW std::vector<SMPProcessor *>( _availableCPUs, (SMPProcessor *) NULL );
 
       loadNUMAInfo();
-
-      //! \note Create the SMPProcessors in _cpus array
-      CPU_ZERO( &_cpuActiveMask );
-      int count = 0;
 
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
 #ifdef NANOX_MEMKIND_SUPPORT
@@ -268,9 +265,11 @@ class SMPPlugin : public SMPBasePlugin
       }
 #endif
 
+      //! \note Create the SMPProcessors in _cpus array
+      int count = 0;
       for ( std::vector<int>::iterator it = _bindings.begin(); it != _bindings.end(); it++ ) {
          SMPProcessor *cpu;
-         bool active = ( (count < _currentCPUs) && CPU_ISSET( *it, &_cpuProcessMask) );
+         bool active = ( (count < _currentCPUs) && _cpuProcessMask.isSet(*it) );
          unsigned numaNode;
 
          // If this PE can't be seen by hwloc (weird case in Altix 2, for instance)
@@ -294,7 +293,7 @@ class SMPPlugin : public SMPBasePlugin
             cpu = NEW SMPProcessor( *it, mem_id, active, numaNode, socket );
          }
          if ( active ) {
-            CPU_SET( cpu->getBindingId() , &_cpuActiveMask );
+            _cpuActiveMask.set( cpu->getBindingId() );
          }
          //cpu->setNUMANode( getNodeOfPE( cpu->getId() ) );
          (*_cpus)[count] = cpu;
@@ -487,10 +486,10 @@ class SMPPlugin : public SMPBasePlugin
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
          SMPProcessor *cpu = (*it);
          int cpuid = cpu->getBindingId();
-         if ( CPU_ISSET( cpuid, &_cpuActiveMask )
+         if ( _cpuActiveMask.isSet( cpuid )
                && cpu->getNumThreads() == 0
                && !cpu->isReserved() ) {
-            CPU_CLR( cpuid, &_cpuActiveMask );
+            _cpuActiveMask.clear( cpuid );
          }
       }
    }
@@ -660,27 +659,19 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void setCPUsPerSocket ( int cpus_per_socket ) { _CPUsPerSocket = cpus_per_socket; }
 
-   virtual const cpu_set_t& getCpuProcessMask () const
-   {
-      return _cpuProcessMask;
-   }
+   virtual const CpuSet& getCpuProcessMask () const { return _cpuProcessMask; }
 
-   virtual void getCpuProcessMask ( cpu_set_t *mask ) const
-   {
-      ::memcpy( mask, &_cpuProcessMask , sizeof(cpu_set_t) );
-   }
-
-   virtual bool setCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual bool setCpuProcessMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers )
    {
       bool success = false;
       if ( isValidMask( mask ) ) {
-         ::memcpy( &_cpuProcessMask, mask, sizeof(cpu_set_t) );
-         ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         _cpuProcessMask = mask;
+         _cpuActiveMask = mask;
          int master_cpu = workers[0]->getCpuId();
-         if ( !sys.getUntieMaster() && !CPU_ISSET( master_cpu, mask ) ) {
+         if ( !sys.getUntieMaster() && !mask.isSet(master_cpu) ) {
             // If master thread is tied and mask does not include master's cpu, force it
-            CPU_SET( master_cpu, &_cpuProcessMask );
-            CPU_SET( master_cpu, &_cpuActiveMask );
+            _cpuProcessMask.set( master_cpu );
+            _cpuActiveMask.set( master_cpu );
          } else {
             // Return only true success when we have set an unmodified user mask
             success = true;
@@ -690,32 +681,27 @@ class SMPPlugin : public SMPBasePlugin
       return success;
    }
 
-   virtual void addCpuProcessMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual void addCpuProcessMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      CPU_OR( &_cpuProcessMask , &_cpuProcessMask , mask );
-      ::memcpy( &_cpuActiveMask, &_cpuProcessMask, sizeof(cpu_set_t) );
+      _cpuProcessMask.add( mask );
+      _cpuActiveMask.add( mask );
       applyCpuMask( workers );
    }
 
-   virtual const cpu_set_t& getCpuActiveMask () const
+   virtual const CpuSet& getCpuActiveMask () const
    {
       return _cpuActiveMask;
    }
 
-   virtual void getCpuActiveMask ( cpu_set_t *mask ) const
-   {
-      ::memcpy( mask, &_cpuActiveMask, sizeof(cpu_set_t) );
-   }
-
-   virtual bool setCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual bool setCpuActiveMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers )
    {
       bool success = false;
       if ( isValidMask( mask ) ) {
-         ::memcpy( &_cpuActiveMask, mask, sizeof(cpu_set_t) );
+         _cpuActiveMask = mask;
          int master_cpu = workers[0]->getCpuId();
-         if ( !sys.getUntieMaster() && !CPU_ISSET( master_cpu, mask ) ) {
+         if ( !sys.getUntieMaster() && !_cpuActiveMask.isSet(master_cpu) ) {
             // If master thread is tied and mask does not include master's cpu, force it
-            CPU_SET( master_cpu, &_cpuActiveMask );
+            _cpuActiveMask.set( master_cpu );
          } else {
             // Return only true success when we have set an unmodified user mask
             success = true;
@@ -725,26 +711,12 @@ class SMPPlugin : public SMPBasePlugin
       return success;
    }
 
-   virtual void addCpuActiveMask ( const cpu_set_t *mask, std::map<unsigned int, BaseThread *> &workers )
+   virtual void addCpuActiveMask ( const CpuSet& mask, std::map<unsigned int, BaseThread *> &workers )
    {
-      CPU_OR( &_cpuActiveMask, &_cpuActiveMask, mask );
+      _cpuActiveMask.add( mask );
       applyCpuMask( workers );
    }
 
-#if 0
-   SMPThread * getInactiveWorker( void )
-   {
-      SMPThread *thread;
-
-      for ( unsigned i = 0; i < _workers.size(); i++ ) {
-         thread = _workers[i];
-         if ( thread->tryWakeUp() ) {
-            return thread;
-         }
-      }
-      return NULL;
-   }
-#endif
 
    virtual void updateActiveWorkers ( int nthreads, std::map<unsigned int, BaseThread *> &workers, ThreadTeam *team )
    {
@@ -753,19 +725,13 @@ class SMPPlugin : public SMPBasePlugin
       NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t) nthreads; )
       NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
-      int num_threads = nthreads - team->getFinalSize();
       int new_workers = nthreads - _workers.size();
 
       //! \note Probably it can be relaxed, but at the moment running in a safe mode
       //! waiting for the team to be stable
       while ( !(team->isStable()) ) {
          memoryFence();
-         // weird scenario: Only one thread left to leave the team, but it's me and I'm blocked here
-         if ( myThread->isSleeping() && team->size() == team->getFinalSize()+1  ) {
-            team->setStable(true);
-         }
       }
-      if ( num_threads < 0 ) team->setStable(false);
 
       //! \note Creating new workers (if needed)
       ensure( _cpus != NULL, "Uninitialized SMP plugin.");
@@ -783,88 +749,31 @@ class SMPPlugin : public SMPBasePlugin
       int active_threads_checked = 0;
       std::vector<ext::SMPThread *>::const_iterator w_it;
       for ( w_it = _workers.begin(); w_it != _workers.end(); ++w_it ) {
+         BaseThread *thread = *w_it;
          if ( active_threads_checked < nthreads ) {
-            (*w_it)->tryWakeUp( team );
+            thread->tryWakeUp( team );
             active_threads_checked++;
          } else {
-            (*w_it)->sleep();
-         }
-      }
-
-#if 0
-      BaseThread *thread;
-      //! \note If requested threads are more than current increase number of threads
-      while ( num_threads > 0 ) {
-         thread = getUnassignedWorker();
-         if (!thread) thread = getInactiveWorker();
-         if (thread) {
-            team->increaseFinalSize();
-            sys.acquireWorker( team, thread, /* enter */ true, /* starring */ false, /* creator */ false );
-            num_threads--;
-         }
-      }
-
-      //! \note If requested threads are less than current decrease number of threads
-      while ( num_threads < 0 ) {
-         thread = getAssignedWorker( team );
-         if ( thread ) {
+            // \note Leave team only if the thread does not belong to the process mask
+            bool leave_team = _cpuProcessMask.isSet( thread->getCpuId() );
+            thread->lock();
+            thread->setLeaveTeam(leave_team);
             thread->sleep();
             thread->unlock();
-            num_threads++;
          }
       }
-#endif
-
    }
 
-#if 0
-   SMPThread * getUnassignedWorker ( void )
+   virtual void updateCpuStatus( int cpuid )
    {
-      SMPThread *thread;
-
-      for ( unsigned i = 0; i < _workers.size(); i++ ) {
-         thread = _workers[i];
-         if ( !thread->hasTeam() && !thread->isSleeping() ) {
-
-            // recheck availability with exclusive access
-            thread->lock();
-
-            if ( thread->hasTeam() || thread->isSleeping()) {
-               // we lost it
-               thread->unlock();
-               continue;
-            }
-
-            thread->reserve(); // set team flag only
-            thread->unlock();
-
-            return thread;
-         }
+      SMPProcessor *cpu = _cpusByCpuId->at(cpuid);
+      if ( cpu->getRunningThreads() > 0 ) {
+         _cpuActiveMask.set( cpuid );
+      } else {
+         _cpuActiveMask.clear( cpuid );
       }
-      return NULL;
    }
 
-
-   SMPThread * getAssignedWorker ( ThreadTeam *team )
-   {
-      SMPThread *thread;
-
-      std::vector<SMPThread *>::reverse_iterator rit;
-      for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
-         thread = *rit;
-         thread->lock();
-         //! \note Checking thread availabitity.
-         if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
-            //! \note return this thread LOCKED!!!
-            return thread;
-         }
-         thread->unlock();
-      }
-
-      //! \note If no thread has found, return NULL.
-      return NULL;
-   }
-#endif
 
    virtual void admitCurrentThread( std::map<unsigned int, BaseThread *> &workers, bool isWorker )
    {
@@ -882,7 +791,7 @@ class SMPPlugin : public SMPBasePlugin
       _workers.push_back( ( SMPThread * ) thread );
 
       //! \note Update current cpu active set mask
-      CPU_SET( cpu->getBindingId(), &_cpuActiveMask );
+      _cpuActiveMask.set( cpu->getBindingId() );
 
       //! \note Getting Programming Model interface data
       WD &mainWD = *myThread->getCurrentWD();
@@ -969,13 +878,11 @@ class SMPPlugin : public SMPBasePlugin
     */
    virtual void forceMaxThreadCreation()
    {
-      cpu_set_t mask;
-      // Save original active mask
-      getCpuActiveMask( &mask );
       // Set all CPUs active
-      sys.setCpuActiveMask( &_cpuSystemMask );
-      // Fall back
-      sys.setCpuActiveMask( &mask );
+      sys.setCpuActiveMask( _cpuSystemMask );
+
+      // Now, set requested only
+      sys.updateActiveWorkers( _requestedWorkers );
    }
 
    /*! \brief Create a worker in a suitable CPU
@@ -1059,13 +966,13 @@ private:
       if ( sys.getPMInterface().isMalleable() ) {
          NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT ( static nanos_event_key_t num_threads_key = ID->getEventKey("set-num-threads"); )
-         NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) CPU_COUNT(&_cpuActiveMask ) )
+         NANOS_INSTRUMENT ( nanos_event_value_t num_threads_val = (nanos_event_value_t ) _cpuActiveMask.size(); )
          NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &num_threads_key, &num_threads_val); )
 
          for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
-            if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
+            if ( _cpuActiveMask.isSet(binding_id) ) {
 
                /* Create a new worker if the target PE is empty */
                if ( target->getNumThreads() == 0 ) {
@@ -1084,11 +991,7 @@ private:
          for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
-            if ( CPU_ISSET( binding_id, &_cpuActiveMask ) ) {
-               if ( !target->isActive() ) {
-                  target->setActive();
-               }
-            }
+            target->setActive( _cpuActiveMask.isSet(binding_id) );
          }
       }
    }
@@ -1113,12 +1016,10 @@ private:
       sys.getPMInterface().setupWD( threadWD );
    }
 
-   bool isValidMask( const cpu_set_t *mask )
+   bool isValidMask( const CpuSet& mask )
    {
       // A mask is valid if it shares at least 1 bit with the system mask
-      cpu_set_t m;
-      CPU_AND( &m, mask, &_cpuSystemMask );
-      return CPU_COUNT( &m ) > 0;
+      return _cpuSystemMask.countCommon( mask ) > 0;
    }
 
 };
