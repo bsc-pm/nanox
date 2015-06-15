@@ -40,31 +40,31 @@ class CpuSet
          CPU_ZERO( &_mask );
       }
 
-      CpuSet( const cpu_set_t* set )
+      CpuSet( const cpu_set_t* cpu_set )
       {
-         ::memcpy( &_mask, set, sizeof(cpu_set_t));
+         ::memcpy( &_mask, cpu_set, sizeof(cpu_set_t));
       }
 
-      CpuSet( const cpu_set_t& set )
+      CpuSet( const cpu_set_t& cpu_set )
       {
-         ::memcpy( &_mask, &set, sizeof(cpu_set_t));
+         ::memcpy( &_mask, &cpu_set, sizeof(cpu_set_t));
       }
 
-      CpuSet( const CpuSet& set )
+      CpuSet( const CpuSet& cpu_set )
       {
-         ::memcpy( &_mask, &(set._mask), sizeof(cpu_set_t));
+         ::memcpy( &_mask, &(cpu_set._mask), sizeof(cpu_set_t));
       }
 
       // Assignment operators
-      CpuSet& operator=( const cpu_set_t& set )
+      CpuSet& operator=( const cpu_set_t& cpu_set )
       {
-         ::memcpy( &_mask, &set, sizeof(cpu_set_t));
+         ::memcpy( &_mask, &cpu_set, sizeof(cpu_set_t));
          return *this;
       }
 
-      CpuSet& operator=( const CpuSet& set )
+      CpuSet& operator=( const CpuSet& cpu_set )
       {
-         ::memcpy( &_mask, &(set._mask), sizeof(cpu_set_t));
+         ::memcpy( &_mask, &(cpu_set._mask), sizeof(cpu_set_t));
          return *this;
       }
 
@@ -77,9 +77,9 @@ class CpuSet
       friend bool operator==( const CpuSet& set1, const CpuSet& set2 );
       friend bool operator!=( const CpuSet& set1, const CpuSet& set2 );
 
-      void copyTo( cpu_set_t *set ) const
+      void copyTo( cpu_set_t *cpu_set ) const
       {
-         ::memcpy( set, &_mask, sizeof(cpu_set_t));
+         ::memcpy( cpu_set, &_mask, sizeof(cpu_set_t));
       }
 
       size_t size() const
@@ -87,10 +87,10 @@ class CpuSet
          return CPU_COUNT( &_mask );
       }
 
-      size_t countCommon( const CpuSet& set ) const
+      size_t countCommon( const CpuSet& cpu_set ) const
       {
          cpu_set_t mask;
-         CPU_AND( &mask, &_mask, &set._mask );
+         CPU_AND( &mask, &_mask, &cpu_set._mask );
          return CPU_COUNT( &mask );
       }
 
@@ -109,14 +109,14 @@ class CpuSet
          CPU_CLR( n, &_mask );
       }
 
-      void add ( const cpu_set_t& set )
+      void add ( const cpu_set_t& cpu_set )
       {
-         CPU_OR( &_mask, &_mask, &set );
+         CPU_OR( &_mask, &_mask, &cpu_set );
       }
 
-      void add ( const CpuSet& set )
+      void add ( const CpuSet& cpu_set )
       {
-         CPU_OR( &_mask, &_mask, &(set._mask) );
+         CPU_OR( &_mask, &_mask, &(cpu_set._mask) );
       }
 
       // low level
@@ -164,9 +164,9 @@ inline bool operator!=( const CpuSet& set1, const CpuSet& set2 )
    return !( set2 == set1 );
 }
 
-inline std::ostream& operator<<(std::ostream& os, const CpuSet& set)
+inline std::ostream& operator<<(std::ostream& os, const CpuSet& cpu_set)
 {
-   os << set.toString();
+   os << cpu_set.toString();
    return os;
 }
 
