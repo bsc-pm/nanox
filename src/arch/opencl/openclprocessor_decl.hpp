@@ -250,7 +250,7 @@ private:
    BufferCache _bufCache;
    std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
-   std::map<cl_kernel,Executions*> _executions;
+   std::map<cl_kernel,Executions> _executions;
    std::map<cl_kernel,Execution*> _bestExec;
    bool _preallocateWholeMemory;
    bool _synchronize;

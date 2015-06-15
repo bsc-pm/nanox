@@ -48,15 +48,26 @@ OpenCLAdapter::~OpenCLAdapter()
   
   errCode = clReleaseCommandQueue( _copyInQueue );
   if( errCode != CL_SUCCESS )
-     warning0( "Unable to release the command queue" );
+     warning0( "Unable to release the in transfers command queue" );
   errCode = clReleaseCommandQueue( _copyOutQueue );
   if( errCode != CL_SUCCESS )
-     warning0( "Unable to release the command queue" );
+     warning0( "Unable to release the out transfers command queue" );
   errCode = clReleaseCommandQueue( _profilingQueue );
   if( errCode != CL_SUCCESS )
-     warning0( "Unable to release the command queue" );
+     warning0( "Unable to release the profiling command queue" );
   
-  // TODO: release the memory of _executions and _bestExec;
+  // Release the track memory of profiling executions
+  for (std::map<cl_kernel, Executions>::iterator executionsIt = _executions.begin(); executionsIt != _executions.end(); ++executionsIt)
+  {
+	  Executions current = executionsIt->second;
+	  while ( current.size() > 0 )
+	  {
+		  delete current.front();
+		  current.pop();
+	  }
+  }
+  _executions.clear();
+  _bestExec.clear();
 
   for( ProgramCache::iterator i = _progCache.begin(),
                               e = _progCache.end();
@@ -772,10 +783,10 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 	unsigned int xMin, xMax, yMin, yMax, zMin, zMax, step;
 	xMin = 1;
 	xMax = 2;
-	yMin = 0;
-	yMax = 0;
-	zMin = 0;
-	zMax = 0;
+	yMin = 1;
+	yMax = 2;
+	zMin = 1;
+	zMax = 2;
 	step = 2;
 
 	cl_kernel kernel = (cl_kernel) oclKernel;
@@ -789,7 +800,6 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 				   ndrLocalSize[0] = x;
 				   Execution *execution = singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize);
 				   execution->getNdims();
-				   sleep(1); // FIXME: have a look this problem
 				   updateProfiling(kernel, execution);
 			}
 			break;
@@ -892,14 +902,15 @@ void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution)
 		}
 
 		// Add current execution to the kernel queue
-		Executions *kernelExecutions;
+		Executions kernelExecutions;
 		kernelExecutions = _executions[kernel];
-		kernelExecutions->push(execution);
+		kernelExecutions.push(execution);
+		_executions[kernel] = kernelExecutions;
 	} else {
 		// This is the first execution for this kernel
 		Executions executions;
 		executions.push(execution);
-		_executions[kernel] = &executions;
+		_executions[kernel] = executions;
 		_bestExec[kernel] = execution;
 	}
 }
@@ -910,16 +921,16 @@ void OpenCLAdapter::printProfiling()
 		std::cout << "-------------------------------------------------" << std::endl;
 		std::cout << "OpenCL Performance Profile" << std::endl;
 		std::cout << "-------------------------------------------------" << std::endl;
-		for (std::map<cl_kernel, Executions*>::iterator executionsIt = _executions.begin(); executionsIt != _executions.end(); ++executionsIt)
+		for (std::map<cl_kernel, Executions>::iterator executionsIt = _executions.begin(); executionsIt != _executions.end(); ++executionsIt)
 		{
 			cl_kernel kernel = executionsIt->first;
 			size_t size;
-			cl_ulong localMemSize = 0, privateMemSize = 0;
+//			cl_ulong localMemSize = 0, privateMemSize = 0;
 			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, 0, NULL, &size), (char *)"Error reading kernel info");
 			char *kernelName = (char*)malloc(size);
 			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, size, kernelName, &size), (char *)"Error reading kernel info 2");
-			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL), (char *)"Error reading local memory size");
-			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_PRIVATE_MEM_SIZE, sizeof(cl_ulong), &privateMemSize, NULL), (char *)"Error reading private memory size");
+//			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL), (char *)"Error reading local memory size");
+//			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_PRIVATE_MEM_SIZE, sizeof(cl_ulong), &privateMemSize, NULL), (char *)"Error reading private memory size");
 			Execution* bestExecution = _bestExec[kernel];
 
 			std::cout << "###########" << std::endl;
@@ -940,9 +951,9 @@ void OpenCLAdapter::printProfiling()
 				throw;
 			}
 			std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
-			std::cout << "Total configurations tested: " << executionsIt->second->size() << std::endl; // FIXME: have a look this number
-			std::cout << "Local memory size (in bytes): " << localMemSize << std::endl; // FIXME: why is is zero?
-			std::cout << "Private memory size (in bytes): " << privateMemSize << std::endl; // FIXME: why is is zero?
+			std::cout << "Total configurations tested: " << executionsIt->second.size() << std::endl;
+//			std::cout << "Local memory size (in bytes): " << localMemSize << std::endl; // FIXME: why is this zero? -> It seems to be a problem with OpenCL in general
+//			std::cout << "Private memory size (in bytes): " << privateMemSize << std::endl; // FIXME: why is this zero? -> It seems to be a problem with OpenCL in general
 
 			free(kernelName);
 		}
