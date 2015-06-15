@@ -82,4 +82,13 @@ nanox_pfm_LDADD=\
 	$(top_builddir)/src/core/performance/libnanox.la \
 	$(END)
 
+# For simplicity, we will only build nanox-bindings in PERFORMANCE version
+bin_PROGRAMS += nanox-bindings
+nanox_bindings_CPPFLAGS = $(common_includes) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_bindings_SOURCES = nanox_bindings.cpp
+nanox_bindings_LDADD = \
+	$(top_builddir)/src/core/performance/libnanox.la \
+	$(top_builddir)/src/pms/performance/libnanox-ompss.la \
+	$(END)
+
 endif
