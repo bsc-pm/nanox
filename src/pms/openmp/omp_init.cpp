@@ -326,6 +326,15 @@ namespace nanos
          _malleable = true;
          sys.setInitialMode( System::POOL );
          sys.setUntieMaster( sys.getThreadManagerConf().canUntieMaster() );
+
+         // Loading plugins for OpenMP worksharing policies
+         for (int i = omp_sched_static; i <= omp_sched_auto; i++) {
+            ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
+            if ( ws_plugins[i] == NULL ){
+               if ( !sys.loadPlugin( "worksharing-" + ws_names[i]) ) fatal0( "Could not load " + ws_names[i] + "worksharing" );
+               ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
+            }
+         }
       }
 
       /*! \brief Get the size of OmpSsData */
