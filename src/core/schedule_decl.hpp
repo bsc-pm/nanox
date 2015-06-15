@@ -56,8 +56,8 @@ namespace nanos
          static void prePreOutlineWork ( WD *work );
          static void preOutlineWorkWithThread ( BaseThread *thread, WD *work );
          static void postOutlineWork ( WD *work, bool schedule, BaseThread *owner );
-         static bool inlineWork ( WD *work, bool schedule = false );
-         static bool inlineWorkAsync ( WD *wd, bool schedule = false );
+         static bool inlineWork ( WD *work, bool schedule );
+         static bool inlineWorkAsync ( WD *wd, bool schedule );
          static void outlineWork( BaseThread *currentThread, WD *wd ); 
 
          static void submit ( WD &wd, bool force_queue = false  );
@@ -68,7 +68,7 @@ namespace nanos
          static void switchTo ( WD *to );
          static void exitTo ( WD *next );
          static void switchToThread ( BaseThread * thread );
-         static void finishWork( WD * wd, bool schedule = false );
+         static void finishWork( WD * wd, bool schedule );
 
          static void workerLoop ( void );
          static void asyncWorkerLoop ( void );

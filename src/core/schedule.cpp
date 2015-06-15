@@ -1096,20 +1096,19 @@ void Scheduler::finishWork( WD * wd, bool schedule )
 
 bool Scheduler::inlineWork ( WD *wd, bool schedule )
 {
+   // Getting current thread and WD
    BaseThread *thread = getMyThreadSafe();
-
-   // run it in the current frame
    WD *oldwd = thread->getCurrentWD();
 
+   // If old WD have Synchronized Condition, unlock it
    GenericSyncCond *syncCond = oldwd->getSyncCond();
    if ( syncCond != NULL ) syncCond->unlock();
 
+   // Debug information
    debug( "switching(inlined) from task " << oldwd << ":" << oldwd->getId() <<
           " to " << wd << ":" << wd->getId() << " at node " << sys.getNetwork()->getNodeNum() );
 
-   // Initializing wd if necessary
-   // It will be started later in inlineWorkDependent call
-   
+   // Initializing wd if necessary. It will be started later in inlineWorkDependent call
    if ( !wd->started() ) { 
       if ( !wd->_mcontrol.isMemoryAllocated() ) {
          wd->_mcontrol.initialize( *(thread->runningOn()) );
@@ -1125,43 +1124,38 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
    // and we don't violate rules about tied WD
    if ( oldwd->isTiedTo() != NULL && (wd->isTiedTo() == NULL)) wd->tieTo(*oldwd->isTiedTo());
 
+   // Set current WD to new WD
    thread->setCurrentWD( *wd );
 
-   /* Instrumenting context switch: wd enters cpu (last = n/a) */
+   // Instrumenting context switch: wd enters cpu (last = n/a)
    NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( oldwd, wd, false) );
 
    bool done = thread->inlineWorkDependent(*wd);
 
-   // reload thread after running WD due wd may be not tied to thread if
+   // Reload current thread after running WD due wd may be not tied to thread if
    // both work descriptor were not tied to any thread
    thread = getMyThreadSafe();
 
+   // If WD have already executed (done == true), finishWork
    if ( done ) {
       wd->finish();
-
       finishWork( wd, schedule );
-      /* Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters */
+      // Instrumenting context switch: wd leaves cpu and will not come back (last = true) and new_wd enters
       NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch(wd, oldwd, true) );
    }
+
+   // Debug information
    debug( "exiting(inlined) from task " << wd << ":" << wd->getId() <<
           " to " << oldwd << ":" << oldwd->getId() << " at node " << sys.getNetwork()->getNodeNum() );
 
+   // Restore current WD to old WD
    thread->setCurrentWD( *oldwd );
 
-   // While we tie the inlined tasks this is not needed
-   // as we will always return to the current thread
-   #if 0
-   if ( oldwd->isTiedTo() != NULL )
-      switchToThread(oldwd->isTiedTo());
-   #endif
-
+   // Tiedness rules
    ensure(oldwd->isTiedTo() == NULL || thread == oldwd->isTiedTo(),
            "Violating tied rules " + toString<BaseThread*>(thread) + "!=" + toString<BaseThread*>(oldwd->isTiedTo()));
 
-   /* If DLB, perform the adjustment of resources
-         If master: Return claimed cpus
-         claim cpus and update_resources 
-   */
+   // Perform the adjustment of resources: Return claimed cpus, claim cpus and update resources
    sys.getThreadManager()->returnClaimedCpus();
    if ( sys.getPMInterface().isMalleable() ) {
       sys.getThreadManager()->acquireResourcesIfNeeded();
@@ -1172,9 +1166,8 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
 
 bool Scheduler::inlineWorkAsync ( WD *wd, bool schedule )
 {
+   // Getting current thread and wd
    BaseThread *thread = getMyThreadSafe();
-
-   // run it in the current frame
    WD *oldwd = thread->getCurrentWD();
 
    GenericSyncCond *syncCond = oldwd->getSyncCond();
@@ -1256,7 +1249,7 @@ void Scheduler::switchTo ( WD *to )
       myThread->switchTo( to, switchHelper );
 
    } else {
-      if (inlineWork(to)) {
+      if (inlineWork(to, /*schedule*/ true)) {
          to->~WorkDescriptor();
          delete[] (char *)to;
       }
@@ -1311,7 +1304,7 @@ struct ExitBehaviour
         Scheduler::exitTo(next);
       }
       else {
-        if ( Scheduler::inlineWork ( next /*jb merge */, true ) ) {
+        if ( Scheduler::inlineWork ( next /*jb merge */, /*schedule*/ true ) ) {
           next->~WorkDescriptor();
           delete[] (char *)next;
         }

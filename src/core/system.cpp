@@ -1229,7 +1229,7 @@ void System::inlineWork ( WD &work )
       do {
          result = work._mcontrol.allocateTaskMemory();
       } while( result == false );
-      Scheduler::inlineWork( &work );
+      Scheduler::inlineWork( &work, /*schedule*/ false );
    }
    else fatal ("System: Trying to execute inline a task violating basic constraints");
 }
