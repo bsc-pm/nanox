@@ -24,6 +24,12 @@ instrumentation_LTLIBRARIES =
 instrumentation_debug_LTLIBRARIES =
 performance_LTLIBRARIES =
 
+devinclude_HEADERS = \
+	instrumentation/ompt_api.h \
+	instrumentation/ompt_callbacks.h \
+	instrumentation/ompt_types.h \
+	$(END)
+
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
 if IBM_C
