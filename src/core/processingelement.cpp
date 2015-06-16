@@ -196,7 +196,7 @@ std::size_t ProcessingElement::getRunningThreads() const
    std::size_t num_threads = 0;
    ThreadList::const_iterator it;
    for ( it = _threads.begin(); it != _threads.end(); ++it ) {
-      if ( (*it)->isRunning() ) {
+      if ( (*it)->isRunning() && !(*it)->isSleeping() ) {
          num_threads++;
       }
    }

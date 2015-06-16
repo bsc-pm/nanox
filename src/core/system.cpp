@@ -1234,76 +1234,37 @@ void System::inlineWork ( WD &work )
    else fatal ("System: Trying to execute inline a task violating basic constraints");
 }
 
+/* \brief Returns an unocupied worker
+ *
+ * This function is called when creating a team. We must look for teamless workers and
+ * meet the coditions:
+ *    - If binding is enabled, the thread must be running on an Active PE
+ *    - The thread must not have team, nor nextTeam
+ *    - The thread must be either running and idling, or blocked.
+ *
+ */
 BaseThread * System::getUnassignedWorker ( void )
 {
    BaseThread *thread;
 
    for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
       thread = it->second;
-      if ( !thread->hasTeam() && !thread->isSleeping() ) {
 
-         // skip if the thread is not in the mask
-         if ( _smpPlugin->getBinding() && !CPU_ISSET( thread->getCpuId(), &_smpPlugin->getCpuActiveMask() ) ) {
-            continue;
-         }
-
-         // recheck availability with exclusive access
-         thread->lock();
-
-         if ( thread->hasTeam() || thread->isSleeping()) {
-            // we lost it
-            thread->unlock();
-            continue;
-         }
-
-         thread->reserve(); // set team flag only
-         thread->unlock();
-
-         return thread;
+      // skip iteration if binding is enabled and the thread is running on a deactivated CPU
+      bool cpu_active = thread->runningOn()->isActive();
+      if ( _smpPlugin->getBinding() && !cpu_active ) {
+         continue;
       }
-   }
 
-   return NULL;
-}
-
-#if 0
-BaseThread * System::getInactiveWorker ( void )
-{
-   BaseThread *thread;
-
-   for ( unsigned i = 0; i < _workers.size(); i++ ) {
-      thread = _workers[i];
-      if ( !thread->hasTeam() && thread->isWaiting() ) {
-         // recheck availability with exclusive access
-         thread->lock();
-         if ( thread->hasTeam() || !thread->isWaiting() ) {
-            // we lost it
-            thread->unlock();
-            continue;
-         }
-         thread->reserve(); // set team flag only
-         thread->wakeup();
-         thread->unlock();
-
-         return thread;
-      }
-   }
-   return NULL;
-}
-
-
-BaseThread * System::getAssignedWorker ( ThreadTeam *team )
-{
-   BaseThread *thread;
-
-   ThreadList::reverse_iterator rit;
-   for ( rit = _workers.rbegin(); rit != _workers.rend(); ++rit ) {
-      thread = *rit;
       thread->lock();
-      //! \note Checking thread availabitity.
-      if ( (thread->getTeam() == team) && !thread->isSleeping() && !thread->isTeamCreator() ) {
-         thread->unlock();
-         return thread;
+      if ( !thread->hasTeam() && !thread->getNextTeam() ) {
+
+         // Thread may be idle and running or blocked but its CPU is active
+         if ( !thread->isSleeping() || thread->runningOn()->isActive() ) {
+            thread->reserve(); // set team flag only
+            thread->unlock();
+            return thread;
+         }
       }
       thread->unlock();
    }
@@ -1311,7 +1272,6 @@ BaseThread * System::getAssignedWorker ( ThreadTeam *team )
    //! \note If no thread has found, return NULL.
    return NULL;
 }
-#endif
 
 BaseThread * System::getWorker ( unsigned int n )
 {
@@ -1319,7 +1279,7 @@ BaseThread * System::getWorker ( unsigned int n )
    ThreadList::iterator elem = _workers.find( n );
    if ( elem != _workers.end() ) {
       worker = elem->second;
-   } 
+   }
    return worker;
 }
 
@@ -1364,6 +1324,7 @@ int System::getNumThreads( void ) const
    n = _smpPlugin->getNumThreads();
    return n;
 }
+
 ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reuse, bool enter, bool parallel )
 {
    //! \note Getting default scheduler
@@ -1378,34 +1339,37 @@ ThreadTeam * System::createTeam ( unsigned nthreads, void *constraints, bool reu
 
    debug( "Creating team " << team << " of " << nthreads << " threads" );
 
-   team->setFinalSize(nthreads);
+   unsigned int remaining_threads = nthreads;
 
    //! \note Reusing current thread
    if ( reuse ) {
       acquireWorker( team, myThread, /* enter */ enter, /* staring */ true, /* creator */ true );
-      nthreads--;
+      remaining_threads--;
    }
-   
+
    //! \note Getting rest of the members 
-   while ( nthreads > 0 ) {
+   while ( remaining_threads > 0 ) {
 
       BaseThread *thread = getUnassignedWorker();
       // Check if we don't have a worker because it needs to be created
-      if ( !thread && _workers.size() < team->getFinalSize() ) {
+      if ( !thread && _workers.size() < nthreads ) {
          _smpPlugin->createWorker( _workers );
          continue;
       }
       ensure( thread != NULL, "I could not get the required threads to create the team");
 
+      thread->lock();
       acquireWorker( team, thread, /*enter*/ enter, /* staring */ parallel, /* creator */ false );
+      thread->setNextTeam( NULL );
+      thread->wakeup();
+      thread->unlock();
 
-      nthreads--;
+      remaining_threads--;
    }
 
    team->init();
 
    return team;
-
 }
 
 void System::endTeam ( ThreadTeam *team )

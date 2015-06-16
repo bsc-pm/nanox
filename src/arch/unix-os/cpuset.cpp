@@ -17,23 +17,55 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "debug.hpp"
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <sched.h>
+#include <sstream>
 #include "os.hpp"
-#include <stdlib.h>
-#include <execinfo.h>
-#include <iostream>
+#include "cpuset.hpp"
 
-void nanos::printBt( std::ostream &o ) {
-   void* tracePtrs[100];
-   int count = backtrace( tracePtrs, 100 );
-   char** funcNames = backtrace_symbols( tracePtrs, count );
-   o << "+--------------------------------------" << std::endl;
+using namespace nanos;
 
-   // Print the stack trace
-   for( int ii = 0; ii < count; ii++ )
-      o << "| " << funcNames[ii] << std::endl;
+/*
+ * Returns human readable representation of the cpuset. The output format is
+ * a list of CPUs with ranges (for example, "0,1,3-9").
+ */
+std::string CpuSet::toString() const
+{
+   std::ostringstream s;
 
-   // Free the string pointers
-   free( funcNames );
-   o << "+--------------------------------------" << std::endl;
+   bool entry_made = false;
+   size_t max = OS::getMaxProcessors();
+   for ( size_t i=0; i<max; i++ ) {
+      if ( isSet(i) ) {
+
+         // Find range size
+         size_t run = 0;
+         for ( size_t j=i+1; j<max; j++ ) {
+            if ( isSet(j) ) run++;
+            else break;
+         }
+
+         // Add ',' separator for subsequent entries
+         if ( entry_made ) {
+            s << ",";
+         } else {
+            entry_made = true;
+         }
+
+         // Write element, pair or range
+         if ( run == 0 ) {
+            s << i;
+         } else if ( run == 1 ) {
+            s << i << "," << i+1;
+            i++;
+         } else {
+            s << i << "-" << i+run;
+            i+=run;
+         }
+      }
+   }
+
+   return s.str();
 }

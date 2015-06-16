@@ -164,6 +164,7 @@ namespace nanos
             bool has_joined;
             bool is_waiting;
             bool can_get_work;    /**< Set whether the thread can get more WDs to run or not */
+            bool must_leave_team; /**< Set whether to leave the team when thread is blocked */
 #endif
 
             StatusFlags()
@@ -202,7 +203,7 @@ namespace nanos
          Allocator               _allocator;     /**< Per thread allocator */
          unsigned short          _steps;         //!< Number of scheduler steps (zero means infinite)
          callback_t              _bpCallBack;    //!< Break point callback. We call it after _steps scheduler ops
-         
+         ThreadTeam             *_nextTeam;      //!< If thread has no team, which team should it join
 
       private:
          virtual void initializeDependent () = 0;
@@ -334,6 +335,10 @@ namespace nanos
 
          void disableGettingWork ();
 
+         bool isLeavingTeam () const;
+
+         void setLeaveTeam ( bool leave );
+
          ProcessingElement * runningOn() const;
          
          void setRunningOn(ProcessingElement* element);
@@ -394,7 +399,7 @@ namespace nanos
          virtual void setupSignalHandlers() = 0;
 
 #endif
-         //! \brief Wake up a thread and add it to the team, considering all the possible thread states
+         //! \brief Wake up a thread
          void tryWakeUp( ThreadTeam *team );
 
          unsigned int getOsId() const;
@@ -409,6 +414,11 @@ namespace nanos
          void setSteps( unsigned short s );
          //! \brief Set break point callback
          void setCallBack( callback_t cb );
+
+         //! \brief Get next Team to enter
+         ThreadTeam* getNextTeam() const;
+         //! \brief Set next Team to enter
+         void setNextTeam( ThreadTeam *team );
    };
 
    extern __thread BaseThread *myThread;

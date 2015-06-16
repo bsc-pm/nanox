@@ -17,23 +17,30 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "debug.hpp"
-#include "os.hpp"
-#include <stdlib.h>
-#include <execinfo.h>
 #include <iostream>
+#include <unistd.h>
+#include "os.hpp"
+#include "system.hpp"
+#include "debug.hpp"
+#include "cpuset.hpp"
 
-void nanos::printBt( std::ostream &o ) {
-   void* tracePtrs[100];
-   int count = backtrace( tracePtrs, 100 );
-   char** funcNames = backtrace_symbols( tracePtrs, count );
-   o << "+--------------------------------------" << std::endl;
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
 
-   // Print the stack trace
-   for( int ii = 0; ii < count; ii++ )
-      o << "| " << funcNames[ii] << std::endl;
+using namespace nanos;
 
-   // Free the string pointers
-   free( funcNames );
-   o << "+--------------------------------------" << std::endl;
+int main( int argc, char *argv[] )
+{
+   int pid = getpid();
+
+   const CpuSet& cpu_set = sys.getCpuProcessMask();
+
+   char hostname[HOST_NAME_MAX];
+   gethostname( hostname, HOST_NAME_MAX );
+
+   std::cout << "Nanos++: " << hostname << "::" << pid
+      << " [ " << cpu_set.toString() << " ]" << std::endl;
+
+   return 0;
 }

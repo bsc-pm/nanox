@@ -131,6 +131,8 @@ namespace nanos
 
          std::size_t getNumThreads() const;
          std::size_t getRunningThreads() const;
+
+         virtual bool isActive() const { return true; }
    };
 
    typedef class ProcessingElement PE;
