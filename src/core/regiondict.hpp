@@ -247,10 +247,6 @@ std::vector< std::size_t > const &ContainerSparse< T >::getDimensionSizes() cons
    return _orig.getDimensionSizes();
 }
 
-template <class T>
-reg_t ContainerSparse< T >::getMaxRegionId() const {
-   return _orig.getMaxRegionId();
-}
 
 template < template <class> class Sparsity>
 RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) : 
@@ -444,7 +440,7 @@ void RegionDictionary< Sparsity >::getRegionIntersects( reg_t id, unsigned int v
             justCreatedRegion = true;
          } else if ( (*(results[idx].begin()->second))->count( id ) == 0 ) {
             justCreatedRegion = true;
-         }
+         } 
          //if(sys.getNetwork()->getNodeNum() == 0) {
          //   std::cerr <<"reg "<< id <<"("<< thisRegionVersion <<") dimIdx "<< idx <<": [" << lowerBound << ":" << accessedLength <<"] set size " << (*(results[idx].begin()->second))->size() << " maxregId " << getRegionCount() << " leafCount "<< getRegionNodeCount()  << " { ";
          //   for ( std::set< reg_t >::iterator sit = (*(results[idx].begin()->second))->begin(); sit != (*(results[idx].begin()->second))->end(); sit++ ) {
@@ -602,35 +598,30 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 
    RegionNode const *regNode = this->getRegionNode( id );
    if ( regNode == NULL ) { *(myThread->_file) << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id << " sparse? "<< (this->sparse ? 1 : 0)  <<std::endl; printBt( *(myThread->_file) );}
+   MemoryMap< std::set< reg_t > >::MemChunkList results[ this->getNumDimensions() ];
+   std::map< reg_t, unsigned int > interacts;
+   unsigned int skipDimensions = 0;
+
 
    //double tiniINTERS = OS::getMonotonicTime();
-   if ( id == 1 ) {
-      for ( reg_t target_id = 2; target_id < this->getMaxRegionId(); target_id += 1 ) {
-         subParts.push_back( std::make_pair( target_id, target_id ) );
-      }
-      superParts.push_back( id );
-   } else {
-      MemoryMap< std::set< reg_t > >::MemChunkList results[ this->getNumDimensions() ];
-      std::map< reg_t, unsigned int > interacts;
-      unsigned int skipDimensions = 0;
 
-      for ( int idx = this->getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
-         std::size_t accessedLength = regNode->getValue();
-         regNode = regNode->getParent();
-         std::size_t lowerBound = regNode->getValue();
-         regNode = regNode->getParent();
+   for ( int idx = this->getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
+      std::size_t accessedLength = regNode->getValue();
+      regNode = regNode->getParent();
+      std::size_t lowerBound = regNode->getValue();
+      regNode = regNode->getParent();
 
-         _intersects[ idx ].getOrAddChunk( lowerBound, accessedLength, results[ idx ] );
-         std::set< reg_t > thisDimInteracts;
-         if ( results[idx].size() == 1 ) {
-            bool justCreatedRegion = false;
-            if ( *(results[idx].begin()->second) == NULL ) {
-               *(results[idx].begin()->second) = NEW std::set< reg_t >();
-               justCreatedRegion = true;
-            } else if ( (*(results[idx].begin()->second))->count( id ) == 0 ) {
-               justCreatedRegion = true;
-            }
-            //if(sys.getNetwork()->getNodeNum() == 0) {
+      _intersects[ idx ].getOrAddChunk( lowerBound, accessedLength, results[ idx ] );
+      std::set< reg_t > thisDimInteracts;
+      if ( results[idx].size() == 1 ) {
+         bool justCreatedRegion = false;
+         if ( *(results[idx].begin()->second) == NULL ) {
+            *(results[idx].begin()->second) = NEW std::set< reg_t >();
+             justCreatedRegion = true;
+         } else if ( (*(results[idx].begin()->second))->count( id ) == 0 ) {
+             justCreatedRegion = true;
+         } 
+         //if(sys.getNetwork()->getNodeNum() == 0) {
             //*(myThread->_file) <<"reg "<< id <<"("<< thisRegionVersion <<") dimIdx "<< idx <<": [" << lowerBound << ":" << accessedLength <<"] set size " << (*(results[idx].begin()->second))->size() << " maxregId " << this->getRegionNodeCount() << " leafCount "<< this->getRegionNodeCount()  << " { ";
             //for ( std::set< reg_t >::iterator sit = (*(results[idx].begin()->second))->begin(); sit != (*(results[idx].begin()->second))->end(); sit++ ) {
             //    Version *itEntry = this->getRegionData( *sit );
@@ -638,118 +629,115 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
             //   *(myThread->_file) << *sit << "("<< itVersion <<") ";
             //}
             //*(myThread->_file) <<"}" << std::endl;
-            //}
-            if ( ( (*(results[idx].begin()->second))->size() == this->getRegionNodeCount() || ( justCreatedRegion && ((*(results[idx].begin()->second))->size() + 1 ) == this->getRegionNodeCount() ) ) && !( (idx + 1) == (int) this->getNumDimensions() ) ) {
-               skipDimensions += 1;
-            } else {
-               for ( std::set< reg_t >::iterator sit = (*(results[idx].begin()->second))->begin(); sit != (*(results[idx].begin()->second))->end(); sit++ ) {
-                  if ( *sit == id ) continue;
-                  if ( superPrecise ) {
-                     std::set< reg_t >::iterator sit2 = sit;
-                     Version *itEntry = this->getRegionData( *sit );
-                     unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : ( this->sparse ? 0 : 1 ) );
-                     bool insert = true;
-                     if ( (*(results[idx].begin()->second))->size() > 1 ) {
-                        for ( sit2++; insert && sit2 != (*(results[idx].begin()->second))->end(); sit2++ ) {
-                           //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
-                           if ( *sit2 != id && checkIntersect( *sit, *sit2 ) && checkIntersect( *sit2, id ) ) {
-                              Version *entry2 = this->getRegionData( *sit2 );
-                              unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : ( this->sparse ? 0 : 1 ) );
-                              if ( thisVersion2 > itVersion ) {
-                                 insert = false;
-                              }
-                           }
-                        }
-                     }
-                     if ( insert ) {
-                        // std::cerr << "insert reg " << *sit << std::endl;
-                        thisDimInteracts.insert( *sit );
-                     }
-                  } else {
-                     thisDimInteracts.insert( *sit );
-                  }
-               }
-            }
-            (*(results[idx].begin()->second))->insert( id );
+         //}
+         if ( ( (*(results[idx].begin()->second))->size() == this->getRegionNodeCount() || ( justCreatedRegion && ((*(results[idx].begin()->second))->size() + 1 ) == this->getRegionNodeCount() ) ) && !( (idx + 1) == (int) this->getNumDimensions() ) ) {
+            skipDimensions += 1;
          } else {
-            //std::cerr << "case with > 1 results"<< std::endl;
-            //if(sys.getNetwork()->getNodeNum() == 0)  std::cerr << idx  <<": [" << lowerBound << ":" << accessedLength <<"] results size size " << results[idx].size() << " maxregId " << getMaxRegionId() << std::endl;
-            //std::cerr << "intersect map query, dim " << idx << " got entries: " <<  results[ idx ].size() << std::endl;
-            for ( MemoryMap< std::set< reg_t > >::MemChunkList::iterator it = results[ idx ].begin(); it != results[ idx ].end(); it++ ) {
-               if ( *(it->second) == NULL ) {
-                  *(it->second) = NEW std::set< reg_t >();
-               } else {
-                  //thisDimInteracts.insert( (*(it->second))->begin(), (*(it->second))->end());
-                  //std::cerr <<"Region " << id << " "; printRegion( id ); std::cerr << " dim: " << idx << " LB: " << it->first->getAddress() << " AL: "<< it->first->getLength()  << " interacts with: { ";
-                  //unsigned int maxVersion = 0;
-                  //compute max version of registered interactions
-                  for ( std::set< reg_t >::iterator sit = (*(it->second))->begin(); sit != (*(it->second))->end(); sit++ ) {
-                     if ( *sit == id ) continue;
-                     if ( superPrecise ) {
-                        std::set< reg_t >::iterator sit2 = sit;
-                        Version *itEntry = this->getRegionData( *sit );
-                        unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : ( this->sparse ? 0 : 1 ) );
-                        bool insert = true;
-                        if ( (*(it->second))->size() > 1 ) {
-                           for ( sit2++; sit2 != (*(it->second))->end(); sit2++ ) {
-                              //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
-                              if ( *sit2 != id && checkIntersect( *sit, *sit2 ) && checkIntersect( *sit2, id ) ) {
-                                 Version *entry2 = this->getRegionData( *sit2 );
-                                 unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : ( this->sparse ? 0 : 1 ) );
-                                 if ( thisVersion2 > itVersion ) {
-                                    insert = false;
-                                 }
-                              }
-                           }
-                        }
-                        if ( insert ) {
-                           thisDimInteracts.insert( *sit );
-                        }
-                     } else {
-                        thisDimInteracts.insert( *sit );
-                     }
-                  }
-               } 
-               (*(it->second))->insert( id );
+            for ( std::set< reg_t >::iterator sit = (*(results[idx].begin()->second))->begin(); sit != (*(results[idx].begin()->second))->end(); sit++ ) {
+                if ( *sit == id ) continue;
+                if ( superPrecise ) {
+                   std::set< reg_t >::iterator sit2 = sit;
+                   Version *itEntry = this->getRegionData( *sit );
+                   unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : ( this->sparse ? 0 : 1 ) );
+                   bool insert = true;
+                   if ( (*(results[idx].begin()->second))->size() > 1 ) {
+                      for ( sit2++; insert && sit2 != (*(results[idx].begin()->second))->end(); sit2++ ) {
+                         //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
+                         if ( *sit2 != id && checkIntersect( *sit, *sit2 ) && checkIntersect( *sit2, id ) ) {
+                            Version *entry2 = this->getRegionData( *sit2 );
+                            unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : ( this->sparse ? 0 : 1 ) );
+                            if ( thisVersion2 > itVersion ) {
+                               insert = false;
+                            }
+                         }
+                      }
+                   }
+                   if ( insert ) {
+                     // std::cerr << "insert reg " << *sit << std::endl;
+                      thisDimInteracts.insert( *sit );
+                   }
+                } else {
+                   thisDimInteracts.insert( *sit );
+                }
             }
          }
-
-         //*(myThread->_file) <<"Region " << id << " "; printRegion( *myThread->_file, id ); *(myThread->_file) << " dim: " << idx << " interacts with: { ";
-         for ( std::set< reg_t >::iterator sit = thisDimInteracts.begin(); sit != thisDimInteracts.end(); sit++ ) {
-            //*(myThread->_file) << *sit << " ";
-            interacts[ *sit ]++;
-         }
-         //*(myThread->_file) << "}" << std::endl;;
+         (*(results[idx].begin()->second))->insert( id );
+      } else {
+        //std::cerr << "case with > 1 results"<< std::endl;
+        //if(sys.getNetwork()->getNodeNum() == 0)  std::cerr << idx  <<": [" << lowerBound << ":" << accessedLength <<"] results size size " << results[idx].size() << " maxregId " << getMaxRegionId() << std::endl;
+      //std::cerr << "intersect map query, dim " << idx << " got entries: " <<  results[ idx ].size() << std::endl;
+      for ( MemoryMap< std::set< reg_t > >::MemChunkList::iterator it = results[ idx ].begin(); it != results[ idx ].end(); it++ ) {
+         if ( *(it->second) == NULL ) {
+            *(it->second) = NEW std::set< reg_t >();
+         } else {
+            //thisDimInteracts.insert( (*(it->second))->begin(), (*(it->second))->end());
+            //std::cerr <<"Region " << id << " "; printRegion( id ); std::cerr << " dim: " << idx << " LB: " << it->first->getAddress() << " AL: "<< it->first->getLength()  << " interacts with: { ";
+            //unsigned int maxVersion = 0;
+            //compute max version of registered interactions
+            for ( std::set< reg_t >::iterator sit = (*(it->second))->begin(); sit != (*(it->second))->end(); sit++ ) {
+                if ( *sit == id ) continue;
+                if ( superPrecise ) {
+                   std::set< reg_t >::iterator sit2 = sit;
+                   Version *itEntry = this->getRegionData( *sit );
+                   unsigned int itVersion = ( itEntry != NULL ? itEntry->getVersion() : ( this->sparse ? 0 : 1 ) );
+                   bool insert = true;
+                   if ( (*(it->second))->size() > 1 ) {
+                      for ( sit2++; sit2 != (*(it->second))->end(); sit2++ ) {
+                         //std::cerr << "\tintersect test "<< *sit << " vs " << *sit2 << std::endl;
+                         if ( *sit2 != id && checkIntersect( *sit, *sit2 ) && checkIntersect( *sit2, id ) ) {
+                            Version *entry2 = this->getRegionData( *sit2 );
+                            unsigned int thisVersion2 = ( entry2 != NULL ? entry2->getVersion() : ( this->sparse ? 0 : 1 ) );
+                            if ( thisVersion2 > itVersion ) {
+                               insert = false;
+                            }
+                         }
+                      }
+                   }
+                   if ( insert ) {
+                      thisDimInteracts.insert( *sit );
+                   }
+                } else {
+                   thisDimInteracts.insert( *sit );
+                }
+            }
+         } 
+         (*(it->second))->insert( id );
+      }
       }
 
-      //std::cerr << __FUNCTION__ << " node "<< sys.getNetwork()->getNodeNum() << " reg "<< id << " numdims " <<this->getNumDimensions() << " skipdims " << skipDimensions << " leafs "<< this->getRegionNodeCount()<< " results sizes ";
-      //for ( int idx = this->getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
-      //   std::cerr << "[ " << idx << "=" << results[idx].size() << ", " << (*(results[idx].begin()->second))->size()<<" ]";
-      //}
-      //std::cerr << std::endl;
-      //if ( skipDimensions == 0 && !rogue ) sys.printBt();
+      //*(myThread->_file) <<"Region " << id << " "; printRegion( *myThread->_file, id ); *(myThread->_file) << " dim: " << idx << " interacts with: { ";
+      for ( std::set< reg_t >::iterator sit = thisDimInteracts.begin(); sit != thisDimInteracts.end(); sit++ ) {
+         //*(myThread->_file) << *sit << " ";
+         interacts[ *sit ]++;
+      }
+      //*(myThread->_file) << "}" << std::endl;;
+   }
+   //double tfiniINTERS = OS::getMonotonicTime();
+   //std::cerr << __FUNCTION__ << " total intersect time " << (tfiniINTERS-tiniINTERS) << std::endl;
+
+   //std::cerr << __FUNCTION__ << " node "<< sys.getNetwork()->getNodeNum() << " reg "<< id << " numdims " <<this->getNumDimensions() << " skipdims " << skipDimensions << " leafs "<< this->getRegionNodeCount()<< " results sizes ";
+   //for ( int idx = this->getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
+   //   std::cerr << "[ " << idx << "=" << results[idx].size() << ", " << (*(results[idx].begin()->second))->size()<<" ]";
+   //}
+   //std::cerr << std::endl;
+   //if ( skipDimensions == 0 && !rogue ) sys.printBt();
       //std::cerr <<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" <<std::endl;
-      for ( std::map< reg_t, unsigned int >::iterator mip = interacts.begin(); mip != interacts.end(); mip++ ) {
-         //std::cerr <<"numdims " <<this->getNumDimensions() << " skipdims " << skipDimensions << " count " <<mip->second <<std::endl;
-         if ( mip->second == ( this->getNumDimensions() - skipDimensions ) ) {
-            reg_t intersectRegId = local.addIntersect( id, mip->first );
-            if ( intersectRegId != id ) {
-               //*(myThread->_file) << "Looks like a subPart " << intersectRegId << ", results from intersect with " << mip->first <<std::endl;
-               //subParts.push_back( intersectRegId );
-               subParts.push_back( std::make_pair( intersectRegId, mip->first ) );
-            } else {
-               //*(myThread->_file) << "Looks like a superPart " << mip->first << std::endl;
-               superParts.push_back( mip->first );
-            }
+   for ( std::map< reg_t, unsigned int >::iterator mip = interacts.begin(); mip != interacts.end(); mip++ ) {
+      //std::cerr <<"numdims " <<this->getNumDimensions() << " skipdims " << skipDimensions << " count " <<mip->second <<std::endl;
+      if ( mip->second == ( this->getNumDimensions() - skipDimensions ) ) {
+         reg_t intersectRegId = local.addIntersect( id, mip->first );
+         if ( intersectRegId != id ) {
+            //*(myThread->_file) << "Looks like a subPart " << intersectRegId << ", results from intersect with " << mip->first <<std::endl;
+            //subParts.push_back( intersectRegId );
+            subParts.push_back( std::make_pair( intersectRegId, mip->first ) );
          } else {
-            //*(myThread->_file) << "<skip> interact count for reg " << mip->first << " -> " << mip->second << std::endl;
+            //*(myThread->_file) << "Looks like a superPart " << mip->first << std::endl;
+            superParts.push_back( mip->first );
          }
+      } else {
+            //*(myThread->_file) << "<skip> interact count for reg " << mip->first << " -> " << mip->second << std::endl;
       }
-   } //id != 1
-   // double tfiniINTERS = OS::getMonotonicTime();
-   // std::cerr << __FUNCTION__ << " total intersect time " << (tfiniINTERS-tiniINTERS) << std::endl;
-   // double tfiniINTERS_2 = OS::getMonotonicTime();
-   // std::cerr << __FUNCTION__ << " intersect -> sub/Super " << (tfiniINTERS_2-tfiniINTERS) << std::endl;
+   }
 
    version = ( this->sparse ? 0 : 1 );
    unsigned int bgVersion;
