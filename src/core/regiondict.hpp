@@ -1,22 +1,3 @@
-/*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
-/*                                                                                   */
-/*      This file is part of the NANOS++ library.                                    */
-/*                                                                                   */
-/*      NANOS++ is free software: you can redistribute it and/or modify              */
-/*      it under the terms of the GNU Lesser General Public License as published by  */
-/*      the Free Software Foundation, either version 3 of the License, or            */
-/*      (at your option) any later version.                                          */
-/*                                                                                   */
-/*      NANOS++ is distributed in the hope that it will be useful,                   */
-/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
-/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
-/*      GNU Lesser General Public License for more details.                          */
-/*                                                                                   */
-/*      You should have received a copy of the GNU Lesser General Public License     */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
-/*************************************************************************************/
-
 #ifndef REGIONDICT_H
 #define REGIONDICT_H
 
@@ -24,6 +5,7 @@
 #include "atomic.hpp"
 #include "memorymap.hpp"
 #include "system_decl.hpp"
+//#include "printbt_decl.hpp"
 #include "os.hpp"
 
 namespace nanos {
@@ -34,6 +16,10 @@ ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(), _leafC
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx += 1 ) {
       _dimensionSizes[ idx ] = cd.getDimensions()[ idx ].size;
    }
+}
+
+template <class T>
+ContainerDense< T >::~ContainerDense() {
 }
 
 template <class T>
@@ -152,6 +138,11 @@ template <class T>
 ContainerSparse< T >::ContainerSparse( RegionDictionary< ContainerDense > &orig ) : _container(), _orig( orig ), sparse( true ) {
 }
 
+
+template <class T>
+ContainerSparse< T >::~ContainerSparse() {
+}
+
 template <class T>
 RegionNode * ContainerSparse< T >::getRegionNode( reg_t id ) const {
    std::map< reg_t, RegionVectorEntry >::const_iterator it = _container.lower_bound( id );
@@ -172,13 +163,16 @@ void ContainerSparse< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
 
 template <class T>
 Version *ContainerSparse< T >::getRegionData( reg_t id ) {
+   _lock.acquire();
    std::map< reg_t, RegionVectorEntry >::iterator it = _container.lower_bound( id );
    if ( it == _container.end() || _container.key_comp()(id, it->first) ) {
       //fatal0(  "Error, RegionMap::getRegionData does not contain region " );
       it = _container.insert( it, std::map< reg_t, RegionVectorEntry >::value_type( id, RegionVectorEntry() ) );
       it->second.setLeaf( _orig.getRegionNode( id ) );
+      _lock.release();
       return NULL;
    }
+   _lock.release();
    return it->second.getData();
 }
 
@@ -277,6 +271,10 @@ template < template <class> class Sparsity>
 RegionDictionary< Sparsity >::RegionDictionary( GlobalRegionDictionary &dict ) : Sparsity< RegionVectorEntry >( dict ), _intersects( dict.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
       _keyBaseAddress( dict.getKeyBaseAddress() ), _realBaseAddress( dict.getRealBaseAddress() ), _lock() {
    //std::cerr << "CREATING CACHE DICT: tree: " << (void *) &_tree << " orig tree: " << (void *) &dict._tree << std::endl;
+}
+
+template < template <class> class Sparsity>
+RegionDictionary< Sparsity >::~RegionDictionary() {
 }
 
 template < template <class> class Sparsity>
@@ -453,6 +451,8 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
          //   std::cerr << "[" << pit->first << "," << pit->second << "] ";
          //}
          //std::cerr << std::endl;
+         //_currentDict.printRegion(std::cerr, regionPairToInsert.first);
+         //std::cerr << std::endl;
 
          while ( it != partsList.end() ) {
             if ( it->first == regionPairToInsert.first ) {
@@ -483,17 +483,16 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
                }
             }
          }
-         //std::cerr << "END addSubRegion, content of partsList: ";
-         //for( std::list< std::pair< reg_t, reg_t > >::iterator pit = partsList.begin(); pit != partsList.end(); pit++ ) {
-         //   std::cerr << "[" << pit->first << "," << pit->second << "] ";
-         //}
-         //std::cerr << std::endl;
+         // std::cerr << "END addSubRegion, content of partsList: ";
+         // for( std::list< std::pair< reg_t, reg_t > >::iterator pit = partsList.begin(); pit != partsList.end(); pit++ ) {
+         //    std::cerr << "[" << pit->first << "," << pit->second << "] ";
+         // }
+         // std::cerr << std::endl;
       }
    };
 
    LocalFunction local( *this );
    std::map< unsigned int, std::list< std::pair< reg_t, reg_t > > > subParts;
-   typename RegionDictionary::RegionList superParts;
    reg_t backgroundRegion = 0;
 
    Version *thisEntry = this->getRegionData( id );
@@ -502,22 +501,32 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    RegionNode const *regNode = this->getRegionNode( id );
    if ( regNode == NULL ) { *(myThread->_file) << "NULL RegNode, this must come from a rogue insert from a cache. Id " << id << " sparse? "<< (this->sparse ? 1 : 0)  <<std::endl; printBt( *(myThread->_file) );}
 
-   version = ( this->sparse ? 0 : 1 );
-   unsigned int bgVersion;
-   reg_t highestVersionSuperRegion = 0;
+   //std::cerr << __func__ << " with region " << id << ": "; this->printRegion(std::cerr, id); std::cerr << std::endl;
+
+   //version = ( this->sparse ? 0 : 1 );
+   version = thisRegionVersion;
+   unsigned int bgVersion = thisRegionVersion;
+   reg_t highestVersionSuperRegion = id;
 
    //double tiniINTERS = OS::getMonotonicTime();
-   superParts.push_back( 1 );
    if ( id == 1 ) {
       //std::map<reg_t, reg_t>::iterator it = subParts.begin();
       for ( reg_t target_id = 2; target_id < this->getMaxRegionId(); target_id += 1 ) {
          //it = subParts.insert(it, std::make_pair( target_id, target_id) );
          unsigned int this_version = ( this->getRegionData( target_id ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( target_id )->getVersion() );
          subParts[this_version].push_back( std::make_pair( target_id, target_id) );
+         version = this_version > version ? this_version : version;
       }
       bgVersion = ( this->getRegionData( 1 ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( 1 )->getVersion() );
       highestVersionSuperRegion = 1;
    } else {
+      unsigned int full_object_version = ( this->getRegionData( 1 ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( 1 )->getVersion() );
+      if ( full_object_version > version ) {
+         version = full_object_version;
+         highestVersionSuperRegion = 1;
+         bgVersion = version;
+      }
+
       MemoryMap< std::set< reg_t > >::MemChunkList results[ this->getNumDimensions() ];
       std::map< reg_t, unsigned int > interacts;
       unsigned int skipDimensions = 0;
@@ -642,36 +651,36 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
          if ( mip->second == ( this->getNumDimensions() - skipDimensions ) ) {
             reg_t intersectRegId = local.addIntersect( id, mip->first );
             if ( intersectRegId != id ) {
-               //*(myThread->_file) << "Looks like a subPart " << intersectRegId << ", results from intersect with " << mip->first <<std::endl;
                unsigned int itVersion = ( this->getRegionData( mip->first ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( mip->first )->getVersion() );
                subParts[itVersion].push_back( std::make_pair( intersectRegId, mip->first ) );
                version = itVersion > version ? itVersion : version;
+               //*(myThread->_file) << "Looks like a subPart " << intersectRegId << ", results from intersect with " << mip->first << " version = "<< itVersion <<std::endl;
             } else {
-               //*(myThread->_file) << "Looks like a superPart " << mip->first << std::endl;
                unsigned int itVersion = ( this->getRegionData( mip->first ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( mip->first )->getVersion() );
                if ( itVersion > version ) {
                   highestVersionSuperRegion = mip->first;
                   version = itVersion;
                } 
-               superParts.push_back( mip->first );
+               bgVersion = itVersion > bgVersion ? itVersion : bgVersion;
+               //*(myThread->_file) << "Looks like a superPart " << mip->first << " version = " << itVersion << std::endl;
             }
-         } else {
-            //*(myThread->_file) << "<skip> interact count for reg " << mip->first << " -> " << mip->second << std::endl;
-         }
+         }// else {
+          //  *(myThread->_file) << "<skip> interact count for reg " << mip->first << " -> " << mip->second << std::endl;
+          //}
       }
    } //id != 1
+   // if ( version > thisRegionVersion ) {
+   //    std::cerr << "1st case" << std::endl;
+   //    backgroundRegion = highestVersionSuperRegion;
+   // } else {
+   //    std::cerr << "2nd case" << std::endl;
+   //    version = thisRegionVersion;
+   //    backgroundRegion = id;
+   // }
 
-   if ( version > thisRegionVersion ) {
-      backgroundRegion = highestVersionSuperRegion;
-   } else {
-      version = thisRegionVersion;
-      backgroundRegion = id;
-   }
+   backgroundRegion = highestVersionSuperRegion;
 
-   // selected sub regions are those with version > than bgVersion
-   // version will be the maximum computed version (needs to be returned)
-   bgVersion = version;
-
+   //std::cerr << "init final parts w: " << id << ", "<< backgroundRegion << std::endl;
    finalParts.push_back( std::make_pair( id, backgroundRegion ) );
    std::list< std::pair< reg_t, reg_t > > effectiveParts;
 
@@ -680,6 +689,32 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
    //   unsigned int citVersion = ( this->getRegionData( *cit ) == NULL ? ( this->sparse ? 0 : 1 ) : this->getRegionData( *cit )->getVersion() );
    //   *(myThread->_file) << "region " << *cit << " has version " << citVersion << std::endl;
    //}
+
+   // std::cerr << "subParts no cutoff: target version is " << bgVersion << std::endl;
+   // for ( std::map< unsigned int, std::list< std::pair< reg_t, reg_t > > >::const_reverse_iterator lit = subParts.rbegin();
+   //       lit != subParts.rend(); lit++ ) {
+   //    std::cerr << "Version: " << lit->first << " num of regs: " << lit->second.size() << std::endl;
+
+   //    for ( std::list< std::pair< reg_t, reg_t > >::const_iterator cit = lit->second.begin(); cit != lit->second.end(); cit++ ) {
+   //       std::cerr << "\t[" << cit->first << "," << cit->second << "] ";
+   //       printRegion(std::cerr, cit->first);
+   //       std::cerr << std::endl;
+   //    }
+   // }
+
+
+   // std::cerr << "subParts w cutoff: target version is " << bgVersion << std::endl;
+   // for ( std::map< unsigned int, std::list< std::pair< reg_t, reg_t > > >::const_reverse_iterator lit = subParts.rbegin();
+   //       lit != subParts.rend() && 
+   //       ( ( lit->first > bgVersion && !giveSubFragmentsWithSameVersion ) || ( lit->first >= bgVersion && giveSubFragmentsWithSameVersion ) ); lit++ ) {
+   //    std::cerr << "Version: " << lit->first << " num of regs: " << lit->second.size() << std::endl;
+
+   //    for ( std::list< std::pair< reg_t, reg_t > >::const_iterator cit = lit->second.begin(); cit != lit->second.end(); cit++ ) {
+   //       std::cerr << "\t[" << cit->first << "," << cit->second << "] ";
+   //       printRegion(std::cerr, cit->first);
+   //       std::cerr << std::endl;
+   //    }
+   // }
    
    for ( std::map< unsigned int, std::list< std::pair< reg_t, reg_t > > >::const_reverse_iterator lit = subParts.rbegin();
          lit != subParts.rend() && 
@@ -699,8 +734,16 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
          cit != effectiveParts.end(); cit++ ) {
       finalParts.push_back( *cit );
    }
+   
+   // std::cerr << "Final parts:" << std::endl;
+   // for ( std::list< std::pair< reg_t, reg_t > >::const_iterator cit = finalParts.begin(); cit != finalParts.end(); cit++ ) {
+   //    std::cerr << "[" << cit->first << "," << cit->second << "] ";
+   //    printRegion(std::cerr, cit->first);
+   //    std::cerr << std::endl;
+   // }
    //double tfiniTOTAL = OS::getMonotonicTime();
    //std::cerr << __FUNCTION__ << " rest of time " << (tfiniTOTAL-tfiniINTERS) << std::endl;
+   //std::cerr << "------------------------>>> RETURN QUERY ID " << id << " results in version " << version << std::endl;
 }
 
 #if 0
@@ -1070,6 +1113,27 @@ bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::list< 
       ibegin++;
    }
    return ( totalSize == gtarget.getDataSize() );
+}
+
+template < template <class> class Sparsity>
+void RegionDictionary< Sparsity >::printRegionGeom( std::ostream &o, reg_t region ) const {
+   RegionNode const *regNode = this->getRegionNode( region );
+   global_reg_t reg( region, this );
+   //fprintf(stderr, "%p:%d", this, region);
+   o << (void *) this << ":" << std::dec << region;
+   if ( regNode == NULL ) {
+      //fprintf(stderr, "NULL LEAF !");
+      o << "NULL LEAF !";
+      return;
+   }
+   for ( int dimensionCount = this->getNumDimensions() - 1; dimensionCount >= 0; dimensionCount -= 1 ) {  
+      std::size_t accessedLength = regNode->getValue();
+      regNode = regNode->getParent();
+      std::size_t lowerBound = regNode->getValue();
+      //fprintf(stderr, "[%zu;%zu]", lowerBound, accessedLength);
+      o << "[" << std::dec << lowerBound << ";" << std::dec << accessedLength << "]";
+      regNode = regNode->getParent();
+   }
 }
 
 }

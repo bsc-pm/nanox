@@ -1,22 +1,3 @@
-/*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
-/*                                                                                   */
-/*      This file is part of the NANOS++ library.                                    */
-/*                                                                                   */
-/*      NANOS++ is free software: you can redistribute it and/or modify              */
-/*      it under the terms of the GNU Lesser General Public License as published by  */
-/*      the Free Software Foundation, either version 3 of the License, or            */
-/*      (at your option) any later version.                                          */
-/*                                                                                   */
-/*      NANOS++ is distributed in the hope that it will be useful,                   */
-/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
-/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
-/*      GNU Lesser General Public License for more details.                          */
-/*                                                                                   */
-/*      You should have received a copy of the GNU Lesser General Public License     */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
-/*************************************************************************************/
-
 #ifndef REGIONDICTIONARY_DECL_HPP
 #define REGIONDICTIONARY_DECL_HPP
 
@@ -94,6 +75,7 @@ typedef unsigned int reg_t;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
+      ~ContainerDense();
       RegionNode *getRegionNode( reg_t id ) const;
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
@@ -120,12 +102,14 @@ typedef unsigned int reg_t;
    template < class T >
    class ContainerSparse {
       std::map< reg_t, T > _container;
+      Lock                       _lock;
       //ContainerDense< T > &_orig;
       protected:
       RegionDictionary< ContainerDense > &_orig;
       public:
       bool sparse;
       ContainerSparse( RegionDictionary< ContainerDense > &orig );
+      ~ContainerSparse();
       RegionNode *getRegionNode( reg_t id ) const;
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
@@ -169,6 +153,7 @@ typedef unsigned int reg_t;
 
       RegionDictionary( CopyData const &cd );
       RegionDictionary( GlobalRegionDictionary &dict );
+      ~RegionDictionary();
       //reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, WD const &wd, unsigned int idx );
       reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
@@ -181,6 +166,7 @@ typedef unsigned int reg_t;
       uint64_t getRealBaseAddress() const;
 
       void printRegion( std::ostream &o, reg_t ) const;
+      void printRegionGeom( std::ostream &o, reg_t ) const;
 
       bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId ) const;
       reg_t computeTestIntersect( reg_t regionIdA, reg_t regionIdB ) ;
