@@ -39,6 +39,15 @@
 
 namespace nanos {
    namespace ext {
+      
+      struct SocketSchedConfig
+      {
+         //! \brief Limit stealing to adjacent nodes (1 hop away)
+         bool stealFromAdjacent;
+         
+         SocketSchedConfig() : stealFromAdjacent( true )
+         {}
+      };
 
       class SocketSchedPolicy : public SchedulePolicy
       {
@@ -63,6 +72,9 @@ namespace nanos {
             bool _randomSteal;
             /*! \brief Uses copy information to detect the NUMA nodes */
             bool _useCopies;
+            
+            /*! \brief Configuration for the policy */
+            SocketSchedConfig _config;
             
             /*! \brief For a given socket, a list of near sockets. */
             typedef std::vector<unsigned> NearSocketsList;
@@ -210,11 +222,13 @@ namespace nanos {
                      // Sort by distance
                      std::sort( row.begin(), row.end(), DistanceCmp( distances ) );
                      // Keep only close nodes
-                     NearSocketsList::iterator it = std::upper_bound(
-                        row.begin(), row.end(), row.front(),
-                        DistanceCmp( distances )
-                     );
-                     row.erase( it, row.end() );
+                     if ( _config.stealFromAdjacent ) {
+                        NearSocketsList::iterator it = std::upper_bound(
+                           row.begin(), row.end(), row.front(),
+                           DistanceCmp( distances )
+                        );
+                        row.erase( it, row.end() );
+                     }
                   }
                }
             }
@@ -492,11 +506,13 @@ namespace nanos {
             // constructor
             SocketSchedPolicy ( bool steal, bool stealParents, bool stealLowPriority,
                bool useSuccessor, bool smartPriority,
-               unsigned spins, bool randomSteal, bool useCopies )
+               unsigned spins, bool randomSteal, bool useCopies,
+               SocketSchedConfig& config  )
                : SchedulePolicy ( "Socket" ), _steal( steal ),
                _stealParents( stealParents ), _stealLowPriority( stealLowPriority ),
                _useSuccessor( useSuccessor ), _smartPriority( smartPriority ),
-               _spins ( spins ), _randomSteal( randomSteal ), _useCopies( useCopies )
+               _spins ( spins ), _randomSteal( randomSteal ), _useCopies( useCopies ),
+               _config( config )
             {
             }
 
@@ -753,11 +769,15 @@ namespace nanos {
                
                
                // TODO Improve atomic condition
-               bool stealFromBig = deepTasksN < 1*sys.getSMPPlugin()->getCPUsPerSocket() && !emptyBigTasks;
-                   /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/
-               unsigned queueNumber = nodeToQueue( vNode, stealFromBig );
+               /* Note (gmiranda):
+                * For true nested operation, */
+               bool parentQueue = deepTasksN < 1*sys.getSMPPlugin()->getCPUsPerSocket() && !emptyBigTasks;
                
-               unsigned spins = _spins;
+                   /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/
+               unsigned queueNumber = nodeToQueue( vNode, parentQueue );
+               
+               // #1102 Disable spin steal for the moment
+               unsigned spins = 1;
                // Make sure the queue is really empty... lotsa times!
                do {
                   // We only spin when steal is enabled
@@ -975,6 +995,7 @@ namespace nanos {
             
             bool _useCopies;
             
+            SocketSchedConfig _schedConfig;
             void loadDefaultValues()
             {
             }
@@ -1011,13 +1032,16 @@ namespace nanos {
                
                cfg.registerConfigOption( "socket-auto-detect", NEW Config::FlagOption( _useCopies ), "Automatic NUMA node assignment based on copy information and detection of initialisation tasks (disabled by default)." );
                cfg.registerArgOption( "socket-auto-detect", "socket-auto-detect" );
+
+               cfg.registerConfigOption( "socket-steal-adjacent", NEW Config::FlagOption( _schedConfig.stealFromAdjacent ), "Limit stealing to adjacent nodes (default)");
+               cfg.registerArgOption( "socket-steal-adjacent", "socket-steal-adjacent" );
             }
 
             virtual void init() {
                // Read hwloc's info before reading user parameters
                loadDefaultValues();
                
-               sys.setDefaultSchedulePolicy( NEW SocketSchedPolicy( _steal, _stealParents, _stealLowPriority, _immediate, _smart, _spins, _random, _useCopies ) );
+               sys.setDefaultSchedulePolicy( NEW SocketSchedPolicy( _steal, _stealParents, _stealLowPriority, _immediate, _smart, _spins, _random, _useCopies, _schedConfig ) );
             }
       };
 
