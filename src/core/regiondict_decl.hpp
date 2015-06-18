@@ -136,6 +136,7 @@ typedef unsigned int reg_t;
       unsigned int getNumDimensions() const;
       reg_t checkIfRegionExists( nanos_region_dimension_internal_t const region[] );
       ContainerDense< T > &getOrigContainer();
+      reg_t getMaxRegionId() const;
 
       Version *getGlobalRegionData( reg_t id );
       RegionNode *getGlobalRegionNode( reg_t id ) const;
@@ -156,11 +157,10 @@ typedef unsigned int reg_t;
       std::vector< MemoryMap< std::set< reg_t > > > _intersects;
       uint64_t _keyBaseAddress;
       uint64_t _realBaseAddress;
-      Lock _lock;
+      RecursiveLock _lock;
 
       public:
       void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise = false, bool giveSubFragmentsWithSameVersion = false );
-      void getRegionIntersects( reg_t id, unsigned int version, std::list< reg_t > &superParts, std::list< reg_t > &subParts );
       void lock();
       bool tryLock();
       void unlock();
