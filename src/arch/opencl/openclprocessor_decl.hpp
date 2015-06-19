@@ -45,14 +45,14 @@ class Execution
 {
 private:
 	unsigned char _ndims;
-	unsigned int _x;
-	unsigned int _y;
-	unsigned int _z;
+	unsigned int _localX;
+	unsigned int _localY;
+	unsigned int _localZ;
 	cl_ulong _time;
 
 public:
-	Execution(unsigned int ndims, unsigned int x, unsigned int y, unsigned int z, long long int time) :
-			_ndims(ndims), _x(x), _y(y), _z(z), _time(time) { }
+	Execution(unsigned int ndims, unsigned int localX, unsigned int localY, unsigned int localZ, long long int time) :
+			_ndims(ndims), _localX(localX), _localY(localY), _localZ(localZ), _time(time) { }
 
 	unsigned char getNdims() const {
 		return _ndims;
@@ -62,19 +62,74 @@ public:
 		return _time;
 	}
 
-	unsigned int getX() const {
-		return _x;
-	}
-
-	unsigned int getY() const {
-		return _y;
-	}
-
-	unsigned int getZ() const {
-		return _z;
-	}
-
 	bool operator<(const Execution& execution) { return _time < execution.getTime(); }
+
+	unsigned int getLocalX() const {
+		return _localX;
+ 	}
+
+	unsigned int getLocalY() const {
+		return _localY;
+	}
+
+	unsigned int getLocalZ() const {
+		return _localZ;
+	}
+};
+
+/**
+ * @brief This class storage the global dimensions of the range
+ */
+class Dims
+{
+private:
+	unsigned char _ndims;
+	unsigned long long int _globalX;
+	unsigned long long int _globalY;
+	unsigned long long int _globalZ;
+public:
+	Dims(unsigned long long int ndims, unsigned long long int globalX, unsigned long long int globalY, unsigned long long int globalZ) :
+		_ndims(ndims), _globalX(globalX), _globalY(globalY), _globalZ(globalZ) { }
+
+	unsigned int getGlobalX() const {
+		return _globalX;
+	}
+
+	unsigned long long int getGlobalY() const {
+		return _globalY;
+	}
+
+	unsigned long long int getGlobalZ() const {
+		return _globalZ;
+	}
+
+	unsigned char getNdims() const {
+		return _ndims;
+	}
+
+	bool operator<(const Dims& dims) const
+	{
+		if ( dims.getNdims() != getNdims() ) {
+			throw;
+		}
+
+		switch ( dims.getNdims() ) {
+			case 1:
+				return ( getGlobalX() < dims.getGlobalX() );
+				break;
+			case 2:
+				return	(	( getGlobalX() < dims.getGlobalX() ) &&
+							( getGlobalY() < dims.getGlobalY() ) );
+				break;
+			case 3:
+				return	(	( getGlobalX() < dims.getGlobalX() ) &&
+							( getGlobalY() < dims.getGlobalY() ) &&
+							( getGlobalZ() < dims.getGlobalZ() ) );
+				break;
+			default:
+				return true;
+		}
+	}
 };
 
 class OpenCLAdapter
@@ -82,7 +137,8 @@ class OpenCLAdapter
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
    typedef std::map<std::pair<uint64_t,size_t>, cl_mem> BufferCache;
-   typedef std::queue<Execution*> Executions;
+   typedef std::map<Dims, Execution*> DimsBest;
+   typedef std::map<Dims, ulong> DimsExecutions;
 
 public:
    ~OpenCLAdapter();
@@ -166,7 +222,7 @@ public:
    /**
     * @brief This function update the profiling data during the execution
     */
-   void updateProfiling(cl_kernel kernel, Execution *execution);
+   void updateProfiling(cl_kernel kernel, Execution *execution, Dims dims);
 
    /**
     * @brief Show kernel profiling and information
@@ -250,8 +306,8 @@ private:
    BufferCache _bufCache;
    std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
-   std::map<cl_kernel,Executions> _executions;
-   std::map<cl_kernel,Execution*> _bestExec;
+   std::map<cl_kernel,DimsBest> _bestExec;
+   std::map<cl_kernel,DimsExecutions> _nExecutions;
    bool _preallocateWholeMemory;
    bool _synchronize;
 

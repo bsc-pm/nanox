@@ -57,17 +57,22 @@ OpenCLAdapter::~OpenCLAdapter()
      warning0( "Unable to release the profiling command queue" );
   
   // Release the track memory of profiling executions
-  for (std::map<cl_kernel, Executions>::iterator executionsIt = _executions.begin(); executionsIt != _executions.end(); ++executionsIt)
+  for (std::map<cl_kernel, DimsBest>::iterator kernelIt = _bestExec.begin(); kernelIt != _bestExec.end(); kernelIt++ )
   {
-	  Executions current = executionsIt->second;
-	  while ( current.size() > 0 )
+	  // Clean best executions
+	  DimsBest &dimsBest = kernelIt->second;
+	  for (DimsBest::iterator dimIt = dimsBest.begin(); dimIt != dimsBest.end(); dimIt++ )
 	  {
-		  delete current.front();
-		  current.pop();
+		  delete dimIt->second;
 	  }
+	  dimsBest.clear();
+
+	  // Clean statistics
+	  DimsExecutions &dimsExecutions = _nExecutions[kernelIt->first];
+	  dimsExecutions.clear();
   }
-  _executions.clear();
   _bestExec.clear();
+  _nExecutions.clear();
 
   for( ProgramCache::iterator i = _progCache.begin(),
                               e = _progCache.end();
@@ -781,6 +786,8 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
                         size_t* ndrGlobalSize)
 {
 	unsigned int xMin, xMax, yMin, yMax, zMin, zMax, step;
+	// TODO: use the right parameters instead simulate them
+	/* SIMULATION */
 	xMin = 1;
 	xMax = 2;
 	yMin = 1;
@@ -788,8 +795,10 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 	zMin = 1;
 	zMax = 2;
 	step = 2;
+	/* SIMULATION */
 
 	cl_kernel kernel = (cl_kernel) oclKernel;
+	Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2]);
 
 	switch ( workDim )
 	{
@@ -798,9 +807,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 			for ( unsigned int x=xMin; x<=xMax; x*=step )
 			{
 				   ndrLocalSize[0] = x;
-				   Execution *execution = singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize);
-				   execution->getNdims();
-				   updateProfiling(kernel, execution);
+				   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize), dims);
 			}
 			break;
 	// Two dimensions
@@ -811,7 +818,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 				for ( unsigned int y=yMin; y<=yMax; y*=step )
 				{
 					   ndrLocalSize[1] = y;
-					   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize));
+					   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize), dims);
 				}
 			}
 			break;
@@ -826,7 +833,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 					for ( unsigned int z=zMin; z<=zMax; z*=step )
 					{
 						   ndrLocalSize[2] = z;
-						   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize));
+						   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize), dims);
 					}
 				}
 			}
@@ -874,87 +881,111 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
    clCheckError(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), (char *)"Error reading start execution");
    clCheckError(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), (char *)"Error reading end execution");
 
-   unsigned int x, y, z;
-   x = ndrLocalSize[0];
+   unsigned int localX, localY, localZ;
+   localX = ndrLocalSize[0];
    if ( workDim > 1) {
-   	y = ndrLocalSize[1];
-	   if ( workDim> 2)
-		   z =ndrLocalSize[2];
-	   else
-		   z = 0;
+   	localY = ndrLocalSize[1];
+	   if ( workDim> 2) {
+		   localZ = ndrLocalSize[2];
+	   }
+	   else {
+		   localZ = 0;
+	   }
    } else {
-	  y = z = 0;
+	  localY = localZ = 0;
    }
 
-   return new Execution(workDim,x,y,z,endTime-startTime);
+   return new Execution(workDim,localX,localY,localZ,endTime-startTime);
 }
 
-void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution)
+void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution, Dims dims)
 {
 	if ( _bestExec.count(kernel) > 0 ) {
 		// We have at least one execution for this kernel
-		Execution *bestExecution = _bestExec[kernel];
+		DimsBest &dimsBest = _bestExec[kernel];
+		DimsExecutions &dimsExecutions = _nExecutions[kernel];
 
-		// Update best execution
-		if ( *execution < *bestExecution )
-		{
-			_bestExec[kernel] = execution;
+		if ( dimsBest.count(dims) ) {
+			// We have at least one execution with these dimensions
+			Execution *bestExecution = dimsBest[dims];
+
+			// Update best execution
+			if ( *execution < *bestExecution )
+			{
+				dimsBest[dims] = execution;
+				delete bestExecution;
+			}
+
+			dimsExecutions[dims]++;
+		} else {
+			// We do not have any executions with these dimensions for this kernel
+			dimsBest[dims] = execution;
+			dimsExecutions[dims] = 1;
 		}
-
-		// Add current execution to the kernel queue
-		Executions kernelExecutions;
-		kernelExecutions = _executions[kernel];
-		kernelExecutions.push(execution);
-		_executions[kernel] = kernelExecutions;
 	} else {
 		// This is the first execution for this kernel
-		Executions executions;
-		executions.push(execution);
-		_executions[kernel] = executions;
-		_bestExec[kernel] = execution;
+		DimsBest *dimsBest = new DimsBest;
+		(*dimsBest)[dims] = execution;
+		_bestExec[kernel] = *dimsBest;
+
+		DimsExecutions *dimsExecutions = new DimsExecutions;
+		(*dimsExecutions)[dims] = 1;
+		_nExecutions[kernel] = *dimsExecutions;
 	}
 }
 
 void OpenCLAdapter::printProfiling()
 {
-	if ( _executions.size() > 0 ) {
+	if ( _bestExec.size() > 0 ) {
 		std::cout << "-------------------------------------------------" << std::endl;
 		std::cout << "OpenCL Performance Profile" << std::endl;
 		std::cout << "-------------------------------------------------" << std::endl;
-		for (std::map<cl_kernel, Executions>::iterator executionsIt = _executions.begin(); executionsIt != _executions.end(); ++executionsIt)
+		for ( std::map<cl_kernel, DimsBest>::iterator dimsBestIt = _bestExec.begin(); dimsBestIt != _bestExec.end(); dimsBestIt++ )
 		{
-			cl_kernel kernel = executionsIt->first;
+			cl_kernel kernel = dimsBestIt->first;
+			DimsExecutions &dimsExecutions = _nExecutions[kernel];
 			size_t size;
-//			cl_ulong localMemSize = 0, privateMemSize = 0;
 			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, 0, NULL, &size), (char *)"Error reading kernel info");
 			char *kernelName = (char*)malloc(size);
 			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, size, kernelName, &size), (char *)"Error reading kernel info 2");
-//			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL), (char *)"Error reading local memory size");
-//			clCheckError(clGetKernelWorkGroupInfo(kernel, NULL, CL_KERNEL_PRIVATE_MEM_SIZE, sizeof(cl_ulong), &privateMemSize, NULL), (char *)"Error reading private memory size");
-			Execution* bestExecution = _bestExec[kernel];
-
 			std::cout << "###########" << std::endl;
 			std::cout << "Kernel: " << kernelName << std::endl;
 			std::cout << "###########" << std::endl;
-			std::cout << "Best configuration found:" << std::endl;
-			switch (bestExecution->getNdims()) {
-				case 1:
-					std::cout << "X=" << bestExecution->getX() << std::endl;
-					break;
-				case 2:
-					std::cout << "X=" << bestExecution->getX() << ", Y=" << bestExecution->getY() << std::endl;
-					break;
-				case 3:
-					std::cout << "X=" << bestExecution->getX() << ", Y=" << bestExecution->getY() << std::cout << ", Z=" << bestExecution->getZ();
-					break;
-			default:
-				throw;
+			for ( DimsBest::iterator dim = dimsBestIt->second.begin(); dim != dimsBestIt->second.end(); dim++ )
+			{
+				Dims currDims = dim->first;
+				Execution *bestExecution = dim->second;
+				std::cout << "Dimensions: ";
+				switch ( currDims.getNdims() ) {
+					case 1:
+						std::cout << "X=" << currDims.getGlobalX() << std::endl;
+						break;
+					case 2:
+						std::cout << "X=" << currDims.getGlobalX() << ", Y=" << currDims.getGlobalY() << std::endl;
+						break;
+					case 3:
+						std::cout << "X=" << currDims.getGlobalX() << ", Y=" << currDims.getGlobalY() << std::cout << ", Z=" << currDims.getGlobalZ();
+						break;
+				default:
+					throw;
+				}
+				std::cout << "Best configuration found (work-group dimensions):" << std::endl;
+				switch ( bestExecution->getNdims() ) {
+					case 1:
+						std::cout << "X=" << bestExecution->getLocalX() << std::endl;
+						break;
+					case 2:
+						std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << std::endl;
+						break;
+					case 3:
+						std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << std::cout << ", Z=" << bestExecution->getLocalZ();
+						break;
+				default:
+					throw;
+				}
+				std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
+				std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
 			}
-			std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
-			std::cout << "Total configurations tested: " << executionsIt->second.size() << std::endl;
-//			std::cout << "Local memory size (in bytes): " << localMemSize << std::endl; // FIXME: why is this zero? -> It seems to be a problem with OpenCL in general
-//			std::cout << "Private memory size (in bytes): " << privateMemSize << std::endl; // FIXME: why is this zero? -> It seems to be a problem with OpenCL in general
-
 			free(kernelName);
 		}
 		std::cout << "-------------------------------------------------" << std::endl;
