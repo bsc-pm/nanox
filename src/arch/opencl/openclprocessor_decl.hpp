@@ -87,9 +87,10 @@ private:
 	unsigned long long int _globalX;
 	unsigned long long int _globalY;
 	unsigned long long int _globalZ;
+	double _cost;
 public:
-	Dims(unsigned long long int ndims, unsigned long long int globalX, unsigned long long int globalY, unsigned long long int globalZ) :
-		_ndims(ndims), _globalX(globalX), _globalY(globalY), _globalZ(globalZ) { }
+	Dims(unsigned long long int ndims, unsigned long long int globalX, unsigned long long int globalY, unsigned long long int globalZ, double cost) :
+		_ndims(ndims), _globalX(globalX), _globalY(globalY), _globalZ(globalZ), _cost(cost) { }
 
 	unsigned int getGlobalX() const {
 		return _globalX;
@@ -129,6 +130,10 @@ public:
 			default:
 				return true;
 		}
+	}
+
+	double getCost() const {
+		return _cost;
 	}
 };
 

@@ -786,6 +786,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
                         size_t* ndrGlobalSize)
 {
 	unsigned int xMin, xMax, yMin, yMax, zMin, zMax, step;
+	double cost;
 	// TODO: use the right parameters instead simulate them
 	/* SIMULATION */
 	xMin = 1;
@@ -795,10 +796,11 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 	zMin = 1;
 	zMax = 2;
 	step = 2;
+	cost = 2.0;
 	/* SIMULATION */
 
 	cl_kernel kernel = (cl_kernel) oclKernel;
-	Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2]);
+	Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2], cost);
 
 	switch ( workDim )
 	{
@@ -937,6 +939,7 @@ void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution, Dims
 void OpenCLAdapter::printProfiling()
 {
 	if ( _bestExec.size() > 0 ) {
+		std::cout.precision(3);
 		std::cout << "-------------------------------------------------" << std::endl;
 		std::cout << "OpenCL Performance Profile" << std::endl;
 		std::cout << "-------------------------------------------------" << std::endl;
@@ -948,13 +951,16 @@ void OpenCLAdapter::printProfiling()
 			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, 0, NULL, &size), (char *)"Error reading kernel info");
 			char *kernelName = (char*)malloc(size);
 			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, size, kernelName, &size), (char *)"Error reading kernel info 2");
-			std::cout << "###########" << std::endl;
+			std::cout << "#################################################" << std::endl;
 			std::cout << "Kernel: " << kernelName << std::endl;
-			std::cout << "###########" << std::endl;
+			std::cout << "#################################################" << std::endl;
 			for ( DimsBest::iterator dim = dimsBestIt->second.begin(); dim != dimsBestIt->second.end(); dim++ )
 			{
 				Dims currDims = dim->first;
 				Execution *bestExecution = dim->second;
+				double performance = currDims.getCost()/(bestExecution->getTime()/1.e9f);
+
+				std::cout << "................................................." << std::endl;
 				std::cout << "Dimensions: ";
 				switch ( currDims.getNdims() ) {
 					case 1:
@@ -985,6 +991,8 @@ void OpenCLAdapter::printProfiling()
 				}
 				std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
 				std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
+				std::cout << "Performance: " << performance << " Gflops" << std::endl;
+				std::cout << "................................................." << std::endl;
 			}
 			free(kernelName);
 		}
