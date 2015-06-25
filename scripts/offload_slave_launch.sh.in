@@ -29,27 +29,10 @@ shift
 unset OMP_NUM_THREADS
 unset NX_SMP_WORKERS
 #export variables which are process/host dependant
-second="="
 first=${@}
-first=${first//EQUAL/$second}
-first=${first//COMMA/$comma}
+first=${first//EQUAL/"="}
+first=${first//COMMA/","}
 export "${first}" 
-
-if [ $(which taskset) ]; then
-    TASKSET_BIN=taskset
-else
-    if [ -n $TASKSET_BIN ]; then
-        TASKSET_BIN=@prefix@/bin/taskset
-    fi
-fi
-
-if [ "x$TASKSET" != "x" ]; then 
-	$TASKSET_BIN -cp $TASKSET $$
-elif [ "x$NX_BINDING_START" == "x" ]; then
-   #thread 0 on MIC is last core so we start on first core by default
-   export NX_BINDING_START=1
-fi
-
 
 #PROCESS OFFL_* OR $ARCH_* VARIABLES TO *
 OFFLOAD_VARS=${!OFFL_@}
@@ -88,6 +71,21 @@ do
    fi
 done
 #END PROCESS OFFL_* OR ARCH_* VARIABLES TO *
+
+if [ $(which taskset) ]; then
+    TASKSET_BIN=taskset
+else
+    if [ -n $TASKSET_BIN ]; then
+        TASKSET_BIN=@prefix@/bin/taskset
+    fi
+fi
+
+if [ "x$TASKSET" != "x" ]; then 
+	$TASKSET_BIN -cp $TASKSET $$
+elif [ "x$NX_BINDING_START" == "x" ]; then
+   #thread 0 on MIC is last core so we start on first core by default
+   export NX_BINDING_START=1
+fi
 
 export OMPSS_OFFLOAD_SLAVE=1
 if [ "$NX_OFFL_DEBUG" = "3" ]; 
