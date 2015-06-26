@@ -112,20 +112,37 @@ public:
 	{
 		if ( dims.getNdims() != getNdims() ) {
 			throw;
+			// TODO throw nanos fatal error
 		}
-
 		switch ( dims.getNdims() ) {
 			case 1:
 				return ( getGlobalX() < dims.getGlobalX() );
 				break;
 			case 2:
-				return	(	( getGlobalX() < dims.getGlobalX() ) &&
-							( getGlobalY() < dims.getGlobalY() ) );
+				if ( getGlobalX() < dims.getGlobalX() )
+					return true;
+				else {
+					if  ( getGlobalX() == dims.getGlobalX() &&
+						  getGlobalY() < dims.getGlobalY() )
+						return true;
+				}
+				return false;
 				break;
 			case 3:
-				return	(	( getGlobalX() < dims.getGlobalX() ) &&
-							( getGlobalY() < dims.getGlobalY() ) &&
-							( getGlobalZ() < dims.getGlobalZ() ) );
+				if ( getGlobalX() < dims.getGlobalX() )
+					return true;
+				else {
+					if  ( getGlobalX() == dims.getGlobalX() &&
+						  getGlobalY() < dims.getGlobalY() )
+						return true;
+					else {
+						if ( getGlobalX() == dims.getGlobalX() &&
+							 getGlobalY() == dims.getGlobalY() &&
+						     getGlobalZ() < dims.getGlobalZ() )
+							return true;
+					}
+				}
+				return false;
 				break;
 			default:
 				return true;
@@ -274,6 +291,14 @@ public:
    cl_context& getContext() {
         return _ctx;
     }
+
+	const std::map<cl_kernel, DimsBest>& getBestExec() const {
+		return _bestExec;
+	}
+
+	const std::map<cl_kernel, DimsExecutions>& getExecutions() const {
+		return _nExecutions;
+	}
 
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );

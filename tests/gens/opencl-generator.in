@@ -1,0 +1,123 @@
+#!/bin/bash
+
+cat <<EOF
+
+SRC=@SRCDIR@/src
+BUILD=@BUILDDIR@/src
+
+PERFO_CFLAGS=@PERFO_CFLAGS@
+PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
+DEBUG_CFLAGS=@DEBUG_CFLAGS@
+DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
+INSTR_CFLAGS=@INSTR_CFLAGS@
+INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
+INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
+INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
+
+PLUGINS_performance=@PLUGINS_PERFORMANCE@
+PLUGINS_debug=@PLUGINS_DEBUG@
+PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
+PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
+
+common_includes="
+	-I\$SRC/apis/c \
+	-I\$BUILD/apis/c \
+	-I\$SRC/arch/unix-os \
+	-I\$SRC/support \
+	-I\$SRC/core \
+	-I\$SRC/arch/smp \
+	-I\$SRC/arch/opencl \
+	-I\$SRC/arch/spu \
+	-I\$SRC/arch/opencl \
+	-I\$SRC/arch/cluster"
+
+compile_versions="@COMPILE_VERSIONS@"
+
+test_CC=@CONFIG_CC@
+test_CXX=@CONFIG_CXX@
+
+test_CFLAGS="\$common_includes"
+test_CXXFLAGS="\$common_includes"
+
+opencl_inc="@CONFIG_OPENCL_INC@"
+opencl_ld="@CONFIG_OPENCL_LD@"
+
+OPENCL_PERFO_CFLAGS="\$PERFO_CFLAGS -I \$opencl_inc -L \$opencl_ld"
+OPENCL_PERFO_CXXFLAGS="\$PERFO_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
+OPENCL_DEBUG_CFLAGS="\$DEBUG_CFLAGS -I \$opencl_inc -L \$opencl_ld"
+OPENCL_DEBUG_CXXFLAGS="\$DEBUG_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
+OPENCL_INSTR_CFLAGS="\$INSTR_CFLAGS -I \$opencl_inc -L \$opencl_ld"
+OPENCL_INSTR_CXXFLAGS="\$INSTR_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
+OPENCL_INSTRDEBUG_CFLAGS="\$INSTRDEBUG_CFLAGS -I \$opencl_inc -L \$opencl_ld"
+OPENCL_INSTRDEBUG_CXXFLAGS="\$INSTRDEBUG_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
+
+DYNAMIC_LIST="--dynamic-list=\$SRC/../tests/gens/nanos-exports.def"
+
+opencl_flags_performance="-Wl,-rpath,"\$BUILD"/arch/opencl/performance/.libs,-rpath,"\$BUILD"/core/performance/.libs/,-rpath,"\$BUILD"/apis/performance/.libs,-rpath,"\$BUILD"/pms/performance/.libs -Xlinker \$DYNAMIC_LIST"
+opencl_flags_debug="-Wl,-rpath,"\$BUILD"/arch/opencl/debug/.libs,-rpath,"\$BUILD"/core/debug/.libs/,-rpath,"\$BUILD"/apis/debug/.libs,-rpath,"\$BUILD"/pms/debug/.libs -Xlinker \$DYNAMIC_LIST"
+opencl_flags_instrumentation="-Wl,-rpath,"\$BUILD"/arch/opencl/instrumentation/.libs,-rpath,"\$BUILD"/core/instrumentation/.libs/,-rpath,"\$BUILD"/apis/instrumentation/.libs,-rpath,"\$BUILD"/pms/instrumentation/.libs -Xlinker \$DYNAMIC_LIST"
+opencl_flags_instrumentation_debug="-Wl,-rpath,"\$BUILD"/arch/opencl/instrumentation-debug/.libs,-rpath,"\$BUILD"/core/instrumentation-debug/.libs/,-rpath,"\$BUILD"/apis/instrumentation-debug/.libs,-rpath,"\$BUILD"/pms/instrumentation-debug/.libs -Xlinker \$DYNAMIC_LIST"
+
+test_CFLAGS_performance="\$OPENCL_PERFO_CFLAGS"
+test_CXXFLAGS_performance="\$OPENCL_PERFO_CXXFLAGS"
+test_CFLAGS_debug="\$OPENCL_DEBUG_CFLAGS"
+test_CXXFLAGS_debug="\$OPENCL_DEBUG_CXXFLAGS"
+test_CFLAGS_instrumentation="\$OPENCL_INSTR_CFLAGS"
+test_CXXFLAGS_instrumentation="\$OPENCL_INSTR_CXXFLAGS"
+test_CFLAGS_instrumentation_debug="\$OPENCL_INSTRDEBUG_CFLAGS"
+test_CXXFLAGS_instrumentation_debug="\$OPENCL_INSTRDEBUG_CXXFLAGS"
+
+test_LDFLAGS_performance=" \
+-L \$BUILD/core/performance/.libs -lnanox \
+-L \$BUILD/apis/performance/.libs -lnanox-c \
+-L \$BUILD/pms/performance/.libs -lnanox-ompss \
+-L \$BUILD/arch/opencl/performance/.libs -lnanox-opencl-api \
+ \$opencl_flags_performance"
+
+test_ENV_performance="LD_LIBRARY_PATH=\
+\$BUILD/core/performance/.libs:\
+\$BUILD/apis/performance/.libs:\
+\$BUILD/pms/performance/.libs:\
+\$PLUGINS_performance:$LD_LIBRARY_PATH"
+
+test_LDFLAGS_debug=" \
+-L \$BUILD/core/debug/.libs -lnanox \
+-L \$BUILD/apis/debug/.libs -lnanox-c \
+-L \$BUILD/pms/debug/.libs -lnanox-ompss \
+-L \$BUILD/arch/opencl/debug/.libs -lnanox-opencl-api \
+ \$opencl_flags_debug"
+
+test_ENV_debug="LD_LIBRARY_PATH=\
+\$BUILD/core/debug/.libs:\
+\$BUILD/apis/debug/.libs:\
+\$BUILD/pms/debug/.libs:\
+\$PLUGINS_debug:$LD_LIBRARY_PATH"
+
+test_LDFLAGS_instrumentation=" \
+-L \$BUILD/core/instrumentation/.libs -lnanox \
+-L \$BUILD/apis/instrumentation/.libs -lnanox-c \
+-L \$BUILD/pms/instrumentation/.libs -lnanox-ompss \
+-L \$BUILD/arch/opencl/instrumentation/.libs -lnanox-opencl-api \
+ \$opencl_flags_instrumentation"
+
+test_ENV_instrumentation="LD_LIBRARY_PATH=\
+\$BUILD/core/instrumentation/.libs:\
+\$BUILD/apis/instrumentation/.libs:\
+\$BUILD/pms/instrumentation/.libs:\
+\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
+
+test_LDFLAGS_instrumentation_debug=" \
+-L \$BUILD/core/instrumentation-debug/.libs -lnanox \
+-L \$BUILD/apis/instrumentation-debug/.libs -lnanox-c \
+-L \$BUILD/pms/instrumentation-debug/.libs -lnanox-ompss \
+-L \$BUILD/arch/opencl/instrumentation-debug/.libs -lnanox-opencl-api \
+ \$opencl_flags_instrumentation_debug"
+
+test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\
+\$BUILD/core/instrumentation-debug/.libs:\
+\$BUILD/apis/instrumentation-debug/.libs:\
+\$BUILD/pms/instrumentation-debug/.libs:\
+\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
+
+`@SRCDIR@/tests/gens/config.py -a '--opencl-device-type=gpu' -c 1`
+EOF
