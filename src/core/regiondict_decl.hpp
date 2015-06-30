@@ -67,7 +67,7 @@ typedef unsigned int reg_t;
       std::vector< std::size_t > _dimensionSizes;
       RegionNode                 _root;
       Lock                       _rogueLock;
-      Lock                       _lock;
+      RecursiveLock              _containerLock;
       Lock                       _invalidationsLock;
       std::map< reg_t, reg_t >   _masterIdToLocalId;
       bool                       _keepAtOrigin;
@@ -76,7 +76,7 @@ typedef unsigned int reg_t;
       bool sparse;
       ContainerDense( CopyData const &cd );
       ~ContainerDense();
-      RegionNode *getRegionNode( reg_t id ) const;
+      RegionNode *getRegionNode( reg_t id );
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
       void setRegionData( reg_t id, Version * );
@@ -102,7 +102,7 @@ typedef unsigned int reg_t;
    template < class T >
    class ContainerSparse {
       std::map< reg_t, T > _container;
-      Lock                       _lock;
+      Lock                       _containerLock;
       //ContainerDense< T > &_orig;
       protected:
       RegionDictionary< ContainerDense > &_orig;
@@ -165,10 +165,10 @@ typedef unsigned int reg_t;
       uint64_t getKeyBaseAddress() const;
       uint64_t getRealBaseAddress() const;
 
-      void printRegion( std::ostream &o, reg_t ) const;
-      void printRegionGeom( std::ostream &o, reg_t ) const;
+      void printRegion( std::ostream &o, reg_t );
+      void printRegionGeom( std::ostream &o, reg_t );
 
-      bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId ) const;
+      bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId );
       reg_t computeTestIntersect( reg_t regionIdA, reg_t regionIdB ) ;
       reg_t computeIntersect( reg_t regionIdA, reg_t regionIdB ) ;
       void _computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg );

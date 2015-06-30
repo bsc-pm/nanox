@@ -5,13 +5,12 @@
 #include "atomic.hpp"
 #include "memorymap.hpp"
 #include "system_decl.hpp"
-//#include "printbt_decl.hpp"
 #include "os.hpp"
 
 namespace nanos {
 
 template <class T>
-ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _lock(), _keepAtOrigin( false ), _registeredObject( NULL ), sparse( false ) {
+ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(2, T()), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _containerLock(), _keepAtOrigin( false ), _registeredObject( NULL ), sparse( false ) {
    //_container.reserve( MAX_REG_ID );
    for ( unsigned int idx = 0; idx < cd.getNumDimensions(); idx += 1 ) {
       _dimensionSizes[ idx ] = cd.getDimensions()[ idx ].size;
@@ -23,25 +22,37 @@ ContainerDense< T >::~ContainerDense() {
 }
 
 template <class T>
-RegionNode * ContainerDense< T >::getRegionNode( reg_t id ) const {
-   return _container[ id ].getLeaf();
+RegionNode * ContainerDense< T >::getRegionNode( reg_t id ) {
+   RegionNode *n = NULL;
+   _containerLock.acquire();
+   n = _container[ id ].getLeaf();
+   _containerLock.release();
+   return n;
 }
 
 template <class T>
 void ContainerDense< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
+   _containerLock.acquire();
    _container[ leaf->getId() ].setLeaf( leaf );
    _container[ leaf->getId() ].setData( NULL );
+   _containerLock.release();
    if (!rogue) _leafCount++;
 }
 
 template <class T>
 Version *ContainerDense< T >::getRegionData( reg_t id ) {
-   return _container[ id ].getData();
+   Version *v = NULL;
+   _containerLock.acquire();
+   v = _container[ id ].getData();
+   _containerLock.release();
+   return v;
 }
 
 template <class T>
 void ContainerDense< T >::setRegionData( reg_t id, Version *data ) {
+   _containerLock.acquire();
    _container[ id ].setData( data );
+   _containerLock.release();
 }
 
 template <class T>
@@ -57,9 +68,9 @@ unsigned int ContainerDense< T >::getNumDimensions() const {
 template <class T>
 reg_t ContainerDense< T >::addRegion( nanos_region_dimension_internal_t const region[], bool rogue ) {
    if ( rogue ) _rogueLock.acquire();
-   _lock.acquire();
+   _containerLock.acquire();
    reg_t id = _root.addNode( region, _dimensionSizes.size(), 0, *this, rogue );
-   _lock.release();
+   _containerLock.release();
    if ( rogue ) _rogueLock.release();
    return id;
 }
@@ -99,9 +110,9 @@ void ContainerDense< T >::invalUnlock() {
 
 template <class T>
 void ContainerDense< T >::addMasterRegionId( reg_t masterId, reg_t localId ) {
-   _lock.acquire();
+   _containerLock.acquire();
    _masterIdToLocalId[ masterId ] = localId;
-   _lock.release();
+   _containerLock.release();
 }
 
 template <class T>
@@ -135,7 +146,7 @@ CopyData *ContainerDense< T >::getRegisteredObject() const {
 }
 
 template <class T>
-ContainerSparse< T >::ContainerSparse( RegionDictionary< ContainerDense > &orig ) : _container(), _orig( orig ), sparse( true ) {
+ContainerSparse< T >::ContainerSparse( RegionDictionary< ContainerDense > &orig ) : _container(), _containerLock(), _orig( orig ), sparse( true ) {
 }
 
 
@@ -163,16 +174,16 @@ void ContainerSparse< T >::addRegionNode( RegionNode *leaf, bool rogue ) {
 
 template <class T>
 Version *ContainerSparse< T >::getRegionData( reg_t id ) {
-   _lock.acquire();
+   _containerLock.acquire();
    std::map< reg_t, RegionVectorEntry >::iterator it = _container.lower_bound( id );
    if ( it == _container.end() || _container.key_comp()(id, it->first) ) {
       //fatal0(  "Error, RegionMap::getRegionData does not contain region " );
       it = _container.insert( it, std::map< reg_t, RegionVectorEntry >::value_type( id, RegionVectorEntry() ) );
       it->second.setLeaf( _orig.getRegionNode( id ) );
-      _lock.release();
+      _containerLock.release();
       return NULL;
    }
-   _lock.release();
+   _containerLock.release();
    return it->second.getData();
 }
 
@@ -851,7 +862,7 @@ reg_t RegionDictionary< Sparsity >::registerRegionReturnSameVersionSubparts( reg
 }
 
 template < template <class> class Sparsity>
-bool RegionDictionary< Sparsity >::checkIntersect( reg_t regionIdA, reg_t regionIdB ) const {
+bool RegionDictionary< Sparsity >::checkIntersect( reg_t regionIdA, reg_t regionIdB ) {
    if ( regionIdA == regionIdB ) {
       *(myThread->_file) << __FUNCTION__ << " Dummy check! regA == regB ( " << regionIdA << " )" << std::endl;
       printBt( *(myThread->_file) );
@@ -1116,7 +1127,7 @@ bool RegionDictionary< Sparsity >::doTheseRegionsForm( reg_t target, std::list< 
 }
 
 template < template <class> class Sparsity>
-void RegionDictionary< Sparsity >::printRegionGeom( std::ostream &o, reg_t region ) const {
+void RegionDictionary< Sparsity >::printRegionGeom( std::ostream &o, reg_t region ) {
    RegionNode const *regNode = this->getRegionNode( region );
    global_reg_t reg( region, this );
    //fprintf(stderr, "%p:%d", this, region);
