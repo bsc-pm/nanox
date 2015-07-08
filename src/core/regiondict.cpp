@@ -1,21 +1,3 @@
-/*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
-/*                                                                                   */
-/*      This file is part of the NANOS++ library.                                    */
-/*                                                                                   */
-/*      NANOS++ is free software: you can redistribute it and/or modify              */
-/*      it under the terms of the GNU Lesser General Public License as published by  */
-/*      the Free Software Foundation, either version 3 of the License, or            */
-/*      (at your option) any later version.                                          */
-/*                                                                                   */
-/*      NANOS++ is distributed in the hope that it will be useful,                   */
-/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
-/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
-/*      GNU Lesser General Public License for more details.                          */
-/*                                                                                   */
-/*      You should have received a copy of the GNU Lesser General Public License     */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
-/*************************************************************************************/
 
 #include "regiondict.hpp"
 #include "memorymap.hpp"
@@ -143,7 +125,7 @@ Version *RegionVectorEntry::getData() const {
 
 namespace nanos {
 template <>
-void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t region ) const {
+void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t region ) {
    RegionNode const *regNode = this->getRegionNode( region );
    global_reg_t reg( region, this );
    //fprintf(stderr, "%p:%d", this, region);
@@ -167,7 +149,7 @@ void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t reg
 
 
 template <>
-void RegionDictionary< ContainerSparse >::printRegion( std::ostream &o, reg_t region ) const {
+void RegionDictionary< ContainerSparse >::printRegion( std::ostream &o, reg_t region ) {
    RegionNode const *regNode = this->getRegionNode( region );
    global_reg_t reg( region, &_orig );
    //fprintf(stderr, "%p:%d", &_orig, region);
