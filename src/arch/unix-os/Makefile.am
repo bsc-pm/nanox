@@ -23,6 +23,7 @@ devinclude_HEADERS = \
 	os.hpp \
 	pthread_decl.hpp \
 	pthread.hpp \
+   cpuset.hpp \
 	$(END) 
 
 os_sources = \
