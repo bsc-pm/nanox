@@ -126,6 +126,22 @@ void AllocatedChunk::copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t re
       printBt( *(myThread->_file) );
    }
 }
+void AllocatedChunk::copyRegionFromHost( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
+   CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg );
+   if ( !entry ) {
+      entry = NEW CachedRegionStatus();
+      _newRegions->setRegionData( reg, entry );
+   }
+      global_reg_t greg( reg, key );
+      DeviceOps * dops = greg.getDeviceOps();
+      if ( dops->addCacheOp( &wd, 8 ) ) {
+         ops.insertOwnOp( dops, greg, version, 0 );
+         ops.addOpFromHost( greg, version, this, copyIdx );
+      } else {
+         ops.getOtherOps().insert( dops );
+      }
+}
 
 bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx ) {
    unsigned int currentVersion = 0;
@@ -1437,7 +1453,7 @@ void RegionCache::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopie
    for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
       AllocatedChunk *chunk = _getAllocatedChunk( memCopies[ idx ]._reg, true, false, wd, idx );
       chunk->removeReference( wd.getId() );
-      if ( chunk->getReferenceCount() == 0 && memCopies[ idx ]._policy == NO_CACHE ) {
+      if ( chunk->getReferenceCount() == 0 && ( memCopies[ idx ]._policy == NO_CACHE || memCopies[ idx ]._policy == FPGA ) ) {
          _chunks.removeChunks( chunk->getHostAddress(), chunk->getSize() );
          //std::cerr << "Delete chunk for idx " << idx << std::endl;
          if ( VERBOSE_DEV_OPS ) {
@@ -1558,7 +1574,7 @@ void RegionCache::setRegionVersion( global_reg_t const &hostMem, unsigned int ve
    chunk->unlock();
 }
 
-void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx, enum CachePolicy policy ) {
    _lock.acquire();
 //reg.key->printRegion( reg.id ); std::cerr << std::endl;
    //AllocatedChunk *chunk = getAllocatedChunk( reg );
@@ -1568,7 +1584,11 @@ void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const 
    //         std::cerr << "[ " << it2->first << "," << it2->second << " ] ";
    //      }
    //      std::cerr << std::endl;
-   if ( chunk->NEWaddReadRegion2( ops, reg.id, version, notPresentParts, locations, wd, copyIdx ) ) {
+   if ( policy == FPGA ) { //emit copy for all data
+       chunk->copyRegionFromHost( ops, reg.id, version, wd, copyIdx );
+   } else {
+       if ( chunk->NEWaddReadRegion2( ops, reg.id, version, notPresentParts, locations, wd, copyIdx ) ) {
+       }
    }
    //chunk->unlock();
    _lock.release();
@@ -1717,12 +1737,17 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
 }
 
 void RegionCache::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
-   if ( output ) {
-      if ( policy != WRITE_BACK ) {
-         chunk->copyRegionToHost( ops, reg.id, version + 1, wd, copyIdx );
+   if ( policy == FPGA ) { //emit copy for all data
+      if ( output ) {
+        chunk->copyRegionToHost( ops, reg.id, version + (output ? 1 : 0), wd, copyIdx );
       }
-   } 
-
+   } else {
+      if ( output ) {
+         if ( policy != WRITE_BACK ) {
+            chunk->copyRegionToHost( ops, reg.id, version + 1, wd, copyIdx );
+         }
+      } 
+   }
 }
 
 void RegionCache::printReferencedChunksAndWDs() const {

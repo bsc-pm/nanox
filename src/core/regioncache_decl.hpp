@@ -99,6 +99,7 @@ namespace nanos {
 
 
          void copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
+         void copyRegionFromHost( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          //void clearDirty( global_reg_t const &reg );
          void printReferencingWDs() const;
    };
@@ -115,7 +116,7 @@ namespace nanos {
 
    class RegionCache {
       public:
-         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE };
+         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE, FPGA };
          enum CacheOptions {
             ALLOC_FIT,
             ALLOC_WIDE,
@@ -209,7 +210,7 @@ namespace nanos {
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx );
 
-         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
          void allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx );
 
          unsigned int getSoftInvalidationCount() const;

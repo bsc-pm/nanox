@@ -380,7 +380,7 @@ void System::config ()
    cfg.registerConfigOption ( "thd-output", NEW Config::FlagOption ( _splitOutputForThreads, true ), "Create separate files for each thread" );
    cfg.registerArgOption ( "thd-output", "thd-output" );
 
-   cfg.registerConfigOption ( "regioncache-policy", NEW Config::StringVar ( _regionCachePolicyStr ), "Region cache policy, accepted values are : nocache, writethrough, writeback. Default is writeback." );
+   cfg.registerConfigOption ( "regioncache-policy", NEW Config::StringVar ( _regionCachePolicyStr ), "Region cache policy, accepted values are : nocache, writethrough, writeback, fpga. Default is writeback." );
    cfg.registerArgOption ( "regioncache-policy", "cache-policy" );
    cfg.registerEnvOption ( "regioncache-policy", "NX_CACHE_POLICY" );
 
@@ -446,6 +446,8 @@ void System::start ()
          _regionCachePolicy = RegionCache::WRITE_THROUGH;
       } else if ( _regionCachePolicyStr.compare("writeback") == 0 ) {
          _regionCachePolicy = RegionCache::WRITE_BACK;
+      } else if ( _regionCachePolicyStr.compare("fpga") == 0 ) {
+         _regionCachePolicy = RegionCache::FPGA;
       } else {
          warning0("Invalid option for region cache policy '" << _regionCachePolicyStr << "', using default value.");
       }
