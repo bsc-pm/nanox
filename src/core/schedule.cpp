@@ -524,14 +524,14 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 // #endif
          if ( !wd->canRunIn( *thread->runningOn()->getDeviceType() ) ) 
          { // found a non compatible wd in "nextWD", ignore it
-            wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+            wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
             //if(wd!=NULL)std::cerr << "GN got a wd with depth " <<wd->getDepth() << std::endl;
          } else {
             //thread->resetNextWD();
            // std::cerr << "FIXME" << std::endl;
          }
       } else {
-         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
          //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
       }
    }
