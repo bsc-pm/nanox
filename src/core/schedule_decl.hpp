@@ -97,9 +97,10 @@ namespace nanos
          unsigned int                  _numSpins;          //!< Number of spins before yield
          unsigned int                  _numChecks;         //!< Number of checks before schedule
          bool                          _schedulerEnabled;  //!< Scheduler is enabled
+         int                           _numStealAfterSpins;//!< Steal every so spins
       private: /* PRIVATE METHODS */
         //! \brief SchedulerConf default constructor (private)
-        SchedulerConf() : _numSpins(1), _numChecks(1), _schedulerEnabled(true) {}
+        SchedulerConf() : _numSpins(1), _numChecks(1), _schedulerEnabled(true), _numStealAfterSpins(1) {}
         //! \brief SchedulerConf copy constructor (private)
         SchedulerConf ( SchedulerConf &sc ) : _numSpins(), _numChecks(), _schedulerEnabled()
         {
@@ -118,6 +119,8 @@ namespace nanos
          unsigned int getNumSpins ( void ) const;
          //! \brief Returns the number of checks before schedule
          unsigned int getNumChecks ( void ) const;
+         //! \brief Returns the number of spins before stealing
+         unsigned int getNumStealAfterSpins ( void ) const;
          //! \brief Returns if scheduler is enabled 
          bool getSchedulerEnabled () const;
 
@@ -271,9 +274,21 @@ namespace nanos
          virtual void initWDData ( void * data ) const {}
          
          virtual WD * atSubmit      ( BaseThread *thread, WD &wd ) = 0;
-         virtual WD * atIdle        ( BaseThread *thread ) = 0;
+         
+         /*! \brief \param numSteal The core scheduler will set this parameter
+          *  0 if no steal operation should be allowed.
+          *  Otherwise, attempt a steal operation instead of a normal
+          *  atIdle op.
+          *  This parameter indicates the number of steal attempts
+          *  during the current spin loop. The policy might use this
+          *  information to progressively relax the stealing conditions
+          */
+         virtual WD * atIdle        ( BaseThread *thread, int numSteal ) = 0;
          virtual WD * atBeforeExit  ( BaseThread *thread, WD &current, bool schedule );
-         virtual WD * atAfterExit   ( BaseThread *thread, WD *current );
+         /*! \brief \see atIdle for an explanation of the numSteal
+          *  parameter
+          */
+         virtual WD * atAfterExit   ( BaseThread *thread, WD *current, int numSteal );
          virtual WD * atBlock       ( BaseThread *thread, WD *current );
          virtual WD * atYield       ( BaseThread *thread, WD *current);
          virtual WD * atWakeUp      ( BaseThread *thread, WD &wd );

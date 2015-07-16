@@ -146,7 +146,7 @@ namespace nanos {
             }
 
 
-            virtual WD *atIdle ( BaseThread *thread );
+            virtual WD *atIdle ( BaseThread *thread, int numSteal );
 
             bool reorderWD ( BaseThread *t, WD *wd )
             {
@@ -172,7 +172,7 @@ namespace nanos {
        *  \param thread pointer to the thread to be scheduled
        *  \sa BaseThread
        */
-      WD * DistributedBFPolicy::atIdle ( BaseThread *thread )
+      WD * DistributedBFPolicy::atIdle ( BaseThread *thread, int numSteal )
       {
          WorkDescriptor * wd;
          WorkDescriptor * next = NULL; 

@@ -51,6 +51,9 @@ void SchedulerConf::config (Config &cfg)
 
    cfg.registerConfigOption ( "num-checks", NEW Config::UintVar( _numChecks ), "Set number of checks before Idle (default = 1)" );
    cfg.registerArgOption ( "num-checks", "checks" );
+
+   cfg.registerConfigOption ( "num-steal", NEW Config::PositiveVar( _numStealAfterSpins ), "Try to steal every so spins (default = 1)" );
+   cfg.registerArgOption ( "num-steal", "spins-steal" );
 }
 
 void Scheduler::submit ( WD &wd, bool force_queue )
@@ -204,6 +207,12 @@ inline void Scheduler::idleLoop ()
    const int init_yields = sys.getThreadManagerConf().getNumYields();
    int spins = init_spins;
    int yields = init_yields;
+   // Number of times during the spin loop that a steal get was performed
+   int num_steals = 0;
+   // Number of consecutive calls to getWD that returned NULL
+   int num_empty_calls = 0;
+   // Modulo to steal tasks
+   int steal_mod = sys.getSchedulerConf().getNumStealAfterSpins() + 1;
 
    NANOS_INSTRUMENT ( unsigned long long total_spins = 0; )  /* Number of spins by idle phase*/
    NANOS_INSTRUMENT ( unsigned long long total_yields = 0; ) /* Number of yields by idle phase */
@@ -289,8 +298,13 @@ inline void Scheduler::idleLoop ()
          if ( sys.getSchedulerStats()._readyTasks > 0 ) {
             NANOS_INSTRUMENT ( total_scheds++; )
             NANOS_INSTRUMENT ( unsigned long long begin_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-
-            next = behaviour::getWD(thread,current);
+            
+            // Try to steal only if we spun at least once
+            bool steal = num_empty_calls % steal_mod;
+            // Increase the number of steal attempts
+            if ( steal ) ++num_steals;
+            
+            next = behaviour::getWD(thread,current,steal*num_steals);
 
             NANOS_INSTRUMENT ( unsigned long long end_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             NANOS_INSTRUMENT (time_scheds += ( end_sched - begin_sched ); )
@@ -339,8 +353,16 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT (time_scheds = 0; )
 
          spins = init_spins;
+         /* gmiranda: If a WD was returned (either by a normal getWD or
+          * by a steal operation, reset the num_steals counter */
+         num_steals = 0;
+         // Also reset the number of empty calls
+         num_empty_calls = 0;
          continue;
       }
+      
+      // Otherwise, getWD returned NULL, increase the counter
+      ++num_empty_calls;
 
       thread->idle();
       //if ( sys.getNetwork()->getNodeNum() > 0 ) {
@@ -873,9 +895,9 @@ void Scheduler::workerClusterLoop ()
 
 struct WorkerBehaviour
 {
-   static WD * getWD ( BaseThread *thread, WD *current )
+   static WD * getWD ( BaseThread *thread, WD *current, int numSteal )
    {
-      return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+      return thread->getTeam()->getSchedulePolicy().atIdle ( thread, numSteal );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -888,10 +910,10 @@ struct WorkerBehaviour
 
 struct AsyncWorkerBehaviour
 {
-   static WD * getWD ( BaseThread *thread, WD *current )
+   static WD * getWD ( BaseThread *thread, WD *current, int numSteal )
    {
       if ( !thread->canGetWork() ) return NULL;
-      return thread->getTeam()->getSchedulePolicy().atIdle( thread );
+      return thread->getTeam()->getSchedulePolicy().atIdle ( thread, numSteal );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -1293,9 +1315,9 @@ void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 
 struct ExitBehaviour
 {
-   static WD * getWD ( BaseThread *thread, WD *current )
+   static WD * getWD ( BaseThread *thread, WD *current, int numSteal )
    {
-      return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current );
+      return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current, numSteal );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
