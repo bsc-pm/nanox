@@ -1,0 +1,160 @@
+/*************************************************************************************/
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
+#include "plugin.hpp"
+#include "archplugin.hpp"
+#include "fpgaconfig.hpp"
+#include "system_decl.hpp"
+#include "fpgaprocessor.hpp"
+#include "fpgathread.hpp"
+#include "fpgadd.hpp"
+#include "smpprocessor.hpp"
+
+#include "libxdma.h"
+
+namespace nanos {
+namespace ext {
+
+class FPGAPlugin : public ArchPlugin
+{
+   private:
+      std::vector< FPGAProcessor* > *_fpgas;
+      std::vector< FPGAThread* > *_fpgaThreads;
+
+   public:
+      FPGAPlugin() : ArchPlugin( "FPGA PE Plugin", 1 ) {}
+
+      void config( Config& cfg )
+      {
+         FPGAConfig::prepare( cfg );
+      }
+
+      /*!
+       * \brief Initialize fpga device plugin.
+       * Load config and initialize xilinx dma library
+       */
+      void init()
+      {
+         FPGAConfig::apply();
+         _fpgas = NEW std::vector< FPGAProcessor* >( FPGAConfig::getNumFPGAThreads(),( FPGAProcessor* )NULL) ;
+         _fpgaThreads = NEW std::vector< FPGAThread* >( FPGAConfig::getNumFPGAThreads(),( FPGAThread* )NULL) ;
+         /*
+          * Initialize dma library here if fpga device is not disabled
+          * We must init the DMA lib before any operation using it is performed
+          */
+         if ( !FPGAConfig::isDisabled() ) {
+            debug0("xilinx dma initialization");
+            //Instrumentation has not been initialized yet so we cannot trace things yet
+            int status = xdmaOpen();
+            if (status)
+               warning("Error initializing DMA library: " << status ); //this may be fatal
+            //get a core to run the helper thread. First one available
+            for ( int i = 0; i<FPGAConfig::getNumFPGAThreads(); i++) {
+
+               memory_space_id_t memSpaceId = sys.getNewSeparateMemoryAddressSpaceId();
+               SeparateMemoryAddressSpace *fpgaAddressSpace =
+                  NEW SeparateMemoryAddressSpace( memSpaceId, nanos::ext::FPGA, true );
+               sys.addSeparateMemory( memSpaceId, fpgaAddressSpace );
+               fpgaAddressSpace->setNodeNumber( 0 ); //there is only 1 node on this machine
+               ext::SMPProcessor *core;
+               core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
+               if ( !core ) {
+                  //TODO: Run fpga threads in the core running least threads
+                  warning0( "Unable to get free core to run the FPGA thread, using the first one" );
+                  core = sys.getSMPPlugin()->getFirstSMPProcessor();
+                  core->setNumFutureThreads( core->getNumFutureThreads()+1 );
+               } else {
+                  core->setNumFutureThreads( 1 );
+               }
+               FPGAProcessor* fpga = NEW FPGAProcessor(memSpaceId, core);
+               (*_fpgas)[i] = fpga;
+            }
+         } //!FPGAConfig::isDisabled()
+      }
+      /*!
+       * \brief Finalize plugin and close dma library.
+       */
+      void fini() {
+         /*
+          * After the plugin is unloaded, no more operations regarding the DMA
+          * library nor the FPGA device will be performed so it's time to close the dma lib
+          */
+         if (!FPGAConfig::isDisabled() ) { //cleanup only if we have initialized
+            int status;
+            debug0("Xilinx close dma");
+            status = xdmaClose();
+            if (status) {
+               warning("Error de-initializing xdma core library: " << status);
+            }
+         }
+      }
+
+      virtual unsigned getNumHelperPEs() const {
+         return FPGAConfig::getNumFPGAThreads();
+      }
+
+      virtual unsigned getNumPEs() const {
+         return FPGAConfig::getNumFPGAThreads();
+      }
+
+      virtual unsigned getNumThreads() const {
+         return FPGAConfig::getNumFPGAThreads();
+      }
+
+      virtual void addPEs( std::map< unsigned int,  ProcessingElement*> &pes  ) const {
+          for ( std::vector<FPGAProcessor*>::const_iterator it = _fpgas->begin();
+                  it != _fpgas->end(); it++ )
+          {
+              pes.insert( std::make_pair( (*it)->getId(), *it) );
+          }
+      }
+
+      virtual void addDevices( DeviceList &devices ) const {
+         if ( !_fpgas->empty() ) {
+            //Insert device type.
+            //Any position in _fpgas will work as we only need the device type
+            devices.insert( ( *_fpgas->begin() )->getDeviceType() );
+         }
+      }
+
+      virtual void startSupportThreads () {
+         for (unsigned int i=0; i<_fpgas->size(); i++) {
+            FPGAProcessor *fpga = (*_fpgas)[i];
+            (*_fpgaThreads)[i] = (FPGAThread*) &fpga->startFPGAThread();
+         }
+      }
+
+      virtual void startWorkerThreads( std::map<unsigned int, BaseThread*> &workers ) {
+          for ( std::vector<FPGAThread*>::iterator it = _fpgaThreads->begin();
+                  it != _fpgaThreads->end(); it++ )
+          {
+              workers.insert( std::make_pair( (*it)->getId(), *it ));
+          }
+      }
+
+      virtual ProcessingElement * createPE( unsigned id , unsigned uid) {
+         return NULL;
+      }
+};
+
+}
+}
+
+DECLARE_PLUGIN("arch-fpga",nanos::ext::FPGAPlugin);

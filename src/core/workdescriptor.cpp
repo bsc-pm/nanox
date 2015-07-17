@@ -264,6 +264,22 @@ void WorkDescriptor::submit( bool force_queue )
    }
 } 
 
+void WorkDescriptor::submitOutputCopies ()
+{
+   if ( getNumCopies() > 0 ) {
+      _mcontrol.copyDataOut( MemController::WRITE_BACK );
+   }
+}
+
+void WorkDescriptor::waitOutputCopies ()
+{
+   if ( getNumCopies() > 0 ) {
+      while ( !_mcontrol.isOutputDataReady( *this ) ) {
+         myThread->idle();
+      }
+   }
+}
+
 void WorkDescriptor::finish ()
 {
    // Getting run time

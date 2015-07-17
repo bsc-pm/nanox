@@ -534,6 +534,14 @@ typedef std::set<const Device *>  DeviceList;
           */
          size_t getCopiesSize() const;
 
+         /*! \brief perform (submit) all output copies
+          */
+         void submitOutputCopies ();
+
+         /*! \brief wait for output copies to finish
+          */
+         void waitOutputCopies();
+
          /*! \brief returns the total size of the WD's parameters
           */
          size_t getParamsSize() const;

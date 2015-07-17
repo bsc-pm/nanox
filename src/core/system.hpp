@@ -92,8 +92,6 @@ inline bool System::getPredecessorLists ( void ) const { return _predecessorList
 
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
 
-inline int System::getNumCreatedPEs() const { return _pes.size(); }
-
 inline int System::getNumWorkers() const { return _workers.size(); }
 
 //inline int System::getNumSockets() const { return _numSockets; }
