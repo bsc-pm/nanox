@@ -183,20 +183,22 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_blocks_key = ID->getEventKey("num-blocks"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_scheds_key  = ID->getEventKey("num-scheds"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t steal_key  = ID->getEventKey("steal"); )
 
    NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_blocks_key = ID->getEventKey("time-blocks"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_scheds_key = ID->getEventKey("time-scheds"); )
 
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[7]; )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[8]; )
 
    NANOS_INSTRUMENT ( Keys[0] = total_yields_key; )
    NANOS_INSTRUMENT ( Keys[1] = time_yields_key; )
    NANOS_INSTRUMENT ( Keys[2] = total_blocks_key; )
    NANOS_INSTRUMENT ( Keys[3] = time_blocks_key; )
    NANOS_INSTRUMENT ( Keys[4] = total_spins_key; )
-   NANOS_INSTRUMENT ( Keys[5] = total_scheds_key; )
-   NANOS_INSTRUMENT ( Keys[6] = time_scheds_key; )
+   NANOS_INSTRUMENT ( Keys[5] = steal_key; )
+   NANOS_INSTRUMENT ( Keys[6] = total_scheds_key; )
+   NANOS_INSTRUMENT ( Keys[7] = time_scheds_key; )
 
    NANOS_INSTRUMENT ( unsigned event_start; )
    NANOS_INSTRUMENT ( unsigned event_num; )
@@ -250,19 +252,20 @@ inline void Scheduler::idleLoop ()
       if ( thread->isSleeping() && !thread_manager->lastActiveThread() && !thread->hasNextWD() ) {
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[8]; )
 
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_blocks; )
          NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) total_spins; )
-         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) total_scheds; )
-         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
+         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) 0; /*steal*/ )
+         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) total_scheds; )
+         NANOS_INSTRUMENT ( Values[7] = (nanos_event_value_t) time_scheds; )
 
-         NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
-         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
-         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
+         NANOS_INSTRUMENT ( event_start = 0; event_num = 8; )
+         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 6; } )
+         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 4; } )
          NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
@@ -292,6 +295,9 @@ inline void Scheduler::idleLoop ()
 
       thread->getNextWDQueue().iterate<TestInputs>();
       WD * next = thread->getNextWD();
+      
+      // Declared here to be used for instrumentation too,
+      bool steal = false;
 
       if ( !next && thread->getTeam() != NULL ) {
          memoryFence();
@@ -300,7 +306,7 @@ inline void Scheduler::idleLoop ()
             NANOS_INSTRUMENT ( unsigned long long begin_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             
             // Try to steal only if we spun at least once
-            bool steal = num_empty_calls % steal_mod;
+            steal = num_empty_calls % steal_mod;
             // Increase the number of steal attempts
             if ( steal ) ++num_steals;
             
@@ -315,19 +321,20 @@ inline void Scheduler::idleLoop ()
 
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[8]; )
 
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_blocks; )
          NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) total_spins; )
-         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) total_scheds; )
-         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
+         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) steal; )
+         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) total_scheds; )
+         NANOS_INSTRUMENT ( Values[7] = (nanos_event_value_t) time_scheds; )
 
-         NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
-         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
-         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
+         NANOS_INSTRUMENT ( event_start = 0; event_num = 8; )
+         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 6; } )
+         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 4; } )
          NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
