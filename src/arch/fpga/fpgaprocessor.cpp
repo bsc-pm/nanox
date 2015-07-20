@@ -67,17 +67,18 @@ void FPGAProcessor::init()
 {
    xdma_device *devices = NEW xdma_device[_numAcc];
    xdma_status status;
-   status = xdmaGetDevices(_numAcc, devices, NULL);
+   status = xdmaGetDevices(FPGAConfig::getFPGACount(), devices, NULL);
 
    for ( int i=0; i < _numAcc; i++ ) {
       xdma_channel iChan, oChan;
+      int devIndex = i + _accelBase;
 
-      _fpgaProcessorInfo[i].setDeviceHandle( devices[i] );
+      _fpgaProcessorInfo[i].setDeviceHandle( devices[devIndex] );
 
       //open input channel
       FPGAConfig::acquireDMALock();
       NANOS_FPGA_CREATE_RUNTIME_EVENT( ext::NANOS_FPGA_REQ_CHANNEL_EVENT);
-      status = xdmaOpenChannel(devices[i], XDMA_TO_DEVICE, XDMA_CH_NONE, &iChan);
+      status = xdmaOpenChannel(devices[devIndex], XDMA_TO_DEVICE, XDMA_CH_NONE, &iChan);
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
 
       if (status)
@@ -88,7 +89,7 @@ void FPGAProcessor::init()
       _fpgaProcessorInfo[i].setInputChannel( iChan );
 
       NANOS_FPGA_CREATE_RUNTIME_EVENT( ext::NANOS_FPGA_REQ_CHANNEL_EVENT );
-      status = xdmaOpenChannel(devices[i], XDMA_FROM_DEVICE, XDMA_CH_NONE, &oChan);
+      status = xdmaOpenChannel(devices[devIndex], XDMA_FROM_DEVICE, XDMA_CH_NONE, &oChan);
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
       if (status || !oChan)
          warning ("Error opening DMA output channel");
