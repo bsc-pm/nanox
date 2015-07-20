@@ -64,12 +64,12 @@ void FPGAMemoryOutTransferList::syncTransfer(uint64_t hostAddress){
             FPGAConfig::acquireDMALock();
             //TODO use non blocking finish in orer to clean finished transfers
             status = xdmaWaitTransfer( transfer->_dmaHandle );
-            FPGAConfig::releaseDMALock();
-            xdmaReleaseTransfer( &transfer->_dmaHandle );
             verbose(" waited " << transfer->_dmaHandle);
             if (status) {
-               warning( "ERROR on dma transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
+               warning( "ERROR on dma out transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
             }
+            FPGAConfig::releaseDMALock();
+            xdmaReleaseTransfer( &transfer->_dmaHandle );
 
          }
          transfer->_copyDescriptor._ops->completeOp();
@@ -102,14 +102,14 @@ void FPGAMemoryOutTransferList::syncNTransfers(unsigned int n){
       NANOS_FPGA_CREATE_RUNTIME_EVENT( NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT );
       FPGAConfig::acquireDMALock();
       status = xdmaWaitTransfer( transfer->_dmaHandle );
+      if (status) {
+         warning( "ERROR on dma out transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
+      }
       FPGAConfig::releaseDMALock();
       xdmaReleaseTransfer( &transfer->_dmaHandle );
 
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
 
-      if (status) {
-         warning( "ERROR on dma transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
-      }
 
       transfer->_copyDescriptor._ops->completeOp();
       if ( transfer->_copyDescriptor._functor ) {
@@ -144,7 +144,7 @@ void FPGAMemoryInTransferList::syncTransfer(uint64_t hostAddress){
             xdmaReleaseTransfer( &transfer->_dmaHandle );
          }
          if (status) {
-            warning( "ERROR on dma transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
+            warning( "ERROR on dma in transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
          }
 
          return;
@@ -168,7 +168,7 @@ void FPGAMemoryInTransferList::syncNTransfers(unsigned int n){
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
       xdmaReleaseTransfer( &transfer->_dmaHandle );
       if (status) {
-         warning( "ERROR on dma transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
+         warning( "ERROR on dma in transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
       }
       _transfers.pop_front();
    }
