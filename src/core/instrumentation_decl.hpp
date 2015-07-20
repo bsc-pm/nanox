@@ -652,6 +652,8 @@ namespace nanos {
 
             /* 64 */ registerEventKey("thread-numa-node","Thread NUMA node", true, EVENT_ADVANCED);
             /* 65 */ registerEventKey("wd-numa-node","WD NUMA node", true, EVENT_ADVANCED);
+            
+            /* 66 */ registerEventKey("steal","Stolen WD", true, EVENT_DEVELOPER );
                      
             /* 66 */ registerEventKey("in-xdma", "Inside xdma FPGA DMA library", true, EVENT_ADVANCED);
             registerEventValue("in-xdma", "NANOS_FPGA_OPEN_EVENT", "xdma open()");                       /* 1 */
