@@ -138,7 +138,7 @@ WD * FPGAWorker::getFPGAWD(BaseThread *thread) {
    if ( thread->getTeam() != NULL ) {
       wd = thread->getNextWD();
       if ( !wd ) {
-         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
       }
    }
    return wd;
