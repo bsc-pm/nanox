@@ -63,8 +63,10 @@ class FPGAPlugin : public ArchPlugin
             debug0("xilinx dma initialization");
             //Instrumentation has not been initialized yet so we cannot trace things yet
             int status = xdmaOpen();
+            //Abort if dma library failed to initialize
+            //Otherwise this will cause problems (segfaults/hangs) later on the execution
             if (status)
-               warning("Error initializing DMA library: " << status ); //this may be fatal
+               fatal0("Error initializing DMA library: Returned status: " << status );
             //get a core to run the helper thread. First one available
             for ( int i = 0; i<FPGAConfig::getNumFPGAThreads(); i++) {
 
