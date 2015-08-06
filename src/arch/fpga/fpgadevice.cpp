@@ -55,7 +55,6 @@ inline bool FPGADevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_
 
    uint64_t  src_addr = remoteSrc.getTag();
    int status;
-   //Lock & dmaLock = FPGAConfig::getDMALock();
    xdma_channel iChan;
    xdma_transfer_handle dmaHandle;
    xdma_device device;
@@ -70,10 +69,8 @@ inline bool FPGADevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_
            << "  iChan:" << iChan );
 
    NANOS_FPGA_CREATE_RUNTIME_EVENT( ext::NANOS_FPGA_SUBMIT_IN_DMA_EVENT );
-   FPGAConfig::acquireDMALock();
    //Support synchronous transfers??
    status = xdmaSubmitKBuffer( (void*)src_addr, size, XDMA_ASYNC, device, iChan, &dmaHandle);
-   FPGAConfig::releaseDMALock();
    NANOS_FPGA_CLOSE_RUNTIME_EVENT;
 
    debug ( "  got intput handle: " << dmaHandle );
@@ -112,7 +109,6 @@ bool FPGADevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size
    xdma_device device;
    int status;
    uint64_t src_addr = remoteDst.getTag();
-   //Lock & dmaLock = FPGAConfig::getDMALock();
    device = fpga->getFPGAProcessorInfo()[fpga->getActiveAcc()].getDeviceHandle();
    oChan = fpga->getFPGAProcessorInfo()[fpga->getActiveAcc()].getOutputChannel();
 
@@ -120,9 +116,7 @@ bool FPGADevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size
            << "  @:" << std::hex <<  src_addr << std::dec << " size:" << size
            << "  oChan:" << oChan );
    NANOS_FPGA_CREATE_RUNTIME_EVENT( ext::NANOS_FPGA_SUBMIT_OUT_DMA_EVENT );
-   FPGAConfig::acquireDMALock();
    status = xdmaSubmitKBuffer( (void*)src_addr, size, XDMA_ASYNC, device, oChan, &dmaHandle);
-   FPGAConfig::releaseDMALock();
    NANOS_FPGA_CLOSE_RUNTIME_EVENT;
 
    if ( status )

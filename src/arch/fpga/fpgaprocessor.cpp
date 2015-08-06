@@ -76,7 +76,6 @@ void FPGAProcessor::init()
       _fpgaProcessorInfo[i].setDeviceHandle( devices[devIndex] );
 
       //open input channel
-      FPGAConfig::acquireDMALock();
       NANOS_FPGA_CREATE_RUNTIME_EVENT( ext::NANOS_FPGA_REQ_CHANNEL_EVENT);
       status = xdmaOpenChannel(devices[devIndex], XDMA_TO_DEVICE, XDMA_CH_NONE, &iChan);
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
@@ -93,7 +92,6 @@ void FPGAProcessor::init()
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
       if (status || !oChan)
          warning ("Error opening DMA output channel");
-      FPGAConfig::releaseDMALock();
 
       debug("got output channel " << oChan );
 
@@ -108,7 +106,6 @@ void FPGAProcessor::cleanUp()
    //release channels
    for (int i=0; i<_numAcc; i++) {
 
-      Lock &dmaLock = FPGAConfig::getDMALock();
       xdma_status status;
       xdma_channel tmpChannel;
 
@@ -119,11 +116,9 @@ void FPGAProcessor::cleanUp()
       debug("Release DMA channels");
       NANOS_FPGA_CREATE_RUNTIME_EVENT( ext::NANOS_FPGA_REL_CHANNEL_EVENT );
       tmpChannel = _fpgaProcessorInfo[i].getInputChannel();
-      dmaLock.acquire();
       debug("release input channel " << _fpgaProcessorInfo[i].getInputChannel() );
       status = xdmaCloseChannel( &tmpChannel );
       debug("  channel released");
-      dmaLock.release();
       //Update the new channel as it may be modified by closing the channel
       _fpgaProcessorInfo[i].setInputChannel( tmpChannel );
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
@@ -133,11 +128,9 @@ void FPGAProcessor::cleanUp()
 
       NANOS_FPGA_CREATE_RUNTIME_EVENT( ext::NANOS_FPGA_REL_CHANNEL_EVENT );
       tmpChannel = _fpgaProcessorInfo[i].getOutputChannel();
-      dmaLock.acquire();
       debug("release output channel " << _fpgaProcessorInfo[i].getOutputChannel() );
       status = xdmaCloseChannel( &tmpChannel );
       debug("  channel released");
-      dmaLock.release();
       _fpgaProcessorInfo[i].setOutputChannel( tmpChannel );
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;
 

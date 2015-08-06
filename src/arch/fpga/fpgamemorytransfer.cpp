@@ -61,14 +61,12 @@ void FPGAMemoryOutTransferList::syncTransfer(uint64_t hostAddress){
          verbose("DMAWait out" << transfer->_dmaHandle);
          {  NANOS_INSTRUMENT( InstrumentBurst i( "in-xdma" ,ext::NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT); )
 
-            FPGAConfig::acquireDMALock();
             //TODO use non blocking finish in orer to clean finished transfers
             status = xdmaWaitTransfer( transfer->_dmaHandle );
             verbose(" waited " << transfer->_dmaHandle);
             if (status) {
                warning( "ERROR on dma out transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
             }
-            FPGAConfig::releaseDMALock();
             xdmaReleaseTransfer( &transfer->_dmaHandle );
 
          }
@@ -100,12 +98,10 @@ void FPGAMemoryOutTransferList::syncNTransfers(unsigned int n){
       //perform this outside the critical region so we do not lock on long operations
       verbose("DMAWait out" << transfer->_dmaHandle);
       NANOS_FPGA_CREATE_RUNTIME_EVENT( NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT );
-      FPGAConfig::acquireDMALock();
       status = xdmaWaitTransfer( transfer->_dmaHandle );
       if (status) {
          warning( "ERROR on dma out transfer wait #" << transfer->_dmaHandle <<  "status:" << status );
       }
-      FPGAConfig::releaseDMALock();
       xdmaReleaseTransfer( &transfer->_dmaHandle );
 
       NANOS_FPGA_CLOSE_RUNTIME_EVENT;

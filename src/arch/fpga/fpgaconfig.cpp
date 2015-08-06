@@ -105,14 +105,6 @@ namespace nanos
          _idleSyncBurst = ( _idleSyncBurst < 0 ) ? _burst : _idleSyncBurst;
 
       }
-      void FPGAConfig::acquireDMALock() {
-         _dmaLock.acquire();
-      }
-
-      void FPGAConfig::releaseDMALock() {
-         _dmaLock.release();
-      }
-
    }
 }
 
