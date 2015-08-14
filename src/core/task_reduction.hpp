@@ -22,7 +22,7 @@
 
 #include "task_reduction_decl.hpp"
 
-inline void * TaskReduction::have_dependence( const void *ptr, size_t id )
+inline void * TaskReduction::have( const void *ptr, size_t id )
 {
    bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
 
@@ -30,15 +30,7 @@ inline void * TaskReduction::have_dependence( const void *ptr, size_t id )
    else return NULL;
 }
 
-inline void * TaskReduction::have ( const void *ptr, size_t id )
-{
-   bool inside =  ( ( ptr == _original ) || ( (ptr >= _min) && (ptr <= _max) ) );
-
-   if ( inside ) return & _storage[_size*id];
-   else return NULL;
-}
-
-inline void * TaskReduction::finalize ( void )
+inline void * TaskReduction::finalize( void )
 {
    void * result = _original;
    for ( size_t i=1; i< _threads; i++) _reducer( &_storage[0] ,&_storage[i*_size] );
@@ -46,7 +38,7 @@ inline void * TaskReduction::finalize ( void )
    return result;
 }
 
-inline unsigned TaskReduction::getDepth(void) const 
+inline unsigned TaskReduction::getDepth( void ) const
 {
    return _depth;
 }
