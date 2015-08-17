@@ -89,44 +89,39 @@ namespace nanos
             bool prioritiesNeeded : 1;
          };
          
-         SuppliedFlags        _compilerSuppliedFlags; /*!< \brief Compiler supplied flags */
+         SuppliedFlags        _compilerSuppliedFlags; //!< \brief Compiler supplied flags
          
          // global seeds
-         Atomic<int> _atomicWDSeed; /*!< \brief ID seed for new WD's */
-         Atomic<int> _threadIdSeed; /*!< \brief ID seed for new threads */
-         Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
+         Atomic<int> _atomicWDSeed;                   //!< \brief ID seed for new WD's 
+         Atomic<int> _threadIdSeed;                   //!< \brief ID seed for new threads 
+         Atomic<unsigned int> _peIdSeed;              //!< \brief ID seed for new PE's
 
          // configuration variables
          size_t               _deviceStackSize;
          bool                 _profile;
          bool                 _instrument;
          bool                 _verboseMode;
-         bool                 _summary;            /*!< \brief Flag to enable the summary */
-         time_t               _summaryStartTime;   /*!< \brief Track time to show duration in summary */
+         bool                 _summary;               //!< \brief Flag to enable the summary 
+         time_t               _summaryStartTime;      //!< \brief Track time to show duration in summary 
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _synchronizedStart;
-         //! Maintain predecessors list, disabled by default, used by botlev and async threads (#1027)
-         bool                 _predecessorLists;
+         bool                 _alreadyFinished;       //!< \brief Prevent System::finish from being executed more than once.
+         bool                 _predecessorLists;      //!< \brief Maintain predecessors list (disabled by default).
 
 
-         //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
          SchedulerStats       _schedStats;
          SchedulerConf        _schedConf;
-
-         /*! names of the scheduling, cutoff, barrier and instrumentation plugins */
-         std::string          _defSchedule;
-         std::string          _defThrottlePolicy;
-         std::string          _defBarr;
-         std::string          _defInstr;
-         /*! Name of the dependencies manager plugin */
-         std::string          _defDepsManager;
-
-         std::string          _defArch;
-         std::string          _defDeviceName;
+         std::string          _defSchedule;           //!< \brief Name of default scheduler
+         std::string          _defThrottlePolicy;     //!< \brief Name of default throttole policy (cutoff)
+         std::string          _defBarr;               //!< \brief Name of default barrier
+         std::string          _defInstr;              //!< \brief Name of default instrumentation
+         std::string          _defDepsManager;        //!< \brief Name of default dependences manager
+         std::string          _defArch;               //!< \brief Name of default architercture
+         std::string          _defDeviceName;         //!< \brief Name of default device
 
          const Device         *_defDevice;
 
