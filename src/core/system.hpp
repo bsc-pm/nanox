@@ -631,5 +631,9 @@ inline std::map<unsigned int, PE *> const &System::getPEs() const {
    return _pes;
 }
 
+inline SMPDevice &System::_getSMPDevice() {
+   return _SMP;
+}
+
 #endif
 

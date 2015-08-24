@@ -103,7 +103,7 @@ void GPUThread::runDependent ()
 {
    WD &work = getThreadWD();
    setCurrentWD( work );
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( getSMPDevice() );
    dd.getWorkFct()( work.getData() );
 
    if ( GPUConfig::isCUBLASInitDefined() ) {

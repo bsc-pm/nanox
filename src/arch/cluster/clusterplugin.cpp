@@ -77,7 +77,7 @@ void ClusterPlugin::init()
 
    if ( _gasnetApi.getNumNodes() > 1 ) {
       if ( _gasnetApi.getNodeNum() == 0 ) {
-         const Device * supported_archs[3] = { &SMP, NULL, NULL };
+         const Device * supported_archs[3] = { &getSMPDevice(), NULL, NULL };
          int num_supported_archs = 3;
          #ifdef GPU_DEV
          supported_archs[1] = &GPU;

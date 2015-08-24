@@ -19,12 +19,12 @@
 
 #include "smpbaseplugin_decl.hpp"
 #include "plugin.hpp"
+#include "basethread.hpp"
 #include "smpprocessor.hpp"
 #include "smpdd.hpp"
 #include "os.hpp"
 #include "osallocator_decl.hpp"
 #include "system.hpp"
-#include "basethread.hpp"
 #include "printbt_decl.hpp"
 #include <limits>
 
@@ -286,7 +286,7 @@ class SMPPlugin : public SMPBasePlugin
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
 #ifdef NANOX_MEMKIND_SUPPORT
       if ( _memkindSupport ) {
-         mem_id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide, sys.getRegionCacheSlabSize() );
+         mem_id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
          SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
          void *addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
          if ( addr == NULL ) {
@@ -311,7 +311,7 @@ class SMPPlugin : public SMPBasePlugin
          
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide, sys.getRegionCacheSlabSize() );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );

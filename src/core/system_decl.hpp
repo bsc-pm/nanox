@@ -44,6 +44,7 @@
 #include "router_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
+#include "smpdevice_decl.hpp"
 
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
@@ -85,6 +86,9 @@ namespace nanos
          Atomic<int> _atomicWDSeed; /*!< \brief ID seed for new WD's */
          Atomic<int> _threadIdSeed; /*!< \brief ID seed for new threads */
          Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
+
+         // Devices
+         SMPDevice _SMP;
 
          // configuration variables
          int                  _deviceStackSize;
@@ -649,6 +653,8 @@ namespace nanos
          bool invalControlEnabled() const;
          std::set<memory_space_id_t> const &getActiveMemorySpaces() const;
          PEList const &getPEs() const;
+
+         SMPDevice &_getSMPDevice();
    };
 
    extern System sys;

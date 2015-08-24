@@ -61,6 +61,9 @@ smp_numa_flags=-DSMP_NUMA
 
 smp_sources = \
 	smpdevice.hpp \
+	smpdevice_decl.hpp \
+	smptransferqueue.hpp \
+	smptransferqueue_decl.hpp \
 	smpdd.hpp \
 	smpdd.cpp \
 	smpprocessor.hpp \

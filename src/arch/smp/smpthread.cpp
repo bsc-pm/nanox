@@ -32,7 +32,6 @@
 #include "smp_ult.hpp"
 #include "basethread.hpp"
 #include "instrumentation.hpp"
-//#include "clusterdevice_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -49,7 +48,7 @@ void SMPThread::runDependent ()
    WD &work = getThreadWD();
    setCurrentWD( work );
 
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( getSMPDevice() );
 
    dd.execute( work );
 }
@@ -75,6 +74,7 @@ void SMPThread::idle( bool debug )
          }
       }
    }
+   getSMPDevice().tryExecuteTransfer();
 }
 
 void SMPThread::wait()

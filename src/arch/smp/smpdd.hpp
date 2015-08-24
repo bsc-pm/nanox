@@ -21,7 +21,7 @@
 #define _NANOS_SMP_WD
 
 #include <stdint.h>
-#include "smpdevice.hpp"
+#include "smpdevice_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 #include "config.hpp"
 
@@ -29,7 +29,8 @@ namespace nanos {
 namespace ext
 {
 
-   extern SMPDevice SMP;
+   //extern SMPDevice SMP;
+   SMPDevice &getSMPDevice();
 
    class SMPDD : public DD
    {
@@ -44,9 +45,9 @@ namespace ext
 
       public:
          // constructors
-         SMPDD( work_fct w ) : DD( &SMP, w ), _stack( 0 ),_state( 0 ) {}
+         SMPDD( work_fct w ) : DD( &getSMPDevice(), w ), _stack( 0 ),_state( 0 ) {}
 
-         SMPDD() : DD( &SMP, NULL ), _stack( 0 ),_state( 0 ) {}
+         SMPDD() : DD( &getSMPDevice(), NULL ), _stack( 0 ),_state( 0 ) {}
 
          // copy constructors
          SMPDD( const SMPDD &dd ) : DD( dd ), _stack( 0 ), _state( 0 ) {}

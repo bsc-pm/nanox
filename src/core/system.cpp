@@ -70,7 +70,7 @@ System nanos::sys;
 
 // default system values go here
 System::System () :
-      _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
+      _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ), _SMP("SMP"),
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
@@ -81,7 +81,7 @@ System::System () :
       _pausedThreadsCond(), _unpausedThreadsCond(),
       _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
-      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
+      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( _SMP ),
       _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(),
       _activeMemorySpaces(), _acceleratorCount(0)
 #ifdef GPU_DEV
