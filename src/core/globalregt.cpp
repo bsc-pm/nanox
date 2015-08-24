@@ -122,6 +122,15 @@ bool global_reg_t::operator<( global_reg_t const &reg ) const {
    return result;
 }
 
+bool global_reg_t::operator!=( global_reg_t const &reg ) const {
+   bool result = false;
+   if ( key != reg.key )
+      result = true;
+   else if ( reg.key != key )
+      result = true;
+   return result;
+}
+
 memory_space_id_t global_reg_t::getFirstLocation() const {
    return NewNewRegionDirectory::getFirstLocation( key, id );
 }
