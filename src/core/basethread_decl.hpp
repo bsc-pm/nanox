@@ -184,6 +184,7 @@ namespace nanos
          const BaseThread & operator= ( const BaseThread & );
       public:
          std::ostream          *_file;
+         bool                   _gasnetAllowAM;
          std::set<void *> _pendingRequests;
          //! \brief BaseThread constructor
          BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );

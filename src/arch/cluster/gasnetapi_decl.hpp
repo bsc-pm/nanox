@@ -43,6 +43,20 @@ namespace ext {
          static GASNetAPI *_instance;
          static GASNetAPI *getInstance();
 
+         class DisableAM {
+            public:
+            DisableAM() {
+               if ( myThread != NULL ) {
+                  myThread->_gasnetAllowAM = false;
+               }
+            }
+            ~DisableAM() {
+               if ( myThread != NULL ) {
+                  myThread->_gasnetAllowAM = true;
+               }
+            }
+         };
+
          ClusterPlugin &_plugin;
          Network *_net;
          RemoteWorkDescriptor *_rwgGPU;

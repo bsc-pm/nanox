@@ -56,6 +56,7 @@ void SMPThread::runDependent ()
 void SMPThread::idle( bool debug )
 {
    if ( sys.getNetwork()->getNumNodes() > 1 ) {
+      if ( this->_gasnetAllowAM ) {
       sys.getNetwork()->poll(0);
 
       if ( !_pendingRequests.empty() ) {
@@ -72,6 +73,7 @@ void SMPThread::idle( bool debug )
                it++;
             }
          }
+      }
       }
    }
    getSMPDevice().tryExecuteTransfer();

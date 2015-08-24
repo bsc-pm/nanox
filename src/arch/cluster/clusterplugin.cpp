@@ -58,8 +58,9 @@ ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
    _gasnetApi( *this ), _numPinnedSegments( 0 ), _pinnedSegmentAddrList( NULL ),
    _pinnedSegmentLenList( NULL ), _extraPEsCount( 0 ), _conduit(""),
    _nodeMem( DEFAULT_NODE_MEM ), _allocFit( false ), _allowSharedThd( false ),
-   _gpuPresend( 1 ), _smpPresend( 1 ), _cachePolicy( System::DEFAULT ),
-   _nodes( NULL ), _cpu( NULL ), _clusterThread( NULL ) {
+   _unalignedNodeMem( false ), _gpuPresend( 1 ), _smpPresend( 1 ),
+   _cachePolicy( System::DEFAULT ), _nodes( NULL ), _cpu( NULL ),
+   _clusterThread( NULL ) {
 }
 
 void ClusterPlugin::config( Config& cfg )
@@ -187,6 +188,11 @@ void ClusterPlugin::prepare( Config& cfg ) {
    cfg.registerConfigOption ( "allow-shared-thread", NEW Config::FlagOption ( _allowSharedThd ), "Allow the cluster thread to share CPU with other threads." );
    cfg.registerArgOption ( "allow-shared-thread", "cluster-allow-shared-thread" );
    cfg.registerEnvOption ( "allow-shared-thread", "NX_CLUSTER_ALLOW_SHARED_THREAD" );
+
+   cfg.registerConfigOption ( "cluster-unaligned-node-memory", NEW Config::FlagOption ( _unalignedNodeMem ), "Do not align node memory." );
+   cfg.registerArgOption ( "cluster-unaligned-node-memory", "cluster-unaligned-node-memory" );
+   cfg.registerEnvOption ( "cluster-unaligned-node-memory", "NX_CLUSTER_UNALIGNED_NODE_MEMORY" );
+
 }
 
 ProcessingElement * ClusterPlugin::createPE( unsigned id, unsigned uid ){
@@ -281,6 +287,10 @@ unsigned int ClusterPlugin::getNumWorkers() const {
 
 unsigned int ClusterPlugin::getMaxWorkers() const {
    return _nodes->size() - 1;
+}
+
+bool ClusterPlugin::unalignedNodeMemory() const {
+   return _unalignedNodeMem;
 }
 
 }

@@ -43,8 +43,6 @@ Atomic<int> wdindc = 0;
 WD* buffWD = NULL;
 #endif
 
-#define VERBOSE_AM( x )
-
 #ifdef GPU_DEV
 //FIXME: GPU Support
 void * local_nanos_gpu_factory( void *args );
@@ -88,11 +86,13 @@ void * local_nanos_ocl_factory( void *args )
 #      define ARG_HI( _Arg ) ( ( gasnet_handlerarg_t ) ( ( ( uintptr_t ) ( _Arg ) ) >> 32 ) )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) ( ( uintptr_t ) _Arg ) )
 #      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
+#      define VERBOSE_AM( x )
 #   else
 #      define MERGE_ARG( _Hi, _Lo) ( ( uintptr_t ) ( _Lo ) )
 #      define ARG_HI( _Arg ) ( ( gasnet_handlerarg_t ) 0 )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) _Arg )
 #      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest() / 2) //Montblanc
+#      define VERBOSE_AM( x )
 #   endif
 #endif
 
@@ -308,6 +308,7 @@ void GASNetAPI::checkWorkDoneReqs()
 
 void GASNetAPI::amFinalize(gasnet_token_t token)
 {
+   DisableAM c;
    gasnet_node_t src_node;
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
@@ -321,6 +322,7 @@ void GASNetAPI::amFinalize(gasnet_token_t token)
 
 void GASNetAPI::amFinalizeReply(gasnet_token_t token)
 {
+   DisableAM c;
    gasnet_node_t src_node;
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
@@ -346,6 +348,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       gasnet_handlerarg_t arch,
       gasnet_handlerarg_t seq )
 {
+   DisableAM c;
    void (*work)( void *) = (void (*)(void *)) MERGE_ARG( workHi, workLo );
    void (*xlate)( void *, void *) = (void (*)(void *, void *)) MERGE_ARG( xlateHi, xlateLo );
    void *rmwd = (void *) MERGE_ARG( rmwdHi, rmwdLo );
@@ -481,6 +484,7 @@ void GASNetAPI::amWorkData(gasnet_token_t token, void *buff, std::size_t len,
       gasnet_handlerarg_t totalLenLo,
       gasnet_handlerarg_t totalLenHi)
 {
+   DisableAM c;
    gasnet_node_t src_node;
    std::size_t totalLen = (std::size_t) MERGE_ARG( totalLenHi, totalLenLo );
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
@@ -497,6 +501,7 @@ void GASNetAPI::amWorkData(gasnet_token_t token, void *buff, std::size_t len,
 
 void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi, gasnet_handlerarg_t peId )
 {
+   DisableAM c;
    gasnet_node_t src_node;
    void * addr = (void *) MERGE_ARG( addrHi, addrLo );
    VERBOSE_AM( std::cerr << __FUNCTION__ << " host wd addr "<< (void *) addr << std::endl; );
@@ -518,6 +523,7 @@ void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, ga
 void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasnet_handlerarg_t sizeHi,
       gasnet_handlerarg_t waitObjAddrLo, gasnet_handlerarg_t waitObjAddrHi )
 {
+   DisableAM c;
    gasnet_node_t src_node;
    void *addr = NULL;
    std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
@@ -527,8 +533,12 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
 
-   OSAllocator a;
-   addr = a.allocate( size );
+   if ( getInstance()->_plugin.unalignedNodeMemory() ) {
+      addr = (void *) NEW char[ size ];
+   } else {
+      OSAllocator a;
+      addr = a.allocate( size );
+   }
    if ( addr == NULL )  {
       std::cerr << "ERROR at amMalloc" << std::endl;
    }
@@ -551,6 +561,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
 void GASNetAPI::amMallocReply( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi,
       gasnet_handlerarg_t waitObjAddrLo, gasnet_handlerarg_t waitObjAddrHi )
 {
+   DisableAM c;
    void * addr = ( void * ) MERGE_ARG( addrHi, addrLo );
    Network::mallocWaitObj *request = ( Network::mallocWaitObj * ) MERGE_ARG( waitObjAddrHi, waitObjAddrLo );
    gasnet_node_t src_node;
@@ -565,6 +576,7 @@ void GASNetAPI::amMallocReply( gasnet_token_t token, gasnet_handlerarg_t addrLo,
 
 void GASNetAPI::amFree( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi )
 {
+   DisableAM c;
    void * addr = (void *) MERGE_ARG( addrHi, addrLo );
    gasnet_node_t src_node;
 
@@ -582,6 +594,7 @@ void GASNetAPI::amRealloc( gasnet_token_t token, gasnet_handlerarg_t oldAddrLo, 
       gasnet_handlerarg_t newAddrLo, gasnet_handlerarg_t newAddrHi,
       gasnet_handlerarg_t newSizeLo, gasnet_handlerarg_t newSizeHi)
 {
+   DisableAM c;
    void * oldAddr = (void *) MERGE_ARG( oldAddrHi, oldAddrLo );
    void * newAddr = (void *) MERGE_ARG( newAddrHi, newAddrLo );
    std::size_t oldSize = (std::size_t) MERGE_ARG( oldSizeHi, oldSizeLo );
@@ -600,6 +613,7 @@ void GASNetAPI::amRealloc( gasnet_token_t token, gasnet_handlerarg_t oldAddrLo, 
 
 void GASNetAPI::amMasterHostname( gasnet_token_t token, void *buff, std::size_t nbytes )
 {
+   DisableAM c;
    gasnet_node_t src_node;
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -634,6 +648,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
       gasnet_handlerarg_t hostObjectHi, 
       gasnet_handlerarg_t hostRegId ) 
 {
+   DisableAM c;
    gasnet_node_t src_node;
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
@@ -695,6 +710,7 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
       gasnet_handlerarg_t hostObjectHi, 
       gasnet_handlerarg_t hostRegId ) 
 {
+   DisableAM c;
    gasnet_node_t src_node;
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -742,6 +758,7 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
       gasnet_handlerarg_t reqLo,
       gasnet_handlerarg_t reqHi)
 {
+   DisableAM c;
    gasnet_node_t src_node;
    GetRequest *req = ( GetRequest * ) MERGE_ARG( reqHi, reqLo );
 
@@ -773,6 +790,7 @@ void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
       gasnet_handlerarg_t reqLo,
       gasnet_handlerarg_t reqHi)
 {
+   DisableAM c;
    gasnet_node_t src_node;
    GetRequestStrided *req = ( GetRequestStrided * ) MERGE_ARG( reqHi, reqLo );
 
@@ -797,6 +815,7 @@ void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
 }
 
 void GASNetAPI::amGet( gasnet_token_t token, void *buff, std::size_t nbytes ) {
+   DisableAM c;
    gasnet_node_t src_node;
    SendDataGetRequestPayload *msg = ( SendDataGetRequestPayload * ) buff;
    nanos_region_dimension_internal_t *dims = (nanos_region_dimension_internal_t *)( ((char *)buff)+ sizeof( SendDataGetRequestPayload ) );
@@ -832,6 +851,7 @@ void GASNetAPI::amPutF( gasnet_token_t token,
       gasnet_handlerarg_t valueLo,
       gasnet_handlerarg_t valueHi )
 {
+   DisableAM c;
    gasnet_node_t src_node;
    int i;
    void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
@@ -893,6 +913,7 @@ void GASNetAPI::amPutF( gasnet_token_t token,
 }
 
 void GASNetAPI::amRequestPut( gasnet_token_t token, void *buff, std::size_t nbytes ) {
+   DisableAM c;
    gasnet_node_t src_node;
    SendDataPutRequestPayload *msg = ( SendDataPutRequestPayload * ) buff;
 
@@ -918,6 +939,7 @@ void GASNetAPI::amRequestPut( gasnet_token_t token, void *buff, std::size_t nbyt
 }
 
 void GASNetAPI::amRequestPutStrided1D( gasnet_token_t token, void *buff, std::size_t nbytes ) {
+   DisableAM c;
    SendDataPutRequestPayload *msg = ( SendDataPutRequestPayload * ) buff;
    gasnet_node_t src_node;
 
@@ -950,6 +972,7 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
       gasnet_handlerarg_t wdId,
       gasnet_handlerarg_t seqNumber )
 {
+   DisableAM c;
    void *addr = ( void * ) MERGE_ARG( addrHi, addrLo );
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_amWaitRequestPut); );
 
@@ -982,6 +1005,7 @@ void GASNetAPI::amFreeTmpBuffer( gasnet_token_t token,
       gasnet_handlerarg_t functorLo,
       gasnet_handlerarg_t functorHi ) 
 {
+   DisableAM c;
    void *addr = ( void * ) MERGE_ARG( addrHi, addrLo );
    WD *wd = ( WD * ) MERGE_ARG( wdHi, wdLo );
    (void) wd;
@@ -1017,6 +1041,7 @@ void GASNetAPI::amFreeTmpBuffer( gasnet_token_t token,
 
 void GASNetAPI::amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nbytes )
 {
+   DisableAM c;
    gasnet_node_t src_node;
    SendDataGetRequestPayload *msg = ( SendDataGetRequestPayload * ) buff;
    nanos_region_dimension_internal_t *dims = (nanos_region_dimension_internal_t *)( ((char *)buff)+ sizeof( SendDataGetRequestPayload ) );
@@ -1045,12 +1070,14 @@ void GASNetAPI::amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nb
 }
 
 void GASNetAPI::amRegionMetadata(gasnet_token_t token, void *arg, std::size_t argSize, gasnet_handlerarg_t seq ) {
+   DisableAM c;
    CopyData *cd = (CopyData *) arg;
    cd->setDimensions( (nanos_region_dimension_internal_t *) ( ((char*)arg) + sizeof(CopyData) ) );
    getInstance()->_net->notifyRegionMetaData( cd, (unsigned int) seq );
 }
 
 void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
+   DisableAM c;
    WorkDescriptor *wds[3];
    unsigned int numWDs = 0;
 

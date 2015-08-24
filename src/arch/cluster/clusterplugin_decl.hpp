@@ -21,6 +21,7 @@ class ClusterPlugin : public ArchPlugin
       std::size_t _nodeMem;
       bool _allocFit;
       bool _allowSharedThd;
+      bool _unalignedNodeMem;
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
@@ -46,6 +47,7 @@ class ClusterPlugin : public ArchPlugin
       System::CachePolicyType getCachePolicy ( void );
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
       bool getAllocFit();
+      bool unalignedNodeMemory() const;
 
 
       virtual void startSupportThreads();
