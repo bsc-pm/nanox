@@ -1291,9 +1291,13 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
       if ( !wd->_mcontrol.isMemoryAllocated() ) {
          wd->_mcontrol.initialize( *(thread->runningOn()) );
          bool result;
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-alloc"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
          do {
             result = wd->_mcontrol.allocateTaskMemory();
          } while( result == false );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
       }
       wd->init();
    }
@@ -1359,10 +1363,14 @@ void Scheduler::switchTo ( WD *to )
 
       if (!to->started()) {
          to->_mcontrol.initialize( *(myThread->runningOn()) );
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-alloc"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) to->getId() ); )
          bool result;
          do {
             result = to->_mcontrol.allocateTaskMemory();
          } while( result == false );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
 
          to->init();
          to->start(WD::IsAUserLevelThread);
@@ -1448,9 +1456,13 @@ void Scheduler::exitTo ( WD *to )
     if (!to->started()) {
        to->_mcontrol.initialize( *(myThread->runningOn()) );
        bool result;
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-alloc"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) to->getId() ); )
        do {
           result = to->_mcontrol.allocateTaskMemory();
        } while( result == false );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
 
        to->init();
        //       to->start(true,current);

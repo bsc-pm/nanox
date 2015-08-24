@@ -602,6 +602,7 @@ namespace nanos {
             /* 51 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false);
             /* 52 */ registerEventKey("network-transfer", "Network transfer to node ", false);
             /* 52 */ registerEventKey("cache-evict", "Cache eviction", false);
+            /* 53 */ registerEventKey("copy-data-alloc","WD id that is copying data in");
 
             /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
          }
