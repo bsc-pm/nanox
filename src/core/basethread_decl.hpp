@@ -119,7 +119,6 @@ namespace nanos
       private:
          typedef void (*callback_t)(void);
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-         template <int MemoryModel>
              struct AtomicBool
              {
                  private:
@@ -127,11 +126,11 @@ namespace nanos
                  public:
                      AtomicBool() : value() { }
                      /* explicit */ operator bool() const {
-                         return __atomic_load_n(&value, MemoryModel);
+                         return __atomic_load_n(&value, __ATOMIC_ACQUIRE);
                      };
                      AtomicBool& operator=(bool b)
                      {
-                         __atomic_store_n(&value, b, MemoryModel);
+                         __atomic_store_n(&value, b, __ATOMIC_RELEASE);
                          return *this;
                      }
 
@@ -143,29 +142,21 @@ namespace nanos
 #endif
          struct StatusFlags {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-            AtomicBool<__ATOMIC_SEQ_CST> is_main_thread;
-            AtomicBool<__ATOMIC_SEQ_CST> has_started;
-            AtomicBool<__ATOMIC_SEQ_CST> must_stop;
-            AtomicBool<__ATOMIC_SEQ_CST> must_sleep;
-            AtomicBool<__ATOMIC_SEQ_CST> is_idle;
-            AtomicBool<__ATOMIC_SEQ_CST> is_paused;
-            AtomicBool<__ATOMIC_SEQ_CST> has_team;
-            AtomicBool<__ATOMIC_SEQ_CST> has_joined;
-            AtomicBool<__ATOMIC_SEQ_CST> is_waiting;
-            AtomicBool<__ATOMIC_SEQ_CST> can_get_work;    /**< Set whether the thread can get more WDs to run or not */
+             typedef AtomicBool StatusFlag;
 #else
-            bool is_main_thread;
-            bool has_started;
-            bool must_stop;
-            bool must_sleep;
-            bool is_idle;
-            bool is_paused;
-            bool has_team;
-            bool has_joined;
-            bool is_waiting;
-            bool can_get_work;    /**< Set whether the thread can get more WDs to run or not */
-            bool must_leave_team; /**< Set whether to leave the team when thread is blocked */
+             typedef bool StatusFlag;
 #endif
+            StatusFlag is_main_thread;
+            StatusFlag has_started;
+            StatusFlag must_stop;
+            StatusFlag must_sleep;
+            StatusFlag is_idle;
+            StatusFlag is_paused;
+            StatusFlag has_team;
+            StatusFlag has_joined;
+            StatusFlag is_waiting;
+            StatusFlag can_get_work;    /**< Set whether the thread can get more WDs to run or not */
+            StatusFlag must_leave_team; /**< Set whether to leave the team when thread is blocked */
 
             StatusFlags()
                 : is_main_thread(), has_started(), must_stop(),

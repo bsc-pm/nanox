@@ -180,7 +180,7 @@ namespace ext
          void setInitialized ()
          {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-            __atomic_store_n(&_initialized, true, __ATOMIC_SEQ_CST);
+            __atomic_store_n(&_initialized, true, __ATOMIC_RELEASE);
 #else
             _initialized = true;
             memoryFence();
@@ -189,7 +189,7 @@ namespace ext
          void waitInitialized ()
          {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-            while ( ! __atomic_load_n(&_initialized, __ATOMIC_SEQ_CST) ) { }
+            while ( ! __atomic_load_n(&_initialized, __ATOMIC_ACQUIRE) ) { }
 #else
             while ( !_initialized ) { memoryFence(); }
 #endif

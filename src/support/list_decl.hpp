@@ -76,7 +76,7 @@ class List {
             */
             ListNode( ListNode const &node ) : _object(node._object), _next(node._next), _refs(node._refs), 
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-            _valid(__atomic_load_n(&node._valid, __ATOMIC_SEQ_CST))
+            _valid(__atomic_load_n(&node._valid, __ATOMIC_ACQUIRE))
 #else
             _valid(node._valid)
 #endif
@@ -167,7 +167,7 @@ class List {
             */
             bool isValid() const
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-               { return __atomic_load_n(&_valid, __ATOMIC_SEQ_CST); }
+               { return __atomic_load_n(&_valid, __ATOMIC_ACQUIRE); }
 #else
                { return _valid; }
 #endif
@@ -177,7 +177,7 @@ class List {
             */
             void setValid( bool valid )
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-               { __atomic_store_n(&_valid, valid, __ATOMIC_SEQ_CST); }
+               { __atomic_store_n(&_valid, valid, __ATOMIC_RELEASE); }
 #else
                { _valid = valid; }
 #endif
