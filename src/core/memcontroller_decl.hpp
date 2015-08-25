@@ -17,6 +17,7 @@ class MemController {
    bool                        _inputDataReady;
    bool                        _outputDataReady;
    bool                        _memoryAllocated;
+   bool                        _invalidating;
    bool                        _mainWd;
    WD                         &_wd;
    ProcessingElement          *_pe;
@@ -29,6 +30,7 @@ class MemController {
    std::size_t                 _maxAffinityScore;
    RegionSet _ownedRegions;
    RegionSet _parentRegions;
+   std::set< NewNewRegionDirectory::RegionDirectoryKey > _lockedObjects;
 
 public:
    enum MemControllerPolicy {
@@ -38,6 +40,8 @@ public:
    };
    MemCacheCopy *_memCacheCopies;
    MemController( WD &wd );
+   void addAndLock( NewNewRegionDirectory::RegionDirectoryKey key );
+   void releaseLockedObjects();
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );
    void preInit();
@@ -62,6 +66,7 @@ public:
    void setCacheMetaData();
    bool ownsRegion( global_reg_t const &reg );
    bool hasObjectOfRegion( global_reg_t const &reg );
+   bool containsAllCopies( MemController const &target ) const;
 };
 
 }

@@ -95,7 +95,7 @@ class SeparateAddressSpace {
    public:
    SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize );
 
-   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval );
+   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk );
    void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
    void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
@@ -106,8 +106,8 @@ class SeparateAddressSpace {
    //void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
    uint64_t getDeviceAddress( global_reg_t const &reg, uint64_t baseAddress, AllocatedChunk *chunk ) const;
    
-   bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
-   void setRegionVersion( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
+   bool prepareRegions( MemController &mcontrol, MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+   void setRegionVersion( global_reg_t const &reg, AllocatedChunk *chunk, unsigned int version, WD const &wd, unsigned int copyIdx );
    unsigned int getCurrentVersion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 
    unsigned int getNodeNumber() const;

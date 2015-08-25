@@ -52,6 +52,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
    bool resultHIT = false;
    bool resultSUBR = false;
    bool resultSUPER = false;
+   //std::ostream &o = *myThread->_file;
    object_set_t::iterator wantedDir = _set.find( reg.key );
    if ( wantedDir != _set.end() ) {
       unsigned int versionHIT = 0;
@@ -103,7 +104,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
             locations.push_back( std::make_pair( reg.id, reg.id ) );
          } else {
             version = versionSUPER;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
             NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
             if ( firstEntry != NULL ) {
                locations.push_back( std::make_pair( reg.id, superPart ) );
@@ -111,7 +112,11 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
                if (secondEntry == NULL) std::cerr << "LOLWTF!"<< std::endl;
                *firstEntry = *secondEntry;
             } else {
-               sys.getHostMemory().getVersionInfo( reg, version, locations );
+               unsigned int tmpversion = 0;
+               sys.getHostMemory().getVersionInfo( reg, tmpversion, locations );
+               if ( tmpversion != 0 ) {
+                  version = tmpversion;
+               }
             }
          }
       }

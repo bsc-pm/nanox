@@ -17,7 +17,7 @@ HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
 }
 
 void HostAddressSpace::doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
-   from.copyOut( reg, version, ops, wd, copyIdx, inval );
+   from.copyOut( reg, version, ops, wd, copyIdx, inval, chunk );
 }
 
 void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations ) {
@@ -65,8 +65,8 @@ void HostAddressSpace::unregisterObject( void *baseAddr ) {
 SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
 }
 
-void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval ) {
-   _cache.NEWcopyOut( reg, version, wd, copyIdx, ops, inval );
+void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk ) {
+   _cache.NEWcopyOut( reg, version, wd, copyIdx, ops, inval, origChunk );
 }
 
 void SeparateAddressSpace::doOp( SeparateMemoryAddressSpace &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval ) {
@@ -85,8 +85,8 @@ void SeparateAddressSpace::failToLock( HostMemoryAddressSpace &from, global_reg_
    std::cerr << __FUNCTION__ << " @ " << __FILE__ << " : " << __LINE__ << " unimplemented" << std::endl;
 }
 
-bool SeparateAddressSpace::prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
-   return _cache.prepareRegions( memCopies, numCopies, wd );
+bool SeparateAddressSpace::prepareRegions( MemController &mcontrol, MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
+   return _cache.prepareRegions( mcontrol, memCopies, numCopies, wd );
 }
 
 //void SeparateAddressSpace::prepareRegion( global_reg_t const &reg, WD const &wd ) {
@@ -190,8 +190,8 @@ void SeparateAddressSpace::invalidate( global_reg_t const &reg ) {
    _cache.invalidateObject( reg );
 }
 
-void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   _cache.setRegionVersion( reg, version, wd, copyIdx );
+void SeparateAddressSpace::setRegionVersion( global_reg_t const &reg, AllocatedChunk *chunk, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   _cache.setRegionVersion( reg, chunk, version, wd, copyIdx );
 }
 
 Device const &SeparateAddressSpace::getDevice() const {

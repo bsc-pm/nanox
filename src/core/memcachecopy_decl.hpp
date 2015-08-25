@@ -2,6 +2,7 @@
 #define MEMCACHECOPY_DECL
 #include "memoryops_decl.hpp"
 #include "regioncache_decl.hpp"
+#include "invalidationcontroller_decl.hpp"
 #include <fstream>
 namespace nanos {
    class MemCacheCopy {
@@ -13,6 +14,8 @@ namespace nanos {
          bool                 _locationDataReady;
          AllocatedChunk      *_chunk;
          enum RegionCache::CachePolicy _policy;
+         InvalidationController _invalControl;
+         int                    _allocFrom;
          MemCacheCopy();
          MemCacheCopy( WD const &wd, unsigned int index );
 

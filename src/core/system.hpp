@@ -631,6 +631,20 @@ inline std::map<unsigned int, PE *> const &System::getPEs() const {
    return _pes;
 }
 
+inline void System::allocLock() {
+   while ( !_allocLock.tryAcquire() ) {
+      myThread->idle();
+   }
+}
+
+inline void System::allocUnlock() {
+   _allocLock.release();
+}
+
+inline bool System::useFineAllocLock() const {
+   return !_cgAlloc;
+}
+
 inline SMPDevice &System::_getSMPDevice() {
    return _SMP;
 }

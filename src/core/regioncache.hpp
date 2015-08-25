@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "regioncache_decl.hpp"
 #include "processingelement_decl.hpp"
+#include "atomic.hpp"
 
 
 inline uint64_t AllocatedChunk::getAddress() const {
@@ -87,8 +88,16 @@ inline unsigned int RegionCache::getSoftInvalidationCount() const {
    return _softInvalidationCount.value();
 }
 
+inline void RegionCache::increaseSoftInvalidationCount(unsigned int v) {
+   _softInvalidationCount += v;
+}
+
 inline unsigned int RegionCache::getHardInvalidationCount() const {
    return _hardInvalidationCount.value();
+}
+
+inline void RegionCache::increaseHardInvalidationCount(unsigned int v) {
+   _hardInvalidationCount += v;
 }
 
 inline void RegionCache::increaseTransferredInData(size_t bytes) {
@@ -114,6 +123,19 @@ inline size_t RegionCache::getTransferredOutData() const {
 inline size_t RegionCache::getTransferredReplacedOutData() const {
    return _outRepalcementBytes.value();
 }
+
+inline unsigned int RegionCache::getCurrentAllocations() const {
+   return _currentAllocations.value();
+}
+
+inline bool RegionCache::hasFreeMem() const {
+   return _allocatedBytes < _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) );
+}
+
+inline std::size_t RegionCache::getUnallocatedBytes() const {
+   return _device.getMemCapacity( sys.getSeparateMemory( _memorySpaceId ) ) - _allocatedBytes;
+}
+
 
 
 #endif /* REGIONCACHE_HPP */

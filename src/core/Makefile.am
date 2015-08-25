@@ -140,6 +140,7 @@ devinclude_HEADERS = \
 	router_fwd.hpp \
 	router_decl.hpp \
 	router.hpp \
+	invalidationcontroller_decl.hpp \
 	$(END)
 
 common_sources=\
@@ -277,6 +278,8 @@ common_sources=\
 	hwloc.cpp \
 	regionset_decl.hpp \
 	regionset.cpp \
+	invalidationcontroller_decl.hpp \
+	invalidationcontroller.cpp \
 	$(END)
 
 instr_sources = \

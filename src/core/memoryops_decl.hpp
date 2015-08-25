@@ -31,6 +31,8 @@ class BaseOps {
    BaseOps &operator=( BaseOps const &op );
    protected:
    std::set< AllocatedChunk * > _lockedChunks;
+   bool checkDataReady() const;
+   void cancelOwnOps(WD const &wd);
 
    public:
    BaseOps( ProcessingElement *pe, bool delayedCommit );
@@ -99,6 +101,8 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx );
    void issue( WD const &wd );
    void copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
+   bool hasPendingOps() const;
+   void cancel( WD const &wd );
 };
 
 }

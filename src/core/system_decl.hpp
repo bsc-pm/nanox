@@ -251,11 +251,13 @@ namespace nanos
          bool _splitOutputForThreads;
          int _userDefinedNUMANode;
          Router _router;
+         Lock _allocLock;
       public:
          Hwloc _hwloc;
          bool _immediateSuccessorDisabled;
          bool _predecessorCopyInfoDisabled;
          bool _invalControl;
+         bool _cgAlloc;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -653,6 +655,9 @@ namespace nanos
          bool invalControlEnabled() const;
          std::set<memory_space_id_t> const &getActiveMemorySpaces() const;
          PEList const &getPEs() const;
+         void allocLock();
+         void allocUnlock();
+         bool useFineAllocLock() const;
 
          SMPDevice &_getSMPDevice();
    };

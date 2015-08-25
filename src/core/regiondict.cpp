@@ -125,7 +125,7 @@ Version *RegionVectorEntry::getData() const {
 
 namespace nanos {
 template <>
-void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t region ) const {
+void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t region ) {
    RegionNode const *regNode = this->getRegionNode( region );
    global_reg_t reg( region, this );
    //fprintf(stderr, "%p:%d", this, region);
@@ -149,7 +149,7 @@ void RegionDictionary< ContainerDense >::printRegion( std::ostream &o, reg_t reg
 
 
 template <>
-void RegionDictionary< ContainerSparse >::printRegion( std::ostream &o, reg_t region ) const {
+void RegionDictionary< ContainerSparse >::printRegion( std::ostream &o, reg_t region ) {
    RegionNode const *regNode = this->getRegionNode( region );
    global_reg_t reg( region, &_orig );
    //fprintf(stderr, "%p:%d", &_orig, region);

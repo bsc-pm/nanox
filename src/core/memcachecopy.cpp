@@ -14,6 +14,8 @@ MemCacheCopy::MemCacheCopy() :
    , _locationDataReady( false )
    , _chunk( NULL )
    , _policy( sys.getRegionCachePolicy() )
+   , _invalControl()
+   , _allocFrom( -1 )
 {
 }
 
@@ -31,6 +33,15 @@ void MemCacheCopy::getVersionInfo() {
 }
 
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
+   // if ( _invalOps ) {
+   //    while ( !_invalOps->isDataReady( wd, true ) ) { myThread->idle(); }
+   //    if ( _VERBOSE_CACHE ) { *myThread->_file << "===> Invalidation complete at " << _memorySpaceId << " remove access for regs: "; }
+   //    for ( std::set< global_reg_t >::iterator it = _regions_to_remove_access.begin(); it != _regions_to_remove_access.end(); it++ ) {
+   //       if ( _VERBOSE_CACHE ) { *myThread->_file << it->id << " "; }
+   //       NewNewRegionDirectory::delAccess( it->key, it->id, getMemorySpaceId() );
+   //    }
+   //    if ( _VERBOSE_CACHE ) { *myThread->_file << std::endl ; }
+   // }
    //NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
    if ( input && output ) {
       //re read version, in case of this being a commutative or concurrent access

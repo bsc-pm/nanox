@@ -47,6 +47,12 @@ BaseOps::BaseOps( ProcessingElement *pe, bool delayedCommit ) : _delayedCommit( 
 BaseOps::~BaseOps() {
 }
 
+void BaseOps::cancelOwnOps( WD const &wd ) {
+   for ( std::set< OwnOp >::iterator it = _ownDeviceOps.begin(); it != _ownDeviceOps.end(); it++ ) {
+      it->_ops->completeCacheOp( /* debug: */ &wd );
+   }
+}
+
 bool BaseOps::isDataReady( WD const &wd, bool inval ) {
    if ( !_dataReady ) {
       bool allReady = true;
@@ -119,6 +125,10 @@ ProcessingElement *BaseOps::getPE() const {
 
 void BaseOps::addAmountTransferredData( std::size_t amount ) {
    _amountOfTransferredData += amount;
+}
+
+bool BaseOps::checkDataReady() const {
+   return _dataReady;
 }
 
 BaseAddressSpaceInOps::BaseAddressSpaceInOps( ProcessingElement *pe, bool delayedCommit ) : BaseOps( pe, delayedCommit )
@@ -317,7 +327,7 @@ void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global
    TransferList &list = _transfers[ from ];
    if ( _lockedChunks.count( chunk ) == 0 ) {
       chunk->lock();
-      chunk->addReference( wd, 1 ); //Out addOp( with chunk )
+      chunk->addReference( wd, 2 ); //Out addOp( with chunk )
       _lockedChunks.insert( chunk );
       chunk->unlock();
    }
@@ -340,6 +350,23 @@ void SeparateAddressSpaceOutOps::issue( WD const &wd ) {
 
 void SeparateAddressSpaceOutOps::copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx ) {
    from->copyOutputData( *this, memCopy._reg, memCopy.getVersion(), output, memCopy._policy, memCopy._chunk, wd, copyIdx );
+}
+
+bool SeparateAddressSpaceOutOps::hasPendingOps() const {
+   return ( _transfers.size() > 0 && !this->checkDataReady() );
+}
+
+void SeparateAddressSpaceOutOps::cancel( WD const &wd ) {
+   // for ( MapType::iterator it = _transfers.begin(); it != _transfers.end(); it++ ) {
+   //    TransferList &list = it->second;
+   //    for ( TransferList::iterator lit = list.begin(); lit != list.end(); lit++ ) {
+   //       if ( lit->getDeviceOps() != NULL ) {
+   //          lit->getDeviceOps()->completeCacheOp( &wd );
+   //       }
+   //    }
+   // }
+   this->cancelOwnOps(wd);
+   releaseLockedSourceChunks( wd );
 }
 
 }

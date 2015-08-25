@@ -12,9 +12,9 @@
 
 namespace nanos {
 MemController::MemController( WD &wd ) : _initialized( false ), _preinitialized(false), _inputDataReady(false),
-      _outputDataReady(false), _memoryAllocated( false ),
+      _outputDataReady(false), _memoryAllocated( false ), _invalidating( false ),
       _mainWd( false ), _wd( wd ), _pe( NULL ), _provideLock(), _providedRegions(), _affinityScore( 0 ),
-      _maxAffinityScore( 0 ), _ownedRegions(), _parentRegions() {
+      _maxAffinityScore( 0 ), _ownedRegions(), _parentRegions(), _lockedObjects() {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -127,16 +127,96 @@ void MemController::initialize( ProcessingElement &pe ) {
       }
       _initialized = true;
    } else {
+      std::cerr << "ERROR : MemController already initialized, wd is " << _wd.getId() << std::endl;
       ensure(_pe == &pe, " MemController, called initialize twice with different PE!");
    }
 }
 
 bool MemController::allocateTaskMemory() {
    bool result = true;
+   //std::ostream &o = (*myThread->_file);
    if ( _pe->getMemorySpaceId() != 0 ) {
-      result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
-   }
-   if ( result ) {
+      bool pending_invalidation = false;
+      bool initially_allocated = _memoryAllocated;
+
+      if ( !sys.useFineAllocLock() ) {
+      sys.allocLock();
+      }
+      
+      if ( !_memoryAllocated && !_invalidating ) {
+         //o << "### Allocating data for task " << std::dec << _wd.getId() <<  " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << std::endl;
+         bool tmp_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( *this, _memCacheCopies, _wd.getNumCopies(), _wd );
+         if ( tmp_result ) {
+            for ( unsigned int idx = 0; idx < _wd.getNumCopies() && !pending_invalidation; idx += 1 ) {
+               pending_invalidation = (_memCacheCopies[idx]._invalControl._invalOps != NULL);
+            }
+            if ( pending_invalidation ) {
+               _invalidating = true;
+               result = false;
+            } else {
+               _memoryAllocated = true;
+            }
+         } else {
+            result = false;
+         }
+//if ( tmp_result)         o << "# result:" << ( tmp_result ? (_invalidating ? " invalidating " : " success " ) : " failed " ) << " task " << std::dec << _wd.getId() <<  " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << std::endl;
+
+      } else if ( _invalidating ) {
+         //o << "# process invalidation for wd " << std::dec << _wd.getId() <<  " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << std::endl;
+         for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
+            if ( _memCacheCopies[idx]._invalControl._invalOps != NULL ) {
+               _memCacheCopies[idx]._invalControl.waitOps( _pe->getMemorySpaceId(), _wd );
+
+               if ( _memCacheCopies[idx]._invalControl._invalChunk != NULL ) {
+                  _memCacheCopies[idx]._chunk = _memCacheCopies[idx]._invalControl._invalChunk;
+                  //*(myThread->_file) << "setting invalChunkPtr ( " << _memCacheCopies[idx]._invalControl._invalChunkPtr << " ) <- " << _memCacheCopies[idx]._invalControl._invalChunk << std::endl;
+                  *(_memCacheCopies[idx]._invalControl._invalChunkPtr) = _memCacheCopies[idx]._invalControl._invalChunk;
+               }
+
+               _memCacheCopies[idx]._invalControl.abort( _wd );
+               _memCacheCopies[idx]._invalControl._invalOps = NULL;
+            }
+         }
+         _invalidating = false;
+
+         bool tmp_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( *this, _memCacheCopies, _wd.getNumCopies(), _wd );
+         //o << "# retry result:" << ( tmp_result ? (_invalidating ? " invalidating " : " success " ) : " failed " ) << " task " << std::dec << _wd.getId() <<  " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << std::endl;
+         if ( tmp_result ) {
+            pending_invalidation = false;
+            for ( unsigned int idx = 0; idx < _wd.getNumCopies() && !pending_invalidation; idx += 1 ) {
+               pending_invalidation = (_memCacheCopies[idx]._invalControl._invalOps != NULL);
+            }
+            if ( pending_invalidation ) {
+               _invalidating = true;
+               result = false;
+            } else {
+               _memoryAllocated = true;
+            }
+         } else {
+            result = false;
+         }
+      } else {
+         result = true;
+      }
+
+      if ( !initially_allocated && _memoryAllocated ) {
+         for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
+            int targetChunk = _memCacheCopies[ idx ]._allocFrom;
+            if ( targetChunk != -1 ) {
+               _memCacheCopies[ idx ]._chunk = _memCacheCopies[ targetChunk ]._chunk;
+               // if ( _memCacheCopies[ idx ]._chunk->locked() ) 
+               //    _memCacheCopies[ idx ]._chunk->unlock();
+               _memCacheCopies[ idx ]._chunk->addReference( _wd, 133 ); //allocateTaskMemory, chunk allocated by other copy
+            }
+         }
+      }
+      if ( !sys.useFineAllocLock() ) {
+      sys.allocUnlock();
+      }
+   } else {
+
+      _memoryAllocated = true;
+
       // *(myThread->_file) << "++++ Succeeded allocation for wd " << _wd.getId();
       for ( unsigned int idx = 0; idx < _wd.getNumCopies(); idx += 1 ) {
          // *myThread->_file << " [c: " << (void *) _memCacheCopies[idx]._chunk << " w/hAddr " << (void *) _memCacheCopies[idx]._chunk->getHostAddress() << " - " << (void*)(_memCacheCopies[idx]._chunk->getHostAddress() + _memCacheCopies[idx]._chunk->getSize()) << "]";
@@ -147,7 +227,6 @@ bool MemController::allocateTaskMemory() {
       }
       //*(myThread->_file)  << std::endl;
    }
-   _memoryAllocated = result;
    return result;
 }
 
@@ -202,6 +281,12 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
          if ( _wd.getParent() != NULL && _wd.getParent()->_mcontrol.ownsRegion( _memCacheCopies[index]._reg ) ) {
             WD &parent = *(_wd.getParent());
             for ( unsigned int parent_idx = 0; parent_idx < parent.getNumCopies(); parent_idx += 1) {
+            if ( parent._mcontrol._memCacheCopies[parent_idx]._reg.id == 0 ) {
+               std::cerr << "Error reg == 0!! 1 parent!"<< std::endl;
+            }
+            if ( _memCacheCopies[index]._reg.id == 0 ) {
+               std::cerr << "Error reg == 0!! 2 this!"<< std::endl;
+            }
                if ( parent._mcontrol._memCacheCopies[parent_idx]._reg.contains( _memCacheCopies[ index ]._reg ) ) {
                   if ( parent._mcontrol._memCacheCopies[parent_idx].getChildrenProducedVersion() < _memCacheCopies[ index ].getChildrenProducedVersion() ) {
                      parent._mcontrol._memCacheCopies[parent_idx].setChildrenProducedVersion( _memCacheCopies[ index ].getChildrenProducedVersion() );
@@ -287,7 +372,10 @@ bool MemController::isDataReady( WD const &wd ) {
 
 
 bool MemController::isOutputDataReady( WD const &wd ) {
-   ensure( _preinitialized == true, "MemController not initialized!");
+   if ( _preinitialized != true ) {
+      std::cerr << " CANT CALL " << __func__ << " BEFORE PRE INIT (wd: " << wd.getId() << " - " << (wd.getDescription() != NULL ? wd.getDescription() : "n/a") << ")" << std::endl;
+   }
+   ensure( _preinitialized == true, "MemController not initialized! wd " );
    if ( _initialized ) {
       if ( !_outputDataReady ) {
          _outputDataReady = _outOps->isDataReady( wd );
@@ -382,7 +470,7 @@ void MemController::setCacheMetaData() {
          _memCacheCopies[ index ].setChildrenProducedVersion( newVersion );
          if ( _pe->getMemorySpaceId() != 0 /* HOST_MEMSPACE_ID */) {
             //*myThread->_file <<__func__<< " setRegionVersion ( " << newVersion << " ) for WD " << _wd.getId() << " : " << _wd.getDescription() << " and index " << index <<std::endl;
-            sys.getSeparateMemory( _pe->getMemorySpaceId() ).setRegionVersion( _memCacheCopies[ index ]._reg, newVersion, _wd, index );
+            sys.getSeparateMemory( _pe->getMemorySpaceId() ).setRegionVersion( _memCacheCopies[ index ]._reg, _memCacheCopies[ index ]._chunk, newVersion, _wd, index );
          }
       } else if ( _wd.getCopies()[index].isInput() ) {
          _memCacheCopies[ index ].setChildrenProducedVersion( _memCacheCopies[ index ].getVersion() );
@@ -393,5 +481,51 @@ void MemController::setCacheMetaData() {
 bool MemController::hasObjectOfRegion( global_reg_t const &reg ) {
    return _ownedRegions.hasObjectOfRegion( reg );
 }
+
+
+void MemController::addAndLock( NewNewRegionDirectory::RegionDirectoryKey key ) {
+   std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator dict_it = _lockedObjects.find( key );
+   if ( dict_it == _lockedObjects.end() ) {
+      //*myThread->_file <<"trying lock object " << key << std::endl;
+      key->lock();
+      //*myThread->_file <<"locked object " << key << std::endl;
+      _lockedObjects.insert( key );
+   }
+}
+
+void MemController::releaseLockedObjects() {
+   for ( std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator locked_object_it = _lockedObjects.begin(); locked_object_it != _lockedObjects.end(); locked_object_it++ ) {
+      (*locked_object_it)->unlock();
+      //*myThread->_file <<"released object " << *locked_object_it << std::endl;
+   }
+   _lockedObjects.clear();
+}
+
+bool MemController::containsAllCopies( MemController const &target ) const {
+   bool result = true;
+   for ( unsigned int idx = 0; idx < target._wd.getNumCopies() && result; idx += 1 ) {
+      bool this_reg_is_contained = false;
+      for ( unsigned int this_idx = 0; this_idx < _wd.getNumCopies() && !this_reg_is_contained; this_idx += 1 ) {
+         //   std::cerr << "this_reg "; target._memCacheCopies[idx]._reg.key->printRegion(std::cerr, target._memCacheCopies[idx]._reg.id); std::cerr << std::endl;
+         //   std::cerr << "target_reg "; _memCacheCopies[this_idx]._reg.key->printRegion(std::cerr, _memCacheCopies[this_idx]._reg.id); std::cerr << std::endl;
+         if ( target._memCacheCopies[idx]._reg.key == _memCacheCopies[this_idx]._reg.key ) {
+            reg_key_t key = target._memCacheCopies[idx]._reg.key;
+            reg_t this_reg = _memCacheCopies[this_idx]._reg.id;
+            reg_t target_reg = target._memCacheCopies[idx]._reg.id;
+            if ( target_reg == this_reg || ( key->checkIntersect( target_reg, this_reg ) && key->computeIntersect( target_reg, this_reg ) == target_reg ) ) {
+               this_reg_is_contained = true;
+            }
+         //   std::cerr << "same key [target idx = " << idx << "]= "<< target_reg <<" && [this idx = " << this_idx << "]= " << this_reg << " result " << this_reg_is_contained << std::endl;
+         //   std::cerr << "this_reg "; key->printRegion(std::cerr, this_reg); std::cerr << std::endl;
+         //   std::cerr << "target_reg "; key->printRegion(std::cerr, target_reg); std::cerr << std::endl;
+         //} else {
+         //   std::cerr << "diff key [target idx = " << idx << "] && [this idx = " << this_idx << "] result " << this_reg_is_contained << std::endl;
+         }
+      }
+      result = this_reg_is_contained;
+   }
+   return result;
+}
+
 
 }

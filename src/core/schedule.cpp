@@ -71,7 +71,7 @@ void Scheduler::submit ( WD &wd, bool force_queue )
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_SCHEDULING) );
    BaseThread *mythread = myThread;
 
-   debug ( "submitting task " << wd.getId() );
+   debug ( "submitting task " << wd.getId() << " " << ( wd.getDescription() != NULL ? wd.getDescription() : "")  );
 
    wd.submitted();
    wd.setReady();

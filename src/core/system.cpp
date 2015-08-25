@@ -101,6 +101,7 @@ System::System () :
       , _immediateSuccessorDisabled( false )
       , _predecessorCopyInfoDisabled( false )
       , _invalControl( false )
+      , _cgAlloc( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -396,6 +397,10 @@ void System::config ()
    cfg.registerConfigOption( "inval-control", NEW Config::FlagOption( _invalControl ),
                              "Inval control." );
    cfg.registerArgOption( "inval-control", "inval-control" );
+
+   cfg.registerConfigOption( "cg-alloc", NEW Config::FlagOption( _cgAlloc ),
+                             "CG alloc." );
+   cfg.registerArgOption( "cg-alloc", "cg-alloc" );
 
    _schedConf.config( cfg );
    _pmInterface->config( cfg );
@@ -1542,3 +1547,4 @@ void System::registerObject(int numObjects, nanos_copy_data_internal_t *obj) {
 void System::unregisterObject( void *base_addr ) {
    _hostMemory.unregisterObject( base_addr );
 }
+
