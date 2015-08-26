@@ -15,17 +15,10 @@ def cpus(max_cpus):
 		ans = ans + ['--smp-workers='+str(i)]
 	return ans
 
-test_mode=os.environ.get('NX_TEST_MODE')
-if test_mode == None:
-	test_mode='small'
-
-max_cpus=os.environ.get('NX_TEST_MAX_CPUS')
-if ( max_cpus == None ):
-	max_cpus=2
-
-test_schedule=os.environ.get('NX_TEST_SCHEDULE')
-
-test_architecture=os.environ.get('test_architecture')
+test_mode = os.environ.get('NX_TEST_MODE', 'small')
+max_cpus = os.environ.get('NX_TEST_MAX_CPUS', 2)
+test_schedule = os.environ.get('NX_TEST_SCHEDULE')
+test_architecture = os.environ.get('NX_TEST_ARCH')
 
 # Process program arguments (priority to env vars)
 from optparse import OptionParser
@@ -35,7 +28,8 @@ header ='Nanox config generator 0.1\n\n'+\
 	'Envorionment variables that affect this script:\n'+\
 	'   NX_TEST_MODE=\'performance\'|\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
 	'   NX_TEST_MAX_CPUS=#CPUS                  -  2 by default\n'+\
-	'   NX_TEST_SCHEDULE=[scheduler]\n'
+	'   NX_TEST_SCHEDULE=[scheduler]\n'+\
+	'   NX_TEST_ARCH=[architecture]\n'
 if '-h' in sys.argv or '--help' in sys.argv:
 	print header
 
