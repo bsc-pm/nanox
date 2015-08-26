@@ -55,6 +55,7 @@ class SMPBasePlugin : public ArchPlugin {
       virtual void setRequestedWorkers( int workers ) = 0;
       virtual int getRequestedWorkersOMPSS() const = 0;
       virtual void getBindingMaskString( std::ostream &o ) const = 0;
+      virtual bool asyncTransfersEnabled() const = 0;
 };
 
 }

@@ -87,6 +87,7 @@ class SMPPlugin : public SMPBasePlugin
 
    bool                         _memkindSupport;
    std::size_t                  _memkindMemorySize;
+   bool                         _asyncSMPTransfers;
 
    public:
    SMPPlugin() : SMPBasePlugin( "SMP PE Plugin", 1 )
@@ -115,6 +116,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindings()
                  , _memkindSupport( false )
                  , _memkindMemorySize( 1024*1024*1024 ) // 1Gb
+                 , _asyncSMPTransfers( true )
    {}
 
    virtual unsigned int getNewSMPThreadId() {
@@ -188,6 +190,10 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "smp-memkind-memory-size", "smp-memkind-memory-size" );
       cfg.registerEnvOption( "smp-memkind-memory-size", "NX_SMP_MEMKIND_MEMORY_SIZE" );
 #endif
+      cfg.registerConfigOption( "smp-sync-transfers", NEW Config::FlagOption( _asyncSMPTransfers, false ),
+            "SMP sync transfers." );
+      cfg.registerArgOption( "smp-sync-transfers", "smp-sync-transfers" );
+      cfg.registerEnvOption( "smp-sync-transfers", "NX_SMP_SYNC_TRANSFERS" );
    }
 
    virtual void init() {
@@ -977,6 +983,10 @@ class SMPPlugin : public SMPBasePlugin
          o << (*it)->getBindingId() << ( (*it)->isActive() ? "a " : "i ");
       }
       o << "]";
+   }
+
+   virtual bool asyncTransfersEnabled() const {
+      return _asyncSMPTransfers;
    }
 
 };
