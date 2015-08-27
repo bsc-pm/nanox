@@ -665,8 +665,10 @@ class SMPPlugin : public SMPBasePlugin
    {
       bool success = false;
       if ( isValidMask( mask ) ) {
+         // The new process mask is copied
          _cpuProcessMask = mask;
-         _cpuActiveMask = mask;
+         // The active mask must be a subset of the new process mask
+         _cpuActiveMask &= mask;
          int master_cpu = workers[0]->getCpuId();
          if ( !sys.getUntieMaster() && !mask.isSet(master_cpu) ) {
             // If master thread is tied and mask does not include master's cpu, force it
@@ -972,6 +974,7 @@ private:
          for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
+            target->setActive( _cpuProcessMask.isSet(binding_id) );
             if ( _cpuActiveMask.isSet(binding_id) ) {
 
                /* Create a new worker if the target PE is empty */
@@ -991,6 +994,7 @@ private:
          for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
+            // FIXME: cpuActive or cpuProcess?
             target->setActive( _cpuActiveMask.isSet(binding_id) );
          }
       }
