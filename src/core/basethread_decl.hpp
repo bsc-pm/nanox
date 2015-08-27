@@ -240,7 +240,7 @@ namespace nanos
          void unlock ();
 
          virtual void start () = 0;
-         virtual void finish () { if ( _status.has_team ) leaveTeam(); };
+         virtual void finish ();
          void run();
          void stop();
          virtual void sleep();

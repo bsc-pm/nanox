@@ -41,6 +41,14 @@ void BaseThread::run ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->threadFinish ( *this ) );
 }
 
+void BaseThread::finish ()
+{
+   if ( _status.has_team ) {
+      setLeaveTeam(true);
+      leaveTeam();
+   }
+}
+
 void BaseThread::addNextWD ( WD *next )
 {
    if ( next != NULL ) {
@@ -171,12 +179,12 @@ void BaseThread::tryWakeUp( ThreadTeam *team )
 {
    lock();
    if ( isSleeping() ) {
-      // Thread is waiting and no wake up order has been sent yet
+      // Thread is tagged to sleep. It may be already waiting or just tagged
       reserve();
       setNextTeam( team );
       wakeup();
    }
-   else if ( !isWaiting() && !hasTeam() ) {
+   if ( !isWaiting() && !getTeam() ) {
       // Thread is already running but without team
       reserve();
       setNextTeam( NULL );

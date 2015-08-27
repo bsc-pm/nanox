@@ -184,7 +184,7 @@ ThreadManager::ThreadManager( bool warmup )
 void ThreadManager::init()
 {
    if ( _warmupThreads ) {
-      sys.getSMPPlugin()->forceMaxThreadCreation();
+      sys.forceMaxThreadCreation();
    }
    _cpuProcessMask = &sys.getCpuProcessMask();
    _cpuActiveMask = &sys.getCpuActiveMask();
