@@ -20,6 +20,10 @@
 #ifndef _NANOS_ATOMIC_DECL
 #define _NANOS_ATOMIC_DECL
 
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
+
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
@@ -51,7 +55,11 @@ namespace nanos
    {
 
       private:
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         T     _value;
+#else
          volatile T     _value;
+#endif
 
       public:
          // constructor
@@ -103,13 +111,23 @@ namespace nanos
          //! compare and swap
          bool cswap ( const Atomic<T> &oldval, const Atomic<T> &newval );
 
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         // note that the caller becomes responsible of accessing the shared
+         // storage in a non-racy way
+         T& override ();
+#else
          volatile T & override ();
+#endif
    };
 
    void memoryFence ();
 
    template<typename T>
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   bool compareAndSwap( T *ptr, T oldval, T  newval );
+#else
    bool compareAndSwap( volatile T *ptr, T oldval, T  newval );
+#endif
 
    class Lock : public nanos_lock_t
    {

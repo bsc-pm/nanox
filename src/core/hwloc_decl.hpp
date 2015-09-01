@@ -52,6 +52,17 @@ class Hwloc {
       unsigned int getNumaNodeOfGpu( unsigned int gpu );
       void getNumSockets(unsigned int &allowedNodes, int &numSockets, unsigned int &hwThreads);
 
+      /*!
+       * \brief Checks if we can see the CPU, to create the PE.
+       * If hwloc has no info on that CPU, we should not continue creating
+       * a PE for it, since it will hardly be available.
+       *
+       * If hwloc is not available, this function returns true.
+       *
+       * @param cpu OS CPU index.
+       */
+      bool isCpuAvailable( unsigned int cpu ) const;
+
 };
 
 }

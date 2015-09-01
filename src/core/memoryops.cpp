@@ -318,7 +318,7 @@ unsigned int SeparateAddressSpaceInOps::getVersionNoLock( global_reg_t const &re
 
 void SeparateAddressSpaceInOps::copyInputData( MemCacheCopy const& memCopy, WD const &wd, unsigned int copyIdx ) {
    lockSourceChunks( memCopy._reg, memCopy.getVersion(), memCopy._locations, _destination.getMemorySpaceId(), wd, copyIdx );
-   _destination.copyInputData( *this, memCopy._reg, memCopy.getVersion(), memCopy._locations, memCopy._chunk, wd, copyIdx );
+   _destination.copyInputData( *this, memCopy._reg, memCopy.getVersion(), memCopy._locations, memCopy._chunk, wd, copyIdx, memCopy._policy );
 }
 
 void SeparateAddressSpaceInOps::allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {

@@ -86,7 +86,7 @@ typedef unsigned int reg_t;
       std::vector< std::size_t > _dimensionSizes;
       RegionNode                 _root;
       Lock                       _rogueLock;
-      Lock                       _lock;
+      RecursiveLock              _containerLock;
       Lock                       _invalidationsLock;
       std::map< reg_t, reg_t >   _masterIdToLocalId;
       bool                       _keepAtOrigin;
@@ -94,7 +94,8 @@ typedef unsigned int reg_t;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
-      RegionNode *getRegionNode( reg_t id ) const;
+      ~ContainerDense();
+      RegionNode *getRegionNode( reg_t id );
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
       void setRegionData( reg_t id, Version * );
@@ -120,12 +121,14 @@ typedef unsigned int reg_t;
    template < class T >
    class ContainerSparse {
       std::map< reg_t, T > _container;
+      Lock                       _containerLock;
       //ContainerDense< T > &_orig;
       protected:
       RegionDictionary< ContainerDense > &_orig;
       public:
       bool sparse;
       ContainerSparse( RegionDictionary< ContainerDense > &orig );
+      ~ContainerSparse();
       RegionNode *getRegionNode( reg_t id ) const;
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
@@ -136,6 +139,7 @@ typedef unsigned int reg_t;
       unsigned int getNumDimensions() const;
       reg_t checkIfRegionExists( nanos_region_dimension_internal_t const region[] );
       ContainerDense< T > &getOrigContainer();
+      reg_t getMaxRegionId() const;
 
       Version *getGlobalRegionData( reg_t id );
       RegionNode *getGlobalRegionNode( reg_t id ) const;
@@ -156,11 +160,10 @@ typedef unsigned int reg_t;
       std::vector< MemoryMap< std::set< reg_t > > > _intersects;
       uint64_t _keyBaseAddress;
       uint64_t _realBaseAddress;
-      Lock _lock;
+      RecursiveLock _lock;
 
       public:
       void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise = false, bool giveSubFragmentsWithSameVersion = false );
-      void getRegionIntersects( reg_t id, unsigned int version, std::list< reg_t > &superParts, std::list< reg_t > &subParts );
       void lock();
       bool tryLock();
       void unlock();
@@ -169,6 +172,7 @@ typedef unsigned int reg_t;
 
       RegionDictionary( CopyData const &cd );
       RegionDictionary( GlobalRegionDictionary &dict );
+      ~RegionDictionary();
       //reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, WD const &wd, unsigned int idx );
       reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
@@ -180,9 +184,10 @@ typedef unsigned int reg_t;
       uint64_t getKeyBaseAddress() const;
       uint64_t getRealBaseAddress() const;
 
-      void printRegion( std::ostream &o, reg_t ) const;
+      void printRegion( std::ostream &o, reg_t );
+      void printRegionGeom( std::ostream &o, reg_t );
 
-      bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId ) const;
+      bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId );
       reg_t computeTestIntersect( reg_t regionIdA, reg_t regionIdB ) ;
       reg_t computeIntersect( reg_t regionIdA, reg_t regionIdB ) ;
       void _computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg );

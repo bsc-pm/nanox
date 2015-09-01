@@ -269,11 +269,9 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       
       // Set WD's socket
       wd.setNUMANode( sys.getUserDefinedNUMANode() );
-#ifndef ON_TASK_REDUCTION
-#else
+
       wd.copyReductions (myThread->getCurrentWD() );
-#endif
-      
+
       if ( wd.getNUMANode() >= (int)sys.getNumNumaNodes() )
          throw NANOS_INVALID_PARAM;
 
@@ -573,15 +571,66 @@ NANOS_API_DEF(nanos_err_t, nanos_set_create_local_tasks, ( bool value ))
     return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_switch_to_thread, ( unsigned int thid ))
+NANOS_API_DEF(nanos_err_t, nanos_switch_to_thread, ( unsigned int *thid ))
 {
     // FIXME NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","switch_to_thread",NANOS_RUNTIME) );
     try {
-       sys.switchToThread( thid );
+       if ( myThread->getCurrentWD()->isTiedTo() ) {
+          return NANOS_INVALID_REQUEST;
+       }
+       sys.switchToThread( *thid );
     } catch ( nanos_err_t e) {
        return e;
     }
     return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_is_tied, ( bool *result ))
+{
+    // FIXME NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","is_tied",NANOS_RUNTIME) );
+    try {
+       *result = myThread->getCurrentWD()->isTiedTo() != NULL;
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+
+NANOS_API_DEF (nanos_err_t, nanos_task_fortran_array_reduction_register, ( void *orig, void *dep,
+         size_t array_descriptor_size, void (*init)( void *, void * ), void (*reducer)( void *, void * ),
+         void (*reducer_orig_var)( void *, void * ) ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_register",NANOS_RUNTIME) );
+   try {
+      myThread->getCurrentWD()->registerFortranArrayTaskReduction(
+            orig, dep, array_descriptor_size, init, reducer, reducer_orig_var );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
+
+
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size,
+         void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_register",NANOS_RUNTIME) );
+   try {
+       myThread->getCurrentWD()->registerTaskReduction( orig, size, init, reducer );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_get_thread_storage, ( void *orig, void **tpd ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_get_thread_storage",NANOS_RUNTIME) );
+   try {
+      *tpd = myThread->getCurrentWD()->getTaskReductionThreadStorage( orig, myThread->getTeamId() );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
 //! \}

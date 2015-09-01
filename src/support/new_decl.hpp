@@ -20,8 +20,6 @@
 #ifndef _NANOS_NEW_DECL
 #define _NANOS_NEW_DECL
 
-#define ON_TASK_REDUCTION
-
 #include <new>
 
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED) // ----- debug AND memtracker -----

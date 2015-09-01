@@ -20,6 +20,10 @@
 #ifndef _NANOS_THREAD_TEAM_DECL_H
 #define _NANOS_THREAD_TEAM_DECL_H
 
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
+
 #include <vector>
 #include <list>
 #include "basethread_decl.hpp"
@@ -58,15 +62,20 @@ namespace nanos
          typedef std::map<unsigned, BaseThread *>  ThreadTeamList; /**< List of team members */
          typedef std::map<unsigned, bool>          ThreadTeamIdList; /**< List of team members */
          typedef std::list<TaskReduction *>        task_reduction_list_t;  //< List of task reductions type
+         typedef std::set<BaseThread *>            ThreadSet;
 
          ThreadTeamList               _threads;          /**< Threads that make up the team */
          ThreadTeamIdList             _idList;           /**< List of id usage (reusing old id's) */
-         Atomic<size_t>               _finalSize;
+         ThreadSet                    _expectedThreads;  /**< Threads expected to form the team */
          Atomic<size_t>               _starSize;
          int                          _idleThreads;
          int                          _numTasks;
          Barrier &                    _barrier;
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         int                 _singleGuardCount;
+#else
          volatile int                 _singleGuardCount;
+#endif
          SchedulePolicy &             _schedulePolicy;
          ScheduleTeamData *           _scheduleData;
          ThreadTeamData &             _threadTeamData;
@@ -74,11 +83,8 @@ namespace nanos
          int                          _level;            /**< Nesting level of the team */
          int                          _creatorId;        /**< Team Id of the thread that created the team */
          nanos_ws_desc_t             *_wsDescriptor;     /**< Worksharing queue (pointer managed due specific atomic op's over these pointers) */
-         Lock                         _lockTaskReductions; //!< Task reductions lock
-         task_reduction_list_t        _taskReductions;   //< List of task reductions
          ReductionList                _redList;          /**< Reduction List */
          Lock                         _lock;
-         bool                         _stable; 
       private:
 
          /*! \brief ThreadTeam default constructor (disabled)
@@ -101,6 +107,10 @@ namespace nanos
          /*! \brief ThreadTeam destructor
           */
          ~ThreadTeam ();
+
+         // atomic access
+         void lock();
+         void unlock();
 
          unsigned size() const;
 
@@ -208,20 +218,21 @@ namespace nanos
          */
          void computeVectorReductions ( void );
 
-        /*! \brief Get final size 
+        /*! \brief Get final size
          */
          size_t getFinalSize ( void ) const;
-        /*! \brief Set final size 
+
+        /*! \brief Check whether team has the expected members
          */
-         void setFinalSize ( size_t s );
-         void increaseFinalSize ( void );
-         void decreaseFinalSize ( void );
-         void setStable ( bool value ) ;
-         bool isStable ( void ) const;
-         void removeTaskReduction( void *orig );
-         void registerTaskReduction( void *orig, void *dep, size_t size, void (*init)( void *, void *), void (*reducer)( void *, void * ), void (*reducer_orig_var)( void *, void * ) );
-         void * getTaskReductionThreadStorage( void *p_orig, size_t id );
-         TaskReduction * getTaskReduction( const void *p_dep );
+         bool isStable ( void );
+
+        /*! \brief Add an expected member that will enter by itself in the team
+         */
+         void addExpectedThread( BaseThread *thread );
+
+        /*! \brief Remove an expected team member. It should leave by itself
+         */
+         void removeExpectedThread( BaseThread *thread );
    };
 
 }

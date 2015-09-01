@@ -95,7 +95,11 @@ namespace nanos
          TargetVector             _outputObjects;   /**< List of output objects */
          TargetVector             _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         bool                     _submitted;
+#else
          volatile bool            _submitted;
+#endif
          bool                     _needsSubmission; /**< Does this DependableObject need to be submitted? */
          WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
          DOSchedulerData          *_schedulerData;  /**< Data needed for specific scheduling policies */

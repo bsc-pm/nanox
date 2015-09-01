@@ -324,6 +324,10 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    static nanos_event_key_t priorityKey = getInstrumentationDictionary()->getEventKey("wd-priority");
    nanos_event_value_t wd_priority = (nanos_event_value_t) newWD->getPriority() + 1;
    createBurstEvent( &e3, priorityKey, wd_priority, icd );
+
+   static nanos_event_key_t numaNodeKey = getInstrumentationDictionary()->getEventKey("wd-numa-node");
+   nanos_event_value_t wd_numa_node = (nanos_event_value_t) newWD->getNUMANode() + 1;
+   createBurstEvent( &e4, numaNodeKey, wd_numa_node, icd );
  
    /* Create event: STATE */
    if ( _emitStateEvents == true ) createStateEvent( &e1, NANOS_RUNTIME, icd );
@@ -333,6 +337,7 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
       if ( _emitStateEvents == true ) _instrumentationContext.insertDeferredEvent( icd, e1 );
       if ( key != 0 ) _instrumentationContext.insertDeferredEvent( icd, e2 );
       if ( priorityKey != 0 )_instrumentationContext.insertDeferredEvent( icd, e3 );
+      if ( numaNodeKey != 0 ) _instrumentationContext.insertDeferredEvent( icd, e4 );
    }
 }
 

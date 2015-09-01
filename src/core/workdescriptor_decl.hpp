@@ -222,7 +222,7 @@ typedef std::set<const Device *>  DeviceList;
          typedef int PriorityType;
          typedef enum { INIT, START, READY, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
-         typedef std::list<TaskReduction *>        task_reduction_list_t;  //< List of task reductions type
+         typedef std::vector<TaskReduction *>        task_reduction_vector_t;  //< List of task reductions type
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
          int                           _hostId;                 //!< Work descriptor identifier @ host
@@ -269,7 +269,7 @@ typedef std::set<const Device *>  DeviceList;
          const char                   *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
-         task_reduction_list_t        _taskReductions;   //< List of task reductions
+         task_reduction_vector_t       _taskReductions;         //< Vector of task reductions
          int                           _criticality;
          //Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          //bool _listed;
@@ -696,13 +696,25 @@ typedef std::set<const Device *>  DeviceList;
          //! submit() and dequeue() when _slicer attribute is specified.
          void convertToRegularWD();
 
-         void registerTaskReduction( void *p_orig, void *dep, size_t p_size, void (*p_init)( void *, void * ),
-                 void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ));
+         //! \brief This function registers a new task reduction over a
+         //variable if it is not already registered.
+         void registerTaskReduction( void *p_orig, size_t p_size,
+                 void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) );
 
-         bool removeTaskReduction( void *p_orig, bool del = false );
-         void * getTaskReductionThreadStorage( void *p_orig, size_t id );
+         //! \brief This function registers a new fortran task reduction over an
+         //array if it is not already registered.
+         void registerFortranArrayTaskReduction( void *p_orig, void *dep,
+                 size_t array_descriptor_size, void (*p_init)( void *, void * ),
+                 void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) );
+
+         bool removeTaskReduction( void *p_dep, bool del = false );
+
+         void * getTaskReductionThreadStorage( void *p_addr, size_t id );
+
          TaskReduction * getTaskReduction( const void *p_dep );
+
          void copyReductions(WorkDescriptor *parent);
+
          bool resourceCheck( BaseThread const &thd, bool considerInvalidations ) const;
 
          void setId( unsigned int id );

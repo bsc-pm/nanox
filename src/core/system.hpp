@@ -49,13 +49,11 @@ using namespace nanos;
 //
 //inline int System::getNumThreads () const { return _numThreads; }
 
-//inline int System::getCpuCount () const { return CPU_COUNT( &_cpuSet ) ; };
-
 inline DeviceList & System::getSupportedDevices() { return _devices; }
 
-inline void System::setDeviceStackSize ( int stackSize ) { _deviceStackSize = stackSize; }
+inline void System::setDeviceStackSize ( size_t stackSize ) { _deviceStackSize = stackSize; }
 
-inline int System::getDeviceStackSize () const {return _deviceStackSize; }
+inline size_t System::getDeviceStackSize () const {return _deviceStackSize; }
 
 inline System::ExecutionMode System::getExecutionMode () const { return _executionMode; }
 
@@ -110,6 +108,12 @@ inline int System::getVirtualNUMANode( int physicalNode ) const
 {
    return ( physicalNode < (int)_numaNodeMap.size() ) ? _numaNodeMap[ physicalNode ] : INT_MIN;
 }
+
+inline const std::vector<int> & System::getNumaNodeMap() const
+{
+	return _numaNodeMap;
+}
+
 //
 //inline int System::getCurrentSocket() const { return _currentSocket; }
 //inline void System::setCurrentSocket( int currentSocket ) { _currentSocket = currentSocket; }
@@ -539,6 +543,10 @@ inline RegionCache::CachePolicy System::getRegionCachePolicy() const {
    return _regionCachePolicy;
 }
 
+inline std::size_t System::getRegionCacheSlabSize() const {
+   return _regionCacheSlabSize;
+}
+
 inline void System::createDependence( WD* pred, WD* succ)
 {
    DOSubmit *pred_do = pred->getDOSubmit(), *succ_do = succ->getDOSubmit();
@@ -604,15 +612,13 @@ inline void System::expelCurrentThread ( bool isWorker ) { _smpPlugin->expelCurr
 
 inline void System::updateActiveWorkers ( int nthreads ) { _smpPlugin->updateActiveWorkers( nthreads, _workers, myThread->getTeam() ); }
 
-inline const cpu_set_t& System::getCpuProcessMask () const { return _smpPlugin->getCpuProcessMask(); }
-inline void System::getCpuProcessMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuProcessMask( mask ); }
-inline bool System::setCpuProcessMask ( const cpu_set_t *mask ) { return _smpPlugin->setCpuProcessMask( mask, _workers ); }
-inline void System::addCpuProcessMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuProcessMask( mask, _workers ); }
+inline const CpuSet& System::getCpuProcessMask () const { return _smpPlugin->getCpuProcessMask(); }
+inline bool System::setCpuProcessMask ( const CpuSet& mask ) { return _smpPlugin->setCpuProcessMask( mask, _workers ); }
+inline void System::addCpuProcessMask ( const CpuSet& mask ) { _smpPlugin->addCpuProcessMask( mask, _workers ); }
 
-inline const cpu_set_t& System::getCpuActiveMask () const { return _smpPlugin->getCpuActiveMask(); }
-inline void System::getCpuActiveMask ( cpu_set_t *mask ) const { _smpPlugin->getCpuActiveMask( mask ); }
-inline bool System::setCpuActiveMask ( const cpu_set_t *mask ) { return _smpPlugin->setCpuActiveMask( mask, _workers ); }
-inline void System::addCpuActiveMask ( const cpu_set_t *mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
+inline const CpuSet& System::getCpuActiveMask () const { return _smpPlugin->getCpuActiveMask(); }
+inline bool System::setCpuActiveMask ( const CpuSet& mask ) { return _smpPlugin->setCpuActiveMask( mask, _workers ); }
+inline void System::addCpuActiveMask ( const CpuSet& mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
 
 inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int accelerator_id ) const {
    memory_space_id_t id = ( memory_space_id_t ) -1;
@@ -627,6 +633,14 @@ inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int acc
 
 inline Router &System::getRouter() {
    return _router;
+}
+
+inline bool System::isImmediateSuccessorEnabled() const {
+   return !_immediateSuccessorDisabled;
+}
+
+inline bool System::usePredecessorCopyInfo() const {
+   return !_predecessorCopyInfoDisabled;
 }
 
 #endif

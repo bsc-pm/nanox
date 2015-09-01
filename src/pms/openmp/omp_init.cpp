@@ -17,9 +17,8 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <sched.h>
-#include "system.hpp"
 #include <cstdlib>
+#include "system.hpp"
 #include "config.hpp"
 #include "omp_init.hpp"
 #include "omp_wd_data.hpp"
@@ -207,19 +206,19 @@ namespace nanos
 
       /*!
        * \brief Get the current mask of the process
-       * \param[out] cpu_set cpu_set_t that will containt the process mask
+       * \param[out] cpu_set CpuSet that will containt the process mask
        */
-      void OpenMPInterface::getCpuProcessMask( cpu_set_t *cpu_set ) const
+      const CpuSet& OpenMPInterface::getCpuProcessMask() const
       {
-         sys.getCpuProcessMask( cpu_set );
+         return sys.getCpuProcessMask();
       }
 
       /*!
        * \brief Set a new mask for the process
-       * \param[in] cpu_set cpu_set_t that containts the mask to set
+       * \param[in] cpu_set CpuSet that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      bool OpenMPInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      bool OpenMPInterface::setCpuProcessMask( const CpuSet& cpu_set )
       {
          bool success = sys.setCpuProcessMask( cpu_set );
 
@@ -231,10 +230,10 @@ namespace nanos
 
       /*!
        * \brief Add a new mask to be merged with the process mask
-       * \param[in] cpu_set cpu_set_t that containts the mask to add
+       * \param[in] cpu_set CpuSet that containts the mask to add
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::addCpuProcessMask( const cpu_set_t *cpu_set )
+      void OpenMPInterface::addCpuProcessMask( const CpuSet& cpu_set )
       {
          sys.addCpuProcessMask( cpu_set );
 
@@ -244,19 +243,19 @@ namespace nanos
 
       /*!
        * \brief Get the current mask of used cpus
-       * \param[out] cpu_set cpu_set_t that will containt the current mask
+       * \param[out] cpu_set CpuSet that will containt the current mask
        */
-      void OpenMPInterface::getCpuActiveMask( cpu_set_t *cpu_set ) const
+      const CpuSet& OpenMPInterface::getCpuActiveMask() const
       {
-         sys.getCpuActiveMask( cpu_set );
+         return sys.getCpuActiveMask();
       }
 
       /*!
        * \brief Set a new mask of active cpus
-       * \param[in] cpu_set cpu_set_t that containts the mask to set
+       * \param[in] cpu_set CpuSet that containts the mask to set
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      bool OpenMPInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
+      bool OpenMPInterface::setCpuActiveMask( const CpuSet& cpu_set )
       {
          bool success = sys.setCpuActiveMask( cpu_set );
 
@@ -268,10 +267,10 @@ namespace nanos
 
       /*!
        * \brief Add a new mask to be merged with active cpus
-       * \param[in] cpu_set cpu_set_t that containts the mask to add
+       * \param[in] cpu_set CpuSet that containts the mask to add
        * \note New threads are not inmediately created nor added to the team in the OpenMP model
        */
-      void OpenMPInterface::addCpuActiveMask( const cpu_set_t *cpu_set )
+      void OpenMPInterface::addCpuActiveMask( const CpuSet& cpu_set )
       {
          sys.addCpuActiveMask( cpu_set );
 
@@ -326,6 +325,15 @@ namespace nanos
          _malleable = true;
          sys.setInitialMode( System::POOL );
          sys.setUntieMaster( sys.getThreadManagerConf().canUntieMaster() );
+
+         // Loading plugins for OpenMP worksharing policies
+         for (int i = omp_sched_static; i <= omp_sched_auto; i++) {
+            ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
+            if ( ws_plugins[i] == NULL ){
+               if ( !sys.loadPlugin( "worksharing-" + ws_names[i]) ) fatal0( "Could not load " + ws_names[i] + "worksharing" );
+               ws_plugins[i] = sys.getWorkSharing ( ws_names[i] );
+            }
+         }
       }
 
       /*! \brief Get the size of OmpSsData */
@@ -398,10 +406,10 @@ namespace nanos
 
       /*!
        * \brief Set a new mask for the process
-       * \param[in] cpu_set cpu_set_t that containts the mask to set
+       * \param[in] cpu_set CpuSet that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      bool OmpSsInterface::setCpuProcessMask( const cpu_set_t *cpu_set )
+      bool OmpSsInterface::setCpuProcessMask( const CpuSet& cpu_set )
       {
          LockBlock Lock( _lock );
 
@@ -415,10 +423,10 @@ namespace nanos
 
       /*!
        * \brief Add a new mask to be merged with the process mask
-       * \param[in] cpu_set cpu_set_t that containts the mask to add
+       * \param[in] cpu_set CpuSet that containts the mask to add
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::addCpuProcessMask( const cpu_set_t *cpu_set )
+      void OmpSsInterface::addCpuProcessMask( const CpuSet& cpu_set )
       {
          LockBlock Lock( _lock );
 
@@ -430,10 +438,10 @@ namespace nanos
 
       /*!
        * \brief Set a new mask of active cpus
-       * \param[in] cpu_set cpu_set_t that containts the mask to set
+       * \param[in] cpu_set CpuSet that containts the mask to set
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      bool OmpSsInterface::setCpuActiveMask( const cpu_set_t *cpu_set )
+      bool OmpSsInterface::setCpuActiveMask( const CpuSet& cpu_set )
       {
          LockBlock Lock( _lock );
 
@@ -447,10 +455,10 @@ namespace nanos
 
       /*!
        * \brief Add a new mask to be merged with active cpus
-       * \param[in] cpu_set cpu_set_t that containts the mask to add
+       * \param[in] cpu_set CpuSet that containts the mask to add
        * \note New threads are created and/or added to the team ASAP in the OmpSs model
        */
-      void OmpSsInterface::addCpuActiveMask( const cpu_set_t *cpu_set )
+      void OmpSsInterface::addCpuActiveMask( const CpuSet& cpu_set )
       {
          LockBlock Lock( _lock );
 

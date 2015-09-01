@@ -964,7 +964,7 @@ extern nanos_err_t nanos_in_final(_Bool *result);
 extern void nanos_handle_error(nanos_err_t err);
 extern int printf(const char *__restrict __format, ...);
 extern int omp_get_thread_num(void);
-extern nanos_err_t nanos_switch_to_thread(unsigned int thid);
+extern nanos_err_t nanos_switch_to_thread(unsigned int *thid);
 struct  mcc_struct_anon_15
 {
   void (*outline)(void *);
@@ -1013,7 +1013,7 @@ struct  mcc_struct_anon_12
 {
   _Bool is_final:1;
   _Bool is_recover:1;
-  _Bool reserved2:1;
+  _Bool is_implicit:1;
   _Bool reserved3:1;
   _Bool reserved4:1;
   _Bool reserved5:1;
@@ -1080,8 +1080,9 @@ int main(int argc, char **argv)
         if (mcc_is_in_final)
           {
             {
+              unsigned int thread = 0;
               printf("[%d]", omp_get_thread_num());
-              nanos_switch_to_thread(0);
+              nanos_switch_to_thread( &thread );
               printf("<%d>", omp_get_thread_num());
               if (omp_get_thread_num() != 0)
                 {
@@ -1102,6 +1103,7 @@ int main(int argc, char **argv)
               nanos_wd_dyn_props.tie_to = 0;
               nanos_wd_dyn_props.priority = 0;
               nanos_wd_dyn_props.flags.is_final = 0;
+              nanos_wd_dyn_props.flags.is_implicit = 0;
               ol_args = (struct nanos_args_0_t *)0;
               nanos_wd_t nanos_wd_ = (void *)0;
               nanos_err = nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_0_t), (void **)&ol_args, nanos_current_wd(), (nanos_copy_data_t **)0, (nanos_region_dimension_internal_t **)0);
@@ -1151,12 +1153,16 @@ static void smp_ol_main_0_unpacked(volatile int *const rv)
   {
     {
       printf("[%d]", omp_get_thread_num());
-      nanos_switch_to_thread(0);
-      printf("<%d>", omp_get_thread_num());
-      if (omp_get_thread_num() != 0)
-        {
-          (*rv) = 1;
-        }
+      unsigned int thread = 0;
+      int tied ;
+      nanos_is_tied(&tied);
+      if (!tied) {
+	      nanos_switch_to_thread( &thread );
+	      printf("<%d>", omp_get_thread_num());
+	      if (omp_get_thread_num() != 0) {
+		      (*rv) = 1;
+	      }
+      }
     }
   }
 }

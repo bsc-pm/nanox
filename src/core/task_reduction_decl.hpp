@@ -25,32 +25,46 @@
 //! It contains all the information needed to handle a task reduction. It storages the
 //! thread private copies and also keep all the information in order to compute final
 //! reduction: reducers.
+//
 class TaskReduction {
+
    public:
+
       typedef void ( *initializer_t ) ( void *omp_priv,  void* omp_orig );
       typedef void ( *reducer_t ) ( void *obj1, void *obj2 );
       typedef std::vector<char> storage_t;
+
    private:
-      void                   *_original;         //!< Original variable
-      void                   *_dependence;       //!< Related dependence
-      unsigned                _depth;            //!< Reduction depth
-      initializer_t           _initializer;      //!< Initialization function
-      reducer_t               _reducer;          //!< Reducer opeartor
-      reducer_t               _reducer_orig_var; //!< Reducer on orignal variable
-      storage_t               _storage;          //!< Private copy vector
-      size_t                  _size;             //!< Size of element
-      size_t                  _threads;          //!< Number of threads (private copies)
-      void                   *_min;              //!< Pointer to first private copy
-      void                   *_max;              //!< Pointer to last private copy
-   private:
+
+      // These two variables have the same value in almost all the cases. They
+      // are only different when we are doing a Fortran Array Reduction
+      void           *_original;         //!< Original variable address
+      void           *_dependence;       //!< Related dependence
+
+      unsigned        _depth;            //!< Reduction depth
+      initializer_t   _initializer;      //!< Initialization function
+
+      // These two variables have the same value in almost all the cases. They
+      // are only different when we are doing a Fortran Array Reduction
+      reducer_t       _reducer;          //!< Reducer operator
+      reducer_t       _reducer_orig_var; //!< Reducer on orignal variable
+
+      storage_t       _storage;          //!< Private copy vector
+      size_t          _size;             //!< Size of element
+      size_t          _threads;          //!< Number of threads (private copies)
+      void           *_min;              //!< Pointer to first private copy
+      void           *_max;              //!< Pointer to last private copy
+
       //! \brief TaskReduction copy constructor (disabled)
-      TaskReduction ( const TaskReduction &tr ) {}
+      TaskReduction( const TaskReduction &tr ) {}
+
    public:
-      //! \brief TaskReduction constructor
-      TaskReduction ( void *orig, void *dep, initializer_t init, reducer_t red,
-                      reducer_t red_orig_var, size_t size, size_t threads, unsigned depth )
-                    : _original(orig), _dependence(dep), _depth(depth), _initializer(init),
-                      _reducer(red), _reducer_orig_var(red_orig_var), _storage(size*threads),
+
+      //! \brief Common TaskReduction constructor
+      TaskReduction( void *orig, initializer_t init, reducer_t red,
+                      size_t size, size_t threads, unsigned depth )
+                    : _original(orig), _dependence(orig), _depth(depth), _initializer(init),
+                      _reducer(red), _reducer_orig_var(red), _storage(size*threads),
                       _size(size), _threads(threads), _min(NULL), _max(NULL)
       {
          _min = & _storage[0];
@@ -60,20 +74,38 @@ class TaskReduction {
              _initializer( &_storage[i*_size], _original );
          }
       }
-      //! \brief Taskreduction destructor
-     ~TaskReduction ( )
+
+      //! \brief TaskReduction constructor only used when we are performing a Fortran Array Reduction
+      TaskReduction( void *orig, void *dep, initializer_t init, reducer_t red,
+            reducer_t red_orig_var, size_t array_descriptor_size, size_t
+            threads, unsigned depth )
+               : _original(orig), _dependence(dep), _depth(depth),
+                 _initializer(init), _reducer(red), _reducer_orig_var(red_orig_var),
+                 _storage(array_descriptor_size*threads), _size(array_descriptor_size),
+                 _threads(threads), _min(NULL), _max(NULL)
       {
+         _min = & _storage[0];
+         _max = & _storage[_size*threads];
+
+         for ( size_t i=0; i<threads; i++) {
+            // char ** addr = (char**) &_storage[i*_size];
+            // *addr = &_storage[i*_size + array_descriptor];
+            _initializer( &_storage[i*_size], _original );
+         }
       }
+
+      //! \brief Taskreduction destructor
+     ~TaskReduction() {}
+
       //! \brief Is the provided address the original symbol or one of the private copies
       //! \return NULL if not matches, id's corresponding private copy if matches
-      void * have ( const void *ptr, size_t id ) ;
-      //! \brief Is the provided address the dependence or one of the private copies
-      //! \return NULL if not matches, id's corresponding private copy if matches
-      void * have_dependence ( const void *ptr, size_t id ) ;
+      void * have ( const void *ptr, size_t id );
+
       //! \brief Finalizes reduction
       void * finalize ( void );
-      //! \brief Get depth where task reduction were registered 
-      unsigned getDepth(void) const ;
+
+      //! \brief Get depth where task reduction were registered
+      unsigned getDepth( void ) const;
 };
 
 #endif

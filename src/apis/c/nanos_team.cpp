@@ -126,9 +126,10 @@ NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","leave_team",NANOS_RUNTIME) );
 
    try {
-      ThreadTeam* t = myThread->getTeam();
+      myThread->lock();
+      myThread->setLeaveTeam(true);
       myThread->leaveTeam( );
-      t->decreaseFinalSize();
+      myThread->unlock();
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -268,35 +269,7 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 
    return NANOS_OK;
 }
-NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, void *dep, size_t size, size_t align, void (*init)( void *, void * ), void (*reducer)( void *, void * ), void (*reducer_orig_var)( void *, void * ) ) )
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_register",NANOS_RUNTIME) );
-   try {
-#ifndef ON_TASK_REDUCTION
-       myThread->getTeam()->registerTaskReduction ( orig, dep, size, init, reducer, reducer_orig_var);
-#else
-       myThread->getCurrentWD()->registerTaskReduction ( orig, dep, size, init, reducer, reducer_orig_var);
-#endif
-   } catch ( nanos_err_t e) {
-      return e;
-   }
-   return NANOS_OK;
-}
 
-NANOS_API_DEF (nanos_err_t, nanos_task_reduction_get_thread_storage, ( void *orig, void **tpd ) )
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_get_thread_storage",NANOS_RUNTIME) );
-   try {
-#ifndef ON_TASK_REDUCTION
-      *tpd = myThread->getTeam()->getTaskReductionThreadStorage ( orig, myThread->getTeamId() );
-#else
-      *tpd = myThread->getCurrentWD()->getTaskReductionThreadStorage ( orig, myThread->getTeamId() );
-#endif
-   } catch ( nanos_err_t e) {
-      return e;
-   }
-   return NANOS_OK;
-}
 /*!
  * \}
  */ 

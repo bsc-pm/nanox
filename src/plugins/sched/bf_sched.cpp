@@ -74,9 +74,13 @@ namespace nanos {
 
            virtual void queue ( BaseThread *thread, WD &wd )
            {
-              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              if ( _useStack ) return tdata._readyQueue->push_front( &wd );
-              else tdata._readyQueue->push_back( &wd );
+              BaseThread *targetThread = wd.isTiedTo();
+              if ( targetThread ) targetThread->addNextWD(&wd);
+              else {
+                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+                 if ( _useStack ) return tdata._readyQueue->push_front( &wd );
+                 else tdata._readyQueue->push_back( &wd );
+              }
            }
 
             virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
@@ -162,7 +166,7 @@ namespace nanos {
               return 0;
            }
 
-           WD * atIdle ( BaseThread *thread )
+           WD * atIdle ( BaseThread *thread, int numSteal )
            {
               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
               
@@ -173,9 +177,9 @@ namespace nanos {
            {
               if ( !_usePriority && !_useSmartPriority ) {
                  WD * found = current.getImmediateSuccessor(*thread);
-                 return found != NULL ? found : atIdle(thread);
+                 return found != NULL ? found : atIdle(thread,false);
               } else {
-                 return atIdle(thread);
+                 return atIdle(thread,false);
               }
            }
         

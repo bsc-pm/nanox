@@ -118,26 +118,62 @@ namespace nanos
       friend class Scheduler;
       private:
          typedef void (*callback_t)(void);
-         typedef struct StatusFlags_t{
-            bool is_main_thread;
-            bool has_started;
-            bool must_stop;
-            bool must_sleep;
-            bool is_idle;
-            bool is_paused;
-            bool has_team;
-            bool has_joined;
-            bool is_waiting;
-            bool can_get_work;    /**< Set whether the thread can get more WDs to run or not */
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+             struct AtomicBool
+             {
+                 private:
+                     bool value;
+                 public:
+                     AtomicBool() : value() { }
+                     /* explicit */ operator bool() const {
+                         return __atomic_load_n(&value, __ATOMIC_ACQUIRE);
+                     };
+                     AtomicBool& operator=(bool b)
+                     {
+                         __atomic_store_n(&value, b, __ATOMIC_RELEASE);
+                         return *this;
+                     }
 
-            StatusFlags_t() { memset( this, 0, sizeof(*this)); }
-         } StatusFlags;
+                     bool operator!() const
+                     {
+                         return !this->operator bool();
+                     }
+             };
+#endif
+         struct StatusFlags {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+             typedef AtomicBool StatusFlag;
+#else
+             typedef bool StatusFlag;
+#endif
+            StatusFlag is_main_thread;
+            StatusFlag has_started;
+            StatusFlag must_stop;
+            StatusFlag must_sleep;
+            StatusFlag is_idle;
+            StatusFlag is_paused;
+            StatusFlag has_team;
+            StatusFlag has_joined;
+            StatusFlag is_waiting;
+            StatusFlag can_get_work;    /**< Set whether the thread can get more WDs to run or not */
+            StatusFlag must_leave_team; /**< Set whether to leave the team when thread is blocked */
+
+            StatusFlags()
+                : is_main_thread(), has_started(), must_stop(),
+                must_sleep(), is_idle(), is_paused(), has_team(), has_joined(),
+                is_waiting(), can_get_work()
+             { }
+         };
       private:
          // Thread info/status
          unsigned short          _id;            /**< Thread identifier */
          unsigned int            _osId;          /**< OS Thread identifier */
          unsigned short          _maxPrefetch;   /**< Maximum number of tasks that the thread can be running simultaneously */
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         StatusFlags    _status;        /**< BaseThread status flags */
+#else
          volatile StatusFlags    _status;        /**< BaseThread status flags */
+#endif
          ext::SMPMultiThread    *_parent;
          // Relationships:
          ProcessingElement      *_pe;            /**< Threads are binded to a PE for its life-time */
@@ -158,7 +194,7 @@ namespace nanos
          Allocator               _allocator;     /**< Per thread allocator */
          unsigned short          _steps;         //!< Number of scheduler steps (zero means infinite)
          callback_t              _bpCallBack;    //!< Break point callback. We call it after _steps scheduler ops
-         
+         ThreadTeam             *_nextTeam;      //!< If thread has no team, which team should it join
 
       private:
          virtual void initializeDependent () = 0;
@@ -290,6 +326,10 @@ namespace nanos
 
          void disableGettingWork ();
 
+         bool isLeavingTeam () const;
+
+         void setLeaveTeam ( bool leave );
+
          ProcessingElement * runningOn() const;
          
          void setRunningOn(ProcessingElement* element);
@@ -350,7 +390,7 @@ namespace nanos
          virtual void setupSignalHandlers() = 0;
 
 #endif
-         //! \brief Wake up a thread and add it to the team, considering all the possible thread states
+         //! \brief Wake up a thread
          void tryWakeUp( ThreadTeam *team );
 
          unsigned int getOsId() const;
@@ -365,6 +405,11 @@ namespace nanos
          void setSteps( unsigned short s );
          //! \brief Set break point callback
          void setCallBack( callback_t cb );
+
+         //! \brief Get next Team to enter
+         ThreadTeam* getNextTeam() const;
+         //! \brief Set next Team to enter
+         void setNextTeam( ThreadTeam *team );
    };
 
    extern __thread BaseThread *myThread;

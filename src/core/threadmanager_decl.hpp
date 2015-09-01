@@ -22,6 +22,8 @@
 
 #include "config.hpp"
 #include "atomic_decl.hpp"
+#include "cpuset.hpp"
+#include "basethread_decl.hpp"
 
 namespace nanos
 {
@@ -39,6 +41,8 @@ namespace nanos
       protected:
          Lock              _lock;
          bool              _initialized;
+         const CpuSet     *_cpuProcessMask;     /* Read-only masks from SMPPlugin */
+         const CpuSet     *_cpuActiveMask;
 
       private:
          bool              _warmupThreads;
@@ -57,10 +61,11 @@ namespace nanos
 #endif
                      ) {}
          virtual void acquireResourcesIfNeeded() {}
-         virtual void releaseCpu() {}
          virtual void returnClaimedCpus() {}
          virtual void returnMyCpuIfClaimed() {}
          virtual void waitForCpuAvailability() {}
+         virtual void blockThread(BaseThread*) {}
+         virtual void unblockThread(BaseThread*) {}
    };
 
    //! BlockingThreadManager class
@@ -92,10 +97,11 @@ namespace nanos
 #endif
                      );
          virtual void acquireResourcesIfNeeded();
-         virtual void releaseCpu();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void blockThread(BaseThread*);
+         virtual void unblockThread(BaseThread*);
    };
 
    //! BusyWaitThreadManager class
@@ -109,7 +115,6 @@ namespace nanos
    class BusyWaitThreadManager : public ThreadManager
    {
       private:
-         cpu_set_t         _waitingCPUs;
          int               _maxCPUs;
          bool              _isMalleable;
          unsigned int      _numYields;
@@ -129,10 +134,11 @@ namespace nanos
 #endif
                      );
          virtual void acquireResourcesIfNeeded();
-         virtual void releaseCpu();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void blockThread(BaseThread*);
+         virtual void unblockThread(BaseThread*);
    };
 
    //! DlbThreadManager class
@@ -145,7 +151,6 @@ namespace nanos
    class DlbThreadManager : public ThreadManager
    {
       private:
-         cpu_set_t         _waitingCPUs;
          int               _maxCPUs;
          bool              _isMalleable;
          unsigned int      _numYields;
@@ -161,10 +166,11 @@ namespace nanos
 #endif
                      );
          virtual void acquireResourcesIfNeeded();
-         virtual void releaseCpu();
          virtual void returnClaimedCpus();
          virtual void returnMyCpuIfClaimed();
          virtual void waitForCpuAvailability();
+         virtual void blockThread(BaseThread*);
+         virtual void unblockThread(BaseThread*);
    };
 
    //! ThreadManagerConf class

@@ -89,7 +89,11 @@ namespace ext
          GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
          GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         bool                    _initialized; //! Object is initialized
+#else
          volatile bool           _initialized; //! Object is initialized
+#endif
          GPUMemorySpace         &_gpuMemory;
          SMPProcessor           *_core;
          BaseThread             *_thread;
@@ -175,11 +179,20 @@ namespace ext
 
          void setInitialized ()
          {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            __atomic_store_n(&_initialized, true, __ATOMIC_RELEASE);
+#else
             _initialized = true;
+            memoryFence();
+#endif
          }
          void waitInitialized ()
          {
-            while ( !_initialized ) { }
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            while ( ! __atomic_load_n(&_initialized, __ATOMIC_ACQUIRE) ) { }
+#else
+            while ( !_initialized ) { memoryFence(); }
+#endif
          }
          //virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
          std::size_t getMaxMemoryAvailable () const;

@@ -20,6 +20,11 @@
 /*! \file nanos_sync.cpp
  *  \brief
  */
+
+#ifdef HAVE_CONFIG_H
+  #include <config.h>
+#endif
+
 #include "nanos.h"
 #include "schedule.hpp"
 #include "system.hpp"
@@ -62,7 +67,14 @@ NANOS_API_DEF(nanos_err_t, nanos_create_int_sync_cond, ( nanos_sync_cond_t *sync
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME ) );
 
    try {
-      *sync_cond = ( nanos_sync_cond_t ) NEW MultipleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t ) NEW MultipleSyncCond<EqualConditionChecker<int> >( EqualConditionChecker<int>(
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+                  // We cannot change the external interface of this API now
+                  (int*)p,
+#else
+                  p,
+#endif
+                  condition ) );
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -75,7 +87,14 @@ NANOS_API_DEF(nanos_err_t, nanos_create_bool_sync_cond, ( nanos_sync_cond_t *syn
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","*_create_sync_cond",NANOS_RUNTIME) );
 
    try {
-      *sync_cond = ( nanos_sync_cond_t ) NEW MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>( p, condition ) );
+      *sync_cond = ( nanos_sync_cond_t ) NEW MultipleSyncCond<EqualConditionChecker<bool> >( EqualConditionChecker<bool>(
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+                  // We cannot change the external interface of this API now
+                  (bool*)p,
+#else
+                  p,
+#endif
+                  condition ) );
    } catch ( nanos_err_t e) {
       return e;
    }

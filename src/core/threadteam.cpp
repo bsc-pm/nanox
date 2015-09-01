@@ -28,14 +28,22 @@ using namespace nanos;
 
 bool ThreadTeam::singleGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   // Double check of locks is an antipattern
+#else
    if ( local <= _singleGuardCount ) return false;
+#endif
    
    return compareAndSwap( &_singleGuardCount, local-1, local );
 }
 
 bool ThreadTeam::enterSingleBarrierGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   // Double check of locks is an antipattern
+#else
    if ( local <= _singleGuardCount ) return false;
+#endif
    
    return compareAndSwap( &_singleGuardCount, local-2, local-1 );
 
@@ -43,12 +51,20 @@ bool ThreadTeam::enterSingleBarrierGuard( int local )
 
 void ThreadTeam::releaseSingleBarrierGuard( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_fetch_add(&_singleGuardCount, 1, __ATOMIC_ACQ_REL);
+#else
    _singleGuardCount++;
+#endif
 }
 
 void ThreadTeam::waitSingleBarrierGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   while ( local > __atomic_load_n(&_singleGuardCount, __ATOMIC_ACQUIRE) ) { }
+#else
    while ( local > _singleGuardCount ) { memoryFence(); }
+#endif
 }
 
 void ThreadTeam::cleanUpReductionList( void ) 
@@ -77,59 +93,3 @@ void ThreadTeam::cleanUpReductionList( void )
       _redList.pop_back();
    }
 }
-
-void ThreadTeam::registerTaskReduction( void *p_orig, void *p_dep, size_t p_size, void (*p_init)( void *, void *), void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) )
-{
-   LockBlock Lock( _lockTaskReductions );
-
-   //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      if ( (*it)->have( p_orig, 0 ) ) break;
-   }
-
-   NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
-   if ( it == _taskReductions.end() ) {
-      _taskReductions.push_front( new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var, p_size, _finalSize.value(), myThread->getCurrentWD()->getDepth() ) );
-   }
-}
-
-void ThreadTeam::removeTaskReduction( void *p_orig )
-{
-   LockBlock Lock( _lockTaskReductions );
-
-   //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      if ( (*it)->have( p_orig, 0 ) ) break;
-   }
-
-   if ( it != _taskReductions.end() ) _taskReductions.erase( it );
-}
-
-void * ThreadTeam::getTaskReductionThreadStorage( void *p_orig, size_t id )
-{
-   LockBlock Lock( _lockTaskReductions );
-
-   //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      void *ptr = (*it)->have( p_orig, id );
-      if ( ptr != NULL ) return ptr;
-   }
-   return NULL;
-}
-
-TaskReduction * ThreadTeam::getTaskReduction( const void *p_dep )
-{
-   LockBlock Lock( _lockTaskReductions );
-
-   //! Check if orig is already registered
-   task_reduction_list_t::iterator it;
-   for ( it = _taskReductions.begin(); it != _taskReductions.end(); it++) {
-      void *ptr = (*it)->have_dependence( p_dep, 0 );
-      if ( ptr != NULL ) return (*it);
-   }
-   return NULL;
-}
-

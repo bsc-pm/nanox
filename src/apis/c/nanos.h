@@ -113,6 +113,8 @@
  *   - 5022: Adding const char* description in task creation.
  *   - 5024: Adding is final attribute in wd's dynamic properties.
  *   - 5025: Changed WD priority from unsigned to int.
+ *   - 5029: Adding implicit parameter to work descriptor flags.
+ *   - 5030: Adding instrumentation support to wrap main function.
  * - nanos interface family: worksharing
  *   - 1000: First implementation of work-sharing services (create and next-item)
  * - nanos interface family: deps_api
@@ -231,7 +233,8 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_blocked_tasks, ( unsigned int *blocked
 
 NANOS_API_DECL(nanos_err_t, nanos_in_final, ( bool *result ));
 NANOS_API_DECL(nanos_err_t, nanos_set_final, ( bool value ));
-NANOS_API_DECL(nanos_err_t, nanos_switch_to_thread, ( unsigned int thid ));
+NANOS_API_DECL(nanos_err_t, nanos_switch_to_thread, ( unsigned int *thid ));
+NANOS_API_DECL(nanos_err_t, nanos_is_tied, ( bool *result ));
 
 // Team related functions
 
@@ -261,7 +264,13 @@ NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, voi
 
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
-NANOS_API_DECL(nanos_err_t, nanos_task_reduction_register, ( void *orig, void *dep, size_t size, size_t align, void (*init)( void *, void * ), void (*reducer)( void *, void * ),  void (*reducer_orig_var)( void *, void * ) ) );
+NANOS_API_DECL(nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size,
+            void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) );
+
+NANOS_API_DECL(nanos_err_t, nanos_task_fortran_array_reduction_register, ( void *orig, void *dep,
+         size_t array_descriptor_size, void (*init)( void *, void * ), void (*reducer)( void *, void * ),
+         void (*reducer_orig_var)( void *, void * ) ) );
+
 NANOS_API_DECL(nanos_err_t, nanos_task_reduction_get_thread_storage, ( void *orig, void **tpd ) );
 
 NANOS_API_DECL(nanos_err_t, nanos_admit_current_thread, (void));
@@ -358,8 +367,9 @@ NANOS_API_DECL(nanos_err_t, nanos_set_create_local_tasks, ( bool value ));
 #endif
 
 NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst, (nanos_string_t key, nanos_string_t key_descr, nanos_string_t value, nanos_string_t value_descr));
-
 NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst, (nanos_string_t key, nanos_string_t value));
+NANOS_API_DECL(nanos_err_t, nanos_instrument_begin_burst_with_val, (nanos_string_t key, nanos_string_t key_descr, nanos_event_value_t *val));
+NANOS_API_DECL(nanos_err_t, nanos_instrument_end_burst_with_val, (nanos_string_t key, nanos_event_value_t *val));
 
 #ifdef _MF03
 NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, ptrdiff_t n));
@@ -379,9 +389,18 @@ NANOS_API_DECL(nanos_err_t, nanos_wait_until_threads_unpaused, () );
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_get_stealing, ( bool *res ));
 NANOS_API_DECL(nanos_err_t, nanos_scheduler_set_stealing, ( bool value ));
 
-//funtion which will be called by mercurium
-//on first line of user main (in some cases, offload and cluster)
+// This funtion tells the runtime that we are at the entry point of the program
+// (typically the main)
+NANOS_API_DECL(void, ompss_nanox_main_begin, (void *addr, const char* filename, int line));
+// This funtion tells the runtime that we have just left (or about to leave)
+// the top level function of the program (typically the main)
+NANOS_API_DECL(void, ompss_nanox_main_end, ());
+
+// DEPRECATED API: OLD API, do not use, kept here for binary compatibility
 NANOS_API_DECL(void, ompss_nanox_main, ());
+
+// Small wrapper around atexit to be useable from Fortran
+NANOS_API_DECL(void, nanos_atexit, (void*));
 
 // utility macros
 

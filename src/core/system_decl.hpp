@@ -97,7 +97,7 @@ namespace nanos
          Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
 
          // configuration variables
-         int                  _deviceStackSize;
+         size_t               _deviceStackSize;
          bool                 _profile;
          bool                 _instrument;
          bool                 _verboseMode;
@@ -193,6 +193,7 @@ namespace nanos
          HostMemoryAddressSpace                        _hostMemory;
          RegionCache::CachePolicy                      _regionCachePolicy;
          std::string                                   _regionCachePolicyStr;
+         std::size_t                                   _regionCacheSlabSize;
 
          std::set<unsigned int>                        _clusterNodes;
          std::set<unsigned int>                        _numaNodes;
@@ -231,6 +232,7 @@ namespace nanos
          //! \brief Reads environment variables and compiler-supplied flags
          void config ();
          void loadModules();
+         void loadArchitectures();
          void unloadModules();
 
          Atomic<int> _atomicSeedWg;
@@ -243,6 +245,8 @@ namespace nanos
          Router _router;
       public:
          Hwloc _hwloc;
+         bool _immediateSuccessorDisabled;
+         bool _predecessorCopyInfoDisabled;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -301,9 +305,9 @@ namespace nanos
           */
          DeviceList & getSupportedDevices();
 
-         void setDeviceStackSize ( int stackSize );
+         void setDeviceStackSize ( size_t stackSize );
 
-         int getDeviceStackSize () const;
+         size_t getDeviceStackSize () const;
 
          ExecutionMode getExecutionMode () const;
 
@@ -334,6 +338,7 @@ namespace nanos
 
          int getNumWorkers( DeviceData *arch );
 
+         int getNumThreads() const;
 
          void setUntieMaster ( bool value );
 
@@ -385,13 +390,7 @@ namespace nanos
          /*!
           * \brief Get the process mask of active CPUs by reference
           */
-         const cpu_set_t& getCpuProcessMask () const;
-
-         /*!
-          * \brief Get the process mask of active CPUs
-          * \param[out] mask
-          */
-         void getCpuProcessMask ( cpu_set_t *mask ) const;
+         const CpuSet& getCpuProcessMask () const;
 
          /*!
           * \brief Set the process mask
@@ -399,24 +398,18 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuProcessMask ( const cpu_set_t *mask );
+         bool setCpuProcessMask ( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current process mask
           * \param[in] mask
           */
-         void addCpuProcessMask ( const cpu_set_t *mask );
+         void addCpuProcessMask ( const CpuSet& mask );
 
          /*!
           * \brief Get the current mask of active CPUs by reference
           */
-         const cpu_set_t& getCpuActiveMask () const;
-
-         /*!
-          * \brief Get the current mask of active CPUs
-          * \param[out] mask
-          */
-         void getCpuActiveMask ( cpu_set_t *mask ) const;
+         const CpuSet& getCpuActiveMask () const;
 
          /*!
           * \brief Set the mask of active CPUs
@@ -424,13 +417,13 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuActiveMask ( const cpu_set_t *mask );
+         bool setCpuActiveMask ( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current mask of active CPUs
           * \param[in] mask
           */
-         void addCpuActiveMask ( const cpu_set_t *mask );
+         void addCpuActiveMask ( const CpuSet& mask );
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
@@ -626,15 +619,31 @@ namespace nanos
          void admitCurrentThread ( bool isWorker );
          void expelCurrentThread ( bool isWorker );
          
-         //This main will do nothing normally
-         //It will act as an slave and call exit(0) when we need slave behaviour
-         //in offload or cluster version
-         void ompss_nanox_main ();         
+         /*! \brief Setup of the runtime at the beginning of the top level function of the program
+          *
+          * Some devices (like MPI and cluster) may require extra
+          * initialization steps, this function performs them.
+          *
+          * Also resilency support uses this function to set up signal handlers.
+          *
+          * Under instrumentation, this function emits an initial event that it
+          * is used to track the entry point of the program.
+          */
+         void ompss_nanox_main(void *addr, const char* file, int line);
+
+         /*! \brief Shutdown notification of leaving the top level function of the program
+          *
+          * This function is typically called from an atexit handler and
+          * currently it only emits an event to track finalization of the
+          * program.
+          */
+         void ompss_nanox_main_end ();
+
          void _registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len);
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
-         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide );
+         memory_space_id_t addSeparateMemoryAddressSpace( Device &arch, bool allocWide, std::size_t slabSize );
          void setSMPPlugin(SMPBasePlugin *p);
          SMPBasePlugin *getSMPPlugin() const;
          bool isSimulator() const;
@@ -643,9 +652,13 @@ namespace nanos
          bool getVerboseCopies() const;
          bool getSplitOutputForThreads() const;
          RegionCache::CachePolicy getRegionCachePolicy() const;
+         std::size_t getRegionCacheSlabSize() const;
          void createDependence( WD* pred, WD* succ);
          unsigned int getNumClusterNodes() const;
-         unsigned int getNumNumaNodes() const;
+	 unsigned int getNumNumaNodes() const;
+	 //! Return a vector which maps physical NUMA nodes (vector indexes)
+	 //! with virtual nodes (vector values)
+	 const std::vector<int>& getNumaNodeMap() const;
          //! Return INT_MIN if physicalNode does not have a mapping.
          int getVirtualNUMANode( int physicalNode ) const;
          std::set<unsigned int> const &getClusterNodeSet() const;
@@ -665,6 +678,8 @@ namespace nanos
          bool getPrioritiesNeeded() const;
          Router& getRouter();
          void switchToThread( unsigned int thid );
+         bool isImmediateSuccessorEnabled() const;
+         bool usePredecessorCopyInfo() const;
    };
 
    extern System sys;

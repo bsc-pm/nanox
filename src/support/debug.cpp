@@ -37,13 +37,3 @@ void nanos::printBt( std::ostream &o ) {
    free( funcNames );
    o << "+--------------------------------------" << std::endl;
 }
-
-void nanos::printCpuSet( std::ostream &o, const std::string str, const cpu_set_t *cpu_set )
-{
-   std::ostringstream bitset;
-   for ( int i = 0; i < OS::getMaxProcessors(); i++ ) {
-      if ( i>0 && i%4 == 0 ) bitset << " ";
-      ( CPU_ISSET( i, cpu_set ) ) ? bitset << "1" : bitset << "0" ;
-   }
-   o << str << bitset.str() << std::endl;
-}

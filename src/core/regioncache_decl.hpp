@@ -99,6 +99,7 @@ namespace nanos {
 
 
          void copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
+         void copyRegionFromHost( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          //void clearDirty( global_reg_t const &reg );
          void printReferencingWDs() const;
    };
@@ -115,10 +116,11 @@ namespace nanos {
 
    class RegionCache {
       public:
-         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE };
+         enum CachePolicy { WRITE_BACK, WRITE_THROUGH, NO_CACHE, FPGA };
          enum CacheOptions {
             ALLOC_FIT,
-            ALLOC_WIDE
+            ALLOC_WIDE,
+            ALLOC_SLAB
          };
       private:
          MemoryMap<AllocatedChunk>  _chunks;
@@ -127,6 +129,7 @@ namespace nanos {
          //ProcessingElement         &_pe;
          memory_space_id_t          _memorySpaceId;
          CacheOptions               _flags;
+         std::size_t                _slabSize;
          unsigned int               _lruTime;
          Atomic<unsigned int>       _softInvalidationCount;
          Atomic<unsigned int>       _hardInvalidationCount;
@@ -162,7 +165,7 @@ namespace nanos {
          void doOp( Op *opObj, global_reg_t const &hostMem, uint64_t devBaseAddr, unsigned int location, DeviceOps *ops, CompleteOpFunctor *f, WD const &wd ); 
 
       public:
-         RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags );
+         RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags, std::size_t slabSize );
          AllocatedChunk *tryGetAddress( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *getOrCreateChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const;
@@ -207,7 +210,7 @@ namespace nanos {
          bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, unsigned int version, WD const &wd, unsigned int copyIdx );
 
-         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+         void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
          void allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx );
 
          unsigned int getSoftInvalidationCount() const;

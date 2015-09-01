@@ -56,7 +56,7 @@ namespace nanos
             public:
                virtual ~CheckValue() {}
 
-               virtual bool operator() ( const T &value ) const;
+               virtual bool operator() ( T &value, const char suffix ) const;
          };
 
          // isPositive predicate
@@ -67,7 +67,18 @@ namespace nanos
             public:
                virtual ~isPositive() {}
 
-               virtual bool operator() ( const T &value ) const;
+               virtual bool operator() ( T &value, const char suffix ) const;
+         };
+
+         // isMetric predicate
+
+         template<typename T> class isMetric : public CheckValue<T>
+         {
+
+            public:
+               virtual ~isMetric() {}
+
+               virtual bool operator() ( T &value, const char suffix ) const;
          };
 
          /** Configuration options */
@@ -149,7 +160,7 @@ namespace nanos
                virtual void parse ( const char *value );
                virtual void setValue ( const T &value ) = 0;
 
-               bool checkValue ( const T &value ) const;
+               bool checkValue ( T &value, char suffix ) const;
 
                virtual ActionOption * clone () = 0;
 
@@ -246,6 +257,14 @@ namespace nanos
                virtual std::string operator()();
          };
 
+         class MetricHelpFormat : public HelpFormat
+         {
+            public:
+               virtual ~MetricHelpFormat() {}
+
+               virtual std::string operator()();
+         };
+
          class BoolHelpFormat : public HelpFormat
          {
             public:
@@ -272,6 +291,8 @@ namespace nanos
 
          typedef class VarOption<int,IntegerHelpFormat>                         IntegerVar;
 
+         typedef class VarOption<size_t,MetricHelpFormat,isMetric<size_t> >     SizeVar;
+
          typedef class VarOption<bool,BoolHelpFormat>                           BoolVar;
 
          typedef class VarOption<std::string, StringHelpFormat>                 StringVar;
@@ -283,8 +304,6 @@ namespace nanos
          typedef class VarOption<unsigned int,PositiveHelpFormat,isPositive<unsigned int> >
                                                                                 UintVar;
          
-         typedef class VarOption<size_t,PositiveHelpFormat,isPositive<size_t> > SizeVar;
-
          typedef class ActionOption<int,IntegerHelpFormat>                      IntegerAction;
 
          typedef class ActionOption<bool,BoolHelpFormat>                        BoolAction;

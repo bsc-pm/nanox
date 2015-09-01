@@ -41,7 +41,8 @@ inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread 
    bool result = wd.canRunIn(*thread.runningOn()) &&
       ( !wd.isTied() || wd.isTiedTo() == &thread ) &&
       ( !wd.isTiedLocation() || tied_node == this_node ) &&
-      wd.tryAcquireCommutativeAccesses();
+      wd.tryAcquireCommutativeAccesses() &&
+      ( wd.getDepth() == 1 || this_node == 0 );
    //if ( thread.getId() > 0 ) *thread._file << "checkBasicConstraints says " << result << " this_node " << this_node << " tied_node " << tied_node << " isTiedToLocation " << wd.isTiedToLocation()<< std::endl;
    return result;
 }
@@ -66,6 +67,11 @@ inline unsigned int SchedulerConf::getNumChecks ( void ) const
    return _numChecks;
 }
 
+inline unsigned int SchedulerConf::getNumStealAfterSpins ( void ) const
+{
+   return _numStealAfterSpins;
+}
+
 inline const std::string & SchedulePolicy::getName () const
 {
    return _name;
@@ -76,19 +82,19 @@ inline WD * SchedulePolicy::atBeforeExit  ( BaseThread *thread, WD &current, boo
    return 0;
 }
 
-inline WD * SchedulePolicy::atAfterExit   ( BaseThread *thread, WD *current )
+inline WD * SchedulePolicy::atAfterExit   ( BaseThread *thread, WD *current, int numSteal )
 {
-   return atIdle( thread );
+   return atIdle( thread, numSteal );
 }
 
 inline WD * SchedulePolicy::atBlock       ( BaseThread *thread, WD *current )
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline WD * SchedulePolicy::atYield       ( BaseThread *thread, WD *current)
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline void SchedulePolicy::atCreate ( DependableObject &depObj )
@@ -126,7 +132,7 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 
 inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline void SchedulePolicy::atSupport    ( BaseThread *thread )

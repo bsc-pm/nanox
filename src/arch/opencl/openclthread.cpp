@@ -143,12 +143,12 @@ void OpenCLThread::join()
 
 void OpenCLThread::wait()
 {
-   fatal("A OpenCLThread cannot call wait function.");
+   fatal("An OpenCLThread cannot call wait function.");
 }
 
 void OpenCLThread::wakeup()
 {
-   fatal("A OpenCLThread cannot call wakeup function.");
+   // For convenience we may call wakeup for all threads, just ignore then
 }
 
 void OpenCLThread::idle( bool debug )
