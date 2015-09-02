@@ -643,7 +643,9 @@ void DlbThreadManager::acquireResourcesIfNeeded ()
    }
 }
 
-void DlbThreadManager::returnClaimedCpus() {}
+void DlbThreadManager::returnClaimedCpus() {
+    returnMyCpuIfClaimed();
+}
 
 void DlbThreadManager::returnMyCpuIfClaimed()
 {
