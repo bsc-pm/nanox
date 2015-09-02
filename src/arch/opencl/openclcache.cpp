@@ -226,7 +226,9 @@ cl_mem OpenCLCache::toMemoryObjSS( const void * addr ) {
     if ( _openclAdapter.getUseHostPtr() || OpenCLProcessor::getSharedMemAllocator().isSharedMem( addr_aux, 1)){
         cl_event ev;
        _openclAdapter.unmapBuffer(buf,addr_aux,0,1,ev);
-       cl_int err=clWaitForEvents(1,&ev);
+       cl_int err = 0;
+       if (ev != NULL)
+           err=clWaitForEvents(1,&ev);
        if (err != CL_SUCCESS) {
           fatal("Error while unmmaping buffer");
        }   

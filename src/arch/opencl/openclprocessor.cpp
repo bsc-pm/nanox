@@ -391,6 +391,7 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
         cl_event& ev) {
     
     if (_unmapedCache.count(buf) != 0) {
+        ev = NULL;
         return CL_SUCCESS;
     }
     cl_int errCode;
