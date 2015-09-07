@@ -31,12 +31,12 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-extern __attribute__((weak)) int ompss_mpi_masks[2U];
-extern __attribute__((weak)) unsigned int ompss_mpi_filenames[2U];
-extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[2U];
-extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[2U];
-extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[2U];
-extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[2U];
+extern __attribute__((weak)) int ompss_mpi_masks[];
+extern __attribute__((weak)) unsigned int ompss_mpi_filenames[];
+extern __attribute__((weak)) unsigned int ompss_mpi_file_sizes[];
+extern __attribute__((weak)) unsigned int ompss_mpi_file_ntasks[];
+extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[];
+extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[];
 
 
 
