@@ -630,7 +630,7 @@ void MPIRemoteNode::callMPISpawn(
             }
             MPI_Info_set(info, const_cast<char*> ("tpp"), const_cast<char*>(tpp) );
             // In case the MPI implementation supports nodetype (cluster/booster) key...
-            std::string const& node_type = nanos::ext::MPIProcesor::getMpiNodeType();
+            std::string const& node_type = nanos::ext::MPIProcessor::getMpiNodeType();
             if( ! node_type.empty() ) {
                MPI_Info_set( info, const_cast<char*> ("nodetype"), const_cast<char*>(node_type.c_str()) );
             }
