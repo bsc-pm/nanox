@@ -51,6 +51,9 @@ void SchedulerConf::config (Config &cfg)
 
    cfg.registerConfigOption ( "num-checks", NEW Config::UintVar( _numChecks ), "Set number of checks before Idle (default = 1)" );
    cfg.registerArgOption ( "num-checks", "checks" );
+
+   cfg.registerConfigOption ( "num-steal", NEW Config::PositiveVar( _numStealAfterSpins ), "Try to steal every so spins (default = 1)" );
+   cfg.registerArgOption ( "num-steal", "spins-steal" );
 }
 
 void Scheduler::submit ( WD &wd, bool force_queue )
@@ -180,20 +183,22 @@ inline void Scheduler::idleLoop ()
    NANOS_INSTRUMENT ( static nanos_event_key_t total_yields_key = ID->getEventKey("num-yields"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_blocks_key = ID->getEventKey("num-blocks"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t total_scheds_key  = ID->getEventKey("num-scheds"); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t steal_key  = ID->getEventKey("steal"); )
 
    NANOS_INSTRUMENT ( static nanos_event_key_t time_yields_key = ID->getEventKey("time-yields"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_blocks_key = ID->getEventKey("time-blocks"); )
    NANOS_INSTRUMENT ( static nanos_event_key_t time_scheds_key = ID->getEventKey("time-scheds"); )
 
-   NANOS_INSTRUMENT ( nanos_event_key_t Keys[7]; )
+   NANOS_INSTRUMENT ( nanos_event_key_t Keys[8]; )
 
    NANOS_INSTRUMENT ( Keys[0] = total_yields_key; )
    NANOS_INSTRUMENT ( Keys[1] = time_yields_key; )
    NANOS_INSTRUMENT ( Keys[2] = total_blocks_key; )
    NANOS_INSTRUMENT ( Keys[3] = time_blocks_key; )
    NANOS_INSTRUMENT ( Keys[4] = total_spins_key; )
-   NANOS_INSTRUMENT ( Keys[5] = total_scheds_key; )
-   NANOS_INSTRUMENT ( Keys[6] = time_scheds_key; )
+   NANOS_INSTRUMENT ( Keys[5] = steal_key; )
+   NANOS_INSTRUMENT ( Keys[6] = total_scheds_key; )
+   NANOS_INSTRUMENT ( Keys[7] = time_scheds_key; )
 
    NANOS_INSTRUMENT ( unsigned event_start; )
    NANOS_INSTRUMENT ( unsigned event_num; )
@@ -204,6 +209,12 @@ inline void Scheduler::idleLoop ()
    const int init_yields = sys.getThreadManagerConf().getNumYields();
    int spins = init_spins;
    int yields = init_yields;
+   // Number of times during the spin loop that a steal get was performed
+   int num_steals = 0;
+   // Number of consecutive calls to getWD that returned NULL
+   int num_empty_calls = 0;
+   // Modulo to steal tasks
+   int steal_mod = sys.getSchedulerConf().getNumStealAfterSpins() + 1;
 
    NANOS_INSTRUMENT ( unsigned long long total_spins = 0; )  /* Number of spins by idle phase*/
    NANOS_INSTRUMENT ( unsigned long long total_yields = 0; ) /* Number of yields by idle phase */
@@ -241,19 +252,20 @@ inline void Scheduler::idleLoop ()
       if ( thread->isSleeping() && !thread_manager->lastActiveThread() && !thread->hasNextWD() ) {
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[8]; )
 
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_blocks; )
          NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) total_spins; )
-         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) total_scheds; )
-         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
+         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) 0; /*steal*/ )
+         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) total_scheds; )
+         NANOS_INSTRUMENT ( Values[7] = (nanos_event_value_t) time_scheds; )
 
-         NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
-         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
-         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
+         NANOS_INSTRUMENT ( event_start = 0; event_num = 8; )
+         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 6; } )
+         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 4; } )
          NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
@@ -283,14 +295,22 @@ inline void Scheduler::idleLoop ()
 
       thread->getNextWDQueue().iterate<TestInputs>();
       WD * next = thread->getNextWD();
+      
+      // Declared here to be used for instrumentation too,
+      bool steal = false;
 
       if ( !next && thread->getTeam() != NULL ) {
          memoryFence();
          if ( sys.getSchedulerStats()._readyTasks > 0 ) {
             NANOS_INSTRUMENT ( total_scheds++; )
             NANOS_INSTRUMENT ( unsigned long long begin_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
-
-            next = behaviour::getWD(thread,current);
+            
+            // Try to steal only if we spun at least once
+            steal = num_empty_calls % steal_mod;
+            // Increase the number of steal attempts
+            if ( steal ) ++num_steals;
+            
+            next = behaviour::getWD(thread,current,steal*num_steals);
 
             NANOS_INSTRUMENT ( unsigned long long end_sched = (unsigned long long) ( OS::getMonotonicTime() * 1.0e9  ); )
             NANOS_INSTRUMENT (time_scheds += ( end_sched - begin_sched ); )
@@ -301,19 +321,20 @@ inline void Scheduler::idleLoop ()
 
          NANOS_INSTRUMENT (total_spins+= (init_spins - spins); )
 
-         NANOS_INSTRUMENT ( nanos_event_value_t Values[7]; )
+         NANOS_INSTRUMENT ( nanos_event_value_t Values[8]; )
 
          NANOS_INSTRUMENT ( Values[0] = (nanos_event_value_t) total_yields; )
          NANOS_INSTRUMENT ( Values[1] = (nanos_event_value_t) time_yields; )
          NANOS_INSTRUMENT ( Values[2] = (nanos_event_value_t) total_blocks; )
          NANOS_INSTRUMENT ( Values[3] = (nanos_event_value_t) time_blocks; )
          NANOS_INSTRUMENT ( Values[4] = (nanos_event_value_t) total_spins; )
-         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) total_scheds; )
-         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) time_scheds; )
+         NANOS_INSTRUMENT ( Values[5] = (nanos_event_value_t) steal; )
+         NANOS_INSTRUMENT ( Values[6] = (nanos_event_value_t) total_scheds; )
+         NANOS_INSTRUMENT ( Values[7] = (nanos_event_value_t) time_scheds; )
 
-         NANOS_INSTRUMENT ( event_start = 0; event_num = 7; )
-         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 5; } )
-         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 3; } )
+         NANOS_INSTRUMENT ( event_start = 0; event_num = 8; )
+         NANOS_INSTRUMENT ( if (total_yields == 0 ) { event_start = 2; event_num = 6; } )
+         NANOS_INSTRUMENT ( if (total_yields == 0 && total_blocks == 0) { event_start = 4; event_num = 4; } )
          NANOS_INSTRUMENT ( if (total_scheds == 0 ) { event_num -= 2; } )
 
          NANOS_INSTRUMENT( sys.getInstrumentation()->raisePointEvents(event_num, &Keys[event_start], &Values[event_start]); )
@@ -339,8 +360,16 @@ inline void Scheduler::idleLoop ()
          NANOS_INSTRUMENT (time_scheds = 0; )
 
          spins = init_spins;
+         /* gmiranda: If a WD was returned (either by a normal getWD or
+          * by a steal operation, reset the num_steals counter */
+         num_steals = 0;
+         // Also reset the number of empty calls
+         num_empty_calls = 0;
          continue;
       }
+      
+      // Otherwise, getWD returned NULL, increase the counter
+      ++num_empty_calls;
 
       thread->idle();
       //if ( sys.getNetwork()->getNodeNum() > 0 ) {
@@ -502,14 +531,14 @@ WD * Scheduler::getClusterWD( BaseThread *thread, int inGPU )
 // #endif
          if ( !wd->canRunIn( *thread->runningOn()->getDeviceType() ) ) 
          { // found a non compatible wd in "nextWD", ignore it
-            wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+            wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
             //if(wd!=NULL)std::cerr << "GN got a wd with depth " <<wd->getDepth() << std::endl;
          } else {
             //thread->resetNextWD();
            // std::cerr << "FIXME" << std::endl;
          }
       } else {
-         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
          //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
       }
    }
@@ -873,9 +902,9 @@ void Scheduler::workerClusterLoop ()
 
 struct WorkerBehaviour
 {
-   static WD * getWD ( BaseThread *thread, WD *current )
+   static WD * getWD ( BaseThread *thread, WD *current, int numSteal )
    {
-      return thread->getTeam()->getSchedulePolicy().atIdle ( thread );
+      return thread->getTeam()->getSchedulePolicy().atIdle ( thread, numSteal );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -888,10 +917,10 @@ struct WorkerBehaviour
 
 struct AsyncWorkerBehaviour
 {
-   static WD * getWD ( BaseThread *thread, WD *current )
+   static WD * getWD ( BaseThread *thread, WD *current, int numSteal )
    {
       if ( !thread->canGetWork() ) return NULL;
-      return thread->getTeam()->getSchedulePolicy().atIdle( thread );
+      return thread->getTeam()->getSchedulePolicy().atIdle ( thread, numSteal );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )
@@ -1293,9 +1322,9 @@ void Scheduler::exitHelper (WD *oldWD, WD *newWD, void *arg)
 
 struct ExitBehaviour
 {
-   static WD * getWD ( BaseThread *thread, WD *current )
+   static WD * getWD ( BaseThread *thread, WD *current, int numSteal )
    {
-      return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current );
+      return thread->getTeam()->getSchedulePolicy().atAfterExit( thread, current, numSteal );
    }
 
    static void switchWD ( BaseThread *thread, WD *current, WD *next )

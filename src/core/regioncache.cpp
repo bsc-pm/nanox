@@ -134,13 +134,16 @@ void AllocatedChunk::copyRegionFromHost( BaseAddressSpaceInOps &ops, reg_t reg, 
       _newRegions->setRegionData( reg, entry );
    }
       global_reg_t greg( reg, key );
-      DeviceOps * dops = greg.getDeviceOps();
-      if ( dops->addCacheOp( &wd, 8 ) ) {
-         ops.insertOwnOp( dops, greg, version, 0 );
+      //jbueno: We want to force the operation for each thread issuing the copy
+      //  if we use "addCacheOp" and several threads issue the same operation,
+      //  only one will be issued, and we do not want this.
+      //DeviceOps * dops = greg.getDeviceOps();
+      //if ( dops->addCacheOp( &wd, 8 ) ) {
+         //ops.insertOwnOp( dops, greg, version, 0 );
          ops.addOpFromHost( greg, version, this, copyIdx );
-      } else {
-         ops.getOtherOps().insert( dops );
-      }
+      //} else {
+      //   ops.getOtherOps().insert( dops );
+      //}
 }
 
 bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx ) {

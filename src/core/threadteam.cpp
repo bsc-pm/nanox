@@ -52,7 +52,7 @@ bool ThreadTeam::enterSingleBarrierGuard( int local )
 void ThreadTeam::releaseSingleBarrierGuard( void )
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-   __atomic_fetch_add(&_singleGuardCount, 1, __ATOMIC_SEQ_CST);
+   __atomic_fetch_add(&_singleGuardCount, 1, __ATOMIC_ACQ_REL);
 #else
    _singleGuardCount++;
 #endif
@@ -61,7 +61,7 @@ void ThreadTeam::releaseSingleBarrierGuard( void )
 void ThreadTeam::waitSingleBarrierGuard( int local )
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-   while ( local > __atomic_load_n(&_singleGuardCount, __ATOMIC_SEQ_CST) ) { }
+   while ( local > __atomic_load_n(&_singleGuardCount, __ATOMIC_ACQUIRE) ) { }
 #else
    while ( local > _singleGuardCount ) { memoryFence(); }
 #endif

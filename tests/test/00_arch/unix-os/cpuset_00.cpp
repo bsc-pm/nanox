@@ -17,30 +17,54 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_TASK_REDUCTION_HPP
-#define _NANOS_TASK_REDUCTION_HPP
+/*
+<testinfo>
+   test_generator="gens/mixed-generator"
+   test_generator_ENV=( "NX_TEST_MODE=performance"
+                        "NX_TEST_MAX_CPUS=1"
+                        "NX_TEST_SCHEDULE=bf"
+                        "NX_TEST_ARCH=smp" )
+</testinfo>
+*/
 
-#include "task_reduction_decl.hpp"
+#include <cstdlib>
+#include <assert.h>
+#include "cpuset.hpp"
 
-inline void * TaskReduction::have( const void *ptr, size_t id )
+using namespace nanos;
+
+int main(int argc, char *argv[])
 {
-   bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
+   CpuSet set1;
+   assert(set1.size()==0);
 
-   if ( inside ) return & _storage[_size*id];
-   else return NULL;
+   set1.set(0);
+   set1.set(1);   /* 0011 */
+   assert(set1.size()==2);
+
+   // Copy ctor and logical operators
+   CpuSet set2(set1);
+   assert(set1.size()==2);
+   assert(set1 == set2);
+   set1.set(2);   /* 0111 */
+   assert(set1 != set2);
+
+   // Arithmetic operators
+   set2.set(3);
+   set2.clear(1); /* 1001 */
+   assert((set1 | set2).size()==4);    /* 1111 */
+   assert((set1 + set2).size()==4);    /* 1111 */
+   assert((set1 & set2).size()==1);    /* 0001 */
+   assert((set1 * set2).size()==1);    /* 0001 */
+   assert(set1.countCommon(set2)==1);
+
+   // Compound assignment operators
+   set2 = set1;   /* 0111 */
+   set1.set(3);   /* 1111 */
+   set2 &= set1;  /* 0111 */
+   assert(set2.size()==3);
+   set2 |= set1;  /* 1111 */
+   assert(set2.size()==4);
+
+   return EXIT_SUCCESS;
 }
-
-inline void * TaskReduction::finalize( void )
-{
-   void * result = _original;
-   for ( size_t i=1; i< _threads; i++) _reducer( &_storage[0] ,&_storage[i*_size] );
-   _reducer_orig_var( _original, &_storage[0] );
-   return result;
-}
-
-inline unsigned TaskReduction::getDepth( void ) const
-{
-   return _depth;
-}
-
-#endif

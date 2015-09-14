@@ -227,7 +227,7 @@ namespace nanos
 
    inline void BaseThread::wait ( void ) { _status.is_waiting = true; }
 
-   inline void BaseThread::resume ( void ) {_status.is_waiting = false; }
+   inline void BaseThread::resume ( void ) { _status.is_waiting = false; }
 
    inline bool BaseThread::isWaiting () const { return _status.is_waiting; }
 

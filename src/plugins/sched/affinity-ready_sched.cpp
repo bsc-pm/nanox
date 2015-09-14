@@ -627,10 +627,10 @@ namespace nanos {
                return 0;
             }
 
-            virtual WD *atIdle ( BaseThread *thread );
+            virtual WD *atIdle ( BaseThread *thread, int numSteal );
             virtual WD *atBlock ( BaseThread *thread, WD *current );
 
-            virtual WD *atAfterExit ( BaseThread *thread, WD *current )
+            virtual WD *atAfterExit ( BaseThread *thread, WD *current, bool steal )
             {
                return atBlock(thread, current );
             }
@@ -654,7 +654,7 @@ namespace nanos {
 
                if ( next != NULL ) return next;
 
-               return atIdle( thread );
+               return atIdle( thread, false );
             }
 
             WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
@@ -785,12 +785,12 @@ namespace nanos {
 
       WD *ReadyCacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
       {
-         return atIdle( thread );
+         return atIdle( thread, false );
       }
 
       /*!
        */
-      WD * ReadyCacheSchedPolicy::atIdle ( BaseThread *thread )
+      WD * ReadyCacheSchedPolicy::atIdle ( BaseThread *thread, int numSteal )
       {
          WorkDescriptor * wd = NULL;
 

@@ -23,6 +23,7 @@
 #include "os.hpp"
 #include "openclevent.hpp"
 #include <iostream>
+#include <algorithm>
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
@@ -104,7 +105,21 @@ void OpenCLAdapter::initialize(cl_device_id dev)
    _copyOutQueue = clCreateCommandQueue( _ctx, _dev, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE , &errCode );
    if( errCode != CL_SUCCESS )
      fatal0( "Cannot create a command queue" );
+
+   std::string deviceVendor = getDeviceVendor();
+   setSynchronization(deviceVendor);
+
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+}
+
+void OpenCLAdapter::setSynchronization( std::string &vendor )
+{
+	std::transform(vendor.begin(), vendor.end(), vendor.begin(), toupper);
+	if ( vendor.find("INTEL") != std::string::npos ) {
+		_synchronize = true;
+	} else 	if ( vendor.find("ARM") != std::string::npos ) {
+		_synchronize = true;
+	}
 }
 
 cl_int OpenCLAdapter::allocBuffer( size_t size, void* host_ptr, cl_mem &buf )
@@ -322,6 +337,10 @@ cl_int OpenCLAdapter::readBuffer(cl_mem buf,
                 NULL,
                 &ev
                 );
+
+        if ( _synchronize )
+     	   clWaitForEvents(1, &ev);
+
         *globalSizeCounter+=size;
         NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;      
     }
@@ -378,6 +397,10 @@ cl_int OpenCLAdapter::writeBuffer( cl_mem buf,
                                           NULL,
                                           &ev
                                         );
+
+       if ( _synchronize )
+    	   clWaitForEvents(1, &ev);
+
         *globalSizeCounter += size;
         NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    }
@@ -391,6 +414,7 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
         cl_event& ev) {
     
     if (_unmapedCache.count(buf) != 0) {
+        ev = NULL;
         return CL_SUCCESS;
     }
     cl_int errCode;
@@ -714,6 +738,9 @@ void OpenCLAdapter::execKernel(void* oclKernel,
                                        &oclEvent->getCLEvent()
                                      );
 
+   if ( _synchronize )
+	   clWaitForEvents(1, &oclEvent->getCLEvent());
+
    if ( currQueue == _currQueue ) {
       _currQueue = ( _currQueue + 1 )  % nanos::ext::OpenCLConfig::getPrefetchNum();
    }
@@ -933,6 +960,17 @@ std::string OpenCLAdapter::getDeviceName(){
    clGetDeviceInfo(_dev, CL_DEVICE_NAME, 0, NULL, &valueSize);
    value = (char*) malloc(valueSize);
    clGetDeviceInfo(_dev, CL_DEVICE_NAME, valueSize, value, NULL);
+   std::string ret(value);
+   free(value);
+   return ret;
+}
+
+std::string OpenCLAdapter::getDeviceVendor(){
+   char* value;
+   size_t valueSize;
+   clGetDeviceInfo(_dev, CL_DEVICE_VENDOR, 0, NULL, &valueSize);
+   value = (char*) malloc(valueSize);
+   clGetDeviceInfo(_dev, CL_DEVICE_VENDOR, valueSize, value, NULL);
    std::string ret(value);
    free(value);
    return ret;

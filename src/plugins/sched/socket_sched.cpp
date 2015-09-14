@@ -514,6 +514,7 @@ namespace nanos {
                _spins ( spins ), _randomSteal( randomSteal ), _useCopies( useCopies ),
                _config( config )
             {
+               message0("Steal: " + toString(steal) + ", _steal" + toString(_steal) );
             }
 
             // destructor
@@ -739,8 +740,14 @@ namespace nanos {
                return 0;
             }
 
-            virtual WD * atIdle ( BaseThread *thread )
+            virtual WD * atIdle ( BaseThread *thread, int numSteal )
             {
+               // If stealing has been enabled and its time to steal
+               if ( numSteal && _steal )
+                  // Try...
+                  return stealWork( thread );
+               
+               // Otherwise, normal at idle operation
                WD* wd = NULL;
                
                // Get the physical node of this thread
@@ -776,75 +783,83 @@ namespace nanos {
                    /*&& ( tdata._activeMasters[socket].value() == 0 || tdata._activeMasters[socket].value() == thId )*/
                unsigned queueNumber = nodeToQueue( vNode, parentQueue );
                
-               // #1102 Disable spin steal for the moment
-               unsigned spins = 1;
-               // Make sure the queue is really empty... lotsa times!
-               do {
-                  // We only spin when steal is enabled
-                  wd = tdata._readyQueues[queueNumber].pop_front( thread );
-                  --spins;
-               } while( _steal && wd == NULL && spins != 0 );
+               wd = tdata._readyQueues[queueNumber].pop_front( thread );
                
                if ( wd != NULL )
                   return wd;
                
-               // If we want/need to steal
-               if ( _steal )
-               {
-                  // Index of the queue where we stole the WD
-                  unsigned index;
-                  
-                  if ( false /* steal from the biggest */ )
-                  {
-                     // Find the queue with the most small tasks
-                     WDPriorityQueue<> *largest = &tdata._readyQueues[2];
-                     //int largestSocket = 0;
-                     for ( int i = 1; i < sys.getSMPPlugin()->getNumSockets(); ++i )
-                     {
-                        WDPriorityQueue<> *current = &tdata._readyQueues[ (i+1)*2 ];
-                        if ( largest->size() < current->size() ){
-                           largest = current;
-                           //largestSocket = i;
-                           index = (i+1)*2;
-                        }
-                     }
-                     //fprintf( stderr, "Stealing from socket #%d that has %lu tasks\n", largestSocket, largest->size() );
-                     /*if( _stealLowPriority )
-                        wd = largest->pop_back( thread );
-                     else
-                        wd = largest->pop_front( thread );*/
-                  }
-                  else if ( _randomSteal )
-                  {
-                     unsigned random = std::rand() % sys.getNumNumaNodes();
-                     //index = random * 2 + offset;
-                     index = nodeToQueue( random, _stealParents );
-                  }
-                  // Round robbin steal
-                  else {
-                     // getStealNext returns a physical node, we must convert it
-                     int close = _nearSockets[node].getStealNext();
-                     int vClose = sys.getVirtualNUMANode( close );
-                     
-                     // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
-                     index = nodeToQueue( vClose, _stealParents );
-                  }
-                  
-                  if( _stealLowPriority )
-                     wd = tdata._readyQueues[index].pop_back( thread );
-                  else
-                     wd = tdata._readyQueues[index].pop_front( thread );
-                  
-                  if ( wd != NULL ){
-                     WDData & wdata = *dynamic_cast<WDData*>( wd->getSchedulerData() );
-                     // Change queue
-                     wdata._wakeUpQueue = index;
-                     return wd;
-                  }
-               }
+               
                
                // If this queue is empty, try the global queue
                return tdata._readyQueues[0].pop_front( thread );
+            }
+            
+            WD * stealWork ( BaseThread *thread )
+            {
+               message0("Steal: " + toString(_steal) );
+               // This fixes #1102
+               message( "AtSteal!!!" );
+               // WD to return
+               WD* wd = NULL;
+               
+               message( "Steal is true" );
+               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+               // Get the physical node of this thread
+               unsigned node = thread->runningOn()->getNumaNode();
+               
+               // Index of the queue where we stole the WD
+               unsigned index;
+               
+               if ( false /* steal from the biggest */ )
+               {
+                  // Find the queue with the most small tasks
+                  WDPriorityQueue<> *largest = &tdata._readyQueues[2];
+                  //int largestSocket = 0;
+                  for ( int i = 1; i < sys.getSMPPlugin()->getNumSockets(); ++i )
+                  {
+                     WDPriorityQueue<> *current = &tdata._readyQueues[ (i+1)*2 ];
+                     if ( largest->size() < current->size() ){
+                        largest = current;
+                        //largestSocket = i;
+                        index = (i+1)*2;
+                     }
+                  }
+                  //fprintf( stderr, "Stealing from socket #%d that has %lu tasks\n", largestSocket, largest->size() );
+                  /*if( _stealLowPriority )
+                     wd = largest->pop_back( thread );
+                  else
+                     wd = largest->pop_front( thread );*/
+               }
+               else if ( _randomSteal )
+               {
+                  unsigned random = std::rand() % sys.getNumNumaNodes();
+                  //index = random * 2 + offset;
+                  index = nodeToQueue( random, _stealParents );
+               }
+               // Round robbin steal
+               else {
+                  // getStealNext returns a physical node, we must convert it
+                  int close = _nearSockets[node].getStealNext();
+                  int vClose = sys.getVirtualNUMANode( close );
+                  
+                  // 2 queues per socket + 1 master queue + 1 (offset of the inner tasks)
+                  index = nodeToQueue( vClose, _stealParents );
+               }
+               
+               if( _stealLowPriority )
+                  wd = tdata._readyQueues[index].pop_back( thread );
+               else
+                  wd = tdata._readyQueues[index].pop_front( thread );
+               
+               if ( wd != NULL ){
+                  WDData & wdata = *dynamic_cast<WDData*>( wd->getSchedulerData() );
+                  // Change queue
+                  wdata._wakeUpQueue = index;
+                  return wd;
+               }
+               
+               // Reached this point, return NULL
+               return NULL;
             }
             
             virtual WD * atWakeUp( BaseThread *thread, WD &wd )
@@ -883,7 +898,7 @@ namespace nanos {
                
                WD * found = current.getImmediateSuccessor(*thread);
             
-               return found != NULL ? found : atIdle(thread);
+               return found != NULL ? found : atIdle(thread,false);
             }
          
             //WD * atBeforeExit ( BaseThread *thread, WD &current )

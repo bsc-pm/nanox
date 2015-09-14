@@ -380,12 +380,12 @@ namespace nanos
           * \brief Updates the number of active worker threads and adds them to the main team
           * \param[in] nthreads
           */
-         void updateActiveWorkers ( int nthreads );
+         void updateActiveWorkers( int nthreads );
 
          /*!
           * \brief Get the process mask of active CPUs by reference
           */
-         const CpuSet& getCpuProcessMask () const;
+         const CpuSet& getCpuProcessMask() const;
 
          /*!
           * \brief Set the process mask
@@ -393,18 +393,18 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuProcessMask ( const CpuSet& mask );
+         bool setCpuProcessMask( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current process mask
           * \param[in] mask
           */
-         void addCpuProcessMask ( const CpuSet& mask );
+         void addCpuProcessMask( const CpuSet& mask );
 
          /*!
           * \brief Get the current mask of active CPUs by reference
           */
-         const CpuSet& getCpuActiveMask () const;
+         const CpuSet& getCpuActiveMask() const;
 
          /*!
           * \brief Set the mask of active CPUs
@@ -412,13 +412,18 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuActiveMask ( const CpuSet& mask );
+         bool setCpuActiveMask( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current mask of active CPUs
           * \param[in] mask
           */
-         void addCpuActiveMask ( const CpuSet& mask );
+         void addCpuActiveMask( const CpuSet& mask );
+
+         /*!
+          * \brief Force the creation of at least 1 thread per PE, which are blocked afterwards
+          */
+         void forceMaxThreadCreation();
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

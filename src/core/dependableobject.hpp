@@ -229,7 +229,7 @@ inline bool DependableObject::isSubmitted()
 {
    return
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-      __atomic_load_n(&_submitted, __ATOMIC_SEQ_CST)
+      __atomic_load_n(&_submitted, __ATOMIC_ACQUIRE)
 #else
       _submitted
 #endif
@@ -239,7 +239,7 @@ inline bool DependableObject::isSubmitted()
 inline void DependableObject::submitted()
 {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-   __atomic_store_n(&_submitted, true, __ATOMIC_SEQ_CST);
+   __atomic_store_n(&_submitted, true, __ATOMIC_RELEASE);
 #else
    _submitted = true;
 #endif
@@ -264,7 +264,7 @@ inline void DependableObject::disableSubmission()
 {
    _needsSubmission = false;
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-   __atomic_store_n(&_submitted, false, __ATOMIC_SEQ_CST);
+   __atomic_store_n(&_submitted, false, __ATOMIC_RELEASE);
 #else
    _submitted = false;
    memoryFence();

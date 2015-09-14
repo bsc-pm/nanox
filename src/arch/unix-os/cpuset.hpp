@@ -25,6 +25,7 @@
 #endif
 #include <sched.h>
 #include <string.h>
+#include <ostream>
 #include "compatibility.hpp"
 
 namespace nanos
@@ -56,26 +57,50 @@ class CpuSet
       }
 
       // Assignment operators
-      CpuSet& operator=( const cpu_set_t& cpu_set )
+      CpuSet& operator=( const cpu_set_t& rhs )
       {
-         ::memcpy( &_mask, &cpu_set, sizeof(cpu_set_t));
+         ::memcpy( &_mask, &rhs, sizeof(cpu_set_t));
          return *this;
       }
 
-      CpuSet& operator=( const CpuSet& cpu_set )
+      CpuSet& operator=( const CpuSet& rhs )
       {
-         ::memcpy( &_mask, &(cpu_set._mask), sizeof(cpu_set_t));
+         ::memcpy( &_mask, &(rhs._mask), sizeof(cpu_set_t));
          return *this;
       }
 
       // Arithmetic and logical operators.
       // All of them are friend methods because both operands are const
-      friend CpuSet operator|( const CpuSet& set1, const CpuSet& set2 );
-      friend CpuSet operator&( const CpuSet& set1, const CpuSet& set2 );
-      friend CpuSet operator+( const CpuSet& set1, const CpuSet& set2 );
-      friend CpuSet operator*( const CpuSet& set1, const CpuSet& set2 );
-      friend bool operator==( const CpuSet& set1, const CpuSet& set2 );
-      friend bool operator!=( const CpuSet& set1, const CpuSet& set2 );
+      friend CpuSet operator|( const CpuSet& lhs, const CpuSet& rhs );
+      friend CpuSet operator&( const CpuSet& lhs, const CpuSet& rhs );
+      friend CpuSet operator+( const CpuSet& lhs, const CpuSet& rhs );
+      friend CpuSet operator*( const CpuSet& lhs, const CpuSet& rhs );
+      friend bool operator==( const CpuSet& lhs, const CpuSet& rhs );
+      friend bool operator!=( const CpuSet& lhs, const CpuSet& rhs );
+
+      CpuSet& operator|=( const CpuSet& rhs )
+      {
+         this->add( rhs );
+         return *this;
+      }
+
+      CpuSet& operator&=( const CpuSet& rhs )
+      {
+         this->multiply( rhs );
+         return *this;
+      }
+
+      CpuSet& operator+=( const CpuSet& rhs )
+      {
+         this->add( rhs );
+         return *this;
+      }
+
+      CpuSet& operator*=( const CpuSet& rhs )
+      {
+         this->multiply( rhs );
+         return *this;
+      }
 
       void copyTo( cpu_set_t *cpu_set ) const
       {
@@ -119,6 +144,16 @@ class CpuSet
          CPU_OR( &_mask, &_mask, &(cpu_set._mask) );
       }
 
+      void multiply ( const cpu_set_t& cpu_set )
+      {
+         CPU_AND( &_mask, &_mask, &cpu_set );
+      }
+
+      void multiply ( const CpuSet& cpu_set )
+      {
+         CPU_AND( &_mask, &_mask, &(cpu_set._mask) );
+      }
+
       // low level
       cpu_set_t& get_cpu_set() { return _mask; }
       const cpu_set_t& get_cpu_set() const { return _mask; }
@@ -130,38 +165,38 @@ class CpuSet
 
 // Non-member functions
 
-inline CpuSet operator|( const CpuSet& set1, const CpuSet& set2 )
+inline CpuSet operator|( const CpuSet& lhs, const CpuSet& rhs )
 {
    CpuSet result;
-   CPU_OR( &result._mask, &set1._mask, &set2._mask );
+   CPU_OR( &result._mask, &lhs._mask, &rhs._mask );
    return result;
 }
 
-inline CpuSet operator&( const CpuSet& set1, const CpuSet& set2 )
+inline CpuSet operator&( const CpuSet& lhs, const CpuSet& rhs )
 {
    CpuSet result;
-   CPU_AND( &result._mask, &set1._mask, &set2._mask );
+   CPU_AND( &result._mask, &lhs._mask, &rhs._mask );
    return result;
 }
 
-inline CpuSet operator+( const CpuSet& set1, const CpuSet& set2 )
+inline CpuSet operator+( const CpuSet& lhs, const CpuSet& rhs )
 {
-   return set1 | set2;
+   return lhs | rhs;
 }
 
-inline CpuSet operator*( const CpuSet& set1, const CpuSet& set2 )
+inline CpuSet operator*( const CpuSet& lhs, const CpuSet& rhs )
 {
-   return set1 & set2;
+   return lhs & rhs;
 }
 
-inline bool operator==( const CpuSet& set1, const CpuSet& set2 )
+inline bool operator==( const CpuSet& lhs, const CpuSet& rhs )
 {
-   return CPU_EQUAL( &set1._mask, &set2._mask );
+   return CPU_EQUAL( &lhs._mask, &rhs._mask );
 }
 
-inline bool operator!=( const CpuSet& set1, const CpuSet& set2 )
+inline bool operator!=( const CpuSet& lhs, const CpuSet& rhs )
 {
-   return !( set2 == set1 );
+   return !( rhs == lhs );
 }
 
 inline std::ostream& operator<<(std::ostream& os, const CpuSet& cpu_set)

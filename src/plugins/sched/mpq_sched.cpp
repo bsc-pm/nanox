@@ -170,7 +170,7 @@ namespace nanos {
               return 0;
            }
 
-           WD * atIdle ( BaseThread *thread )
+           WD * atIdle ( BaseThread *thread, int numSteal )
            {
               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
               
@@ -186,9 +186,9 @@ namespace nanos {
            {
               if ( !_usePriority && !_useSmartPriority ) {
                  WD * found = current.getImmediateSuccessor(*thread);
-                 return found != NULL ? found : atIdle(thread);
+                 return found != NULL ? found : atIdle(thread,false);
               } else {
-                 return atIdle(thread);
+                 return atIdle(thread,false);
               }
            }
         

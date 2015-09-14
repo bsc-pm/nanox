@@ -123,6 +123,7 @@ inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool crea
       _threads[id] = thread;
       _idList[id] = true;
       _expectedThreads.insert( thread );
+      _barrier.resize( _expectedThreads.size() );
    }
    if ( star ) _starSize++;
    if ( creator ) {
@@ -300,12 +301,14 @@ inline void ThreadTeam::addExpectedThread( BaseThread *thread )
 {
    LockBlock Lock( _lock );
    _expectedThreads.insert( thread );
+   _barrier.resize( _expectedThreads.size() );
 }
 
 inline void ThreadTeam::removeExpectedThread( BaseThread *thread )
 {
    LockBlock Lock( _lock );
    _expectedThreads.erase( thread );
+   _barrier.resize( _expectedThreads.size() );
 }
 
 #endif

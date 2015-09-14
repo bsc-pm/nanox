@@ -1143,7 +1143,8 @@ struct  nanos_args_1_t
   int *red;
 };
 static void smp_ol_main_1(struct nanos_args_1_t *const args);
-extern nanos_err_t nanos_task_reduction_register(void *orig, void *dep, size_t size, size_t align, void (*init)(void *, void *), void (*reducer)(void *, void *), void (*reducer_orig_var)(void *, void *));
+extern nanos_err_t nanos_task_reduction_register(
+      void *orig, size_t size, void (*init)(void *, void *), void (*reducer)(void *, void *));
 typedef struct _IO_FILE FILE;
 extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);
 extern struct _IO_FILE *stderr;
@@ -1290,7 +1291,7 @@ int main(int argc, char **argv)
               nanos_wd_dyn_props.flags.is_implicit = 0;
               ol_args = (struct nanos_args_1_t *)0;
               nanos_wd_t nanos_wd_ = (void *)0;
-              nanos_err = nanos_task_reduction_register((void *)&red, (void *)&red, sizeof(int), __alignof__(int), (void (*)(void *, void *))&nanos_ini_0x1a14720_380301290, (void (*)(void *, void *))&nanos_red_0x1a14720_380301290, (void (*)(void *, void *))&nanos_red_0x1a14720_380301290);
+              nanos_err = nanos_task_reduction_register((void *)&red, sizeof(int), (void (*)(void *, void *))&nanos_ini_0x1a14720_380301290, (void (*)(void *, void *))&nanos_red_0x1a14720_380301290);
               nanos_err = nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(struct nanos_args_1_t), (void **)&ol_args, nanos_current_wd(), (nanos_copy_data_t **)0, (nanos_region_dimension_internal_t **)0);
               if (nanos_err != NANOS_OK)
                 {
