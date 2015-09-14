@@ -167,6 +167,7 @@ OpenCL version test execution failed
     opencllib="$opencllib $LIBS"
 
     CFLAGS="$bak_CFLAGS"
+    CXXFLAGS="$bak_CXXFLAGS"
     CPPFLAGS="$bak_CPPFLAGS"
     LIBS="$bak_LIBS"
     LDFLAGS="$bak_LDFLAGS"
