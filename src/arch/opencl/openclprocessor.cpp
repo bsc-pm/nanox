@@ -849,7 +849,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
          }
          break;
       default:
-         throw;
+         throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
    }
 }
 
@@ -908,7 +908,7 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
    return new Execution(workDim,localX,localY,localZ,endTime-startTime);
 }
 
-void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution, Dims dims)
+void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution, Dims& dims)
 {
    if ( _bestExec.count(kernel) > 0 ) {
       // We have at least one execution for this kernel
@@ -981,7 +981,7 @@ void OpenCLAdapter::printProfiling()
                   std::cout << "X=" << currDims.getGlobalX() << ", Y=" << currDims.getGlobalY() << ", Z=" << currDims.getGlobalZ() << std::endl;
                   break;
                default:
-                  throw;
+                  throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
             }
             std::cout << "Best configuration found (work-group dimensions):" << std::endl;
             switch ( bestExecution->getNdims() ) {
@@ -995,7 +995,7 @@ void OpenCLAdapter::printProfiling()
                   std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << ", Z=" << bestExecution->getLocalZ() << std::endl;
                   break;
                default:
-                  throw;
+                  throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
             }
             std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
             std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
