@@ -44,37 +44,37 @@ namespace ext {
 class Execution
 {
 private:
-	unsigned char _ndims;
-	unsigned int _localX;
-	unsigned int _localY;
-	unsigned int _localZ;
-	cl_ulong _time;
+   const unsigned char _ndims;
+   const unsigned int _localX;
+   const unsigned int _localY;
+   const unsigned int _localZ;
+   const cl_ulong _time;
 
 public:
-	Execution(unsigned int ndims, unsigned int localX, unsigned int localY, unsigned int localZ, long long int time) :
-			_ndims(ndims), _localX(localX), _localY(localY), _localZ(localZ), _time(time) { }
+   Execution(unsigned int ndims, unsigned int localX, unsigned int localY, unsigned int localZ, long long int time) :
+      _ndims(ndims), _localX(localX), _localY(localY), _localZ(localZ), _time(time) { }
 
-	unsigned char getNdims() const {
-		return _ndims;
-	}
+   unsigned char getNdims() const {
+      return _ndims;
+   }
 
-	cl_ulong getTime() const {
-		return _time;
-	}
+   cl_ulong getTime() const {
+      return _time;
+   }
 
-	bool operator<(const Execution& execution) { return _time < execution.getTime(); }
+   bool operator<(const Execution& execution) { return _time < execution.getTime(); }
 
-	unsigned int getLocalX() const {
-		return _localX;
- 	}
+   unsigned int getLocalX() const {
+      return _localX;
+   }
 
-	unsigned int getLocalY() const {
-		return _localY;
-	}
+   unsigned int getLocalY() const {
+      return _localY;
+   }
 
-	unsigned int getLocalZ() const {
-		return _localZ;
-	}
+   unsigned int getLocalZ() const {
+      return _localZ;
+   }
 };
 
 /**
@@ -83,75 +83,75 @@ public:
 class Dims
 {
 private:
-	unsigned char _ndims;
-	unsigned long long int _globalX;
-	unsigned long long int _globalY;
-	unsigned long long int _globalZ;
-	double _cost;
+   const unsigned char _ndims;
+   const unsigned long long int _globalX;
+   const unsigned long long int _globalY;
+   const unsigned long long int _globalZ;
+   const double _cost;
 public:
-	Dims(unsigned long long int ndims, unsigned long long int globalX, unsigned long long int globalY, unsigned long long int globalZ, double cost) :
-		_ndims(ndims), _globalX(globalX), _globalY(globalY), _globalZ(globalZ), _cost(cost) { }
+   Dims(unsigned long long int ndims, unsigned long long int globalX, unsigned long long int globalY, unsigned long long int globalZ, double cost) :
+      _ndims(ndims), _globalX(globalX), _globalY(globalY), _globalZ(globalZ), _cost(cost) { }
 
-	unsigned int getGlobalX() const {
-		return _globalX;
-	}
+   unsigned int getGlobalX() const {
+      return _globalX;
+   }
 
-	unsigned long long int getGlobalY() const {
-		return _globalY;
-	}
+   unsigned long long int getGlobalY() const {
+      return _globalY;
+   }
 
-	unsigned long long int getGlobalZ() const {
-		return _globalZ;
-	}
+   unsigned long long int getGlobalZ() const {
+      return _globalZ;
+   }
 
-	unsigned char getNdims() const {
-		return _ndims;
-	}
+   unsigned char getNdims() const {
+      return _ndims;
+   }
 
-	bool operator<(const Dims& dims) const
-	{
-		if ( dims.getNdims() != getNdims() ) {
-			throw;
-			// TODO throw nanos fatal error
-		}
-		switch ( dims.getNdims() ) {
-			case 1:
-				return ( getGlobalX() < dims.getGlobalX() );
-				break;
-			case 2:
-				if ( getGlobalX() < dims.getGlobalX() )
-					return true;
-				else {
-					if  ( getGlobalX() == dims.getGlobalX() &&
-						  getGlobalY() < dims.getGlobalY() )
-						return true;
-				}
-				return false;
-				break;
-			case 3:
-				if ( getGlobalX() < dims.getGlobalX() )
-					return true;
-				else {
-					if  ( getGlobalX() == dims.getGlobalX() &&
-						  getGlobalY() < dims.getGlobalY() )
-						return true;
-					else {
-						if ( getGlobalX() == dims.getGlobalX() &&
-							 getGlobalY() == dims.getGlobalY() &&
-						     getGlobalZ() < dims.getGlobalZ() )
-							return true;
-					}
-				}
-				return false;
-				break;
-			default:
-				return true;
-		}
-	}
+   bool operator<(const Dims& dims) const
+   {
+      if ( dims.getNdims() != getNdims() ) {
+         throw;
+         // TODO throw nanos fatal error
+      }
+      switch ( dims.getNdims() ) {
+         case 1:
+            return ( getGlobalX() < dims.getGlobalX() );
+            break;
+         case 2:
+            if ( getGlobalX() < dims.getGlobalX() )
+               return true;
+            else {
+               if  ( getGlobalX() == dims.getGlobalX() &&
+                        getGlobalY() < dims.getGlobalY() )
+                  return true;
+            }
+            return false;
+            break;
+         case 3:
+            if ( getGlobalX() < dims.getGlobalX() )
+               return true;
+            else {
+               if  ( getGlobalX() == dims.getGlobalX() &&
+                        getGlobalY() < dims.getGlobalY() )
+                  return true;
+               else {
+                  if ( getGlobalX() == dims.getGlobalX() &&
+                           getGlobalY() == dims.getGlobalY() &&
+                           getGlobalZ() < dims.getGlobalZ() )
+                     return true;
+               }
+            }
+            return false;
+            break;
+         default:
+            return true;
+      }
+   }
 
-	double getCost() const {
-		return _cost;
-	}
+   double getCost() const {
+      return _cost;
+   }
 };
 
 class OpenCLAdapter
@@ -228,6 +228,7 @@ public:
     */
    void profileKernel( void* oclKernel,
                         int workDim,
+						int range_size,
                         size_t* ndrOffset,
                         size_t* ndrLocalSize,
                         size_t* ndrGlobalSize);
@@ -397,6 +398,7 @@ public:
    
    void profileKernel(void* openclKernel,
                         int workDim,
+						int range_size,
                         size_t* ndrOffset,
                         size_t* ndrLocalSize,
                         size_t* ndrGlobalSize);

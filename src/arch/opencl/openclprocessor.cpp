@@ -57,19 +57,19 @@ OpenCLAdapter::~OpenCLAdapter()
      warning0( "Unable to release the profiling command queue" );
   
   // Release the track memory of profiling executions
-  for (std::map<cl_kernel, DimsBest>::iterator kernelIt = _bestExec.begin(); kernelIt != _bestExec.end(); kernelIt++ )
+  for ( std::map<cl_kernel, DimsBest>::iterator kernelIt = _bestExec.begin(); kernelIt != _bestExec.end(); kernelIt++ )
   {
-	  // Clean best executions
-	  DimsBest &dimsBest = kernelIt->second;
-	  for (DimsBest::iterator dimIt = dimsBest.begin(); dimIt != dimsBest.end(); dimIt++ )
-	  {
-		  delete dimIt->second;
-	  }
-	  dimsBest.clear();
+     // Clean best executions
+     DimsBest &dimsBest = kernelIt->second;
+     for (DimsBest::iterator dimIt = dimsBest.begin(); dimIt != dimsBest.end(); dimIt++ )
+     {
+        delete dimIt->second;
+     }
+     dimsBest.clear();
 
-	  // Clean statistics
-	  DimsExecutions &dimsExecutions = _nExecutions[kernelIt->first];
-	  dimsExecutions.clear();
+     // Clean statistics
+     DimsExecutions &dimsExecutions = _nExecutions[kernelIt->first];
+     dimsExecutions.clear();
   }
   _bestExec.clear();
   _nExecutions.clear();
@@ -694,7 +694,6 @@ void* OpenCLAdapter::createKernel( const char* kernel_name, const char* ompss_co
    return kern;    
 }
 
-
 static void processOpenCLError(cl_int errCode) {
    std::cerr << "Error code when executing kernel " << errCode << "\n";
    switch (errCode) {
@@ -780,76 +779,85 @@ void OpenCLAdapter::execKernel(void* oclKernel,
 }
 
 void OpenCLAdapter::profileKernel(void* oclKernel,
-                        int workDim,
-                        size_t* ndrOffset,
-                        size_t* ndrLocalSize,
-                        size_t* ndrGlobalSize)
+         int workDim,
+         int range_size,
+         size_t* ndrOffset,
+         size_t* ndrLocalSize,
+         size_t* ndrGlobalSize)
 {
-	unsigned int xMin, xMax, yMin, yMax, zMin, zMax, step;
-	double cost;
-	// TODO: use the right parameters instead simulate them
-	/* SIMULATION */
-	xMin = 1;
-	xMax = 2;
-	yMin = 1;
-	yMax = 2;
-	zMin = 1;
-	zMax = 2;
-	step = 2;
-	cost = 2.0;
-	/* SIMULATION */
+   size_t local_work_size[3], global_work_size[3];
+   double cost = 0;
 
-	cl_kernel kernel = (cl_kernel) oclKernel;
-	Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2], cost);
+#ifdef NANOS_DEBUG_ENABLED
+   debug( "[opencl] Profiling kernel: " + toString( oclKernel ) + ". Profiling configuration:" );
+   for ( int i=0; i<workDim; i++ )
+   {
+      debug( "[opencl] Dimension: " + toString( i ) );
+      for ( int j=0; j<range_size; j++ )
+      {
+         debug( "[opencl]    [" + toString( j ) + "]Global size: " + toString( ndrGlobalSize[i*range_size+j] ) );
+         debug( "[opencl]    [" + toString( j ) + "]Local size:  " + toString( ndrLocalSize[i*range_size+j] ) );
+      }
+   }
+#endif
 
-	switch ( workDim )
-	{
-	// One dimension
-		case 1:
-			for ( unsigned int x=xMin; x<=xMax; x*=step )
-			{
-				   ndrLocalSize[0] = x;
-				   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize), dims);
-			}
-			break;
-	// Two dimensions
-		case 2:
-			for ( unsigned int x=xMin; x<=xMax; x*=step )
-			{
-				ndrLocalSize[0] = x;
-				for ( unsigned int y=yMin; y<=yMax; y*=step )
-				{
-					   ndrLocalSize[1] = y;
-					   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize), dims);
-				}
-			}
-			break;
-	// Three dimensions
-		case 3:
-			for ( unsigned int x=xMin; x<=xMax; x*=step )
-			{
-				ndrLocalSize[0] = x;
-				for ( unsigned int y=yMin; y<=yMax; y*=step )
-				{
-					ndrLocalSize[1] = y;
-					for ( unsigned int z=zMin; z<=zMax; z*=step )
-					{
-						   ndrLocalSize[2] = z;
-						   updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, ndrLocalSize, ndrGlobalSize), dims);
-					}
-				}
-			}
-			break;
-		default:
-			throw;
-	}
+   cl_kernel kernel = (cl_kernel) oclKernel;
+   Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2], cost);
+
+   switch ( workDim )
+   {
+      // One dimension
+      case 1:
+         for ( int x=0; x<range_size; x++ )
+         {
+            local_work_size[0] = ndrLocalSize[x];
+            global_work_size[0] = ndrGlobalSize[x];
+            updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+         }
+         break;
+         // Two dimensions
+      case 2:
+         for ( int x=0; x<range_size; x++ )
+         {
+            local_work_size[0] = ndrLocalSize[x];
+            global_work_size[0] = ndrGlobalSize[x];
+            for ( int y=0; y<range_size; y++ )
+            {
+               local_work_size[1] = ndrLocalSize[range_size+y];
+               global_work_size[1] = ndrGlobalSize[range_size+y];
+               updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+            }
+         }
+         break;
+         // Three dimensions
+      case 3:
+         for ( int x=0; x<range_size; x++ )
+         {
+            local_work_size[0] = ndrLocalSize[x];
+            global_work_size[0] = ndrGlobalSize[x];
+            for ( int y=0; y<range_size; y++ )
+            {
+               local_work_size[1] = ndrLocalSize[range_size+y];
+               global_work_size[1] = ndrGlobalSize[range_size+y];
+               for ( int z=0; z<range_size; z++ )
+               {
+                  local_work_size[2] = ndrLocalSize[2*range_size+z];
+                  global_work_size[2] = ndrGlobalSize[2*range_size+z];
+                  updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+               }
+            }
+         }
+         break;
+      default:
+         throw;
+   }
 }
 
 Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
-                        int workDim,
-                        size_t* ndrOffset,
-                        size_t* ndrLocalSize,
-                        size_t* ndrGlobalSize)
+         int workDim,
+         size_t* ndrOffset,
+         size_t* ndrLocalSize,
+         size_t* ndrGlobalSize)
 {
    cl_kernel openclKernel=(cl_kernel) oclKernel;
    cl_int errCode;
@@ -859,15 +867,15 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
    // Exec it.
 
    errCode = clEnqueueNDRangeKernel( _profilingQueue,
-                                       openclKernel,
-                                       workDim,
-                                       ndrOffset,
-                                       ndrGlobalSize,
-                                       ndrLocalSize,
-                                       0,
-                                       NULL,
-                                       &event
-                                     );
+            openclKernel,
+            workDim,
+            ndrOffset,
+            ndrGlobalSize,
+            ndrLocalSize,
+            0,
+            NULL,
+            &event
+   );
 
    if( errCode != CL_SUCCESS )
    {
@@ -886,15 +894,15 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
    unsigned int localX, localY, localZ;
    localX = ndrLocalSize[0];
    if ( workDim > 1) {
-   	localY = ndrLocalSize[1];
-	   if ( workDim> 2) {
-		   localZ = ndrLocalSize[2];
-	   }
-	   else {
-		   localZ = 0;
-	   }
+      localY = ndrLocalSize[1];
+      if ( workDim > 2) {
+         localZ = ndrLocalSize[2];
+      }
+      else {
+         localZ = 0;
+      }
    } else {
-	  localY = localZ = 0;
+      localY = localZ = 0;
    }
 
    return new Execution(workDim,localX,localY,localZ,endTime-startTime);
@@ -902,102 +910,103 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
 
 void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution, Dims dims)
 {
-	if ( _bestExec.count(kernel) > 0 ) {
-		// We have at least one execution for this kernel
-		DimsBest &dimsBest = _bestExec[kernel];
-		DimsExecutions &dimsExecutions = _nExecutions[kernel];
+   if ( _bestExec.count(kernel) > 0 ) {
+      // We have at least one execution for this kernel
+      DimsBest &dimsBest = _bestExec[kernel];
+      DimsExecutions &dimsExecutions = _nExecutions[kernel];
 
-		if ( dimsBest.count(dims) ) {
-			// We have at least one execution with these dimensions
-			Execution *bestExecution = dimsBest[dims];
+      if ( dimsBest.count(dims) ) {
+         // We have at least one execution with these dimensions
+         Execution *bestExecution = dimsBest[dims];
 
-			// Update best execution
-			if ( *execution < *bestExecution )
-			{
-				dimsBest[dims] = execution;
-				delete bestExecution;
-			}
+         // Update best execution
+         if ( *execution < *bestExecution )
+         {
+            dimsBest[dims] = execution;
+            delete bestExecution;
+         }
 
-			dimsExecutions[dims]++;
-		} else {
-			// We do not have any executions with these dimensions for this kernel
-			dimsBest[dims] = execution;
-			dimsExecutions[dims] = 1;
-		}
-	} else {
-		// This is the first execution for this kernel
-		DimsBest *dimsBest = new DimsBest;
-		(*dimsBest)[dims] = execution;
-		_bestExec[kernel] = *dimsBest;
+         dimsExecutions[dims]++;
+      } else {
+         // We do not have any executions with these dimensions for this kernel
+         dimsBest[dims] = execution;
+         dimsExecutions[dims] = 1;
+      }
+   } else {
+      // This is the first execution for this kernel
+      DimsBest *dimsBest = new DimsBest;
+      (*dimsBest)[dims] = execution;
+      _bestExec[kernel] = *dimsBest;
 
-		DimsExecutions *dimsExecutions = new DimsExecutions;
-		(*dimsExecutions)[dims] = 1;
-		_nExecutions[kernel] = *dimsExecutions;
-	}
+      DimsExecutions *dimsExecutions = new DimsExecutions;
+      (*dimsExecutions)[dims] = 1;
+      _nExecutions[kernel] = *dimsExecutions;
+   }
 }
 
 void OpenCLAdapter::printProfiling()
 {
-	if ( _bestExec.size() > 0 ) {
-		std::cout.precision(3);
-		std::cout << "-------------------------------------------------" << std::endl;
-		std::cout << "OpenCL Performance Profile" << std::endl;
-		std::cout << "-------------------------------------------------" << std::endl;
-		for ( std::map<cl_kernel, DimsBest>::iterator dimsBestIt = _bestExec.begin(); dimsBestIt != _bestExec.end(); dimsBestIt++ )
-		{
-			cl_kernel kernel = dimsBestIt->first;
-			DimsExecutions &dimsExecutions = _nExecutions[kernel];
-			size_t size;
-			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, 0, NULL, &size), (char *)"Error reading kernel info");
-			char *kernelName = (char*)malloc(size);
-			clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, size, kernelName, &size), (char *)"Error reading kernel info 2");
-			std::cout << "#################################################" << std::endl;
-			std::cout << "Kernel: " << kernelName << std::endl;
-			std::cout << "#################################################" << std::endl;
-			for ( DimsBest::iterator dim = dimsBestIt->second.begin(); dim != dimsBestIt->second.end(); dim++ )
-			{
-				Dims currDims = dim->first;
-				Execution *bestExecution = dim->second;
-				double performance = currDims.getCost()/(bestExecution->getTime()/1.e9f);
+   if ( _bestExec.size() > 0 ) {
+      std::cout.precision(3);
+      std::cout << "-------------------------------------------------" << std::endl;
+      std::cout << "OpenCL Performance Profile" << std::endl;
+      std::cout << "-------------------------------------------------" << std::endl;
+      for ( std::map<cl_kernel, DimsBest>::const_iterator dimsBestIt = _bestExec.begin(); dimsBestIt != _bestExec.end(); dimsBestIt++ )
+      {
+         cl_kernel kernel = dimsBestIt->first;
+         DimsExecutions &dimsExecutions = _nExecutions[kernel];
+         size_t size;
+         clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, 0, NULL, &size), (char *)"Error reading kernel info");
+         char *kernelName = (char*)malloc(size);
+         clCheckError(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME, size, kernelName, &size), (char *)"Error reading kernel info 2");
+         std::cout << "#################################################" << std::endl;
+         std::cout << "Kernel name: " << kernelName << std::endl;
+         std::cout << "#################################################" << std::endl;
+         for ( DimsBest::const_iterator dim = dimsBestIt->second.begin(); dim != dimsBestIt->second.end(); dim++ )
+         {
+            Dims currDims = dim->first;
+            Execution *bestExecution = dim->second;
+            double performance = currDims.getCost()/(bestExecution->getTime()/1.e9f);
 
-				std::cout << "................................................." << std::endl;
-				std::cout << "Dimensions: ";
-				switch ( currDims.getNdims() ) {
-					case 1:
-						std::cout << "X=" << currDims.getGlobalX() << std::endl;
-						break;
-					case 2:
-						std::cout << "X=" << currDims.getGlobalX() << ", Y=" << currDims.getGlobalY() << std::endl;
-						break;
-					case 3:
-						std::cout << "X=" << currDims.getGlobalX() << ", Y=" << currDims.getGlobalY() << std::cout << ", Z=" << currDims.getGlobalZ();
-						break;
-				default:
-					throw;
-				}
-				std::cout << "Best configuration found (work-group dimensions):" << std::endl;
-				switch ( bestExecution->getNdims() ) {
-					case 1:
-						std::cout << "X=" << bestExecution->getLocalX() << std::endl;
-						break;
-					case 2:
-						std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << std::endl;
-						break;
-					case 3:
-						std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << std::cout << ", Z=" << bestExecution->getLocalZ();
-						break;
-				default:
-					throw;
-				}
-				std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
-				std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
-				std::cout << "Performance: " << performance << " Gflops" << std::endl;
-				std::cout << "................................................." << std::endl;
-			}
-			free(kernelName);
-		}
-		std::cout << "-------------------------------------------------" << std::endl;
-	}
+            std::cout << "................................................." << std::endl;
+            std::cout << "Dimensions: ";
+            switch ( currDims.getNdims() ) {
+               case 1:
+                  std::cout << "X=" << currDims.getGlobalX() << std::endl;
+                  break;
+               case 2:
+                  std::cout << "X=" << currDims.getGlobalX() << ", Y=" << currDims.getGlobalY() << std::endl;
+                  break;
+               case 3:
+                  std::cout << "X=" << currDims.getGlobalX() << ", Y=" << currDims.getGlobalY() << ", Z=" << currDims.getGlobalZ() << std::endl;
+                  break;
+               default:
+                  throw;
+            }
+            std::cout << "Best configuration found (work-group dimensions):" << std::endl;
+            switch ( bestExecution->getNdims() ) {
+               case 1:
+                  std::cout << "X=" << bestExecution->getLocalX() << std::endl;
+                  break;
+               case 2:
+                  std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << std::endl;
+                  break;
+               case 3:
+                  std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << ", Z=" << bestExecution->getLocalZ() << std::endl;
+                  break;
+               default:
+                  throw;
+            }
+            std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
+            std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
+            if ( performance > 0 )
+               std::cout << "Performance: " << performance << " Gflops" << std::endl;
+            std::cout << "................................................." << std::endl;
+         }
+         free(kernelName);
+      }
+      std::cout << "-------------------------------------------------" << std::endl;
+   }
 }
 
 size_t OpenCLAdapter::getGlobalSize()
@@ -1303,11 +1312,13 @@ void OpenCLProcessor::execKernel(void* openclKernel,
 
 void OpenCLProcessor::profileKernel(void* openclKernel,
                         int workDim,
+						int range_size,
                         size_t* ndrOffset,
                         size_t* ndrLocalSize,
                         size_t* ndrGlobalSize){
     _openclAdapter.profileKernel(openclKernel,
                             workDim,
+							range_size,
                             ndrOffset,
                             ndrLocalSize,
                             ndrGlobalSize);
