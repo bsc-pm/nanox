@@ -361,6 +361,19 @@ void BlockingThreadManager::unblockThread( BaseThread* thread )
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
 
+void BlockingThreadManager::unblockThreads( std::vector<BaseThread*> threads )
+{
+   if ( !_initialized ) return;
+
+   std::vector<BaseThread*>::iterator it;
+   for (it=threads.begin(); it!=threads.end(); ++it) {
+      BaseThread *thread = *it;
+      ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
+      thread->wakeup();
+      sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+   }
+}
+
 /**********************************/
 /**** BusyWait Thread Manager *****/
 /**********************************/
@@ -538,6 +551,18 @@ void BusyWaitThreadManager::unblockThread( BaseThread* thread )
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
 
+void BusyWaitThreadManager::unblockThreads( std::vector<BaseThread*> threads )
+{
+   if ( !_initialized ) return;
+
+   std::vector<BaseThread*>::iterator it;
+   for (it=threads.begin(); it!=threads.end(); ++it) {
+      BaseThread *thread = *it;
+      ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
+      thread->wakeup();
+      sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+   }
+}
 
 /**********************************/
 /******* DLB Thread Manager *******/
@@ -695,9 +720,27 @@ void DlbThreadManager::blockThread( BaseThread *thread )
 }
 
 void DlbThreadManager::unblockThread(BaseThread* thread) {
+   if ( !_initialized ) return;
+
    int cpu = thread->getCpuId();
    if ( !_cpuActiveMask->isSet(cpu) ) {
       //If the cpu is not active claim it and wake up thread
       DLB_AcquireCpu( cpu );
    }
+}
+
+void DlbThreadManager::unblockThreads(std::vector<BaseThread*> threads) {
+   if ( !_initialized ) return;
+
+   CpuSet cpus;
+   std::vector<BaseThread*>::iterator it;
+   for (it=threads.begin(); it!=threads.end(); ++it) {
+      BaseThread *thread = *it;
+      int cpu = thread->getCpuId();
+      if ( !_cpuActiveMask->isSet(cpu) ) {
+         //If the cpu is not active claim it and wake up thread
+         cpus.set(cpu);
+      }
+   }
+   DLB_AcquireCpus( &cpus.get_cpu_set() );
 }
