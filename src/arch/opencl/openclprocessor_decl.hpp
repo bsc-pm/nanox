@@ -46,7 +46,7 @@ public:
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _progCache() {}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _progCache() {}
 
 public:
    void initialize(cl_device_id dev);
@@ -108,6 +108,7 @@ public:
    size_t getGlobalSize();
    
    std::string getDeviceName();
+   std::string getDeviceVendor();
    
    
 
@@ -159,6 +160,8 @@ private:
 
    cl_int getPlatformName( std::string &name );
 
+   void setSynchronization( std::string &vendor );
+
 private:
    cl_device_id _dev;
    cl_context _ctx;
@@ -170,6 +173,7 @@ private:
    std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
    bool _preallocateWholeMemory;
+   bool _synchronize;
 
    ProgramCache _progCache;
    bool _useHostPtrs;

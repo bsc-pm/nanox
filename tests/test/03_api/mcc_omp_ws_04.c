@@ -18,7 +18,7 @@
 /*************************************************************************************/
 /* AUTOMATIC GENERATED TEST                                                          */
 /*                                                                                   */
-/* Check %(srcdir)/tests/mcc to get mercurium source code                            */
+/* Check %(srcdir)/tests/mcc/omp in order to get mercurium source code               */
 /*************************************************************************************/
 
 /*
@@ -1276,7 +1276,7 @@ static void smp_ol_main_1_unpacked(int *const i, int *const a)
       nanos_ws_desc_t *wsd_1;
       _Bool single_guard;
       struct nanos_args_0_t imm_args;
-      void *current_ws_policy = nanos_omp_find_worksharing(nanos_omp_sched_static);
+      void *current_ws_policy = nanos_omp_find_worksharing(nanos_omp_sched_guided);
       if (current_ws_policy == 0)
         {
           nanos_handle_error(NANOS_UNIMPLEMENTED);

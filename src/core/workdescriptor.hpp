@@ -127,7 +127,7 @@ inline WorkDescriptor::WorkDescriptor ( const WorkDescriptor &wd, DeviceData **d
                                  _notifyCopy( NULL ), _notifyThread( NULL ), _remoteAddr( NULL ), _mcontrol( *this )
                                  {
                                     if ( wd._parent != NULL ) wd._parent->addWork(*this);
-                                    _flags.is_final = false;
+                                    _flags.is_final = wd._flags.is_final;
                                     _flags.is_ready = false;
                                     _flags.to_tie = wd._flags.to_tie;
                                     _flags.is_submitted = false;
