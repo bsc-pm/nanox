@@ -39,8 +39,8 @@ test_CXX=@CONFIG_CXX@
 test_CFLAGS="\$common_includes"
 test_CXXFLAGS="\$common_includes"
 
-opencl_inc="@CONFIG_OPENCL_INC@"
-opencl_ld="@CONFIG_OPENCL_LD@"
+opencl_inc="@CONFIG_OPENCL_INC@ -I @CONFIG_CUDA_INC@"
+opencl_ld="@CONFIG_OPENCL_LD@ -L @CONFIG_CUDA_LD@"
 
 OPENCL_PERFO_CFLAGS="\$PERFO_CFLAGS -I \$opencl_inc -L \$opencl_ld"
 OPENCL_PERFO_CXXFLAGS="\$PERFO_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
