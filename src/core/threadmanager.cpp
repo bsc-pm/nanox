@@ -39,6 +39,7 @@ extern "C" {
    int DLB_Is_auto( void ) __attribute__(( weak ));
    void DLB_Update( void ) __attribute__(( weak ));
    void DLB_AcquireCpu( int cpu ) __attribute__(( weak ));
+   void DLB_AcquireCpus( cpu_set_t* mask ) __attribute__(( weak ));
 }
 #define DLB_SYMBOLS_DEFINED ( \
          DLB_UpdateResources_max && \
@@ -51,6 +52,7 @@ extern "C" {
          DLB_Init && \
          DLB_Finalize && \
          DLB_AcquireCpu && \
+         DLB_AcquireCpus && \
          DLB_Update )
 #endif
 
