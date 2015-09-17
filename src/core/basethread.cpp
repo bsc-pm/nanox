@@ -165,10 +165,8 @@ void BaseThread::sleep()
 {
    if ( !_status.must_sleep && canBlock() ) {
       _status.must_sleep = true;
-      // Only abandon team if a prior order was not given
-      // and if the PE was deactivated
-      if ( !_status.must_leave_team
-            && sys.getSMPPlugin()->getBinding()
+      // Only abandon team if the PE is not active
+      if ( sys.getSMPPlugin()->getBinding()
             && !runningOn()->isActive() ) {
          setLeaveTeam( true );
       }
