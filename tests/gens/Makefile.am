@@ -19,7 +19,7 @@
 
 include $(top_srcdir)/src/common.am
 
-EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in mcc-ompss-generator.in resiliency-generator.in config.py mpi-offload-generator.in opencl-generator.in
+EXTRA_DIST = api-generator.in core-generator.in gpu-generator.in mixed-generator.in nanox-creation-generator.in api-omp-generator.in mcc-openmp-generator.in mcc-ompss-generator.in resiliency-generator.in config.py mpi-offload-generator.in opencl-generator.in nanos-exports.def
 
 noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator mcc-ompss-generator resiliency-generator mpi-offload-generator opencl-generator
 
