@@ -87,12 +87,16 @@ void * local_nanos_ocl_factory( void *args )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) ( ( uintptr_t ) _Arg ) )
 #      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
 #      define VERBOSE_AM( x )
+#      define _this_exit gasnet_exit
+#      define DEFAULT_SEGMENT_SIZE gasnet_getMaxLocalSegmentSize()
 #   else
 #      define MERGE_ARG( _Hi, _Lo) ( ( uintptr_t ) ( _Lo ) )
 #      define ARG_HI( _Arg ) ( ( gasnet_handlerarg_t ) 0 )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) _Arg )
 #      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest() / 2) //Montblanc
 #      define VERBOSE_AM( x )
+#      define _this_exit _exit
+#      define DEFAULT_SEGMENT_SIZE (512*1024*1024)
 #   endif
 #endif
 
@@ -1142,7 +1146,11 @@ void GASNetAPI::initialize ( Network *net )
 
    gasnet_init( &my_argc, &my_argv );
 
-   segSize = gasnet_getMaxLocalSegmentSize();
+   if ( _plugin.getGASNetSegmentSize() == 0 ) {
+      segSize = DEFAULT_SEGMENT_SIZE;
+   } else {
+      segSize = _plugin.getGASNetSegmentSize();
+   }
 
    gasnet_attach( htable, sizeof( htable ) / sizeof( gasnet_handlerentry_t ), segSize, 0);
 
@@ -1187,6 +1195,7 @@ void GASNetAPI::initialize ( Network *net )
     {
        pinnedSegmentAddr[ idx ] = seginfoTable[ idx ].addr;
        pinnedSegmentLen[ idx ] = seginfoTable[ idx ].size;
+       //fprintf(stderr, "node %d, has segment addr %p and len %zu\n", idx, seginfoTable[ idx ].addr, seginfoTable[ idx ].size);
     }
     _plugin.addPinnedSegments( nodes, pinnedSegmentAddr, pinnedSegmentLen );
 
@@ -1232,12 +1241,12 @@ void GASNetAPI::finalize ()
       }
       nodeBarrier();
    }
-   gasnet_exit(0);
+   _this_exit(0);
 }
 
 void GASNetAPI::poll ()
 {
-   if (myThread != NULL)
+   if (myThread != NULL && myThread->_gasnetAllowAM)
    {
       gasnet_AMPoll();
       checkForPutReqs();

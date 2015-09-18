@@ -28,6 +28,7 @@ class ClusterPlugin : public ArchPlugin
       std::vector<ext::ClusterNode *> *_nodes;
       ext::SMPProcessor *_cpu;
       ext::SMPMultiThread *_clusterThread;
+      std::size_t _gasnetSegmentSize;
 
    public:
       ClusterPlugin();
@@ -39,15 +40,16 @@ class ClusterPlugin : public ArchPlugin
       void * getSegmentAddr( unsigned int idx );
       std::size_t getSegmentLen( unsigned int idx );
       void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      void * getPinnedSegmentAddr( unsigned int idx );
-      std::size_t getPinnedSegmentLen( unsigned int idx );
-      std::size_t getNodeMem();
-      int getGpuPresend();
-      int getSmpPresend();
-      System::CachePolicyType getCachePolicy ( void );
+      void * getPinnedSegmentAddr( unsigned int idx ) const;
+      std::size_t getPinnedSegmentLen( unsigned int idx ) const;
+      std::size_t getNodeMem() const;
+      int getGpuPresend() const;
+      int getSmpPresend() const;
+      System::CachePolicyType getCachePolicy ( void ) const;
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
-      bool getAllocFit();
+      bool getAllocFit() const;
       bool unalignedNodeMemory() const;
+      std::size_t getGASNetSegmentSize() const;
 
 
       virtual void startSupportThreads();

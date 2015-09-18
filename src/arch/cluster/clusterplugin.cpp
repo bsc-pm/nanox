@@ -60,7 +60,7 @@ ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
    _nodeMem( DEFAULT_NODE_MEM ), _allocFit( false ), _allowSharedThd( false ),
    _unalignedNodeMem( false ), _gpuPresend( 1 ), _smpPresend( 1 ),
    _cachePolicy( System::DEFAULT ), _nodes( NULL ), _cpu( NULL ),
-   _clusterThread( NULL ) {
+   _clusterThread( NULL ), _gasnetSegmentSize( 0 ) {
 }
 
 void ClusterPlugin::config( Config& cfg )
@@ -125,27 +125,27 @@ void ClusterPlugin::addPinnedSegments( unsigned int numSegments, void **segmentA
    }
 }
 
-void * ClusterPlugin::getPinnedSegmentAddr( unsigned int idx ) {
+void * ClusterPlugin::getPinnedSegmentAddr( unsigned int idx ) const {
    return _pinnedSegmentAddrList[ idx ];
 }
 
-std::size_t ClusterPlugin::getPinnedSegmentLen( unsigned int idx ) {
+std::size_t ClusterPlugin::getPinnedSegmentLen( unsigned int idx ) const {
    return _pinnedSegmentLenList[ idx ];
 }
 
-std::size_t ClusterPlugin::getNodeMem() {
+std::size_t ClusterPlugin::getNodeMem() const {
    return _nodeMem;
 }
 
-int ClusterPlugin::getSmpPresend() {
+int ClusterPlugin::getSmpPresend() const {
    return _smpPresend;
 }
 
-int ClusterPlugin::getGpuPresend() {
+int ClusterPlugin::getGpuPresend() const {
    return _gpuPresend;
 }
 
-System::CachePolicyType ClusterPlugin::getCachePolicy ( void ) {
+System::CachePolicyType ClusterPlugin::getCachePolicy ( void ) const {
    return _cachePolicy;
 }
 
@@ -156,7 +156,7 @@ RemoteWorkDescriptor * ClusterPlugin::getRemoteWorkDescriptor( int archId ) {
    return rwd;
 }
 
-bool ClusterPlugin::getAllocFit() {
+bool ClusterPlugin::getAllocFit() const {
    return _allocFit;
 }
 
@@ -192,6 +192,10 @@ void ClusterPlugin::prepare( Config& cfg ) {
    cfg.registerConfigOption ( "cluster-unaligned-node-memory", NEW Config::FlagOption ( _unalignedNodeMem ), "Do not align node memory." );
    cfg.registerArgOption ( "cluster-unaligned-node-memory", "cluster-unaligned-node-memory" );
    cfg.registerEnvOption ( "cluster-unaligned-node-memory", "NX_CLUSTER_UNALIGNED_NODE_MEMORY" );
+
+   cfg.registerConfigOption ( "gasnet-segment", NEW Config::SizeVar ( _gasnetSegmentSize ), "GASNet segment size." );
+   cfg.registerArgOption ( "gasnet-segment", "gasnet-segment-size" );
+   cfg.registerEnvOption ( "gasnet-segment", "NX_GASNET_SEGMENT_SIZE" );
 
 }
 
@@ -292,6 +296,11 @@ unsigned int ClusterPlugin::getMaxWorkers() const {
 bool ClusterPlugin::unalignedNodeMemory() const {
    return _unalignedNodeMem;
 }
+
+std::size_t ClusterPlugin::getGASNetSegmentSize() const {
+   return _gasnetSegmentSize;
+}
+
 
 }
 }
