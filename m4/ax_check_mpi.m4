@@ -1,3 +1,6 @@
+# ===========================================================================
+#   http://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html
+# ===========================================================================
 #
 # SYNOPSIS
 #
@@ -5,7 +8,11 @@
 #
 # DESCRIPTION
 #
-#   Check whether MPI path to the headers and libraries is correctly specified.
+#   Check whether MPI architecture has been enabled or not.
+#   We do not include header/library checks in this macro because
+#   we do not want Nanos++ to be bound to a specific MPI implementation.
+#   MPI dependent plugin source code will be compiled in the user program
+#   build stage.
 #
 # LICENSE
 #
@@ -269,7 +276,7 @@ Maximun multithread level supported: $ac_cv_mpi_mt
   
   AC_LANG_POP([C++])
 
-fi
+fi # use mpi
 
 AM_CONDITIONAL([MPI_SUPPORT],[test x$mpi = xyes ])
 
