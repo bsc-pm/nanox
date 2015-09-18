@@ -46,20 +46,19 @@
 
 AC_DEFUN([AX_CHECK_MIC],
 [
-AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
+
+AC_LANG_PUSH([C++])
 
 if x$CXX != xicpc; then
-    AC_MSG_ERROR([
--------------------------------
-Compilation for Intel MIC detected, but selected compiler
-does not support it.
-Please, specify C=icc and CXX=icpc when cross-compiling for MIC architectures.
-Also make sure that they support -mmic compiler and linker flag.
--------------------------------])
+  supported_compiler=no
+else
+  AX_CHECK_COMPILE_FLAG([-mmic],
+    [supported_compiler=yes],
+    [supported_compiler=no],
+    [-Werror])
 fi
 
-AX_CHECK_COMPILE_FLAG([-mmic],
-  [],[
+AS_IF([test $supported_compiler = no],[
     AC_MSG_ERROR([
 -------------------------------
 Compilation for Intel MIC detected, but selected compiler
@@ -67,7 +66,7 @@ does not support it.
 Please, specify CC=icc and CXX=icpc when cross-compiling for MIC architectures.
 Also make sure that they support -mmic compiler and linker flag.
 -------------------------------])
-  ],[-Werror])
+])
 
 if test x$LD_LIBRARY_PATH != x; then
   AC_MSG_WARN([
@@ -78,7 +77,10 @@ binary incompatible libraries may interfer in the link process.
 -------------------------------])
 fi
 
-host_dep_CXXFLAGS=-mmic
-host_dep_LDFLAGS=-mmic
+CXXFLAGS+=-mmic
+LDFLAGS+=-mmic
 
-]) #AX_CHECK_MIC
+AC_LANG_POP([C++])
+
+])dnl AX_CHECK_MIC
+

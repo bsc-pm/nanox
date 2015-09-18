@@ -97,13 +97,11 @@ AC_LANG_POP([C])
 if test "x$dyn_link_flag" = x; then
     AC_MSG_ERROR([
 ------------------------------
-Specified compiler does not support
-dynamic link in BlueGene/Q.
-Failed to link using either -dynamic
-or -qnostaticlink flags.
+Specified compiler does not support dynamic link in BlueGene/Q.
+Failed to link using either -dynamic or -qnostaticlink flags.
 ------------------------------])
 fi
 
 AC_DEFINE([IS_BGQ_MACHINE],[],[BlueGene/Q host compatibility is enabled.])
 
-]) # AX_CHECK_BGQ
+])dnl AX_CHECK_BGQ

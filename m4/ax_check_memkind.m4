@@ -1,7 +1,7 @@
 AC_DEFUN([AX_CHECK_MEMKIND],[
-dnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnl
-dnl                          jemalloc / memkind                             dnl
-dnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnl
+###########################################################################
+#                          jemalloc / memkind                             #
+###########################################################################
 LDFLAGS_BKP="$LDFLAGS"
 LIBS_BKP="$LIBS"
 
@@ -36,6 +36,6 @@ AC_SUBST([JEMALLOC_LIBS])
 AC_SUBST([MEMKIND_LIBS])
 AC_SUBST([MEMKIND_LDFLAGS])
 AC_SUBST([MEMKIND_CFLAGS])
-dnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnldnl
+###########################################################################
 
 ])

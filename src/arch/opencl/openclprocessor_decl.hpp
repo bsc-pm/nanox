@@ -27,9 +27,12 @@
 #include "opencldevice_decl.hpp"
 #include "sharedmemallocator.hpp"
 #include "smpprocessor.hpp"
-#ifdef __APPLE__
+
+#ifdef OPENCL_OPENCL_H
 #include <OpenCL/opencl.h>
-#else
+#endif
+
+#ifdef CL_OPENCL_H
 #include <CL/opencl.h>
 #endif
 

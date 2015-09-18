@@ -151,11 +151,6 @@ fi
 if test x$hwloc = xyes; then
     OPTIONS="$OPTIONS hwloc"
 
-    # Hwloc scope is the whole Nanos++ project. Must be used globally.
-    extra_CPPFLAGS="$extra_CPPFLAGS $hwlocinc"
-    extra_LDFLAGS="$extra_LDFLAGS $hwloclib"
-    extra_LIBS="$extra_LIBS $hwloclibs"
-
     AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])
     AC_DEFINE([HWLOC],[],[Indicates the presence of hwloc library.])
 fi

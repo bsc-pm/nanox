@@ -58,10 +58,6 @@ AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 AC_CHECK_PROG([DEB_RELEASE], [lsb_release], [$(lsb_release -sc)], [])
 AC_SUBST([DEB_RELEASE])
 
-# Set compiler default flags
-: ${CFLAGS=""}
-: ${CXXFLAGS=""}
-
 # Allocator support
 AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator], [AS_HELP_STRING([--enable-allocator], [Enables Allocator module])])
@@ -78,20 +74,39 @@ if test x$enable_memtracker = xyes; then
 	AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled or not])
 fi
 
+# User level threads
+# System dependent. Architecture support will make a compatibility check.
+AC_ARG_ENABLE([ult],
+  AS_HELP_STRING([--disable-ult], [Disables user level threads]),
+  [smp_ult=${enableval}],
+  [smp_ult=yes]
+)
+
+# Set compiler default flags
+: ${CFLAGS=""}
+: ${CXXFLAGS=""}
+
+# ------------------
 # Check for programs
+# ------------------
+AC_PROG_CC
 AC_PROG_CPP
-AC_PROG_CC([$CC])
-AC_PROG_CXX([$CXX])
+AC_PROG_CXX
+AC_PROG_CXXCPP
 AC_PROG_LD([$LD])
 AM_PROG_CC_C_O
 AM_PROG_AS
 
 AC_PROG_SED
 
+# --------------------------------
 # Flags & Compiler dependent stuff
+# --------------------------------
 AX_CONFIG_CC
 
-# Check for libraries
+# Check for atomic builtins in GCC
+AC_CHECK_GXX_LEGACY_ATOMIC_BUILTINS()
+AC_CHECK_GXX_NEW_ATOMIC_BUILTINS()
 
 # Check for header files
 AC_HEADER_STDC
@@ -99,7 +114,49 @@ AC_HEADER_STDC
 # Check for typedefs, structures, and compiler characteristics
 AC_C_CONST
 
-# Check for library functions
+# -----------------------
+# Check host architecture
+# -----------------------
+OS=
+OPTIONS=
+SMP_ARCH=
+ARCHITECTURES=
+
+AX_CHECK_HOST_ARCH
+
+AC_SUBST([OS])
+AC_SUBST([OPTIONS])
+AC_SUBST([SMP_ARCH])
+AC_SUBST([ARCHITECTURES])
+
+# -------------------
+# Check for libraries
+# -------------------
+
+# Pthreads
+AX_PTHREAD
+
+# MPI
+AX_CHECK_MPI
+
+# GASNet
+AX_CHECK_GASNET
+
+# Memkind
+AX_CHECK_MEMKIND
+
+# Cluster Support
+AX_CHECK_CLUSTER
+
+# Check if NVidia CUDA device has been selected 
+AX_CHECK_CUDA
+
+# Check if OpenCL device has been selected
+AX_CHECK_OPENCL
+
+# Check hwloc availability
+AX_CHECK_HWLOC
+
 NANOS_CONFIG_LIBDIRS=
 NANOS_CONFIG_LIBS=
 NANOS_CONFIG_LIBS_PERFO=
@@ -111,159 +168,6 @@ AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
-ARCHITECTURES=
-OPTIONS=
-OS=
-
-AC_SUBST([ARCHITECTURES])
-AC_SUBST([OS])
-AC_SUBST([OPTIONS])
-AC_SUBST([SMP_ARCH])
-
-AC_CHECK_SIZEOF([size_t])
-
-#AC_MSG_CHECKING([for architecture])
-AC_ARG_ENABLE([ult],
-  AS_HELP_STRING([--disable-ult], [Disables user level threads]),
-  [smp_ult=no],
-  [smp_ult=yes]
-)
-
-# Use these for flags that depend on the host arch
-host_dep_CPPFLAGS=
-host_dep_CXXFLAGS=
-host_dep_LDFLAGS=
-
-AC_SUBST([host_dep_CPPFLAGS])
-AC_SUBST([host_dep_CXXFLAGS])
-AC_SUBST([host_dep_LDFLAGS])
-
-case $host in
-  x86_64-k1om-linux*) # Intel MIC (KNF/ KNC)
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=x86-64 # User level threads implementation for x86_64 might not be compatible with MIC
-
-    AX_CHECK_MIC_SUPPORT
-    ;;
-  i?86-*-linux*)
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=x86
-    ;;
-  x86_64-*-linux*)
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=x86-64
-    ;;
-  ia64-*-linux*)
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=ia64
-    ;;
-  arm*-*-gnueabi*)
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=armv71
-    ;;
-  aarch64-*-linux-gnu)
-    smp_ult=no
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=aarch64
-    ;;
-  powerpc64-bgq-linux-gnu)
-    # BlueGene/Q
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-
-    SMP_ARCH=ppc64
-
-    AX_CHECK_BGQ
-
-    ;;
-  powerpc64??-*-linux* )
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-
-    if test $ac_cv_sizeof_size_t = 8 ; then
-        SMP_ARCH=ppc64_v2
-    fi
-    #FIXME ULT not supported yet
-    smp_ult=no
-    ;;
-
-  powerpc-*-linux* | powerpc64-*-linux* )
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-
-    if test $ac_cv_sizeof_size_t = 8 ; then
-        SMP_ARCH=ppc64
-    else
-        SMP_ARCH=ppc32
-    fi
-
-    # Check if it is a Cell system
-    if cat /proc/cpuinfo | grep Cell &> /dev/null ; then
-      spu_valid=yes
-      AC_ARG_VAR([SPUCC],[SPU C compiler])
-      AC_ARG_VAR([PPUEMBED],[SPU to PPU embedding tool])
-      AC_CHECK_PROG( [SPUCC], [spu-cc], spu-cc, no)
-      if test x$SPUCC = xno ; then
-	AC_MSG_WARN([spu-cc not found. Disabling SPU support]) 
-        spu_valid=no
-      else 
-        AC_CHECK_PROG( [PPUEMBED], [ppu-embedspu], ppu-embedspu, no)
-        if test x$PPUEMBED = xno ; then
-          AC_MSG_WARN([ppu-embedspu not found. Disabling SPU support]) 
-          spu_valid=no
-        else
-           AC_ARG_WITH([cellsdk],
-              AS_HELP_STRING([--with-cellsdk=dir], [Directory of Cell SDK installation]),
-              [
-		CELLSDK="${withval}"
-              ],
-              [
-		CELLSDK=/opt/cell/sdk/usr
-              ])
-           CELLSDK_INC="$CELLSDK/include"
-           CELLSDK_LIB="$CELLSDK/lib"
-
-	   AC_SUBST([CELLSDK_INC])
-	   AC_SUBST([CELLSDK_LIB])
-
-	   NANOS_CONFIG_LIBDIRS="NANOS_CONFIG_LIBDIRS -L$CELLSDK_LIB"
-	   NANOS_CONFIG_LIBS="NANOS_CONFIG_LIBS -lspe2"
-        fi
-      fi
-      if test x$spu_valid = xyes; then
-        ARCHITECTURES="$ARCHITECTURES spu"
-      fi
-    fi
-    ;;
-  *)
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=unknown
-    smp_ult=no
-    ;;
-esac
-
-# Pthreads
-AX_PTHREAD
-
-# MPI Support
-AX_CHECK_MPI
-
-# Cluster Support
-AX_CHECK_CLUSTER
-
-# Check if NVidia CUDA device has been selected 
-AX_CHECK_CUDA
-
-# Check if OpenCL device has been selected
-AX_CHECK_OPENCL
-
 # mcc support
 AC_ARG_WITH([mcc],
 AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
@@ -274,7 +178,6 @@ AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
 	],
 	[
       mcc_valid=no
-		MCC=""
 	])
 
 AC_SUBST([mcc_valid])
@@ -301,102 +204,67 @@ AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
 
 AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
+# Build versions
 VERSIONS=""
 
-# Enable debug version
-AC_MSG_CHECKING([if debug version is enabled])
-AC_ARG_ENABLE([debug],
-  [AS_HELP_STRING([--disable-debug], [Disables generation of debug version])],
-  [enable_debug=$enableval],[enable_debug=yes])
+performance_default=yes
+performance_CPPFLAGS=
+performance_CXXFLAGS="-O3"
 
-if test x$enable_debug = xyes; then
-  AC_MSG_RESULT([yes])
-  VERSIONS+=" debug"
+debug_default=yes
+debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED"
+debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
 
-  debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED"
-  debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
-else
-  AC_MSG_RESULT([no])
-fi
+instrumentation_default=yes
+instrumentation_CPPFLAGS="-DNANOS_INSTRUMENTATION_ENABLED"
+instrumentation_CXXFLAGS="-O3"
 
-AM_CONDITIONAL([DEBUG_VERSION], [test x$enable_debug = xyes])
-AC_SUBST([debugdir],['${libdir}/debug'])
+instrumentation_debug_default=no
+instrumentation_debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED"
+instrumentation_debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
 
-# Enable instrumentation version
-AC_MSG_CHECKING([if instrumentation version is enabled])
-AC_ARG_ENABLE([instrumentation],
-  [AS_HELP_STRING([--disable-instrumentation], [Disables generation of instrumentation version])],
-  [enable_instrumentation=$enableval],[enable_instrumentation=yes])
+m4_defun([ax_enable_version],[
+  AS_VAR_PUSHDEF([version_default],[$1_default])
+  AS_VAR_PUSHDEF([version_enabled],[$1_enabled])
+  AS_VAR_PUSHDEF([version_dir],[$1_dir])
+  AS_VAR_PUSHDEF([cppflags],[$1_CPPFLAGS])
+  AS_VAR_PUSHDEF([cxxflags],[$1_CXXFLAGS])
 
-if test x$enable_instrumentation = xyes; then
-  AC_MSG_RESULT([yes])
-  VERSIONS+=" instrumentation"
+  AC_MSG_CHECKING([if version_name version is enabled])
+  AC_ARG_ENABLE($1,
+    [AS_HELP_STRING(--enable-$1,Enable generation of $1 version)],
+    [version_enabled=${enableval}],
+    [version_enabled=$version_default])
+  
+  AC_MSG_RESULT([$version_enabled])
+  
+  if test x$version_enabled = xyes; then
+    VERSIONS+="$1 "
+  fi
+  
+  version_dir='${libdir}/$1'
+  AM_CONDITIONAL(version_enabled, [test x$version_enabled = xyes])
+  AC_SUBST(version_dir)
+  AC_SUBST(cppflags)
+  AC_SUBST(cxxflags)
 
-  instrumentation_CPPFLAGS="-DNANOS_INSTRUMENTATION_ENABLED"
-  instrumentation_CXXFLAGS="-O3"
-else
-  AC_MSG_RESULT([no])
-fi
+  AS_VAR_POPDEF([version_default])
+  AS_VAR_POPDEF([version_enabled])
+  AS_VAR_POPDEF([version_dir])
+  AS_VAR_PUSHDEF([cppflags])
+  AS_VAR_PUSHDEF([cxxflags])
+])
 
-AM_CONDITIONAL([INSTRUMENTATION_VERSION], [test x$enable_instrumentation = xyes])
-AC_SUBST([instrumentationdir],['${libdir}/instrumentation'])
+m4_foreach([version_name],[[performance], [debug], [instrumentation], [instrumentation-debug]],[
+  ax_enable_version(version_name)
+])
 
-# Enable instrumentation-debug version
-AC_MSG_CHECKING([if instrumentation-debug version was enabled])
-AC_ARG_ENABLE([instrumentation-debug],
-  [AS_HELP_STRING([--enable-instrumentation-debug], [Enables generation of instrumentation-debug version])],
-  [enable_instrumentation_debug=$enableval],[enable_instrumentation_debug=no])
-
-if test x$enable_instrumentation_debug = xyes; then
-  AC_MSG_RESULT([yes])
-  VERSIONS+=" instrumentation-debug"
-
-  instrumentation_debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED"
-  instrumentation_debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
-else
-  AC_MSG_RESULT([no])
-fi
-
-AM_CONDITIONAL([INSTRUMENTATION_DEBUG_VERSION], [test x$enable_instrumentation_debug = xyes])
-AC_SUBST([instrumentation_debugdir],['${libdir}/instrumentation-debug'])
-
-# Enable performance version
-AC_MSG_CHECKING([if performance version is enabled])
-AC_ARG_ENABLE([performance],
-  AS_HELP_STRING([--disable-performance], [Disables generation of performance version])],
-  [enable_performance=$enableval],[enable_performance=yes])
-
-if test x$enable_performance = xyes; then
-  AC_MSG_RESULT([yes])
-  VERSIONS+=" performance"
-
-  performance_CPPFLAGS=
-  performance_CXXFLAGS="-O3"
-else
-  AC_MSG_RESULT([no])
-fi
-
-AM_CONDITIONAL([PERFORMANCE_VERSION], [test x$enable_performance = xyes])
-AC_SUBST([performancedir],['${libdir}/performance'])
-
-if test "x$VERSIONS" = x;
-then
+if test "x$VERSIONS" = x; then
 	AC_MSG_ERROR([At least one version needs to be compiled])
 fi
 AC_SUBST([VERSIONS])
 
-AC_SUBST([debug_CPPFLAGS])
-AC_SUBST([debug_CXXFLAGS])
-AC_SUBST([instrumentation_CPPFLAGS])
-AC_SUBST([instrumentation_CXXFLAGS])
-AC_SUBST([instrumentation_debug_CPPFLAGS])
-AC_SUBST([instrumentation_debug_CXXFLAGS])
-AC_SUBST([performance_CPPFLAGS])
-AC_SUBST([performance_CXXFLAGS])
-
-# Check for atomic builtins in GCC
-AC_CHECK_GXX_ATOMIC_BUILTINS()
-
+# Extrae check
 MPITRACE_HOME=""
 MPITRACE_INC=""
 MPITRACE_LIB=""
@@ -471,9 +339,6 @@ AC_SUBST([AYUDAME_BIN])
 
 AM_CONDITIONAL([INSTRUMENTATION_AYUDAME], test x"$AYUDAME_HOME" != x)
 
-# Check hwloc availability
-AX_CHECK_HWLOC
-
 # Check for Chapel support
 AC_ARG_WITH([chapel],
             AS_HELP_STRING([--with-chapel=dir], [Directory of Chapel installation]),
@@ -528,21 +393,17 @@ AC_MSG_CHECKING([if task resiliency is enabled])
 AC_ARG_ENABLE([resiliency],[AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency])],
               [enable_resiliency=$enableval],[enable_resiliency=no])
 AC_MSG_RESULT([$enable_resiliency])
-if test x$enable_resiliency = xyes; then
+if test $enable_resiliency = yes; then
   AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],
     [],
     [AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])],
     [-Werror])
 
   AC_DEFINE([NANOS_RESILIENCY_ENABLED],[],[Indicates whether resiliency features should be used or not.])
-  extra_CXXFLAGS=-fnon-call-exceptions
+  resiliency_flags=-fnon-call-exceptions
 fi
 AC_SUBST([enable_resiliency])
-
-AC_SUBST([extra_CPPFLAGS])
-AC_SUBST([extra_CXXFLAGS])
-AC_SUBST([extra_LDFLAGS])
-AC_SUBST([extra_LIBS])
+AC_SUBST([resiliency_flags])
 
 # Generate plugin list
 PLUGINS="plugins pms/openmp pms/chapel"
@@ -551,91 +412,45 @@ for arch in $ARCHITECTURES; do
 done
 AC_SUBST([PLUGINS])
 
-###########################################################################
-#                          jemalloc / memkind                             #
-###########################################################################
-LDFLAGS_BKP="$LDFLAGS"
-LIBS_BKP="$LIBS"
-
-AC_ARG_WITH([jemalloc],
-   AS_HELP_STRING([--with-jemalloc=dir], [Directory of jemalloc installation]),
-   [
-      JEMALLOC_LDFLAGS="-L$withval/lib -Wl,-rpath,$withval/lib"
-   ]
-)
-LDFLAGS="$LDFLAGS $JEMALLOC_LDFLAGS"
-AC_SEARCH_LIBS([je_malloc], [jemalloc], [JEMALLOC_LIBS="-ljemalloc"], [JEMALLOC_LIBS=""], [])
-
-if test "JEMALLOC_LIBS"x != x ;
-then
-   MEMKIND_LDFLAGS="$JEMALLOC_LDFLAGS"
-   AC_ARG_WITH([memkind],
-      AS_HELP_STRING([--with-memkind=dir], [Directory of memkind installation]),
-      [
-         MEMKIND_CFLAGS="-I$withval/include"
-         MEMKIND_LDFLAGS="$MEMKIND_LDFLAGS -L$withval/lib"
-      ]
-   )
-
-   LDFLAGS="$LDFLAGS $MEMKIND_LDFLAGS"
-   AC_SEARCH_LIBS([memkind_malloc], [memkind], [MEMKIND_LIBS="-lmemkind"], [MEMKIND_LIBS=""], [-ljemalloc])
-fi
-
-LDFLAGS="$LDFLAGS_BKP"
-LIBS="$LIBS_BKP"
-AM_CONDITIONAL([MEMKIND_SUPPORT], test "$MEMKIND_LIBS"x != x )
-AC_SUBST([JEMALLOC_LIBS])
-AC_SUBST([MEMKIND_LIBS])
-AC_SUBST([MEMKIND_LDFLAGS])
-AC_SUBST([MEMKIND_CFLAGS])
-###########################################################################
-
 # Output files
 AC_CONFIG_HEADERS([config.h])
 
-AC_CONFIG_FILES([Makefile
-                 src/Makefile
-                 src/core/Makefile
-                 src/support/Makefile
-                 src/plugins/Makefile
-                 src/apis/Makefile
-                 src/pms/Makefile
-                 src/arch/Makefile
-                 src/arch/unix-os/Makefile
-                 src/arch/smp/Makefile
-                 src/arch/fpga/Makefile
-                 src/arch/spu/Makefile
-                 src/arch/gpu/Makefile
-                 src/arch/cluster/Makefile
-                 src/arch/opencl/Makefile
-                 src/arch/mpi/Makefile
-                 src/utils/Makefile
-                 scripts/Makefile
-                 tests/Makefile
-                 tests/gens/Makefile
-                 tests/gens/api-generator
-                 tests/gens/api-omp-generator
-                 tests/gens/core-generator
-                 tests/gens/gpu-generator
-                 tests/gens/mcc-openmp-generator
-                 tests/gens/mixed-generator
-                 tests/gens/nanox-creation-generator
-                 tests/gens/resiliency-generator
-                 doc/Makefile
-                 doc/doxy-nanox
-       ])
+AC_CONFIG_FILES([
+                 Makefile
+])
+#                 src/Makefile
+#                 src/core/Makefile
+#                 src/support/Makefile
+#                 src/apis/Makefile
+#                 src/pms/Makefile
+#                 src/arch/Makefile
+#                 src/arch/unix-os/Makefile
+#                 src/arch/smp/Makefile
+#                 src/arch/fpga/Makefile
+#                 src/arch/spu/Makefile
+#                 src/arch/gpu/Makefile
+#                 src/arch/opencl/Makefile
+#                 src/arch/mpi/Makefile
+#                 src/utils/Makefile
+#                 scripts/Makefile
+#                 tests/Makefile
+#                 tests/gens/Makefile
+#                 tests/gens/api-generator
+#                 tests/gens/api-omp-generator
+#                 tests/gens/core-generator
+#                 tests/gens/gpu-generator
+#                 tests/gens/mcc-openmp-generator
+#                 tests/gens/mixed-generator
+#                 tests/gens/nanox-creation-generator
+#                 tests/gens/resiliency-generator
+#                 doc/Makefile
+#                 doc/doxy-nanox
+#       ])
+                 #src/plugins/Makefile
+                 #src/arch/cluster/Makefile
 
 AC_OUTPUT
 
-echo ""
-echo "Configuration summary of Nanos++"
-echo "================================"
-echo ""
-echo "Host arch:               " $SMP_ARCH
-echo "User level threading:    " $smp_ult
-echo "Configured architectures:" $ARCHITECTURES
-echo "Configured versions:     " $VERSIONS
-echo "Extra options:           " $OPTIONS
 gcc_builtins_used="unknown"
 if test "$new_gcc_builtins" = yes;
 then
@@ -643,29 +458,22 @@ then
 else
     gcc_builtins_used="legacy gcc __sync builtins"
 fi
-echo "GCC atomics:             " $gcc_builtins_used
-if test x$memtracker_enabled = xyes ; then
-   echo "Memory tracker:           enabled"
-else
-   echo "Memory tracker:           disabled"
-fi
-if test x$allocator_enabled = xyes ; then
-   echo "Memory allocator:         enabled"
-else
-   echo "Memory allocator:         disabled"
-fi
-if test "x$resiliency" = "xyes" ; then
-   echo "Task resiliency:          enabled"
-else
-   echo "Task resiliency:          disabled"
-fi
-if test x$cluster_enabled = xyes ; then
-   echo "With cluster/gasnet conduits:" $CONDUITS
-   if test x$have_C_mpi = xyes ; then
-      echo "MPI_CLDFLAGS: " $MPI_CLDFLAGS
-   fi
-   if test x$GASNET_DIR != x$GASNET_DBG_DIR ; then
-      echo "GASNet was configured also with a debug installation, with these conduits: " $CONDUITS_DBG
-   fi
-fi
 
+AS_ECHO(["
+Configuration summary of Nanos++
+================================
+
+Host arch:                $SMP_ARCH
+User level threading:     $smp_ult
+Configured architectures: $ARCHITECTURES
+Configured versions:      $VERSIONS
+Extra options:            $OPTIONS
+GCC atomics:              $gcc_builtins_used
+Memory tracker:           $enable_memtracker
+Memory allocator:         $enable_allocator
+Task resiliency:          $resiliency"])
+
+if test x$cluster_enabled = xyes ; then
+   AS_ECHO(["\
+Cluster/GASNet conduits:  $gasnet_available_conduits"])
+fi
