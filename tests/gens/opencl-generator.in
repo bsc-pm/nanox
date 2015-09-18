@@ -1,5 +1,8 @@
 #!/bin/bash
 
+if [ x@OPENCL_VALID@ = xyes ];
+then
+
 cat <<EOF
 
 SRC=@SRCDIR@/src
@@ -39,8 +42,19 @@ test_CXX=@CONFIG_CXX@
 test_CFLAGS="\$common_includes"
 test_CXXFLAGS="\$common_includes"
 
-opencl_inc="@CONFIG_OPENCL_INC@ -I @CONFIG_CUDA_INC@"
-opencl_ld="@CONFIG_OPENCL_LD@ -L @CONFIG_CUDA_LD@"
+cuda_inc="@CONFIG_CUDA_INC@"
+cuda_ld="@CONFIG_CUDA_LD@"
+
+if [ "\$cuda_inc" != "" ] ; then \
+    cuda_inc="-I \$cuda_inc";
+fi; \
+
+if [ "\$cuda_ld" != "" ] ; then \
+    cuda_ld="-L \$cuda_ld";
+fi; \
+
+opencl_inc="@CONFIG_OPENCL_INC@ \$cuda_inc"
+opencl_ld="@CONFIG_OPENCL_LD@ \$cuda_ld"
 
 OPENCL_PERFO_CFLAGS="\$PERFO_CFLAGS -I \$opencl_inc -L \$opencl_ld"
 OPENCL_PERFO_CXXFLAGS="\$PERFO_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
@@ -119,5 +133,13 @@ test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\
 \$BUILD/pms/instrumentation-debug/.libs:\
 \$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
 
-`@SRCDIR@/tests/gens/config.py -a '--opencl-device-type=gpu' -c 1`
+`@SRCDIR@/tests/gens/config.py -a '--opencl-max-devices=1' -c 1`
 EOF
+
+else
+
+cat <<EOF
+test_ignore=yes
+EOF
+
+fi
