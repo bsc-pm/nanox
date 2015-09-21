@@ -67,7 +67,7 @@ fi
 #                       --with-opencl=somevalue, $with_opencl value will be 'somevalue'
 if [[[ ! "x$with_opencl" =~  x(yes|no|)$ ]]]; then
   openclinc="-I$with_opencl/include"
-  AC_CHECK_FILE([$with_opencl/lib64],
+  AS_IF([test -f $with_opencl/lib64],
     [opencllib="-L$with_opencl/lib64 -Wl,-rpath=$with_opencl/lib64"],
     [opencllib="-L$with_opencl/lib -Wl,-rpath=$with_opencl/lib"])
 fi
@@ -85,18 +85,17 @@ fi
 # In this case, both openclinc and opencllib will be empty
 # so the test should search in default locations and LD_LIBRARY_PATH
 if test "x$with_opencl" != xno; then
-    #tests if provided headers and libraries are usable and correct
-    bak_CFLAGS="$CFLAGS"
-    bak_CxXFLAGS="$CXXFLAGS"
-    bak_CPPFLAGS="$CPPFLAGS"
-    bak_LIBS="$LIBS"
-    bak_LDFLAGS="$LDFLAGS"
+    AC_LANG_PUSH([C++])
 
-    CFLAGS=
-    CXXFLAGS=
-    CPPFLAGS=$openclinc
+    #tests if provided headers and libraries are usable and correct
+    bak_CPPFLAGS="$CPPFLAGS"
+    bak_CxXFLAGS="$CXXFLAGS"
+    bak_LDFLAGS="$LDFLAGS"
+    bak_LIBS="$LIBS"
+
+    CPPFLAGS="$CPPFLAGS $openclinc"
+    LDFLAGS="$LDFLAGS $opencllib"
     LIBS=
-    LDFLAGS=$opencllib
 
     # One of the following two header files has to exist
     AC_CHECK_HEADERS([CL/opencl.h OpenCL/opencl.h], [opencl=yes; break])
@@ -159,18 +158,29 @@ if test "x$with_opencl" != xno; then
 ------------------------------
 OpenCL version test execution failed
 ------------------------------])
+          ],
+          [
+            ac_cv_opencl_version=skip
           ])
         ])
-      ac_cv_opencl_version=$(expr "x$ac_cv_opencl_version" : 'xOpenCL [a-zA-Z\+]* \(.*\)$')
+      AS_CASE([$ac_cv_hwloc_version],
+        [skip],[
+          # The test was skipped (cross-compilation). Do nothing
+        ],
+        [
+          # Default
+          ac_cv_hwloc_version=$(expr "x$ac_cv_hwloc_version" : 'xhwloc \(0x@<:@0-9a-f@:>@*\)$')
+        ])
     fi
 
     opencllib="$opencllib $LIBS"
 
-    CFLAGS="$bak_CFLAGS"
-    CXXFLAGS="$bak_CXXFLAGS"
     CPPFLAGS="$bak_CPPFLAGS"
-    LIBS="$bak_LIBS"
+    CXXFLAGS="$bak_CXXFLAGS"
     LDFLAGS="$bak_LDFLAGS"
+    LIBS="$bak_LIBS"
+
+    AC_LANG_POP([C++])
 
     if test x$user_requested = xyes -a x$opencl != xyes; then
         AC_MSG_ERROR([
@@ -180,15 +190,22 @@ Please, check that the provided directories are correct.
 ------------------------------])
     fi
 
-    AX_COMPARE_VERSION([$ac_cv_opencl_version],[lt],[1.1],[opencl=no])
-    if test x$user_requested = xyes -a x$opencl != xyes; then
-      AC_MSG_ERROR([
+    if test x$ac_cv_opencl_version = xskip; then
+        AC_MSG_WARN([
+------------------------------
+OpenCL library version cannot be checked
+because cross-compilation mode has been detected.
+------------------------------])
+    else
+      AX_COMPARE_VERSION([$ac_cv_opencl_version],[lt],[1.1],[opencl=no])
+      if test x$user_requested = xyes -a x$opencl != xyes; then
+        AC_MSG_ERROR([
 ------------------------------
 Version of the provided OpenCL package is too old.
 OpenCL 1.1 or greater is required.
 ------------------------------])
+      fi
     fi
-        
 fi
 
 if test x$opencl = xyes; then

@@ -75,7 +75,7 @@ if [[[ ! "x$with_mpi" =~  x(yes|no|)$ ]]]; then
   fi
 
   mpiinc="-I$with_mpi/include"
-  AC_CHECK_FILE([$with_mpi/lib64],
+  AS_IF([test -f $with_mpi/lib64],
     [mpilib="-L$with_mpi/lib64 -Wl,-rpath=$with_mpi/lib64"],
     [mpilib="-L$with_mpi/lib -Wl,-rpath=$with_mpi/lib"])
 fi
@@ -124,10 +124,11 @@ if test $mpi = yes; then
   # MPICH_IGNORE_CXX_SEEK and MPICH_SKIP_MPICXX are used to avoid
   # errors when mpi.h is included after stdio.h when compiling C++ code
   # It only applies, however, to mpich implementations
-  CPPFLAGS="$mpiinc -DMPICH_IGNORE_CXX_SEEK -DMPICH_SKIP_MPICXX"
-  CXXFLAGS=
+  # Some exceptions:
+  #  - Dont unset CPPFLAGS, CXXFLAGS and LDFLAGS. Respect additional user provided flags
+  CPPFLAGS="$CPPFLAGS $mpiinc -DMPICH_IGNORE_CXX_SEEK -DMPICH_SKIP_MPICXX"
+  LDFLAGS="$LDFLAGS $mpilibs"
   LIBS=
-  LDFLAGS=$mpilibs
 
   # For cached values, it implies unsetting the variable itself, or it will skip
   # the corresponding checks.
@@ -155,8 +156,8 @@ if test $mpi = yes; then
     LDFLAGS=-mt_mpi
     AC_CHECK_LIB([mpi_mt],
                    [MPI_Init_thread],
-                   [impi=yes],   # Intel MPI library detected
-                   [LDFLAGS=""]) # This is not IMPI: remove -mt_mpi flag from LDFLAGS
+                   [impi=yes],
+                   [impi=no])
   fi
   
   # Look for MPI_Init_thread function in libmpicxx, libmpi_cxx or libmpichcxx libraries
@@ -241,17 +242,30 @@ Please, check that provided directories are correct.
 ------------------------------
 The execution of MPI multithread support test failed
 ------------------------------])
+        ],
+        [
+          # Cross compilation mode
+          ac_cv_mpi_mt=skip
+          break;
         ])
       ])
   fi
 
-  if test $ac_cv_mpi_mt != concurrent; then
-    AC_MSG_FAILURE([
+  if $ac_cv_mpi_mt = skip; then
+    AC_MSG_WARN([
+------------------------------
+Multithreading support check was not done
+because cross-compilation mode was detected.
+------------------------------])
+  else
+    if test $ac_cv_mpi_mt != concurrent; then
+      AC_MSG_FAILURE([
 ------------------------------
 MPI library specified does not support multithreading.
 Please, provide a MPI library that does so.
 Maximun multithread level supported: $ac_cv_mpi_mt
 ------------------------------])
+    fi
   fi
   
   mpilib=$LIBS

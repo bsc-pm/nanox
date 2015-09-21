@@ -54,7 +54,7 @@ AC_ARG_WITH(hwloc-lib,
 if [[[ ! "x$with_hwloc" =~  x(yes|no|)$ ]]]; then
   hwlocinc="-I $with_hwloc/include"
   hwloc_h="$with_hwloc/include/hwloc.h"
-  AC_CHECK_FILE([$with_hwloc/lib64],
+  AS_IF([test -f $with_hwloc/lib64],
     [hwloclib="-L$with_hwloc/lib64 -Wl,-rpath=$with_hwloc/lib64"],
     [hwloclib="-L$with_hwloc/lib -Wl,-rpath=$with_hwloc/lib"])
 fi
@@ -69,17 +69,17 @@ fi
 # This is fulfilled even if $with_hwloc="yes" 
 # This happens when user leaves --with-value alone
 if test x$with_hwloc$with_hwloc_include$with_hwloc_lib != x; then
+  AC_LANG_PUSH([C++])
 
   #tests if provided headers and libraries are usable and correct
-  bak_CFLAGS="$CFLAGS"
   bak_CPPFLAGS="$CPPFLAGS"
-  bak_LIBS="$LIBS"
+  bak_CXXFLAGS="$CXXFLAGS"
   bak_LDFLAGS="$LDFLAGS"
+  bak_LIBS="$LIBS"
 
-  CFLAGS=
-  CPPFLAGS=$hwlocinc
+  CPPFLAGS="$CPPFLAGS $hwlocinc"
+  LDFLAGS="$CPPFLAGS $hwloclib"
   LIBS=
-  LDFLAGS=$hwloclib
 
   # Check if hwloc.h header file exists and compiles
   AC_CHECK_HEADER([hwloc.h], [hwloc=yes],[hwloc=no])
@@ -126,9 +126,19 @@ Please, check that the provided directories are correct.
 ------------------------------
 hwloc version test execution failed
 ------------------------------])
+        ],
+        [
+          ac_cv_hwloc_version=skip
         ])
+    ])
+    AS_CASE([$ac_cv_hwloc_version],
+      [skip],[
+        # The test was skipped (cross-compilation). Do nothing
+      ],
+      [
+        # Default
+        ac_cv_hwloc_version=$(expr "x$ac_cv_hwloc_version" : 'xhwloc \(0x@<:@0-9a-f@:>@*\)$')
       ])
-    ac_cv_hwloc_version=$(expr "x$ac_cv_hwloc_version" : 'xhwloc \(0x@<:@0-9a-f@:>@*\)$')
   fi
 
   if [[[ "x$ac_cv_hwloc_version" == "x" || "$ac_cv_hwloc_version" -lt 0x010200 ]]]; then
@@ -139,12 +149,22 @@ hwloc 1.2.0 or greater is required.
 ------------------------------])
   fi
 
+  if test x$ac_cv_hwloc_version = xskip; then
+    AC_MSG_WARN([
+------------------------------
+Hwloc library version cannot be checked
+because cross-compilation mode has been detected.
+------------------------------])
+  fi
+
   hwloclibs=$LIBS
 
-  CFLAGS="$bak_CFLAGS"
   CPPFLAGS="$bak_CPPFLAGS"
-  LIBS="$bak_LIBS"
+  CXXFLAGS="$bak_CXXFLAGS"
   LDFLAGS="$bak_LDFLAGS"
+  LIBS="$bak_LIBS"
+
+  AC_LANG_POP([C++])
 
 fi
 

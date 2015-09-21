@@ -71,7 +71,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
     fi
     cudainc="-isystem $cuda_prefix/include"
     cuda_h="$cuda_prefix/include/cuda.h"
-    AC_CHECK_FILE([$cuda_prefix/lib64],
+    AS_IF([test -f $cuda_prefix/lib64],
       [cudalib="-L$cuda_prefix/lib64 -Wl,-rpath=$cuda_prefix/lib64"],
       [cudalib="-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib"])
   fi
@@ -86,20 +86,20 @@ AC_DEFUN([AX_CHECK_CUDA],[
   # This is fulfilled even if $with_cuda="yes" 
   # This happens when user leaves --with-value alone
   if test x$with_cuda != xno; then
+      AC_LANG_PUSH([C++])
   
       # Check for Nvidia Cuda Compiler NVCC
       AC_PATH_PROG([NVCC], [nvcc], [], [$cuda_prefix/bin$PATH_SEPARATOR$PATH])
   
       #tests if provided headers and libraries are usable and correct
-      bak_CFLAGS="$CFLAGS"
-      bak_CPPFLAGS="$CPPFLAGS"
-      bak_LIBS="$LIBS"
-      bak_LDFLAGS="$LDFLAGS"
+      bak_CPPFLAGS=$CPPFLAGS
+      bak_CXXFLAGS=$CXXFLAGS
+      bak_LDFLAGS=$LDFLAGS
+      bak_LIBS=$LIBS
   
-      CFLAGS=
-      CPPFLAGS=$cudainc
+      CPPFLAGS="$CPPFLAGS $cudainc"
+      LDFLAGS="$LDFLAGS $cudalib"
       LIBS=
-      LDFLAGS=$cudalib
   
       # Check if cuda.h header file exists and compiles
       AC_CHECK_HEADER([cuda.h], [cuda=yes],[cuda=no])
@@ -115,6 +115,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
 
       # Look for cublasDrotmg function in libcublas.so library
       if test x$cuda = xyes; then
+# Note: -lcudart might not be necessary, as it is already included in LIBS
         AC_CHECK_LIB([cublas],
                        [cublasDrotmg],
                        [cuda=yes
@@ -125,10 +126,12 @@ AC_DEFUN([AX_CHECK_CUDA],[
 
       cudalibs=$LIBS
   
-      CFLAGS="$bak_CFLAGS"
-      CPPFLAGS="$bak_CPPFLAGS"
-      LIBS="$bak_LIBS"
-      LDFLAGS="$bak_LDFLAGS"
+      CPPFLAGS=$bak_CPPFLAGS
+      CXXFLAGS=$bak_CXXFLAGS
+      LDFLAGS=$bak_LDFLAGS
+      LIBS=$bak_LIBS
+
+      AC_LANG_POP([C++])
   
       if test x$user_requested = xyes -a x$cuda != xyes; then
           AC_MSG_ERROR([

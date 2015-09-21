@@ -96,11 +96,7 @@ if [[ "x$gasnet" = "xyes" ]]; then
   bak_LIBS=$LIBS
   bak_LDFLAGS=$LDFLAGS
 
-  CXXFLAGS=$PTHREAD_CFLAGS
-
-  # We will make use of the parallel variant 'GASNET_PAR'
-  # This must be defined before including gasnet.h
-  AC_DEFINE([GASNET_PAR],[],[Defines which multithreading support is required to GASNet])
+  CXXFLAGS="$CXXFLAGS $PTHREAD_CFLAGS"
 
   # Do not print conduit check results in standard output
   AX_SILENT_MODE(on)
@@ -156,20 +152,14 @@ GASNet is linked with.
 
   AC_LANG_POP([C++])
 
-fi
+  # We will make use of the parallel variant 'GASNET_PAR'
+  # This must be defined before including gasnet.h
+  AC_DEFINE([GASNET_PAR],[],[Defines which multithreading support is required to GASNet])
+
+fi # if gasnet
 
 m4_foreach_w([conduit_name],[smp udp mpi ibv],[
-  AS_VAR_PUSHDEF([conduit_available],[gasnet conduit_name available])
-  AS_VAR_PUSHDEF([conduit_inc],  [gasnet conduit_name inc])
-  AS_VAR_PUSHDEF([conduit_libs], [gasnet conduit_name libs])
-
-  AM_CONDITIONAL([conduit_available],[test x$conduit_available = xyes])
-  AC_SUBST([conduit_inc])
-  AC_SUBST([conduit_libs])
-
-  AS_VAR_POPDEF([conduit_available])
-  AS_VAR_POPDEF([conduit_inc])
-  AS_VAR_POPDEF([conduit_libs])
+  _AX_CONDUIT_SUBST(conduit_name)
 ])
 
 ])dnl AX_CHECK_GASNET
@@ -187,13 +177,14 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])
 
-  CPPFLAGS="-isystem $gasnetinc -I$gasnetinc/$1-conduit"
-  LIBS=$PTHREAD_LIBS
-  LDFLAGS=$gasnetlib
-
   CXX=$2
-  prereq_libs=$3
-  CPPFLAGS="$CPPFLAGS $4"
+  conduit_prereq_libs="$3 $PTHREAD_LIBS -lrt"
+  conduit_inc="-isystem $gasnetinc -I$gasnetinc/$1-conduit $4"
+
+  CPPFLAGS="${bak_CPPFLAGS} $conduit_inc"
+  LDFLAGS="${bak_LDFLAGS} $gasnetlib"
+  LIBS=
+
 
   # We do not want autoconf to cache header/library checks.
   # We will use different environments for each check.
@@ -213,15 +204,39 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
                   [gasnet-$1-par],
                   [conduit_available=yes],
                   [conduit_available=no],
-                  [-lrt $prereq_libs])
+                  [$conduit_prereq_libs])
     ])
   ])
     
   AS_IF([test x$conduit_available = xyes],[
     gasnet_available_conduits+="$1 "
-    AS_VAR_SET([conduit_inc],  [$CPPFLAGS])
-    AS_VAR_SET([conduit_libs], ["$prereq_libs $LIBS"])
+    AS_VAR_SET([conduit_libs], ["$conduit_prereq_libs $LIBS"])
   ])
 
+  AS_VAR_POPDEF([conduit_available])dnl
+  AS_VAR_POPDEF([conduit_inc])dnl
+  AS_VAR_POPDEF([conduit_libs])dnl
+
 ])dnl _AX_CHECK_CONDUIT
+
+# _AX_CONDUIT_SUBST
+# Sets values to automake and autoconf substitution variables
+# for an specific GASNet conduit.
+# Params:
+#   1) conduit name
+AC_DEFUN([_AX_CONDUIT_SUBST],[
+
+  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1_available])dnl
+  AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])dnl
+  AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])dnl
+
+  AM_CONDITIONAL([conduit_available],[test x$conduit_available = xyes])
+  AC_SUBST([conduit_inc])
+  AC_SUBST([conduit_libs])
+
+  AS_VAR_POPDEF([conduit_available])dnl
+  AS_VAR_POPDEF([conduit_inc])dnl
+  AS_VAR_POPDEF([conduit_libs])dnl
+
+])dnl _AX_CONDUIT_SUBST
 
