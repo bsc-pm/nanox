@@ -90,19 +90,20 @@ AC_ARG_ENABLE([ult],
 # Check for programs
 # ------------------
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_CPP
+
 AC_PROG_CXX
 AC_PROG_CXXCPP
-AC_PROG_LD([$LD])
-AM_PROG_CC_C_O
+
+AC_PROG_LD
 AM_PROG_AS
 
 AC_PROG_SED
 
 # --------------------------------
-# Flags & Compiler dependent stuff
+# Compiler and flag checks
 # --------------------------------
-AX_CONFIG_CC
 
 # Check for atomic builtins in GCC
 AC_CHECK_GXX_LEGACY_ATOMIC_BUILTINS()
@@ -113,6 +114,9 @@ AC_HEADER_STDC
 
 # Check for typedefs, structures, and compiler characteristics
 AC_C_CONST
+
+# Compiler dependent Configuration flags
+AX_CONFIG_CC
 
 # -----------------------
 # Check host architecture
@@ -142,11 +146,11 @@ AX_CHECK_MPI
 # GASNet
 AX_CHECK_GASNET
 
-# Memkind
-AX_CHECK_MEMKIND
-
 # Cluster Support
 AX_CHECK_CLUSTER
+
+# Memkind
+#AX_CHECK_MEMKIND
 
 # Check if NVidia CUDA device has been selected 
 AX_CHECK_CUDA
@@ -156,113 +160,6 @@ AX_CHECK_OPENCL
 
 # Check hwloc availability
 AX_CHECK_HWLOC
-
-NANOS_CONFIG_LIBDIRS=
-NANOS_CONFIG_LIBS=
-NANOS_CONFIG_LIBS_PERFO=
-NANOS_CONFIG_LIBS_DEBUG=
-NANOS_CONFIG_LIBS_INSTR=
-AC_SUBST([NANOS_CONFIG_LIBDIRS])
-AC_SUBST([NANOS_CONFIG_LIBS_PERFO])
-AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
-AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
-AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
-
-# mcc support
-AC_ARG_WITH([mcc],
-AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
-	[
-      mcc_valid=yes
-		MCC="${withval}/bin/mcc"
-		MCXX="${withval}/bin/mcxx"
-	],
-	[
-      mcc_valid=no
-	])
-
-AC_SUBST([mcc_valid])
-AC_SUBST([MCC])
-AC_SUBST([MCXX])
-
-AC_MSG_CHECKING([for architecture])
-
-# Add architecture libraries
-for arch in $ARCHITECTURES; do
-   if test x"$arch" != x"mpi"; then
-      NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
-      NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
-      NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
-      NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
-   fi
-done
-NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
-NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"
-NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR \$(abs_top_builddir)/src/arch/$OS/instrumentation/libos.la \$(abs_top_builddir)/src/support/instrumentation/libsupport.la"
-NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG \$(abs_top_builddir)/src/arch/$OS/instrumentation-debug/libos.la \$(abs_top_builddir)/src/support/instrumentation-debug/libsupport.la"
-
-AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
-
-AC_MSG_RESULT([$ARCHITECTURES/$OS])
-
-# Build versions
-VERSIONS=""
-
-performance_default=yes
-performance_CPPFLAGS=
-performance_CXXFLAGS="-O3"
-
-debug_default=yes
-debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED"
-debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
-
-instrumentation_default=yes
-instrumentation_CPPFLAGS="-DNANOS_INSTRUMENTATION_ENABLED"
-instrumentation_CXXFLAGS="-O3"
-
-instrumentation_debug_default=no
-instrumentation_debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED"
-instrumentation_debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
-
-m4_defun([ax_enable_version],[
-  AS_VAR_PUSHDEF([version_default],[$1_default])
-  AS_VAR_PUSHDEF([version_enabled],[$1_enabled])
-  AS_VAR_PUSHDEF([version_dir],[$1_dir])
-  AS_VAR_PUSHDEF([cppflags],[$1_CPPFLAGS])
-  AS_VAR_PUSHDEF([cxxflags],[$1_CXXFLAGS])
-
-  AC_MSG_CHECKING([if version_name version is enabled])
-  AC_ARG_ENABLE($1,
-    [AS_HELP_STRING(--enable-$1,Enable generation of $1 version)],
-    [version_enabled=${enableval}],
-    [version_enabled=$version_default])
-  
-  AC_MSG_RESULT([$version_enabled])
-  
-  if test x$version_enabled = xyes; then
-    VERSIONS+="$1 "
-  fi
-  
-  version_dir='${libdir}/$1'
-  AM_CONDITIONAL(version_enabled, [test x$version_enabled = xyes])
-  AC_SUBST(version_dir)
-  AC_SUBST(cppflags)
-  AC_SUBST(cxxflags)
-
-  AS_VAR_POPDEF([version_default])
-  AS_VAR_POPDEF([version_enabled])
-  AS_VAR_POPDEF([version_dir])
-  AS_VAR_PUSHDEF([cppflags])
-  AS_VAR_PUSHDEF([cxxflags])
-])
-
-m4_foreach([version_name],[[performance], [debug], [instrumentation], [instrumentation-debug]],[
-  ax_enable_version(version_name)
-])
-
-if test "x$VERSIONS" = x; then
-	AC_MSG_ERROR([At least one version needs to be compiled])
-fi
-AC_SUBST([VERSIONS])
 
 # Extrae check
 MPITRACE_HOME=""
@@ -387,6 +284,57 @@ AC_SUBST([DLB_LIB])
 AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
 AC_SUBST([MKL_LIBS])
+
+
+# mcc support
+AC_ARG_WITH([mcc],
+AS_HELP_STRING([--with-mcc=dir], [Directory of mcc compiler]),
+	[
+      mcc_valid=yes
+		MCC="${withval}/bin/mcc"
+		MCXX="${withval}/bin/mcxx"
+	],
+	[
+      mcc_valid=no
+	])
+
+AC_SUBST([mcc_valid])
+AC_SUBST([MCC])
+AC_SUBST([MCXX])
+
+AC_MSG_CHECKING([for architecture])
+
+# Add architecture libraries
+NANOS_CONFIG_LIBDIRS=
+NANOS_CONFIG_LIBS=
+NANOS_CONFIG_LIBS_PERFO=
+NANOS_CONFIG_LIBS_DEBUG=
+NANOS_CONFIG_LIBS_INSTR=
+AC_SUBST([NANOS_CONFIG_LIBDIRS])
+AC_SUBST([NANOS_CONFIG_LIBS_PERFO])
+AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
+AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
+AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
+
+for arch in $ARCHITECTURES; do
+   if test x"$arch" != x"mpi"; then
+      NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
+      NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
+      NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
+   fi
+done
+NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
+NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"
+NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR \$(abs_top_builddir)/src/arch/$OS/instrumentation/libos.la \$(abs_top_builddir)/src/support/instrumentation/libsupport.la"
+NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG \$(abs_top_builddir)/src/arch/$OS/instrumentation-debug/libos.la \$(abs_top_builddir)/src/support/instrumentation-debug/libsupport.la"
+
+AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
+
+AC_MSG_RESULT([$ARCHITECTURES/$OS])
+
+# Build versions
+AX_BUILD_VERSIONS
 
 # Task-level resiliency support
 AC_MSG_CHECKING([if task resiliency is enabled])
