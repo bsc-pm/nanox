@@ -336,7 +336,11 @@ inline int WDDeque::getPotentiallyParallelWDs( void )
          int _step  = loop_info->step;
          int _niters = (((_upper - _lower) / _step ) + 1 );
 
-         num_wds += (_niters + _chunk - 1) / _chunk;
+         if (_chunk == 0){
+            num_wds ++;
+         }else{
+            num_wds += (_niters + _chunk - 1) / _chunk;
+         }
       }
       else if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() ) {
          num_wds++;
