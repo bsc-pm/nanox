@@ -66,6 +66,7 @@ namespace nanos
          virtual void waitForCpuAvailability() {}
          virtual void blockThread(BaseThread*) {}
          virtual void unblockThread(BaseThread*) {}
+         virtual void unblockThreads(std::vector<BaseThread*>) {}
    };
 
    //! BlockingThreadManager class
@@ -102,6 +103,7 @@ namespace nanos
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
+         virtual void unblockThreads(std::vector<BaseThread*>);
    };
 
    //! BusyWaitThreadManager class
@@ -139,6 +141,7 @@ namespace nanos
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
+         virtual void unblockThreads(std::vector<BaseThread*>);
    };
 
    //! DlbThreadManager class
@@ -171,6 +174,7 @@ namespace nanos
          virtual void waitForCpuAvailability();
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
+         virtual void unblockThreads(std::vector<BaseThread*>);
    };
 
    //! ThreadManagerConf class

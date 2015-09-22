@@ -665,8 +665,10 @@ class SMPPlugin : public SMPBasePlugin
    {
       bool success = false;
       if ( isValidMask( mask ) ) {
+         // The new process mask is copied
          _cpuProcessMask = mask;
-         _cpuActiveMask = mask;
+         // The active mask must be a subset of the new process mask
+         _cpuActiveMask &= mask;
          int master_cpu = workers[0]->getCpuId();
          if ( !sys.getUntieMaster() && !mask.isSet(master_cpu) ) {
             // If master thread is tied and mask does not include master's cpu, force it
@@ -754,10 +756,9 @@ class SMPPlugin : public SMPBasePlugin
             thread->tryWakeUp( team );
             active_threads_checked++;
          } else {
-            // \note Leave team only if the thread does not belong to the process mask
-            bool leave_team = _cpuProcessMask.isSet( thread->getCpuId() );
+            // \note Leave team inconditionally
             thread->lock();
-            thread->setLeaveTeam(leave_team);
+            thread->setLeaveTeam(true);
             thread->sleep();
             thread->unlock();
          }
@@ -876,13 +877,18 @@ class SMPPlugin : public SMPBasePlugin
 
    /*! \brief Force the creation of at least 1 thread per CPU.
     */
-   virtual void forceMaxThreadCreation()
+   virtual void forceMaxThreadCreation( std::map<unsigned int, BaseThread *> &workers )
    {
-      // Set all CPUs active
-      sys.setCpuActiveMask( _cpuSystemMask );
-
-      // Now, set requested only
-      sys.updateActiveWorkers( _requestedWorkers );
+      std::vector<ext::SMPProcessor *>::iterator it;
+      for ( it = _cpus->begin(); it != _cpus->end(); it++ ) {
+         ext::SMPProcessor *target = *it;
+         // for each empty PE, create one thread and sleep it
+         if ( target->getNumThreads() == 0 ) {
+            createWorker( target, workers );
+            target->setActive(false);
+            target->sleepThreads();
+         }
+      }
    }
 
    /*! \brief Create a worker in a suitable CPU
@@ -972,6 +978,7 @@ private:
          for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
+            target->setActive( _cpuProcessMask.isSet(binding_id) );
             if ( _cpuActiveMask.isSet(binding_id) ) {
 
                /* Create a new worker if the target PE is empty */
@@ -991,6 +998,7 @@ private:
          for ( std::vector<ext::SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
             ext::SMPProcessor *target = *it;
             int binding_id = target->getBindingId();
+            // FIXME: cpuActive or cpuProcess?
             target->setActive( _cpuActiveMask.isSet(binding_id) );
          }
       }

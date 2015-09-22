@@ -84,7 +84,7 @@ System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
-      _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
+      _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ), _alreadyFinished( false ),
       _predecessorLists( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
@@ -656,6 +656,10 @@ System::~System ()
 
 void System::finish ()
 {
+   if ( _alreadyFinished ) return;
+
+   _alreadyFinished = true;
+
    //! \note Instrumentation: first removing RUNNING state from top of the state stack
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );

@@ -18,7 +18,7 @@
 /*************************************************************************************/
 /* AUTOMATIC GENERATED TEST                                                          */
 /*                                                                                   */
-/* Check %(srcdir)/tests/mcc to get mercurium source code                            */
+/* Check %(srcdir)/tests/mcc/omp in order to get mercurium source code               */
 /*************************************************************************************/
 
 /*

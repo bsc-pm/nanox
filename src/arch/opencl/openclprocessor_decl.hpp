@@ -27,6 +27,7 @@
 #include "opencldevice_decl.hpp"
 #include "sharedmemallocator.hpp"
 #include "smpprocessor.hpp"
+#include "openclprofiler.hpp"
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
@@ -43,10 +44,12 @@ class OpenCLAdapter
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
    typedef std::map<std::pair<uint64_t,size_t>, cl_mem> BufferCache;
+   typedef std::map<Dims, Execution*> DimsBest;
+   typedef std::map<Dims, ulong> DimsExecutions;
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _progCache() {}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _progCache() {}
 
 public:
    void initialize(cl_device_id dev);
@@ -67,9 +70,9 @@ public:
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter, cl_event& ev);
    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size, cl_event& ev );
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size, cl_event& ev );
-   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
-   size_t getSizeFromCache(size_t addr);
-   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size, void* hostPtr);   
+   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, uint64_t offset, size_t size );
+   size_t getSizeFromCache(uint64_t addr);
+   cl_mem createBuffer(cl_mem parentBuf, uint64_t offset, size_t size, void* hostPtr);
    void freeAddr(void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size, cl_event& ev );
    
@@ -104,10 +107,41 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
 
+   /**
+    * @brief This function performs kernel executions to determine
+    * the best work-group parameters.
+    */
+   void profileKernel( void* oclKernel,
+                        int workDim,
+						int range_size,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
+   /**
+    * @brief Function to launch an OpenCL kernel under profiling mode
+    */
+   Execution* singleExecKernel( void* oclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function update the profiling data during the execution
+    */
+   void updateProfiling(cl_kernel kernel, Execution *execution, Dims& dims);
+
+   /**
+    * @brief Show kernel profiling and information
+    */
+   void printProfiling();
+
    // TODO: replace with new APIs.
    size_t getGlobalSize();
    
    std::string getDeviceName();
+   std::string getDeviceVendor();
    
    
 
@@ -144,6 +178,14 @@ public:
         return _ctx;
     }
 
+	const std::map<cl_kernel, DimsBest>& getBestExec() const {
+		return _bestExec;
+	}
+
+	const std::map<cl_kernel, DimsExecutions>& getExecutions() const {
+		return _nExecutions;
+	}
+
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
 
@@ -159,17 +201,30 @@ private:
 
    cl_int getPlatformName( std::string &name );
 
+   void setSynchronization( std::string &vendor );
+
+   static inline void clCheckError(cl_int clError, char* errorString) {
+      if (clError != CL_SUCCESS) {
+         nanos::OpenCLProfilerException(CLP_OPENCL_STANDARD_ERROR, clError, errorString);
+      }
+   }
+
 private:
+
    cl_device_id _dev;
    cl_context _ctx;
    cl_command_queue* _queues;
    int _currQueue;
    cl_command_queue _copyInQueue;
    cl_command_queue _copyOutQueue;
+   cl_command_queue _profilingQueue;
    BufferCache _bufCache;
    std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
+   std::map<cl_kernel,DimsBest> _bestExec;
+   std::map<cl_kernel,DimsExecutions> _nExecutions;
    bool _preallocateWholeMemory;
+   bool _synchronize;
 
    ProgramCache _progCache;
    bool _useHostPtrs;
@@ -225,9 +280,21 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
+   void profileKernel(void* openclKernel,
+                        int workDim,
+						int range_size,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
    void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);
    
    void printStats();
+
+   /**
+    * @brief This shows the kernel profiling info and some kernel properties
+    */
+   void printProfiling();
       
    void cleanUp();
      

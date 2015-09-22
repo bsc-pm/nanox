@@ -15,15 +15,15 @@ AC_DEFUN([AC_CHECK_GXX_NEW_ATOMIC_BUILTINS], [
         [AC_LANG_PROGRAM([],
           [[
           int a = 1, b = 1;
-          __atomic_fetch_add(&a, 1, __ATOMIC_SEQ_CST);
-          __atomic_fetch_sub(&a, 1, __ATOMIC_SEQ_CST);
-          __atomic_add_fetch(&a, 1, __ATOMIC_SEQ_CST);
-          __atomic_sub_fetch(&a, 1, __ATOMIC_SEQ_CST);
-          __atomic_compare_exchange_n(&a, &b, 2, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-          __atomic_exchange_n(&a, 1, __ATOMIC_SEQ_CST);
-          __atomic_load_n(&a, __ATOMIC_SEQ_CST);
-          __atomic_store_n(&a, 1, __ATOMIC_SEQ_CST);
-          __atomic_thread_fence(__ATOMIC_SEQ_CST);
+          __atomic_fetch_add(&a, 1, __ATOMIC_ACQ_REL);
+          __atomic_fetch_sub(&a, 1, __ATOMIC_ACQ_REL);
+          __atomic_add_fetch(&a, 1, __ATOMIC_ACQ_REL);
+          __atomic_sub_fetch(&a, 1, __ATOMIC_ACQ_REL);
+          __atomic_compare_exchange_n(&a, &b, 2, false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE);
+          __atomic_exchange_n(&a, 1, __ATOMIC_ACQ_REL);
+          __atomic_load_n(&a, __ATOMIC_ACQUIRE);
+          __atomic_store_n(&a, 1, __ATOMIC_RELEASE);
+          __atomic_thread_fence(__ATOMIC_ACQ_REL);
           ]]
           )],
         [

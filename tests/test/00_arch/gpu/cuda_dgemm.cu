@@ -2,7 +2,7 @@
 /*
 <testinfo>
 test_generator=gens/gpu-generator
-test_generator_ENV='test_architecture=smp'
+test_generator_ENV='NX_TEST_ARCH=smp'
 test_schedule=bf
 </testinfo>
 */

@@ -16,31 +16,14 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+/* AUTOMATIC GENERATED TEST                                                          */
+/*                                                                                   */
+/* Check %(srcdir)/tests/mcc/omp in order to get mercurium source code               */
+/*************************************************************************************/
 
-#ifndef _NANOS_TASK_REDUCTION_HPP
-#define _NANOS_TASK_REDUCTION_HPP
+/*
+<testinfo>
+  test_generator=gens/api-omp-generator
+</testinfo>
+*/
 
-#include "task_reduction_decl.hpp"
-
-inline void * TaskReduction::have( const void *ptr, size_t id )
-{
-   bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
-
-   if ( inside ) return & _storage[_size*id];
-   else return NULL;
-}
-
-inline void * TaskReduction::finalize( void )
-{
-   void * result = _original;
-   for ( size_t i=1; i< _threads; i++) _reducer( &_storage[0] ,&_storage[i*_size] );
-   _reducer_orig_var( _original, &_storage[0] );
-   return result;
-}
-
-inline unsigned TaskReduction::getDepth( void ) const
-{
-   return _depth;
-}
-
-#endif

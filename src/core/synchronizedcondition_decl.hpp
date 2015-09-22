@@ -105,7 +105,7 @@ namespace nanos
           */
          virtual bool checkCondition() {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-            return ( __atomic_load_n(this->_var, __ATOMIC_SEQ_CST) == (this->_condition) );
+            return ( __atomic_load_n(this->_var, __ATOMIC_ACQUIRE) == (this->_condition) );
 #else
             return ( *(this->_var) == (this->_condition) );
 #endif
@@ -159,7 +159,7 @@ namespace nanos
           */
          virtual bool checkCondition() {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-            return ( __atomic_load_n(this->_var, __ATOMIC_SEQ_CST) <= (this->_condition) );
+            return ( __atomic_load_n(this->_var, __ATOMIC_ACQUIRE) <= (this->_condition) );
 #else
             return ( *(this->_var) <= (this->_condition) );
 #endif

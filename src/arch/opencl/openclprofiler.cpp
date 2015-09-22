@@ -17,30 +17,28 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_TASK_REDUCTION_HPP
-#define _NANOS_TASK_REDUCTION_HPP
+#include "openclprofiler.hpp"
+#include <string>
+#include <sstream>
+#include "debug.hpp"
 
-#include "task_reduction_decl.hpp"
+using namespace nanos;
 
-inline void * TaskReduction::have( const void *ptr, size_t id )
+OpenCLProfilerException::OpenCLProfilerException(nanos::OpenCLProfilerExceptions exception, cl_int clError, char* errorString)
 {
-   bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
+   std::string baseMsg = "[OpenCL Profiling Error] : ";
+   std::stringstream errorBuffer;
+   switch ( exception ) {
+      case CLP_WRONG_NUMBER_OF_DIMENSIONS:
+         fatal0( baseMsg + "Wrong number of dimensions");
+         break;
+      case CLP_OPENCL_STANDARD_ERROR:
+         errorBuffer << clError;
+         fatal0( baseMsg + errorBuffer.str() + ", " + errorString);
+         break;
+      default:
+         fatal0( baseMsg + "Generic" );
+         break;
 
-   if ( inside ) return & _storage[_size*id];
-   else return NULL;
+   }
 }
-
-inline void * TaskReduction::finalize( void )
-{
-   void * result = _original;
-   for ( size_t i=1; i< _threads; i++) _reducer( &_storage[0] ,&_storage[i*_size] );
-   _reducer_orig_var( _original, &_storage[0] );
-   return result;
-}
-
-inline unsigned TaskReduction::getDepth( void ) const
-{
-   return _depth;
-}
-
-#endif

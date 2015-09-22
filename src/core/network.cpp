@@ -284,7 +284,7 @@ void * Network::malloc ( unsigned int remoteNode, std::size_t size )
       _api->malloc( remoteNode, size, ( void * ) &request );
 
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-      while ( __atomic_load_n( &request.complete, __ATOMIC_SEQ_CST) == 0 )
+      while ( __atomic_load_n( &request.complete, __ATOMIC_ACQUIRE) == 0 )
 #else
       while ( ( (volatile int) request.complete ) == 0 )
 #endif
@@ -313,7 +313,7 @@ void Network::mallocSlaves ( void **addresses, std::size_t size )
 
       for ( index = 0; index < ( _numNodes - 1 ); index += 1) {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-         while ( __atomic_load_n( &request[ index ].complete, __ATOMIC_SEQ_CST) == 0 )
+         while ( __atomic_load_n( &request[ index ].complete, __ATOMIC_ACQUIRE) == 0 )
 #else
          while ( ( (volatile int) request[ index ].complete ) == 0 )
 #endif
@@ -884,7 +884,7 @@ GetRequest::~GetRequest() {
 void GetRequest::complete() {
    (*_f)();
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-   __atomic_store_n(&_complete, 1, __ATOMIC_SEQ_CST);
+   __atomic_store_n(&_complete, 1, __ATOMIC_RELEASE);
 #else
    _complete = 1;
 #endif
@@ -892,7 +892,7 @@ void GetRequest::complete() {
 
 bool GetRequest::isCompleted() const {
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
-   return __atomic_load_n(&_complete, __ATOMIC_SEQ_CST);
+   return __atomic_load_n(&_complete, __ATOMIC_ACQUIRE);
 #else
    return _complete == 1;
 #endif

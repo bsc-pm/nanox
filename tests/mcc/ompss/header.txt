@@ -18,12 +18,12 @@
 /*************************************************************************************/
 /* AUTOMATIC GENERATED TEST                                                          */
 /*                                                                                   */
-/* Check %(srcdir)/tests/mcc to get mercurium source code                            */
+/* Check %(srcdir)/tests/mcc/ompss in order to get mercurium source code             */
 /*************************************************************************************/
 
 /*
 <testinfo>
-  test_generator=gens/api-omp-generator
+  test_generator=gens/api-generator
 </testinfo>
 */
 
