@@ -241,6 +241,9 @@ paraver_config_files = \
      paraver_configs/ompss/tasks/3dh_ipc_task.cfg\
      paraver_configs/ompss/tasks/2dp_tasks.cfg\
      paraver_configs/ompss/tasks/task_numa_node.cfg\
+     paraver_configs/ompss/tasks/task_and_deps.cfg\
+     paraver_configs/ompss/tasks/nb_active_tasks.cfg\
+     paraver_configs/ompss/tasks/2dp_concurrency_tasks.cfg\
      paraver_configs/ompss/worksharing_loops.cfg\
      paraver_configs/ompss/cuda/3dh_duration_CUDAruntime.cfg\
      paraver_configs/ompss/cuda/Non_overlapped_CUDA_Transfer_Direction.cfg\
