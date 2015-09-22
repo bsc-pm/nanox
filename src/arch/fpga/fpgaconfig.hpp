@@ -51,6 +51,7 @@ namespace nanos
             static void apply ( void );
             static Lock _dmaLock;
             static int _idleSyncBurst;
+            static bool _syncTransfers;
 
          public:
             static void printConfiguration( void );
@@ -70,6 +71,7 @@ namespace nanos
             static inline bool isDisabled() {return _disableFPGA; }
             //should be areSyncTransfersDisabled() but is for consistency with other bool getters
             static inline int getIdleSyncBurst() { return _idleSyncBurst; }
+            static bool getSyncTransfersEnabled() { return _syncTransfers; }
 
       };
        //create instrumentation macros (as gpu) to make code cleaner

@@ -77,7 +77,14 @@ inline bool FPGADevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_
    if ( status )
       warning("Error submitting output: " << status);
 
-   fpga->getInTransferList()->addTransfer( remoteSrc, dmaHandle );
+   if ( FPGAConfig::getSyncTransfersEnabled() ) {
+      {  NANOS_INSTRUMENT( InstrumentBurst i( "in-xdma" ,ext::NANOS_FPGA_WAIT_INPUT_DMA_EVENT); )
+         xdmaWaitTransfer( dmaHandle );
+         xdmaReleaseTransfer( &dmaHandle );
+      }
+   } else {
+      fpga->getInTransferList()->addTransfer( remoteSrc, dmaHandle );
+   }
 
    /*
     * This is not actually true because the data is copied asynchronously.
@@ -125,9 +132,20 @@ bool FPGADevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size
    debug( "  got out handle: " << dmaHandle );
    verbose("add transfer H:" << dmaHandle << " to the transfer list");
 
-   ((FPGAMemoryOutTransferList*)fpga->getOutTransferList())->addTransfer( remoteDst, dmaHandle );
+   bool finished;
 
-   return false;
+   if ( FPGAConfig::getSyncTransfersEnabled() ) {
+      {  NANOS_INSTRUMENT( InstrumentBurst i( "in-xdma" ,ext::NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT); )
+         xdmaWaitTransfer( dmaHandle );
+         xdmaReleaseTransfer( &dmaHandle );
+      }
+      finished = true;
+   } else {
+      ((FPGAMemoryOutTransferList*)fpga->getOutTransferList())->addTransfer( remoteDst, dmaHandle );
+      finished = false;
+   }
+
+   return finished;
 }
 
 void *FPGADevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem,

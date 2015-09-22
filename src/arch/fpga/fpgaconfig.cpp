@@ -37,6 +37,7 @@ namespace nanos
       unsigned int FPGAConfig::_burst = 8;
       int FPGAConfig::_maxTransfers = 32;
       int FPGAConfig::_idleSyncBurst = 4;
+      bool FPGAConfig::_syncTransfers = false;
 
       void FPGAConfig::prepare( Config &config )
       {
@@ -70,6 +71,11 @@ namespace nanos
                "Number of transfers synchronized when calling thread's idle" );
          config.registerEnvOption( "fpga_idle_sync_burst", "NX_FPGA_IDLE_SYNC_BURST" );
          config.registerArgOption( "fpga_idle_sync_burst", "fpga-idle-sync-burst" );
+
+         config.registerConfigOption( "fpga_sync_transfers", NEW Config::FlagOption( _syncTransfers ),
+               "Perform fpga transfers synchronously" );
+         config.registerEnvOption( "fpga_sync_transfers", "NX_FPGA_SYNC_TRANSFERS" );
+         config.registerArgOption( "fpga_sync_transfers", "fpga-sync-transfers" );
 
       }
 
