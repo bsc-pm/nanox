@@ -66,7 +66,6 @@ pe_fpga_sources = \
 
 fpga_api_flags = -I$(top_srcdir)/src/apis/c
 
-#fpga_ldflags = -L@XDMADIR@/lib/ -lxlnk
 fpga_ldflags = -L@XDMADIR@/lib/ -lxdma-static
 fpga_includes = -I@XDMADIR@/include/
 

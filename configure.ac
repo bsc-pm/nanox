@@ -489,8 +489,7 @@ AS_HELP_STRING([--with-xdma=dir], [Directory of the xdma lib]),
         XDMADIR="${withval}"
     ],
     [
-        #TODO: change for a sensible default (/usr/local/xdma for instance
-        XDMADIR="/home/afilguer/sources/xdma-lib_dummy"
+        XDMADIR="/opt/install-arm/libxdma"
     ])
 
 #TODO: Check correct xdmalib library
