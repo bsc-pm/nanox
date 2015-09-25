@@ -365,37 +365,38 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_FILES([
                  Makefile
-])
-#                 src/Makefile
-#                 src/core/Makefile
-#                 src/support/Makefile
-#                 src/apis/Makefile
-#                 src/pms/Makefile
-#                 src/arch/Makefile
-#                 src/arch/unix-os/Makefile
-#                 src/arch/smp/Makefile
-#                 src/arch/fpga/Makefile
-#                 src/arch/spu/Makefile
-#                 src/arch/gpu/Makefile
-#                 src/arch/opencl/Makefile
-#                 src/arch/mpi/Makefile
-#                 src/utils/Makefile
-#                 scripts/Makefile
-#                 tests/Makefile
-#                 tests/gens/Makefile
-#                 tests/gens/api-generator
-#                 tests/gens/api-omp-generator
-#                 tests/gens/core-generator
-#                 tests/gens/gpu-generator
-#                 tests/gens/mcc-openmp-generator
-#                 tests/gens/mixed-generator
-#                 tests/gens/nanox-creation-generator
-#                 tests/gens/resiliency-generator
-#                 doc/Makefile
-#                 doc/doxy-nanox
-#       ])
-                 #src/plugins/Makefile
-                 #src/arch/cluster/Makefile
+                 src/common
+                 src/Makefile
+                 src/core/Makefile
+                 src/support/Makefile
+                 src/apis/Makefile
+                 src/pms/Makefile
+                 src/plugins/Makefile
+                 src/arch/Makefile
+                 src/arch/unix-os/Makefile
+                 src/arch/smp/Makefile
+                 src/arch/cluster/Makefile
+                 src/arch/fpga/Makefile
+                 src/arch/spu/Makefile
+                 src/arch/gpu/Makefile
+                 src/arch/opencl/Makefile
+                 src/arch/mpi/Makefile
+                 src/utils/Makefile
+                 scripts/Makefile
+                 tests/Makefile
+                 tests/gens/Makefile
+                 tests/gens/api-generator
+                 tests/gens/api-omp-generator
+                 tests/gens/core-generator
+                 tests/gens/gpu-generator
+                 tests/gens/mcc-openmp-generator
+                 tests/gens/mcc-ompss-generator
+                 tests/gens/mixed-generator
+                 tests/gens/nanox-creation-generator
+                 tests/gens/resiliency-generator
+                 doc/Makefile
+                 doc/doxy-nanox
+       ])
 
 AC_OUTPUT
 

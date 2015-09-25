@@ -9,6 +9,8 @@
 #   Also finds whether -dynamic or -qnostaticbuild flags are necesary
 #   to allow dynamic linkage.
 #   Sets variables host_dep_CPPFLAGS and host_dep_LDFLAGS.
+#   More information can be found at 
+#   http://www-01.ibm.com/support/knowledgecenter/SSAT4T_15.1.0/com.ibm.xlf151.linux.doc/compiler_ref/opt_staticlink.html?lang=en
 #
 # LICENSE
 #
@@ -42,12 +44,14 @@
 
 AC_DEFUN([AX_CHECK_BGQ],
 [
-AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
+# This macro should be executed after checking for compiler
+AC_BEFORE([AC_PROG_CXX],[$0])
+AC_BEFORE([AX_COMPILER_VENDOR],[$0])
 
-AC_LANG_PUSH([C])
+AC_LANG_PUSH([C++])
 
-bak_CPPFLAGS=$CPPFLAGS
-bak_CFLAGS=$CFLAGS
+save_CPPFLAGS=$CPPFLAGS
+save_CXXFLAGS=$CXXFLAGS
 
 # Old BG/Q cppflags: -I/bgsys/drivers/V1R2M1/ppc64 -I/bgsys/drivers/V1R2M1/ppc64/spi/include/kernel/cnk
 # The latter one might not be needed as all the header files included inside Nanox belong to a different
@@ -58,50 +62,48 @@ bak_CFLAGS=$CFLAGS
 #include <spi/include/kernel/process.h>
 #endif
 
-CPPFLAGS=-I/bgsys/drivers/ppcfloor/ppc64
-CFLAGS=
+AX_APPEND_FLAG([-I/bgsys/drivers/ppcfloor/ppc64],[CPPFLAGS])
 
-AC_CHECK_HEADER([spi/include/kernel/location.h],[location_h_present=yes])
-AC_CHECK_HEADER([spi/include/kernel/process.h] ,[process_h_present=yes],[])
-
-if "x$location_h_present" != xyes -o "x$process_h_present" != xyes; then
-  AC_MSG_ERROR([
+AC_CHECK_HEADERS(
+  [spi/include/kernel/location.h spi/include/kernel/process.h],   
+  [],
+  [
+    AC_MSG_ERROR([
 ----------------------------
 Could not find the following BlueGene/Q driver headers:
 /bgsys/drivers/ppcfloor/ppc64/spi/include/kernel/location.h
 /bgsys/drivers/ppcfloor/ppc64/spi/include/kernel/process.h
 ----------------------------])
-fi
+  ])
 
-# Flags & Compiler dependent stuff
-AX_CHECK_COMPILE_FLAG([-dynamic],
-    [dyn_link_flag=-dynamic],
-    [],[-Werror])
+AS_CASE([$ax_cv_cxx_compiler_vendor],
+  [ibm],[dyn_link_flag=-qnostaticlink],
+  [gnu],[dyn_link_flag=-dynamic],
+  [
+    # Default
+    AS_IF([test "$ac_cv_cxx_compiler_gnu" = yes],
+      [dyn_link_flag=-dynamic]
+      [dyn_link=no])
+  ])
 
-if [[[ x$CC =~ x.*gcc  ]]]; then
-# Old gcc versions do not return error (!=0) when compiling
-# with an unknown option starting with "-q"
-AX_CHECK_COMPILE_FLAG([-qnostaticlink],
-    [dyn_link_flag=-qnostaticlink],
-    [],[-Werror])
-fi
+AS_IF([ test $dyn_link != no ],[
+  AX_CHECK_COMPILE_FLAG([$dyn_link_flag],
+    [
+      AX_APPEND_FLAG([$dyn_link_flag],[CXXFLAGS])
+    ],
+    [dyn_link=no],[-Werror])
+])
 
-host_dep_CPPFLAGS=$CPPFLAGS
-host_dep_LDFLAGS=$dyn_link_flag
-
-CPPFLAGS=bak_$CPPFLAGS
-CFLAGS=bak_$CFLAGS
-
-AC_LANG_POP([C])
-
-if test "x$dyn_link_flag" = x; then
+AS_IF([ test $dyn_link != no ],[
     AC_MSG_ERROR([
 ------------------------------
-Specified compiler does not support dynamic link in BlueGene/Q.
+This compiler does not support dynamic link in BlueGene/Q.
 Failed to link using either -dynamic or -qnostaticlink flags.
 ------------------------------])
-fi
+])
 
-AC_DEFINE([IS_BGQ_MACHINE],[],[BlueGene/Q host compatibility is enabled.])
+AC_LANG_POP([C++])
+
+AC_DEFINE([IS_BGQ_MACHINE],[1],[BlueGene/Q host compatibility is enabled.])
 
 ])dnl AX_CHECK_BGQ

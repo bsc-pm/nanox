@@ -33,30 +33,46 @@
 #   Macro appear in them. The GNU General Public License (GPL) does govern
 
 AC_DEFUN([AX_CONFIG_CC],[
-AC_PREREQ(2.59)
+AC_BEFORE([AC_PROG_CXX].[$0])
+
+AC_ARG_VAR([LD],[Linker command])
 
 cc_dep_CPPFLAGS=
-cc_dep_CXXFLAGS=
-cc_dep_LDFLAGS=
 
-if test $ac_cv_cxx_compiler_gnu = yes; then
-  cc_dep_CPPFLAGS="-include new_decl.hpp -include config.h"
-  cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter -Werror"
-  no_inline_flag=-fno-inline
-fi
+AC_LANG_PUSH([C])
+AX_COMPILER_VENDOR
+AC_LANG_POP([C])
 
-AS_CASE([$CXX],
- [*xlC],
+AC_LANG_PUSH([C++])
+AX_COMPILER_VENDOR
+AC_LANG_POP([C++])
+
+# Both  C and C++ compiler  vendors must be the same
+AS_IF([test "$ax_cv_c_compiler_vendor" != "$ax_cv_cxx_compiler_vendor"],
+  [AC_MSG_ERROR([
+-------------------------------
+C and C++ compiler vendors differ. Please,
+make sure both compiler vendors are the same.
+C compiler:   $ax_cv_c_compiler_vendor
+C++ compiler: $ax_cv_cxx_compiler_vendor
+-------------------------------])
+  ])
+
+AS_CASE([$ac_cv_compiler_type],
+ [ibm],
+   [
+     cc_dep_CPPFLAGS="-qinclude=\"new_decl.hpp\" -qinclude=\"config.h\""
+     AX_APPEND_FLAG([-qlanglvl=variadictemplates],[CXXFLAGS])
+     AX_APPEND_FLAG([-Wl,-z,muldefs],[LDFLAGS])
+     no_inline_flag=-qno-inline
+   ],
  [
-  # xlC detected, set special flags
-  cc_dep_CPPFLAGS="-qinclude=\"new_decl.hpp\" -qinclude=\"config.h\""
-  cc_dep_CXXFLAGS="$cc_dep_CXXFLAGS -qlanglvl=variadictemplates"
-  cc_dep_LDFLAGS="$cc_dep_LDFLAGS -Wl,-z,muldefs"
-  no_inline_flag=-qno-inline
+   # Default: use -include flag
+   cc_dep_CPPFLAGS="-include new_decl.hpp -include config.h"
+   AX_APPEND_FLAG([-Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter -Werror],[CXXFLAGS])
+   no_inline_flag=-fno-inline
  ])
 
 AC_SUBST([cc_dep_CPPFLAGS])
-AC_SUBST([cc_dep_CXXFLAGS])
-AC_SUBST([cc_dep_LDFLAGS])
 
-]) # AX_CONFIG_CC
+]) dnl AX_CONFIG_CC

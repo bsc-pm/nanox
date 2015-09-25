@@ -4,28 +4,22 @@ AC_REQUIRE([AC_CANONICAL_SYSTEM])
 
 # This macro modifies compiler and compilation flags
 # It should be called before compilers are checked.
+AC_BEFORE([$0],[AX_CHECK_MIC])
 #AC_BEFORE([$0],[AC_PROG_CC])
 #AC_BEFORE([$0],[AC_PROG_CXX])
 
 AC_CHECK_SIZEOF([size_t])
 
 # Use these for flags that depend on the host arch
-
 AS_CASE([$host],
-  [x86_64-k1om-linux],
+  [x86_64-k1om-linux*],
   [
     # Intel MIC (KNF/ KNC)
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=x86-64 # User level threads implementation for x86_64 might not be compatible with MIC
-
-    AX_CHECK_MIC_SUPPORT
-  ],
-  [i?86-*-linux*],
-  [
-    OS=unix-os
-    ARCHITECTURES="$ARCHITECTURES smp"
-    SMP_ARCH=x86
+    SMP_ARCH=x86-64
+    # Run specific checks for mic
+    AX_CHECK_MIC
   ],
   [x86_64-*-linux*],
   [
@@ -33,7 +27,13 @@ AS_CASE([$host],
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=x86-64
   ],
-  [ia64-*-linux],
+  [i?86-*-linux*],
+  [
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+    SMP_ARCH=x86
+  ],
+  [ia64-*-linux*],
   [
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
