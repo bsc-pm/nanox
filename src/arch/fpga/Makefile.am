@@ -29,15 +29,15 @@ pe_fpga_sources = \
 	$(END)
 
 
-if DEBUG_VERSION
+if debug_enabled
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 endif
 

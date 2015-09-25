@@ -163,13 +163,13 @@ OpenCL version test execution failed
             ac_cv_opencl_version=skip
           ])
         ])
-      AS_CASE([$ac_cv_hwloc_version],
+      AS_CASE([$ac_cv_opencl_version],
         [skip],[
           # The test was skipped (cross-compilation). Do nothing
         ],
         [
           # Default
-          ac_cv_hwloc_version=$(expr "x$ac_cv_hwloc_version" : 'xhwloc \(0x@<:@0-9a-f@:>@*\)$')
+          ac_cv_opencl_version=$(expr "$ac_cv_opencl_version" : "OpenCL C \(@<:@\.0-9@:>@\+\)")
         ])
     fi
 

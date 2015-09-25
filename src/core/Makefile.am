@@ -301,46 +301,46 @@ instrumentation_LTLIBRARIES=
 instrumentation_debug_LTLIBRARIES=
 performance_LTLIBRARIES=
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES+=debug/libnanox.la
 
 debug_libnanox_la_CFLAGS=$(common_cflags) $(common_debug_cflags)
 debug_libnanox_la_CXXFLAGS=$(common_includes) $(common_debug_cxxflags) $(hwloc_cxxflags)
-debug_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(debugdir) $(ignore_muldefs) $(hwloc_ldflags)
+debug_libnanox_la_LDFLAGS=$(version_flags) $(ignore_muldefs) $(hwloc_ldflags)
 debug_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_DEBUG@
 debug_libnanox_la_SOURCES=$(common_sources)
 debug_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_DEBUG@
 endif
 
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES+=instrumentation/libnanox.la
 
 instrumentation_libnanox_la_CFLAGS=$(common_cflags) $(common_instr_cflags)
 instrumentation_libnanox_la_CXXFLAGS=$(common_includes) $(common_instr_cxxflags) $(hwloc_cxxflags)
-instrumentation_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrumentationdir) $(ignore_muldefs) $(hwloc_ldflags)
+instrumentation_libnanox_la_LDFLAGS=$(version_flags)  $(ignore_muldefs) $(hwloc_ldflags)
 instrumentation_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_INSTR@
 instrumentation_libnanox_la_SOURCES=$(common_sources) $(instr_sources)
 instrumentation_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_INSTR@
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox.la
 
 instrumentation_debug_libnanox_la_CFLAGS=$(common_cflags) $(common_instrdebug_cflags)
 instrumentation_debug_libnanox_la_CXXFLAGS=$(common_includes) $(common_instrdebug_cxxflags) $(hwloc_cxxflags)
-instrumentation_debug_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrumentation_debugdir) $(ignore_muldefs) $(hwloc_ldflags)
+instrumentation_debug_libnanox_la_LDFLAGS=$(version_flags) $(ignore_muldefs) $(hwloc_ldflags)
 instrumentation_debug_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_INSTRDEBUG@
 instrumentation_debug_libnanox_la_SOURCES=$(common_sources) $(instr_sources)
 instrumentation_debug_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_INSTRDEBUG@
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES+=performance/libnanox.la
 
 performance_libnanox_la_CFLAGS=$(common_cflags) $(common_perfo_cflags)
 performance_libnanox_la_CXXFLAGS=$(common_includes) $(common_perfo_cxxflags) $(hwloc_cxxflags)
-performance_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(performancedir) $(ignore_muldefs) $(hwloc_ldflags)
+performance_libnanox_la_LDFLAGS=$(version_flags) $(ignore_muldefs) $(hwloc_ldflags)
 performance_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_PERFO@
 performance_libnanox_la_SOURCES=$(common_sources)
 performance_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_PERFO@

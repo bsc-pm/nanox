@@ -63,7 +63,7 @@ pkginclude_HEADERS+=\
    openmp/nanos_omp.h \
 	$(END)
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES+=debug/libnanox-omp.la debug/libnanox-omp-stubs.la
 debug_LTLIBRARIES+=debug/libnanox-ompss.la debug/libnanox-ompss-stubs.la
 
@@ -89,7 +89,7 @@ debug_libnanox_ompss_stubs_la_SOURCES=$(omp_stub_sources)
 endif
 
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES+=instrumentation/libnanox-omp.la instrumentation/libnanox-omp-stubs.la
 instrumentation_LTLIBRARIES+=instrumentation/libnanox-ompss.la instrumentation/libnanox-ompss-stubs.la
 
@@ -114,10 +114,10 @@ instrumentation_libnanox_ompss_stubs_la_LDFLAGS=$(version_flags)
 instrumentation_libnanox_ompss_stubs_la_SOURCES=$(omp_stub_sources)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox-omp.la instrumentation-debug/libnanox-omp-stubs.la
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox-ompss.la instrumentation-debug/libnanox-ompss-stubs.la
 
@@ -142,7 +142,7 @@ instrumentation_debug_libnanox_ompss_stubs_la_LDFLAGS=$(version_flags)
 instrumentation_debug_libnanox_ompss_stubs_la_SOURCES=$(omp_stub_sources)
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES+=performance/libnanox-omp.la performance/libnanox-omp-stubs.la
 performance_LTLIBRARIES+=performance/libnanox-ompss.la performance/libnanox-ompss-stubs.la
 
@@ -190,7 +190,7 @@ lib_LIBRARIES=libnanox-chpl-init.a
 
 libnanox_chpl_init_a_SOURCES= chapel/chpl_init.c
 libnanox_chpl_init_a_CFLAGS= $(common_includes) $(chpl_flags)
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES+=debug/libnanox-chpl.la
 
 debug_libnanox_chpl_la_CXXFLAGS=$(nanos_debug_cxxflags) $(chpl_flags)
@@ -200,7 +200,7 @@ debug_libnanox_chpl_la_SOURCES=$(chpl_sources)
 debug_libnanox_chpl_la_DEPENDENCIES=debug/libnanox.la
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES+=instrumentation/libnanox-chpl.la
 
 instrumentation_libnanox_chpl_la_CXXFLAGS=$(nanos_instr_cxxflags) $(chpl_flags)
@@ -210,7 +210,7 @@ instrumentation_libnanox_chpl_la_SOURCES=$(chpl_sources)
 instrumentation_libnanox_chpl_la_DEPENDENCIES=instrumentation/libnanox.la
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox-chpl.la
 
 instrumentation_debug_libnanox_chpl_la_CXXFLAGS=$(nanos_instrdebug_cxxflags) $(chpl_flags)
@@ -220,7 +220,7 @@ instrumentation_debug_libnanox_chpl_la_SOURCES=$(chpl_sources)
 instrumentation_debug_libnanox_chpl_la_DEPENDENCIES=instrumentation/libnanox.la
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES+=performance/libnanox-chpl.la
 
 performance_libnanox_chpl_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(chpl_flags)

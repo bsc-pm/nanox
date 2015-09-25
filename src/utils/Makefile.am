@@ -24,7 +24,7 @@ nanox_sources= \
    $(END)
 
 bin_PROGRAMS=
-if DEBUG_VERSION
+if debug_enabled
 
 bin_PROGRAMS += nanox-dbg
 
@@ -40,7 +40,7 @@ nanox_dbg_LDADD=\
 
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 
 bin_PROGRAMS += nanox-ins
 
@@ -56,7 +56,7 @@ nanox_ins_LDADD=\
 
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 
 bin_PROGRAMS += nanox-ins-dbg
 
@@ -72,7 +72,7 @@ nanox_ins_dbg_LDADD=\
 
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 
 bin_PROGRAMS += nanox-pfm
 

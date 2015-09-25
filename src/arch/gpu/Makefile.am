@@ -95,7 +95,7 @@ instrumentation_LTLIBRARIES =
 instrumentation_debug_LTLIBRARIES =
 performance_LTLIBRARIES =
 
-if DEBUG_VERSION
+if debug_enabled
 noinst_LTLIBRARIES += debug/libgpu.la
 debug_LTLIBRARIES += debug/libnanox-gpu-api.la debug/libnanox-pe-gpu.la debug/libnanox-gpu-cublas.la
 
@@ -123,7 +123,7 @@ debug_libnanox_gpu_cublas_la_LIBADD=@cudalibs@
 endif
 
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libgpu.la
 instrumentation_LTLIBRARIES += instrumentation/libnanox-gpu-api.la instrumentation/libnanox-pe-gpu.la instrumentation/libnanox-gpu-cublas.la
 
@@ -150,7 +150,7 @@ instrumentation_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 instrumentation_libnanox_gpu_cublas_la_LIBADD=@cudalibs@
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libgpu.la
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-gpu-api.la instrumentation-debug/libnanox-pe-gpu.la instrumentation-debug/libnanox-gpu-cublas.la
 
@@ -178,7 +178,7 @@ instrumentation_debug_libnanox_gpu_cublas_la_LIBADD=@cudalibs@
 endif
 
 
-if PERFORMANCE_VERSION
+if performance_enabled
 noinst_LTLIBRARIES += performance/libgpu.la
 performance_LTLIBRARIES += performance/libnanox-gpu-api.la performance/libnanox-pe-gpu.la performance/libnanox-gpu-cublas.la
 

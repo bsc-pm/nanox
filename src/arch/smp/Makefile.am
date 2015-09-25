@@ -89,7 +89,7 @@ endif
 
 noinst_LTLIBRARIES = 
 
-if DEBUG_VERSION
+if debug_enabled
 noinst_LTLIBRARIES += debug/libsmp.la
 debug_LTLIBRARIES = debug/libnanox-pe-smp.la
 
@@ -105,7 +105,7 @@ debug_libnanox_pe_smp_la_LIBADD=$(common_libadd)
 debug_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libsmp.la
 instrumentation_LTLIBRARIES = instrumentation/libnanox-pe-smp.la
 
@@ -121,7 +121,7 @@ instrumentation_libnanox_pe_smp_la_LIBADD=$(common_libadd)
 instrumentation_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libsmp.la
 instrumentation_debug_LTLIBRARIES = instrumentation-debug/libnanox-pe-smp.la
 
@@ -137,7 +137,7 @@ instrumentation_debug_libnanox_pe_smp_la_LIBADD=$(common_libadd)
 instrumentation_debug_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 noinst_LTLIBRARIES += performance/libsmp.la
 performance_LTLIBRARIES = performance/libnanox-pe-smp.la
 

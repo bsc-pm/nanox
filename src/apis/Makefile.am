@@ -41,15 +41,15 @@ CLEANFILES = $(top_builddir)/src/apis/c/nanos_version.h
 
 c/nanos_version.h : $(srcdir)/c/nanos_version.def
 	$(AM_V_GEN) (\
-       echo "#ifndef  _NANOS_VERSION_H_" > $@; \
-       echo "#define  _NANOS_VERSION_H_" >> $@; \
+       echo "#ifndef  _NANOS_enabled_H_" > $@; \
+       echo "#define  _NANOS_enabled_H_" >> $@; \
        cat $(srcdir)/c/nanos_version.def | $(SED) -e 's,^\s*\(\S\+\)\s*=\s*\(\S\+\)\s*$$,#define NANOS_API_\U\1 \2,' >> $@; \
        echo "#ifdef _MERCURIUM" >> $@; \
        echo "#ifndef _NANOS_INTERNAL" >> $@; \
        cat $(srcdir)/c/nanos_version.def | $(SED) -e 's,^\s*\(\S\+\)\s*=\s*\(\S\+\)\s*$$,#pragma nanos interface family(\1) version(\2),' >> $@; \
        echo "#endif // _NANOS_INTERNAL" >> $@; \
        echo "#endif // _MERCURIUM" >> $@; \
-       echo "#endif // _NANOS_VERSION_H_" >> $@; \
+       echo "#endif // _NANOS_enabled_H_" >> $@; \
        )
 
 
@@ -74,7 +74,7 @@ nanos_c_sources = \
 	$(END) 
 
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES=debug/libnanox-c.la
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
@@ -87,7 +87,7 @@ debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la
 endif
 
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES=instrumentation/libnanox-c.la
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
@@ -99,7 +99,7 @@ instrumentation_libnanox_c_la_SOURCES=$(nanos_c_sources)
 instrumentation_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation/libnanox.la
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES=instrumentation-debug/libnanox-c.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
@@ -111,7 +111,7 @@ instrumentation_debug_libnanox_c_la_SOURCES=$(nanos_c_sources)
 instrumentation_debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES=performance/libnanox-c.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)

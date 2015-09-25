@@ -32,15 +32,9 @@ devinclude_HEADERS = \
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
-if IBM_C
-nanos_instr_cxxflags += -qnoinline
-endif
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
-if IBM_C
-nanos_perfo_cxxflags += -qnoinline
-endif
 
 
 ######################################################################################################
@@ -82,7 +76,7 @@ botlev_sources = \
         sched/botlev_sched.cpp \
         $(END)
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES += \
 	debug/libnanox-sched-bf.la \
 	debug/libnanox-sched-mpq.la \
@@ -138,7 +132,7 @@ debug_libnanox_sched_botlev_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_sched_botlev_la_SOURCES = $(botlev_sources)
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-sched-bf.la \
 	instrumentation/libnanox-sched-mpq.la \
@@ -193,7 +187,7 @@ instrumentation_libnanox_sched_botlev_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_sched_botlev_la_SOURCES = $(botlev_sources)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-sched-bf.la \
 	instrumentation-debug/libnanox-sched-mpq.la \
@@ -204,7 +198,7 @@ instrumentation_debug_LTLIBRARIES += \
  	instrumentation-debug/libnanox-sched-versioning.la \
  	instrumentation-debug/libnanox-sched-affinity-smartpriority.la \
  	instrumentation-debug/libnanox-sched-socket.la \
-        instrumentation-debug/libnanox-sched-botlev.la \
+    instrumentation-debug/libnanox-sched-botlev.la \
 	$(END)
 
 instrumentation_debug_libnanox_sched_bf_la_CXXFLAGS = $(nanos_instrdebug_cxxflags)
@@ -248,7 +242,7 @@ instrumentation_debug_libnanox_sched_botlev_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_debug_libnanox_sched_botlev_la_SOURCES = $(botlev_sources)
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES += \
 	performance/libnanox-sched-bf.la \
 	performance/libnanox-sched-mpq.la \
@@ -334,7 +328,7 @@ readytasks_sources = \
 	$(END)
 
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES += \
 	debug/libnanox-throttle-hysteresis.la \
 	debug/libnanox-throttle-dummy.la \
@@ -369,7 +363,7 @@ debug_libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_throttle_readytasks_la_SOURCES = $(readytasks_sources)
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-throttle-hysteresis.la \
 	instrumentation/libnanox-throttle-dummy.la \
@@ -404,7 +398,7 @@ instrumentation_libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_throttle_readytasks_la_SOURCES = $(readytasks_sources)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-throttle-hysteresis.la \
 	instrumentation-debug/libnanox-throttle-dummy.la \
@@ -439,7 +433,7 @@ instrumentation_debug_libnanox_throttle_readytasks_la_LDFLAGS = $(ld_plugin_flag
 instrumentation_debug_libnanox_throttle_readytasks_la_SOURCES = $(readytasks_sources)
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES += \
 	performance/libnanox-throttle-hysteresis.la \
 	performance/libnanox-throttle-dummy.la \
@@ -499,7 +493,7 @@ tree_sources = \
 	barr/tree_barrier.cpp \
 	$(END)
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES += \
         debug/libnanox-barrier-old-centralized.la \
         debug/libnanox-barrier-centralized.la \
@@ -514,7 +508,7 @@ debug_libnanox_barrier_centralized_la_LDFLAGS=$(ld_plugin_flags)
 debug_libnanox_barrier_centralized_la_SOURCES=$(centralized_sources)
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES += \
         instrumentation/libnanox-barrier-old-centralized.la \
         instrumentation/libnanox-barrier-centralized.la \
@@ -529,7 +523,7 @@ instrumentation_libnanox_barrier_centralized_la_LDFLAGS=$(ld_plugin_flags)
 instrumentation_libnanox_barrier_centralized_la_SOURCES=$(centralized_sources)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES += \
         instrumentation-debug/libnanox-barrier-old-centralized.la \
         instrumentation-debug/libnanox-barrier-centralized.la \
@@ -544,7 +538,7 @@ instrumentation_debug_libnanox_barrier_centralized_la_LDFLAGS=$(ld_plugin_flags)
 instrumentation_debug_libnanox_barrier_centralized_la_SOURCES=$(centralized_sources)
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES += \
         performance/libnanox-barrier-old-centralized.la \
         performance/libnanox-barrier-centralized.la \
@@ -589,7 +583,7 @@ replicate_sources = \
 	slicers/replicate.cpp \
 	$(END)
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES += \
 	debug/libnanox-slicer-static_for.la \
 	debug/libnanox-slicer-dynamic_for.la \
@@ -624,7 +618,7 @@ debug_libnanox_slicer_replicate_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_slicer_replicate_la_SOURCES = $(replicate_sources)
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-slicer-static_for.la \
 	instrumentation/libnanox-slicer-dynamic_for.la \
@@ -659,7 +653,7 @@ instrumentation_libnanox_slicer_replicate_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_slicer_replicate_la_SOURCES = $(replicate_sources)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-slicer-static_for.la \
 	instrumentation-debug/libnanox-slicer-dynamic_for.la \
@@ -694,7 +688,7 @@ instrumentation_debug_libnanox_slicer_replicate_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_debug_libnanox_slicer_replicate_la_SOURCES = $(replicate_sources)
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES += \
 	performance/libnanox-slicer-static_for.la \
 	performance/libnanox-slicer-dynamic_for.la \
@@ -776,23 +770,23 @@ ompt_sources = \
     instrumentation/ompt_types.h \
     $(END)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 extrae_mpitrace_cxxflags=$(mpitrace_cxxflags)
 extrae_mpitrace_ldflags=$(mpitrace_ldflags)
 endif
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES += \
 	debug/libnanox-instrumentation-empty_trace.la \
 	debug/libnanox-instrumentation-print_trace.la \
 	debug/libnanox-instrumentation-tdg.la \
 	$(END)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 debug_LTLIBRARIES+=debug/libnanox-instrumentation-extrae.la
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 debug_LTLIBRARIES+=debug/libnanox-instrumentation-ayudame.la
 endif
 
@@ -808,20 +802,20 @@ debug_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_debug_cxxflags)
 debug_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
 debug_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 debug_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_debug_cxxflags) $(extrae_mpitrace_cxxflags)
 debug_libnanox_instrumentation_extrae_la_LDFLAGS = $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
 debug_libnanox_instrumentation_extrae_la_SOURCES = $(extrae_sources)
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 debug_libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_debug_cxxflags) $(ayudame_cxxflags)
 debug_libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
 debug_libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
 endif
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-instrumentation-empty_trace.la \
 	instrumentation/libnanox-instrumentation-print_trace.la \
@@ -829,15 +823,15 @@ instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-instrumentation-ompt.la \
 	$(END)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 instrumentation_LTLIBRARIES+=instrumentation/libnanox-instrumentation-extrae.la
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 instrumentation_LTLIBRARIES+=instrumentation/libnanox-instrumentation-ayudame.la
 endif
 
-if INSTRUMENTATION_NEXTSIM
+if instrumentation_NEXTSIM
 instrumentation_LTLIBRARIES+=instrumentation/libnanox-instrumentation-nextsim.la
 endif
 
@@ -853,13 +847,13 @@ instrumentation_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_instr_cxxflag
 instrumentation_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 instrumentation_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_instr_cxxflags) $(extrae_mpitrace_cxxflags)
 instrumentation_libnanox_instrumentation_extrae_la_LDFLAGS = $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
 instrumentation_libnanox_instrumentation_extrae_la_SOURCES = $(extrae_sources)
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 instrumentation_libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_instr_cxxflags) $(ayudame_cxxflags)
 instrumentation_libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
 instrumentation_libnanox_instrumentation_ayudame_la_LIBADD=$(top_builddir)/src/apis/instrumentation/libnanox-c.la
@@ -867,7 +861,7 @@ instrumentation_libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
 instrumentation_libnanox_instrumentation_ayudame_la_DEPENDENCIES=$(top_builddir)/src/apis/instrumentation/libnanox-c.la
 endif
 
-if INSTRUMENTATION_NEXTSIM
+if instrumentation_NEXTSIM
 instrumentation_libnanox_instrumentation_nextsim_la_CXXFLAGS = $(nanos_instr_cxxflags) $(nextsim_cxxflags)
 instrumentation_libnanox_instrumentation_nextsim_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_instrumentation_nextsim_la_SOURCES = $(nextsim_sources)
@@ -879,7 +873,7 @@ instrumentation_libnanox_instrumentation_ompt_la_SOURCES = $(ompt_sources)
 
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-instrumentation-empty_trace.la \
 	instrumentation-debug/libnanox-instrumentation-print_trace.la \
@@ -887,11 +881,11 @@ instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-instrumentation-ompt.la \
 	$(END)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox-instrumentation-extrae.la
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox-instrumentation-ayudame.la
 endif
 
@@ -907,13 +901,13 @@ instrumentation_debug_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_instrde
 instrumentation_debug_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_debug_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 instrumentation_debug_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_instrdebug_cxxflags) $(extrae_mpitrace_cxxflags)
 instrumentation_debug_libnanox_instrumentation_extrae_la_LDFLAGS = $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
 instrumentation_debug_libnanox_instrumentation_extrae_la_SOURCES = $(extrae_sources)
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 instrumentation_debug_libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_instrdebug_cxxflags) $(ayudame_cxxflags)
 instrumentation_debug_libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
 instrumentation_debug_libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
@@ -925,18 +919,18 @@ instrumentation_debug_libnanox_instrumentation_ompt_la_SOURCES = $(ompt_sources)
 
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES += \
 	performance/libnanox-instrumentation-empty_trace.la \
 	performance/libnanox-instrumentation-print_trace.la \
 	performance/libnanox-instrumentation-tdg.la \
 	$(END)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 performance_LTLIBRARIES+=performance/libnanox-instrumentation-extrae.la
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 performance_LTLIBRARIES+=performance/libnanox-instrumentation-ayudame.la
 endif
 
@@ -952,13 +946,13 @@ performance_libnanox_instrumentation_tdg_la_CXXFLAGS = $(nanos_perfo_cxxflags)
 performance_libnanox_instrumentation_tdg_la_LDFLAGS = $(ld_plugin_flags)
 performance_libnanox_instrumentation_tdg_la_SOURCES = $(tdg_sources)
 
-if INSTRUMENTATION_EXTRAE
+if instrumentation_EXTRAE
 performance_libnanox_instrumentation_extrae_la_CXXFLAGS = $(nanos_perfo_cxxflags) $(extrae_mpitrace_cxxflags)
 performance_libnanox_instrumentation_extrae_la_LDFLAGS = $(ld_plugin_flags) $(extrae_mpitrace_ldflags)
 performance_libnanox_instrumentation_extrae_la_SOURCES = $(extrae_sources)
 endif
 
-if INSTRUMENTATION_AYUDAME
+if instrumentation_AYUDAME
 performance_libnanox_instrumentation_ayudame_la_CXXFLAGS = $(nanos_perfo_cxxflags) $(ayudame_cxxflags)
 performance_libnanox_instrumentation_ayudame_la_LDFLAGS = $(ld_plugin_flags) $(ayudame_ldflags)
 performance_libnanox_instrumentation_ayudame_la_SOURCES = $(ayudame_sources)
@@ -984,7 +978,7 @@ worksharing_guided_for_sources = \
 	worksharing/loop.hpp \
 	$(END)
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES += \
 	debug/libnanox-worksharing-static_for.la \
 	debug/libnanox-worksharing-dynamic_for.la \
@@ -1005,7 +999,7 @@ debug_libnanox_worksharing_guided_for_la_SOURCES = $(worksharing_guided_for_sour
 
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES += \
 	performance/libnanox-worksharing-static_for.la \
 	performance/libnanox-worksharing-dynamic_for.la \
@@ -1026,7 +1020,7 @@ performance_libnanox_worksharing_guided_for_la_SOURCES = $(worksharing_guided_fo
 
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES += \
 	instrumentation/libnanox-worksharing-static_for.la \
 	instrumentation/libnanox-worksharing-dynamic_for.la \
@@ -1047,7 +1041,7 @@ instrumentation_libnanox_worksharing_guided_for_la_SOURCES = $(worksharing_guide
 
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES += \
 	instrumentation-debug/libnanox-worksharing-static_for.la \
 	instrumentation-debug/libnanox-worksharing-dynamic_for.la \
@@ -1107,7 +1101,7 @@ cregions_nocache_sources = \
 	deps/basedependenciesdomain.hpp \
 	$(END)
 
-if DEBUG_VERSION
+if debug_enabled
 debug_LTLIBRARIES += \
         debug/libnanox-deps-plain.la\
         debug/libnanox-deps-perfect-regions.la\
@@ -1139,7 +1133,7 @@ debug_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_nocache_sources)
 
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 performance_LTLIBRARIES += \
 	performance/libnanox-deps-plain.la \
    performance/libnanox-deps-perfect-regions.la\
@@ -1170,7 +1164,7 @@ performance_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_nocache_sourc
 
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 instrumentation_LTLIBRARIES += \
    instrumentation/libnanox-deps-plain.la\
    instrumentation/libnanox-deps-perfect-regions.la\
@@ -1200,7 +1194,7 @@ instrumentation_libnanox_deps_cregions_nocache_la_LDFLAGS = $(ld_plugin_flags)
 instrumentation_libnanox_deps_cregions_nocache_la_SOURCES = $(cregions_nocache_sources)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES += \
    instrumentation-debug/libnanox-deps-plain.la\
    instrumentation-debug/libnanox-deps-perfect-regions.la\

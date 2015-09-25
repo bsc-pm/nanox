@@ -49,7 +49,7 @@ spu_ccflags = -I @CELLSDK_INC@
 
 noinst_LTLIBRARIES =
 
-if DEBUG_VERSION
+if debug_enabled
 noinst_LTLIBRARIES += debug/libspu.la
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(spu_ccflags)
@@ -60,7 +60,7 @@ debug_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
 debug_libspu_la_LIBADD=$(spu_libadd)
 endif
 
-if INSTRUMENTATION_VERSION
+if instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libspu.la
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(spu_ccflags)
@@ -71,7 +71,7 @@ instrumentation_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
 instrumentation_libspu_la_LIBADD=$(spu_libadd)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libspu.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(spu_ccflags)
@@ -82,7 +82,7 @@ instrumentation_debug_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
 instrumentation_debug_libspu_la_LIBADD=$(spu_libadd)
 endif
 
-if PERFORMANCE_VERSION
+if performance_enabled
 noinst_LTLIBRARIES += performance/libspu.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(spu_ccflags)

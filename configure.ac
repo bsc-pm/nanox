@@ -12,11 +12,6 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
-# AM_PROG_AR must be called before LT_INIT or a warning ensues
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-# Turn off static libraries.
-LT_INIT([disable-static])
-
 dnl Enable silent rules if available
 supported_silent_rules=1
 m4_ifdef([AM_SILENT_RULES],
@@ -89,17 +84,21 @@ AC_ARG_ENABLE([ult],
 # ------------------
 # Check for programs
 # ------------------
-AC_PROG_CC
-AM_PROG_CC_C_O
-AC_PROG_CPP
+ AC_PROG_CC
+ AC_PROG_CPP
+ 
+ AC_PROG_CXX
+ AC_PROG_CXXCPP
+ 
+ AC_PROG_LD
+ AM_PROG_AS
+ 
+ AC_PROG_SED
 
-AC_PROG_CXX
-AC_PROG_CXXCPP
-
-AC_PROG_LD
-AM_PROG_AS
-
-AC_PROG_SED
+ # AM_PROG_AR must be called before LT_INIT or a warning ensues
+ m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+ # Turn off static libraries.
+ LT_INIT([disable-static])
 
 # --------------------------------
 # Compiler and flag checks
@@ -118,9 +117,9 @@ AC_C_CONST
 # Compiler dependent Configuration flags
 AX_CONFIG_CC
 
-# -----------------------
-# Check host architecture
-# -----------------------
+## -----------------------
+## Check host architecture
+## -----------------------
 OS=
 OPTIONS=
 SMP_ARCH=
@@ -150,7 +149,7 @@ AX_CHECK_GASNET
 AX_CHECK_CLUSTER
 
 # Memkind
-#AX_CHECK_MEMKIND
+AX_CHECK_MEMKIND
 
 # Check if NVidia CUDA device has been selected 
 AX_CHECK_CUDA
@@ -200,7 +199,7 @@ AC_SUBST([MPITRACE_INC])
 AC_SUBST([MPITRACE_LIB])
 AC_SUBST([MPITRACE_BIN])
 
-AM_CONDITIONAL([INSTRUMENTATION_EXTRAE], test x"$MPITRACE_HOME" != x)
+AM_CONDITIONAL([instrumentation_EXTRAE], test x"$MPITRACE_HOME" != x)
 
 # Check NextSim support
 AC_ARG_WITH([nextsim],
@@ -212,7 +211,7 @@ AC_ARG_WITH([nextsim],
 )
 AC_SUBST([NEXTSIM_HOME])
 AC_SUBST([NEXTSIM_INC])
-AM_CONDITIONAL([INSTRUMENTATION_NEXTSIM], test x"$NEXTSIM_HOME" != x)
+AM_CONDITIONAL([instrumentation_NEXTSIM], test x"$NEXTSIM_HOME" != x)
 
 # Check Ayudame support
 AYUDAME_HOME=""
@@ -234,7 +233,7 @@ AC_SUBST([AYUDAME_INC])
 AC_SUBST([AYUDAME_LIB])
 AC_SUBST([AYUDAME_BIN])
 
-AM_CONDITIONAL([INSTRUMENTATION_AYUDAME], test x"$AYUDAME_HOME" != x)
+AM_CONDITIONAL([instrumentation_AYUDAME], test x"$AYUDAME_HOME" != x)
 
 # Check for Chapel support
 AC_ARG_WITH([chapel],

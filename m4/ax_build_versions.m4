@@ -1,3 +1,45 @@
+#
+# SYNOPSIS
+#
+#   AX_BUILD_VERSIONS
+#   Provides enable/disable configuration flags for performance, debug, instrumentation
+#   and instrumentation-debug build versions.
+#
+# DESCRIPTION
+#
+#   Check whether OpenCL path to the headers and libraries are correctly specified.
+#   Also checks that the library version is OpenCL 1.1 or greater.
+#
+# LICENSE
+#
+#   Copyright (c) 2015 Jorge Bellon <jbellon@bsc.es>
+#
+#   This program is free software: you can redistribute it and/or modify it
+#   under the terms of the GNU General Public License as published by the
+#   Free Software Foundation, either version 3 of the License, or (at your
+#   option) any later version.
+#
+#   This program is distributed in the hope that it will be useful, but
+#   WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+#   Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+#   As a special exception, the respective Autoconf Macro's copyright owner
+#   gives unlimited permission to copy, distribute and modify the configure
+#   scripts that are the output of Autoconf when processing the Macro. You
+#   need not follow the terms of the GNU General Public License when using
+#   or distributing such scripts, even though portions of the text of the
+#   Macro appear in them. The GNU General Public License (GPL) does govern
+#   all other use of the material that constitutes the Autoconf Macro.
+#
+#   This special exception to the GPL applies to versions of the Autoconf
+#   Macro released by the Autoconf Archive. When you make and distribute a
+#   modified version of the Autoconf Macro, you may extend this special
+#   exception to the GPL to apply to your modified version as well.
+
 
 AC_DEFUN([AX_BUILD_VERSIONS],[
 
@@ -45,9 +87,12 @@ AC_SUBST([VERSIONS])
 AC_DEFUN([_ax_enable_version],[
   AS_VAR_PUSHDEF([version_default],[$1_default])
   AS_VAR_PUSHDEF([version_enabled],[$1_enabled])
-  AS_VAR_PUSHDEF([version_dir],[$1_dir])
   AS_VAR_PUSHDEF([cppflags],[$1_CPPFLAGS])
   AS_VAR_PUSHDEF([cxxflags],[$1_CXXFLAGS])
+
+  # Versiondir (e.g. performancedir) is used by libtool
+  # to place ltlibraries
+  AS_VAR_PUSHDEF([version_dir],[$1dir])
 
   AC_MSG_CHECKING([if version_name version is enabled])
   AC_ARG_ENABLE($1,
