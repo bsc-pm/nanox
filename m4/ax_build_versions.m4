@@ -46,23 +46,29 @@ AC_DEFUN([AX_BUILD_VERSIONS],[
 VERSIONS=
 
 # Preprocessor, compiler flags and default availability
+# Note: I have to put a prefix "is_" to avoid that
+# instrumentation_debug_default can be expanded as
+# instrumentation_ + debug_default, so that if
+# debug_default is defined to yes,
+# instrumentation_debug_default will be expanded as instrumentation_yes
+
 # Performance
-m4_define(performance_default,yes)
+m4_define(is_performance_default,yes)
 performance_CPPFLAGS=
 performance_CXXFLAGS="-O3"
 
 # Debug
-m4_define(debug_default,yes)
+m4_define(is_debug_default,yes)
 debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED"
 debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
 
 # Instrumentation
-m4_define(instrumentation_default,yes)
+m4_define(is_instrumentation_default,yes)
 instrumentation_CPPFLAGS="-DNANOS_INSTRUMENTATION_ENABLED"
 instrumentation_CXXFLAGS="-O3"
 
 # Instrumentation-debug
-m4_define(instrumentation_debug_default,yes)
+m4_define(is_instrumentation_debug_default,yes)
 instrumentation_debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED"
 instrumentation_debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
 
@@ -85,8 +91,8 @@ AC_SUBST([VERSIONS])
 # Checks default values and explicit user configuration
 # Substitutes autoconf and automake variables
 AC_DEFUN([_ax_enable_version],[
-  AS_VAR_PUSHDEF([version_default],[$1_default])
-  AS_VAR_PUSHDEF([version_enabled],[$1_enabled])
+  AS_VAR_PUSHDEF([version_default],[is_$1_default])
+  AS_VAR_PUSHDEF([version_enabled],[is_$1_enabled])
   AS_VAR_PUSHDEF([cppflags],[$1_CPPFLAGS])
   AS_VAR_PUSHDEF([cxxflags],[$1_CXXFLAGS])
 
@@ -101,7 +107,7 @@ AC_DEFUN([_ax_enable_version],[
        AS_HELP_STRING(--disable-$1,Disable generation of $1 version)
     )],
     [version_enabled=${enableval}],
-    [version_enabled=version_default])
+    [version_enabled=]version_default)
   
   AC_MSG_RESULT([$version_enabled])
   

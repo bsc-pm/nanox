@@ -41,14 +41,27 @@ AC_DEFUN([AX_CHECK_GASNET],
 [
 AC_REQUIRE([AX_PTHREAD])
 AC_REQUIRE([AX_CHECK_MPI])
-AC_PREREQ(2.59)
 
 m4_pattern_allow([AM_Poll])
 
 # It is also possible to specify an MPI installation directory where header and library files should be placed
 AC_ARG_WITH(gasnet,
-[AS_HELP_STRING([--with-gasnet,--with-gasnet=PATH],
-                [search in system directories or specify prefix directory for installed GASNet package.])])
+  [AS_HELP_STRING([--with-gasnet,--with-gasnet=PATH],
+                  [search in system directories or specify prefix directory for installed GASNet package.])],
+  [
+    # Check if the user provided a valid PATH
+    AS_IF([test -d "$withval"],[
+      gasnet=yes
+      gasnet_path_provided=yes
+    ],[
+      gasnet=$withval
+      gasnet_path_provided=no
+    ])dnl
+  ],[
+    gasnet=no
+    gasnet_path_provided=no
+  ])
+
 AC_ARG_WITH(gasnet-include,
 [AS_HELP_STRING([--with-gasnet-include=PATH],
                 [specify directory for installed GASNet include files])])
@@ -59,42 +72,32 @@ AC_ARG_WITH(gasnet-lib,
 # If the user specifies --with-gasnet, $with_gasnet value will be 'yes'
 #                       --without-gasnet, $with_gasnet value will be 'no'
 #                       --with-gasnet=somevalue, $with_gasnet value will be 'somevalue'
-if [[[ ! "x$with_gasnet" =~  x(yes|no|)$ ]]]; then
+AS_IF([test x$gasnet_path_provided = xyes],[
   gasnetinc="$with_gasnet/include"
-  if test -f $with_gasnet/lib64; then
-    gasnetlib="-L$with_gasnet/lib64 -Wl,-rpath=$with_gasnet/lib64"
-  else
-    gasnetlib="-L$with_gasnet/lib -Wl,-rpath=$with_gasnet/lib"
-  fi
-fi
+  AS_IF([test -d "$with_gasnet/lib64"],
+    [gasnetlib="-L$with_gasnet/lib64 -Wl,-rpath=$with_gasnet/lib64"],
+    [gasnetlib="-L$with_gasnet/lib -Wl,-rpath=$with_gasnet/lib"])dnl
+])dnl
 
-# If the user does not specify --with-gasnet, or
-# he uses --without-gasnet, do not check for GASNet support.
-if [[[ "x$with_gasnet" =~ x(no|)$ ]]]; then
-  gasnet="no"
-else
-  gasnet="yes"
-fi
+AS_IF([test "$with_gasnet_include"],[
+  gasnetinc="$with_gasnet_include"
+])dnl
 
-if test "$with_gasnet_include"; then
-  gasnetinc="-I$with_gasnet_include"
-fi
-
-if test "$with_gasnet_lib"; then
+AS_IF([test "$with_gasnet_lib"],[
   gasnetlib="-L$with_gasnet_lib -Wl,-rpath=$with_gasnet_lib"
-fi
+])dnl
 
-if [[ "x$gasnet" = "xyes" ]]; then
+AS_IF([test "x$gasnet" = xyes],[
 
   AC_MSG_CHECKING([for GASNet conduits])
 
   AC_LANG_PUSH([C++])
 
-  bak_CXX=$CXX
-  bak_CPPFLAGS=$CPPFLAGS
-  bak_CXXFLAGS=$CXXFLAGS
-  bak_LIBS=$LIBS
-  bak_LDFLAGS=$LDFLAGS
+  bak_CXX="$CXX"
+  bak_CPPFLAGS="$CPPFLAGS"
+  bak_CXXFLAGS="$CXXFLAGS"
+  bak_LIBS="$LIBS"
+  bak_LDFLAGS="$LDFLAGS"
 
   AX_APPEND_FLAG([$PTHREAD_CFLAGS],[CXXFLAGS])
 
@@ -123,16 +126,19 @@ if [[ "x$gasnet" = "xyes" ]]; then
   AX_SILENT_MODE(off)
 
   AS_IF([test "x$gasnet_available_conduits" = x],
-            [
-             AC_MSG_RESULT([none available])
-             AC_MSG_ERROR([
+    [
+      AC_MSG_RESULT([none available])
+      AC_MSG_ERROR([
 ------------------------------
 GASNet path was not correctly specified. 
 Please, check that the provided directories are correct.
-------------------------------])],
-            [
-             AC_MSG_RESULT([$gasnet_available_conduits])
-  ])
+------------------------------])
+    ],[
+      AC_MSG_RESULT([$gasnet_available_conduits])
+      # GASNet conduits found. Enable cluster architecture
+      ARCHITECTURES="$ARCHITECTURES cluster"
+      AC_DEFINE([CLUSTER_DEV],[],[Indicates the presence of the Cluster arch plugin.])
+    ])dnl
 
   AS_IF([test x$mpi = xyes -a x$gasnet_mpi_available != xyes],[
     AC_MSG_WARN([
@@ -142,13 +148,13 @@ or it was not compatible. If MPI and/or InfiniBand conduits
 are required, it is recommended to use the same MPI library
 GASNet is linked with. 
 ------------------------------])
-  ])
+  ])dnl
 
-  CXX=$bak_CXX
-  CPPFLAGS=$bak_CPPFLAGS
-  CXXFLAGS=$bak_CXXFLAGS
-  LIBS=$bak_LIBS
-  LDFLAGS=$bak_LDFLAGS
+  CXX="$bak_CXX"
+  CPPFLAGS="$bak_CPPFLAGS"
+  CXXFLAGS="$bak_CXXFLAGS"
+  LIBS="$bak_LIBS"
+  LDFLAGS="$bak_LDFLAGS"
 
   AC_LANG_POP([C++])
 
@@ -156,7 +162,7 @@ GASNet is linked with.
   # This must be defined before including gasnet.h
   AC_DEFINE([GASNET_PAR],[],[Defines which multithreading support is required to GASNet])
 
-fi # if gasnet
+])dnl if gasnet
 
 m4_foreach_w([conduit_name],[smp udp mpi ibv],[
   _AX_CONDUIT_SUBST(conduit_name)
@@ -177,7 +183,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])
 
-  CXX=$2
+  CXX="$2"
   conduit_prereq_libs="$3 $PTHREAD_LIBS -lrt"
   conduit_inc="-isystem $gasnetinc -I$gasnetinc/$1-conduit $4"
 
@@ -192,7 +198,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
   unset ac_cv_search_gasnetc_AMPoll
 
   # Skip checks if the required compiler is not found
-  AS_IF([test x$CXX = x ],[
+  AS_IF([test "x$CXX" = x ],[
     conduit_available=no
   ],[
     # Look for a valid header file

@@ -56,46 +56,50 @@ AC_DEFUN([AX_CHECK_CUDA],[
 
   # Check if user specifically requested this package.
   # It will generate errors if we are not able to find headers/libs
-  if test "x$with_cuda$with_cuda_include$with_cuda_lib" != x; then
+  AS_IF([test "x$with_cuda$with_cuda_include$with_cuda_lib" != x],[
     user_requested="yes"
-  else
+  ],[
     user_requested="no"
-  fi
+  ])dnl
 
   # Search for Cuda by default (no --with-cuda specified by the user)
-  if test "x$with_cuda" != xno; then
-    if [[[ "x$with_cuda" =~ x(yes|)$ ]]]; then
+  AS_IF([test "x$with_cuda" != xno],[
+    # If user does not specify a PATH, use /usr/local/cuda as default
+    AS_IF([test ! -d "$with_cuda"],[
       cuda_prefix=/usr/local/cuda
-    else
+    ],[
       cuda_prefix=$with_cuda
-    fi
+    ])dnl
+
     cudainc="-isystem $cuda_prefix/include"
     cuda_h="$cuda_prefix/include/cuda.h"
-    AS_IF([test -f $cuda_prefix/lib64],
+    AS_IF([test -d $cuda_prefix/lib64],
       [cudalib="-L$cuda_prefix/lib64 -Wl,-rpath=$cuda_prefix/lib64"],
-      [cudalib="-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib"])
-  fi
-  if test "x$with_cuda_include" != x; then
+      [cudalib="-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib"])dnl
+  ])dnl
+
+  AS_IF([test "x$with_cuda_include" != x],[
     cudainc="-isystem $with_cuda_include"
     cuda_h="$with_cuda_include/cuda.h"
-  fi
-  if test "x$with_cuda_lib" != x; then
+  ])dnl
+
+  AS_IF([test "x$with_cuda_lib" != x],[
     cudalib="-L$with_cuda_lib"
-  fi
+  ])dnl
   
-  # This is fulfilled even if $with_cuda="yes" 
+  # This condition is satisfied even if $with_cuda="yes" 
   # This happens when user leaves --with-value alone
-  if test x$with_cuda != xno; then
+  AS_IF([test x$with_cuda != xno],[
       AC_LANG_PUSH([C++])
   
       # Check for Nvidia Cuda Compiler NVCC
       AC_PATH_PROG([NVCC], [nvcc], [], [$cuda_prefix/bin$PATH_SEPARATOR$PATH])
   
       #tests if provided headers and libraries are usable and correct
-      bak_CPPFLAGS=$CPPFLAGS
-      bak_CXXFLAGS=$CXXFLAGS
-      bak_LDFLAGS=$LDFLAGS
-      bak_LIBS=$LIBS
+      bak_CPPFLAGS="$CPPFLAGS"
+      bak_CXXFLAGS="$CXXFLAGS"
+      bak_LDFLAGS="$LDFLAGS"
+      bak_LIBS="$LIBS"
   
       CPPFLAGS="$CPPFLAGS $cudainc"
       LDFLAGS="$LDFLAGS $cudalib"
@@ -105,16 +109,16 @@ AC_DEFUN([AX_CHECK_CUDA],[
       AC_CHECK_HEADER([cuda.h], [cuda=yes],[cuda=no])
 
       # Look for cudaMemcpy function in libcudart.so library
-      if test x$cuda = xyes; then
+      AS_IF([test x$cuda = xyes],[
         AC_CHECK_LIB([cudart],
                        [cudaMemcpy],
                        [cuda=yes
                         LIBS="$LIBS -lcudart"],
                        [cuda=no])
-      fi
+      ])dnl
 
       # Look for cublasDrotmg function in libcublas.so library
-      if test x$cuda = xyes; then
+      AS_IF([test x$cuda = xyes],[
 # Note: -lcudart might not be necessary, as it is already included in LIBS
         AC_CHECK_LIB([cublas],
                        [cublasDrotmg],
@@ -122,50 +126,51 @@ AC_DEFUN([AX_CHECK_CUDA],[
                         LIBS="$LIBS -lcublas"],
                        [cuda=no],
                        [-lcudart])
-      fi
+      ])dnl
 
-      cudalibs=$LIBS
+      cudalibs="$LIBS"
   
-      CPPFLAGS=$bak_CPPFLAGS
-      CXXFLAGS=$bak_CXXFLAGS
-      LDFLAGS=$bak_LDFLAGS
-      LIBS=$bak_LIBS
+      CPPFLAGS="$bak_CPPFLAGS"
+      CXXFLAGS="$bak_CXXFLAGS"
+      LDFLAGS="$bak_LDFLAGS"
+      LIBS="$bak_LIBS"
 
       AC_LANG_POP([C++])
   
-      if test x$user_requested = xyes -a x$cuda != xyes; then
+      AS_IF([test x$user_requested = xyes -a x$cuda != xyes],[
           AC_MSG_ERROR([
 ------------------------------
 CUDA path was not correctly specified. 
 Please, check that the provided directories are correct.
 ------------------------------])
-      fi
+      ])dnl
   
-		if test x$cuda = xyes; then
-        AC_CACHE_CHECK([CUDA API version],[ac_cv_cuda_version],
-          [
-            ac_cv_cuda_version=$(grep 'define CUDA_VERSION' "$cuda_h")
-            ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \(@<:@0-9@:>@*\)')
-          ])
-		fi
+		AS_IF([test x$cuda = xyes],[
+          AC_CACHE_CHECK([CUDA API version],[ac_cv_cuda_version],
+            [
+              ac_cv_cuda_version=$(grep 'define CUDA_VERSION' "$cuda_h")
+              ac_cv_cuda_version=$(expr "x$ac_cv_cuda_version" : 'x#define CUDA_VERSION \(@<:@0-9@:>@*\)')
+            ])
+		])dnl
 
-      if test x$user_requested = xyes; then
-        if test "x$ac_cv_cuda_version" == "x" -o "$ac_cv_cuda_version" -lt 5000; then
+      AS_IF([test x$user_requested = xyes],[
+        AS_IF([test "x$ac_cv_cuda_version" == "x" -o "$ac_cv_cuda_version" -lt 5000],[
           AC_MSG_ERROR([
 ------------------------------
 Version of the provided CUDA package is too old.
 CUDA 5 or greater is required.
 ------------------------------])
-        fi
-      fi
-  fi
+        ])dnl
+      ])dnl
+
+  ])dnl with_cuda
   
-  if test x$cuda = xyes; then
+  AS_IF([test x$cuda = xyes],[
       ARCHITECTURES="$ARCHITECTURES gpu"
   
       AC_DEFINE_UNQUOTED([NANOS_CUDA_VERSION],[$cuda_version],[API version of the CUDA package specified by the user])
       AC_DEFINE([GPU_DEV],[],[Indicates the presence of the GPU arch plugin.])
-  fi
+  ])
   
   AC_SUBST([cuda])
   AC_SUBST([cuda_prefix])

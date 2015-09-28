@@ -51,24 +51,29 @@ AC_ARG_WITH(hwloc-lib,
 [AS_HELP_STRING([--with-hwloc-lib=PATH],
                 [specify directory for the installed hwloc library])])
 
-if [[[ ! "x$with_hwloc" =~  x(yes|no|)$ ]]]; then
+AS_IF([test "x$with_hwloc" != xyes dnl
+         -o "x$with_hwloc" != xno dnl
+         -o "x$with_hwloc" != x dnl
+],[
   hwlocinc="-I $with_hwloc/include"
   hwloc_h="$with_hwloc/include/hwloc.h"
-  AS_IF([test -f $with_hwloc/lib64],
+  AS_IF([test -d $with_hwloc/lib64],
     [hwloclib="-L$with_hwloc/lib64 -Wl,-rpath=$with_hwloc/lib64"],
-    [hwloclib="-L$with_hwloc/lib -Wl,-rpath=$with_hwloc/lib"])
-fi
-if test "x$with_hwloc_include" != x; then
+    [hwloclib="-L$with_hwloc/lib -Wl,-rpath=$with_hwloc/lib"])dnl
+])dnl
+
+AS_IF([test "x$with_hwloc_include" != x],[
   hwlocinc="-isystem $with_hwloc_include"
   hwloc_h="$with_hwloc_include/hwloc.h"
-fi
-if test "x$with_hwloc_lib" != x; then
-  hwloclib="-L$with_hwloc_lib"
-fi
+])dnl
 
-# This is fulfilled even if $with_hwloc="yes" 
+AS_IF([test "x$with_hwloc_lib" != x],[
+  hwloclib="-L$with_hwloc_lib"
+])
+
+# This condition is satisfied even if $with_hwloc="yes" 
 # This happens when user leaves --with-value alone
-if test x$with_hwloc$with_hwloc_include$with_hwloc_lib != x; then
+AS_IF([test "x$with_hwloc$with_hwloc_include$with_hwloc_lib" != x],[
   AC_LANG_PUSH([C++])
 
   #tests if provided headers and libraries are usable and correct
@@ -84,25 +89,24 @@ if test x$with_hwloc$with_hwloc_include$with_hwloc_lib != x; then
   # Check if hwloc.h header file exists and compiles
   AC_CHECK_HEADER([hwloc.h], [hwloc=yes],[hwloc=no])
 
-  # Look for hwlocMemcpy function in libhwlocrt.so library
-  if test x$hwloc == xyes; then
+  # Look for hwloc_get_api_version function in libhwloc.so library
+  AS_IF([test "x$hwloc" = xyes],[
     AC_CHECK_LIB([hwloc],
-                   [hwloc_topology_init],
-                   [hwloc=yes
-						  LIBS=-lhwloc],
-						 [hwloc=no])
-  fi
+             [hwloc_get_api_version],
+             [hwloc=yes
+              LIBS=-lhwloc],
+             [hwloc=no])
+  ])dnl
 
-  if test x$hwloc != xyes; then
+  AS_IF([test x$hwloc != xyes],[
       AC_MSG_ERROR([
 ------------------------------
 hwloc path was not correctly specified. 
 Please, check that the provided directories are correct.
 ------------------------------])
-  fi
+  ])dnl
 
-
-  if test x$hwloc = xyes; then
+  AS_IF([test x$hwloc = xyes],[
     AC_CACHE_CHECK([hwloc version],[ac_cv_hwloc_version],
       [AC_RUN_IFELSE(
         [AC_LANG_PROGRAM(
@@ -114,7 +118,7 @@ Please, check that the provided directories are correct.
              #include <stdlib.h>
           ],
           [
- 				unsigned hwloc_version = hwloc_get_api_version();
+             unsigned hwloc_version = hwloc_get_api_version();
  				
              FILE* out = fopen("conftest.out","w");
              fprintf(out,"hwloc 0x%x\n", hwloc_version);
@@ -131,31 +135,36 @@ hwloc version test execution failed
           ac_cv_hwloc_version=skip
         ])
     ])
-    AS_CASE([$ac_cv_hwloc_version],
-      [skip],[
-        # The test was skipped (cross-compilation). Do nothing
-      ],
-      [
-        # Default
-        ac_cv_hwloc_version=$(expr "x$ac_cv_hwloc_version" : 'xhwloc \(0x@<:@0-9a-f@:>@*\)$')
-      ])
-  fi
 
-  if [[[ "x$ac_cv_hwloc_version" == "x" || "$ac_cv_hwloc_version" -lt 0x010200 ]]]; then
-    AC_MSG_ERROR([
+    AS_IF([test "$ac_cv_hwloc_version" != skip],[
+      ac_cv_hwloc_version=$(expr "x$ac_cv_hwloc_version" : 'xhwloc \(0x@<:@0-9a-f@:>@*\)$')
+    ])
+  ])dnl hwloc 
+
+  AS_IF([test "x$ac_cv_hwloc_version" != x],[
+    AS_IF([(("$ac_cv_hwloc_version" < 0x010200))],[
+      AC_MSG_ERROR([
 ------------------------------
-Version of the provided hwloc package is too old.
+Version of the provided hwloc package is too old ($ac_cv_hwloc_version).
 hwloc 1.2.0 or greater is required.
 ------------------------------])
-  fi
+    ])dnl
+  ],[
+      AC_MSG_ERROR([
+------------------------------
+Could not find hwloc package version @{:@value: $ac_cv_hwloc_version@:}@.
+Check config.log for details.
+------------------------------])
 
-  if test x$ac_cv_hwloc_version = xskip; then
+  ])dnl
+
+  AS_IF([test "$ac_cv_hwloc_version" = skip],[
     AC_MSG_WARN([
 ------------------------------
 Hwloc library version cannot be checked
 because cross-compilation mode has been detected.
 ------------------------------])
-  fi
+  ])dnl
 
   hwloclibs=$LIBS
 
@@ -166,14 +175,14 @@ because cross-compilation mode has been detected.
 
   AC_LANG_POP([C++])
 
-fi
+])dnl with_hwloc
 
-if test x$hwloc = xyes; then
+AS_IF([test x$hwloc = xyes],[
     OPTIONS="$OPTIONS hwloc"
 
     AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])
     AC_DEFINE([HWLOC],[],[Indicates the presence of hwloc library.])
-fi
+])dnl
 
 AC_SUBST([hwloc])
 AC_SUBST([hwlocinc])

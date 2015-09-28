@@ -198,34 +198,42 @@ endif
 
 noinst_LTLIBRARIES =
 
-if debug_enabled
+if is_debug_enabled
 noinst_LTLIBRARIES += debug/libsupport.la
 
+debug_libsupport_la_CPPFLAGS=@dlbinc@
 debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_debug_cxxflags)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-debug_libsupport_la_LDFLAGS=$(dlb_debug_ldflags)
+debug_libsupport_la_LDFLAGS=@dlblib@
+debug_libsupport_la_LIBS=@dlb_dbg@
 endif
 
-if instrumentation_enabled
+if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libsupport.la
 
+instrumentation_libsupport_la_CPPFLAGS=@dlbinc@
 instrumentation_libsupport_la_CXXFLAGS=$(common_includes) $(common_instr_cxxflags)
 instrumentation_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
-instrumentation_libsupport_la_LDFLAGS=$(dlb_instr_ldflags)
+instrumentation_libsupport_la_LDFLAGS=@dlblib@
+instrumentation_libsupport_la_LIBS=@dlb_instr@
 endif
 
-if instrumentation_debug_enabled
+if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libsupport.la
 
+instrumentation_debug_libsupport_la_CPPFLAGS=@dlbinc@
 instrumentation_debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_instrdebug_cxxflags)
 instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-instrumentation_debug_libsupport_la_LDFLAGS=$(dlb_instrdebug_ldflags)
+instrumentation_debug_libsupport_la_LDFLAGS=@dlblib@
+instrumentation_debug_libsupport_la_LIBS=@dlb_instr_dbg@
 endif
 
-if performance_enabled
+if is_performance_enabled
 noinst_LTLIBRARIES += performance/libsupport.la
 
+performance_libsupport_la_CPPFLAGS=@dlbinc@
 performance_libsupport_la_CXXFLAGS=$(common_includes) $(common_perfo_cxxflags)
 performance_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
-performance_libsupport_la_LDFLAGS=$(dlb_perfo_ldflags)
+performance_libsupport_la_LDFLAGS=@dlblib@
+performance_libsupport_la_LIBS=@dlb@
 endif

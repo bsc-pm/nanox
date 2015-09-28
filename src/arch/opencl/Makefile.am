@@ -84,7 +84,7 @@ performance_LTLIBRARIES =
 
 #TODO: Fix instrumentation and debug makefiles so they are named opencl instead of opencl and they can use headers in this folder
 
-if debug_enabled
+if is_debug_enabled
 noinst_LTLIBRARIES += debug/libopencl.la
 debug_LTLIBRARIES += debug/libnanox-opencl-api.la debug/libnanox-pe-opencl.la
 
@@ -103,7 +103,7 @@ debug_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
 debug_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif
 
-if instrumentation_enabled
+if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libopencl.la
 instrumentation_LTLIBRARIES += instrumentation/libnanox-opencl-api.la instrumentation/libnanox-pe-opencl.la
 
@@ -122,7 +122,7 @@ instrumentation_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflag
 instrumentation_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif
 
-if instrumentation_debug_enabled
+if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libopencl.la
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-opencl-api.la instrumentation-debug/libnanox-pe-opencl.la
 
@@ -142,7 +142,7 @@ instrumentation_debug_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_
 instrumentation_debug_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif
 
-if performance_enabled
+if is_performance_enabled
 noinst_LTLIBRARIES += performance/libopencl.la
 performance_LTLIBRARIES += performance/libnanox-opencl-api.la performance/libnanox-pe-opencl.la
 

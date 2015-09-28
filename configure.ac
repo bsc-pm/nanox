@@ -12,7 +12,7 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 
-dnl Enable silent rules if available
+# Enable silent rules if available
 supported_silent_rules=1
 m4_ifdef([AM_SILENT_RULES],
          [AM_SILENT_RULES([yes])],
@@ -20,8 +20,8 @@ m4_ifdef([AM_SILENT_RULES],
 
 AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
  
-dnl Versioning things
-dnl Make sure build_version is double-quoted!
+# Versioning things
+# Make sure build_version is double-quoted!
 build_version="\"unknown revision\""
 if test -d $srcdir/.git;
 then
@@ -145,9 +145,6 @@ AX_CHECK_MPI
 # GASNet
 AX_CHECK_GASNET
 
-# Cluster Support
-AX_CHECK_CLUSTER
-
 # Memkind
 AX_CHECK_MEMKIND
 
@@ -159,6 +156,9 @@ AX_CHECK_OPENCL
 
 # Check hwloc availability
 AX_CHECK_HWLOC
+
+# Check for DLB support
+AX_CHECK_DLB
 
 # Extrae check
 MPITRACE_HOME=""
@@ -250,35 +250,6 @@ AC_ARG_WITH([chapel],
 AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
 
-# Check for DLB support
-AC_MSG_CHECKING([for DLB support])
-AC_ARG_WITH([dlb],
-   AS_HELP_STRING([--with-dlb=dir], [Directory of DLB installation]),
-   [
-      dlb_path="$withval"
-   ],
-   [
-      dlb_path="not_set"
-   ]
-)
-
-if test ${dlb_path} != "no" -a ${dlb_path} != "not_set" ; then
-   DLB_INC="$dlb_path/include"
-   DLB_LIB="$dlb_path/lib"
-   if test ! -d ${dlb_path} -o ! -f ${DLB_INC}/DLB_interface.h -o ! -f ${DLB_LIB}/libdlb.so ; then
-      AC_MSG_ERROR([Attention! You have passed an invalid DLB location.])
-   fi
-   dlb=yes
-   AC_DEFINE([DLB],[],[Enables DLB support.])
-else
-   dlb=no
-fi
-AC_MSG_RESULT([${dlb}])
-
-AM_CONDITIONAL([DLB], [test x"$dlb" = "xyes"])
-AC_SUBST([DLB_INC])
-AC_SUBST([DLB_LIB])
-
 # Check MKL Support
 AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
@@ -316,12 +287,12 @@ AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
 AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
 
 for arch in $ARCHITECTURES; do
-   if test x"$arch" != x"mpi"; then
+   AS_IF([test x"$arch" != x"mpi"],[
       NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
       NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
       NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
       NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
-   fi
+   ])
 done
 NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
 NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"
@@ -340,7 +311,7 @@ AC_MSG_CHECKING([if task resiliency is enabled])
 AC_ARG_ENABLE([resiliency],[AS_HELP_STRING([--enable-resiliency], [Enables task-level resiliency])],
               [enable_resiliency=$enableval],[enable_resiliency=no])
 AC_MSG_RESULT([$enable_resiliency])
-if test $enable_resiliency = yes; then
+AS_IF([test $enable_resiliency = yes],[
   AX_CHECK_COMPILE_FLAG([-fnon-call-exceptions],
     [],
     [AC_MSG_ERROR([resiliency mechanism depends on using compiler flag -fnon-call-exceptions])],
@@ -348,7 +319,7 @@ if test $enable_resiliency = yes; then
 
   AC_DEFINE([NANOS_RESILIENCY_ENABLED],[],[Indicates whether resiliency features should be used or not.])
   resiliency_flags=-fnon-call-exceptions
-fi
+])
 AC_SUBST([enable_resiliency])
 AC_SUBST([resiliency_flags])
 
@@ -421,7 +392,8 @@ Memory tracker:           $enable_memtracker
 Memory allocator:         $enable_allocator
 Task resiliency:          $resiliency"])
 
-if test x$cluster_enabled = xyes ; then
+AS_IF([test x$cluster_enabled = xyes],[
    AS_ECHO(["\
 Cluster/GASNet conduits:  $gasnet_available_conduits"])
-fi
+])
+

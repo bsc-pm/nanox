@@ -2,17 +2,16 @@
 AC_DEFUN([AX_CHECK_HOST_ARCH],[
 AC_REQUIRE([AC_CANONICAL_SYSTEM])
 
-# This macro modifies compiler and compilation flags
-# It should be called before compilers are checked.
-AC_BEFORE([$0],[AX_CHECK_MIC])
-#AC_BEFORE([$0],[AC_PROG_CC])
-#AC_BEFORE([$0],[AC_PROG_CXX])
+# This macro checks compilers and compiler flags
+# Must be called after checking compiler programs
+AC_BEFORE([AC_PROG_CC],[$0])
+AC_BEFORE([AC_PROG_CXX],[$0])
 
 AC_CHECK_SIZEOF([size_t])
 
 # Use these for flags that depend on the host arch
 AS_CASE([$host],
-  [x86_64-k1om-linux*],
+  [x86_64-k1om-linux*|k1om-mpss-linux*],
   [
     # Intel MIC (KNF/ KNC)
     OS=unix-os

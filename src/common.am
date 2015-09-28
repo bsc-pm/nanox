@@ -15,14 +15,6 @@ common_includes= \
 
 devincludedir = $(prefix)/include/nanox-dev
 
-if DLB
-dlb_cppflags = -I@DLB_INC@
-dlb_perfo_ldflags = -L@DLB_LIB@ -ldlb
-dlb_debug_ldflags = -L@DLB_LIB@ -ldlb_dbg
-dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_instr
-dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
-endif
-
 AM_CPPFLAGS=-D_NANOS_INTERNAL @cc_dep_CPPFLAGS@ $(common_includes)
 AM_CXXFLAGS=@PTHREAD_CFLAGS@
 AM_LDFLAGS=

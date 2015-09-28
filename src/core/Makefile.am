@@ -301,7 +301,7 @@ instrumentation_LTLIBRARIES=
 instrumentation_debug_LTLIBRARIES=
 performance_LTLIBRARIES=
 
-if debug_enabled
+if is_debug_enabled
 debug_LTLIBRARIES+=debug/libnanox.la
 
 debug_libnanox_la_CFLAGS=$(common_cflags) $(common_debug_cflags)
@@ -313,7 +313,7 @@ debug_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_DEBUG@
 endif
 
 
-if instrumentation_enabled
+if is_instrumentation_enabled
 instrumentation_LTLIBRARIES+=instrumentation/libnanox.la
 
 instrumentation_libnanox_la_CFLAGS=$(common_cflags) $(common_instr_cflags)
@@ -324,7 +324,7 @@ instrumentation_libnanox_la_SOURCES=$(common_sources) $(instr_sources)
 instrumentation_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_INSTR@
 endif
 
-if instrumentation_debug_enabled
+if is_instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox.la
 
 instrumentation_debug_libnanox_la_CFLAGS=$(common_cflags) $(common_instrdebug_cflags)
@@ -335,7 +335,7 @@ instrumentation_debug_libnanox_la_SOURCES=$(common_sources) $(instr_sources)
 instrumentation_debug_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_INSTRDEBUG@
 endif
 
-if performance_enabled
+if is_performance_enabled
 performance_LTLIBRARIES+=performance/libnanox.la
 
 performance_libnanox_la_CFLAGS=$(common_cflags) $(common_perfo_cflags)

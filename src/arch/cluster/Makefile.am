@@ -73,7 +73,7 @@ pe_cluster_dbg_ibv_ldflags = $(pe_cluster_dbg_common_ldflags) -lgasnet-ibv-par -
 
 noinst_LTLIBRARIES = 
 
-if debug_enabled
+if is_debug_enabled
 noinst_LTLIBRARIES += debug/libcluster.la
 
 #nanos_debug_cxxflags=$(common_includes) $(cluster_common_debug_cxxflags)
@@ -114,7 +114,7 @@ endif
 
 endif
 
-if instrumentation_enabled
+if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libcluster.la
 
 #nanos_instr_cxxflags=$(common_includes) $(cluster_common_instr_cxxflags)
@@ -156,7 +156,7 @@ endif
 endif
 
 
-if instrumentation_debug_enabled
+if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libcluster.la
 
 #nanos_instrdebug_cxxflags=$(common_includes) $(cluster_common_instrdebug_cxxflags)
@@ -197,7 +197,7 @@ endif
 
 endif
 
-if performance_enabled
+if is_performance_enabled
 noinst_LTLIBRARIES += performance/libcluster.la
 
 #nanos_perfo_cxxflags=$(common_includes) $(cluster_common_perfo_cxxflags)

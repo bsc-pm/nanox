@@ -54,9 +54,25 @@ AC_BEFORE([AC_PROG_CXX],[$0])
 AC_ARG_VAR(MPICXX,[MPI C++ compiler command])
 
 # It is also possible to specify an MPI installation directory where header and library files should be placed
+# If the user does not specify --with-mpi, or
+# he uses --without-mpi, do not check for MPI support.
 AC_ARG_WITH(mpi,
 [AS_HELP_STRING([--with-mpi,--with-mpi=PATH],
-                [search in system directories or specify prefix directory for installed MPI package.])])
+                [search in system directories or specify prefix directory for installed MPI package.])],
+  [
+    # Check if the user provided a valid directory 
+    AS_IF([test -d "$withval"],[
+      mpi=yes
+      mpi_path_provided=yes
+    ],[
+      mpi=$withval
+      mpi_path_provided=no
+    ])dnl
+  ],[
+    mpi=no
+    mpi_path_provided=no
+  ])
+
 AC_ARG_WITH(mpi-include,
 [AS_HELP_STRING([--with-mpi-include=PATH],
                 [specify directory for installed MPI include files])])
@@ -67,58 +83,47 @@ AC_ARG_WITH(mpi-lib,
 # If the user specifies --with-mpi, $with_mpi value will be 'yes'
 #                       --without-mpi, $with_mpi value will be 'no'
 #                       --with-mpi=somevalue, $with_mpi value will be 'somevalue'
-if [[[ ! "x$with_mpi" =~  x(yes|no|)$ ]]]; then
-  if test -f "$with_mpi/bin64"; then
-    mpibin=$with_mpi/bin64
-  else
-    mpibin=$with_mpi/bin
-  fi
+AS_IF([test x$mpi_path_provided = xyes],[
+  AS_IF([test -d "$with_mpi/bin64"],
+    [mpibin=$with_mpi/bin64],
+    [mpibin=$with_mpi/bin])dnl
 
   mpiinc="-I$with_mpi/include"
-  AS_IF([test -f $with_mpi/lib64],
+  AS_IF([test -d $with_mpi/lib64],
     [mpilib="-L$with_mpi/lib64 -Wl,-rpath=$with_mpi/lib64"],
-    [mpilib="-L$with_mpi/lib -Wl,-rpath=$with_mpi/lib"])
-fi
+    [mpilib="-L$with_mpi/lib -Wl,-rpath=$with_mpi/lib"])dnl
+])dnl
 
-# If the user does not specify --with-mpi, or
-# he uses --without-mpi, do not check for MPI support.
-if [[[ "x$with_mpi" =~ x(no|)$ ]]]; then
-  mpi="no"
-else
-  mpi="yes"
-fi
-
-if test $with_mpi_include; then
+AS_IF([test $with_mpi_include],[
   mpiinc="-I$with_mpi_include"
-fi
+])dnl
 
-if test $with_mpi_lib; then
+AS_IF([test $with_mpi_lib],[
   mpilib="-L$with_mpi_lib -Wl,-rpath=$with_mpi_lib"
-fi
+])dnl
 
-if test $mpi = yes; then
-
+AS_IF([test $mpi = yes],[
   # Save the previous value of autoconf generated variables.
   # They may be used later in the configuration (e.g. AC_OUTPUT)
-  save_CXX=$CXX
-  save_CxXFLAGS=$CXXFLAGS
-  save_CPPFLAGS=$CPPFLAGS
-  save_LIBS=$LIBS
-  save_LDFLAGS=$LDFLAGS
+  save_CXX="$CXX"
+  save_CxXFLAGS="$CXXFLAGS"
+  save_CPPFLAGS="$CPPFLAGS"
+  save_LIBS="$LIBS"
+  save_LDFLAGS="$LDFLAGS"
 
   # Also save some important cached values.
   # This macro performs some checks using a different C++ compiler (mpicxx)
   # This is not very standar-ish, but allows us to avoid autoconf to reuse
   # AC_PROG_CXX checks that were done previously.
   # Of course, we will need to restore them before returning.
-  save_CXXCPP=$CXXCPP
-  save_CXX=$CXX
-  save_ac_cv_prog_CXXCPP=$ac_cv_prog_CXXCPP
-  save_ac_cv_prog_CXX=$ac_cv_prog_CXX
-  save_ac_cv_prog_ac_ct_CXX=$ac_cv_prog_ac_ct_CXX
-  save_ac_cv_cxx_compiler_gnu=$ac_cv_cxx_compiler_gnu
-  save_ac_cv_prog_cxx_g=$ac_cv_prog_cxx_g
-  save_am_cv_CXX_dependencies_compiler_type=$am_cv_CXX_dependencies_compiler_type
+  save_CXXCPP="$CXXCPP"
+  save_CXX="$CXX"
+  save_ac_cv_prog_CXXCPP="$ac_cv_prog_CXXCPP"
+  save_ac_cv_prog_CXX="$ac_cv_prog_CXX"
+  save_ac_cv_prog_ac_ct_CXX="$ac_cv_prog_ac_ct_CXX"
+  save_ac_cv_cxx_compiler_gnu="$ac_cv_cxx_compiler_gnu"
+  save_ac_cv_prog_cxx_g="$ac_cv_prog_cxx_g"
+  save_am_cv_CXX_dependencies_compiler_type="$am_cv_CXX_dependencies_compiler_type"
   
   # Empty/set values
   # MPICH_IGNORE_CXX_SEEK and MPICH_SKIP_MPICXX are used to avoid
@@ -152,33 +157,33 @@ if test $mpi = yes; then
   
   # Check if the provided MPI implementation is Intel MPI
   # Multithread support will be provided if the flag -mt_mpi is used
-  if test x$mpi == xyes; then
+  AS_IF([test x$mpi == xyes],[
     LDFLAGS=-mt_mpi
     AC_CHECK_LIB([mpi_mt],
                    [MPI_Init_thread],
                    [impi=yes],
                    [impi=no])
-  fi
+  ])dnl
   
   # Look for MPI_Init_thread function in libmpicxx, libmpi_cxx or libmpichcxx libraries
-  if test x$mpi == xyes; then
+  AS_IF([test x$mpi == xyes],[
     AC_SEARCH_LIBS([MPI_Init_thread],
                    [mpicxx mpi_cxx mpichcxx],
                    [mpi=yes;break],
-                   [mpi=no])
-  fi
+                   [mpi=no])dnl
+  ])dnl
   
   # If one of the previous tests were not satisfied, exit with an error message.
-  if test x$mpi != xyes; then
+  AS_IF([test x$mpi != xyes],[
       AC_MSG_ERROR([
 ------------------------------
 MPI path was not correctly specified. 
 Please, check that provided directories are correct.
 ------------------------------])
-  fi
+  ])dnl
 
   # Check that the MPI library supports multithreading (MPI_THREAD_MULTIPLE)
-  if test x$mpi = xyes; then
+  AS_IF([test x$mpi = xyes],[
     AC_CACHE_CHECK([MPI library multithreading support],[ac_cv_mpi_mt],
       [AC_RUN_IFELSE(
         [AC_LANG_PROGRAM(
@@ -249,48 +254,48 @@ The execution of MPI multithread support test failed
           break;
         ])
       ])
-  fi
+  ])dnl
 
-  if $ac_cv_mpi_mt = skip; then
+  AS_IF([$ac_cv_mpi_mt = skip],[
     AC_MSG_WARN([
 ------------------------------
 Multithreading support check was not done
 because cross-compilation mode was detected.
 ------------------------------])
-  else
-    if test $ac_cv_mpi_mt != concurrent; then
+  ],[
+    AS_IF([test $ac_cv_mpi_mt != concurrent],[
       AC_MSG_FAILURE([
 ------------------------------
 MPI library specified does not support multithreading.
 Please, provide a MPI library that does so.
 Maximun multithread level supported: $ac_cv_mpi_mt
 ------------------------------])
-    fi
-  fi
+    ])dnl
+  ])dnl
   
-  mpilib=$LIBS
-  mpildflags=$LDFLAGS
-  MPICXX=$CXX
+  mpilib="$LIBS"
+  mpildflags="$LDFLAGS"
+  MPICXX="$CXX"
 
   # Restore variables to its original state
-  CXX=$save_CXX
-  CXXFLAGS=$save_CxXFLAGS
-  CPPFLAGS=$save_CPPFLAGS
-  LIBS=$save_LIBS
-  LDFLAGS=$save_LDFLAGS
+  CXX="$save_CXX"
+  CXXFLAGS="$save_CxXFLAGS"
+  CPPFLAGS="$save_CPPFLAGS"
+  LIBS="$save_LIBS"
+  LDFLAGS="$save_LDFLAGS"
   
-  CXXCPP=$save_CXXCPP
-  CXX=$save_CXX
-  ac_cv_prog_CXXCPP=$save_ac_cv_prog_CXXCPP
-  ac_cv_prog_CXX=$save_ac_cv_prog_CXX
-  ac_cv_prog_ac_ct_CXX=$save_ac_cv_prog_ac_ct_CXX
-  ac_cv_cxx_compiler_gnu=$save_ac_cv_cxx_compiler_gnu
-  ac_cv_prog_cxx_g=$save_ac_cv_prog_cxx_g
-  am_cv_CXX_dependencies_compiler_type=$save_am_cv_CXX_dependencies_compiler_type
+  CXXCPP="$save_CXXCPP"
+  CXX="$save_CXX"
+  ac_cv_prog_CXXCPP="$save_ac_cv_prog_CXXCPP"
+  ac_cv_prog_CXX="$save_ac_cv_prog_CXX"
+  ac_cv_prog_ac_ct_CXX="$save_ac_cv_prog_ac_ct_CXX"
+  ac_cv_cxx_compiler_gnu="$save_ac_cv_cxx_compiler_gnu"
+  ac_cv_prog_cxx_g="$save_ac_cv_prog_cxx_g"
+  am_cv_CXX_dependencies_compiler_type="$save_am_cv_CXX_dependencies_compiler_type"
   
   AC_LANG_POP([C++])
 
-fi # use mpi
+])dnl use mpi
 
 AM_CONDITIONAL([MPI_SUPPORT],[test x$mpi = xyes ])
 

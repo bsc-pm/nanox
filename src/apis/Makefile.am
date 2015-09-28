@@ -74,7 +74,7 @@ nanos_c_sources = \
 	$(END) 
 
 
-if debug_enabled
+if is_debug_enabled
 debug_LTLIBRARIES=debug/libnanox-c.la
 
 nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
@@ -87,7 +87,7 @@ debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la
 endif
 
 
-if instrumentation_enabled
+if is_instrumentation_enabled
 instrumentation_LTLIBRARIES=instrumentation/libnanox-c.la
 
 nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
@@ -99,7 +99,7 @@ instrumentation_libnanox_c_la_SOURCES=$(nanos_c_sources)
 instrumentation_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation/libnanox.la
 endif
 
-if instrumentation_debug_enabled
+if is_instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES=instrumentation-debug/libnanox-c.la
 
 nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
@@ -111,7 +111,7 @@ instrumentation_debug_libnanox_c_la_SOURCES=$(nanos_c_sources)
 instrumentation_debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 endif
 
-if performance_enabled
+if is_performance_enabled
 performance_LTLIBRARIES=performance/libnanox-c.la
 
 nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)

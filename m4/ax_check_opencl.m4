@@ -44,8 +44,23 @@ AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
 
 #Check if an OpenCL implementation is installed.
 AC_ARG_WITH(opencl,
-[AS_HELP_STRING([--with-opencl,--with-opencl=PATH],
-                [search in system directories or specify prefix directory for installed OpenCL package.])])
+  [AS_HELP_STRING([--with-opencl,--with-opencl=PATH],
+                [search in system directories or specify prefix directory for installed OpenCL package.])],
+  [
+    # Check if the user provided a valid PATH
+    AS_IF([test -d "$withval"],[
+      opencl=yes
+      opencl_path_provided=yes
+    ],[
+      opencl=$withval
+      opencl_path_provided=no
+    ])dnl
+  ],[
+    # Default: check if opencl is available
+    opencl=yes
+    opencl_path_provided=no
+  ])
+
 AC_ARG_WITH(opencl-include,
 [AS_HELP_STRING([--with-opencl-include=PATH],
                 [specify directory for installed OpenCL include files])])
@@ -53,38 +68,37 @@ AC_ARG_WITH(opencl-lib,
 [AS_HELP_STRING([--with-opencl-lib=PATH],
                 [specify directory for the installed OpenCL library])])
 
-
 # Check if user specifically requested this package.
 # It will generate errors if we are not able to find headers/libs
-if test "x$with_opencl$with_opencl_include$with_opencl_lib" != x; then
+AS_IF([test "x$with_opencl$with_opencl_include$with_opencl_lib" != x],[
   user_requested="yes"
-else
+],[
   user_requested="no"
-fi
+])dnl
 
 # If the user specifies --with-opencl, $with_opencl value will be 'yes'
 #                       --without-opencl, $with_opencl value will be 'no'
 #                       --with-opencl=somevalue, $with_opencl value will be 'somevalue'
-if [[[ ! "x$with_opencl" =~  x(yes|no|)$ ]]]; then
+AS_IF([test "$opencl_path_provided" = yes],[
   openclinc="-I$with_opencl/include"
-  AS_IF([test -f $with_opencl/lib64],
+  AS_IF([test -d $with_opencl/lib64],
     [opencllib="-L$with_opencl/lib64 -Wl,-rpath=$with_opencl/lib64"],
-    [opencllib="-L$with_opencl/lib -Wl,-rpath=$with_opencl/lib"])
-fi
+    [opencllib="-L$with_opencl/lib -Wl,-rpath=$with_opencl/lib"])dnl
+])dnl
 
-if test $with_opencl_include; then
+AS_IF([ test $with_opencl_include],[
   openclinc="-I$with_opencl_include"
-fi
+])dnl
 
-if test $with_opencl_lib; then
+AS_IF([test $with_opencl_lib],[
   opencllib="-L$with_opencl_lib"
-fi
+])dnl
 
 # This is fulfilled even if $with_opencl="yes" 
 # This happens when user leaves --with-value empty
 # In this case, both openclinc and opencllib will be empty
 # so the test should search in default locations and LD_LIBRARY_PATH
-if test "x$with_opencl" != xno; then
+AS_IF([test "x$with_opencl" != xno],[
     AC_LANG_PUSH([C++])
 
     #tests if provided headers and libraries are usable and correct
@@ -100,14 +114,14 @@ if test "x$with_opencl" != xno; then
     # One of the following two header files has to exist
     AC_CHECK_HEADERS([CL/opencl.h OpenCL/opencl.h], [opencl=yes; break])
     # Look for clGetPlatformIDs function in either libmali.so or libOpenCL.so libraries
-    if test x$opencl = xyes; then
+    AS_IF([test x$opencl = xyes],[
         AC_SEARCH_LIBS([clGetPlatformIDs],
                   [mali OpenCL],
                   [opencl=yes],
                   [opencl=no])
-    fi
+    ])
 
-    if test x$opencl = xyes; then
+    AS_IF([test "x$opencl" = xyes],[
       AC_CACHE_CHECK([OpenCL version],[ac_cv_opencl_version],
         [AC_RUN_IFELSE(
           [AC_LANG_PROGRAM(
@@ -163,15 +177,11 @@ OpenCL version test execution failed
             ac_cv_opencl_version=skip
           ])
         ])
-      AS_CASE([$ac_cv_opencl_version],
-        [skip],[
-          # The test was skipped (cross-compilation). Do nothing
-        ],
-        [
-          # Default
-          ac_cv_opencl_version=$(expr "$ac_cv_opencl_version" : "OpenCL C \(@<:@\.0-9@:>@\+\)")
-        ])
-    fi
+      AS_IF([test "$ac_cv_opencl_version" != skip],[
+        ac_cv_opencl_version=$(expr "$ac_cv_opencl_version" : "OpenCL C \(@<:@\.0-9@:>@\+\)")
+      ])dnl
+
+    ])dnl opencl
 
     opencllib="$opencllib $LIBS"
 
@@ -182,40 +192,41 @@ OpenCL version test execution failed
 
     AC_LANG_POP([C++])
 
-    if test x$user_requested = xyes -a x$opencl != xyes; then
+    AS_IF([test "$user_requested" = yes -a "$opencl != yes"],[
         AC_MSG_ERROR([
 ------------------------------
 OpenCL path was not correctly specified. 
 Please, check that the provided directories are correct.
 ------------------------------])
-    fi
+    ])dnl
 
-    if test x$ac_cv_opencl_version = xskip; then
+    AS_IF([test "$ac_cv_opencl_version" = skip],[
         AC_MSG_WARN([
 ------------------------------
 OpenCL library version cannot be checked
 because cross-compilation mode has been detected.
 ------------------------------])
-    else
+    ],[
       AX_COMPARE_VERSION([$ac_cv_opencl_version],[lt],[1.1],[opencl=no])
-      if test x$user_requested = xyes -a x$opencl != xyes; then
+      AS_IF([test "$user_requested" = yes -a "$opencl" != yes],[
         AC_MSG_ERROR([
 ------------------------------
 Version of the provided OpenCL package is too old.
 OpenCL 1.1 or greater is required.
 ------------------------------])
-      fi
-    fi
-fi
+      ])dnl
+    ])dnl
 
-if test x$opencl = xyes; then
+])dnl with_opencl
+
+AS_IF([test $opencl = yes],[
     ARCHITECTURES="$ARCHITECTURES opencl"
 
     AC_DEFINE([OpenCL_DEV],[],[Indicates the presence of the OpenCL arch plugin.])
     AC_DEFINE([CL_USE_DEPRECATED_OPENCL_2_0_APIS],[],[Disables warnings when using functions deprecated in OpenCL 2.0])
-fi
+])dnl
 
-AM_CONDITIONAL([OPENCL_SUPPORT],[test x$opencl = xyes])
+AM_CONDITIONAL([OPENCL_SUPPORT],[test "$opencl" = yes])
 
 AC_SUBST([opencl])
 AC_SUBST([openclinc])

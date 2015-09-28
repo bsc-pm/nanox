@@ -25,16 +25,16 @@ noinst_DATA = plugins-list
 
 CLEANFILES = plugins-list
 
-if performance_enabled
+if is_performance_enabled
 perfo=performance
 endif
-if debug_enabled
+if is_debug_enabled
 debug=debug
 endif
-if instrumentation_enabled
+if is_instrumentation_enabled
 instr=instrumentation
 endif
-if instrumentation_debug_enabled
+if is_instrumentation_debug_enabled
 instrdebug=instrumentation_debug
 endif
 

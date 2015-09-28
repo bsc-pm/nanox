@@ -30,15 +30,12 @@
 
 AC_DEFUN([AX_SILENT_MODE],
   [
-  case "$1" in
-    on)
-      exec 6>/dev/null
-      ;;
-    off)
-      exec 6>&1
-      ;;
-    *)
+  AS_CASE([$1],
+    [on],
+      [exec 6>/dev/null],
+    [off],
+      [exec 6>&1],
+    [
       AC_MSG_ERROR([Silent mode can only be switched "on" or "off".])
-      ;;
-  esac
+    ])
   ])dnl
