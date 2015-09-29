@@ -25,8 +25,9 @@
    test_generator="gens/mixed-generator -a --no-warmup-threads|--warmup-threads"
    test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
                         "NX_TEST_SCHEDULE=bf"
-                        "test_architecture=smp")
+                        "NX_TEST_ARCH=smp")
    test_exec_command="timeout 1m"
+   test_ignore=yes
 </testinfo>
 */
 

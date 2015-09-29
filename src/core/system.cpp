@@ -47,6 +47,10 @@
 #endif
 
 
+#ifdef FPGA_DEV
+#include "fpgaprocessor.hpp"
+#endif
+
 #ifdef CLUSTER_DEV
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
@@ -72,7 +76,7 @@ System::System () :
       _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
-      _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ),
+      _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ), _alreadyFinished( false ),
       _predecessorLists( false ), _throttlePolicy ( NULL ),
       _schedStats(), _schedConf(), _defSchedule( "bf" ), _defThrottlePolicy( "hysteresis" ), 
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
@@ -154,6 +158,13 @@ void System::loadArchitectures()
    verbose0( "loading OpenCL support" );
    if ( !loadPlugin( "pe-opencl" ) )
      fatal0 ( "Couldn't load OpenCL support" );
+#endif
+
+#ifdef FPGA_DEV
+   verbose0( "loading FPGA support" );
+
+   if ( !loadPlugin( "pe-fpga" ) )
+       fatal0 ( "couldn't load FPGA support" );
 #endif
 
 #ifdef CLUSTER_DEV
@@ -637,6 +648,10 @@ System::~System ()
 
 void System::finish ()
 {
+   if ( _alreadyFinished ) return;
+
+   _alreadyFinished = true;
+
    //! \note Instrumentation: first removing RUNNING state from top of the state stack
    //! and then pushing SHUTDOWN state in order to instrument this latest phase
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );

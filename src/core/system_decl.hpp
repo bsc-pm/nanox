@@ -89,44 +89,39 @@ namespace nanos
             bool prioritiesNeeded : 1;
          };
          
-         SuppliedFlags        _compilerSuppliedFlags; /*!< \brief Compiler supplied flags */
+         SuppliedFlags        _compilerSuppliedFlags; //!< \brief Compiler supplied flags
          
          // global seeds
-         Atomic<int> _atomicWDSeed; /*!< \brief ID seed for new WD's */
-         Atomic<int> _threadIdSeed; /*!< \brief ID seed for new threads */
-         Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
+         Atomic<int> _atomicWDSeed;                   //!< \brief ID seed for new WD's 
+         Atomic<int> _threadIdSeed;                   //!< \brief ID seed for new threads 
+         Atomic<unsigned int> _peIdSeed;              //!< \brief ID seed for new PE's
 
          // configuration variables
          size_t               _deviceStackSize;
          bool                 _profile;
          bool                 _instrument;
          bool                 _verboseMode;
-         bool                 _summary;            /*!< \brief Flag to enable the summary */
-         time_t               _summaryStartTime;   /*!< \brief Track time to show duration in summary */
+         bool                 _summary;               //!< \brief Flag to enable the summary 
+         time_t               _summaryStartTime;      //!< \brief Track time to show duration in summary 
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _synchronizedStart;
-         //! Maintain predecessors list, disabled by default, used by botlev and async threads (#1027)
-         bool                 _predecessorLists;
+         bool                 _alreadyFinished;       //!< \brief Prevent System::finish from being executed more than once.
+         bool                 _predecessorLists;      //!< \brief Maintain predecessors list (disabled by default).
 
 
-         //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
          SchedulerStats       _schedStats;
          SchedulerConf        _schedConf;
-
-         /*! names of the scheduling, cutoff, barrier and instrumentation plugins */
-         std::string          _defSchedule;
-         std::string          _defThrottlePolicy;
-         std::string          _defBarr;
-         std::string          _defInstr;
-         /*! Name of the dependencies manager plugin */
-         std::string          _defDepsManager;
-
-         std::string          _defArch;
-         std::string          _defDeviceName;
+         std::string          _defSchedule;           //!< \brief Name of default scheduler
+         std::string          _defThrottlePolicy;     //!< \brief Name of default throttole policy (cutoff)
+         std::string          _defBarr;               //!< \brief Name of default barrier
+         std::string          _defInstr;              //!< \brief Name of default instrumentation
+         std::string          _defDepsManager;        //!< \brief Name of default dependences manager
+         std::string          _defArch;               //!< \brief Name of default architercture
+         std::string          _defDeviceName;         //!< \brief Name of default device
 
          const Device         *_defDevice;
 
@@ -331,8 +326,6 @@ namespace nanos
          int getReadyNum() const;
 
          int getRunningTasks() const;
-         
-         int getNumCreatedPEs() const;
 
          int getNumWorkers() const;
 
@@ -385,12 +378,12 @@ namespace nanos
           * \brief Updates the number of active worker threads and adds them to the main team
           * \param[in] nthreads
           */
-         void updateActiveWorkers ( int nthreads );
+         void updateActiveWorkers( int nthreads );
 
          /*!
           * \brief Get the process mask of active CPUs by reference
           */
-         const CpuSet& getCpuProcessMask () const;
+         const CpuSet& getCpuProcessMask() const;
 
          /*!
           * \brief Set the process mask
@@ -398,18 +391,18 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuProcessMask ( const CpuSet& mask );
+         bool setCpuProcessMask( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current process mask
           * \param[in] mask
           */
-         void addCpuProcessMask ( const CpuSet& mask );
+         void addCpuProcessMask( const CpuSet& mask );
 
          /*!
           * \brief Get the current mask of active CPUs by reference
           */
-         const CpuSet& getCpuActiveMask () const;
+         const CpuSet& getCpuActiveMask() const;
 
          /*!
           * \brief Set the mask of active CPUs
@@ -417,13 +410,18 @@ namespace nanos
           * \return True if the mask was completely set,
           *          False if the mask was either invalid or only partially set
           */
-         bool setCpuActiveMask ( const CpuSet& mask );
+         bool setCpuActiveMask( const CpuSet& mask );
 
          /*!
           * \brief Add the CPUs in mask into the current mask of active CPUs
           * \param[in] mask
           */
-         void addCpuActiveMask ( const CpuSet& mask );
+         void addCpuActiveMask( const CpuSet& mask );
+
+         /*!
+          * \brief Force the creation of at least 1 thread per PE, which are blocked afterwards
+          */
+         void forceMaxThreadCreation();
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 

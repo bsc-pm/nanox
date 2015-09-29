@@ -41,6 +41,7 @@ devinclude_HEADERS = \
     sharedmemallocator.hpp \
     openclevent.hpp \
     openclevent_decl.hpp \
+    openclprofiler.hpp \
 	$(END) 
 
 opencl_api_sources = \
@@ -66,6 +67,7 @@ opencl_sources = \
     openclutils.hpp \
     sharedmemallocator.cpp \
     sharedmemallocator.hpp \
+    openclprofiler.cpp \
     $(END)
 
 pe_opencl_sources = \

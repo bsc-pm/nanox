@@ -92,8 +92,6 @@ inline bool System::getPredecessorLists ( void ) const { return _predecessorList
 
 inline int System::getWorkDescriptorId( void ) { return _atomicWDSeed++; }
 
-inline int System::getNumCreatedPEs() const { return _pes.size(); }
-
 inline int System::getNumWorkers() const { return _workers.size(); }
 
 //inline int System::getNumSockets() const { return _numSockets; }
@@ -607,18 +605,20 @@ inline bool System::getPrioritiesNeeded() const {
 }
 
 /* SMPPlugin functions */
-inline void System::admitCurrentThread ( bool isWorker ) { _smpPlugin->admitCurrentThread( _workers, isWorker ); }
-inline void System::expelCurrentThread ( bool isWorker ) { _smpPlugin->expelCurrentThread( _workers, isWorker ); }
+inline void System::admitCurrentThread( bool isWorker ) { _smpPlugin->admitCurrentThread( _workers, isWorker ); }
+inline void System::expelCurrentThread( bool isWorker ) { _smpPlugin->expelCurrentThread( _workers, isWorker ); }
 
-inline void System::updateActiveWorkers ( int nthreads ) { _smpPlugin->updateActiveWorkers( nthreads, _workers, myThread->getTeam() ); }
+inline void System::updateActiveWorkers( int nthreads ) { _smpPlugin->updateActiveWorkers( nthreads, _workers, myThread->getTeam() ); }
 
-inline const CpuSet& System::getCpuProcessMask () const { return _smpPlugin->getCpuProcessMask(); }
-inline bool System::setCpuProcessMask ( const CpuSet& mask ) { return _smpPlugin->setCpuProcessMask( mask, _workers ); }
-inline void System::addCpuProcessMask ( const CpuSet& mask ) { _smpPlugin->addCpuProcessMask( mask, _workers ); }
+inline const CpuSet& System::getCpuProcessMask() const { return _smpPlugin->getCpuProcessMask(); }
+inline bool System::setCpuProcessMask( const CpuSet& mask ) { return _smpPlugin->setCpuProcessMask( mask, _workers ); }
+inline void System::addCpuProcessMask( const CpuSet& mask ) { _smpPlugin->addCpuProcessMask( mask, _workers ); }
 
-inline const CpuSet& System::getCpuActiveMask () const { return _smpPlugin->getCpuActiveMask(); }
-inline bool System::setCpuActiveMask ( const CpuSet& mask ) { return _smpPlugin->setCpuActiveMask( mask, _workers ); }
-inline void System::addCpuActiveMask ( const CpuSet& mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
+inline const CpuSet& System::getCpuActiveMask() const { return _smpPlugin->getCpuActiveMask(); }
+inline bool System::setCpuActiveMask( const CpuSet& mask ) { return _smpPlugin->setCpuActiveMask( mask, _workers ); }
+inline void System::addCpuActiveMask( const CpuSet& mask ) { _smpPlugin->addCpuActiveMask( mask, _workers ); }
+
+inline void System::forceMaxThreadCreation() { _smpPlugin->forceMaxThreadCreation( _workers ); }
 
 inline memory_space_id_t System::getMemorySpaceIdOfAccelerator( unsigned int accelerator_id ) const {
    memory_space_id_t id = ( memory_space_id_t ) -1;

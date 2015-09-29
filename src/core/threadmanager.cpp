@@ -39,6 +39,7 @@ extern "C" {
    int DLB_Is_auto( void ) __attribute__(( weak ));
    void DLB_Update( void ) __attribute__(( weak ));
    void DLB_AcquireCpu( int cpu ) __attribute__(( weak ));
+   void DLB_AcquireCpus( cpu_set_t* mask ) __attribute__(( weak ));
 }
 #define DLB_SYMBOLS_DEFINED ( \
          DLB_UpdateResources_max && \
@@ -51,6 +52,7 @@ extern "C" {
          DLB_Init && \
          DLB_Finalize && \
          DLB_AcquireCpu && \
+         DLB_AcquireCpus && \
          DLB_Update )
 #endif
 
@@ -184,7 +186,7 @@ ThreadManager::ThreadManager( bool warmup )
 void ThreadManager::init()
 {
    if ( _warmupThreads ) {
-      sys.getSMPPlugin()->forceMaxThreadCreation();
+      sys.forceMaxThreadCreation();
    }
    _cpuProcessMask = &sys.getCpuProcessMask();
    _cpuActiveMask = &sys.getCpuActiveMask();
@@ -359,6 +361,19 @@ void BlockingThreadManager::unblockThread( BaseThread* thread )
    ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
    thread->wakeup();
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+}
+
+void BlockingThreadManager::unblockThreads( std::vector<BaseThread*> threads )
+{
+   if ( !_initialized ) return;
+
+   std::vector<BaseThread*>::iterator it;
+   for (it=threads.begin(); it!=threads.end(); ++it) {
+      BaseThread *thread = *it;
+      ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
+      thread->wakeup();
+      sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+   }
 }
 
 /**********************************/
@@ -538,6 +553,18 @@ void BusyWaitThreadManager::unblockThread( BaseThread* thread )
    sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
 }
 
+void BusyWaitThreadManager::unblockThreads( std::vector<BaseThread*> threads )
+{
+   if ( !_initialized ) return;
+
+   std::vector<BaseThread*>::iterator it;
+   for (it=threads.begin(); it!=threads.end(); ++it) {
+      BaseThread *thread = *it;
+      ensure( thread->hasTeam(), "Trying to unblock a non ready thread" );
+      thread->wakeup();
+      sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
+   }
+}
 
 /**********************************/
 /******* DLB Thread Manager *******/
@@ -643,7 +670,9 @@ void DlbThreadManager::acquireResourcesIfNeeded ()
    }
 }
 
-void DlbThreadManager::returnClaimedCpus() {}
+void DlbThreadManager::returnClaimedCpus() {
+    returnMyCpuIfClaimed();
+}
 
 void DlbThreadManager::returnMyCpuIfClaimed()
 {
@@ -695,9 +724,27 @@ void DlbThreadManager::blockThread( BaseThread *thread )
 }
 
 void DlbThreadManager::unblockThread(BaseThread* thread) {
+   if ( !_initialized ) return;
+
    int cpu = thread->getCpuId();
    if ( !_cpuActiveMask->isSet(cpu) ) {
       //If the cpu is not active claim it and wake up thread
       DLB_AcquireCpu( cpu );
    }
+}
+
+void DlbThreadManager::unblockThreads(std::vector<BaseThread*> threads) {
+   if ( !_initialized ) return;
+
+   CpuSet cpus;
+   std::vector<BaseThread*>::iterator it;
+   for (it=threads.begin(); it!=threads.end(); ++it) {
+      BaseThread *thread = *it;
+      int cpu = thread->getCpuId();
+      if ( !_cpuActiveMask->isSet(cpu) ) {
+         //If the cpu is not active claim it and wake up thread
+         cpus.set(cpu);
+      }
+   }
+   DLB_AcquireCpus( &cpus.get_cpu_set() );
 }

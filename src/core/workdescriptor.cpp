@@ -264,6 +264,22 @@ void WorkDescriptor::submit( bool force_queue )
    }
 } 
 
+void WorkDescriptor::submitOutputCopies ()
+{
+   if ( getNumCopies() > 0 ) {
+      _mcontrol.copyDataOut( MemController::WRITE_BACK );
+   }
+}
+
+void WorkDescriptor::waitOutputCopies ()
+{
+   if ( getNumCopies() > 0 ) {
+      while ( !_mcontrol.isOutputDataReady( *this ) ) {
+         myThread->idle();
+      }
+   }
+}
+
 void WorkDescriptor::finish ()
 {
    // Getting run time
@@ -504,7 +520,6 @@ void WorkDescriptor::setCopies(size_t numCopies, CopyData * copies)
 void WorkDescriptor::waitCompletion( bool avoidFlush )
 {
    _depsDomain->finalizeAllReductions();
-   _depsDomain->clearDependenciesDomain();
    // Ask for more resources once we have finished creating tasks
    sys.getThreadManager()->returnClaimedCpus();
    sys.getThreadManager()->acquireResourcesIfNeeded();
@@ -513,6 +528,8 @@ void WorkDescriptor::waitCompletion( bool avoidFlush )
    if ( !avoidFlush ) {
       _mcontrol.synchronize();
    }
+
+   _depsDomain->clearDependenciesDomain();
 }
 
 void WorkDescriptor::exitWork ( WorkDescriptor &work )

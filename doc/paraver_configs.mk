@@ -155,7 +155,6 @@ paraver_config_files = \
      paraver_configs/mpi/views/point2point/advanced/max_recBW_during_activity.cfg\
      paraver_configs/mpi/views/point2point/advanced/bytes_received_at_waits.cfg\
      paraver_configs/mpi/views/point2point/advanced/sending_not_receiving.cfg\
-     paraver_configs/mpi/views/point2point/advanced/exclusively_1_direction_transfers.cfg\
      paraver_configs/mpi/views/point2point/advanced/physical_s_r_msgs.cfg\
      paraver_configs/mpi/views/point2point/advanced/destination_last_large_send.cfg\
      paraver_configs/mpi/views/point2point/advanced/physical_s_r_bandwidth.cfg\
@@ -241,6 +240,9 @@ paraver_config_files = \
      paraver_configs/ompss/tasks/3dh_ipc_task.cfg\
      paraver_configs/ompss/tasks/2dp_tasks.cfg\
      paraver_configs/ompss/tasks/task_numa_node.cfg\
+     paraver_configs/ompss/tasks/task_and_deps.cfg\
+     paraver_configs/ompss/tasks/nb_active_tasks.cfg\
+     paraver_configs/ompss/tasks/2dp_concurrency_tasks.cfg\
      paraver_configs/ompss/worksharing_loops.cfg\
      paraver_configs/ompss/cuda/3dh_duration_CUDAruntime.cfg\
      paraver_configs/ompss/cuda/Non_overlapped_CUDA_Transfer_Direction.cfg\
