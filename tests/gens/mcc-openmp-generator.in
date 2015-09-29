@@ -14,29 +14,29 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-@DEBUG_VERSION_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
-@DEBUG_VERSION_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@ --debug"
-@DEBUG_VERSION_TRUE@ debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
-@DEBUG_VERSION_TRUE@ debug_LIBS="@extra_LIBS@"
-@DEBUG_VERSION_TRUE@ debug_PLUGINS=
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@ --debug"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@is_debug_enabled_TRUE@ debug_LIBS="@extra_LIBS@"
+@is_debug_enabled_TRUE@ debug_PLUGINS=
 
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@ --instrument"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LIBS="@extra_LIBS@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_PLUGINS=
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@ --instrument"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS="@extra_LIBS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
 
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@ --debug --instrument"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_PLUGINS=
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@ --debug --instrument"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_PLUGINS=
 
-@PERFORMANCE_VERSION_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
-@PERFORMANCE_VERSION_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
-@PERFORMANCE_VERSION_TRUE@ performance_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
-@PERFORMANCE_VERSION_TRUE@ performance_LIBS="@extra_LIBS@"
-@PERFORMANCE_VERSION_TRUE@ performance_PLUGINS=
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @host_dep_CXXFLAGS@ @extra_CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@cc_dep_LDFLAGS@ @host_dep_LDFLAGS@ @extra_LDFLAGS@"
+@is_performance_enabled_TRUE@ performance_LIBS="@extra_LIBS@"
+@is_performance_enabled_TRUE@ performance_PLUGINS=
 
 # Common to all versions
 cat << EOF

@@ -13,29 +13,29 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-@DEBUG_VERSION_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@DEBUG_VERSION_TRUE@ debug_CXXFLAGS="@extra_CXXFLAGS@"
-@DEBUG_VERSION_TRUE@ debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@DEBUG_VERSION_TRUE@ debug_LIBS="@extra_LIBS@ @cudalibs@"
-@DEBUG_VERSION_TRUE@ debug_PLUGINS=
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@extra_CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
+@is_debug_enabled_TRUE@ debug_LIBS="@extra_LIBS@ @cudalibs@"
+@is_debug_enabled_TRUE@ debug_PLUGINS=
 
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_CXXFLAGS="@extra_CXXFLAGS@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_LIBS="@extra_LIBS@ @cudalibs@"
-@INSTRUMENTATION_VERSION_TRUE@ instrumentation_PLUGINS=
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@extra_CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS="@extra_LIBS@ @cudalibs@"
+@is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
 
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_CXXFLAGS="@extra_CXXFLAGS@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@ @cudalibs@"
-@INSTRUMENTATION_DEBUG_VERSION_TRUE@ instrumentation_debug_PLUGINS=
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@extra_CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@ @cudalibs@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_PLUGINS=
 
-@PERFORMANCE_VERSION_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@PERFORMANCE_VERSION_TRUE@ performance_CXXFLAGS="@extra_CXXFLAGS@"
-@PERFORMANCE_VERSION_TRUE@ performance_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@PERFORMANCE_VERSION_TRUE@ performance_LIBS="@extra_LIBS@ @cudalibs@"
-@PERFORMANCE_VERSION_TRUE@ performance_PLUGINS=
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@extra_CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
+@is_performance_enabled_TRUE@ performance_LIBS="@extra_LIBS@ @cudalibs@"
+@is_performance_enabled_TRUE@ performance_PLUGINS=
 
 
 # Common to all versions
