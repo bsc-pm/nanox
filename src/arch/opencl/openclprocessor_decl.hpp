@@ -27,12 +27,13 @@
 #include "opencldevice_decl.hpp"
 #include "sharedmemallocator.hpp"
 #include "smpprocessor.hpp"
+#include "openclprofiler.hpp"
 
-#ifdef OPENCL_OPENCL_H
+#ifdef HAVE_OPENCL_OPENCL_H
 #include <OpenCL/opencl.h>
 #endif
 
-#ifdef CL_OPENCL_H
+#ifdef HAVE_CL_OPENCL_H
 #include <CL/opencl.h>
 #endif
 

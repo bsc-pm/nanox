@@ -25,7 +25,10 @@
 #include <iostream>
 #include <algorithm>
 
+#if defined(__GNUC__) && __GNUC__ > 4
+// This is not understood by icpc
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
