@@ -5,7 +5,8 @@
 #
 # DESCRIPTION
 #
-#   Check whether XDMAlib path to the headers and libraries are correctly specified.
+#   Check whether a valid Zynq Xilinx DMA library is available, and the path to the headers 
+#   and libraries are correctly specified.
 #
 # LICENSE
 #
@@ -37,7 +38,7 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-AC_DEFUN([AX_CHECK_OPENCL],
+AC_DEFUN([AX_CHECK_XDMA],
 [
 #Check if XDMA lib is installed.
 AC_ARG_WITH(xdma,

@@ -239,6 +239,7 @@ AC_DEFUN([_AX_CONDUIT_SUBST],[
   AM_CONDITIONAL(conduit_available,[test x$conduit_available = xyes])
   AC_SUBST(conduit_inc)
   AC_SUBST(conduit_libs)
+  AC_SUBST([gasnetlib])
 
   AS_VAR_POPDEF([conduit_available])dnl
   AS_VAR_POPDEF([conduit_inc])dnl

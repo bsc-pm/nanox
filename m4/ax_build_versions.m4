@@ -40,7 +40,6 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-
 AC_DEFUN([AX_BUILD_VERSIONS],[
 
 VERSIONS=
@@ -76,12 +75,12 @@ m4_foreach([version_name],[[performance], [debug], [instrumentation], [instrumen
   _ax_enable_version(version_name)
 ])
 
-if test "x$VERSIONS" = x; then
+AS_IF([test "x$VERSIONS" = x],[
   AC_MSG_ERROR([
 ------------------------------
 At least one version needs to be compiled
 ------------------------------])
-fi
+])
 AC_SUBST([VERSIONS])
 
 ])dnl AX_BUILD_VERSIONS
@@ -95,6 +94,7 @@ AC_DEFUN([_ax_enable_version],[
   AS_VAR_PUSHDEF([version_enabled],[is_$1_enabled])
   AS_VAR_PUSHDEF([cppflags],[$1_CPPFLAGS])
   AS_VAR_PUSHDEF([cxxflags],[$1_CXXFLAGS])
+  AS_VAR_PUSHDEF([config_libs],[nanos_config_libs_$1])
 
   # Versiondir (e.g. performancedir) is used by libtool
   # to place ltlibraries
@@ -111,20 +111,31 @@ AC_DEFUN([_ax_enable_version],[
   
   AC_MSG_RESULT([$version_enabled])
   
-  if test x$version_enabled = xyes; then
+  AS_IF([test x$version_enabled = xyes],[
     VERSIONS+="$1 "
-  fi
+  ])
+
+  # Generate architecture library list (will be used in core/Makefile.am)
+  config_libs=
+  for arch in $ARCHITECTURES; do
+     AS_IF([test x"$arch" != x"mpi"],[
+        AS_VAR_APPEND([config_libs],[" \$(abs_top_builddir)/src/arch/$arch/$1/lib$arch.la"])
+     ])
+  done
+  AS_VAR_APPEND([config_libs],[" \$(abs_top_builddir)/src/arch/$OS/$1/libos.la \$(abs_top_builddir)/src/support/$1/libsupport.la"])
   
   version_dir='${libdir}/$1'
   AM_CONDITIONAL(version_enabled, [test x$version_enabled = xyes])
   AC_SUBST(version_dir)
   AC_SUBST(cppflags)
   AC_SUBST(cxxflags)
+  AC_SUBST(config_libs)
 
   AS_VAR_POPDEF([version_default])
   AS_VAR_POPDEF([version_enabled])
   AS_VAR_POPDEF([version_dir])
-  AS_VAR_PUSHDEF([cppflags])
-  AS_VAR_PUSHDEF([cxxflags])
+  AS_VAR_POPDEF([cppflags])
+  AS_VAR_POPDEF([cxxflags])
+  AS_VAR_POPDEF([config_libs])
 ])dnl check_version
 

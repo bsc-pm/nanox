@@ -183,7 +183,7 @@ OpenCL version test execution failed
 
     ])dnl opencl
 
-    opencllib="$opencllib $LIBS"
+    opencllibs="$LIBS"
 
     CPPFLAGS="$bak_CPPFLAGS"
     CXXFLAGS="$bak_CXXFLAGS"
@@ -231,5 +231,6 @@ AM_CONDITIONAL([OPENCL_SUPPORT],[test "$opencl" = yes])
 AC_SUBST([opencl])
 AC_SUBST([openclinc])
 AC_SUBST([opencllib])
+AC_SUBST([opencllibs])
 
 ])dnl AX_CHECK_OPENCL

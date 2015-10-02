@@ -66,19 +66,17 @@ AS_IF([test "$with_memkind" != no],[
 
   LIBS=
 
-  jemalloclib="-L$with_jemalloc/lib -Wl,-rpath,$with_jemalloc/lib"
+  memkindinc=-I$with_memkind/include
+  memkindlib="-L$with_jemalloc/lib -Wl,-rpath,$with_jemalloc/lib -L$with_memkind/lib -Wl,-rpath,$with_memkind/lib"
   
-  LDFLAGS="$LDFLAGS $jemalloclib"
+  CPPFLAGS="$CPPFLAGS $memkindinc"
+  LDFLAGS="$LDFLAGS $memkindlib"
+
   AC_SEARCH_LIBS([je_malloc], [jemalloc],
     [jemalloc=yes], 
     [jemalloc=no])
 
   AS_IF([test "$jemalloc" = yes],[
-    memkindinc=-I$with_memkind/include
-    memkindlib="-L$with_memkind/lib -Wl,-rpath,$with_memkind/lib"
-
-    CPPFLAGS="$CPPFLAGS $memkindinc"
-    LDFLAGS="$LDFLAGS $memkindlib"
 
     AC_CHECK_HEADERS([memkind.h],
       [memkind=yes],
@@ -93,12 +91,14 @@ AS_IF([test "$with_memkind" != no],[
   ],[
     AC_MSG_ERROR([
 ------------------------------
-Could not find libjemalloc.so (required by memkind)
+Could not find libjemalloc (required by memkind)
 Please, check that the provided directories are correct.
 ------------------------------])
   ])dnl
 
-  AS_IF([test "$memkind" != yes],[
+  AS_IF([test "$memkind" = yes],[
+    AC_DEFINE([MEMKIND_SUPPORT],[],[Enables memkind support])
+  ],[
     AC_MSG_ERROR([
 ------------------------------
 Memkind path was not correctly specified. 
@@ -109,9 +109,8 @@ Please, check that the provided directories are correct.
 ]) dnl with_memkind
 
 AM_CONDITIONAL([MEMKIND_SUPPORT], [test "$memkind" = yes])
-AC_SUBST([JEMALLOC_LIBS],[jemalloclib])
-AC_SUBST([MEMKIND_LIBS],[memkindlibs])
-AC_SUBST([MEMKIND_LDFLAGS],[memkindlib])
-AC_SUBST([MEMKIND_CFLAGS],[memkindinc])
+AC_SUBST([memkindinc])
+AC_SUBST([memkindlib])
+AC_SUBST([memkindlibs])
 
 ])dnl AX_CHECK_MEMKIND

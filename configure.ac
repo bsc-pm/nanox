@@ -69,14 +69,6 @@ if test x$enable_memtracker = xyes; then
 	AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled or not])
 fi
 
-# User level threads
-# System dependent. Architecture support will make a compatibility check.
-AC_ARG_ENABLE([ult],
-  AS_HELP_STRING([--disable-ult], [Disables user level threads]),
-  [smp_ult=${enableval}],
-  [smp_ult=yes]
-)
-
 # Set compiler default flags
 : ${CFLAGS=""}
 : ${CXXFLAGS=""}
@@ -120,16 +112,12 @@ AX_CONFIG_CC
 ## -----------------------
 ## Check host architecture
 ## -----------------------
-OS=
 OPTIONS=
-SMP_ARCH=
 ARCHITECTURES=
 
 AX_CHECK_HOST_ARCH
 
-AC_SUBST([OS])
 AC_SUBST([OPTIONS])
-AC_SUBST([SMP_ARCH])
 AC_SUBST([ARCHITECTURES])
 
 # -------------------
@@ -275,36 +263,6 @@ AC_SUBST([mcc_valid])
 AC_SUBST([MCC])
 AC_SUBST([MCXX])
 
-AC_MSG_CHECKING([for architecture])
-
-# Add architecture libraries
-NANOS_CONFIG_LIBDIRS=
-NANOS_CONFIG_LIBS=
-NANOS_CONFIG_LIBS_PERFO=
-NANOS_CONFIG_LIBS_DEBUG=
-NANOS_CONFIG_LIBS_INSTR=
-AC_SUBST([NANOS_CONFIG_LIBDIRS])
-AC_SUBST([NANOS_CONFIG_LIBS_PERFO])
-AC_SUBST([NANOS_CONFIG_LIBS_DEBUG])
-AC_SUBST([NANOS_CONFIG_LIBS_INSTR])
-AC_SUBST([NANOS_CONFIG_LIBS_INSTRDEBUG])
-
-for arch in $ARCHITECTURES; do
-   AS_IF([test x"$arch" != x"mpi"],[
-      NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/performance/lib$arch.la"
-      NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/debug/lib$arch.la"
-      NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation/lib$arch.la"
-      NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG $NANOS_CONFIG_LIBS \$(abs_top_builddir)/src/arch/$arch/instrumentation-debug/lib$arch.la"
-   ])
-done
-NANOS_CONFIG_LIBS_PERFO="$NANOS_CONFIG_LIBS_PERFO \$(abs_top_builddir)/src/arch/$OS/performance/libos.la \$(abs_top_builddir)/src/support/performance/libsupport.la"
-NANOS_CONFIG_LIBS_DEBUG="$NANOS_CONFIG_LIBS_DEBUG \$(abs_top_builddir)/src/arch/$OS/debug/libos.la \$(abs_top_builddir)/src/support/debug/libsupport.la"
-NANOS_CONFIG_LIBS_INSTR="$NANOS_CONFIG_LIBS_INSTR \$(abs_top_builddir)/src/arch/$OS/instrumentation/libos.la \$(abs_top_builddir)/src/support/instrumentation/libsupport.la"
-NANOS_CONFIG_LIBS_INSTRDEBUG="$NANOS_CONFIG_LIBS_INSTRDEBUG \$(abs_top_builddir)/src/arch/$OS/instrumentation-debug/libos.la \$(abs_top_builddir)/src/support/instrumentation-debug/libsupport.la"
-
-AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test $smp_ult = yes])
-
-AC_MSG_RESULT([$ARCHITECTURES/$OS])
 
 # Build versions
 AX_BUILD_VERSIONS
@@ -338,6 +296,9 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_FILES([
                  Makefile
+                 doc/Makefile
+                 doc/doxy-nanox
+                 scripts/Makefile
                  src/common
                  src/Makefile
                  src/core/Makefile
@@ -355,7 +316,6 @@ AC_CONFIG_FILES([
                  src/arch/opencl/Makefile
                  src/arch/mpi/Makefile
                  src/utils/Makefile
-                 scripts/Makefile
                  tests/Makefile
                  tests/gens/Makefile
                  tests/gens/api-generator
@@ -366,9 +326,8 @@ AC_CONFIG_FILES([
                  tests/gens/mcc-ompss-generator
                  tests/gens/mixed-generator
                  tests/gens/nanox-creation-generator
+                 tests/gens/opencl-generator
                  tests/gens/resiliency-generator
-                 doc/Makefile
-                 doc/doxy-nanox
        ])
 
 AC_OUTPUT
@@ -386,7 +345,7 @@ Configuration summary of Nanos++
 ================================
 
 Host arch:                $SMP_ARCH
-User level threading:     $smp_ult
+User level threading:     $ult_support
 Configured architectures: $ARCHITECTURES
 Configured versions:      $VERSIONS
 Extra options:            $OPTIONS

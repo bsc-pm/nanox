@@ -10,6 +10,11 @@ AC_BEFORE([AC_PROG_CXX],[$0])
 AC_CHECK_SIZEOF([size_t])
 
 # Use these for flags that depend on the host arch
+# Note: Should we split this into two cases?
+# 1) Check host architecture
+# 2) Check host OS
+# Second case would be only check if it contains
+# linux inside triplet.
 AS_CASE([$host],
   [x86_64-k1om-linux*|k1om-mpss-linux*],
   [
@@ -46,7 +51,7 @@ AS_CASE([$host],
   ],
   [aarch64-*-linux-gnu],
   [
-    smp_ult=no
+    ult_support=no
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=aarch64
@@ -68,7 +73,7 @@ AS_CASE([$host],
         SMP_ARCH=ppc64_v2
     fi
     #FIXME ULT not supported yet
-    smp_ult=no
+    ult_support=no
   ],
   [powerpc-*-linux* | powerpc64-*-linux*],
   [
@@ -124,9 +129,29 @@ AS_CASE([$host],
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=unknown
-    smp_ult=no
+    ult_support=no
   ]
 )dnl AS_CASE
+
+# User level threads
+# System dependent. Architecture support will make a compatibility check.
+AC_ARG_ENABLE([ult],
+  AS_HELP_STRING([--disable-ult], [Disables user level threads]),
+  [enable_ult=${enableval}],
+  [enable_ult=yes]
+)
+
+AS_IF([test "$ult_support" = yes dnl
+         -a "$enable_ult"  = yes],[
+  ult_support=yes
+  AC_DEFINE([SMP_SUPPORTS_ULT],[],[Indicates support for user level threads])
+],[
+  ult_support=no
+])
+
+AC_SUBST([OS])
+AC_SUBST([SMP_ARCH])
+AM_CONDITIONAL([SMP_SUPPORTS_ULT],[test "$ult_support" = yes])
 
 ]) dnl AX_CHECK_HOST_ARCH
 
