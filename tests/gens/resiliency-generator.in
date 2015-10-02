@@ -1,6 +1,6 @@
 #!/bin/bash
 path=$(dirname $0)
-echo $path
+
 if [ x@enable_resiliency@ = xyes ]; then
 
 $( ${path}/mixed-generator )

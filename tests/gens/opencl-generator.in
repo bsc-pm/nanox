@@ -3,6 +3,14 @@
 if [ x@OPENCL_VALID@ = xyes ];
 then
 
+# Transforms a text so that it is valid
+# to be used as a shell variable name
+# Note: it actually calls tr (translate)
+# and translates every alphanumeric character
+# into an underscore
+function tr_sh() {
+  echo $(echo -n "$1" | tr -c [:alnum:] '_')
+}
 
 common_includes="
 -I\@abs_top_srcdir@/src/apis/c \
@@ -20,6 +28,8 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
+LIBS="-lnanox-ompss -lnanox -lnanox-c -lnanox-opencl-api @opencllibs@"
+
 dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
 #rpath="\
 #@abs_top_builddir@/src/arch/opencl/performance/.libs\
@@ -28,61 +38,68 @@ dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
 #@abs_top_builddir@/src/pm/performance/.libs\
 #"
 
-@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ ${common_includes} @openclinc@"
-@is_debug_enabled_TRUE@ debug_CXXFLAGS="@extra_CXXFLAGS@"
-@is_debug_enabled_TRUE@ debug_LDFLAGS="@extra_LDFLAGS@ @opencllib@ -Xlinker ${dynamic_list}"
-@is_debug_enabled_TRUE@ debug_LIBS="@extra_LIBS@ @opencllibs@"
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_debug_enabled_TRUE@ debug_LIBS="${LIBS}"
 @is_debug_enabled_TRUE@ debug_PLUGINS=
 
-@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ ${common_includes} @openclinc@"
-@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@extra_CXXFLAGS@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@extra_LDFLAGS@ @opencllib@ -Xlinker ${dynamic_list}"
-@is_instrumentation_enabled_TRUE@ instrumentation_LIBS="@extra_LIBS@ @opencllibs@"
-@is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
-
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ ${common_includes} @openclinc@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@extra_CXXFLAGS@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@extra_LDFLAGS@ @opencllib@ -Xlinker ${dynamic_list}"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@ @opencllibs@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="${LIBS}"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_PLUGINS=
 
-@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ ${common_includes} @openclinc@"
-@is_performance_enabled_TRUE@ performance_CXXFLAGS="@extra_CXXFLAGS@"
-@is_performance_enabled_TRUE@ performance_LDFLAGS="@extra_LDFLAGS@ @opencllib@ -Xlinker ${dynamic_list}"
-@is_performance_enabled_TRUE@ performance_LIBS="@extra_LIBS@ @opencllibs@"
-@is_performance_enabled_TRUE@ performance_PLUGINS=
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS="${LIBS}"
+@is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
 
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_performance_enabled_TRUE@ performance_LIBS="${LIBS}"
+@is_performance_enabled_TRUE@ performance_PLUGINS=
 
 # Common to all versions
 cat << EOF
 test_CC=@CC@
 test_CXX=@CXX@
-
-compile_versions="@VERSIONS@"
 EOF
 
 # Specific to each version
+compile_versions=
 for version in $VERSIONS; do
-
+  sh_version=$(tr_sh $version)
+  compile_versions+="${sh_version} "
   for plugin in $PLUGINS; do
-    eval ${version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
+    eval ${sh_version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
   done
 
-  eval ${version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
+  eval ${sh_version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
 @abs_top_builddir@/src/core/$version/.libs:\
 @abs_top_builddir@/src/apis/$version/.libs:\
 @abs_top_builddir@/src/pms/$version/.libs:\
-\${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
+\${${sh_version}_PLUGINS}:$LD_LIBRARY_PATH\')
 
-  eval ${version}_LDFLAGS+="'--no-as-needed \
-@abs_top_builddir@/src/pms/${version}/.libs/libnanox-ompss.so \
-@abs_top_builddir@/src/core/${version}/.libs/libnanox.so \
-@abs_top_builddir@/src/apis/${version}/.libs/libnanox-c.so \
-@abs_top_builddir@/src/arch/opencl/${version}/.libs/libnanox-opencl-api.so \
-@PTHREAD_LIBS@'"
+  eval ${sh_version}_LDFLAGS="\"\
+-L @abs_top_builddir@/src/pms/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
+-L @abs_top_builddir@/src/core/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/core/${version}/.libs \
+-L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
+-L @abs_top_builddir@/src/arch/opencl/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/arch/opencl/${version}/.libs \
+@PTHREAD_LIBS@ \
+\${${sh_version}_LIBS} \
+\${${sh_version}_LDFLAGS}\""
 
 cat << EOF
-test_ENV_${version}="$(eval echo \${${version}_ENV})"
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS})"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS})"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS})"
+test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
+test_ENV_${sh_version}="$(eval echo \${${version}_ENV})"
+
+compile_versions="${compile_versions}"
 
 $(@abs_top_srcdir@/tests/gens/config.py -a '--opencl-max-devices=1' -c 1 $*)
 EOF

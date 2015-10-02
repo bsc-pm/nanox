@@ -13,79 +13,71 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@is_debug_enabled_TRUE@ debug_CXXFLAGS="@extra_CXXFLAGS@"
-@is_debug_enabled_TRUE@ debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@is_debug_enabled_TRUE@ debug_LIBS="@extra_LIBS@ @cudalibs@"
+LIBS="-lnanox-ompss -lnanox -lnanox-c -lnanox-gpu-api @cudalibs@"
+
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@cudalib@ @LDFLAGS@"
+@is_debug_enabled_TRUE@ debug_LIBS=${LIBS}
 @is_debug_enabled_TRUE@ debug_PLUGINS=
 
-@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@extra_CXXFLAGS@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LIBS="@extra_LIBS@ @cudalibs@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@cudalib@ @LDFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS=${LIBS}
 @is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
 
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@extra_CXXFLAGS@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="@extra_LIBS@ @cudalibs@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@cudalib@ @LDFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=${LIBS}
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_PLUGINS=
 
-@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @host_dep_CPPFLAGS@ @extra_CPPFLAGS@ $common_includes @cudainc@"
-@is_performance_enabled_TRUE@ performance_CXXFLAGS="@extra_CXXFLAGS@"
-@is_performance_enabled_TRUE@ performance_LDFLAGS="@extra_LDFLAGS@" # @cudalib@"
-@is_performance_enabled_TRUE@ performance_LIBS="@extra_LIBS@ @cudalibs@"
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@cudalib@ @LDFLAGS@"
+@is_performance_enabled_TRUE@ performance_LIBS=${LIBS}
 @is_performance_enabled_TRUE@ performance_PLUGINS=
-
 
 # Common to all versions
 cat << EOF
 test_CC=@cuda_prefix@/bin/nvcc
 test_CXX=@cuda_prefix@/bin/nvcc
-
-compile_versions="@VERSIONS@"
 EOF
 
 # Specific to each version
+compile_versions=
 for version in $VERSIONS; do
-
+  sh_version=$(tr_sh $version)
+  compile_versions+="${sh_version} "
   for plugin in $PLUGINS; do
-    eval ${version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
+    eval ${sh_version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
   done
 
-  eval ${version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
+  eval ${sh_version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
 @abs_top_builddir@/src/core/$version/.libs:\
 @abs_top_builddir@/src/apis/$version/.libs:\
 @abs_top_builddir@/src/pms/$version/.libs:\
-\${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
+\${${sh_version}_PLUGINS}:$LD_LIBRARY_PATH\')
 
-  eval ${version}_LDFLAGS+="'--no-as-needed \
-@abs_top_builddir@/src/pms/${version}/.libs/libnanox-ompss.so \
-@abs_top_builddir@/src/core/${version}/.libs/libnanox.so \
-@abs_top_builddir@/src/apis/${version}/.libs/libnanox-c.so \
-@abs_top_builddir@/src/arch/gpu/${version}/.libs/libnanox-gpu-api.so \
-@PTHREAD_LIBS@'"
+  eval ${sh_version}_LDFLAGS="\"\
+-L @abs_top_builddir@/src/pms/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
+-L @abs_top_builddir@/src/core/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/core/${version}/.libs \
+-L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
+-L @abs_top_builddir@/src/arch/gpu/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/arch/gpu/${version}/.libs \
+@PTHREAD_LIBS@ \
+\${${sh_version}_LIBS} \
+\${${sh_version}_LDFLAGS}\""
 
-echo "test_CPPFLAGS_${version}=\"\\"
-for cppoption in $(eval echo \${${version}_CPPFLAGS}); do
-    echo "  -Xcompiler $cppoption \\"
-done
-echo '"'
-
-echo "test_CXXFLAGS_${version}=\"\\"
-for cppoption in $(eval echo \${${version}_CXXFLAGS}); do
-    echo "  -Xcompiler $cxxoption \\"
-done
-echo '"'
-
-echo "test_LDFLAGS_${version}=\"\\"
-for ldoption in $(eval echo \${${version}_LDFLAGS} \${${version}_LIBS}); do
-    echo "  -Xlinker $ldoption \\"
-done
-echo '"'
-
+# Prepend each preprocessor and compiler flag with -Xcompiler
+# Same for linker flags with -Xlinker
 cat << EOF
-test_ENV_${version}="$(eval echo \${${version}_ENV})"
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} | sed 's/^\|[ ]/ -xlinker /g')"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV})"
+
+compile_versions="${compile_versions}"
 
 $(@abs_top_srcdir@/tests/gens/config.py $*)
 EOF

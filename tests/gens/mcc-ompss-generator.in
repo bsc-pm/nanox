@@ -1,62 +1,91 @@
 #!/bin/bash
 
+# Transforms a text so that it is valid
+# to be used as a shell variable name
+# Note: it actually calls tr (translate)
+# and translates every alphanumeric character
+# into an underscore
+function tr_sh() {
+  echo $(echo -n "$1" | tr -c [:alnum:] '_')
+}
+
 if [ x@MCC_SUPPORT@ = xyes ];
 then
-cat <<EOF
 
-SRC=@SRCDIR@/src
-BUILD=@BUILDDIR@/src
+common_includes="\
+-I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/apis/c \
+-I@abs_top_builddir@/src/apis/c \
+-I@abs_top_srcdir@/src/pms/openmp \
+-I@abs_top_srcdir@/tests/pfm \
+$END"
 
-PERFO_CFLAGS=@PERFO_CFLAGS@
-PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
-DEBUG_CFLAGS=@DEBUG_CFLAGS@
-DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
-INSTR_CFLAGS=@INSTR_CFLAGS@
-INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
-INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
-INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
+VERSIONS="@VERSIONS@"
+PLUGINS="@PLUGINS@"
 
-PLUGINS_performance=@PLUGINS_PERFORMANCE@
-PLUGINS_debug=@PLUGINS_DEBUG@
-PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
-PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ --ompss --debug @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@LDFLAGS@"
+@is_debug_enabled_TRUE@ debug_LIBS=
+@is_debug_enabled_TRUE@ debug_PLUGINS=
 
-common_includes="-I\$SRC/core -I\$SRC/apis/c -I\$SRC/pms/openmp -I\$SRC/../tests/test/pfm"
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ --ompss --instrument @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@LDFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS=
+@is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
 
-compile_versions="@COMPILE_VERSIONS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ --ompss --instrument --debug @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@LDFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_PLUGINS=
 
-#test_CC=@CONFIG_CC@
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ --ompss @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@LDFLAGS@"
+@is_performance_enabled_TRUE@ performance_LIBS=
+@is_performance_enabled_TRUE@ performance_PLUGINS=
+
+# Common to all versions
+cat << EOF
 test_CC=@MCC@
-test_CXX=@MCC@
-
-
-
-test_CFLAGS="\$common_includes --ompss"
-test_CXXFLAGS="\$common_includes --ompss"
-
-test_CFLAGS_performance="\$PERFO_CFLAGS"
-test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
-test_CFLAGS_debug="\$DEBUG_CFLAGS --debug"
-test_CXXFLAGS_debug="\$DEBUG_CXXFLAGS --debug"
-test_CFLAGS_instrumentation="\$INSTR_CFLAGS --instrument"
-test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS --instrument"
-test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
-test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
-
-test_LDFLAGS_performance="@LDFLAGS@ \$BUILD/pms/performance/.libs/libnanox-omp.so \$BUILD/apis/performance/.libs/libnanox-c.so \$BUILD/core/performance/.libs/libnanox.so -pthread -lrt -lm"
-test_ENV_performance="LD_LIBRARY_PATH=\$BUILD/core/performance/.libs:\$BUILD/apis/performance/.libs/:\$BUILD/pms/performance/.libs:\$PLUGINS_performance:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_debug="@LDFLAGS@ \$BUILD/pms/debug/.libs/libnanox-omp.so \$BUILD/apis/debug/.libs/libnanox-c.so \$BUILD/core/debug/.libs/libnanox.so -pthread -lrt -lm"
-test_ENV_debug="LD_LIBRARY_PATH=\$BUILD/core/debug/.libs:\$BUILD/apis/debug/.libs/:\$BUILD/pms/debug/.libs:\$PLUGINS_debug:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation="@LDFLAGS@ \$BUILD/pms/instrumentation/.libs/libnanox-omp.so \$BUILD/apis/instrumentation/.libs/libnanox-c.so \$BUILD/core/instrumentation/.libs/libnanox.so -pthread -lrt -lm"
-test_ENV_instrumentation="LD_LIBRARY_PATH=\$BUILD/core/instrumentation/.libs:\$BUILD/apis/instrumentation/.libs/:\$BUILD/pms/instrumentation/.libs/:\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation_debug="@LDFLAGS@ \$BUILD/pms/instrumentation-debug/.libs/libnanox-omp.so \$BUILD/apis/instrumentation-debug/.libs/libnanox-c.so \$BUILD/core/instrumentation-debug/.libs/libnanox.so -pthread -lrt -lm"
-test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\$BUILD/core/instrumentation-debug/.libs:\$BUILD/apis/instrumentation-debug/.libs/:\$BUILD/pms/instrumentation-debug/.libs/:\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
-
-`@SRCDIR@/tests/gens/config.py $*`
+test_CXX=@MCXX@
 EOF
+
+# Specific to each version
+compile_versions=
+for version in $VERSIONS; do
+  sh_version=$(tr_sh $version)
+  compile_versions+="${sh_version} "
+  for plugin in $PLUGINS; do
+    eval ${sh_version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
+  done
+
+  eval ${sh_version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
+@libdir@/${version}:\
+\${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
+
+  eval ${sh_version}_LDFLAGS="\"\
+-L @abs_top_builddir@/src/pms/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
+-L @abs_top_builddir@/src/core/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/core/${version}/.libs \
+-L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
+@PTHREAD_LIBS@ \
+\${${sh_version}_LIBS} \
+\${${sh_version}_LDFLAGS}\""
+
+cat <<EOF
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS})"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS})"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS})"
+test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV})"
+
+compile_versions="${compile_versions}"
+
+$(@abs_top_srcdir@/tests/gens/config.py $*)
+EOF
+done;
 
 else
 
