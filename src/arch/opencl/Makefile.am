@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include ../../common.am
+include $(top_srcdir)/src/common.am
 
 pkginclude_HEADERS=\
 	nanos-opencl.h \
@@ -74,10 +74,6 @@ pe_opencl_sources = \
 	openclplugin.cpp \
 	$(END)
 
-opencl_api_flags = -I$(srcdir)/../../apis/c
-opencl_ldflags = @opencllib@
-opencl_includes = @openclinc@
-
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
 instrumentation_LTLIBRARIES =
@@ -90,75 +86,91 @@ if is_debug_enabled
 noinst_LTLIBRARIES += debug/libopencl.la
 debug_LTLIBRARIES += debug/libnanox-opencl-api.la debug/libnanox-pe-opencl.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(opencl_includes)
-
-debug_libopencl_la_CXXFLAGS=$(nanos_debug_cxxflags) $(opencl_api_flags)
-debug_libopencl_la_LDFLAGS=$(opencl_ldflags)
+debug_libopencl_la_CPPFLAGS=$(common_debug_CPPFLAGS) @openclinc@
+debug_libopencl_la_CXXFLAGS=$(common_debug_CXXFLAGS)
+debug_libopencl_la_LDFLAGS=@opencllib@
+debug_libopencl_la_LIBADD=@opencllibs@
 debug_libopencl_la_SOURCES=$(opencl_sources)
 
-debug_libnanox_opencl_api_la_CXXFLAGS=$(nanos_debug_cxxflags) $(opencl_api_flags)
-debug_libnanox_opencl_api_la_LDFLAGS=$(version_flags)
+debug_libnanox_opencl_api_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes) @openclinc@
+debug_libnanox_opencl_api_la_CXXFLAGS=$(common_debug_CXXFLAGS)
+debug_libnanox_opencl_api_la_LDFLAGS=$(version_flags) @opencllib@
+debug_libnanox_opencl_api_la_LIBADD=@opencllibs@
 debug_libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
 
-debug_libnanox_pe_opencl_la_CXXFLAGS=$(nanos_debug_cxxflags)
-debug_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
+debug_libnanox_pe_opencl_la_CPPFLAGS=$(common_debug_CPPFLAGS) @openclinc@
+debug_libnanox_pe_opencl_la_CXXFLAGS=$(common_debug_CXXFLAGS)
+debug_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) @opencllib@
+debug_libnanox_pe_opencl_la_LIBADD=@opencllibs@
 debug_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
-endif
-
-if is_instrumentation_enabled
-noinst_LTLIBRARIES += instrumentation/libopencl.la
-instrumentation_LTLIBRARIES += instrumentation/libnanox-opencl-api.la instrumentation/libnanox-pe-opencl.la
-
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(opencl_includes)
-
-instrumentation_libopencl_la_CXXFLAGS=$(nanos_instr_cxxflags) $(opencl_api_flags)
-instrumentation_libopencl_la_LDFLAGS=$(opencl_ldflags)
-instrumentation_libopencl_la_SOURCES=$(opencl_sources)
-
-instrumentation_libnanox_opencl_api_la_CXXFLAGS=$(nanos_instr_cxxflags) $(opencl_api_flags)
-instrumentation_libnanox_opencl_api_la_LDFLAGS=$(version_flags)
-instrumentation_libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
-
-instrumentation_libnanox_pe_opencl_la_CXXFLAGS=$(nanos_instr_cxxflags)
-instrumentation_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
-instrumentation_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif
 
 if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libopencl.la
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-opencl-api.la instrumentation-debug/libnanox-pe-opencl.la
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) \
-                          $(opencl_includes)
-
-instrumentation_debug_libopencl_la_CXXFLAGS=$(nanos_instrdebug_cxxflags) $(opencl_api_flags)
-instrumentation_debug_libopencl_la_LDFLAGS=$(opencl_ldflags)
+instrumentation_debug_libopencl_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @openclinc@
+instrumentation_debug_libopencl_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libopencl_la_LDFLAGS=@opencllib@
+instrumentation_debug_libopencl_la_LIBADD=@opencllibs@
 instrumentation_debug_libopencl_la_SOURCES=$(opencl_sources)
 
-instrumentation_debug_libnanox_opencl_api_la_CXXFLAGS=$(nanos_instrdebug_cxxflags) $(opencl_api_flags)
-instrumentation_debug_libnanox_opencl_api_la_LDFLAGS=$(version_flags)
+instrumentation_debug_libnanox_opencl_api_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes) @openclinc@
+instrumentation_debug_libnanox_opencl_api_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libnanox_opencl_api_la_LDFLAGS=$(version_flags) @opencllib@
+instrumentation_debug_libnanox_opencl_api_la_LIBADD=@opencllibs@
 instrumentation_debug_libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
 
-instrumentation_debug_libnanox_pe_opencl_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
-instrumentation_debug_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
+instrumentation_debug_libnanox_pe_opencl_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @openclinc@
+instrumentation_debug_libnanox_pe_opencl_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) @opencllib@
+instrumentation_debug_libnanox_pe_opencl_la_LIBADD=@opencllibs@
 instrumentation_debug_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
+endif
+
+if is_instrumentation_enabled
+noinst_LTLIBRARIES += instrumentation/libopencl.la
+instrumentation_LTLIBRARIES += instrumentation/libnanox-opencl-api.la instrumentation/libnanox-pe-opencl.la
+
+instrumentation_libopencl_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @openclinc@
+instrumentation_libopencl_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libopencl_la_LDFLAGS=@opencllib@
+instrumentation_libopencl_la_LIBADD=@opencllibs@
+instrumentation_libopencl_la_SOURCES=$(opencl_sources)
+
+instrumentation_libnanox_opencl_api_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes) @openclinc@
+instrumentation_libnanox_opencl_api_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libnanox_opencl_api_la_LDFLAGS=$(version_flags) @opencllib@
+instrumentation_libnanox_opencl_api_la_LIBADD=@opencllibs@
+instrumentation_libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
+
+instrumentation_libnanox_pe_opencl_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @openclinc@
+instrumentation_libnanox_pe_opencl_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) @opencllib@
+instrumentation_libnanox_pe_opencl_la_LIBADD=@opencllibs@
+instrumentation_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif
 
 if is_performance_enabled
 noinst_LTLIBRARIES += performance/libopencl.la
 performance_LTLIBRARIES += performance/libnanox-opencl-api.la performance/libnanox-pe-opencl.la
 
-nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(opencl_includes)
-
-performance_libopencl_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(opencl_api_flags)
-performance_libopencl_la_LDFLAGS=$(opencl_ldflags)
+performance_libopencl_la_CPPFLAGS=$(common_performance_CPPFLAGS) @openclinc@
+performance_libopencl_la_CXXFLAGS=$(common_performance_CXXFLAGS)
+performance_libopencl_la_LDFLAGS=@opencllib@
+performance_libopencl_la_LIBADD=@opencllibs@
 performance_libopencl_la_SOURCES=$(opencl_sources)
 
-performance_libnanox_opencl_api_la_CXXFLAGS=$(nanos_perfo_cxxflags) $(opencl_api_flags)
-performance_libnanox_opencl_api_la_LDFLAGS=$(version_flags)
+performance_libnanox_opencl_api_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes) @openclinc@
+performance_libnanox_opencl_api_la_CXXFLAGS=$(common_performance_CXXFLAGS)
+performance_libnanox_opencl_api_la_LDFLAGS=$(version_flags) @opencllib@
+performance_libnanox_opencl_api_la_LIBADD=@opencllibs@
 performance_libnanox_opencl_api_la_SOURCES=$(opencl_api_sources)
 
-performance_libnanox_pe_opencl_la_CXXFLAGS=$(nanos_perfo_cxxflags)
-performance_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) $(opencl_ldflags)
+performance_libnanox_pe_opencl_la_CPPFLAGS=$(common_performance_CPPFLAGS) @openclinc@
+performance_libnanox_pe_opencl_la_CXXFLAGS=$(common_performance_CXXFLAGS)
+performance_libnanox_pe_opencl_la_LDFLAGS=$(ld_plugin_flags) @opencllib@
+performance_libnanox_pe_opencl_la_LIBADD=@opencllibs@
 performance_libnanox_pe_opencl_la_SOURCES=$(pe_opencl_sources)
 endif
+

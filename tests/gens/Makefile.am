@@ -25,64 +25,15 @@ noinst_SCRIPTS = api-generator core-generator gpu-generator mixed-generator nano
 
 CLEANFILES = api-generator core-generator gpu-generator mixed-generator nanox-creation-generator api-omp-generator mcc-openmp-generator mcc-ompss-generator resiliency-generator opencl-generator
 
-all:
+all: 
 	chmod 755 api-generator
+	chmod 755 api-omp-generator
 	chmod 755 core-generator
 	chmod 755 gpu-generator
+	chmod 755 mcc-ompss-generator
+	chmod 755 mcc-openmp-generator
 	chmod 755 mixed-generator
 	chmod 755 nanox-creation-generator
-	chmod 755 api-omp-generator
-	chmod 755 mcc-openmp-generator
-	chmod 755 mcc-ompss-generator
+	chmod 755 opencl-generator
 	chmod 755 resiliency-generator
 
-opencl-generator: opencl-generator.in
-	rm -f opencl-generator
-	tmp_plugins_perfo=`cat $(abs_top_builddir)/src/plugins-list | grep ^performance\= | cut -d'=' -f2` ;\
-	tmp_plugins_debug=`cat $(abs_top_builddir)/src/plugins-list | grep ^debug\= | cut -d'=' -f2` ;\
-	tmp_plugins_instr=`cat $(abs_top_builddir)/src/plugins-list | grep ^instrumentation\= | cut -d'=' -f2` ;\
-	tmp_plugins_instr_debug=`cat $(abs_top_builddir)/src/plugins-list | grep ^instrumentation_debug\= | cut -d'=' -f2` ;\
-	tmp_compile_versions=`cat $(abs_top_builddir)/src/plugins-list | cut -d'=' -f1 | sed -e :a -e '$!N; s/\n/ /; ta'` ;\
-	tmp_srcdir=$(abs_top_srcdir) ; \
-	tmp_builddir=$(abs_top_builddir) ; \
-	tmp_perfo_cflags='"$(perfo_cflags)"' ; \
-	tmp_debug_cflags='"$(debug_cflags)"' ; \
-	tmp_instr_cflags='"$(instr_cflags)"' ; \
-	tmp_instrdebug_cflags='"$(instrdebug_cflags)"' ; \
-	tmp_perfo_cxxflags='"$(global_perfo_cxxflags)"' ; \
-	tmp_debug_cxxflags='"$(global_debug_cxxflags)"' ; \
-	tmp_instr_cxxflags='"$(global_instr_cxxflags)"' ; \
-	tmp_instrdebug_cxxflags='"$(global_instrdebug_cxxflags)"' ; \
-	tmp_cc='"$(CC)"' ; \
-	tmp_cxx='"$(CXX)"' ; \
-	tmp_opencl_inc='"$(OPENCL_INC)"' ; \
-	tmp_opencl_ld='"$(OPENCL_LD)"' ; \
-	tmp_cuda_inc='"$(CUDA_INC)"' ; \
-	tmp_cuda_ld='"$(CUDA_LD)"' ; \
-	tmp_opencl_valid='"$(opencl_valid)"' ; \
-	sed \
-		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
-		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
-		-e's,@PLUGINS_PERFORMANCE\@,'"$$tmp_plugins_perfo"',g' \
-		-e's,@PLUGINS_DEBUG\@,'"$$tmp_plugins_debug"',g' \
-		-e's,@PLUGINS_INSTRUMENTATION\@,'"$$tmp_plugins_instr"',g' \
-		-e's,@PLUGINS_INSTRUMENTATION_DEBUG\@,'"$$tmp_plugins_instr_debug"',g' \
-		-e's,@COMPILE_VERSIONS\@,'"$$tmp_compile_versions"',g' \
-		-e's,@PERFO_CFLAGS\@,'"$$tmp_perfo_cflags"',g' \
-		-e's,@DEBUG_CFLAGS\@,'"$$tmp_debug_cflags"',g' \
-		-e's,@INSTR_CFLAGS\@,'"$$tmp_instr_cflags"',g' \
-		-e's,@INSTRDEBUG_CFLAGS\@,'"$$tmp_instrdebug_cflags"',g' \
-		-e's,@PERFO_CXXFLAGS\@,'"$$tmp_perfo_cxxflags"',g' \
-		-e's,@DEBUG_CXXFLAGS\@,'"$$tmp_debug_cxxflags"',g' \
-		-e's,@INSTR_CXXFLAGS\@,'"$$tmp_instr_cxxflags"',g' \
-		-e's,@INSTRDEBUG_CXXFLAGS\@,'"$$tmp_instrdebug_cxxflags"',g' \
-		-e's,@CONFIG_CC\@,'"$$tmp_cc"',g' \
-		-e's,@CONFIG_CXX\@,'"$$tmp_cxx"',g' \
-		-e's,@CONFIG_OPENCL_INC\@,'"$$tmp_opencl_inc"',g' \
-		-e's,@CONFIG_OPENCL_LD\@,'"$$tmp_opencl_ld"',g' \
-		-e's,@CONFIG_CUDA_INC\@,'"$$tmp_cuda_inc"',g' \
-		-e's,@CONFIG_CUDA_LD\@,'"$$tmp_cuda_ld"',g' \
-		-e's,@OPENCL_VALID\@,'"$$tmp_opencl_valid"',g' \
-		$(srcdir)/opencl-generator.in > opencl-generator.tmp
-	mv opencl-generator.tmp opencl-generator
-	chmod 755 opencl-generator

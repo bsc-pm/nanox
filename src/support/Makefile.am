@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include ../common.am
+include $(top_srcdir)/src/common.am
 
 devinclude_HEADERS = \
 	containeradapter_fwd.hpp \
@@ -201,39 +201,40 @@ noinst_LTLIBRARIES =
 if is_debug_enabled
 noinst_LTLIBRARIES += debug/libsupport.la
 
-debug_libsupport_la_CPPFLAGS=@dlbinc@
-debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_debug_cxxflags)
+debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @dlbinc@
+debug_libsupport_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
 debug_libsupport_la_LDFLAGS=@dlblib@
 debug_libsupport_la_LIBS=@dlb_dbg@
 endif
 
-if is_instrumentation_enabled
-noinst_LTLIBRARIES += instrumentation/libsupport.la
-
-instrumentation_libsupport_la_CPPFLAGS=@dlbinc@
-instrumentation_libsupport_la_CXXFLAGS=$(common_includes) $(common_instr_cxxflags)
-instrumentation_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
-instrumentation_libsupport_la_LDFLAGS=@dlblib@
-instrumentation_libsupport_la_LIBS=@dlb_instr@
-endif
-
 if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libsupport.la
 
-instrumentation_debug_libsupport_la_CPPFLAGS=@dlbinc@
-instrumentation_debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_instrdebug_cxxflags)
-instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
+instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @dlbinc@
+instrumentation_debug_libsupport_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(instrumentation_debug_sources) $(gpu_support_sources)
 instrumentation_debug_libsupport_la_LDFLAGS=@dlblib@
 instrumentation_debug_libsupport_la_LIBS=@dlb_instr_dbg@
+endif
+
+if is_instrumentation_enabled
+noinst_LTLIBRARIES += instrumentation/libsupport.la
+
+instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @dlbinc@
+instrumentation_libsupport_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libsupport_la_SOURCES=$(support_sources) $(instrumentation_sources) $(gpu_support_sources)
+instrumentation_libsupport_la_LDFLAGS=@dlblib@
+instrumentation_libsupport_la_LIBS=@dlb_instr@
 endif
 
 if is_performance_enabled
 noinst_LTLIBRARIES += performance/libsupport.la
 
-performance_libsupport_la_CPPFLAGS=@dlbinc@
-performance_libsupport_la_CXXFLAGS=$(common_includes) $(common_perfo_cxxflags)
-performance_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
+performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @dlbinc@
+performance_libsupport_la_CXXFLAGS=$(common_performance_CXXFLAGS)
+performance_libsupport_la_SOURCES=$(support_sources) $(performance_sources) $(gpu_support_sources)
 performance_libsupport_la_LDFLAGS=@dlblib@
 performance_libsupport_la_LIBS=@dlb@
 endif
+

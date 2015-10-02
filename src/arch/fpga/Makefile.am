@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include ../../common.am
+include $(top_srcdir)/src/common.am
 
 EXTRA_DIST= \
 	$(END)
@@ -64,11 +64,6 @@ pe_fpga_sources = \
     fpgaplugin.cpp \
 	$(END)
 
-fpga_api_flags = -I$(top_srcdir)/src/apis/c
-
-fpga_ldflags = @xdmalib@
-fpga_includes = @xdmainc@
-
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
 instrumentation_LTLIBRARIES =
@@ -79,75 +74,79 @@ if is_debug_enabled
 noinst_LTLIBRARIES += debug/libfpga.la
 debug_LTLIBRARIES += debug/libnanox-fpga-api.la debug/libnanox-pe-fpga.la
 
-#common_debug_CXXFLAGS=$(common_includes) $(common_debug_cxxflags) $(fpga_includes)
-
+debug_libfpga_la_CPPFLAGS=$(common_debug_CPPFLAGS)
 debug_libfpga_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libfpga_la_LDFLAGS=$(fpga_ldflags)
+debug_libfpga_la_LDFLAGS=@xdmalib@
 debug_libfpga_la_SOURCES=$(fpga_sources)
 
-debug_libnanox_fpga_api_la_CXXFLAGS=$(common_debug_CXXFLAGS) $(fpga_api_flags)
+debug_libnanox_fpga_api_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes)
+debug_libnanox_fpga_api_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libnanox_fpga_api_la_LDFLAGS=$(version_flags)
 debug_libnanox_fpga_api_la_SOURCES=$(fpga_api_sources)
 
+debug_libnanox_pe_fpga_la_CPPFLAGS=$(common_debug_CPPFLAGS)
 debug_libnanox_pe_fpga_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) $(fpga_ldflags)
+debug_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) @xdmalib@
 debug_libnanox_pe_fpga_la_SOURCES=$(pe_fpga_sources)
+endif
+
+if is_instrumentation_debug_enabled
+noinst_LTLIBRARIES += instrumentation-debug/libfpga.la
+instrumentation_debug_LTLIBRARIES += instrumentation_debug/libnanox-fpga-api.la instrumentation_debug/libnanox-pe-fpga.la
+
+instrumentation_debug_libfpga_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
+instrumentation_debug_libfpga_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libfpga_la_LDFLAGS=@xdmalib@
+instrumentation_debug_libfpga_la_SOURCES=$(fpga_sources)
+
+instrumentation_debug_libnanox_fpga_api_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes)
+instrumentation_debug_libnanox_fpga_api_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libnanox_fpga_api_la_LDFLAGS=$(version_flags)
+instrumentation_debug_libnanox_fpga_api_la_SOURCES=$(fpga_api_sources)
+
+instrumentation_debug_libnanox_pe_fpga_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
+instrumentation_debug_libnanox_pe_fpga_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) @xdmalib@
+instrumentation_debug_libnanox_pe_fpga_la_SOURCES=$(pe_fpga_sources)
 endif
 
 if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libfpga.la
 instrumentation_LTLIBRARIES += instrumentation/libnanox-fpga-api.la instrumentation/libnanox-pe-fpga.la
 
-#common_instrumentation_CXXFLAGS=$(common_includes) $(common_instr_cxxflags) $(fpga_includes)
-
+instrumentation_libfpga_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
 instrumentation_libfpga_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libfpga_la_LDFLAGS=$(fpga_ldflags)
+instrumentation_libfpga_la_LDFLAGS=@xdmalib@
 instrumentation_libfpga_la_SOURCES=$(fpga_sources)
 
-instrumentation_libnanox_fpga_api_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS) $(fpga_api_flags)
+instrumentation_libnanox_fpga_api_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes)
+instrumentation_libnanox_fpga_api_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libnanox_fpga_api_la_LDFLAGS=$(version_flags)
 instrumentation_libnanox_fpga_api_la_SOURCES=$(fpga_api_sources)
 
+instrumentation_libnanox_pe_fpga_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
 instrumentation_libnanox_pe_fpga_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) $(fpga_ldflags)
+instrumentation_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) @xdmalib@
 instrumentation_libnanox_pe_fpga_la_SOURCES=$(pe_fpga_sources)
-endif
-
-if is_instrumentation_debug_enabled
-noinst_LTLIBRARIES += instrumentation-debug/libfpga.la
-instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-fpga-api.la instrumentation-debug/libnanox-pe-fpga.la
-
-#common_instrumentation_debug_CXXFLAGS=$(common_includes) $(common_instrdebug_cxxflags) $(fpga_includes)
-
-instrumentation_debug_libfpga_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libfpga_la_LDFLAGS=$(fpga_ldflags)
-instrumentation_debug_libfpga_la_SOURCES=$(fpga_sources)
-
-instrumentation_debug_libnanox_fpga_api_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS) $(fpga_api_flags)
-instrumentation_debug_libnanox_fpga_api_la_LDFLAGS=$(version_flags)
-instrumentation_debug_libnanox_fpga_api_la_SOURCES=$(fpga_api_sources)
-
-instrumentation_debug_libnanox_pe_fpga_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) $(fpga_ldflags)
-instrumentation_debug_libnanox_pe_fpga_la_SOURCES=$(pe_fpga_sources)
 endif
 
 if is_performance_enabled
 noinst_LTLIBRARIES += performance/libfpga.la
 performance_LTLIBRARIES += performance/libnanox-fpga-api.la performance/libnanox-pe-fpga.la
 
-#common_performance_CXXFLAGS=$(common_includes) $(common_perfo_cxxflags) $(fpga_includes)
-
+performance_libfpga_la_CPPFLAGS=$(common_performance_CPPFLAGS)
 performance_libfpga_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libfpga_la_LDFLAGS=$(fpga_ldflags)
+performance_libfpga_la_LDFLAGS=@xdmalib@
 performance_libfpga_la_SOURCES=$(fpga_sources)
 
-performance_libnanox_fpga_api_la_CXXFLAGS=$(common_performance_CXXFLAGS) $(fpga_api_flags)
+performance_libnanox_fpga_api_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes)
+performance_libnanox_fpga_api_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libnanox_fpga_api_la_LDFLAGS=$(version_flags)
 performance_libnanox_fpga_api_la_SOURCES=$(fpga_api_sources)
 
+performance_libnanox_pe_fpga_la_CPPFLAGS=$(common_performance_CPPFLAGS)
 performance_libnanox_pe_fpga_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) $(fpga_ldflags)
+performance_libnanox_pe_fpga_la_LDFLAGS=$(ld_plugin_flags) @xdmalib@
 performance_libnanox_pe_fpga_la_SOURCES=$(pe_fpga_sources)
 endif
 

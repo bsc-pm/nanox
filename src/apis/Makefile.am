@@ -17,25 +17,23 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include ../common.am
-
-common_includes += -I $(top_builddir)/src/apis/c
+include $(top_srcdir)/src/common.am
 
 #####################################################################################
 #### C ##############################################################################
 #####################################################################################
 pkginclude_HEADERS=\
-	c/nanos.h \
-   c/nanos_version.h \
-   c/nanos_reduction.h \
-   c/nanos_atomic.h \
-	$(END)
+c/nanos.h \
+c/nanos_version.h \
+c/nanos_reduction.h \
+c/nanos_atomic.h \
+$(END)
 
 BUILT_SOURCES=\
-   c/nanos_version.h
+c/nanos_version.h
 
 EXTRA_DIST=\
-   c/nanos_version.def
+c/nanos_version.def
 
 CLEANFILES = $(top_builddir)/src/apis/c/nanos_version.h 
 
@@ -77,50 +75,46 @@ nanos_c_sources = \
 if is_debug_enabled
 debug_LTLIBRARIES=debug/libnanox-c.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags)
-
-debug_libnanox_c_la_CXXFLAGS=$(nanos_debug_cxxflags)
+debug_libnanox_c_la_CPPFLAGS=$(common_debug_CPPFLAGS) $(api_includes)
+debug_libnanox_c_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 debug_libnanox_c_la_LIBADD=$(top_builddir)/src/core/debug/libnanox.la
 debug_libnanox_c_la_SOURCES=$(nanos_c_sources)
 debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/debug/libnanox.la
 endif
 
-
-if is_instrumentation_enabled
-instrumentation_LTLIBRARIES=instrumentation/libnanox-c.la
-
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags)
-
-instrumentation_libnanox_c_la_CXXFLAGS=$(nanos_instr_cxxflags)
-instrumentation_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
-instrumentation_libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la
-instrumentation_libnanox_c_la_SOURCES=$(nanos_c_sources)
-instrumentation_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation/libnanox.la
-endif
-
 if is_instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES=instrumentation-debug/libnanox-c.la
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags)
-
-instrumentation_debug_libnanox_c_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+instrumentation_debug_libnanox_c_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) $(api_includes)
+instrumentation_debug_libnanox_c_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 instrumentation_debug_libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 instrumentation_debug_libnanox_c_la_SOURCES=$(nanos_c_sources)
 instrumentation_debug_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation-debug/libnanox.la
 endif
 
+if is_instrumentation_enabled
+instrumentation_LTLIBRARIES=instrumentation/libnanox-c.la
+
+instrumentation_libnanox_c_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) $(api_includes)
+instrumentation_libnanox_c_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
+instrumentation_libnanox_c_la_LIBADD=$(top_builddir)/src/core/instrumentation/libnanox.la
+instrumentation_libnanox_c_la_SOURCES=$(nanos_c_sources)
+instrumentation_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/instrumentation/libnanox.la
+endif
+
 if is_performance_enabled
 performance_LTLIBRARIES=performance/libnanox-c.la
 
-nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags)
-
-performance_libnanox_c_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+performance_libnanox_c_la_CPPFLAGS=$(common_performance_CPPFLAGS) $(api_includes)
+performance_libnanox_c_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libnanox_c_la_LDFLAGS=$(version_flags) $(ignore_muldefs)
 performance_libnanox_c_la_LIBADD=$(top_builddir)/src/core/performance/libnanox.la
 performance_libnanox_c_la_SOURCES=$(nanos_c_sources)
 performance_libnanox_c_la_DEPENDENCIES=$(top_builddir)/src/core/performance/libnanox.la
 endif
+
 #####################################################################################
 #####################################################################################
