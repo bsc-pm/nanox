@@ -283,7 +283,7 @@ AC_SUBST([enable_resiliency])
 AC_SUBST([resiliency_flags])
 
 # Generate plugin list
-PLUGINS="plugins pms/openmp pms/chapel"
+PLUGINS="plugins pms arch/$OS"
 for arch in $ARCHITECTURES; do
   PLUGINS+=" arch/$arch"
 done
