@@ -1,6 +1,8 @@
 END=
 
 # Generate include list
+# Build directory is included to
+# avoid problems with config.h inclusion
 common_includes=\
  -I$(top_srcdir)/src/arch/@OS@\
  -I$(top_srcdir)/src/support\
@@ -11,6 +13,7 @@ common_includes=\
  -I$(top_srcdir)/src/arch/fpga\
  -I$(top_srcdir)/src/arch/cluster\
  -I$(top_srcdir)/src/arch/opencl\
+ -I$(top_builddir)
  $(END)
 
 api_includes=\

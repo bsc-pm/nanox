@@ -21,29 +21,29 @@ PLUGINS="@PLUGINS@"
 
 LIBS="-lnanox-ompss -lnanox -lnanox-c"
 
-@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
 @is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_CFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
 @is_debug_enabled_TRUE@ debug_LDFLAGS="@LDFLAGS@"
-@is_debug_enabled_TRUE@ debug_LIBS=${LIBS}
-@is_debug_enabled_TRUE@ debug_PLUGINS=
+@is_debug_enabled_TRUE@ debug_LIBS="$LIBS"
 
-@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@LDFLAGS@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LIBS=${LIBS}
-@is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS="$LIBS"
 
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@LDFLAGS@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=${LIBS}
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_PLUGINS=
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="$LIBS"
 
-@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
 @is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_CFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
 @is_performance_enabled_TRUE@ performance_LDFLAGS="@LDFLAGS@"
-@is_performance_enabled_TRUE@ performance_LIBS=${LIBS}
-@is_performance_enabled_TRUE@ performance_PLUGINS=
+@is_performance_enabled_TRUE@ performance_LIBS="$LIBS"
 
 # Common to all versions
 cat << EOF
@@ -57,31 +57,33 @@ for version in $VERSIONS; do
   sh_version=$(tr_sh $version)
   compile_versions+="${sh_version} "
   for plugin in $PLUGINS; do
-    eval ${sh_version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
+    eval "${sh_version}_PLUGINS=\"\
+@abs_top_builddir@/src/${plugin}/${version}/.libs:\
+\${${sh_version}_PLUGINS}\""
   done
 
-  eval ${sh_version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
-@libdir@/${version}:\
-\${${version}_PLUGINS}:$LD_LIBRARY_PATH\')
+  eval "${sh_version}_ENV=\"LD_LIBRARY_PATH=\
+\${${sh_version}_PLUGINS}\
+${LD_LIBRARY_PATH}\""
 
-  eval ${sh_version}_LDFLAGS="\"\
--L @abs_top_builddir@/src/pms/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
+  eval "${sh_version}_LDFLAGS=\"\
 -L @abs_top_builddir@/src/core/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/core/${version}/.libs \
+-L @abs_top_builddir@/src/pms/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
 -L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
 @PTHREAD_LIBS@ \
 \${${sh_version}_LIBS} \
 \${${sh_version}_LDFLAGS}\""
 
-cat <<EOF
+cat << EOF
 test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS})"
 test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS})"
 test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS})"
 test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
 test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV})"
-
-compile_versions="${compile_versions}"
-
-$(@abs_top_srcdir@/tests/gens/config.py $*)
 EOF
 done;
 
+cat << EOF
+compile_versions="${compile_versions}"
+$(@abs_top_srcdir@/tests/gens/config.py $*)
+EOF

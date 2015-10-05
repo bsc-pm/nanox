@@ -42,25 +42,21 @@ dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
 @is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
 @is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
 @is_debug_enabled_TRUE@ debug_LIBS="${LIBS}"
-@is_debug_enabled_TRUE@ debug_PLUGINS=
 
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="${LIBS}"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_PLUGINS=
 
 @is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_LIBS="${LIBS}"
-@is_instrumentation_enabled_TRUE@ instrumentation_PLUGINS=
 
 @is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
 @is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
 @is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
 @is_performance_enabled_TRUE@ performance_LIBS="${LIBS}"
-@is_performance_enabled_TRUE@ performance_PLUGINS=
 
 # Common to all versions
 cat << EOF
@@ -74,20 +70,15 @@ for version in $VERSIONS; do
   sh_version=$(tr_sh $version)
   compile_versions+="${sh_version} "
   for plugin in $PLUGINS; do
-    eval ${sh_version}_PLUGINS+="':@abs_top_builddir@/src/$plugin/$version/.libs'"
+    eval "${sh_version}_LDFLAGS=\"\
+-L @abs_top_builddir@/src/${plugin}/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/${plugin}/${version}/.libs \
+\${${sh_version}_LDFLAGS}\""
   done
 
-  eval ${sh_version}_ENV=$(eval echo \'LD_LIBRARY_PATH=\
-@abs_top_builddir@/src/core/$version/.libs:\
-@abs_top_builddir@/src/apis/$version/.libs:\
-@abs_top_builddir@/src/pms/$version/.libs:\
-\${${sh_version}_PLUGINS}:$LD_LIBRARY_PATH\')
-
-  eval ${sh_version}_LDFLAGS="\"\
--L @abs_top_builddir@/src/pms/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
+  eval "${sh_version}_LDFLAGS=\"\
 -L @abs_top_builddir@/src/core/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/core/${version}/.libs \
+-L @abs_top_builddir@/src/pms/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
 -L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
--L @abs_top_builddir@/src/arch/opencl/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/arch/opencl/${version}/.libs \
 @PTHREAD_LIBS@ \
 \${${sh_version}_LIBS} \
 \${${sh_version}_LDFLAGS}\""
@@ -98,13 +89,14 @@ test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS})"
 test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS})"
 test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
 test_ENV_${sh_version}="$(eval echo \${${version}_ENV})"
-
-compile_versions="${compile_versions}"
-
-$(@abs_top_srcdir@/tests/gens/config.py -a '--opencl-max-devices=1' -c 1 $*)
 EOF
 
 done # for version 
+
+cat << EOF
+compile_versions="${compile_versions}"
+$(@abs_top_srcdir@/tests/gens/config.py -a '--opencl-max-devices=1' -c 1 $*)
+EOF
 
 else
 cat << EOF
