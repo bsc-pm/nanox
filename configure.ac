@@ -20,33 +20,34 @@ m4_ifdef([AM_SILENT_RULES],
 
 AM_CONDITIONAL([SUPPORTED_SILENT_RULES], test x$supported_silent_rules = x1)
  
-# Versioning things
+# Nanos version check
 # Make sure build_version is double-quoted!
-build_version="\"unknown revision\""
-if test -d $srcdir/.git;
-then
+AS_IF([test -d "$srcdir/.git"],[
+   # Git directory found
    AC_PATH_PROG([GIT], [git], [])
    AC_MSG_CHECKING([revision of git repository])
-   run_git=""
-   if test x"$GIT" != x;
-   then
+
+   # If git executable is found in path read HEAD version
+   AS_IF([test "$GIT" != ""],[
       echo "$GIT" "$srcdir" >& AS_MESSAGE_LOG_FD
-      run_gitversion=$($GIT --git-dir=$srcdir/.git log --pretty='format:%h %ci' -1)
-      run_gitbranch=$($GIT --git-dir=$srcdir/.git rev-parse --abbrev-ref HEAD)
-      build_version="\"git $run_gitbranch $run_gitversion developer version\""
-   fi
-   if test x"$GIT" = x -o x"$run_gitversion" = x;
-   then
+      gitversion=$($GIT --git-dir=$srcdir/.git log --pretty='format:%h %ci' -1)
+      gitbranch=$($GIT --git-dir=$srcdir/.git rev-parse --abbrev-ref HEAD)
+      build_version="\"git $gitbranch $gitversion developer version\""
+   ],[
+       # Git executable not found
        build_version="\"unknown git commit\""
-   fi
+   ])
    AC_MSG_RESULT([$build_version])
-elif test -e $srcdir/VERSION;
-then
-     AC_MSG_CHECKING([revision of distributed release])
-     run_gitversion=`cat $srcdir/VERSION`
-     build_version="\"$run_gitversion\""
-     AC_MSG_RESULT([$build_version])
-fi
+],[
+  AS_IF([test -e "$srcdir/VERSION"],[
+    AC_MSG_CHECKING([revision of distributed release])
+    run_gitversion=`cat $srcdir/VERSION`
+    build_version="\"$run_gitversion\""
+    AC_MSG_RESULT([$build_version])
+  ],[
+    build_version="\"unknown revision\""
+  ])
+])
 AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 
 # Debian release
@@ -57,17 +58,17 @@ AC_SUBST([DEB_RELEASE])
 AC_MSG_CHECKING([if Nanos++ Allocator has been enabled])
 AC_ARG_ENABLE([allocator], [AS_HELP_STRING([--enable-allocator], [Enables Allocator module])])
 AC_MSG_RESULT([$enable_allocator])
-if test x$enable_allocator = xyes; then
+AS_IF([test "$enable_allocator" = yes],[
 	AC_DEFINE([NANOS_USE_ALLOCATOR],[1],[Specifies whether Nanos++ allocator has been enabled or not])
-fi
+])
 
 # Memtracker support
 AC_MSG_CHECKING([if Nanos++ Memtracker has been enabled])
 AC_ARG_ENABLE([memtracker],[AS_HELP_STRING([--enable-memtracker], [Enables Memtracker module])])
 AC_MSG_RESULT([$enable_memtracker])
-if test x$enable_memtracker = xyes; then
+AS_IF([test "$enable_memtracker" = xyes],[
 	AC_DEFINE([NANOS_MEMTRACKER_ENABLED],[1],[Specifies whether Nanos++ memtracker module has been enabled or not])
-fi
+])
 
 # Set compiler default flags
 : ${CFLAGS=""}
@@ -161,27 +162,24 @@ AC_ARG_WITH([extrae],
            AS_HELP_STRING([--with-extrae=dir], [Directory of Extrae installation]),
            [
                 extrae_version_h=$withval/include/extrae_version.h
-                if test -e $extrae_version_h ;
-                then
-                   extrae_version_string=`sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h`
-                   extrae_version=`echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'`
-                   if test "$extrae_version" -ge 240;
-                   then
+                AS_IF([test -e $extrae_version_h],[
+                   extrae_version_string=$("sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h")
+                   extrae_version=$("echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'")
+                   AS_IF([test "$extrae_version" -ge 240],[
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
                       MPITRACE_LIB="$withval/lib"
-                      if test -d "$MPITRACE_HOME/lib64";
-                      then
+                      AS_IF([test -d "$MPITRACE_HOME/lib64"],[
                          MPITRACE_LIB="$MPITRACE_HOME/lib64"
-                      fi
+                      ])
                       MPITRACE_BIN="$withval/bin"
                       AC_MSG_RESULT([checking if Extrae library is compatible... yes])
-                   else
+                   ],[
                       AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
-                   fi
-                else
+                   ])
+                ],[
                    AC_MSG_ERROR([checking if Extrae library is compatible... no (Extrae > 2.4 needed)])
-                fi
+                ])
            ]
 )
 
@@ -333,12 +331,11 @@ AC_CONFIG_FILES([
 AC_OUTPUT
 
 gcc_builtins_used="unknown"
-if test "$new_gcc_builtins" = yes;
-then
-    gcc_builtins_used="new gcc __atomic builtins"
-else
-    gcc_builtins_used="legacy gcc __sync builtins"
-fi
+AS_IF([test "$new_gcc_builtins" = yes],[
+  gcc_builtins_used="new gcc __atomic builtins"
+],[
+  gcc_builtins_used="legacy gcc __sync builtins"
+])
 
 AS_ECHO(["
 Configuration summary of Nanos++
