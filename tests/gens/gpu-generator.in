@@ -63,10 +63,12 @@ for version in $VERSIONS; do
 # Prepend each preprocessor and compiler flag with -Xcompiler
 # Same for linker flags with -Xlinker
 cat << EOF
-test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
-test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
-test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} | sed 's/^\|[ ]/ -xlinker /g')"
-test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV})"
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
+test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS} | sed 's/^\|[ ]/ -xlinker /g')"
+test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
 EOF
 done # for version 
 

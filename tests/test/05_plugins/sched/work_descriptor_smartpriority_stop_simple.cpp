@@ -19,7 +19,7 @@
 
 /*
 <testinfo>
-test_generator=gens/mixed-generator
+test_generator=gens/core-generator
 test_schedule="bf --schedule-smart-priority"
 test_LDFLAGS="-Wl,--export-dynamic"
 </testinfo>

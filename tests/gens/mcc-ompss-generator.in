@@ -69,11 +69,12 @@ for version in $VERSIONS; do
 \${${sh_version}_LDFLAGS}\""
 
 cat << EOF
-test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS})"
-test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS})"
-test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS})"
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS})"
+test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS})"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS})"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS})"
 test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
-test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV})"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
 EOF
 done;
 

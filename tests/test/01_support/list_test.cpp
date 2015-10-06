@@ -21,7 +21,7 @@
 <testinfo>
 compile_versions="stdlist nanoslist"
 test_CXXFLAGS_nanoslist="-DUSE_NANOS_LIST"
-test_generator="gens/mixed-generator -a \"--gpus=0\""
+test_generator="gens/core-generator -a \"--gpus=0\""
 </testinfo>
 */
 

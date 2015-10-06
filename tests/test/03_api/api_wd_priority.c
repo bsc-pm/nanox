@@ -54,6 +54,7 @@ omp_lock_t mylock = 0;
 // compiler: outlined function arguments
 typedef struct { int *M; } task_arguments_t;
 // compiler: outlined function
+void task_1 ( void *p_args );
 void task_1 ( void *p_args )
 {
    int i;
@@ -64,6 +65,7 @@ void task_1 ( void *p_args )
 // compiler: smp device for task_1 function
 nanos_smp_args_t task_1_device_args = { task_1 };
 
+void task_2 ( void *p_args );
 void task_2 ( void *p_args )
 {
    int i;

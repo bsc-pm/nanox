@@ -322,8 +322,6 @@ AC_CONFIG_FILES([
                  tests/gens/gpu-generator
                  tests/gens/mcc-openmp-generator
                  tests/gens/mcc-ompss-generator
-                 tests/gens/mixed-generator
-                 tests/gens/nanox-creation-generator
                  tests/gens/opencl-generator
                  tests/gens/resiliency-generator
        ])
