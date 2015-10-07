@@ -26,7 +26,7 @@ test_LDFLAGS="-Wl,--export-dynamic"
 </testinfo>
 */
 
-unsigned int nanos_need_priorities_ __attribute__((common)) = 1;
+unsigned int nanos_need_priorities_ __attribute__((common));
 
 /*
  * Test description:
