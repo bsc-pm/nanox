@@ -16,6 +16,7 @@
 #   AX_VAR_PUSHVALUE and AX_VAR_POPVALUE are clean way to temporarily
 #   store a variable's value and restore it later, using a stack-like
 #   behaviour.
+#   Warning: these macros don't support multiple push/pop levels
 #
 #   Example:
 #   AX_VAR_PUSHVALUE([CXXFLAGS],["my test flags"])
