@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Transforms a text so that it is valid
+# to be used as a shell variable name
+# Note: it actually calls tr (translate)
+# and translates every alphanumeric character
+# into an underscore
+function tr_sh() {
+ echo $(echo -n "$1" | tr -c [:alnum:] '_')
+}
+
 if [ x@cuda@ = xyes ];
 then
 
@@ -15,22 +24,22 @@ PLUGINS="@PLUGINS@"
 
 LIBS="-lnanox-ompss -lnanox -lnanox-c -lnanox-gpu-api @cudalibs@"
 
-@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
 @is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
 @is_debug_enabled_TRUE@ debug_LDFLAGS="@cudalib@ @LDFLAGS@"
 @is_debug_enabled_TRUE@ debug_LIBS=${LIBS}
 
-@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@cudalib@ @LDFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_LIBS=${LIBS}
 
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@cudalib@ @LDFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=${LIBS}
 
-@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
 @is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
 @is_performance_enabled_TRUE@ performance_LDFLAGS="@cudalib@ @LDFLAGS@"
 @is_performance_enabled_TRUE@ performance_LIBS=${LIBS}
@@ -63,10 +72,10 @@ for version in $VERSIONS; do
 # Prepend each preprocessor and compiler flag with -Xcompiler
 # Same for linker flags with -Xlinker
 cat << EOF
-test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
-test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
-test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} | sed 's/^\|[ ]/ -xcompiler /g')"
-test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS} | sed 's/^\|[ ]/ -xlinker /g')"
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} | sed 's/^\|[ ]/ -Xcompiler /g')"
+test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} | sed 's/^\|[ ]/ -Xcompiler /g')"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} | sed 's/^\|[ ]/ -Xcompiler /g')"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS} | sed 's/\(^\|[ ]\)\(-Wl,\|,\|\)/ -Xlinker /g')"
 test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
 test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
 EOF
