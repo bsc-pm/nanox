@@ -77,14 +77,10 @@ AS_IF([test "x$with_hwloc$with_hwloc_include$with_hwloc_lib" != x],[
   AC_LANG_PUSH([C++])
 
   #tests if provided headers and libraries are usable and correct
-  bak_CPPFLAGS="$CPPFLAGS"
-  bak_CXXFLAGS="$CXXFLAGS"
-  bak_LDFLAGS="$LDFLAGS"
-  bak_LIBS="$LIBS"
-
-  CPPFLAGS="$CPPFLAGS $hwlocinc"
-  LDFLAGS="$CPPFLAGS $hwloclib"
-  LIBS=
+  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $hwlocinc])
+  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $hwloclib])
+  AX_VAR_PUSHVALUE([LIBS],[])
 
   # Check if hwloc.h header file exists and compiles
   AC_CHECK_HEADER([hwloc.h], [hwloc=yes],[hwloc=no])
@@ -168,16 +164,16 @@ because cross-compilation mode has been detected.
 
   hwloclibs=$LIBS
 
-  CPPFLAGS="$bak_CPPFLAGS"
-  CXXFLAGS="$bak_CXXFLAGS"
-  LDFLAGS="$bak_LDFLAGS"
-  LIBS="$bak_LIBS"
+  AX_VAR_POPVALUE([CPPFLAGS])
+  AX_VAR_POPVALUE([CXXFLAGS])
+  AX_VAR_POPVALUE([LDFLAGS])
+  AX_VAR_POPVALUE([LIBS])
 
   AC_LANG_POP([C++])
 
 ])dnl with_hwloc
 
-AS_IF([test x$hwloc = xyes],[
+AS_IF([test "$hwloc" = yes],[
     OPTIONS="$OPTIONS hwloc"
 
     AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])

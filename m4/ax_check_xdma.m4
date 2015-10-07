@@ -70,14 +70,10 @@ AS_IF([test "$xdma_path_provided" = yes],[
 ])dnl
 
 AS_IF([test "$xdma" = yes],[
-  save_CPPFLAGS="$CPPFLAGS"
-  save_CXXFLAGS="$CXXFLAGS"
-  save_LDFLAGS="$LDFLAGS"
-  save_LIBS="$LIBS"
-
-  CPPFLAGS="$CPPFLAGS $xdmainc"
-  LDFLAGS="$LDFLAGS $xdmalib"
-  LIB=
+  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $xdmainc])
+  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $xdmalib])
+  AX_VAR_PUSHVALUE([LIBS],[])
 
   # Check for header
   AC_CHECK_HEADERS([libxdma.h],
@@ -95,10 +91,10 @@ AS_IF([test "$xdma" = yes],[
   
   xdmalibs="$LIBS"
 
-  CPPFLAGS="$save_CPPFLAGS"
-  CXXFLAGS="$save_CXXFLAGS"
-  LDFLAGS="$save_LDFLAGS"
-  LIBS="$save_LIBS"
+  AX_VAR_POPVALUE([CPPFLAGS])
+  AX_VAR_POPVALUE([CXXFLAGS])
+  AX_VAR_POPVALUE([LDFLAGS])
+  AX_VAR_POPVALUE([LIBS])
   
   AS_IF([test "$xdma" = yes],[
     ARCHITECTURES="$ARCHITECTURES fpga"

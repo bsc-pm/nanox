@@ -96,14 +96,10 @@ AC_DEFUN([AX_CHECK_CUDA],[
       AC_PATH_PROG([NVCC], [nvcc], [], [$cuda_prefix/bin$PATH_SEPARATOR$PATH])
   
       #tests if provided headers and libraries are usable and correct
-      bak_CPPFLAGS="$CPPFLAGS"
-      bak_CXXFLAGS="$CXXFLAGS"
-      bak_LDFLAGS="$LDFLAGS"
-      bak_LIBS="$LIBS"
-  
-      CPPFLAGS="$CPPFLAGS $cudainc"
-      LDFLAGS="$LDFLAGS $cudalib"
-      LIBS=
+      AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $cudainc])
+      AX_VAR_PUSHVALUE([CXXFLAGS])
+      AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $cudalib])
+      AX_VAR_PUSHVALUE([LIBS],[])
   
       # Check if cuda.h header file exists and compiles
       AC_CHECK_HEADER([cuda.h], [cuda=yes],[cuda=no])
@@ -130,10 +126,10 @@ AC_DEFUN([AX_CHECK_CUDA],[
 
       cudalibs="$LIBS"
   
-      CPPFLAGS="$bak_CPPFLAGS"
-      CXXFLAGS="$bak_CXXFLAGS"
-      LDFLAGS="$bak_LDFLAGS"
-      LIBS="$bak_LIBS"
+      AX_VAR_POPVALUE([CPPFLAGS])
+      AX_VAR_POPVALUE([CXXFLAGS])
+      AX_VAR_POPVALUE([LDFLAGS])
+      AX_VAR_POPVALUE([LIBS])
 
       AC_LANG_POP([C++])
   

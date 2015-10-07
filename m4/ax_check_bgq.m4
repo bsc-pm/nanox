@@ -50,9 +50,6 @@ AC_BEFORE([AX_COMPILER_VENDOR],[$0])
 
 AC_LANG_PUSH([C++])
 
-save_CPPFLAGS=$CPPFLAGS
-save_CXXFLAGS=$CXXFLAGS
-
 # Old BG/Q cppflags: -I/bgsys/drivers/V1R2M1/ppc64 -I/bgsys/drivers/V1R2M1/ppc64/spi/include/kernel/cnk
 # The latter one might not be needed as all the header files included inside Nanox belong to a different
 # directory

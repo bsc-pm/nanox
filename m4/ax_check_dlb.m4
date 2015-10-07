@@ -86,10 +86,10 @@ AS_IF([test "$dlb_check" = yes],[
 
   AC_LANG_PUSH([C++])
 
-  bak_CPPFLAGS="$CPPFLAGS"
-  bak_CXXFLAGS="$CXXFLAGS"
-  bak_LIBS="$LIBS"
-  bak_LDFLAGS="$LDFLAGS"
+  AX_VAR_PUSHVALUE([CPPFLAGS])
+  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([LDLAGS])
+  AX_VAR_PUSHVALUE([LIBS],[])
 
   AX_APPEND_FLAG([$dlbinc],[CPPFLAGS])
   AX_APPEND_FLAG([$PTHREAD_CFLAGS],[CXXFLAGS])
@@ -114,10 +114,10 @@ Please, check that the provided directories are correct.
 ------------------------------])
     ])dnl
 
-  CPPFLAGS="$bak_CPPFLAGS"
-  CXXFLAGS="$bak_CXXFLAGS"
-  LIBS="$bak_LIBS"
-  LDFLAGS="$bak_LDFLAGS"
+  AX_VAR_POPVALUE([CPPFLAGS])
+  AX_VAR_POPVALUE([CXXFLAGS])
+  AX_VAR_POPVALUE([LDLAGS])
+  AX_VAR_POPVALUE([LIBS])
 
   AC_LANG_POP([C++])
 

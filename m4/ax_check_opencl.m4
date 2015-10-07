@@ -102,14 +102,10 @@ AS_IF([test "x$with_opencl" != xno],[
     AC_LANG_PUSH([C++])
 
     #tests if provided headers and libraries are usable and correct
-    bak_CPPFLAGS="$CPPFLAGS"
-    bak_CxXFLAGS="$CXXFLAGS"
-    bak_LDFLAGS="$LDFLAGS"
-    bak_LIBS="$LIBS"
-
-    CPPFLAGS="$CPPFLAGS $openclinc"
-    LDFLAGS="$LDFLAGS $opencllib"
-    LIBS=
+    AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $openclinc])
+    AX_VAR_PUSHVALUE([CxXFLAGS])
+    AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $opencllib])
+    AX_VAR_PUSHVALUE([LIBS])
 
     # One of the following two header files has to exist
     AC_CHECK_HEADERS([CL/opencl.h OpenCL/opencl.h], [opencl=yes; break])
@@ -185,10 +181,10 @@ OpenCL version test execution failed
 
     opencllibs="$LIBS"
 
-    CPPFLAGS="$bak_CPPFLAGS"
-    CXXFLAGS="$bak_CXXFLAGS"
-    LDFLAGS="$bak_LDFLAGS"
-    LIBS="$bak_LIBS"
+    AX_VAR_POPVALUE([CPPFLAGS])
+    AX_VAR_POPVALUE([CXXFLAGS])
+    AX_VAR_POPVALUE([LDFLAGS])
+    AX_VAR_POPVALUE([LIBS])
 
     AC_LANG_POP([C++])
 

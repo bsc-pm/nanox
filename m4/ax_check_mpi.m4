@@ -103,48 +103,34 @@ AS_IF([test $with_mpi_lib],[
 ])dnl
 
 AS_IF([test $mpi = yes],[
-  # Save the previous value of autoconf generated variables.
+  # 1) Save the previous value of autoconf generated variables.
   # They may be used later in the configuration (e.g. AC_OUTPUT)
-  save_CXX="$CXX"
-  save_CxXFLAGS="$CXXFLAGS"
-  save_CPPFLAGS="$CPPFLAGS"
-  save_LIBS="$LIBS"
-  save_LDFLAGS="$LDFLAGS"
-
-  # Also save some important cached values.
+  # 2) Save some important cached values.
   # This macro performs some checks using a different C++ compiler (mpicxx)
   # This is not very standar-ish, but allows us to avoid autoconf to reuse
   # AC_PROG_CXX checks that were done previously.
   # Of course, we will need to restore them before returning.
-  save_CXXCPP="$CXXCPP"
-  save_CXX="$CXX"
-  save_ac_cv_prog_CXXCPP="$ac_cv_prog_CXXCPP"
-  save_ac_cv_prog_CXX="$ac_cv_prog_CXX"
-  save_ac_cv_prog_ac_ct_CXX="$ac_cv_prog_ac_ct_CXX"
-  save_ac_cv_cxx_compiler_gnu="$ac_cv_cxx_compiler_gnu"
-  save_ac_cv_prog_cxx_g="$ac_cv_prog_cxx_g"
-  save_am_cv_CXX_dependencies_compiler_type="$am_cv_CXX_dependencies_compiler_type"
-  
-  # Empty/set values
+  # 3) Empty/set values
   # MPICH_IGNORE_CXX_SEEK and MPICH_SKIP_MPICXX are used to avoid
   # errors when mpi.h is included after stdio.h when compiling C++ code
   # It only applies, however, to mpich implementations
   # Some exceptions:
   #  - Dont unset CPPFLAGS, CXXFLAGS and LDFLAGS. Respect additional user provided flags
-  CPPFLAGS="$CPPFLAGS $mpiinc -DMPICH_IGNORE_CXX_SEEK -DMPICH_SKIP_MPICXX"
-  LDFLAGS="$LDFLAGS $mpilibs"
-  LIBS=
+  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $mpiinc -DMPICH_IGNORE_CXX_SEEK -DMPICH_SKIP_MPICXX])
+  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilibs])
+  AX_VAR_PUSHVALUE([LIBS])
 
-  # For cached values, it implies unsetting the variable itself, or it will skip
-  # the corresponding checks.
-  unset CXXCPP
-  unset CXX
-  unset ac_cv_prog_CXXCPP
-  unset ac_cv_prog_CXX
-  unset ac_cv_prog_ac_ct_CXX
-  unset ac_cv_cxx_compiler_gnu
-  unset ac_cv_prog_cxx_g
-  unset am_cv_CXX_dependencies_compiler_type
+  # For cached values and tools, it implies unsetting the variable itself,
+  # or it will skip their corresponding checks.
+  AX_VAR_PUSHVALUE([CXXCPP],[])
+  AX_VAR_PUSHVALUE([CXX],[])
+  AX_VAR_PUSHVALUE([ac_cv_prog_CXXCPP],[])
+  AX_VAR_PUSHVALUE([ac_cv_prog_CXX],[])
+  AX_VAR_PUSHVALUE([ac_cv_prog_ac_ct_CXX],[])
+  AX_VAR_PUSHVALUE([ac_cv_cxx_compiler_gnu],[])
+  AX_VAR_PUSHVALUE([ac_cv_prog_cxx_g],[])
+  AX_VAR_PUSHVALUE([am_cv_CXX_dependencies_compiler_type],[])
   
   AC_LANG_PUSH([C++])
   
@@ -278,20 +264,19 @@ Maximun multithread level supported: $ac_cv_mpi_mt
   MPICXX="$CXX"
 
   # Restore variables to its original state
-  CXX="$save_CXX"
-  CXXFLAGS="$save_CxXFLAGS"
-  CPPFLAGS="$save_CPPFLAGS"
-  LIBS="$save_LIBS"
-  LDFLAGS="$save_LDFLAGS"
-  
-  CXXCPP="$save_CXXCPP"
-  CXX="$save_CXX"
-  ac_cv_prog_CXXCPP="$save_ac_cv_prog_CXXCPP"
-  ac_cv_prog_CXX="$save_ac_cv_prog_CXX"
-  ac_cv_prog_ac_ct_CXX="$save_ac_cv_prog_ac_ct_CXX"
-  ac_cv_cxx_compiler_gnu="$save_ac_cv_cxx_compiler_gnu"
-  ac_cv_prog_cxx_g="$save_ac_cv_prog_cxx_g"
-  am_cv_CXX_dependencies_compiler_type="$save_am_cv_CXX_dependencies_compiler_type"
+  AX_VAR_POPVALUE([CPPFLAGS])
+  AX_VAR_POPVALUE([CXXFLAGS])
+  AX_VAR_POPVALUE([LDFLAGS])
+  AX_VAR_POPVALUE([LIBS])
+
+  AX_VAR_POPVALUE([CXXCPP])
+  AX_VAR_POPVALUE([CXX])
+  AX_VAR_POPVALUE([ac_cv_prog_CXXCPP])
+  AX_VAR_POPVALUE([ac_cv_prog_CXX])
+  AX_VAR_POPVALUE([ac_cv_prog_ac_ct_CXX])
+  AX_VAR_POPVALUE([ac_cv_cxx_compiler_gnu])
+  AX_VAR_POPVALUE([ac_cv_prog_cxx_g])
+  AX_VAR_POPVALUE([am_cv_CXX_dependencies_compiler_type])
   
   AC_LANG_POP([C++])
 

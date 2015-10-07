@@ -40,9 +40,6 @@
 
 AC_DEFUN([AX_CHECK_MEMKIND],[
 
-LDFLAGS_BKP="$LDFLAGS"
-LIBS_BKP="$LIBS"
-
 AC_ARG_WITH(jemalloc,
 [AS_HELP_STRING([--with-jemalloc,--with-jemalloc=PATH],
                 [search in system directories or specify prefix directory for installed jemalloc package.])],
@@ -57,20 +54,15 @@ AC_ARG_WITH(memkind,
 
 AS_IF([test "$with_memkind" != no],[
 
-  AC_LANG_PUSH([C++])
-
-  save_CPPFLAGS="$CPPFLAGS"
-  save_CXXFLAGS="$CXXFLAGS"
-  save_LDFLAGS="$LDFLAGS"
-  save_LIBS="$LIBS"
-
-  LIBS=
-
   memkindinc=-I$with_memkind/include
   memkindlib="-L$with_jemalloc/lib -Wl,-rpath,$with_jemalloc/lib -L$with_memkind/lib -Wl,-rpath,$with_memkind/lib"
   
-  CPPFLAGS="$CPPFLAGS $memkindinc"
-  LDFLAGS="$LDFLAGS $memkindlib"
+  AC_LANG_PUSH([C++])
+
+  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $memkindinc])
+  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $memkindlib])
+  AX_VAR_PUSHVALUE([LIBS],[])
 
   AC_SEARCH_LIBS([je_malloc], [jemalloc],
     [jemalloc=yes], 
@@ -105,6 +97,13 @@ Memkind path was not correctly specified.
 Please, check that the provided directories are correct.
 ------------------------------])
   ])dnl
+
+  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $memkindinc])
+  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $memkindlib])
+  AX_VAR_PUSHVALUE([LIBS],[])
+
+  AC_LANG_POP([C++])
 
 ]) dnl with_memkind
 

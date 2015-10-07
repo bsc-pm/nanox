@@ -93,11 +93,11 @@ AS_IF([test "x$gasnet" = xyes],[
 
   AC_LANG_PUSH([C++])
 
-  bak_CXX="$CXX"
-  bak_CPPFLAGS="$CPPFLAGS"
-  bak_CXXFLAGS="$CXXFLAGS"
-  bak_LIBS="$LIBS"
-  bak_LDFLAGS="$LDFLAGS"
+  AX_VAR_PUSHVALUE([CXX])
+  AX_VAR_PUSHVALUE([CPPFLAGS])
+  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([LIBS],[])
+  AX_VAR_PUSHVALUE([LDFLAGS])
 
   AX_APPEND_FLAG([$PTHREAD_CFLAGS],[CXXFLAGS])
 
@@ -150,11 +150,11 @@ GASNet is linked with.
 ------------------------------])
   ])dnl
 
-  CXX="$bak_CXX"
-  CPPFLAGS="$bak_CPPFLAGS"
-  CXXFLAGS="$bak_CXXFLAGS"
-  LIBS="$bak_LIBS"
-  LDFLAGS="$bak_LDFLAGS"
+  AX_VAR_POPVALUE([CXX])
+  AX_VAR_POPVALUE([CPPFLAGS])
+  AX_VAR_POPVALUE([CXXFLAGS])
+  AX_VAR_POPVALUE([LIBS],[])
+  AX_VAR_POPVALUE([LDFLAGS])
 
   AC_LANG_POP([C++])
 
@@ -187,8 +187,8 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
   conduit_prereq_libs="$3 $PTHREAD_LIBS -lrt"
   conduit_inc="-isystem $gasnetinc -I$gasnetinc/$1-conduit $4"
 
-  CPPFLAGS="${bak_CPPFLAGS} $conduit_inc"
-  LDFLAGS="${bak_LDFLAGS} $gasnetlib"
+  CPPFLAGS="${save_CPPFLAGS} $conduit_inc"
+  LDFLAGS="${save_LDFLAGS} $gasnetlib"
   LIBS=
 
 
