@@ -75,7 +75,7 @@ ${LD_LIBRARY_PATH}\""
 @PTHREAD_LIBS@ \
 \${${sh_version}_LDFLAGS}\""
 
-cat <<EOF
+cat << EOF
 test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS})"
 test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS})"
 test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS})"

@@ -30,6 +30,7 @@ test_generator=gens/api-generator
 
 nanos_wd_dyn_props_t dyn_props = {0};
 
+void sleep_100 ( void );
 void sleep_100 ( void )
 {
    nanos_event_t event;
@@ -58,6 +59,7 @@ typedef struct {
    int value;
 } main__task_2_data_t;
 
+void main__task_2 ( void *args );
 void main__task_2 ( void *args )
 {
    nanos_event_t event;
@@ -104,6 +106,7 @@ struct nanos_const_wd_definition_1 const_data2 =
 };
 
 // compiler: outlined function
+void main__task_1 ( void *args );
 void main__task_1 ( void *args )
 {
    nanos_event_t event;

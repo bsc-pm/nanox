@@ -74,7 +74,6 @@ ${LD_LIBRARY_PATH}\""
 -L @abs_top_builddir@/src/pms/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
 -L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
 @PTHREAD_LIBS@ \
-\${${sh_version}_LIBS} \
 \${${sh_version}_LDFLAGS}\""
 
 cat << EOF

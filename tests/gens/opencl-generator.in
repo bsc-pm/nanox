@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ x@OPENCL_VALID@ = xyes ];
+if [ "@opencl@" = yes ];
 then
 
 # Transforms a text so that it is valid

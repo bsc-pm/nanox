@@ -35,6 +35,7 @@ typedef struct {
 } main__task_1_data_t;
 // --
 // compiler: outlined function
+void main__task_1 ( void *args );
 void main__task_1 ( void *args )
 {
    /* User Function: main__task_1: enter burst */
