@@ -6,7 +6,31 @@
 # and translates every alphanumeric character
 # into an underscore
 function tr_sh() {
- echo $(echo -n "$1" | tr -c [:alnum:] '_')
+ echo $(echo -n "$@" | tr -c [:alnum:] '_')
+}
+
+# Transforms the argument, putting '-Xcompiler'
+# at the beginning of each word
+# -Xlinker arguments are ignored
+function put_xcompiler() {
+ echo $(echo -n "$@" | \
+        tr ' ' '\n' | \
+        sed 's/^/-Xcompiler /g' | \
+        tr '\n' ' ' | \
+        sed 's/\(-Xcompiler \)\+/-Xcompiler /g')
+}
+
+# Transforms the argument, putting '-Xlinker'
+# at the beginning of each word
+# -Wl, arguments are also transformed acordingly
+# -Xlinker arguments are ignored
+function put_xlinker() {
+ echo $(echo -n "$@" | \
+        tr ' ' '\n' | \
+        sed 's/^/-Xlinker /' | \
+        sed '/-Wl\,/,/ / s/-Xlinker -Wl,\|,/ -Xlinker /g' | \
+        tr '\n' ' ' | \
+        sed 's/\(-Xlinker \)\+/-Xlinker /g')
 }
 
 if [ x@cuda@ = xyes ];
@@ -22,7 +46,7 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-LIBS="-lnanox-ompss -lnanox -lnanox-c -lnanox-gpu-api @cudalibs@"
+LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -lnanox-gpu-api -Xlinker --as-needed @cudalibs@"
 
 @is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @cudainc@ @CPPFLAGS@"
 @is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
@@ -53,15 +77,15 @@ EOF
 # Specific to each version
 compile_versions=
 for version in $VERSIONS; do
-  sh_version=$(tr_sh $version)
-  compile_versions+="${sh_version} "
-  for plugin in $PLUGINS; do
-    eval "${sh_version}_LDFLAGS=\"\
--L @abs_top_builddir@/src/${plugin}/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/${plugin}/${version}/.libs \
-\${${sh_version}_LDFLAGS}\""
-  done
-
+ sh_version=$(tr_sh $version)
+ compile_versions+="${sh_version} "
+ for plugin in $PLUGINS; do
   eval "${sh_version}_LDFLAGS=\"\
+-L @abs_top_builddir@/src/${plugin}/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/${plugin}/${version}/.libs \
+\${${sh_version}_LDFLAGS}\""
+ done
+
+ eval "${sh_version}_LDFLAGS=\"\
 -L @abs_top_builddir@/src/core/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/core/${version}/.libs \
 -L @abs_top_builddir@/src/pms/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
 -L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
@@ -71,11 +95,12 @@ for version in $VERSIONS; do
 
 # Prepend each preprocessor and compiler flag with -Xcompiler
 # Same for linker flags with -Xlinker
+# For that purpose, use put_xcompiler and put_xlinker functions declared at the begining of the script.
 cat << EOF
-test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} | sed 's/^\|[ ]/ -Xcompiler /g')"
-test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} | sed 's/^\|[ ]/ -Xcompiler /g')"
-test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} | sed 's/^\|[ ]/ -Xcompiler /g')"
-test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS} | sed 's/\(^\|[ ]\)\(-Wl,\|,\|\)/ -Xlinker /g')"
+test_CPPFLAGS_${sh_version}="$(eval put_xcompiler \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} )"
+test_CFLAGS_${sh_version}="$(eval put_xcompiler \${${sh_version}_CFLAGS} ${test_CFLAGS} )"
+test_CXXFLAGS_${sh_version}="$(eval put_xcompiler \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} )"
+test_LDFLAGS_${sh_version}="$(eval put_xlinker \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS} )"
 test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
 test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
 EOF

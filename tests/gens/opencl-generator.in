@@ -9,7 +9,7 @@ then
 # and translates every alphanumeric character
 # into an underscore
 function tr_sh() {
-  echo $(echo -n "$1" | tr -c [:alnum:] '_')
+  echo $(echo -n "$@" | tr -c [:alnum:] '_')
 }
 
 common_includes="
@@ -28,7 +28,7 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-LIBS="-lnanox-ompss -lnanox -lnanox-c -lnanox-opencl-api @opencllibs@"
+LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -lnanox-opencl-api -Xlinker --as-needed @opencllibs@"
 
 dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
 #rpath="\

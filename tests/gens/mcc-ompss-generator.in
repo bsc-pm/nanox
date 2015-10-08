@@ -6,7 +6,7 @@
 # and translates every alphanumeric character
 # into an underscore
 function tr_sh() {
-  echo $(echo -n "$1" | tr -c [:alnum:] '_')
+  echo $(echo -n "$@" | tr -c [:alnum:] '_')
 }
 
 if [ x@MCC_SUPPORT@ = xyes ];

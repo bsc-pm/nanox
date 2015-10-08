@@ -6,7 +6,7 @@
 # and translates every alphanumeric character
 # into an underscore
 function tr_sh() {
-  echo $(echo -n "$1" | tr -c [:alnum:] '_')
+  echo $(echo -n "$@" | tr -c [:alnum:] '_')
 }
 
 common_includes="\
@@ -21,7 +21,7 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-LIBS="-lnanox-omp -lnanox -lnanox-c"
+LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -Xlinker --as-needed"
 
 @is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
 @is_debug_enabled_TRUE@ debug_CFLAGS="@debug_CXXFLAGS@ @CFLAGS@"
