@@ -1,5 +1,6 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,41 +18,39 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <stdio.h>
-#include "system.hpp"
+#include "nanos-fpga.h"
+#include "basethread.hpp"
+#include "fpgadd.hpp"
+#include "debug.hpp"
 
-/*
-<testinfo>
-   test_generator="gens/mixed-generator -a --no-warmup-threads|--warmup-threads"
-   test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
-                        "NX_TEST_SCHEDULE=bf"
-                        "NX_TEST_ARCH=smp")
-   test_exec_command="timeout 5m"
-   test_ignore=yes
-</testinfo>
-*/
+#include "libxdma.h"
 
-#define ITERS 1000
+using namespace nanos;
 
-int main ( int argc, char *argv[])
+NANOS_API_DEF( void *, nanos_fpga_factory, ( void *args ) )
 {
-   int i, error = 0;
-   unsigned nths = 0;
-   
-
-   for ( i=0; i<ITERS; i++ ) {
-
-      nths = ((nths) % 4) + 1;
-
-      sys.updateActiveWorkers( nths );
-
-      fprintf(stdout,"[%d/%d] Team final size is %d and %d is expected\n", i, ITERS, (int) myThread->getTeam()->getFinalSize(), nths );
-
-      if ( myThread->getTeam()->getFinalSize() != nths ) error++;
-   }
-
-   fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
-
-   return error;
+   nanos_fpga_args_t *fpga = ( nanos_fpga_args_t * ) args;
+   return ( void * ) NEW ext::FPGADD( fpga->outline, fpga->acc_num );
 }
 
+NANOS_API_DEF( void *, nanos_fpga_alloc_dma_mem, ( size_t len) )
+{
+    void *buffer;
+    xdma_status status;
+    status = xdmaAllocateKernelBuffer( &buffer, len );
+    if ( status != XDMA_SUCCESS ) {
+        warning( "Could not allocate memory in kernel space" );
+        buffer = NULL;
+    }
+
+    return buffer;
+}
+
+NANOS_API_DEF( void, nanos_fpga_free_dma_mem, ( ) )
+{
+    xdma_status status;
+    status = xdmaFreeKernelBuffers();
+    if ( status != XDMA_SUCCESS ) {
+        warning( "Could not free kernel memory" );
+    }
+}

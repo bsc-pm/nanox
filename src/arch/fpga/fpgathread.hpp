@@ -1,5 +1,6 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,41 +18,41 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <stdio.h>
-#include "system.hpp"
+#ifndef _NANOS_FPGA_THREAD
+#define _NANOS_FPGA_THREAD
 
-/*
-<testinfo>
-   test_generator="gens/mixed-generator -a --no-warmup-threads|--warmup-threads"
-   test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
-                        "NX_TEST_SCHEDULE=bf"
-                        "NX_TEST_ARCH=smp")
-   test_exec_command="timeout 5m"
-   test_ignore=yes
-</testinfo>
-*/
+#include <queue>
 
-#define ITERS 1000
+#include "fpgaprocessor.hpp"
+#include "smpthread.hpp"
 
-int main ( int argc, char *argv[])
+namespace nanos {
+namespace ext
 {
-   int i, error = 0;
-   unsigned nths = 0;
-   
 
-   for ( i=0; i<ITERS; i++ ) {
+   class FPGAThread : public SMPThread
+   {
+      public:
+         FPGAThread(WD &wd, PE *pe, SMPProcessor *core, Atomic<int> fpgaDevice) : SMPThread(wd, pe, core), _pendingWD(){}
 
-      nths = ((nths) % 4) + 1;
+         void initializeDependent( void );
+         void runDependent ( void );
+         bool inlineWorkDependent( WD &work );
+         virtual void preOutlineWorkDependent ( WD &work );
+         virtual void outlineWorkDependent ( WD &work );
 
-      sys.updateActiveWorkers( nths );
+         void yield();
+         void idle( bool debug );
 
-      fprintf(stdout,"[%d/%d] Team final size is %d and %d is expected\n", i, ITERS, (int) myThread->getTeam()->getFinalSize(), nths );
+         int getPendingWDs() const;
+         void finishPendingWD( int numWD );
+         void addPendingWD( WD *wd );
+         void finishAllWD();
 
-      if ( myThread->getTeam()->getFinalSize() != nths ) error++;
-   }
-
-   fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
-
-   return error;
+      private:
+         std::queue< WD* > _pendingWD;
+   };
+}
 }
 
+#endif

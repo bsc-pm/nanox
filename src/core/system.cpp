@@ -52,6 +52,10 @@
 #include "gpudd.hpp"
 #endif
 
+#ifdef FPGA_DEV
+#include "fpgaprocessor.hpp"
+#endif
+
 #ifdef CLUSTER_DEV
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
@@ -162,6 +166,13 @@ void System::loadArchitectures()
    verbose0( "loading OpenCL support" );
    if ( !loadPlugin( "pe-opencl" ) )
      fatal0 ( "Couldn't load OpenCL support" );
+#endif
+
+#ifdef FPGA_DEV
+   verbose0( "loading FPGA support" );
+
+   if ( !loadPlugin( "pe-fpga" ) )
+       fatal0 ( "couldn't load FPGA support" );
 #endif
 
 #ifdef CLUSTER_DEV
