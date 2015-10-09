@@ -40,22 +40,22 @@ dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
 
 @is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
 @is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
-@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
 @is_debug_enabled_TRUE@ debug_LIBS="${LIBS}"
 
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="${LIBS}"
 
 @is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
 @is_instrumentation_enabled_TRUE@ instrumentation_LIBS="${LIBS}"
 
 @is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ @cc_dep_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
 @is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
-@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
 @is_performance_enabled_TRUE@ performance_LIBS="${LIBS}"
 
 # Common to all versions
