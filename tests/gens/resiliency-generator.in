@@ -3,7 +3,7 @@ path=$(dirname $0)
 
 if [ x@enable_resiliency@ = xyes ]; then
 
-$( ${path}/mixed-generator )
+$( ${path}/core-generator )
 
 else #no resiliency
 
