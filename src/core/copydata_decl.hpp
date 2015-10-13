@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -110,6 +110,7 @@ namespace nanos
          bool isRemoteHost() const;
          void setRemoteHost( bool value );
          void deductCd( CopyData const &ref, CopyData *out ) const;
+         bool equalGeometry( CopyData const &cd ) const;
 
       friend std::ostream& operator<< (std::ostream& o, CopyData const &cd);
 

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -50,7 +50,8 @@ namespace nanos {
 
          public:
             // constructors
-            ClusterNode( int nodeId, memory_space_id_t memId );
+            ClusterNode( int nodeId, memory_space_id_t memId,
+               const Device **arch, unsigned int numArchs );
 
             virtual ~ClusterNode();
 

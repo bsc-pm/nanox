@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #include "copydata.hpp"
 #include "basethread.hpp"
 #include "debug.hpp"
@@ -133,5 +152,17 @@ std::ostream& nanos::operator<< (std::ostream &o, CopyData const &cd) {
    } 
    o << "End of CopyData" << std::endl;
    return o;
+}
+
+bool CopyData::equalGeometry( CopyData const &cd ) const {
+   bool result = true;
+   if ( cd.dimension_count != this->dimension_count || cd.address != this->address ) {
+      result = false;
+   } else {
+      for ( int idx = 0; idx < this->dimension_count && result; idx += 1 ) {
+         result = cd.dimensions[idx].size == this->dimensions[idx].size;
+      }
+   }
+   return result;
 }
 

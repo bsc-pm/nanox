@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.9a], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.10a], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
@@ -13,6 +13,11 @@ AC_CANONICAL_TARGET
 # Automake initialization
 AM_INIT_AUTOMAKE([-Wall dist-bzip2 -Wno-portability subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
+
+# AM_PROG_AR must be called before LT_INIT or a warning ensues
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+# Turn off static libraries.
+LT_INIT([disable-static])
 
 dnl Enable silent rules if available
 supported_silent_rules=1
@@ -273,8 +278,6 @@ AC_SUBST([mpi_valid])
 
 
 # Check for programs (every compiler change should be done before this line)
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-AC_PROG_LIBTOOL
 AC_PROG_CC([$CC])
 AC_PROG_CPP
 AM_PROG_CC_C_O
@@ -381,7 +384,18 @@ case $host in
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=aarch64
     ;;
-  powerpc-*-linux* | powerpc64-*-linux*)
+  powerpc64??-*-linux* )
+    OS=unix-os
+    ARCHITECTURES="$ARCHITECTURES smp"
+
+    if test $ac_cv_sizeof_size_t = 8 ; then
+        SMP_ARCH=ppc64_v2
+    fi
+    #FIXME ULT not supported yet
+    smp_ult=no
+    ;;
+
+  powerpc-*-linux* | powerpc64-*-linux* )
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
 
@@ -436,6 +450,57 @@ case $host in
     smp_ult=no
     ;;
 esac
+
+
+#check fpga support
+fpga_valid=no
+fpga_enabled=no
+
+XDMA_PATH=""
+
+AC_MSG_CHECKING([if FPGA support was enabled])
+AC_ARG_ENABLE([fpga-arch],
+    AS_HELP_STRING([--enable-fpga-arch], [Enables the use of FPGA devices]),
+    [
+    if test x"$enableval" = x"yes";
+    then
+        AC_MSG_RESULT([yes])
+        fpga_enabled="yes"
+    else if test x"$enableval" = x"no" -o x"$enableval" = x"";
+    then
+            AC_MSG_RESULT([no])
+            fpga_enabled="no"
+            fpga_valid="yes"
+        else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+        fi
+    fi
+    ],
+    [
+        AC_MSG_RESULT([no])
+        fpga_enabled="no"
+    ]
+)
+
+XDMADIR=""
+AC_ARG_WITH([xdma],
+AS_HELP_STRING([--with-xdma=dir], [Directory of the xdma lib]),
+    [
+        XDMADIR="${withval}"
+    ],
+    [
+        XDMADIR="/opt/install-arm/libxdma"
+    ])
+
+#TODO: Check correct xdmalib library
+#Assuming that if enable-fpga is given, it is always valid
+if test x$fpga_enabled = xyes; then
+    ARCHITECTURES="$ARCHITECTURES fpga"
+    AC_SUBST([XDMADIR])
+    CFLAGS="$CFLAGS -DFPGA_DEV"
+    CXXFLAGS="$CXXFLAGS -DFPGA_DEV"
+fi
+
 
 #check for cluster enable option
 AC_MSG_CHECKING([if Cluster architecture was requested])
@@ -556,6 +621,7 @@ AM_CONDITIONAL([CONDUIT_DBG_MPI], [test x$with_mpi_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_UDP], [test x$with_udp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
+
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no
@@ -978,7 +1044,8 @@ AC_SUBST([USED_VERSION])
 
 
 # Check for atomic builtins in GCC
-AC_CHECK_GXX_ATOMIC_BUILTINS()
+AC_CHECK_GXX_LEGACY_ATOMIC_BUILTINS()
+AC_CHECK_GXX_NEW_ATOMIC_BUILTINS()
 
 MPITRACE_HOME=""
 MPITRACE_INC=""
@@ -1063,8 +1130,9 @@ AC_ARG_WITH([hwloc],
                 if test -e $hwloc_h ;
                 then
                    hwloc_version_string=`sed -ne '/^\s*#\s*define\s\+HWLOC_API_VERSION .*$/p' $hwloc_h`
-                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION 0x[0]\+\([0-9]\+\).*$/\1/'`
-                   if test "$hwloc_version" -ge 10200;
+                   hwloc_version=`echo $hwloc_version_string | sed -e 's/#define HWLOC_API_VERSION //'`
+
+                   if test $(($hwloc_version)) -ge $((0x10200))
                    then
                       HWLOC_HOME="$withval"
                       HWLOC_INC="$withval/include"
@@ -1103,6 +1171,34 @@ AC_ARG_WITH([chapel],
 AM_CONDITIONAL([CHAPEL_SUPPORT], [test "$chapel" = "yes"])
 AC_SUBST([CHAPEL_HOME])
 
+# Check for DLB support
+AC_MSG_CHECKING([for DLB support])
+AC_ARG_WITH([dlb],
+   AS_HELP_STRING([--with-dlb=dir], [Directory of DLB installation]),
+   [
+      dlb_path="$withval"
+   ],
+   [
+      dlb_path="not_set"
+   ]
+)
+
+if test ${dlb_path} != "no" -a ${dlb_path} != "not_set" ; then
+   DLB_INC="$dlb_path/include"
+   DLB_LIB="$dlb_path/lib"
+   if test ! -d ${dlb_path} -o ! -f ${DLB_INC}/DLB_interface.h -o ! -f ${DLB_LIB}/libdlb.so ; then
+      AC_MSG_ERROR([Attention! You have passed an invalid DLB location.])
+   fi
+   dlb=yes
+else
+   dlb=no
+fi
+AC_MSG_RESULT([${dlb}])
+
+AM_CONDITIONAL([DLB], [test x"$dlb" = "xyes"])
+AC_SUBST([DLB_INC])
+AC_SUBST([DLB_LIB])
+
 # Check MKL Support
 AC_CHECK_LIB([mkl_sequential],[mkl_blas_dgemm],[MKL_LIBS="-lm -lmkl_core -lmkl_sequential"],[MKL_LIBS=""],[-lm -lmkl_core])
 AM_CONDITIONAL([MKL_SUPPORT], test "$MKL_LIBS"x != x )
@@ -1130,6 +1226,45 @@ AC_ARG_ENABLE([resiliency],
 AM_CONDITIONAL([RESILIENCY], [test "x$resiliency" = "xyes"])
 AC_SUBST([resiliency])
 
+
+###########################################################################
+#                          jemalloc / memkind                             #
+###########################################################################
+LDFLAGS_BKP="$LDFLAGS"
+LIBS_BKP="$LIBS"
+
+AC_ARG_WITH([jemalloc],
+   AS_HELP_STRING([--with-jemalloc=dir], [Directory of jemalloc installation]),
+   [
+      JEMALLOC_LDFLAGS="-L$withval/lib -Wl,-rpath,$withval/lib"
+   ]
+)
+LDFLAGS="$LDFLAGS $JEMALLOC_LDFLAGS"
+AC_SEARCH_LIBS([je_malloc], [jemalloc], [JEMALLOC_LIBS="-ljemalloc"], [JEMALLOC_LIBS=""], [])
+
+if test "JEMALLOC_LIBS"x != x ;
+then
+   MEMKIND_LDFLAGS="$JEMALLOC_LDFLAGS"
+   AC_ARG_WITH([memkind],
+      AS_HELP_STRING([--with-memkind=dir], [Directory of memkind installation]),
+      [
+         MEMKIND_CFLAGS="-I$withval/include"
+         MEMKIND_LDFLAGS="$MEMKIND_LDFLAGS -L$withval/lib"
+      ]
+   )
+
+   LDFLAGS="$LDFLAGS $MEMKIND_LDFLAGS"
+   AC_SEARCH_LIBS([memkind_malloc], [memkind], [MEMKIND_LIBS="-lmemkind"], [MEMKIND_LIBS=""], [-ljemalloc])
+fi
+
+LDFLAGS="$LDFLAGS_BKP"
+LIBS="$LIBS_BKP"
+AM_CONDITIONAL([MEMKIND_SUPPORT], test "$MEMKIND_LIBS"x != x )
+AC_SUBST([JEMALLOC_LIBS])
+AC_SUBST([MEMKIND_LIBS])
+AC_SUBST([MEMKIND_LDFLAGS])
+AC_SUBST([MEMKIND_CFLAGS])
+###########################################################################
 
 # Output files
 AC_CONFIG_HEADERS([config.h])
@@ -1169,6 +1304,14 @@ echo "Host arch:               " $SMP_ARCH
 echo "User level threading:    " $smp_ult
 echo "Configured architectures:" $ARCHITECTURES
 echo "Configured versions:     " $VERSIONS
+gcc_builtins_used="unknown"
+if test "$new_gcc_builtins" = yes;
+then
+    gcc_builtins_used="new gcc __atomic builtins"
+else
+    gcc_builtins_used="legacy gcc __sync builtins"
+fi
+echo "GCC atomics:             " $gcc_builtins_used
 if test x$memtracker_enabled = xyes ; then
    echo "Memory tracker:           enabled"
 else

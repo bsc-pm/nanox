@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -30,7 +30,7 @@ extern "C"
    void switchStacks( void *,void *,void *,void * );
 }
 
-intptr_t * initContext( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                        void *cleanup, void *cleanupArg );
 
 #ifndef SMP_SUPPORTS_ULT
@@ -39,7 +39,7 @@ extern "C" {
    inline void switchStacks( void *,void *,void *,void * ) {}
 }
 
-inline intptr_t * initContext( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+inline void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
                        void *cleanup, void *cleanupArg ) { return 0; }
 
 #endif

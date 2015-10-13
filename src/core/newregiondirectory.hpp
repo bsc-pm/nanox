@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -22,7 +22,6 @@
 
 #include "deviceops.hpp"
 #include "version.hpp"
-#include "printbt_decl.hpp"
 
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
@@ -270,15 +269,15 @@ inline uint64_t NewNewDirectoryEntryData::getBaseAddress() const {
    return _baseAddress;
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd ) {
-   return getRegionDictionaryRegisterIfNeeded( cd );
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
+   return getRegionDictionaryRegisterIfNeeded( cd, wd );
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( CopyData const &cd ) const {
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( CopyData const &cd ) {
    return getRegionDictionary( cd );
 }
 
-inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( uint64_t addr ) const {
+inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( uint64_t addr ) {
    return getRegionDictionary( addr );
 }
 

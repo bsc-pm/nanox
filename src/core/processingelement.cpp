@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -30,11 +30,24 @@
 using namespace nanos;
 
 
-ProcessingElement::ProcessingElement ( const Device *arch, const Device *subArch, unsigned int memSpaceId,
+ProcessingElement::ProcessingElement ( const Device *arch, unsigned int memSpaceId,
    unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
    Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
-   _id ( sys.nextPEId() ), _device ( arch ), _subDevice( subArch ), _deviceNo ( NULL ),
-   _subDeviceNo ( NULL ), _threads(), _memorySpaceId( memSpaceId ) {}
+   _id ( sys.nextPEId() ), _supportedDevices( 1, arch ), _device ( arch ), _threads(), _memorySpaceId( memSpaceId )
+{
+   _threads.reserve(1024);
+}
+
+ProcessingElement::ProcessingElement ( const Device **archs, unsigned int numArchs, unsigned int memSpaceId,
+   unsigned int clusterNode, unsigned int numaNode, bool inNumaNode, unsigned int socket, bool inSocket ) : 
+   Location( clusterNode, numaNode, inNumaNode, socket, inSocket ), 
+   _id ( sys.nextPEId() ), _supportedDevices( numArchs, NULL ), _device ( archs[0] ), _threads(), _memorySpaceId( memSpaceId ) 
+{
+   _threads.reserve(1024);
+   for(unsigned int idx = 0; idx < numArchs; idx += 1) {
+      _supportedDevices[idx] = archs[idx];
+   }
+}
 
 void ProcessingElement::copyDataIn( WorkDescriptor &work )
 {
@@ -141,9 +154,10 @@ void ProcessingElement::stopAllThreads ()
    for ( it = _threads.begin(); it != _threads.end(); it++ ) {
       thread = *it;
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
-      if ( thread->isWaiting() ) thread->wakeup();
-      if ( sys.getSchedulerConf().getUseBlock() ) thread->unblock();
+      thread->lock();
       thread->stop();
+      if ( thread->isWaiting() ) thread->wakeup();
+      thread->unlock();
    }
 
    //! \note joining threads
@@ -158,50 +172,33 @@ Device const *ProcessingElement::getCacheDeviceType() const {
    return NULL;
 }
 
-BaseThread* ProcessingElement::getFirstRunningThread_FIXME()
+void ProcessingElement::wakeUpThreads()
 {
+   ThreadTeam *team = myThread->getTeam();
+   if (!team) return;
+
    ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( (*it)->hasTeam() && !(*it)->isSleeping() )
-         return (*it);
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      (*it)->tryWakeUp( team );
    }
-   return NULL;
 }
 
-BaseThread* ProcessingElement::getFirstStoppedThread_FIXME()
+void ProcessingElement::sleepThreads()
 {
    ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() && (*it)->isSleeping() )
-         return (*it);
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      (*it)->sleep();
    }
-   return NULL;
 }
 
-BaseThread* ProcessingElement::getActiveThread()
+std::size_t ProcessingElement::getRunningThreads() const
 {
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->isSleeping() )
-         return (*it);
-   }
-   return NULL;
-}
-BaseThread* ProcessingElement::getUnassignedThread()
-{
-   ThreadList::iterator it;
-   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
-      if ( !(*it)->hasTeam() ) {
-         (*it)->lock();
-         if ( (*it)->hasTeam() ) {
-            (*it)->unlock();
-            continue;
-         }
-         (*it)->reserve();
-         (*it)->wakeup();
-         (*it)->unlock();
-         return (*it);
+   std::size_t num_threads = 0;
+   ThreadList::const_iterator it;
+   for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+      if ( (*it)->isRunning() && !(*it)->isSleeping() ) {
+         num_threads++;
       }
    }
-   return NULL;
+   return num_threads;
 }

@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -22,6 +22,41 @@ DIST_SUBDIRS = tests doc src scripts
 EXTRA_DIST = ChangeLog
 
 ACLOCAL_AMFLAGS=-I m4
+
+# We use an install hook to remove old deprecated libraries, which are not tracked
+# anymore by Automake so they need to be removed manually
+REMOVE_LIBS = \
+	      libnanox-ss\
+	      $(END)
+
+remove-old-libraries:
+	@for oldlib in $(REMOVE_LIBS); do \
+	    for version in performance debug instrumentation instrumentation-debug; do \
+	        for f in $(libdir)/$${version}/$${oldlib}*; do \
+	            if test -e $${f}; then \
+	                echo "Removing old library $${f}"; \
+	                rm -f $${f}; \
+	            fi \
+	        done \
+	    done \
+	done
+
+REMOVE_CFGS = \
+	      paraver_configs/hwc/papi/performance/ipc.cfg \
+	      $(END)
+
+remove-old-cfgs:
+	@for cfg in $(REMOVE_CFGS); do \
+	    for f in $(docdir)/$${cfg}; do \
+	        if test -e $${f}; then \
+	            echo "Removing old cfg $${f}"; \
+	            rm -f $${f}; \
+	        fi \
+	    done \
+	done
+
+
+install-exec-hook: remove-old-libraries remove-old-cfgs
 
 rpm: dist-gzip
 	$(MAKE) -C scripts rpm

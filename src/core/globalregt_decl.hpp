@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifndef GLOBALREGT_DECL
 #define GLOBALREGT_DECL
 #include "nanos-int.h"
@@ -30,9 +49,11 @@ struct global_reg_t {
    void fillDimensionData( nanos_region_dimension_internal_t region[]) const;
    bool operator<( global_reg_t const &reg ) const;
    memory_space_id_t getFirstLocation() const;
+   memory_space_id_t getPreferedSourceLocation( memory_space_id_t dest ) const;
    unsigned int getVersion() const;
    unsigned int getHostVersion( bool increaseVersion ) const;
    reg_t getFitRegionId() const;
+   reg_t getSlabRegionId( std::size_t slabSize ) const;
    uint64_t getRealBaseAddress() const;
    DeviceOps *getDeviceOps() const;
    void initializeGlobalEntryIfNeeded() const;
@@ -49,6 +70,7 @@ struct global_reg_t {
    unsigned int getNumLocations() const;
    ProcessingElement *getFirstWriterPE() const;
    uint64_t getFirstAddress(uint64_t baseAddress) const;
+   bool isLocatedInSeparateMemorySpaces() const;
 };
 
 }

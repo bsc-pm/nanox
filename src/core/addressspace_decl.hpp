@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifndef ADDRESSSPACE_DECL
 #define ADDRESSSPACE_DECL
 
@@ -78,8 +97,8 @@ class HostAddressSpace {
 
    void synchronize( WD &wd );
    memory_space_id_t getMemorySpaceId() const;
-   reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
-   NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
+   reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
+   NewNewRegionDirectory::RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
    void registerObject( nanos_copy_data_internal_t *obj );
 };
 
@@ -92,7 +111,7 @@ class SeparateAddressSpace {
    void        *_sdata;
    
    public:
-   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide );
+   SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize );
 
    void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval );
    void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
@@ -119,7 +138,7 @@ class SeparateAddressSpace {
 
 
    void allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx );
-   void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+   void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
    void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
 
    RegionCache &getCache();
@@ -140,7 +159,7 @@ template <class T>
 class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
-   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide );
+   MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize = 0 );
    void copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const &wd, bool inval = false );
 };
 

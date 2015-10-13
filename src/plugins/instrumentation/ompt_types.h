@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifndef OMPT_TYPES_H
 #define OMPT_TYPES_H
 
@@ -98,11 +117,19 @@ typedef enum {
    ompt_state_first = 0x71, /* initial enumeration state */
 } ompt_state_t;
 
-typedef unsigned int ompt_thread_id_t;
-typedef unsigned int ompt_wait_id_t;
-typedef unsigned int ompt_task_id_t;
-typedef unsigned int ompt_parallel_id_t;
-typedef unsigned int ompt_frame_t;
+typedef uint64_t ompt_thread_id_t;
+typedef uint64_t ompt_wait_id_t;
+typedef uint64_t ompt_task_id_t;
+typedef uint64_t ompt_parallel_id_t;
+#if 0
+typedef struct ompt_frame_s
+{
+	void *exit_runtime_frame; /* next frame is user code */
+	void *reenter_runtime_frame; /* previous frame is user code */
+} ompt_frame_t;
+#else
+typedef uint64_t ompt_frame_t;
+#endif
 
 typedef enum {
    ompt_dependence_raw = 1,

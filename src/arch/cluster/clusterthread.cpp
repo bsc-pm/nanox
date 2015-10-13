@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -23,7 +23,11 @@
 #include "clusternode_decl.hpp"
 #include "system_decl.hpp"
 #include "workdescriptor_decl.hpp"
+#include "basethread.hpp"
 #include "smpthread.hpp"
+#ifdef OpenCL_DEV
+#include "opencldd.hpp"
+#endif
 
 using namespace nanos;
 using namespace ext;
@@ -146,19 +150,25 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
    }
 
 
-#ifdef GPU_DEV
    int arch = -1;
-   if (wd.canRunIn( GPU) )
+   if ( wd.canRunIn( SMP ) ) {
+      arch = 0;
+   }
+#ifdef GPU_DEV
+   else if (wd.canRunIn( GPU) )
    {
       arch = 1;
    }
-   else if (wd.canRunIn( SMP ) )
-   {
-      arch = 0;
-   }
-#else
-   int arch = 0;
 #endif
+#ifdef OpenCL_DEV
+   else if (wd.canRunIn( OpenCLDev ) )
+   {
+      arch = 2;
+   }
+#endif
+   else {
+      fatal("unsupported architecture");
+   }
 
    //std::cerr << "run remote task, target pe: " << pe << " node num " << (unsigned int) ((ClusterNode *) pe)->getClusterNodeNum() << " arch: "<< arch << " " << (void *) &wd << ":" << (unsigned int) wd.getId() << " data size is " << wd.getDataSize() << " copies " << wd.getNumCopies() << " dimensions " << dimensionIndex << std::endl;
 
@@ -192,21 +202,26 @@ BaseThread * ClusterThread::getNextThread ()
 }
 
 void ClusterThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
-#ifdef GPU_DEV
    int arch = -1;
-   if ( completedWD->canRunIn( GPU ) )
-   {
-      arch = 1;
-   }
-   else if ( completedWD->canRunIn( SMP ) )
+   if ( completedWD->canRunIn( SMP ) )
    {
       arch = 0;
    }
-#else
-   int arch = 0;
+#ifdef GPU_DEV
+   else if ( completedWD->canRunIn( GPU ) )
+   {
+      arch = 1;
+   }
 #endif
-   if ( arch < 0 ) 
-      std::cerr << "unhandled arch" << std::endl;
+#ifdef OpenCL_DEV
+   else if ( completedWD->canRunIn( OpenCLDev ) )
+   {
+      arch = 2;
+   }
+#endif
+   else { 
+      fatal("Unsupported architecture");
+   }
    _runningWDs[ arch ].completeWD( completedWD );
 }
 
@@ -232,6 +247,18 @@ void ClusterThread::clearCompletedWDsGPU2( ) {
    _runningWDs[1].clearCompletedWDs( this );
 }
 
+void ClusterThread::addRunningWDOCL( WorkDescriptor *wd ) { 
+   _runningWDs[2].addRunningWD( wd );
+}
+
+unsigned int ClusterThread::numRunningWDsOCL() const {
+   return _runningWDs[2].numRunningWDs();
+}
+
+void ClusterThread::clearCompletedWDsOCL2( ) {
+   _runningWDs[2].clearCompletedWDs( this );
+}
+
 void ClusterThread::idle( bool debug )
 {
    sys.getNetwork()->poll(0);
@@ -255,6 +282,10 @@ void ClusterThread::idle( bool debug )
 
 bool ClusterThread::acceptsWDsGPU() const {
    return ( ( (int) numRunningWDsGPU() ) < sys.getNetwork()->getGpuPresend() );
+}
+
+bool ClusterThread::acceptsWDsOCL() const {
+   return ( ( (int) numRunningWDsOCL() ) < sys.getNetwork()->getGpuPresend() );
 }
 
 

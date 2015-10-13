@@ -23,10 +23,11 @@ paraver_config_files = \
      paraver_configs/hwc/papi/performance/NoIssue_cycles_per_us.cfg\
      paraver_configs/hwc/papi/performance/MIPS.cfg\
      paraver_configs/hwc/papi/performance/3dh_cycles_per_us.cfg\
-     paraver_configs/hwc/papi/performance/ipc.cfg\
+     paraver_configs/hwc/papi/performance/IPC.cfg\
      paraver_configs/hwc/papi/performance/MLoadS.cfg\
      paraver_configs/hwc/papi/performance/MFLOPS.cfg\
      paraver_configs/hwc/papi/performance/MemBW_pernode.cfg\
+     paraver_configs/hwc/papi/performance/cycles_per_us.cfg\
      paraver_configs/hwc/papi/architecture/L1_store_misses.cfg\
      paraver_configs/hwc/papi/architecture/L1D_misses.cfg\
      paraver_configs/hwc/papi/architecture/useful_loadad_bytes.cfg\
@@ -56,6 +57,9 @@ paraver_config_files = \
      paraver_configs/hwc/papi/architecture/JS21_relative_preempted_time.cfg\
      paraver_configs/hwc/papi/architecture/BytesPerInstr.cfg\
      paraver_configs/hwc/papi/architecture/L3_misses.cfg\
+     paraver_configs/hwc/papi/architecture/2dh_L1D_total_misses.cfg\
+     paraver_configs/hwc/papi/architecture/2dh_L2_total_misses.cfg\
+     paraver_configs/hwc/papi/architecture/2dh_TLB_total_misses.cfg\
      paraver_configs/hwc/papi/mx_counters/nb_medium_msgs_sent.cfg\
      paraver_configs/hwc/papi/mx_counters/route_dispersion.cfg\
      paraver_configs/hwc/papi/mx_counters/nb_small_msgs_sent.cfg\
@@ -151,7 +155,6 @@ paraver_config_files = \
      paraver_configs/mpi/views/point2point/advanced/max_recBW_during_activity.cfg\
      paraver_configs/mpi/views/point2point/advanced/bytes_received_at_waits.cfg\
      paraver_configs/mpi/views/point2point/advanced/sending_not_receiving.cfg\
-     paraver_configs/mpi/views/point2point/advanced/exclusively_1_direction_transfers.cfg\
      paraver_configs/mpi/views/point2point/advanced/physical_s_r_msgs.cfg\
      paraver_configs/mpi/views/point2point/advanced/destination_last_large_send.cfg\
      paraver_configs/mpi/views/point2point/advanced/physical_s_r_bandwidth.cfg\
@@ -236,10 +239,15 @@ paraver_config_files = \
      paraver_configs/ompss/tasks/task_number.cfg\
      paraver_configs/ompss/tasks/3dh_ipc_task.cfg\
      paraver_configs/ompss/tasks/2dp_tasks.cfg\
+     paraver_configs/ompss/tasks/task_numa_node.cfg\
+     paraver_configs/ompss/tasks/task_and_deps.cfg\
+     paraver_configs/ompss/tasks/nb_active_tasks.cfg\
+     paraver_configs/ompss/tasks/2dp_concurrency_tasks.cfg\
      paraver_configs/ompss/worksharing_loops.cfg\
      paraver_configs/ompss/cuda/3dh_duration_CUDAruntime.cfg\
      paraver_configs/ompss/cuda/Non_overlapped_CUDA_Transfer_Direction.cfg\
      paraver_configs/ompss/cuda/CUDA_runtime.cfg\
+     paraver_configs/ompss/cuda/cuda_transfers.cfg\
      paraver_configs/ompss/data_mgmgt/malloc_free_in_device.cfg\
      paraver_configs/ompss/data_mgmgt/nb_ongoing_transfers_duda.cfg\
      paraver_configs/ompss/data_mgmgt/aggregated_bandwidth.cfg\
@@ -248,20 +256,28 @@ paraver_config_files = \
      paraver_configs/ompss/data_mgmgt/bandwidth_per_device.cfg\
      paraver_configs/ompss/data_mgmgt/cache_waiting_for.cfg\
      paraver_configs/ompss/data_mgmgt/bytes_being_transfered.cfg\
+     paraver_configs/ompss/data_mgmgt/data_tx.cfg\
      paraver_configs/ompss/general.cfg\
      paraver_configs/ompss/graph_and_scheduling/nb_tasks_in_graph.cfg\
      paraver_configs/ompss/graph_and_scheduling/2dp_order.cfg\
      paraver_configs/ompss/graph_and_scheduling/nb_ready_tasks.cfg\
+     paraver_configs/ompss/graph_and_scheduling/nb_concurrent_ready.cfg\
      paraver_configs/ompss/graph_and_scheduling/creating_submitting_task.cfg\
+     paraver_configs/ompss/graph_and_scheduling/versioning_sched.cfg\
+     paraver_configs/ompss/opencl/opencl_runtime.cfg\
      paraver_configs/ompss/runtime/3dh_duration_state.cfg\
      paraver_configs/ompss/runtime/thread_state.cfg\
+     paraver_configs/ompss/runtime/thread_state_with_locks.cfg\
+     paraver_configs/ompss/runtime/thread_numa_node.cfg\
      paraver_configs/ompss/runtime/spins_yields.cfg\
      paraver_configs/ompss/runtime/average_sleep_time.cfg\
      paraver_configs/ompss/runtime/nanos_API.cfg\
+     paraver_configs/ompss/runtime/nanos_locks.cfg\
      paraver_configs/ompss/runtime/waiting_task.cfg\
      paraver_configs/ompss/runtime/2dp_thread_state.cfg\
      paraver_configs/ompss/runtime/num_threads.cfg\
      paraver_configs/ompss/runtime/thread_cpuid.cfg\
+     paraver_configs/ompss/runtime/async_thread_state.cfg\
      paraver_configs/ompss/2d_general.cfg\
      paraver_configs/general/link_to_source/by_call_stack/MPI_caller_line.cfg\
      paraver_configs/general/link_to_source/by_call_stack/MPI_caller.cfg\
@@ -320,5 +336,6 @@ paraver_config_files = \
      paraver_configs/general/sanity_checks/flushing.cfg\
      paraver_configs/general/sanity_checks/2dh_cycperus.cfg\
      paraver_configs/general/sanity_checks/Equivalent_CPUs.cfg\
+     paraver_configs/general/2dp_WhereMyNextTaskWasGenerated.cfg\
      paraver_configs/cluster/network_transfers_and_bw.cfg\
      $(END)

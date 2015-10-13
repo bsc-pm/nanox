@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -19,6 +19,10 @@
 
 #ifndef _NANOS_DEPENDABLE_OBJECT_WD_DECL
 #define _NANOS_DEPENDABLE_OBJECT_WD_DECL
+
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
 
 #include "synchronizedcondition_decl.hpp"
 #include "dependableobject_decl.hpp"
@@ -90,7 +94,11 @@ namespace nanos
    class DOWait : public DependableObject
    {
       private:
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         bool       _depsSatisfied; /**< Condition to satisfy before execution can go forward */
+#else
          volatile bool       _depsSatisfied; /**< Condition to satisfy before execution can go forward */
+#endif
          SingleSyncCond<EqualConditionChecker<bool> >  _syncCond; /**< TODO */
       public:
          /*! \brief DOWait default constructor

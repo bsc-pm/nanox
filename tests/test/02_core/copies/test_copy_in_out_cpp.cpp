@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -134,6 +134,12 @@ int main ( int argc, char **argv )
    WD *wg = getMyThreadSafe()->getCurrentWD();
 
    wg->addWork( *wd );
+
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( idata );
+      wd->setInternalData( idata );
+   }
 
    sys.setupWD(*wd, (nanos::WD *) wg);
    sys.submit( *wd );

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -38,11 +38,8 @@ namespace nanos {
          pthread_t   _pth;
          size_t      _stackSize;
 
-         pthread_cond_t          _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
-         static pthread_mutex_t  _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
-
-         pthread_cond_t          _completionWait;         //! Condition variable to wait for completion
-         pthread_mutex_t         _completionMutex;        //! Mutex to access the completion
+         pthread_cond_t    _condWait;  /*! \brief Condition variable to use in pthread_cond_wait */
+         pthread_mutex_t   _mutexWait; /*! \brief Mutex to protect the sleep flag with the wait mechanism */
 
          // disable copy constructor and assignment operator
          PThread( const PThread &th );
@@ -50,7 +47,7 @@ namespace nanos {
 
       public:
          // constructor
-         PThread( ext::SMPProcessor * core ) : _core( core ), _pth( pthread_self() ), _stackSize( 0 ) {}
+         PThread( ext::SMPProcessor * core ) : _core( core ), _pth( ), _stackSize( 0 ) { }
 
          // destructor
          virtual ~PThread() {}
@@ -60,12 +57,12 @@ namespace nanos {
          size_t getStackSize ();
          void setStackSize( size_t size );
 
+         virtual void initMain();
          virtual void start( BaseThread * th );
          virtual void finish();
          virtual void join();
 
          virtual void bind();
-
 
          virtual void yield();
 
@@ -73,16 +70,8 @@ namespace nanos {
          virtual void mutexUnlock();
 
          virtual void condWait();
+         virtual void condSignal();
 
-         virtual void wakeup();
-
-         /*!
-          * \brief Waits on a condition.
-          */
-         virtual void block();
-
-         /*! \brief Signals the thread to stop waiting. */
-         virtual void unblock();
 #ifdef NANOS_RESILIENCY_ENABLED
          virtual void setupSignalHandlers();
 #endif

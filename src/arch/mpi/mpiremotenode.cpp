@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -108,7 +108,8 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
     if (getenv("I_MPI_WAIT_MODE")==NULL) putenv(const_cast<char*> ("I_MPI_WAIT_MODE=1"));
    
     //If we are not offload slaves, initialice MPI plugin
-    if (!getenv("OMPSS_OFFLOAD_SLAVE")){  
+    bool imSlave=getenv("OMPSS_OFFLOAD_SLAVE")!=NULL;
+    if (!imSlave){  
         if ( !sys.loadPlugin( "arch-mpi" ) )
           fatal0 ( "Couldn't load MPI support" );
     } 
@@ -130,12 +131,20 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
     } else {
         //Do not initialise, but check thread level and return the right provided value to the user
         MPI_Query_thread(userProvided);        
+    } 
+    int myRank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+           
+    //Remove possible trashfiles from other executions
+    if (myRank==0 && !imSlave) {
+       std::string lockname="./.ompssOffloadLock";
+       remove(const_cast<char*> (lockname.c_str()));
+       if (!nanos::ext::MPIProcessor::getMpiControlFile().empty()) remove(const_cast<char*> (nanos::ext::MPIProcessor::getMpiControlFile().c_str()));
     }
+    
     
     nanos::MPIDevice::initMPICacheStruct();
         
-    MPI_Comm parentcomm; /* intercommunicator */
-    MPI_Comm_get_parent(&parentcomm);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
@@ -355,35 +364,65 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
             }
         }
     }
-    //Synchronize parents before killing shared resources (as each parent only waits for his task
-    //this prevents one parent killing a "son" which is still executing things from other parents)
-    if (sharedSpawn && !threadsToDespawn.empty()) {
+    if (!threadsToDespawn.empty()) {
         //All threads have the same commOfParents as they were spawned together
         MPI_Comm parentsComm=threadsToDespawn.front()->getRunningPEs().at(0)->getCommOfParents();
-        MPI_Barrier(parentsComm); 
-    }
-    //De-spawn threads and nodes
-    for (std::vector<nanos::ext::MPIThread*>::iterator itThread = threadsToDespawn.begin(); itThread!=threadsToDespawn.end() ; ++itThread) {
-        nanos::ext::MPIThread* mpiThread = *itThread;
-        std::vector<MPIProcessor*>& myPEs = mpiThread->getRunningPEs();
-        for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
-            //Only owner will send kill signal to the worker
-            if ( (*it)->getOwner() ) 
-            {
-                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, *intercomm);
-                //After sending finalization signals, we are not the owners anymore
-                //This way we prevent finalizing them multiple times if more than one thread uses them
-                (*it)->setOwner(false);
-            }
+        int currRank=-1;
+        MPI_Comm_rank(parentsComm,&currRank);
+        //Synchronize parents before killing shared resources (as each parent only waits for his task
+        //this prevents one parent killing a "son" which is still executing things from other parents)
+        if (sharedSpawn) {
+           MPI_Barrier(parentsComm);        
         }
-        if (rank==-1){                    
-            mpiThread->lock();
-            mpiThread->sleep();
-            mpiThread->unlock();
+        //De-spawn threads and nodes
+        for (std::vector<nanos::ext::MPIThread*>::iterator itThread = threadsToDespawn.begin(); itThread!=threadsToDespawn.end() ; ++itThread) {
+            nanos::ext::MPIThread* mpiThread = *itThread;
+            std::vector<MPIProcessor*>& myPEs = mpiThread->getRunningPEs();
+            for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
+                //Only owner will send kill signal to the worker
+                if ( (*it)->getOwner() ) 
+                {
+                    nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, *intercomm);
+                    //After sending finalization signals, we are not the owners anymore
+                    //This way we prevent finalizing them multiple times if more than one thread uses them
+                    (*it)->setOwner(false);
+                }
+                //If im the root do all the automatic control file work ONCE (first remote node), this time free the hosts
+                if ( (*it)->getRank()==0 && currRank == 0 && !nanos::ext::MPIProcessor::getMpiControlFile().empty() ) {
+                    //PPH List is the list of hosts which were consumed by the spawn of these ranks, lets "free" them
+                    int* pph_list=(*it)->getPphList();
+                    if (pph_list!=NULL) {
+                        int fdAux=-1;
+                        std::string controlName=nanos::ext::MPIProcessor::getMpiControlFile();
+                        fdAux=tryGetLock(const_cast<char*> (controlName.c_str()));
+                        if ( fdAux == -1 ) fatal0(controlName << " could not be opened/created, check your NX_OFFL_CONTROLFILE environment variable");
+                        FILE* fd=fdopen(fdAux,"r+");
+                        size_t num_bytes=0;
+                        for (int i=0; pph_list[i] != -1 ; ++i) {
+                            if (pph_list[i]!=0) {   
+                                fseek(fd, num_bytes, SEEK_SET);
+                                const int freeNode=0;
+                                fprintf(fd, "%d\n", freeNode);            
+                            }
+                            num_bytes+=2;
+                        }
+                        fclose(fd);
+                        delete[] pph_list;
+                        (*it)->setPphList(NULL);
+                        releaseLock(fdAux,const_cast<char*> (controlName.c_str())); 
+                    }
+                }
+            }
+            if (rank==-1){                    
+                mpiThread->lock();
+                mpiThread->stop();
+                mpiThread->join();
+                mpiThread->unlock();
+            }
         }
     }
     //If we despawned all the threads which used this communicator, free the communicator
-    //If intercomm is null, do not do it, after all, it should be the final free
+    //If intercomm is null, do not do it, it should be the final free
     if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {   
 #ifdef OPEN_MPI 
        MPI_Comm_free(intercomm);
@@ -403,7 +442,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
 
-void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, bool strict, int* provided, int offset, const int* pph_list) {  
+void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm, bool strict, int* provided, int offset, int* pph_list) {  
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT);
     //Initialize nanos MPI
     nanosMPIInit(0,0,MPI_THREAD_MULTIPLE,0);
@@ -426,18 +465,67 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
     std::vector<int> hostInstances;      
     int totalNumberOfSpawns=0; 
     int spawnedHosts=0;
-
-    //Read hostlist
-    buildHostLists(offset, number_of_hosts,tokensParams,tokensHost,hostInstances);
+    int rank;
+    MPI_Comm_rank(comm,&rank);    
     
-    int availableHosts=tokensHost.size();    
-    if (availableHosts > number_of_hosts) availableHosts=number_of_hosts;    
-    //Check strict restrictions and react to them (return or set the right number of nodes)
-    if (strict && number_of_hosts > availableHosts) 
-    {
-        if (provided!=NULL) *provided=0;
-        *intercomm=MPI_COMM_NULL;
-        return;
+    int availableHosts=0;    
+    //Read hostlist
+    if ( rank == 0 && !nanos::ext::MPIProcessor::getMpiControlFile().empty() ) {
+       buildHostLists(offset, INT_MAX, tokensParams, tokensHost, hostInstances); //Read all the hosts  
+       availableHosts=tokensHost.size();    
+    } else {
+       buildHostLists(offset, number_of_hosts, tokensParams,tokensHost, hostInstances);      
+       availableHosts=tokensHost.size();    
+       if (availableHosts > number_of_hosts) availableHosts=number_of_hosts;    
+       //Check strict restrictions and react to them (return or set the right number of nodes)
+       if (strict && number_of_hosts > availableHosts) 
+       {
+          if (provided!=NULL) *provided=0;
+          *intercomm=MPI_COMM_NULL;
+          return;
+       }  
+    }
+    
+    //If im the root do all the automatic control file work
+    if ( rank == 0 && !nanos::ext::MPIProcessor::getMpiControlFile().empty() ) {
+        if (offset != 0 || pph_list != NULL ) fatal0("NX_OFFL_CONTROLFILE environment variable has been defined, deep_booster_alloc_list is not supported"
+                "/needed with automatic control of hosts");
+        //Maximum length of pph_list alloc
+        pph_list=new int[availableHosts+1];
+        int fdAux=-1;
+        int currStatus=0;
+        std::string controlName=nanos::ext::MPIProcessor::getMpiControlFile();
+        fdAux=tryGetLock(const_cast<char*> (controlName.c_str()));
+        if ( fdAux == -1 ) fatal0(controlName << " could not be opened/created, check your NX_OFFL_CONTROLFILE environment variable");
+        FILE* fd=fdopen(fdAux,"r+");
+        int reserved=0;
+        //Reserve as many hosts as needed
+        int i;
+        for (i=0;i < availableHosts && reserved < number_of_hosts; ++i) {
+            long size=ftell(fd);
+            int err=fscanf(fd, "%d\n", &currStatus);
+            if (currStatus==0 || err == EOF ) {  
+                fseek(fd, size, SEEK_SET);
+                pph_list[i]=process_per_host;
+                const int busyNode=1;
+                reserved++;
+                fprintf(fd, "%d\n", busyNode); 
+            } else {
+                pph_list[i]=0;     
+            }
+        }
+        fclose(fd);
+        releaseLock(fdAux,const_cast<char*> (controlName.c_str())); 
+        //Mark the real length of pph_list
+        availableHosts=i;
+        pph_list[availableHosts]=-1; //end of list
+        //Check strict restrictions and react to them (return or set the right number of nodes)
+        if (strict && number_of_hosts > reserved) 
+        {
+            if (provided!=NULL) *provided=0;
+            *intercomm=MPI_COMM_NULL;
+            return;
+        }
     }
     
     //Register spawned processes so nanox can use them
@@ -449,7 +537,7 @@ void MPIRemoteNode::DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int pro
             process_per_host, shared,/* outputs*/ spawnedHosts, totalNumberOfSpawns, intercomm);
     if (provided!=NULL) *provided=totalNumberOfSpawns;
     
-    createNanoxStructures(comm, intercomm, spawnedHosts, totalNumberOfSpawns, shared, mpiSize );
+    createNanoxStructures(comm, intercomm, spawnedHosts, totalNumberOfSpawns, shared, mpiSize, rank, pph_list);
     
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
@@ -697,17 +785,15 @@ void MPIRemoteNode::callMPISpawn(
 }
 
 
-void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, int spawnedHosts, int totalNumberOfSpawns, bool shared, int mpiSize){ 
+void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, int spawnedHosts, int totalNumberOfSpawns, bool shared, int mpiSize, int currRank, int* pphList){ 
     size_t maxWorkers= nanos::ext::MPIProcessor::getMaxWorkers();
     int spawn_start=0;
     int numberOfSpawnsThisProcess=totalNumberOfSpawns;
     //If shared (more than one parent for this group), split total spawns between nodes in order to balance syncs
     if (shared){
-        int rank;
-        MPI_Comm_rank(comm,&rank);
         numberOfSpawnsThisProcess=totalNumberOfSpawns/mpiSize;
-        spawn_start=rank*numberOfSpawnsThisProcess;
-        if (rank==mpiSize-1) //Last process syncs the remaining processes
+        spawn_start=currRank*numberOfSpawnsThisProcess;
+        if (currRank==mpiSize-1) //Last process syncs the remaining processes
             numberOfSpawnsThisProcess+=totalNumberOfSpawns%mpiSize;        
     }
     
@@ -730,18 +816,19 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
         //this way we balance syncs with childs
         if (rank>=spawn_start && rank<spawn_start+numberOfSpawnsThisProcess) {
             pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,uid++, true, shared, comm, core, id);
+            ((MPIProcessor*)pes[rank])->setPphList(pphList);
             nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
             //If user defined multithread cache behaviour, send the creation order
             if (nanos::ext::MPIProcessor::isUseMultiThread()) {                
                 cacheOrder order;
-                //if PE is busy, this means an extra cache-thread could be usefull, send creation signal
                 order.opId = OPID_CREATEAUXTHREAD;
                 nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_M2S_ORDER, *intercomm);
                 ((MPIProcessor*)pes[rank])->setHasWorkerThread(true);
             }
         } else {            
             pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,uid++, false, shared, comm, core, id);
+            ((MPIProcessor*)pes[rank])->setPphList(pphList);
         }
         rank=(rank+1)%totalNumberOfSpawns;
     }

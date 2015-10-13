@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -39,7 +39,7 @@ inline void AsyncThread::checkEvents()
       if ( evt->isRaised() ) {
          NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent (
                sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "async-thread" ),
-               /* ASYNC_THREAD_PROCESS_EVT_EVENT */ 9 ); )
+               /* ASYNC_THREAD_PROCESS_EVT_EVENT */ 11 ); )
          _previousWD = this->getCurrentWD();
 
          WD * wd = evt->getWD();

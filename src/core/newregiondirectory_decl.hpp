@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -146,19 +146,21 @@ namespace nanos
           */
          const NewNewRegionDirectory & operator= ( const NewNewRegionDirectory &dir );
 
-         GlobalRegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd );
-         GlobalRegionDictionary *getRegionDictionary( CopyData const &cd ) const;
-         GlobalRegionDictionary *getRegionDictionary( uint64_t addr ) const;
+         GlobalRegionDictionary *getRegionDictionaryRegisterIfNeeded( CopyData const &cd, WD const *wd );
+         GlobalRegionDictionary *getRegionDictionary( CopyData const &cd );
+         GlobalRegionDictionary *getRegionDictionary( uint64_t addr );
          static void addSubRegion( GlobalRegionDictionary &dict, std::list< std::pair< reg_t, reg_t > > &partsList, reg_t regionToInsert );
-         uint64_t _getKey( uint64_t addr, std::size_t len );
+         uint64_t _getKey( uint64_t addr, std::size_t len, WD const *wd );
          uint64_t _getKey( uint64_t addr ) const;
+         void _unregisterObjects( std::map< uint64_t, MemoryMap< Object > * > &objects );
+         void _invalidateObjectsFromDevices( std::map< uint64_t, MemoryMap< Object > * > &objects );
 
       public:
          typedef GlobalRegionDictionary *RegionDirectoryKey;
          //typedef std::pair< Region, NewNewDirectoryEntryData const *> LocationInfo;
-         RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd ) const;
-         RegionDirectoryKey getRegionDirectoryKey( uint64_t addr ) const;
-         RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd );
+         RegionDirectoryKey getRegionDirectoryKey( CopyData const &cd );
+         RegionDirectoryKey getRegionDirectoryKey( uint64_t addr );
+         RegionDirectoryKey getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd );
          void synchronize( WD &wd );
 
          /*! \brief NewDirectory default constructor
@@ -174,7 +176,7 @@ namespace nanos
          void print() const;
          void lock();
          void tryLock();
-         GlobalRegionDictionary &getDictionary( CopyData const &cd ) const;
+         GlobalRegionDictionary &getDictionary( CopyData const &cd );
 
          static NewNewDirectoryEntryData *getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id );
 
@@ -203,10 +205,11 @@ namespace nanos
          static void tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static void __getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static void initializeEntry( RegionDirectoryKey dict, reg_t reg );
+         static void initializeEntryWithAnother( RegionDirectoryKey dict, reg_t reg, reg_t from );
          static void addRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
          static reg_t getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t localId );
          static void addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
-         reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId ) const;
+         reg_t getLocalRegionId( void *hostObject, reg_t hostRegionId );
 
          void registerObject(nanos_copy_data_internal_t *obj);
    };

@@ -1,6 +1,5 @@
-
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -81,7 +80,6 @@ public:
    virtual void wait();
    /** \brief Unset the flag */
    virtual void wakeup();
-   virtual void block() { _pthread.block(); }
    virtual int getCpuId() const;   
    virtual void idle( bool debug );
    #ifdef NANOS_RESILIENCY_ENABLED

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 import os
 
 def cross(*args):
@@ -12,20 +12,13 @@ def cross(*args):
 def cpus(max_cpus):
 	ans=[]
 	for i in range(1,max_cpus+1):
-		ans = ans + ['--smp-cpus='+str(i)]
+		ans = ans + ['--smp-workers='+str(i)]
 	return ans
 
-test_mode=os.environ.get('NX_TEST_MODE')
-if test_mode == None:
-	test_mode='small'
-
-max_cpus=os.environ.get('NX_TEST_MAX_CPUS')
-if ( max_cpus == None ):
-	max_cpus=2
-
-test_schedule=os.environ.get('NX_TEST_SCHEDULE')
-
-test_architecture=os.environ.get('test_architecture')
+test_mode = os.environ.get('NX_TEST_MODE', 'small')
+max_cpus = os.environ.get('NX_TEST_MAX_CPUS', 2)
+test_schedule = os.environ.get('NX_TEST_SCHEDULE')
+test_architecture = os.environ.get('NX_TEST_ARCH')
 
 # Process program arguments (priority to env vars)
 from optparse import OptionParser
@@ -35,7 +28,8 @@ header ='Nanox config generator 0.1\n\n'+\
 	'Envorionment variables that affect this script:\n'+\
 	'   NX_TEST_MODE=\'performance\'|\'small\'|\'medium\'|\'large\'   -  \'small\' by default\n'+\
 	'   NX_TEST_MAX_CPUS=#CPUS                  -  2 by default\n'+\
-	'   NX_TEST_SCHEDULE=[scheduler]\n'
+	'   NX_TEST_SCHEDULE=[scheduler]\n'+\
+	'   NX_TEST_ARCH=[architecture]\n'
 if '-h' in sys.argv or '--help' in sys.argv:
 	print header
 
@@ -80,7 +74,7 @@ scheduling_large=['--schedule=bf --bf-stack','--schedule=bf --no-bf-stack','--sc
 throttle=['--throttle=dummy','--throttle=idlethreads','--throttle=numtasks','--throttle=readytasks','--throttle=taskdepth']
 barriers=['--barrier=centralized','--barrier=tree']
 binding=['--disable-binding','--no-disable-binding']
-architecture=['--architecture=smp','--architecture=smp-numa']
+architecture=['--architecture=smp']
 
 if test_schedule is not None:
    scheduling_performance=['--schedule='+test_schedule]
@@ -103,7 +97,7 @@ config_lines=[]
 versions=''
 i=1
 for c in configs:
-	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\''
+	line = 'test_ENV_ver'+str(i)+'=\"NX_ARGS=\$NX_ARGS\' '
 	versions+='ver'+str(i)+' '
 	for entry in c:
 		line = line + ' ' +entry

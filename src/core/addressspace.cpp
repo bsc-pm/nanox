@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #include "addressspace_decl.hpp"
 #include "newregiondirectory.hpp"
 #include "regioncache.hpp"
@@ -10,7 +29,7 @@ MemSpace< HostAddressSpace >::MemSpace( Device &d ) : HostAddressSpace( d ) {
 }
 
 template <>
-MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide ) : SeparateAddressSpace( memSpaceId, d, allocWide ) {
+MemSpace< SeparateAddressSpace >::MemSpace( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize ) : SeparateAddressSpace( memSpaceId, d, allocWide, slabSize ) {
 }
 
 HostAddressSpace::HostAddressSpace( Device &d ) : _directory() {
@@ -29,7 +48,7 @@ void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &ve
 void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx ) {
    // *(myThread->_file) << "Registering CD with addr " << (void *) cd.getBaseAddress() << std::endl;
    // *(myThread->_file) << cd << std::endl;
-   reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd );
+   reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd, &wd );
    reg.id = reg.key->obtainRegionId( cd, wd, idx );
    //*(myThread->_file) << "Got key " << (void *)reg.key << " got id " << (int)reg.id << std::endl;
 }
@@ -46,11 +65,11 @@ memory_space_id_t HostAddressSpace::getMemorySpaceId() const {
    return 0;
 }
 
-NewNewRegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) const {
+NewNewRegionDirectory::RegionDirectoryKey HostAddressSpace::getRegionDirectoryKey( uint64_t addr ) {
    return _directory.getRegionDirectoryKey( addr );
 }
 
-reg_t HostAddressSpace::getLocalRegionId( void *hostObject, reg_t hostRegionId ) const {
+reg_t HostAddressSpace::getLocalRegionId( void *hostObject, reg_t hostRegionId ) {
    return _directory.getLocalRegionId( hostObject, hostRegionId );
 }
 
@@ -58,7 +77,7 @@ void HostAddressSpace::registerObject( nanos_copy_data_internal_t *obj ) {
    _directory.registerObject( obj );
 }
 
-SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
+SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
 }
 
 void SeparateAddressSpace::copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval ) {
@@ -140,8 +159,8 @@ void SeparateAddressSpace::setSpecificData( void *data ) {
    _sdata = data;
 }
 
-void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
-   _cache.copyInputData( ops, reg, version, locations, chunk, wd, copyIdx );
+void SeparateAddressSpace::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy ) {
+   _cache.copyInputData( ops, reg, version, locations, chunk, wd, copyIdx, policy );
 }
 
 void SeparateAddressSpace::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {

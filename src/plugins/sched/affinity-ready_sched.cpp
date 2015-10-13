@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -462,7 +462,9 @@ namespace nanos {
 
 
             // constructor
-            ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {}
+            ReadyCacheSchedPolicy() : SchedulePolicy ( "Ready Cache" ) {
+               _usePriority = _usePriority && sys.getPrioritiesNeeded();
+            }
 
             // destructor
             virtual ~ReadyCacheSchedPolicy() {}
@@ -625,10 +627,10 @@ namespace nanos {
                return 0;
             }
 
-            virtual WD *atIdle ( BaseThread *thread );
+            virtual WD *atIdle ( BaseThread *thread, int numSteal );
             virtual WD *atBlock ( BaseThread *thread, WD *current );
 
-            virtual WD *atAfterExit ( BaseThread *thread, WD *current )
+            virtual WD *atAfterExit ( BaseThread *thread, WD *current, bool steal )
             {
                return atBlock(thread, current );
             }
@@ -652,7 +654,7 @@ namespace nanos {
 
                if ( next != NULL ) return next;
 
-               return atIdle( thread );
+               return atIdle( thread, false );
             }
 
             WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
@@ -760,6 +762,11 @@ namespace nanos {
                   //propagatePriority( obj );
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority;
+            }
       };
 
       inline WD *ReadyCacheSchedPolicy::fetchWD( BaseThread *thread, WD *current )
@@ -778,12 +785,12 @@ namespace nanos {
 
       WD *ReadyCacheSchedPolicy::atBlock ( BaseThread *thread, WD *current )
       {
-         return atIdle( thread );
+         return atIdle( thread, false );
       }
 
       /*!
        */
-      WD * ReadyCacheSchedPolicy::atIdle ( BaseThread *thread )
+      WD * ReadyCacheSchedPolicy::atIdle ( BaseThread *thread, int numSteal )
       {
          WorkDescriptor * wd = NULL;
 
@@ -954,8 +961,7 @@ namespace nanos {
          tdata._queues->pushBack( &wd, winner );
       }
 
-
-      bool ReadyCacheSchedPolicy::_usePriority = false;
+      bool ReadyCacheSchedPolicy::_usePriority = true;
       int ReadyCacheSchedPolicy::_priorityPropagation = 5;
       bool ReadyCacheSchedPolicy::_noSteal = false;
       bool ReadyCacheSchedPolicy::_noInvalAware = false;
@@ -975,7 +981,7 @@ namespace nanos {
                cfg.registerConfigOption ( "affinity-priority", NEW Config::FlagOption( ReadyCacheSchedPolicy::_usePriority ), "Priority queue used as ready task queue");
                cfg.registerArgOption( "affinity-priority", "affinity-priority" );
 
-               cfg.registerConfigOption ( "affinity-priority-depth", NEW Config::IntegerVar( ReadyCacheSchedPolicy::_priorityPropagation ), "Number of levels to propagate priority upwards in the task graph (0 = no propagation, -1 = no depth limit");
+               cfg.registerConfigOption ( "affinity-priority-depth", NEW Config::IntegerVar( ReadyCacheSchedPolicy::_priorityPropagation ), "Number of levels to propagate priority upwards in the task graph (0 = no propagation, -1 = no depth limit)");
                cfg.registerArgOption( "affinity-priority-depth", "affinity-priority-depth" );
 
                cfg.registerConfigOption ( "affinity-no-steal", NEW Config::FlagOption( ReadyCacheSchedPolicy::_noSteal ), "Steal tasks from other threads");

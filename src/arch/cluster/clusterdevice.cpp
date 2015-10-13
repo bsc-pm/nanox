@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -30,7 +30,7 @@
 using namespace nanos;
 using namespace nanos::ext;
 
-ClusterDevice nanos::ext::Cluster( "SMP" );
+ClusterDevice nanos::ext::Cluster( "Cluster" );
 
 
 ClusterDevice::ClusterDevice ( const char *n ) : Device ( n ) {
@@ -79,7 +79,7 @@ void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t l
    myThread->_pendingRequests.insert( newreq );
 
    ops->addOp();
-   sys.getNetwork()->get( ( void * ) recvAddr, mem.getNodeNumber(), devAddr, len, (volatile int *) newreq, hostObject, hostRegionId );
+   sys.getNetwork()->get( ( void * ) recvAddr, mem.getNodeNumber(), devAddr, len, newreq, hostObject, hostRegionId );
 }
 
 bool ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const {
@@ -133,7 +133,7 @@ void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std:
             GetRequestStrided *newreq = NEW GetRequestStrided( &hostAddrPtr[ i * ld ] , len, thisCount, ld, packedAddr, ops, f, &_packer );
             myThread->_pendingRequests.insert( newreq );
             ops->addOp();
-            sys.getNetwork()->getStrided1D( packedAddr, mem.getNodeNumber(), devAddr, devAddr + ( i * ld ), len, thisCount, ld, (volatile int *) newreq, hostObject, hostRegionId );
+            sys.getNetwork()->getStrided1D( packedAddr, mem.getNodeNumber(), devAddr, devAddr + ( i * ld ), len, thisCount, ld, newreq, hostObject, hostRegionId );
          } else {
             std::cerr << "copyOutStrdided ERROR!!! could not get a packet to gather data." << std::endl;
          }

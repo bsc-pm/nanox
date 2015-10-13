@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef _NANOS_MEMORYMAP_DECL_H
 #define _NANOS_MEMORYMAP_DECL_H
 
@@ -163,6 +164,7 @@ class MemoryMap<uint64_t> : public std::map< MemoryChunk, uint64_t > {
       uint64_t getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid );
       uint64_t getExactInsertIfNotFound( uint64_t addr, std::size_t len, uint64_t valIfNotFound, uint64_t valIfNotValid );
       uint64_t getExactByAddress( uint64_t addr, uint64_t valIfNotFound ) const;
+      void eraseByAddress( uint64_t addr );
 };
 #endif
 

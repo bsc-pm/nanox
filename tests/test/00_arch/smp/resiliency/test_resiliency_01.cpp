@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -93,6 +93,12 @@ void dig ( int d )
    wd1->setRecoverable(false);
 
    this_wd->addWork(*wd1);
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( idata );
+      wd1->setInternalData( idata );
+   }
+
    sys.setupWD(*wd1, this_wd);
    nanos::sys.submit(*wd1);
 
@@ -107,6 +113,12 @@ void dig ( int d )
             sizeof(bool*), __alignof__(bool*), &executed);
       wd->setRecoverable(true);
       this_wd->addWork(*wd);
+      if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+         char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+         sys.getPMInterface().initInternalData( idata );
+         wd->setInternalData( idata );
+      }
+
       sys.setupWD(*wd, this_wd);
       nanos::sys.submit(*wd);
       this_wd->waitCompletion();

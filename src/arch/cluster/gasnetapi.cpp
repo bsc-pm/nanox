@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -69,6 +69,17 @@ void * local_nanos_smp_factory( void *args )
    return ( void * )new ext::SMPDD( smp->outline );
 }
 
+#ifdef OpenCL_DEV
+#include "opencldd.hpp"
+#include "opencldevice_decl.hpp"
+void * local_nanos_ocl_factory( void *args );
+void * local_nanos_ocl_factory( void *args )
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   return ( void * )new ext::OpenCLDD( smp->outline );
+}
+#endif
+
 #ifndef __SIZEOF_POINTER__
 #   error This compiler does not define __SIZEOF_POINTER__ :( 
 #else
@@ -76,10 +87,12 @@ void * local_nanos_smp_factory( void *args )
 #      define MERGE_ARG( _Hi, _Lo) (  ( uint32_t ) _Lo + ( ( ( uintptr_t ) ( ( uint32_t ) _Hi ) ) << 32 ) )
 #      define ARG_HI( _Arg ) ( ( gasnet_handlerarg_t ) ( ( ( uintptr_t ) ( _Arg ) ) >> 32 ) )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) ( ( uintptr_t ) _Arg ) )
+#      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
 #   else
 #      define MERGE_ARG( _Hi, _Lo) ( ( uintptr_t ) ( _Lo ) )
 #      define ARG_HI( _Arg ) ( ( gasnet_handlerarg_t ) 0 )
 #      define ARG_LO( _Arg ) ( ( gasnet_handlerarg_t ) _Arg )
+#      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest() / 2) //Montblanc
 #   endif
 #endif
 
@@ -89,7 +102,6 @@ using namespace ext;
 #define _emitPtPEvents 1
 
 
-#define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest())
 
 GASNetAPI::WorkBufferManager::WorkBufferManager() : _buffers(), _lock() {
 }
@@ -129,10 +141,10 @@ GASNetAPI *GASNetAPI::getInstance() {
    return _instance;
 }
 
-GASNetAPI::GASNetAPI( ClusterPlugin &p ) : _plugin( p ), _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _packSegment( 0 ),
+GASNetAPI::GASNetAPI( ClusterPlugin &p ) : _plugin( p ), _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _rwgOCL( 0 ), _packSegment( 0 ),
    _pinnedAllocators(), _pinnedAllocatorsLocks(),
    _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ),
-   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ), _incomingWorkBuffers() {
+   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ), _incomingWorkBuffers(), _nodeBarrierCounter( 0 ) {
    _instance = this;
 }
 
@@ -174,8 +186,8 @@ GASNetAPI::SendDataPutRequestPayload::SendDataPutRequestPayload( unsigned int se
 }
 
 GASNetAPI::SendDataGetRequestPayload::SendDataGetRequestPayload( unsigned int seqNumber, void *origAddr, void *dstAddr, std::size_t len,
-   std::size_t count, std::size_t ld, void *waitObj, CopyData const &cd ) :
-   _seqNumber( seqNumber ), _origAddr( origAddr ), _destAddr( dstAddr ), _len( len ), _count( count ), _ld( ld ), _waitObj( waitObj ),
+   std::size_t count, std::size_t ld, GetRequest *req, CopyData const &cd ) :
+   _seqNumber( seqNumber ), _origAddr( origAddr ), _destAddr( dstAddr ), _len( len ), _count( count ), _ld( ld ), _req( req ),
    _cd( cd ) {
 }
 
@@ -201,9 +213,9 @@ void GASNetAPI::SendDataPutRequest::doStrided( void *localAddr ) {
    _gasnetApi->_putStrided1D( getDestination(), (uint64_t) _destAddr, _origAddr, localAddr, _len, _count, _ld, _tmpBuffer, _wdId, *_wd, _functor, _hostObject, _hostRegId, _metaSeq );
 }
 
-GASNetAPI::SendDataGetRequest::SendDataGetRequest( GASNetAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, void *waitObj, CopyData const &cd, nanos_region_dimension_internal_t *dims ) :
+GASNetAPI::SendDataGetRequest::SendDataGetRequest( GASNetAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, GetRequest *req, CopyData const &cd, nanos_region_dimension_internal_t *dims ) :
    GASNetSendDataRequest( api, seqNumber, origAddr, destAddr, len, count, ld, 0, 0, (void *) cd.getHostBaseAddress(),
-   cd.getHostRegionId(), 0 /* metaSeq is unused in this context */ ), _waitObj( waitObj ), _cd( cd ) {
+   cd.getHostRegionId(), 0 /* metaSeq is unused in this context */ ), _req( req ), _cd( cd ) {
    nanos_region_dimension_internal_t *cd_dims = NEW nanos_region_dimension_internal_t[ _cd.getNumDimensions() ];
    ::memcpy( cd_dims, dims, sizeof(nanos_region_dimension_internal_t) * _cd.getNumDimensions());
    _cd.setDimensions( cd_dims );
@@ -217,6 +229,8 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
    std::size_t sent = 0, thisReqSize;
    NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) 1 ); )
    NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
    while ( sent < _len )
    {
@@ -232,21 +246,27 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
                &( ( char *) _origAddr )[ sent ],
                thisReqSize,
                ( char *) ( ( (char *) _destAddr ) + sent ),
-               ( ( sent + thisReqSize ) == _len ) ? ARG_LO( _waitObj ) : 0,
-               ( ( sent + thisReqSize ) == _len ) ? ARG_HI( _waitObj ) : 0
+               ( ( sent + thisReqSize ) == _len ) ? ARG_LO( _req ) : 0,
+               ( ( sent + thisReqSize ) == _len ) ? ARG_HI( _req ) : 0
                ) != GASNET_OK )
       {
          fprintf(stderr, "gasnet: Error sending a message to node %d.\n", 0);
       }
       sent += thisReqSize;
    }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
 void GASNetAPI::SendDataGetRequest::doStrided( void *localAddr ) {
-   if ( gasnet_AMRequestLong2( 0, 212, localAddr, _len*_count, _destAddr, ARG_LO( _waitObj ), ARG_HI( _waitObj ) ) != GASNET_OK )
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) 1 ); )
+   if ( gasnet_AMRequestLong2( 0, 212, localAddr, _len*_count, _destAddr, ARG_LO( _req ), ARG_HI( _req ) ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error sending reply msg.\n" );
    }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
 void GASNetAPI::processSendDataRequest( SendDataRequest *req ) {
@@ -377,6 +397,9 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 #ifdef GPU_DEV
    nanos_device_t newDeviceGPU = { local_nanos_gpu_factory, (void *) &smp_args } ;
 #endif
+#ifdef OpenCL_DEV
+   nanos_device_t newDeviceOCL = { local_nanos_ocl_factory, (void *) &smp_args } ;
+#endif
    nanos_device_t *devPtr = NULL;
 
    if (arch == 0)
@@ -399,6 +422,18 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
          getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
 
       rwg = (WorkDescriptor *) getInstance()->_rwgGPU;
+   }
+#endif
+#ifdef OpenCL_DEV
+   else if (arch == 2)
+   {
+      //FIXME: OCL support
+      devPtr = &newDeviceOCL;
+
+      if (getInstance()->_rwgOCL == NULL)
+         getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
+
+      rwg = (WorkDescriptor *) getInstance()->_rwgOCL;
    }
 #endif
    else
@@ -484,7 +519,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       gasnet_handlerarg_t waitObjAddrLo, gasnet_handlerarg_t waitObjAddrHi )
 {
    gasnet_node_t src_node;
-   void *addr = NULL; //volatile int *ptr;
+   void *addr = NULL;
    std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -704,11 +739,11 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
 void GASNetAPI::amGetReply( gasnet_token_t token,
       void *buf,
       std::size_t len,
-      gasnet_handlerarg_t waitObjLo,
-      gasnet_handlerarg_t waitObjHi)
+      gasnet_handlerarg_t reqLo,
+      gasnet_handlerarg_t reqHi)
 {
    gasnet_node_t src_node;
-   GetRequest *waitObj = ( GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
+   GetRequest *req = ( GetRequest * ) MERGE_ARG( reqHi, reqLo );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -716,7 +751,6 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
 
-   //fprintf(stderr, "get reply from %d: data is %d waitObj %p\n", src_node , *((int *)buf), waitObj);
    if ( _emitPtPEvents ) {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
@@ -726,9 +760,9 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
       NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_DATA, id, sizeKey, xferSize, src_node ); )
    }
 
-   if ( waitObj != NULL )
+   if ( req != NULL )
    {
-      waitObj->complete();
+      req->complete();
    }
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
@@ -736,11 +770,11 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
 void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
       void *buf,
       std::size_t len,
-      gasnet_handlerarg_t waitObjLo,
-      gasnet_handlerarg_t waitObjHi)
+      gasnet_handlerarg_t reqLo,
+      gasnet_handlerarg_t reqHi)
 {
    gasnet_node_t src_node;
-   GetRequest *waitObj = ( GetRequest * ) MERGE_ARG( waitObjHi, waitObjLo );
+   GetRequestStrided *req = ( GetRequestStrided * ) MERGE_ARG( reqHi, reqLo );
 
    VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
@@ -755,10 +789,9 @@ void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
    NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) buf; )
    NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_DATA, id, sizeKey, xferSize, src_node ); )
 
-   if ( waitObj != NULL )
+   if ( req != NULL )
    {
-      //   waitObj->clear();
-      waitObj->complete();
+      req->complete();
    }
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
 }
@@ -779,13 +812,13 @@ void GASNetAPI::amGet( gasnet_token_t token, void *buff, std::size_t nbytes ) {
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
       NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) msg->_waitObj; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) msg->_req; )
       NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_REQ, id, sizeKey, xferSize, src_node ); )
    }
 
    getInstance()->_txBytes += msg->_len;
 
-   SendDataGetRequest *req = NEW SendDataGetRequest( getInstance(), msg->_seqNumber, msg->_destAddr, msg->_origAddr, msg->_len, 1, 0, msg->_waitObj, msg->_cd, dims );
+   SendDataGetRequest *req = NEW SendDataGetRequest( getInstance(), msg->_seqNumber, msg->_destAddr, msg->_origAddr, msg->_len, 1, 0, msg->_req, msg->_cd, dims );
    getInstance()->_net->notifyRegionMetaData( &( req->_cd ), 0 );
    getInstance()->_net->notifyGet( req );
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
@@ -1001,11 +1034,11 @@ void GASNetAPI::amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nb
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
       NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) msg->_waitObj; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) msg->_req; )
       NANOS_INSTRUMENT ( instr->raiseClosePtPEvent ( NANOS_XFER_REQ, id, sizeKey, xferSize, src_node ); )
    }
 
-   SendDataGetRequest *req = NEW SendDataGetRequest( getInstance(), msg->_seqNumber, msg->_destAddr, msg->_origAddr, msg->_len, msg->_count, msg->_ld, msg->_waitObj, msg->_cd, dims );
+   SendDataGetRequest *req = NEW SendDataGetRequest( getInstance(), msg->_seqNumber, msg->_destAddr, msg->_origAddr, msg->_len, msg->_count, msg->_ld, msg->_req, msg->_cd, dims );
    getInstance()->_net->notifyRegionMetaData( &( req->_cd ), 0 );
    getInstance()->_net->notifyGet( req );
    VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
@@ -1018,18 +1051,30 @@ void GASNetAPI::amRegionMetadata(gasnet_token_t token, void *arg, std::size_t ar
 }
 
 void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
-   WorkDescriptor *wds[2];
+   WorkDescriptor *wds[3];
    unsigned int numWDs = 0;
 
-   if ( getInstance()->_rwgSMP != NULL ) {
-      wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgSMP;
-      numWDs += 1;
-   }
+   if (getInstance()->_rwgSMP == NULL) 
+      getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
+
 #ifdef GPU_DEV
-   if ( getInstance()->_rwgGPU != NULL) {
-      wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgGPU;
-      numWDs += 1;
-   }
+   if (getInstance()->_rwgGPU == NULL) 
+      getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
+#endif
+#ifdef OpenCL_DEV
+   if (getInstance()->_rwgOCL == NULL) 
+      getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
+#endif
+
+   wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgSMP;
+   numWDs += 1;
+#ifdef GPU_DEV
+   wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgGPU;
+   numWDs += 1;
+#endif
+#ifdef OpenCL_DEV
+   wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgOCL;
+   numWDs += 1;
 #endif
    getInstance()->_net->notifySynchronizeDirectory( numWDs, wds );
 }
@@ -1328,12 +1373,14 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
    else
 #endif
    {
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) remoteNode+1 ); )
       while ( sent < size )
       {
          thisReqSize = ( ( size - sent ) <= MAX_LONG_REQUEST ) ? size - sent : MAX_LONG_REQUEST;
 
-         NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
 
          if ( remoteTmpBuffer != NULL )
@@ -1373,6 +1420,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
          else { fprintf(stderr, "error sending a PUT to node %d, did not get a tmpBuffer\n", remoteNode ); }
          sent += thisReqSize;
       }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
    }
 }
 
@@ -1382,13 +1430,15 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
    std::size_t realSize = size * count;
    _txBytes += realSize;
    _totalBytes += realSize;
+   NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
+   NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) remoteNode+1 ); )
    {
       while ( sent < realSize )
       {
          thisReqSize = ( ( realSize - sent ) <= MAX_LONG_REQUEST ) ? realSize - sent : MAX_LONG_REQUEST;
 
-         NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
 
          if ( remoteTmpBuffer != NULL )
@@ -1427,6 +1477,7 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
          sent += thisReqSize;
       }
    }
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
 void GASNetAPI::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) {
@@ -1460,21 +1511,21 @@ void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localA
 Lock getLockGlobal;
 #endif
 
-void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *requestComplete, CopyData const &cd )
+void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, CopyData const &cd )
 {
    if ( _emitPtPEvents ) {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
       NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) requestComplete ; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) req ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_XFER_REQ, id, sizeKey, xferSize, remoteNode ); )
    }
 
    unsigned int seq_number = sys.getNetwork()->getPutRequestSequenceNumber( remoteNode );
    std::size_t buffer_size = sizeof( SendDataGetRequestPayload ) + sizeof( nanos_region_dimension_internal_t ) * cd.getNumDimensions();
    char *buffer = (char *) alloca( buffer_size );
-   new ( buffer ) SendDataGetRequestPayload( seq_number, localAddr, (void *)remoteAddr, size, 1, 0, (void *) requestComplete, cd );
+   new ( buffer ) SendDataGetRequestPayload( seq_number, localAddr, (void *)remoteAddr, size, 1, 0, req, cd );
    nanos_region_dimension_internal_t *dims = ( nanos_region_dimension_internal_t * ) ( buffer + sizeof( SendDataGetRequestPayload ) );
    ::memcpy( dims, cd.getDimensions(), sizeof( nanos_region_dimension_internal_t ) * cd.getNumDimensions() );
 
@@ -1491,7 +1542,7 @@ std::size_t GASNetAPI::getMaxGetStridedLen() const {
    return ( std::size_t ) gasnet_AMMaxLongReply();
 }
 
-void GASNetAPI::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *requestComplete, CopyData const &cd )
+void GASNetAPI::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, GetRequestStrided *req, CopyData const &cd )
 {
    std::size_t thisReqSize = size * count;
    void *addr = packedAddr;
@@ -1501,7 +1552,7 @@ void GASNetAPI::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t sizeKey = ID->getEventKey("xfer-size"); )
       NANOS_INSTRUMENT ( nanos_event_value_t xferSize = 0; )
-      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) requestComplete ; )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) req ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent ( NANOS_XFER_REQ, id, sizeKey, xferSize, remoteNode ); )
    }
 
@@ -1509,7 +1560,7 @@ void GASNetAPI::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64
 
    std::size_t buffer_size = sizeof( SendDataGetRequestPayload ) + sizeof( nanos_region_dimension_internal_t ) * cd.getNumDimensions();
    char *buffer = (char *) alloca( buffer_size );
-   new ( buffer ) SendDataGetRequestPayload( seq_number, addr, (void *)remoteAddr, size, count, ld, (void *) requestComplete, cd );
+   new ( buffer ) SendDataGetRequestPayload( seq_number, addr, (void *)remoteAddr, size, count, ld, req, cd );
    nanos_region_dimension_internal_t *dims = ( nanos_region_dimension_internal_t * ) ( buffer + sizeof( SendDataGetRequestPayload ) );
    ::memcpy( dims, cd.getDimensions(), sizeof( nanos_region_dimension_internal_t ) * cd.getNumDimensions() );
 
@@ -1557,8 +1608,10 @@ void GASNetAPI::memFree ( unsigned int remoteNode, void *addr )
 
 void GASNetAPI::nodeBarrier()
 {
-   gasnet_barrier_notify( 0, GASNET_BARRIERFLAG_ANONYMOUS );
-   gasnet_barrier_wait( 0, GASNET_BARRIERFLAG_ANONYMOUS );
+   unsigned int id = _nodeBarrierCounter;
+   _nodeBarrierCounter += 1;
+   gasnet_barrier_notify( id, !(GASNET_BARRIERFLAG_ANONYMOUS) );
+   gasnet_barrier_wait( id, !(GASNET_BARRIERFLAG_ANONYMOUS) );
 }
 
 void GASNetAPI::sendMyHostName( unsigned int dest )

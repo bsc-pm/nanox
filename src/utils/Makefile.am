@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -80,6 +80,16 @@ nanox_pfm_SOURCES=  $(nanox_sources)
 nanox_pfm_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/performance/libnanox.la \
+	$(END)
+
+# For simplicity, we will only build nanox-bindings in PERFORMANCE version
+bin_PROGRAMS += nanox-bindings
+nanox_bindings_CPPFLAGS = $(common_includes) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_bindings_SOURCES = nanox_bindings.cpp
+nanox_bindings_LDADD = \
+	$(top_builddir)/src/core/performance/libnanox.la \
+	$(top_builddir)/src/pms/performance/libnanox-ompss.la \
+	$(top_builddir)/src/apis/performance/libnanox-c.la \
 	$(END)
 
 endif

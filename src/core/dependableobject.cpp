@@ -1,5 +1,5 @@
-
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -20,6 +20,7 @@
 #include "dependableobject.hpp"
 #include "instrumentation.hpp"
 #include "system.hpp"
+#include "basethread.hpp"
 #include <alloca.h>
 
 using namespace nanos;
@@ -99,6 +100,10 @@ void DependableObject::finished ( )
             // Convert to WD*
             WD* wd = (WD*) dSucc.getRelatedObject();
             fatal_cond( wd == NULL, "Cannot cast the related object to WD" );
+
+            if ( this->getWD() != NULL ) {
+               wd->predecessorFinished( this->getWD() );
+            }
             
             *pIS++ = wd ;
          }

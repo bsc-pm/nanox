@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -33,3 +33,4 @@ void WDDeque::initDeviceList()
       _ndevs.insert( std::make_pair( dev, num ) );
    }
 }
+

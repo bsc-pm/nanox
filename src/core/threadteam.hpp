@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -23,17 +23,18 @@
 #include "atomic.hpp"
 #include "debug.hpp"
 #include "system.hpp"
+#include "task_reduction.hpp"
 
 using namespace nanos;
 
 inline ThreadTeam::ThreadTeam ( int maxThreads, SchedulePolicy &policy, ScheduleTeamData *data,
                                 Barrier &barrierImpl, ThreadTeamData & ttd, ThreadTeam * parent )
-                              : _threads(), _idList(), _finalSize(0),  _starSize(0), _idleThreads( 0 ),
+                              : _threads(), _idList(), _expectedThreads(), _starSize(0), _idleThreads( 0 ),
                                 _numTasks( 0 ), _barrier(barrierImpl),
                                 _singleGuardCount( 0 ), _schedulePolicy( policy ),
                                 _scheduleData( data ), _threadTeamData( ttd ), _parent( parent ),
                                 _level( parent == NULL ? 0 : parent->getLevel() + 1 ), _creatorId(-1),
-                                _wsDescriptor(NULL), _redList(), _lock(), _stable(true)
+                                _wsDescriptor(NULL), _redList(), _lock()
 { }
 
 inline ThreadTeam::~ThreadTeam ()
@@ -42,6 +43,16 @@ inline ThreadTeam::~ThreadTeam ()
    delete &_barrier;
    delete _scheduleData;
    delete &_threadTeamData;
+}
+
+inline void ThreadTeam::lock()
+{
+   _lock.acquire();
+}
+
+inline void ThreadTeam::unlock()
+{
+   _lock.release();
 }
 
 inline unsigned ThreadTeam::size() const
@@ -64,17 +75,33 @@ inline void ThreadTeam::resized ()
 inline const BaseThread & ThreadTeam::getThread ( int i ) const
 {
    // Return the i-th valid element in _threads
+   int j = 0;
    ThreadTeamList::const_iterator it = _threads.begin();
-   std::advance( it, i );
-   return *(it->second);
+   for ( it = _threads.begin(); it != _threads.end(); ++it, ++j ) {
+      if ( i == j ) {
+         return *(it->second);
+      }
+   }
+
+   // If we didn't returned during the loop, return last thread
+   ThreadTeamList::const_reverse_iterator last = _threads.rbegin();
+   return *(last->second);
 }
 
 inline BaseThread & ThreadTeam::getThread ( int i )
 {
    // Return the i-th valid element in _threads
+   int j = 0;
    ThreadTeamList::iterator it = _threads.begin();
-   std::advance( it, i );
-   return *(it->second);
+   for ( it = _threads.begin(); it != _threads.end(); ++it, ++j ) {
+      if ( i == j ) {
+         return *(it->second);
+      }
+   }
+
+   // If we didn't returned during the loop, return last thread
+   ThreadTeamList::reverse_iterator last = _threads.rbegin();
+   return *(last->second);
 }
 
 inline const BaseThread & ThreadTeam::operator[]  ( int i ) const
@@ -95,6 +122,8 @@ inline unsigned ThreadTeam::addThread ( BaseThread *thread, bool star, bool crea
       for ( id = 0; id < _idList.size(); id++) if ( _idList[id] == false ) break;
       _threads[id] = thread;
       _idList[id] = true;
+      _expectedThreads.insert( thread );
+      _barrier.resize( _expectedThreads.size() );
    }
    if ( star ) _starSize++;
    if ( creator ) {
@@ -248,14 +277,38 @@ inline nanos_reduction_t *ThreadTeam::getReduction ( void* s )
    return NULL;
 }
 
-inline size_t ThreadTeam::getFinalSize ( void ) const { return _finalSize.value();}
+inline size_t ThreadTeam::getFinalSize ( void ) const { return _expectedThreads.size(); }
 
-inline void ThreadTeam::setFinalSize ( size_t s ) { _finalSize = Atomic<size_t>(s);}
+inline bool ThreadTeam::isStable ( void )
+{
+   LockBlock Lock( _lock );
+   bool is_stable = _threads.size() == _expectedThreads.size();
+   if ( is_stable ) {
+      // If first condition is met, we keep looking:
+      // _threads is a std::map (ordered by key) so we will dump all the values
+      // into a temp set in order to compare with a linear cost
+      ThreadSet threads_set;
+      ThreadTeamList::const_iterator it;
+      for ( it = _threads.begin(); it != _threads.end(); ++it ) {
+         threads_set.insert( (it->second) );
+      }
+      is_stable = _expectedThreads == threads_set;
+   }
+   return is_stable;
+}
 
-inline void ThreadTeam::increaseFinalSize ( void ) { _finalSize++; }
-inline void ThreadTeam::decreaseFinalSize ( void ) { _finalSize--; }
+inline void ThreadTeam::addExpectedThread( BaseThread *thread )
+{
+   LockBlock Lock( _lock );
+   _expectedThreads.insert( thread );
+   _barrier.resize( _expectedThreads.size() );
+}
 
-inline void ThreadTeam::setStable ( bool value )  { _stable = value;}
-inline bool ThreadTeam::isStable ( void ) const { return _stable; }
+inline void ThreadTeam::removeExpectedThread( BaseThread *thread )
+{
+   LockBlock Lock( _lock );
+   _expectedThreads.erase( thread );
+   _barrier.resize( _expectedThreads.size() );
+}
 
 #endif

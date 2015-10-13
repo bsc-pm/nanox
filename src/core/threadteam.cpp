@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -28,14 +28,22 @@ using namespace nanos;
 
 bool ThreadTeam::singleGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   // Double check of locks is an antipattern
+#else
    if ( local <= _singleGuardCount ) return false;
+#endif
    
    return compareAndSwap( &_singleGuardCount, local-1, local );
 }
 
 bool ThreadTeam::enterSingleBarrierGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   // Double check of locks is an antipattern
+#else
    if ( local <= _singleGuardCount ) return false;
+#endif
    
    return compareAndSwap( &_singleGuardCount, local-2, local-1 );
 
@@ -43,12 +51,20 @@ bool ThreadTeam::enterSingleBarrierGuard( int local )
 
 void ThreadTeam::releaseSingleBarrierGuard( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_fetch_add(&_singleGuardCount, 1, __ATOMIC_ACQ_REL);
+#else
    _singleGuardCount++;
+#endif
 }
 
 void ThreadTeam::waitSingleBarrierGuard( int local )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   while ( local > __atomic_load_n(&_singleGuardCount, __ATOMIC_ACQUIRE) ) { }
+#else
    while ( local > _singleGuardCount ) { memoryFence(); }
+#endif
 }
 
 void ThreadTeam::cleanUpReductionList( void ) 
@@ -61,16 +77,19 @@ void ThreadTeam::cleanUpReductionList( void )
       { 
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
          nanos::getMemTracker().deallocate( red->descriptor ); 
-#else 
+#elif !defined(NANOS_DISABLE_ALLOCATOR)
          nanos::getAllocator().deallocate ( red->descriptor ); 
-#endif 
-      } 
+#else
+         free( red->descriptor );
+#endif
+      }
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
       nanos::getMemTracker().deallocate( (void *) red );
-#else
+#elif !defined(NANOS_DISABLE_ALLOCATOR)
       nanos::getAllocator().deallocate ( (void *) red );
+#else
+      free ( (void*) red );
 #endif
       _redList.pop_back();
    }
 }
-

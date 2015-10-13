@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #include "plugin.hpp"
 #include "slicer.hpp"
 #include "system.hpp"
@@ -125,7 +144,7 @@ void SlicerCompoundWD::executeWDs ( nanos_compound_wd_data_t *data )
 
    for ( int i = 0; i < data->nsect; i++ ) {
       slice = (WorkDescriptor*)data->lwd[i];
-      Scheduler::inlineWork( slice );
+      Scheduler::inlineWork( slice, /*schedule*/ false );
       slice->~WorkDescriptor();
       delete[] (char *)slice;
    }

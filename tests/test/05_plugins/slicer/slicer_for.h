@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifndef _SLICER_FOR_H
 #define _SLICER_FOR_H
 
@@ -15,6 +34,11 @@
       _loop_data.loop_info.chunk = chunk2; \
       WD *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
+      if ( sys.getPMInterface().getInternalDataSize() > 0 ) { \
+         char *idata = NEW char[sys.getPMInterface().getInternalDataSize()]; \
+         sys.getPMInterface().initInternalData( idata ); \
+         wd->setInternalData( idata ); \
+      } \
       sys.setupWD( *wd, (nanos::WD *) wg );\
       sys.submit( *wd );\
       wg->waitCompletion();\
@@ -35,6 +59,11 @@
       _loop_data.loop_info.chunk = chunk2; \
       WD *wg = getMyThreadSafe()->getCurrentWD();\
       wg->addWork( *wd );\
+      if ( sys.getPMInterface().getInternalDataSize() > 0 ) { \
+         char *idata = NEW char[sys.getPMInterface().getInternalDataSize()]; \
+         sys.getPMInterface().initInternalData( idata ); \
+         wd->setInternalData( idata ); \
+      } \
       sys.setupWD( *wd, (nanos::WD *) wg );\
       sys.submit( *wd );\
       wg->waitCompletion();\

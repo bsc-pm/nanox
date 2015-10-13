@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -23,9 +23,12 @@ devinclude_HEADERS = \
 	os.hpp \
 	pthread_decl.hpp \
 	pthread.hpp \
+   cpuset.hpp \
 	$(END) 
 
 os_sources = \
+	cpuset.cpp \
+	cpuset.hpp \
 	os.hpp \
 	os.cpp \
 	osallocator_decl.hpp \

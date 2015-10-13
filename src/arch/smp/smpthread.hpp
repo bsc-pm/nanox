@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -21,7 +21,9 @@
 #define _NANOS_SMP_THREAD
 
 #include "smpdd.hpp"
-#include "basethread.hpp"
+#include "basethread_decl.hpp"
+#include "processingelement_decl.hpp"
+#include "system_decl.hpp"
 #include <nanos-int.h>
 #include "smpprocessor_fwd.hpp"
 #include "pthread_decl.hpp"
@@ -46,7 +48,7 @@ namespace ext
       public:
          // constructor
          SMPThread( WD &w, PE *pe, SMPProcessor *core ) :
-               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _useUserThreads( true ), _pthread( core ) {}
+               BaseThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe, NULL ), _useUserThreads( true ), _pthread(core) {}
 
          // named parameter idiom
          SMPThread & stackSize( size_t size );
@@ -86,7 +88,12 @@ namespace ext
          //   fatal( "SMPThread does not support checkStateDependent()" );
          //}
 
+         /*!
+          * \brief Set the flag
+          */
+         virtual void sleep();
          // PThread functions
+         virtual void initMain() { _pthread.initMain(); };
          virtual void start() { _pthread.start( this ); }
          virtual void finish() { _pthread.finish(); BaseThread::finish(); }
          virtual void join() { _pthread.join(); joined(); }
@@ -97,7 +104,8 @@ namespace ext
          virtual void wait();
          /** \brief Unset the flag */
          virtual void wakeup();
-         virtual void block() { _pthread.block(); }
+         virtual bool canBlock() { return true;}
+
          virtual int getCpuId() const;
 #ifdef NANOS_RESILIENCY_ENABLED
          virtual void setupSignalHandlers() { _pthread.setupSignalHandlers(); }

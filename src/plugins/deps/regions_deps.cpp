@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2012 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -317,6 +317,11 @@ namespace nanos {
             {
                submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
             }
+
+            void finalizeAllReductions ( void )
+            {
+               // Region lacks of reduction finalizer
+            }
             
             bool haveDependencePendantWrites ( void *addr )
             {
@@ -337,8 +342,6 @@ namespace nanos {
                }
                return false;
             }
-            
-         
       };
       
       template void RegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const DataAccess* begin, const DataAccess* end, SchedulePolicySuccessorFunctor* callback );

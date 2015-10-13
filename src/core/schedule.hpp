@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -30,7 +30,7 @@
 #include <algorithm>
 #include "synchronizedcondition_fwd.hpp"
 #include "system_fwd.hpp"
-#include "basethread_decl.hpp"
+#include "basethread.hpp"
 
 using namespace nanos;
 
@@ -41,24 +41,20 @@ inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread 
    bool result = wd.canRunIn(*thread.runningOn()) &&
       ( !wd.isTied() || wd.isTiedTo() == &thread ) &&
       ( !wd.isTiedLocation() || tied_node == this_node ) &&
-      wd.tryAcquireCommutativeAccesses();
+      wd.tryAcquireCommutativeAccesses() &&
+      ( wd.getDepth() == 1 || this_node == 0 );
    //if ( thread.getId() > 0 ) *thread._file << "checkBasicConstraints says " << result << " this_node " << this_node << " tied_node " << tied_node << " isTiedToLocation " << wd.isTiedToLocation()<< std::endl;
    return result;
-}
-
-inline void SchedulerConf::setUseYield ( const bool value )
-{
-   _useYield = value;
-}
-
-inline void SchedulerConf::setUseBlock ( const bool value )
-{
-   _useBlock = value;
 }
 
 inline void SchedulerConf::setSchedulerEnabled ( const bool value )
 {
    _schedulerEnabled = value;
+}
+
+inline bool SchedulerConf::getSchedulerEnabled ( void ) const
+{
+   return _schedulerEnabled;
 }
 
 inline unsigned int SchedulerConf::getNumSpins ( void ) const
@@ -71,24 +67,9 @@ inline unsigned int SchedulerConf::getNumChecks ( void ) const
    return _numChecks;
 }
 
-inline unsigned int SchedulerConf::getNumYields ( void ) const
+inline unsigned int SchedulerConf::getNumStealAfterSpins ( void ) const
 {
-   return _numYields;
-}
-
-inline bool SchedulerConf::getUseYield ( void ) const
-{
-   return _useYield;
-}
-
-inline bool SchedulerConf::getUseBlock ( void ) const
-{
-   return _useBlock;
-}
-
-inline bool SchedulerConf::getSchedulerEnabled ( void ) const
-{
-   return _schedulerEnabled;
+   return _numStealAfterSpins;
 }
 
 inline const std::string & SchedulePolicy::getName () const
@@ -101,19 +82,19 @@ inline WD * SchedulePolicy::atBeforeExit  ( BaseThread *thread, WD &current, boo
    return 0;
 }
 
-inline WD * SchedulePolicy::atAfterExit   ( BaseThread *thread, WD *current )
+inline WD * SchedulePolicy::atAfterExit   ( BaseThread *thread, WD *current, int numSteal )
 {
-   return atIdle( thread );
+   return atIdle( thread, numSteal );
 }
 
 inline WD * SchedulePolicy::atBlock       ( BaseThread *thread, WD *current )
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline WD * SchedulePolicy::atYield       ( BaseThread *thread, WD *current)
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline void SchedulePolicy::atCreate ( DependableObject &depObj )
@@ -151,7 +132,7 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 
 inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline void SchedulePolicy::atSupport    ( BaseThread *thread )
@@ -175,6 +156,11 @@ inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t num
    {
       queue( threads[i], *wds[i] );
    }
+}
+
+inline int SchedulePolicy::getPotentiallyParallelWDs ( void )
+{
+   return sys.getReadyNum();
 }
 
 inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )

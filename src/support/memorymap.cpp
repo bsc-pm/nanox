@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifdef STANDALONE_TEST
 
 #ifdef message
@@ -255,22 +274,28 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
    } else if ( this->key_comp()( key, it->first ) ) {
       /* key less than it->first, not total overlap guaranteed */
       if ( it->first.checkOverlap( key ) == MemoryChunk::NO_OVERLAP ) {
-         it--;
-         MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
-         if ( ov == MemoryChunk::NO_OVERLAP ) {
+         if ( it == this->begin() ) {
             it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
             val = it->second;
             exact = true;
-         } else if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
-               ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
-               ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
-            val = it->second;
-            exact = false;
-         }
+         } else {
+            it--;
+            MemoryChunk::OverlapType ov = it->first.checkOverlap( key );
+            if ( ov == MemoryChunk::NO_OVERLAP ) {
+               it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+               val = it->second;
+               exact = true;
+            } else if ( ov == MemoryChunk::SUBCHUNK_OVERLAP ||
+                  ov == MemoryChunk::SUBCHUNK_BEGIN_OVERLAP ||
+                  ov == MemoryChunk::SUBCHUNK_END_OVERLAP) {
+               val = it->second;
+               exact = false;
+            }
 
-         //it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
-         //val = it->second;
-         //exact = true;
+            //it = this->insert( it, BaseMap::value_type( key, valIfNotFound ) );
+            //val = it->second;
+            //exact = true;
+         }
       } else {
          val = valIfNotValid;
          exact = false;
@@ -293,6 +318,18 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
       exact = true;
    }
    return val;
+}
+
+void MemoryMap< uint64_t >::eraseByAddress( uint64_t addr ) {
+   MemoryChunk key( addr, 0 );
+   iterator it = this->lower_bound( key );
+   if ( it == this->end() || this->key_comp()( key, it->first ) )
+   {
+      std::cerr << "Could not erase, address not found." << std::endl;
+      exit(-1);
+   } else {
+      this->erase( it );
+   }
 }
 
 #endif

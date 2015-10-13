@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifndef CLUSTERPLUGIN_DECL_H
 #define CLUSTERPLUGIN_DECL_H
 
@@ -19,7 +38,8 @@ class ClusterPlugin : public ArchPlugin
       unsigned int _extraPEsCount;
       std::string _conduit;
       std::size_t _nodeMem;
-      bool _allocWide;
+      bool _allocFit;
+      bool _allowSharedThd;
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
@@ -44,7 +64,7 @@ class ClusterPlugin : public ArchPlugin
       int getSmpPresend();
       System::CachePolicyType getCachePolicy ( void );
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
-      bool getAllocWide();
+      bool getAllocFit();
 
 
       virtual void startSupportThreads();

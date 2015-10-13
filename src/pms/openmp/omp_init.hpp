@@ -1,6 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -21,13 +20,13 @@
 #ifndef _NANOX_OMP_INIT
 #define _NANOX_OMP_INIT
 
-#include <sched.h>
 #include "system.hpp"
 #include <cstdlib>
 #include "config.hpp"
 #include "omp_wd_data.hpp"
 #include "omp_threadteam_data.hpp"
 #include "nanos_omp.h"
+#include "cpuset.hpp"
 
 namespace nanos
 {
@@ -58,10 +57,14 @@ namespace nanos
 
             virtual ThreadTeamData * getThreadTeamData();
 
+            virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
-            virtual void getCpuMask( cpu_set_t *cpu_set );
-            virtual void setCpuMask( const cpu_set_t *cpu_set );
-            virtual void addCpuMask( const cpu_set_t *cpu_set );
+            virtual const CpuSet& getCpuProcessMask() const;
+            virtual bool setCpuProcessMask( const CpuSet& cpu_set );
+            virtual void addCpuProcessMask( const CpuSet& cpu_set );
+            virtual const CpuSet& getCpuActiveMask() const;
+            virtual bool setCpuActiveMask( const CpuSet& cpu_set );
+            virtual void addCpuActiveMask( const CpuSet& cpu_set );
 
          public:
             nanos_ws_t findWorksharing( nanos_omp_sched_t kind ) ;
@@ -79,10 +82,13 @@ namespace nanos
             virtual int getInternalDataAlignment() const ;
             virtual void initInternalData( void *data ) ;
             virtual void setupWD( WD &wd ) ;
+            virtual int getMaxThreads() const;
             virtual void setNumThreads( int nthreads );
             virtual void setNumThreads_globalState ( int nthreads );
-            virtual void setCpuMask( const cpu_set_t *cpu_set );
-            virtual void addCpuMask( const cpu_set_t *cpu_set );
+            virtual bool setCpuProcessMask( const CpuSet& cpu_set );
+            virtual void addCpuProcessMask( const CpuSet& cpu_set );
+            virtual bool setCpuActiveMask( const CpuSet& cpu_set );
+            virtual void addCpuActiveMask( const CpuSet& cpu_set );
          public:
             virtual PMInterface::Interfaces getInterface() const;
       };

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -29,16 +29,39 @@ namespace nanos {
       class HysteresisThrottle: public ThrottlePolicy
       {
          private:
-            int   _upper;
-            int   _lower;
-            MultipleSyncCond<LessOrEqualConditionChecker<int> > _syncCond;
+            typedef int (*ntask_getter_t)( void ) ;
+            static int get_total_tasks (void) { return sys.getTaskNum(); }
+            static int get_ready_tasks (void) { return sys.getReadyNum(); }
+         private:
+            int                                                  _upper;
+            int                                                  _lower;
+            std::string                                          _type;
+            MultipleSyncCond<LessOrEqualConditionChecker<int> > *_syncCond;
+            ntask_getter_t                                       _get_num_tasks;
 
             HysteresisThrottle ( const HysteresisThrottle & );
             const HysteresisThrottle & operator= ( const HysteresisThrottle & );
 
          public:
-            HysteresisThrottle( int upper, int lower ) : _upper( upper ), _lower( lower ),
-                                                      _syncCond( LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getTotalTasksAddr(), lower )) {}
+            HysteresisThrottle( int upper, int lower, std::string type )
+            :  _upper( upper * sys.getNumThreads() ),
+               _lower( lower * sys.getNumThreads() ),
+               _type ( type ),
+               _syncCond( NULL )
+            {
+               if ( _type == "total" ) {
+                  _syncCond = (MultipleSyncCond< LessOrEqualConditionChecker<int> >*) new MultipleSyncCond< LessOrEqualConditionChecker<int> >(LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getTotalTasksAddr(), lower * sys.getNumThreads())) ;
+                  _get_num_tasks = &get_total_tasks;
+               } else if ( _type == "ready" ) {
+                  _syncCond = (MultipleSyncCond< LessOrEqualConditionChecker<int> >*) new MultipleSyncCond< LessOrEqualConditionChecker<int> >(LessOrEqualConditionChecker<int>(sys.getSchedulerStats().getReadyTasksAddr(), lower * sys.getNumThreads())) ;
+                  _get_num_tasks = &get_ready_tasks;
+               } else fatal0("Unknow throttle type");
+
+               verbose0( "Throttle hysteresis created");
+               verbose0( "   type of tasks: " << _type );
+               verbose0( "   lower bound: " << lower * sys.getNumThreads() );
+               verbose0( "   upper bound: " << upper * sys.getNumThreads() );
+            }
 
             void setUpper( int upper ) { _upper = upper; };
             void setLower( int lower ) { _lower = lower; };
@@ -54,40 +77,45 @@ namespace nanos {
          // If it's OpenMP, first level tasks will have depth 1
          unsigned maxDepth = ( sys.getPMInterface().getInterface() == PMInterface::OpenMP ) ? 2 : 1;
          // Only dealing with first level tasks
-         if ( ( (myThread->getCurrentWD())->getDepth() < maxDepth ) && ( sys.getTaskNum() > (_upper * sys.getNumWorkers()) ) ) _syncCond.wait();
+         if ( ( (myThread->getCurrentWD())->getDepth() < maxDepth ) && ( _get_num_tasks() > _upper ) ) _syncCond->wait();
          return true;
       }
       void HysteresisThrottle::throttleOut ( void )
       {
-         if ( sys.getTaskNum() <= ( _lower * sys.getNumWorkers() ) ) _syncCond.signal();
+         if ( _get_num_tasks() <= _lower ) _syncCond->signal();
       }
 
       class HysteresisThrottlePlugin : public Plugin
       {
          private:
-            int _lowerLimit;
-            int _upperLimit;
+            int         _lowerLimit;
+            int         _upperLimit;
+            std::string _type;
 
          public:
             HysteresisThrottlePlugin() : Plugin( "Hysteresis throttle plugin (Hysteresis in number of tasks per thread)",1 ),
-                                      _lowerLimit( 250 ), _upperLimit ( 500 ) {}
+                                      _lowerLimit( 250 ), _upperLimit ( 500 ), _type("total") {}
 
             virtual void config( Config &cfg )
             {
-               cfg.setOptionsSection( "Hysteresis throttle (hysteresis in number of tasks per thread)", "Scheduling throttle policy based on the number of tasks" );
+               cfg.setOptionsSection( "Hysteresis throttle", "Scheduling throttle policy based on the number of tasks" );
 
                cfg.registerConfigOption ( "throttle-upper", NEW Config::PositiveVar( _upperLimit ),
-                  "Defines the maximum number of tasks (per thread) allowed to create new 1st level's tasks" );
+                  "Defines the maximum number of tasks (per thread) allowed to create new 1st level's tasks (500 * nthreads)" );
                cfg.registerArgOption ( "throttle-upper", "throttle-upper" );
 
                cfg.registerConfigOption ( "throttle-lower", NEW Config::PositiveVar( _lowerLimit ),
-                  "Defines the number of tasks (per thread) to re-active 1st level task creation" );
+                  "Defines the number of tasks (per thread) to re-active 1st level task creation (250 * nthreads)" );
                cfg.registerArgOption ( "throttle-lower", "throttle-lower" );
+
+               cfg.registerConfigOption ( "throttle-type", NEW Config::StringVar( _type ),
+                  "Defines the task's type (ready or total) we have to take into account to stop or re-active 1st level task creation (total)" );
+               cfg.registerArgOption ( "throttle-type", "throttle-type" );
 
             }
 
             virtual void init() {
-               sys.setThrottlePolicy( NEW HysteresisThrottle( _upperLimit, _lowerLimit ) ); 
+               sys.setThrottlePolicy( NEW HysteresisThrottle( _upperLimit, _lowerLimit, _type ) ); 
             }
       };
 

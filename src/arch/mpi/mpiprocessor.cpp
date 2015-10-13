@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -34,7 +34,7 @@ using namespace nanos::ext;
 
 MPIProcessor::MPIProcessor( void* communicator, int rank, int uid, bool owner, bool shared, 
         MPI_Comm communicatorOfParents, SMPProcessor* core, memory_space_id_t memId ) : 
-ProcessingElement( &MPI, NULL, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ), _pendingReqs(), _core(core), _peLock() {
+ProcessingElement( &MPI, memId, rank /*node id*/, 0 /* TODO: see clusternode.cpp */, true, 0, false ), _pendingReqs(), _core(core), _peLock() {
     _communicator = *((MPI_Comm *)communicator);
     _commOfParents=communicatorOfParents;
     _rank = rank;
@@ -44,6 +44,7 @@ ProcessingElement( &MPI, NULL, memId, rank /*node id*/, 0 /* TODO: see clusterno
     _busy=false;
     _currExecutingDD=0;
     _hasWorkerThread=false;
+    _pphList=NULL;
 }
 
 void MPIProcessor::prepareConfig(Config &config) {
@@ -69,9 +70,16 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerArgOption("offl-hostfile", "offl-hostfile");
     config.registerEnvOption("offl-hostfile", "NX_OFFL_HOSTFILE");
 
-    config.registerConfigOption("offl-hosts", NEW Config::StringVar(_mpiHosts), "Defines hosts file where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_OFFLHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA<env_vars hostB:2<env_vars hostC:3 hostD:4");
+    config.registerConfigOption("offl-hosts", NEW Config::StringVar(_mpiHosts), "Defines hosts list where secondary process can spawn in DEEP_Booster_Alloc\n Same format than NX_OFFLHOSTFILE but in a single line and separated with \';\'\nExample: hostZ hostA<env_vars hostB:2<env_vars hostC:3 hostD:4");
     config.registerArgOption("offl-hosts", "offl-hosts");
     config.registerEnvOption("offl-hosts", "NX_OFFL_HOSTS");
+    
+    
+    config.registerConfigOption("offl-controlfile", NEW Config::StringVar(_mpiControlFile), "Defines a shared (GPFS or similar) file which will be used "
+                                 " to automatically manage offload hosts (round robin). This means that each alloc will consume hosts, so future allocs"
+                                 " do not oversubscribe on the same host.");
+    config.registerArgOption("offl-controlfile", "offl-controlfile");
+    config.registerEnvOption("offl-controlfile", "NX_OFFL_CONTROLFILE");
 
 
     // Set the cache policy for MPI devices

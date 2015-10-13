@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -53,7 +53,7 @@ typedef enum {
    ASYNC_THREAD_CP_DATA_IN_EVENT,            /* 8 */
    ASYNC_THREAD_CP_DATA_OUT_EVENT,           /* 9 */
    ASYNC_THREAD_CHECK_EVTS_EVENT,           /* 10 */
-   ASYNC_THREAD_PROCESS_EVT_EVENT,          /* 11 */
+   ASYNC_THREAD_PROCESS_EVT_EVENT,          /* 11 */   /* WARNING!! Value hard-coded in asyncthread.hpp */
    ASYNC_THREAD_SYNCHRONIZE_EVENT,          /* 12 */
 } AsyncThreadState_t;
 
@@ -95,7 +95,7 @@ void AsyncThread::idle()
    WD * last = ( _runningWDsCounter != 0 ) ? _runningWDs.back() : getCurrentWD();
    WD * next = NULL;
 
-   ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_SCHEDULE_EVENT );
+   //ASYNC_THREAD_CREATE_EVENT( ASYNC_THREAD_SCHEDULE_EVENT );
 
    while ( canGetWork() ) {
 
@@ -136,7 +136,7 @@ void AsyncThread::idle()
       }
    }
 
-   ASYNC_THREAD_CLOSE_EVENT;
+   //ASYNC_THREAD_CLOSE_EVENT;
 }
 
 bool AsyncThread::processNonAllocatedWDData ( WD * wd )
@@ -313,7 +313,7 @@ bool AsyncThread::processDependentWD ( WD * wd )
 void AsyncThread::runWD ( WD * wd )
 {
    // Check WD's dependencies
-   if ( wd->getNumDepsPredecessors() != 0 ) {
+   if ( wd->hasDepsPredecessors() ) {
       // Its WD predecessor is still running, so enqueue another event
       // to make this WD wait till the predecessor has finished
 

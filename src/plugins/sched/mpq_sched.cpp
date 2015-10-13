@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -53,7 +53,9 @@ namespace nanos {
            static int        _numQueues;
            static int        _maxPriority;
 
-           MultiPriorityQueue() : SchedulePolicy("Multi Priority Queue") {}
+           MultiPriorityQueue() : SchedulePolicy("Multi Priority Queue") {
+              _usePriority = _usePriority && sys.getPrioritiesNeeded();
+           }
            virtual ~MultiPriorityQueue () {}
 
          private:
@@ -168,7 +170,7 @@ namespace nanos {
               return 0;
            }
 
-           WD * atIdle ( BaseThread *thread )
+           WD * atIdle ( BaseThread *thread, int numSteal )
            {
               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
               
@@ -184,9 +186,9 @@ namespace nanos {
            {
               if ( !_usePriority && !_useSmartPriority ) {
                  WD * found = current.getImmediateSuccessor(*thread);
-                 return found != NULL ? found : atIdle(thread);
+                 return found != NULL ? found : atIdle(thread,false);
               } else {
-                 return atIdle(thread);
+                 return atIdle(thread,false);
               }
            }
         
@@ -208,10 +210,15 @@ namespace nanos {
                   return true;
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority || _useSmartPriority;
+            }
       };
 
       bool MultiPriorityQueue::_useStack = false;
-      bool MultiPriorityQueue::_usePriority = false;
+      bool MultiPriorityQueue::_usePriority = true;
       bool MultiPriorityQueue::_useSmartPriority = false;
       int  MultiPriorityQueue::_maxPriority = 0;
       int  MultiPriorityQueue::_numQueues = 8;

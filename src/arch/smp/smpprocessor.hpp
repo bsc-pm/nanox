@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -56,7 +56,7 @@ namespace ext
          // constructors
          SMPProcessor( int bindingId, memory_space_id_t numMemId, bool active, unsigned int numaNode, unsigned int socket );
 
-         unsigned int getBindingId() { return _bindingId; }
+         unsigned int getBindingId() const { return _bindingId; }
 
          virtual ~SMPProcessor() {}
 
@@ -76,7 +76,8 @@ namespace ext
 #endif
          bool isReserved() const { return _reserved; }
          void reserve() { _reserved = true; }
-         bool isActive() const { return _active; }
+         virtual bool isActive() const { return _active; }
+         void setActive( bool value = true) { _active = value; }
          //virtual void* getAddressDependent( uint64_t tag );
          //virtual void* waitInputsDependent( WorkDescriptor &work );
          //virtual void* newGetAddressDependent( CopyData const &cd );

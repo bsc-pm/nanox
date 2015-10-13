@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -268,22 +268,6 @@ void MPIThread::checkTaskEnd() {
         }        
     }
     checkCommunicationsCompletion();
-}
-
-void MPIThread::block()
-{
-    if (*_groupTotRunningWds==0) {
-        pthread_mutex_lock( &_completionMutex );
-        pthread_cond_wait( &_completionWait, &_completionMutex );
-        pthread_mutex_unlock( &_completionMutex );
-    }
-}
-
-void MPIThread::unblock()
-{
-   pthread_mutex_lock( &_completionMutex );
-   pthread_cond_signal( &_completionWait );
-   pthread_mutex_unlock( &_completionMutex );
 }
 
 void MPIThread::finish() {

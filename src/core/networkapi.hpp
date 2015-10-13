@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -20,6 +20,10 @@
 #ifndef _NANOX_NETWORK_API
 #define _NANOX_NETWORK_API
 
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
+
 #include <stdint.h>
 #include <vector>
 #include "functor_decl.hpp"
@@ -32,6 +36,8 @@ namespace nanos {
 
    class Network;
    class SendDataRequest;
+   class GetRequest;
+   class GetRequestStrided;
 
    class NetworkAPI
    {
@@ -44,8 +50,8 @@ namespace nanos {
          virtual void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId ) = 0;
          virtual void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) = 0;
          virtual void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) = 0;
-         virtual void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req, CopyData const &cd ) = 0;
-         virtual void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *req, CopyData const &cd ) = 0;
+         virtual void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, CopyData const &cd ) = 0;
+         virtual void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, GetRequestStrided *req, CopyData const &cd ) = 0;
          virtual void malloc ( unsigned int remoteNode, std::size_t size, void * waitObjAddr) = 0;
          virtual void memFree ( unsigned int remoteNode, void *addr ) = 0;
          virtual void memRealloc ( unsigned int remoteNode, void *oldAddr, std::size_t oldSize, void *newAddr, std::size_t newSize ) = 0;

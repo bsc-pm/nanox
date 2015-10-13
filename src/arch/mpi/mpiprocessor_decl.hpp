@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -48,6 +48,7 @@ namespace nanos {
             static std::string _mpiNodeType;
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;    
+            static std::string _mpiControlFile;   
             static bool _useMultiThread;
             static bool _allocWide;
             #ifndef OPEN_MPI
@@ -65,6 +66,7 @@ namespace nanos {
             bool _owner; //if we are the owner (process in charge of freeing the remote process)
             bool _shared; //if more processes also have access to this PE
             bool _hasWorkerThread;
+            int* _pphList; //saves which hosts in list/hostfile were ocuppied by this spawn
 
             Atomic<bool> _busy;
             WorkDescriptor* _currExecutingWd;
@@ -96,6 +98,8 @@ namespace nanos {
             static std::string getMpiHosts();
             
             static std::string getMpiHostsFile();
+            
+            static std::string getMpiControlFile();
             
             static std::string getMpiExecFile();
 
@@ -144,6 +148,10 @@ namespace nanos {
             bool isBusy() const;
 
             void setBusy(bool busy);
+            
+            void setPphList(int* list);
+            
+            int* getPphList();
                       
             /**
              * Try to reserve this PE, if the one who reserves it is the same

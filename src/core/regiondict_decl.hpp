@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifndef REGIONDICTIONARY_DECL_HPP
 #define REGIONDICTIONARY_DECL_HPP
 
@@ -67,7 +86,7 @@ typedef unsigned int reg_t;
       std::vector< std::size_t > _dimensionSizes;
       RegionNode                 _root;
       Lock                       _rogueLock;
-      Lock                       _lock;
+      RecursiveLock              _containerLock;
       Lock                       _invalidationsLock;
       std::map< reg_t, reg_t >   _masterIdToLocalId;
       bool                       _keepAtOrigin;
@@ -75,7 +94,8 @@ typedef unsigned int reg_t;
       public:
       bool sparse;
       ContainerDense( CopyData const &cd );
-      RegionNode *getRegionNode( reg_t id ) const;
+      ~ContainerDense();
+      RegionNode *getRegionNode( reg_t id );
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
       void setRegionData( reg_t id, Version * );
@@ -101,12 +121,14 @@ typedef unsigned int reg_t;
    template < class T >
    class ContainerSparse {
       std::map< reg_t, T > _container;
+      Lock                       _containerLock;
       //ContainerDense< T > &_orig;
       protected:
       RegionDictionary< ContainerDense > &_orig;
       public:
       bool sparse;
       ContainerSparse( RegionDictionary< ContainerDense > &orig );
+      ~ContainerSparse();
       RegionNode *getRegionNode( reg_t id ) const;
       void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
@@ -117,6 +139,7 @@ typedef unsigned int reg_t;
       unsigned int getNumDimensions() const;
       reg_t checkIfRegionExists( nanos_region_dimension_internal_t const region[] );
       ContainerDense< T > &getOrigContainer();
+      reg_t getMaxRegionId() const;
 
       Version *getGlobalRegionData( reg_t id );
       RegionNode *getGlobalRegionNode( reg_t id ) const;
@@ -137,11 +160,10 @@ typedef unsigned int reg_t;
       std::vector< MemoryMap< std::set< reg_t > > > _intersects;
       uint64_t _keyBaseAddress;
       uint64_t _realBaseAddress;
-      Lock _lock;
+      RecursiveLock _lock;
 
       public:
       void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise = false, bool giveSubFragmentsWithSameVersion = false );
-      void getRegionIntersects( reg_t id, unsigned int version, std::list< reg_t > &superParts, std::list< reg_t > &subParts );
       void lock();
       bool tryLock();
       void unlock();
@@ -150,6 +172,7 @@ typedef unsigned int reg_t;
 
       RegionDictionary( CopyData const &cd );
       RegionDictionary( GlobalRegionDictionary &dict );
+      ~RegionDictionary();
       //reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, WD const &wd, unsigned int idx );
       reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
       reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
@@ -161,9 +184,10 @@ typedef unsigned int reg_t;
       uint64_t getKeyBaseAddress() const;
       uint64_t getRealBaseAddress() const;
 
-      void printRegion( std::ostream &o, reg_t ) const;
+      void printRegion( std::ostream &o, reg_t );
+      void printRegionGeom( std::ostream &o, reg_t );
 
-      bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId ) const;
+      bool checkIntersect( reg_t baseRegionId, reg_t targetRegionId );
       reg_t computeTestIntersect( reg_t regionIdA, reg_t regionIdB ) ;
       reg_t computeIntersect( reg_t regionIdA, reg_t regionIdB ) ;
       void _computeIntersect( reg_t regionIdA, reg_t regionIdB, nanos_region_dimension_internal_t *outReg );
@@ -172,7 +196,7 @@ typedef unsigned int reg_t;
       void _combine ( nanos_region_dimension_internal_t tmpFragment[], int dim, int currentPerm, nanos_region_dimension_internal_t fragments[][3], bool allFragmentsIntersect, std::list< reg_t > &resultingPieces );
       reg_t isThisPartOf( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version );
       bool doTheseRegionsForm( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version ) ;
-      bool doTheseRegionsForm( reg_t target, std::list< std::pair< reg_t, reg_t > >::const_iterator ibegin, std::list< std::pair< reg_t, reg_t > >::const_iterator iend ) ;
+      bool doTheseRegionsForm( reg_t target, std::list< std::pair< reg_t, reg_t > >::const_iterator ibegin, std::list< std::pair< reg_t, reg_t > >::const_iterator iend, bool checkVersion ) ;
 
    };
    

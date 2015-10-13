@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -30,7 +30,7 @@
 #include "atomic.hpp"
 #include "system.hpp"
 #include "wddeque.hpp"
-#include "printbt_decl.hpp"
+#include "smpthread.hpp"
 #include <stdio.h>
 
 namespace nanos
@@ -108,17 +108,22 @@ namespace nanos
    inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
       _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
       _threadWD( wd ), _currentWD( NULL ), _nextWDs( /* enableDeviceCounter */ false ), _teamData( NULL ), _nextTeamData( NULL ),
-      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL )
+      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL ), _nextTeam( NULL )
    {
          if ( sys.getSplitOutputForThreads() ) {
-            char tmpbuf[64];
-            sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
-            _file = NEW std::ofstream(tmpbuf);
+            if ( _parent != NULL ) {
+               _file = _parent->_file;
+            } else {
+               char tmpbuf[64];
+               sprintf(tmpbuf, "thd_out.%04d.%04d.log", sys.getNetwork()->getNodeNum(), _id );
+               _file = NEW std::ofstream(tmpbuf);
+            }
          } else {
             _file = &std::cerr;
          }
 
          _status.can_get_work = true;
+         _status.must_leave_team = false;
    }
 
    inline bool BaseThread::isMainThread ( void ) const { return _status.is_main_thread; }
@@ -134,10 +139,8 @@ namespace nanos
  
    inline void BaseThread::stop() { _status.must_stop = true; }
 
-   inline void BaseThread::sleep() { _status.must_sleep = true; }
-
    inline void BaseThread::wakeup() { _status.must_sleep = false; }
-   
+
    inline void BaseThread::pause ()
    {
       // If the thread was already paused, do nothing
@@ -174,38 +177,22 @@ namespace nanos
    inline bool BaseThread::canPrefetch () const { return _nextWDs.size() < _maxPrefetch; }
 
    inline bool BaseThread::hasNextWD () const { return !_nextWDs.empty(); }
- 
+
+   inline int BaseThread::getMaxConcurrentTasks () const { return 1; }
+
    inline ext::SMPMultiThread * BaseThread::getParent() { return _parent; }
 
    // team related methods
    inline void BaseThread::reserve() { _status.has_team = true; }
  
    inline void BaseThread::enterTeam( TeamData *data )
-   { 
-      lock();
+   {
       if ( data != NULL ) _teamData = data;
       else _teamData = _nextTeamData;
       _status.has_team = true;
-      unlock();
    }
  
    inline bool BaseThread::hasTeam() const { return _status.has_team; }
- 
-   inline void BaseThread::leaveTeam()
-   {
-      ensure( this == myThread, "thread is not leaving team by itself" );
-      if ( _teamData ) 
-      {
-         TeamData *td = _teamData;
-         debug( "removing thread " << this << " with id " << toString<int>(getTeamId()) << " from " << _teamData->getTeam() );
-
-         size_t final_size = td->getTeam()->removeThread( getTeamId() );
-         if ( final_size == td->getTeam()->getFinalSize() ) td->getTeam()->setStable(true);
-         _teamData = _teamData->getParentTeamData();
-         _status.has_team = _teamData != NULL;
-         delete td;
-      }
-   }
 
    inline ThreadTeam * BaseThread::getTeam() const { return _teamData ? _teamData->getTeam() : NULL; }
  
@@ -228,7 +215,7 @@ namespace nanos
  
    inline bool BaseThread::isRunning () const { return _status.has_started && !_status.must_stop; }
 
-   inline bool BaseThread::isSleeping () const { return _status.must_sleep; }
+   inline bool BaseThread::isSleeping () const { return _status.must_sleep && !_status.must_stop; }
 
    inline bool BaseThread::canGetWork () { return _status.can_get_work; }
 
@@ -240,12 +227,14 @@ namespace nanos
 
    inline void BaseThread::wait ( void ) { _status.is_waiting = true; }
 
-   inline void BaseThread::resume ( void ) {_status.is_waiting = false; }
+   inline void BaseThread::resume ( void ) { _status.is_waiting = false; }
 
    inline bool BaseThread::isWaiting () const { return _status.is_waiting; }
 
    inline bool BaseThread::isPaused () const { return _status.is_paused; }
- 
+
+   inline bool BaseThread::isLeavingTeam () const { return _status.must_leave_team; }
+
    inline ProcessingElement * BaseThread::runningOn() const { return _pe; }
    
    inline void BaseThread::setRunningOn(ProcessingElement* element) { _pe=element; }
@@ -302,6 +291,9 @@ namespace nanos
 
    inline void BaseThread::setSteps ( unsigned short s ) { _steps = s; }
 
+   inline ThreadTeam* BaseThread::getNextTeam() const { return _nextTeam; }
+
+   inline void BaseThread::setNextTeam( ThreadTeam *team ) { _nextTeam = team; }
 }
 
 #endif

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -20,7 +20,7 @@
 #ifndef _NANOS_OpenCL_WD
 #define _NANOS_OpenCL_WD
 
-#include "workdescriptor.hpp"
+#include "workdescriptor_fwd.hpp"
 #include "debug.hpp"
 #include "opencldevice_decl.hpp"
 

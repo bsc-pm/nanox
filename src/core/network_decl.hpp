@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -23,6 +23,8 @@
 
 #include <string>
 #include <set>
+#include <list>
+#include <vector>
 #include "functor_decl.hpp"
 #include "globalregt_decl.hpp"
 #include "requestqueue_decl.hpp"
@@ -60,7 +62,11 @@ namespace nanos {
    };
 
    struct GetRequest {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+      int _complete;
+#else
       volatile int _complete;
+#endif
       char* _hostAddr;
       std::size_t _size;
       char* _recvAddr;
@@ -148,8 +154,8 @@ namespace nanos {
             public:
                ReceivedWDData();
                ~ReceivedWDData();
-               void addData( unsigned int wdId, std::size_t size );
-               void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData );
+               void addData( unsigned int wdId, std::size_t size, WD *parent );
+               void addWD( unsigned int wdId, WorkDescriptor *wd, std::size_t expectedData, WD *parent );
                unsigned int getReceivedWDsCount() const;
          };
 
@@ -196,6 +202,37 @@ namespace nanos {
          Atomic<unsigned int> *_metadataSequenceNumbers;
          Atomic<unsigned int> _recvMetadataSeq;
 
+         class SyncWDs {
+            unsigned int _numWDs;
+            WD **_wds;
+            public:
+            SyncWDs( int num, WD **wds ) : _numWDs( num ) {
+               _wds = NEW WD*[num];
+               for ( unsigned int idx = 0; idx < _numWDs; idx += 1 ) {
+                  _wds[idx] = wds[idx];
+               }
+            }
+            SyncWDs( SyncWDs const &s ) : _numWDs( s._numWDs ) {
+               _wds = NEW WD*[_numWDs];
+               for ( unsigned int idx = 0; idx < _numWDs; idx += 1 ) {
+                  _wds[idx] = s._wds[idx];
+               }
+            }
+            SyncWDs &operator=( SyncWDs const &s ) {
+               this->_numWDs = s._numWDs;
+               this->_wds = NEW WD*[this->_numWDs];
+               for ( unsigned int idx = 0; idx < this->_numWDs; idx += 1 ) {
+                  this->_wds[idx] = s._wds[idx];
+               }
+               return *this;
+            }
+            ~SyncWDs() { delete[] _wds; }
+            unsigned int getNumWDs() const { return _numWDs; }
+            WD **getWDs() const { return _wds; }
+         };
+         std::list<SyncWDs> _syncReqs;
+         RecursiveLock _syncReqsLock;
+
       public:
          static const unsigned int MASTER_NODE_NUM = 0;
          typedef struct {
@@ -209,6 +246,8 @@ namespace nanos {
 
 
          RequestQueue< SendDataRequest > _dataSendRequests;
+         int _nodeBarrierCounter;
+         WD *_parentWD;
 
          // constructor
 
@@ -233,8 +272,8 @@ namespace nanos {
          void sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdaddr, int peId );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
          void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
-         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, volatile int *req, void *hostObject, reg_t hostRegId );
-         void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, volatile int *req, void *hostObject, reg_t hostRegId );
+         void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, void *hostObject, reg_t hostRegId );
+         void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, GetRequestStrided *req, void *hostObject, reg_t hostRegId );
          void *malloc ( unsigned int remoteNode, std::size_t size );
          void memFree ( unsigned int remoteNode, void *addr );
          void memRealloc ( unsigned int remoteNode, void *oldAddr, std::size_t oldSize, void *newAddr, std::size_t newSize );
@@ -289,6 +328,8 @@ namespace nanos {
          unsigned int checkMetadataSequenceNumber( unsigned int dest );
          unsigned int updateMetadataSequenceNumber( unsigned int value );
          void synchronizeDirectory();
+         void processSyncRequests();
+         void setParentWD(WD *wd);
    };
 }
 

@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -41,6 +41,7 @@ devinclude_HEADERS = \
     sharedmemallocator.hpp \
     openclevent.hpp \
     openclevent_decl.hpp \
+    openclprofiler.hpp \
 	$(END) 
 
 opencl_api_sources = \
@@ -66,6 +67,7 @@ opencl_sources = \
     openclutils.hpp \
     sharedmemallocator.cpp \
     sharedmemallocator.hpp \
+    openclprofiler.cpp \
     $(END)
 
 pe_opencl_sources = \
@@ -74,7 +76,7 @@ pe_opencl_sources = \
 
 opencl_api_flags = -I$(srcdir)/../../apis/c
 opencl_ldflags = -L@OPENCL_LD@ -lOpenCL
-opencl_includes = -isystem @OPENCL_INC@
+opencl_includes = -isystem @OPENCL_INC@ -DCL_USE_DEPRECATED_OPENCL_2_0_APIS
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =

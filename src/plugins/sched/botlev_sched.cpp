@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -30,16 +30,35 @@
 
 namespace nanos {
    namespace ext {
-      static int   updateFreq = 0;
-      static int   numSpins = 300;
-      static int   hpFrom = 0;
-      static int   hpTo = 0;
-      static int   hpSingle = 0;
-      static int   steal = 0;
-      static int   maxBL = 1;
-      static int   strict = 0;
-      static int   taskNumber = 0;
-      NANOS_INSTRUMENT( static int   numCritical; )   //! The number of critical tasks (for instrumentation)
+      /*! \brief Configuration options for the BotLev scheduling policy
+       *  are stored here instead of in the namespace.
+       */
+      struct BotLevCfg
+      {
+         public:
+            static int   updateFreq;
+            static int   numSpins;
+            static int   hpFrom;
+            static int   hpTo;
+            static int   hpSingle;
+            static int   steal;
+            static int   maxBL;
+            static int   strict;
+            static int   taskNumber;
+            NANOS_INSTRUMENT( static int   numCritical; )   //! The number of critical tasks (for instrumentation)
+      };
+      
+      // Initialise default values
+      int BotLevCfg::updateFreq = 0;
+      int BotLevCfg::numSpins = 300;
+      int BotLevCfg::hpFrom = 0;
+      int BotLevCfg::hpTo = 0;
+      int BotLevCfg::hpSingle = 0;
+      int BotLevCfg::steal = 0;
+      int BotLevCfg::maxBL = 1;
+      int BotLevCfg::strict = 0;
+      int BotLevCfg::taskNumber = 0;
+      NANOS_INSTRUMENT( int BotLevCfg::numCritical; )
 
       /* Helper class for the computation of bottom levels 
          One instance of this class is stored inside each dependableObject.
@@ -131,8 +150,8 @@ namespace nanos {
             // constructor
             BotLev() : SchedulePolicy ( "BotLev" ) {
                sys.setPredecessorLists(true);
-               _currMax = _maxBotLev = maxBL;
-               NANOS_INSTRUMENT( numCritical = 0; )
+               _currMax = _maxBotLev = BotLevCfg::maxBL;
+               NANOS_INSTRUMENT( BotLevCfg::numCritical = 0; )
             }
 
             // destructor
@@ -213,14 +232,14 @@ namespace nanos {
                    3rd case: The remaining tasks are not critical
                 */
                 if( ( wd.getPriority() >  _maxBotLev ) || 
-                    ( !strict && (wd.getPriority() ==  _maxBotLev)) ) {
+                    ( !BotLevCfg::strict && (wd.getPriority() ==  _maxBotLev)) ) {
                    //The task is critical
                    {
                       LockBlock l(_botLevLock);
                       _maxBotLev = wd.getPriority();
                       _currMax = _maxBotLev;
                       _topSuccesors = (dos->getSuccessors());
-                      NANOS_INSTRUMENT( numCritical++; )
+                      NANOS_INSTRUMENT( BotLevCfg::numCritical++; )
                    }
                    dodata->setCriticality(1);
                    qId = 1;
@@ -233,7 +252,7 @@ namespace nanos {
                       LockBlock l(_botLevLock);
                       _currMax = wd.getPriority();
                       _topSuccesors = (dos->getSuccessors());
-                      NANOS_INSTRUMENT( numCritical++; )
+                      NANOS_INSTRUMENT( BotLevCfg::numCritical++; )
                    }
                    dodata->setCriticality(1);
                    qId = 1;
@@ -332,7 +351,7 @@ namespace nanos {
                NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( blev_overheads_br, NANOS_SCHED_BLEV_ATCREATE ); )
 
                //! Creating DO scheduler data
-               BotLevDOData *dodata = new BotLevDOData(++taskNumber, 0);
+               BotLevDOData *dodata = new BotLevDOData(++BotLevCfg::taskNumber, 0);
                depObj.setSchedulerData( (DOSchedulerData*) dodata );
 
                std::set<DependableObject *> predecessors;
@@ -352,7 +371,7 @@ namespace nanos {
 
                //! When reaching the threshold we need to update bottom levels,
                //! otherwise we push dodata in a temporal stack
-               if ( _blStack.size() + 1 >= (unsigned int) updateFreq ) {
+               if ( _blStack.size() + 1 >= (unsigned int) BotLevCfg::updateFreq ) {
                   updateBottomLevels(dodata, 0);
                   while ( !_blStack.empty() ) {
                      BotLevDOData *dodata1 = _blStack.top();
@@ -395,7 +414,7 @@ namespace nanos {
                return 0;
             }
            // virtual void atSuccessor( DependableObject &depObj, DependableObject *pred, atSuccessorFlag mode, int numPred );
-            virtual WD *atIdle( BaseThread *thread );
+            virtual WD *atIdle( BaseThread *thread, int numSteal );
 #ifdef NANOS_INSTRUMENTATION_ENABLED
             virtual void atShutdown( );
             virtual WD *atBeforeExit( BaseThread *thread, WD &current, bool schedule );
@@ -424,7 +443,7 @@ namespace nanos {
        *  \param thread pointer to the thread to be scheduled
        *  \sa BaseThread
        */
-      WD * BotLev::atIdle ( BaseThread *thread )
+      WD * BotLev::atIdle ( BaseThread *thread, int numSteal )
       {
          NANOS_INSTRUMENT( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
          NANOS_INSTRUMENT( static nanos_event_key_t blev_overheads  = ID->getEventKey("blev-overheads"); )
@@ -434,11 +453,11 @@ namespace nanos {
 
          WorkDescriptor * wd;
          TeamData &data = ( TeamData & ) *thread->getTeam()->getScheduleData();
-         unsigned int spins = numSpins;
+         unsigned int spins = BotLevCfg::numSpins;
 
          //Separation of big and small cores - big cores execute from queue 1 - small cores execute from queue 2
-         if( ((thread->runningOn()->getId() >= hpFrom && thread->runningOn()->getId() <= hpTo) || 
-                ( hpSingle && thread->runningOn()->getId() == hpSingle )) ) {
+         if( ((thread->runningOn()->getId() >= BotLevCfg::hpFrom && thread->runningOn()->getId() <= BotLevCfg::hpTo) || 
+                ( BotLevCfg::hpSingle && thread->runningOn()->getId() == BotLevCfg::hpSingle )) ) {
             //Big core
             wd = data._readyQueues[1].pop_front( thread );
             while( wd == NULL && spins )
@@ -459,7 +478,7 @@ namespace nanos {
                wd = data._readyQueues[0].pop_front( thread );
                spins--;
             }
-            if(!wd && steal) {
+            if(!wd && BotLevCfg::steal) {
                 //optionally: small stealing from big
                 wd = data._readyQueues[1].pop_front( thread );
             }
@@ -484,9 +503,9 @@ namespace nanos {
 
 #ifdef NANOS_INSTRUMENTATION_ENABLED
       void BotLev::atShutdown() {
-         fprintf(stderr, "\n\nTOTAL TASKS: %u\n", taskNumber);
-         fprintf(stderr, "CRITICAL TASKS: %u\n", numCritical);
-         fprintf(stderr, "PERCENTAGE OF CRITICAL TASKS: %f %%\n", (numCritical*100)/(double)taskNumber);
+         fprintf(stderr, "\n\nTOTAL TASKS: %u\n", BotLevCfg::taskNumber);
+         fprintf(stderr, "CRITICAL TASKS: %u\n", BotLevCfg::numCritical);
+         fprintf(stderr, "PERCENTAGE OF CRITICAL TASKS: %f %%\n", (BotLevCfg::numCritical*100)/(double)BotLevCfg::taskNumber);
       }
 
       WD * BotLev::atBeforeExit(BaseThread *thread, WD &wd, bool schedule) {
@@ -508,34 +527,34 @@ namespace nanos {
             virtual void config ( Config &config_ )
             {
                 config_.setOptionsSection( "Bottom level", "Bottom-level scheduling module" );
-                config_.registerConfigOption ( "update-freq", new Config::PositiveVar( updateFreq ), "Defines how often to update the bottom levels" );
+                config_.registerConfigOption ( "update-freq", new Config::PositiveVar( BotLevCfg::updateFreq ), "Defines how often to update the bottom levels" );
                 config_.registerArgOption ( "update-freq", "update-freq" );
                 config_.registerEnvOption ( "update-freq", "NX_BL_FREQ" );
 
-                config_.registerConfigOption ( "numSpins", new Config::PositiveVar( numSpins ), "Defines the number of spins in atIdle (work stealing)" );
+                config_.registerConfigOption ( "numSpins", new Config::PositiveVar( BotLevCfg::numSpins ), "Defines the number of spins in atIdle (work stealing)" );
                 config_.registerArgOption ( "numSpins", "numSpins" );
                 config_.registerEnvOption ( "numSpins", "NX_NUM_SPINS" );
 
-                config_.registerConfigOption ( "from", new Config::PositiveVar( hpFrom ), "Sets the thread id of the first fast core" );
+                config_.registerConfigOption ( "from", new Config::PositiveVar( BotLevCfg::hpFrom ), "Sets the thread id of the first fast core" );
                 config_.registerArgOption ( "from", "from" );
                 config_.registerEnvOption ( "from", "NX_HP_FROM" );
 
-                config_.registerConfigOption ( "to", new Config::PositiveVar( hpTo ), "Sets the thread id of the last fast core" );
+                config_.registerConfigOption ( "to", new Config::PositiveVar( BotLevCfg::hpTo ), "Sets the thread id of the last fast core" );
                 config_.registerArgOption ( "to", "hpTo" );
                 config_.registerEnvOption ( "to", "NX_HP_TO" );
 
-                config_.registerConfigOption ( "single", new Config::IntegerVar( hpSingle ), "Sets the thread id of a single fast core" );
+                config_.registerConfigOption ( "single", new Config::IntegerVar( BotLevCfg::hpSingle ), "Sets the thread id of a single fast core" );
                 config_.registerArgOption ( "single", "hpSingle" );
 
-                config_.registerConfigOption ( "maxBlev", new Config::IntegerVar( maxBL ), "Defines the initial value of maximum bottom level" );
+                config_.registerConfigOption ( "maxBlev", new Config::IntegerVar( BotLevCfg::maxBL ), "Defines the initial value of maximum bottom level" );
                 config_.registerArgOption ( "maxBlev", "maxBlev" );
                 config_.registerEnvOption ( "maxBlev", "NX_MAXB" );
 
-                config_.registerConfigOption ( "strict", new Config::IntegerVar( strict ), "Defines whether we use strict policy. (Strict -- les crit. tasks, Flexible -- more crit. tasks)" );
+                config_.registerConfigOption ( "strict", new Config::IntegerVar( BotLevCfg::strict ), "Defines whether we use strict policy. (Strict -- les crit. tasks, Flexible -- more crit. tasks)" );
                 config_.registerArgOption ( "strict", "strict" );
                 config_.registerEnvOption ( "strict", "NX_STRICTB" );
 
-                config_.registerConfigOption ( "steal", new Config::IntegerVar( steal ), "Defines if we use bi-directional work stealing fast <--> slow" );
+                config_.registerConfigOption ( "steal", new Config::IntegerVar( BotLevCfg::steal ), "Defines if we use bi-directional work stealing fast <--> slow" );
                 config_.registerArgOption ( "steal", "steal" );
                 config_.registerEnvOption ( "steal", "NX_STEALB" );
             }

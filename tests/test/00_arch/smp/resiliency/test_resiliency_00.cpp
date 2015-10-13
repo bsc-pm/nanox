@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -69,6 +69,12 @@ void testSignals ( void *arg )
          __alignof__(int*), array);
  
    this_wd->addWork(*task);
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( idata );
+      task->setInternalData( idata );
+   }
+
    sys.setupWD(*task, this_wd);
    sys.submit(*task);
 
@@ -102,6 +108,12 @@ void testSignals ( void *arg )
          __alignof__(int*), array);
  
    this_wd->addWork(*task2);
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( idata );
+      task2->setInternalData( idata );
+   }
+
    sys.setupWD(*task2, this_wd);
    sys.submit(*task2);
 
@@ -142,6 +154,13 @@ int main ( int argc, char **argv )
    WD* task = new nanos::WD(new nanos::ext::SMPDD(testSignals));
    task->setRecoverable(true);
    this_wd->addWork(*task);
+   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
+      char *idata = NEW char[sys.getPMInterface().getInternalDataSize()];
+      sys.getPMInterface().initInternalData( idata );
+      task->setInternalData( idata );
+   }
+
+   sys.setupWD(*task, this_wd);
    sys.submit(*task);
 
    this_wd->waitCompletion();

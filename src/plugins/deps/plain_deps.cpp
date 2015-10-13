@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2012 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -35,6 +35,11 @@ namespace nanos {
          private:
             DepsMap _addressDependencyMap; /**< Used to track dependencies between DependableObject */
          private:
+            void clearDependenciesDomain ( void )
+            {
+               _addressDependencyMap.clear(); 
+            }
+
             /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
              *  \param dep Dependency to be checked.
              *  \sa Dependency TrackableObject
@@ -253,8 +258,30 @@ namespace nanos {
                   return (lastWriter != NULL);
                }
             }
-            
-         
+            void finalizeAllReductions ( void )
+            {
+               DepsMap::iterator it; 
+               for ( it = _addressDependencyMap.begin(); it != _addressDependencyMap.end(); it++ ) {
+                  TrackableObject& status = *( it->second );
+                  Address::TargetType target = it->first;
+                  CommutationDO *commDO = status.getCommDO();
+                  if ( commDO != NULL ) {
+                     status.setCommDO( NULL );
+                     status.setLastWriter( *commDO );
+
+                     TaskReduction *tr = myThread->getCurrentWD()->getTaskReduction( (const void *) target );
+                     if ( tr != NULL ) {
+                        if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() ) commDO->setTaskReduction( tr );
+                     }
+
+                     commDO->resetReferences();
+
+                     //! Finally decrease dummy dependence added in createCommutationDO
+                     std::list<uint64_t> flushDeps;
+                     commDO->decreasePredecessors( &flushDeps, NULL, false, false ); 
+                  }
+               }
+            }
       };
       
       template void PlainDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, DataAccess* begin, DataAccess* end, SchedulePolicySuccessorFunctor* callback );
