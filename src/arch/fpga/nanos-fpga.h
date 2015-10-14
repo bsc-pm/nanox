@@ -1,5 +1,6 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2010 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,41 +18,27 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include <stdio.h>
-#include "system.hpp"
+#ifndef _NANOS_FPGA_H
+#define _NANOS_FPGA_H
 
-/*
-<testinfo>
-   test_generator="gens/mixed-generator -a --no-warmup-threads|--warmup-threads"
-   test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
-                        "NX_TEST_SCHEDULE=bf"
-                        "NX_TEST_ARCH=smp")
-   test_exec_command="timeout 5m"
-   test_ignore=yes
-</testinfo>
-*/
+#include "nanos-int.h"
 
-#define ITERS 1000
+#ifdef __cplusplus
+extern "C" {
+#endif //__cplusplus
 
-int main ( int argc, char *argv[])
-{
-   int i, error = 0;
-   unsigned nths = 0;
-   
+    typedef struct {
+        void (*outline) (void *);
+        int acc_num;
+    } nanos_fpga_args_t;
 
-   for ( i=0; i<ITERS; i++ ) {
 
-      nths = ((nths) % 4) + 1;
+NANOS_API_DECL( void *, nanos_fpga_factory, ( void *args ) );
+NANOS_API_DECL( void *, nanos_fpga_alloc_dma_mem, ( size_t len) );
+NANOS_API_DECL( void, nanos_fpga_free_dma_mem, ( ) );
 
-      sys.updateActiveWorkers( nths );
-
-      fprintf(stdout,"[%d/%d] Team final size is %d and %d is expected\n", i, ITERS, (int) myThread->getTeam()->getFinalSize(), nths );
-
-      if ( myThread->getTeam()->getFinalSize() != nths ) error++;
-   }
-
-   fprintf(stdout,"Result is %s\n", error? "UNSUCCESSFUL":"successful");
-
-   return error;
+#ifdef __cplusplus
 }
+#endif //__cplusplus
 
+#endif //_NANOS_FPGA_H

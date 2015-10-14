@@ -70,9 +70,9 @@ public:
    cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter, cl_event& ev);
    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size, cl_event& ev );
    cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size, cl_event& ev );
-   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
-   size_t getSizeFromCache(size_t addr);
-   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size, void* hostPtr);   
+   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, uint64_t offset, size_t size );
+   size_t getSizeFromCache(uint64_t addr);
+   cl_mem createBuffer(cl_mem parentBuf, uint64_t offset, size_t size, void* hostPtr);
    void freeAddr(void* addr );
    cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size, cl_event& ev );
    

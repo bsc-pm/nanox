@@ -326,8 +326,6 @@ namespace nanos
          int getReadyNum() const;
 
          int getRunningTasks() const;
-         
-         int getNumCreatedPEs() const;
 
          int getNumWorkers() const;
 

@@ -1,4 +1,4 @@
-AC_INIT([nanox], [0.9a], [pm-tools@bsc.es])
+AC_INIT([nanox], [0.10a], [pm-tools@bsc.es])
 AC_CONFIG_SRCDIR([src/core/system.cpp])
 
 configure_orig_arguments="$@"
@@ -451,6 +451,57 @@ case $host in
     ;;
 esac
 
+
+#check fpga support
+fpga_valid=no
+fpga_enabled=no
+
+XDMA_PATH=""
+
+AC_MSG_CHECKING([if FPGA support was enabled])
+AC_ARG_ENABLE([fpga-arch],
+    AS_HELP_STRING([--enable-fpga-arch], [Enables the use of FPGA devices]),
+    [
+    if test x"$enableval" = x"yes";
+    then
+        AC_MSG_RESULT([yes])
+        fpga_enabled="yes"
+    else if test x"$enableval" = x"no" -o x"$enableval" = x"";
+    then
+            AC_MSG_RESULT([no])
+            fpga_enabled="no"
+            fpga_valid="yes"
+        else
+            AC_MSG_ERROR([This option can only be given 'yes' or 'no' values])
+        fi
+    fi
+    ],
+    [
+        AC_MSG_RESULT([no])
+        fpga_enabled="no"
+    ]
+)
+
+XDMADIR=""
+AC_ARG_WITH([xdma],
+AS_HELP_STRING([--with-xdma=dir], [Directory of the xdma lib]),
+    [
+        XDMADIR="${withval}"
+    ],
+    [
+        XDMADIR="/opt/install-arm/libxdma"
+    ])
+
+#TODO: Check correct xdmalib library
+#Assuming that if enable-fpga is given, it is always valid
+if test x$fpga_enabled = xyes; then
+    ARCHITECTURES="$ARCHITECTURES fpga"
+    AC_SUBST([XDMADIR])
+    CFLAGS="$CFLAGS -DFPGA_DEV"
+    CXXFLAGS="$CXXFLAGS -DFPGA_DEV"
+fi
+
+
 #check for cluster enable option
 AC_MSG_CHECKING([if Cluster architecture was requested])
 AC_ARG_ENABLE([cluster],
@@ -570,6 +621,7 @@ AM_CONDITIONAL([CONDUIT_DBG_MPI], [test x$with_mpi_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_UDP], [test x$with_udp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_SMP], [test x$with_smp_conduit_dbg = xyes])
 AM_CONDITIONAL([CONDUIT_DBG_IBV], [test x$with_ibv_conduit_dbg = xyes])
+
 
 # Check if it has nVidia GPUs / CUDA is installed
 gpu_valid=no

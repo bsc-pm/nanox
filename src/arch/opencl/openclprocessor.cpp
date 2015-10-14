@@ -221,12 +221,12 @@ void OpenCLAdapter::freeAddr(void* addrin )
    }
 }
 
-size_t OpenCLAdapter::getSizeFromCache(size_t addr){
+size_t OpenCLAdapter::getSizeFromCache(uint64_t addr){
     return _sizeCache[addr];
 }
 
 cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
-                               size_t devAddr,
+                               uint64_t devAddr,
                                size_t size)
 {
    std::pair<uint64_t,size_t> cacheKey= std::make_pair(devAddr,size);
@@ -240,7 +240,7 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
    //If there is a buffer which covers this buffer (same base address but bigger), return it
    uint64_t baseAddress;
    if (isSharedMem) {       
-      baseAddress=(size_t )OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) devAddr, size) ;
+      baseAddress=reinterpret_cast<uint64_t>(OpenCLProcessor::getSharedMemAllocator().getBasePointer( (void*) devAddr, size)) ;
    } else {
       //If there is a buffer which covers this buffer (same base address but bigger), return it
       baseAddress=allocator.getBasePointer(devAddr, size);     
@@ -304,7 +304,7 @@ cl_mem OpenCLAdapter::getBuffer(SimpleAllocator& allocator, cl_mem parentBuf,
 
 
 cl_mem OpenCLAdapter::createBuffer(cl_mem parentBuf,
-                               size_t devAddr,
+                               uint64_t devAddr,
                                size_t size,
                                void* hostPtr)
 {
@@ -392,6 +392,10 @@ cl_int OpenCLAdapter::mapBuffer( cl_mem buf,
                                     &ev,
                                     &errCode
                                   );
+
+   if ( _synchronize )
+      clWaitForEvents(1, &ev);
+
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
       
    return errCode;
@@ -452,6 +456,9 @@ cl_int OpenCLAdapter::unmapBuffer(cl_mem buf,
             NULL,
             &ev
             );
+
+    if ( _synchronize )
+       clWaitForEvents(1, &ev);
 
     //This is a dirty trick to fake OpenCL driver which only accepts unmaps of previously mapped values
     //mapping something which is on the CPU should not do anything bad.
@@ -1393,7 +1400,7 @@ void* OpenCLProcessor::allocateSharedMemory( size_t size ){
 }
 
 void OpenCLProcessor::freeSharedMemory( void* addr ){    
-    _openclAdapter.freeSharedMemBuffer((void*)((size_t)addr));
+    _openclAdapter.freeSharedMemBuffer((void*)(addr));
 }
 
 BaseThread &OpenCLProcessor::startOpenCLThread() {

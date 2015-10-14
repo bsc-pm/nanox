@@ -479,7 +479,8 @@ opencl-generator: opencl-generator.in
 	tmp_opencl_inc='"$(OPENCL_INC)"' ; \
 	tmp_opencl_ld='"$(OPENCL_LD)"' ; \
 	tmp_cuda_inc='"$(CUDA_INC)"' ; \
-	tmp_cuda_ld='"$(CUDA_INC)"' ; \
+	tmp_cuda_ld='"$(CUDA_LD)"' ; \
+	tmp_opencl_valid='"$(opencl_valid)"' ; \
 	sed \
 		-e's,@SRCDIR\@,'"$$tmp_srcdir"',g' \
 		-e's,@BUILDDIR\@,'"$$tmp_builddir"',g' \
@@ -502,6 +503,7 @@ opencl-generator: opencl-generator.in
 		-e's,@CONFIG_OPENCL_LD\@,'"$$tmp_opencl_ld"',g' \
 		-e's,@CONFIG_CUDA_INC\@,'"$$tmp_cuda_inc"',g' \
 		-e's,@CONFIG_CUDA_LD\@,'"$$tmp_cuda_ld"',g' \
+		-e's,@OPENCL_VALID\@,'"$$tmp_opencl_valid"',g' \
 		$(srcdir)/opencl-generator.in > opencl-generator.tmp
 	mv opencl-generator.tmp opencl-generator
 	chmod 755 opencl-generator
