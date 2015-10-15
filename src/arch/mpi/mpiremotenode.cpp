@@ -798,7 +798,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     }
     
     PE* pes[totalNumberOfSpawns];
-    int uid=sys.getNumCreatedPEs();
+    //int uid=sys.getNumCreatedPEs();
     int arrSize;
     for (arrSize=0;ompss_mpi_masks[arrSize]==MASK_TASK_NUMBER;arrSize++){};
     int rank=spawn_start; //Balance spawn order so each process starts with his owned processes
@@ -815,7 +815,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
         //Each process will have access to every remote node, but only one master will sync each child
         //this way we balance syncs with childs
         if (rank>=spawn_start && rank<spawn_start+numberOfSpawnsThisProcess) {
-            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,uid++, true, shared, comm, core, id);
+            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,0/*uid++*/, true, shared, comm, core, id);
             ((MPIProcessor*)pes[rank])->setPphList(pphList);
             nanosMPISend(ompss_mpi_filenames, arrSize, MPI_UNSIGNED, rank, TAG_FP_NAME_SYNC, *intercomm);
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
@@ -827,7 +827,7 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
                 ((MPIProcessor*)pes[rank])->setHasWorkerThread(true);
             }
         } else {            
-            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,uid++, false, shared, comm, core, id);
+            pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,/*uid++*/, false, shared, comm, core, id);
             ((MPIProcessor*)pes[rank])->setPphList(pphList);
         }
         rank=(rank+1)%totalNumberOfSpawns;
