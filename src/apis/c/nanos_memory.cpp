@@ -74,20 +74,24 @@ NANOS_API_DEF(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int 
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","cmalloc",NANOS_RUNTIME ) );
 
-   try 
-   {
-      nanos::OSAllocator tmp_allocator;
-      if ( node == 0 ) {
-         *p = tmp_allocator.allocate ( size );
-      } else {
-         *p = tmp_allocator.allocate_none( size );
+   if ( node < sys.getNetwork()->getNumNodes() ) {
+      try 
+      {
+         nanos::OSAllocator tmp_allocator;
+         if ( node == 0 ) {
+            *p = tmp_allocator.allocate ( size );
+         } else {
+            *p = tmp_allocator.allocate_none( size );
+         }
+         sys.registerNodeOwnedMemory(node, *p, size);
+      } catch ( nanos_err_t e ) {
+         return e;
       }
-      sys.registerNodeOwnedMemory(node, *p, size);
-   } catch ( nanos_err_t e ) {
-      return e;
-   }
 
-   return NANOS_OK;
+      return NANOS_OK;
+   } else {
+      return NANOS_INVALID_PARAM;
+   }
 }
 
 NANOS_API_DEF(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ))
