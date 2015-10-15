@@ -67,10 +67,10 @@ std::size_t SMPDevice::getMemCapacity( SeparateMemoryAddressSpace const &mem ) c
 }
 
 void SMPDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-   ops->addOp();
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) devAddr), ((char *) hostAddr), len, 1, 0, true );
    } else {
+      ops->addOp();
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
@@ -81,10 +81,10 @@ void SMPDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
 }
 
 void SMPDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-   ops->addOp();
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) hostAddr), ((char *) devAddr), len, 1, 0, true );
    } else {
+      ops->addOp();
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-out"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
@@ -95,10 +95,10 @@ void SMPDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
 }
 
 bool SMPDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-   ops->addOp();
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) devDestAddr), ((char *) devOrigAddr), len, 1, 0, true );
    } else {
+      ops->addOp();
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) len ); )
@@ -110,10 +110,10 @@ bool SMPDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
 }
 
 void SMPDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-   ops->addOp();
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) devAddr), ((char *) hostAddr), len, numChunks, ld, true );
    } else {
+      ops->addOp();
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) 2 ); )
@@ -126,10 +126,10 @@ void SMPDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size
 }
 
 void SMPDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-   ops->addOp();
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) hostAddr), ((char *) devAddr), len, numChunks, ld, false );
    } else {
+      ops->addOp();
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-out"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) 2 ); )
@@ -142,10 +142,10 @@ void SMPDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::siz
 }
 
 bool SMPDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
-   ops->addOp();
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) devDestAddr), ((char *) devOrigAddr), len, numChunks, ld, true );
    } else {
+      ops->addOp();
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
       NANOS_INSTRUMENT ( static nanos_event_key_t key = ID->getEventKey("cache-copy-in"); )
       NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( key, (nanos_event_value_t) 2 ); )
