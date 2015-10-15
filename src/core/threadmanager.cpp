@@ -513,6 +513,10 @@ void BusyWaitThreadManager::waitForCpuAvailability()
    if ( !_initialized ) return;
    if ( !_useDLB ) return;
    int cpu = getMyThreadSafe()->getCpuId();
+  
+   OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
+   sched_yield();
+
    while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
       // Sleep and Yield the thread to reduce cycle consumption
       OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
