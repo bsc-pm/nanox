@@ -114,7 +114,9 @@ typedef enum {
    NANOS_OPENCL_CREATE_SUBBUFFER_EVENT,                   /* 10 */
    NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT,                 /* 11 */
    NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT,                 /* 12 */
-   NANOS_OPENCL_GENERIC_EVENT                         /* 13 */
+   NANOS_OPENCL_GENERIC_EVENT,                         /* 13 */
+   NANOS_OPENCL_PROFILE_KERNEL,                         /* 14 */
+   NANOS_OPENCL_UPDATE_PROFILE_DATA                     /* 15 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.
