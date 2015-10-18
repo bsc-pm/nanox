@@ -47,8 +47,6 @@ class OpenCLAdapter
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
    typedef std::map<std::pair<uint64_t,size_t>, cl_mem> BufferCache;
-   typedef std::map<Dims, Execution*> DimsBest;
-   typedef std::map<Dims, ulong> DimsExecutions;
 
 public:
    ~OpenCLAdapter();

@@ -814,52 +814,71 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    cl_kernel kernel = (cl_kernel) oclKernel;
    Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2], cost);
 
-   switch ( workDim )
-   {
-      // One dimension
-      case 1:
-         for ( int x=0; x<range_size; x++ )
-         {
-            local_work_size[0] = ndrLocalSize[x];
-            global_work_size[0] = ndrGlobalSize[x];
-            updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-         }
-         break;
-         // Two dimensions
-      case 2:
-         for ( int x=0; x<range_size; x++ )
-         {
-            local_work_size[0] = ndrLocalSize[x];
-            global_work_size[0] = ndrGlobalSize[x];
-            for ( int y=0; y<range_size; y++ )
-            {
-               local_work_size[1] = ndrLocalSize[range_size+y];
-               global_work_size[1] = ndrGlobalSize[range_size+y];
-               updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-            }
-         }
-         break;
-         // Three dimensions
-      case 3:
-         for ( int x=0; x<range_size; x++ )
-         {
-            local_work_size[0] = ndrLocalSize[x];
-            global_work_size[0] = ndrGlobalSize[x];
-            for ( int y=0; y<range_size; y++ )
-            {
-               local_work_size[1] = ndrLocalSize[range_size+y];
-               global_work_size[1] = ndrGlobalSize[range_size+y];
-               for ( int z=0; z<range_size; z++ )
-               {
-                  local_work_size[2] = ndrLocalSize[2*range_size+z];
-                  global_work_size[2] = ndrGlobalSize[2*range_size+z];
-                  updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-               }
-            }
-         }
-         break;
-      default:
-         throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
+   OpenCLProfilerDbManager oclDbManager;
+   Execution *bestExecution = NULL;
+   std::string kernelName = getKernelName(kernel);
+   bestExecution = oclDbManager.getKernelConfig(dims, kernelName);
+
+   // Run with the best execution or start profile the kernel
+   if ( bestExecution != NULL && bestExecution->getNdims() < 9) {
+     local_work_size[0] = bestExecution->getLocalX();
+     local_work_size[1] = bestExecution->getLocalY();
+     local_work_size[2] = bestExecution->getLocalZ();
+     singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, ndrGlobalSize);
+   }
+   else {
+     switch ( workDim )
+     {
+        // One dimension
+        case 1:
+           for ( int x=0; x<range_size; x++ )
+           {
+              local_work_size[0] = ndrLocalSize[x];
+              global_work_size[0] = ndrGlobalSize[x];
+              updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+           }
+           break;
+           // Two dimensions
+        case 2:
+           for ( int x=0; x<range_size; x++ )
+           {
+              local_work_size[0] = ndrLocalSize[x];
+              global_work_size[0] = ndrGlobalSize[x];
+              for ( int y=0; y<range_size; y++ )
+              {
+                 local_work_size[1] = ndrLocalSize[range_size+y];
+                 global_work_size[1] = ndrGlobalSize[range_size+y];
+                 updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+              }
+           }
+           break;
+           // Three dimensions
+        case 3:
+           for ( int x=0; x<range_size; x++ )
+           {
+              local_work_size[0] = ndrLocalSize[x];
+              global_work_size[0] = ndrGlobalSize[x];
+              for ( int y=0; y<range_size; y++ )
+              {
+                 local_work_size[1] = ndrLocalSize[range_size+y];
+                 global_work_size[1] = ndrGlobalSize[range_size+y];
+                 for ( int z=0; z<range_size; z++ )
+                 {
+                    local_work_size[2] = ndrLocalSize[2*range_size+z];
+                    global_work_size[2] = ndrGlobalSize[2*range_size+z];
+                    updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+                 }
+              }
+           }
+           break;
+        default:
+           throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
+     }
+
+     /* New configuration found. Save it */
+     DimsBest dimsBest = _bestExec[kernel];
+     Execution execution(*dimsBest[dims]);
+     oclDbManager.setKernelConfig(dims, execution, kernelName);
    }
 }
 

@@ -20,12 +20,17 @@
 #ifndef _NANOS_OpenCL_PROFILER
 #define _NANOS_OpenCL_PROFILER
 
+#include "dbmanager.hpp"
+#include <map>
+
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #else
 #include <CL/opencl.h>
 #endif
 namespace nanos {
+
+
 
 enum OpenCLProfilerExceptions {
    CLP_WRONG_NUMBER_OF_DIMENSIONS = -1000,
@@ -165,6 +170,44 @@ public:
       return _cost;
    }
 };
+
+class OpenCLProfilerDbManager {
+  DbManager _dbManager;
+  Execution *_execution;
+  bool _created;
+  bool _isExecutionSet;
+public:
+  OpenCLProfilerDbManager() : _execution(NULL), _created(false), _isExecutionSet(false) {
+    _dbManager.openConnection("nanos_opencl_kernels.db");
+  }
+
+  ~OpenCLProfilerDbManager();
+
+  void setKernelConfig(Dims &dims, Execution &execution, std::string kernelName);
+  Execution* getKernelConfig(Dims &dims, std::string kernelName);
+
+  void setExecution(Execution* execution) {
+    if ( _isExecutionSet )
+      delete _execution;
+    _execution = execution;
+    _isExecutionSet = true;
+  }
+
+private:
+  bool isTableCreated();
+  bool createTable();
+  uint32_t getKernelHash(const Dims &dims, const std::string kernelName);
+  void destroyExecution();
+
+  const Execution* getExecution() const {
+    return _execution;
+  }
+
+};
+
+static const std::string CL_PROFILING_DEFAULT_TABLE = "opencl_kernels";
+typedef std::map<Dims, Execution*> DimsBest;
+typedef std::map<Dims, ulong> DimsExecutions;
 
 }
 
