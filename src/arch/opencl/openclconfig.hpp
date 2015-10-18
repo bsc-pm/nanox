@@ -118,7 +118,8 @@ typedef enum {
    NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT,                 /* 12 */
    NANOS_OPENCL_GENERIC_EVENT,                         /* 13 */
    NANOS_OPENCL_PROFILE_KERNEL,                         /* 14 */
-   NANOS_OPENCL_UPDATE_PROFILE_DATA                     /* 15 */
+   NANOS_OPENCL_PROFILE_UPDATE_DATA,                     /* 15 */
+   NANOS_OPENCL_PROFILE_DB_ACCESS                        /* 16 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.

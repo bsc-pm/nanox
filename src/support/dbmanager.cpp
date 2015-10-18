@@ -22,8 +22,6 @@
 #include "os.hpp"
 #include "config.hpp"
 
-#include <iostream> // TODO: delete this!
-
 using namespace nanos;
 
 DbManager::~DbManager()
@@ -33,8 +31,6 @@ DbManager::~DbManager()
 
 bool DbManager::openConnection(std::string databaseName)
 {
-  //debug0( "[DbManager] Opening connection with database: " + toString( databaseName ) )
-  std::cerr << "[DbManager] Opening connection with database: " << databaseName << std::endl;
   if ( _isOpen )
     closeConnection();
 
@@ -47,8 +43,6 @@ bool DbManager::openConnection(std::string databaseName)
   }
 
   _isOpen = true;
-  //debug0( "[DbManager] Connection opened" );
-  std::cerr << "[DbManager] Connection opened" << std::endl;
   return true;
 }
 
@@ -59,8 +53,6 @@ bool DbManager::openConnection()
 
 bool DbManager::closeConnection()
 {
-//  debug0( "[DbManager] Closing connection" );
-  std::cerr << "[DbManager] Closing connection" << std::endl;
   if ( _isOpen ) {
     const int err = sqlite3_close(_db);
 
@@ -72,8 +64,6 @@ bool DbManager::closeConnection()
     }
 
     _isOpen = false;
-//    debug0( "[DbManager] Connection closed" );
-    std::cerr << "[DbManager] Connection closed" << std::endl;
     return true;
   } else {
     return false;
@@ -82,7 +72,6 @@ bool DbManager::closeConnection()
 
 bool DbManager::executeStatement(std::string stmt, int (*callback)(void*,int,char**,char**), void *data)
 {
-//  debug0( "[DbManager] Executing statement: " + stmt );
   if ( _isOpen ) {
     char *sqliteErrMsg = 0;
     const int err = sqlite3_exec(_db, stmt.c_str(), callback, data, &sqliteErrMsg);
@@ -95,7 +84,6 @@ bool DbManager::executeStatement(std::string stmt, int (*callback)(void*,int,cha
       sqlite3_free(sqliteErrMsg);
       return false;
     }
-//    debug0( "[DbManager] Statement executed" );
     return true;
   } else {
     return false;

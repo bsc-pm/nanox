@@ -96,13 +96,6 @@ int oclDbSelectCallback(void *openCLProfilerDbManager, int argc, char **argv, ch
 
   openCLProfilerDbManagerPtr->setExecution(bestExecution);
 
-  // TODO: Delete this
-  for ( int i=0; i<argc; i++ )
-  {
-     printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-
-  }
-
   return 0;
 }
 
