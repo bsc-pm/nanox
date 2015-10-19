@@ -1520,13 +1520,17 @@ void RegionCache::copyOut( global_reg_t const &hostMem, uint64_t devBaseAddr, De
 }
 
 void RegionCache::lock() {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
 }
 void RegionCache::unlock() {
    _lock.release();
 }
 bool RegionCache::tryLock() {
-   return _lock.tryAcquire();
+   bool result;
+   result = _lock.tryAcquire();
+   return result;
 }
 void RegionCache::MAPlock() {
    while ( !_MAPlock.tryAcquire() ) {
@@ -1746,7 +1750,9 @@ bool RegionCache::prepareRegions( MemController &mcontrol, MemCacheCopy *memCopi
 }
 
 void RegionCache::prepareRegionsToBeCopied( std::set< global_reg_t > const &regs, unsigned int version, std::set< AllocatedChunk * > &chunks, WD const &wd, unsigned int copyIdx ) {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    for ( std::set< global_reg_t >::iterator it = regs.begin(); it != regs.end(); it++ ) {
       this->_prepareRegionToBeCopied( *it, version, chunks, wd, copyIdx );
    }
@@ -1781,7 +1787,9 @@ void RegionCache::setRegionVersion( global_reg_t const &hostMem, AllocatedChunk 
 }
 
 void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
 //reg.key->printRegion( reg.id ); std::cerr << std::endl;
    //AllocatedChunk *chunk = getAllocatedChunk( reg );
    std::set< reg_t > notPresentParts;
@@ -1799,7 +1807,9 @@ void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const 
 }
 
 void RegionCache::allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx ) {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    AllocatedChunk *chunk = getAllocatedChunk( reg, wd, copyIdx );
    chunk->NEWaddWriteRegion( reg.id, version, wd, copyIdx );
    //*(myThread->_file) << __func__ << " WD id: "<< wd.getId() << " desc: " << (wd.getDescription() ? wd.getDescription() : "n/a") << " w index " << copyIdx << " set version to " << version << " for region "; reg.key->printRegion( *myThread->_file, reg.id); *myThread->_file << std::endl;

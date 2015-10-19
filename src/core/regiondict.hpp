@@ -185,7 +185,10 @@ reg_t ContainerDense< T >::getMaxRegionId() const {
 
 template <class T>
 void ContainerDense< T >::invalLock() {
-   return _invalidationsLock.acquire();
+   //_invalidationsLock.acquire();
+   while ( !_invalidationsLock.tryAcquire() ) {
+      myThread->idle();
+   }
 }
 
 template <class T>
@@ -381,7 +384,10 @@ RegionDictionary< Sparsity >::~RegionDictionary() {
 
 template < template <class> class Sparsity>
 void RegionDictionary< Sparsity >::lock() {
-   _lock.acquire();
+   //_lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
 }
 
 template < template <class> class Sparsity>

@@ -72,8 +72,12 @@ inline NewNewDirectoryEntryData::~NewNewDirectoryEntryData() {
 inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDirectoryEntryData &de ) {
    Version::operator=( de );
    //_writeLocation = de._writeLocation;
-   _setLock.acquire();
-   de._setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
+   while ( !de._setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    _location.clear();
    _pes.clear();
    _location.insert( de._location.begin(), de._location.end() );
@@ -100,7 +104,9 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
 // }
 
 inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) {
-   _setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    //std::cerr << "+++++++++++++++++v entry " << (void *) this << " v++++++++++++++++++++++" << std::endl;
    if ( version > this->getVersion() ) {
       //std::cerr << "Upgrading version to " << version << " @location " << id << std::endl;
@@ -134,7 +140,9 @@ inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_s
 }
 
 inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, unsigned int version ) {
-   _setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    ensure(version == this->getVersion(), "addRootedAccess of already accessed entry." );
    _location.clear();
    //_writeLocation = id;
@@ -146,7 +154,9 @@ inline void NewNewDirectoryEntryData::addRootedAccess( memory_space_id_t loc, un
 
 inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
    bool result;
-   _setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    _location.erase( from );
    std::set< ProcessingElement * >::iterator it = _pes.begin();
    while ( it != _pes.end() ) {
@@ -165,7 +175,9 @@ inline bool NewNewDirectoryEntryData::delAccess( memory_space_id_t from ) {
 
 inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsigned int version ) {
    bool result;
-   _setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    result = ( version <= this->getVersion() && _location.count( pe->getMemorySpaceId() ) > 0 );
    _setLock.release();
    return result;
@@ -185,7 +197,9 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe ) {
 
 inline bool NewNewDirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
    bool result;
-   _setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    result = ( _location.count( loc ) > 0 );
    _setLock.release();
    return result;
@@ -241,7 +255,9 @@ inline void NewNewDirectoryEntryData::print() const {
 
 inline int NewNewDirectoryEntryData::getFirstLocation() {
    int result;
-   _setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    result = *(_location.begin());
    _setLock.release();
    return result;
@@ -249,7 +265,9 @@ inline int NewNewDirectoryEntryData::getFirstLocation() {
 
 inline int NewNewDirectoryEntryData::getNumLocations() {
    int result;
-   _setLock.acquire();
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
    result = _location.size();
    _setLock.release();
    return result;

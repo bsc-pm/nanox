@@ -9,7 +9,9 @@ RegionSet::RegionSet() : _lock(), _set() {
 }
 
 void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    reg_set_t &regs = _set[ reg.key ];
    reg_set_t::iterator elem = regs.lower_bound( reg.id );
    //std::cerr << "Add region object " << reg.key <<", dict: " << this << std::endl;
@@ -30,7 +32,9 @@ void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
 
 
 bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    bool i_has_it = ( _set.find( reg.key ) != _set.end() );
    // std::cerr << "asking for " << reg.key << "  My Objects ( " << this << " ) : ";
    // for (object_set_t::iterator it = _set.begin(); it != _set.end(); it++ ) {
@@ -43,7 +47,9 @@ bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
 
 unsigned int RegionSet::hasRegion( global_reg_t const &reg ) {
    unsigned int version = (unsigned int) -1;
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    _lock.release();
    return version;
 }

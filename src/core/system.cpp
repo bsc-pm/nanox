@@ -1201,6 +1201,9 @@ void System::inlineWork ( WD &work )
       bool result;
       do {
          result = work._mcontrol.allocateTaskMemory();
+         if ( !result ) {
+            myThread->idle();
+         }
       } while( result == false );
       Scheduler::inlineWork( &work );
    }

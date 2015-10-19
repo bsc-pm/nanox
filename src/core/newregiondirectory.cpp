@@ -81,7 +81,9 @@ NewNewRegionDirectory::NewNewRegionDirectory() : _keys(), _keysSeed( 1 ),
 
 uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len, WD const *wd ) {
    bool exact;
-   _keysLock.acquire();
+   while ( !_keysLock.tryAcquire() ) {
+      myThread->idle();
+   }
    uint64_t keyIfNotFound = ( _keysSeed + 1 == 0 ) ? 1 : _keysSeed + 1;
    //std::cerr << __func__ << " with addr " << (void *) addr << " and size " << len << " wd " << ( wd != NULL ? wd->getId() : -1 ) << " [ " << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << " ] " << std::endl;
    uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0 );
@@ -111,7 +113,9 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
    HashBucket &hb = _objects[ key ];
    GlobalRegionDictionary *dict = NULL;
 
-   hb._lock.acquire();
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
+   }
 
 #if 0
    std::map< uint64_t, Object >::iterator it = hb._bobjects.lower_bound( key );
@@ -190,7 +194,9 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
      fatal("can not continue");
    }
 #endif
-   hb._lock.acquire();
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
+   }
    if ( hb._bobjects == NULL ) {
       *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << (void *) objectAddr << std::endl;
       printBt( *(myThread->_file) );
@@ -578,7 +584,9 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
       for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
          HashBucket &hb = *bit;
-         hb._lock.acquire();
+         while ( !hb._lock.tryAcquire() ) {
+            myThread->idle();
+         }
          if ( hb._bobjects != NULL ) {
             for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
                GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
@@ -631,7 +639,9 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
-      hb._lock.acquire();
+      while ( !hb._lock.tryAcquire() ) {
+         myThread->idle();
+      }
       if ( hb._bobjects != NULL ) {
          for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
             //std::cerr << "==================  start object " << ++c << "("<< it->second <<") ================="<<std::endl;
@@ -806,7 +816,9 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
 #endif
    HashBucket &hb = _objects[ key ];
 
-   hb._lock.acquire();
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
+   }
 #if 0
    std::map< uint64_t, Object >::iterator it = hb._bobjects.lower_bound( objectAddr );
    if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( objectAddr, it->first) ) {
@@ -845,7 +857,9 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
 void NewNewRegionDirectory::unregisterObject(void *baseAddr) {
    uint64_t key = jen_hash( this->_getKey( (uint64_t)baseAddr ) ) & (HASH_BUCKETS-1);
    HashBucket &hb = _objects[ key ];
-   hb._lock.acquire();
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
+   }
    if ( hb._bobjects == NULL ) {
       *(myThread->_file) << "Error, unregister object: object not registered " << baseAddr << std::endl;
       printBt( *(myThread->_file) );
