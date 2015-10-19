@@ -664,7 +664,7 @@ void MPIRemoteNode::callMPISpawn(
     } else {
         char result[ PATH_MAX ];
         ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );  
-        std::string result_tmp(result);
+        std::string result_tmp(result, count);
         fatal_cond0(count==0,"Couldn't identify executable filename, please specify it manually using NX_OFFL_EXEC environment variable");  
         result_str=result_tmp.substr(0,count);    
     }

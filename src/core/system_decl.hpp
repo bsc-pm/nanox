@@ -329,6 +329,8 @@ namespace nanos
 
          int getNumWorkers() const;
 
+         int getNumCreatedPEs() const;
+
          int getNumWorkers( DeviceData *arch );
 
          int getNumThreads() const;
