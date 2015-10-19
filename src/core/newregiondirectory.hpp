@@ -31,11 +31,26 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )
    , _location()
    , _pes()
    , _rooted( -1 )
+   , _home( -1 )
    , _setLock() 
    , _firstWriterPE( NULL )
    , _baseAddress( 0 )
 {
-   _location.insert(0);  
+   _location.insert(0);
+}
+
+inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( memory_space_id_t home ) : Version( 1 )
+   //, _writeLocation( -1 )
+   , _ops()
+   , _location()
+   , _pes()
+   , _rooted( -1 )
+   , _home( home )
+   , _setLock() 
+   , _firstWriterPE( NULL )
+   , _baseAddress( 0 )
+{
+   _location.insert( home );
 }
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de ) : Version( de )
@@ -44,6 +59,7 @@ inline NewNewDirectoryEntryData::NewNewDirectoryEntryData( const NewNewDirectory
    , _location( de._location )
    , _pes( de._pes )
    , _rooted( de._rooted )
+   , _home( de._home )
    , _setLock()
    , _firstWriterPE( de._firstWriterPE )
    , _baseAddress( de._baseAddress )
@@ -63,6 +79,7 @@ inline NewNewDirectoryEntryData & NewNewDirectoryEntryData::operator= ( NewNewDi
    _location.insert( de._location.begin(), de._location.end() );
    _pes.insert( de._pes.begin(), de._pes.end() );
    _rooted = de._rooted;
+   _home = de._home;
    _firstWriterPE = de._firstWriterPE;
    _baseAddress = de._baseAddress;
    de._setLock.release();
@@ -268,6 +285,10 @@ inline void NewNewDirectoryEntryData::setBaseAddress(uint64_t addr) {
 
 inline uint64_t NewNewDirectoryEntryData::getBaseAddress() const {
    return _baseAddress;
+}
+
+inline memory_space_id_t NewNewDirectoryEntryData::getHome() const {
+   return _home;
 }
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {

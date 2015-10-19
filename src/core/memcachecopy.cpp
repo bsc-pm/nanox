@@ -81,7 +81,7 @@ bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
    global_reg_t whole_obj( 1, _reg.key );
    result3 = whole_obj.isRooted();
    if ( result3 ) {
-      loc = whole_obj.getFirstLocation();
+      loc = whole_obj.getRootedLocation();
    }
 
     //if ( _locations.size() > 0 ) {

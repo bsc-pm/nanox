@@ -250,6 +250,20 @@ DeviceOps *global_reg_t::getDeviceOps() const {
    return NewNewRegionDirectory::getOps( key, id );
 }
 
+DeviceOps *global_reg_t::getHomeDeviceOps() {
+   DeviceOps *ops = NULL;
+   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
+   memory_space_id_t home = (entry->getRootedLocation() == (unsigned int) -1) ? 0 : entry->getRootedLocation();
+   if ( home == 0 ) {
+      ops = NewNewRegionDirectory::getOps( key, id );
+   } else {
+      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk( *this, *((WD *)NULL), (unsigned int)-1 );
+      ops = chunk->getDeviceOps(*this, *((WD *)NULL), (unsigned int)-1 );
+      chunk->unlock();
+   }
+   return ops;
+}
+
 bool global_reg_t::contains( global_reg_t const &reg ) const {
    bool result = false;
    if ( key == reg.key ) {

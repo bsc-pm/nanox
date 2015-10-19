@@ -89,7 +89,7 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
 };
 
 class SeparateAddressSpaceOutOps : public BaseOps {
-   typedef std::map< SeparateMemoryAddressSpace *, TransferList > MapType;
+   typedef std::map< std::pair< memory_space_id_t, memory_space_id_t >, TransferList > MapType;
    bool _invalidation;
    MapType _transfers;
 
@@ -97,8 +97,8 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    SeparateAddressSpaceOutOps( ProcessingElement *pe, bool delayedCommit, bool isInval );
    ~SeparateAddressSpaceOutOps();
 
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx );
+   void addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+   void addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx );
    void issue( WD const &wd );
    void copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
    bool hasPendingOps() const;

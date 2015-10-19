@@ -36,11 +36,13 @@ namespace nanos
          std::set< memory_space_id_t > _location;
          std::set< ProcessingElement *> _pes;
          memory_space_id_t _rooted;
+         memory_space_id_t _home;
          Lock _setLock;
          ProcessingElement * _firstWriterPE;
          uint64_t _baseAddress;
       public:
          NewNewDirectoryEntryData();
+         NewNewDirectoryEntryData( memory_space_id_t home );
          NewNewDirectoryEntryData( const NewNewDirectoryEntryData &de );
          ~NewNewDirectoryEntryData();
          NewNewDirectoryEntryData & operator= ( NewNewDirectoryEntryData &de );
@@ -70,6 +72,7 @@ namespace nanos
          DeviceOps *getOps() ;
          void setBaseAddress(uint64_t addr);
          uint64_t getBaseAddress() const;
+         memory_space_id_t getHome() const;
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
    };
 

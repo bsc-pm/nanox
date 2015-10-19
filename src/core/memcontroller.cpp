@@ -127,7 +127,6 @@ void MemController::initialize( ProcessingElement &pe ) {
       }
       _initialized = true;
    } else {
-      std::cerr << "ERROR : MemController already initialized, wd is " << _wd.getId() << std::endl;
       ensure(_pe == &pe, " MemController, called initialize twice with different PE!");
    }
 }
@@ -447,6 +446,18 @@ bool MemController::isRooted( memory_space_id_t &loc ) const {
    }
    if ( result ) loc = refLoc;
    return result;
+}
+
+bool MemController::isMultipleRooted( std::list<memory_space_id_t> &locs ) const {
+   unsigned int count = 0;
+   for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
+      memory_space_id_t thisLoc;
+      if ( _memCacheCopies[ index ].isRooted( thisLoc ) ) {
+         count += 1;
+         locs.push_back( thisLoc );
+      }
+   }
+   return count > 1;
 }
 
 void MemController::setMainWD() {

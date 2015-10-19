@@ -38,6 +38,7 @@ struct global_reg_t {
    reg_t getSlabRegionId( std::size_t slabSize ) const;
    uint64_t getRealBaseAddress() const;
    DeviceOps *getDeviceOps() const;
+   DeviceOps *getHomeDeviceOps();
    void initializeGlobalEntryIfNeeded() const;
    void setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const;
    bool contains( global_reg_t const &reg ) const;

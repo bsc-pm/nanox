@@ -60,6 +60,7 @@ public:
    std::size_t getAmountOfTransferredData() const;
    std::size_t getTotalAmountOfData() const;
    bool isRooted( memory_space_id_t &loc ) const ;
+   bool isMultipleRooted( std::list<memory_space_id_t> &locs ) const ;
    void setMainWD();
    void synchronize();
    bool isMemoryAllocated() const;

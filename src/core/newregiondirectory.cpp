@@ -679,7 +679,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                               else std::cerr << " nil " << std::endl; 
                            }
                            //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                           outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           outOps.addOutOp( 0 /* sync only non rooted objects */, reg.getFirstLocation(), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
                            outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
                         } else {
                            outOps.getOtherOps().insert( thisOps );
@@ -714,7 +714,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                               else std::cerr << " nil " << std::endl; 
                            }
                            //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                           outOps.addOp( &sys.getSeparateMemory( data_source.getFirstLocation() ), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           outOps.addOutOp( 0 /* sync only non rooted objects */, data_source.getFirstLocation(), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
                            outOps.insertOwnOp( thisOps, region_shape, data_source.getVersion()+1, 0 ); //increase version to invalidate the device copy
                         } else {
                            outOps.getOtherOps().insert( thisOps );

@@ -323,8 +323,8 @@ SeparateAddressSpaceOutOps::SeparateAddressSpaceOutOps( ProcessingElement *pe, b
 SeparateAddressSpaceOutOps::~SeparateAddressSpaceOutOps() {
 }
 
-void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
-   TransferList &list = _transfers[ from ];
+void SeparateAddressSpaceOutOps::addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
+   TransferList &list = _transfers[ std::make_pair(to, from) ];
    if ( _lockedChunks.count( chunk ) == 0 ) {
       chunk->lock();
       chunk->addReference( wd, 2 ); //Out addOp( with chunk )
@@ -334,17 +334,22 @@ void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global
    list.push_back( TransferListEntry( reg, version, ops, chunk, copyIdx ) );
 }
 
-void SeparateAddressSpaceOutOps::addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx ) {
-   TransferList &list = _transfers[ from ];
-   from->getCache().lock();
-   from->getCache()._prepareRegionToBeCopied( reg, version, _lockedChunks, wd, copyIdx );
-   from->getCache().unlock();
+void SeparateAddressSpaceOutOps::addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx ) {
+   TransferList &list = _transfers[ std::make_pair(to, from) ];
+   SeparateAddressSpace &sas = sys.getSeparateMemory( from );
+   sas.getCache().lock();
+   sas.getCache()._prepareRegionToBeCopied( reg, version, _lockedChunks, wd, copyIdx );
+   sas.getCache().unlock();
    list.push_back( TransferListEntry( reg, version, ops, NULL, copyIdx ) );
 }
 
 void SeparateAddressSpaceOutOps::issue( WD const &wd ) {
    for ( MapType::iterator it = _transfers.begin(); it != _transfers.end(); it++ ) {
-     sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* region */, wd, _invalidation );
+      if (it->first.first == 0 ) {
+         sys.getHostMemory().copy( sys.getSeparateMemory(it->first.second) /* mem space */, it->second /* region */, wd, _invalidation );
+      } else {
+         sys.getSeparateMemory( it->first.first ).copy( sys.getSeparateMemory(it->first.second) /* mem space */, it->second /* region */, wd, _invalidation );
+      }
    }
 }
 
