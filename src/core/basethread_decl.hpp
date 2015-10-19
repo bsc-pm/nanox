@@ -254,6 +254,9 @@ namespace nanos
          virtual void yield() {};
 
          virtual void join() = 0;
+
+         bool hasJoined() const;
+
          virtual void bind() {};
 
          virtual void wait();

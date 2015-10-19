@@ -344,7 +344,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     
     unsigned int numThreadsWithThisComm=0;
     std::vector<nanos::ext::MPIThread*> threadsToDespawn; 
-    std::vector<MPI_Comm> communicatorsToFree; 
+    std::vector<MPIProcessor*> communicatorsToFree;
     //Find threads and nodes to de-spawn
     for (int i=0; i< nThreads; ++i){
         BaseThread* bt=sys.getWorker(i);
@@ -359,7 +359,7 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                   threadsToDespawn.push_back((nanos::ext::MPIThread *)bt);
                   //intercomm NULL (all communicators) and single rank is not supported (and it mostly makes no sense...)
                   //but it will work, except mpi comm free will have to be done by the user after he frees all ranks
-                  if (intercomm==NULL && rank == -1) communicatorsToFree.push_back(threadcomm);
+                  if (intercomm==NULL && threadcomm != MPI_COMM_NULL && rank == -1) communicatorsToFree.push_back(myPE);
                 }
             }
         }
@@ -423,20 +423,27 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     }
     //If we despawned all the threads which used this communicator, free the communicator
     //If intercomm is null, do not do it, it should be the final free
-    if (intercomm!=NULL && threadsToDespawn.size()>=numThreadsWithThisComm) {   
+    if (intercomm!=NULL
+//            && threadsToDespawn.size()>=numThreadsWithThisComm
+        ) {
+/*
+ * Uncomment when nanos offload and user's communicator handles are different
 #ifdef OPEN_MPI 
        MPI_Comm_free(intercomm);
 #else
        MPI_Comm_disconnect(intercomm); 
 #endif
+*/
+        *intercomm = MPI_COMM_NULL;
     } else if (communicatorsToFree.size()>0) {
-        for (std::vector<MPI_Comm>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
-           MPI_Comm commToFree=*it;
+        for (std::vector<MPIProcessor*>::iterator it=communicatorsToFree.begin(); it!=communicatorsToFree.end(); ++it) {
+           MPI_Comm comm = (*it)->getCommunicator();
 #ifdef OPEN_MPI 
-           MPI_Comm_free(&commToFree);
+           MPI_Comm_free( &comm );
 #else
-           MPI_Comm_disconnect(&commToFree); 
+           MPI_Comm_disconnect( &comm );
 #endif
+           (*it)->setCommunicator( MPI_COMM_NULL );
         }
     }
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;

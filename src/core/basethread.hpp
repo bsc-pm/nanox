@@ -132,6 +132,8 @@ namespace nanos
 
    inline void BaseThread::joined ( void ) { _status.has_joined = true; }
 
+   inline bool BaseThread::hasJoined ( void ) const { return static_cast<bool>(_status.has_joined); }
+
    // atomic access
    inline void BaseThread::lock () { _mlock++; }
  

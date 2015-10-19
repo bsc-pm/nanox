@@ -123,11 +123,11 @@ namespace nanos {
             static bool isUseMultiThread();
             /* End config options*/           
             
-            
-
             MPI_Comm getCommunicator() const;
+
+            void setCommunicator( MPI_Comm comm );
             
-            MPI_Comm getCommOfParents() const;     
+            MPI_Comm getCommOfParents() const;
  
             int getRank() const;
             

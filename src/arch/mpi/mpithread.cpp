@@ -271,11 +271,13 @@ void MPIThread::checkTaskEnd() {
 }
 
 void MPIThread::finish() {
+    SMPThread::finish();
     //If I'm the master thread of the group (group counter == self-counter)
     int resul;
     MPI_Finalized(&resul);
     if (!resul){
-        while (&_selfTotRunningWds!=0) {
+        //while (&_selfTotRunningWds!=0) {
+        while (_selfTotRunningWds!=0) {
           checkTaskEnd();
         }
         if ( _groupTotRunningWds == &_selfTotRunningWds ) {

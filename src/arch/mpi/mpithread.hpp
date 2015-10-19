@@ -77,13 +77,18 @@ namespace ext
          //MPIThread & useUserThreads ( bool use ) { _useUserThreads = use; return *this; }
 
          // destructor
-         virtual ~MPIThread() { 
-             finish();
+         virtual ~MPIThread() {}
+
+         void join() {
+            if( !hasJoined() ) {
+               SMPThread::join();
+            }
          }
 
          //void setUseUserThreads( bool value=true ) { _useUserThreads = value; }         
          
          virtual void runDependent ( void );
+
          void initializeDependent( void );
          
          void idle( bool debug = false );

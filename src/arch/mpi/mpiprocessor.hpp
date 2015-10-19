@@ -116,6 +116,10 @@ MPI_Comm MPIProcessor::getCommunicator() const {
     return _communicator;
 }
 
+void MPIProcessor::setCommunicator( MPI_Comm comm ) {
+    _communicator = comm;
+}
+
 MPI_Comm MPIProcessor::getCommOfParents() const {
     return _commOfParents;
 }
