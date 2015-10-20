@@ -227,7 +227,7 @@ uint64_t MemoryMap< uint64_t >::getExactByAddress( uint64_t addr, uint64_t valIf
 }
 
 
-uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid ) {
+uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid, uint64_t &conflictAddr, std::size_t &conflictSize ) {
    uint64_t val = valIfNotValid;
    MemoryChunk key( addr, len );
    iterator it = this->lower_bound( key );
@@ -278,6 +278,8 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
             //exact = true;
          }
       } else {
+         conflictAddr = it->first.getAddress();
+         conflictSize = it->first.getLength();
          val = valIfNotValid;
          exact = false;
       }
@@ -290,6 +292,8 @@ uint64_t MemoryMap< uint64_t >::getExactOrFullyOverlappingInsertIfNotFound( uint
          val = it->second;
          exact = false;
       } else {
+         conflictAddr = it->first.getAddress();
+         conflictSize = it->first.getLength();
          val = valIfNotValid;
          exact = false;
       }

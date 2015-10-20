@@ -86,10 +86,12 @@ uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len, WD cons
    }
    uint64_t keyIfNotFound = ( _keysSeed + 1 == 0 ) ? 1 : _keysSeed + 1;
    //std::cerr << __func__ << " with addr " << (void *) addr << " and size " << len << " wd " << ( wd != NULL ? wd->getId() : -1 ) << " [ " << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << " ] " << std::endl;
-   uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0 );
+   uint64_t conflict_addr = 0;
+   uint64_t conflict_size = 0;
+   uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0, conflict_addr, conflict_size );
    if ( key == 0 ) {
       printBt(std::cerr);
-      fatal("invalid key, can not continue. Address " << (void *) addr << " w/len " << len << " [" << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << "]" );
+      fatal("invalid key, can not continue. Address " << (void *) addr << " w/len " << len << " [" << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << "] conflicts with address: " << (void *) conflict_addr << ", size: " << conflict_size );
    } else if ( key == keyIfNotFound ) {
       _keysSeed += 1;
    }

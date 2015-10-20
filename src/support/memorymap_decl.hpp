@@ -160,7 +160,7 @@ class MemoryMap<uint64_t> : public std::map< MemoryChunk, uint64_t > {
       //void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       //void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       //void print() const;
-      uint64_t getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid );
+      uint64_t getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid, uint64_t &conflictAddr, std::size_t &conflictSize );
       uint64_t getExactInsertIfNotFound( uint64_t addr, std::size_t len, uint64_t valIfNotFound, uint64_t valIfNotValid );
       uint64_t getExactByAddress( uint64_t addr, uint64_t valIfNotFound ) const;
       void eraseByAddress( uint64_t addr );
