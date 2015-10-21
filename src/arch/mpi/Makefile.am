@@ -62,7 +62,9 @@ mpiinclude_HEADERS = \
 	mpidd.cpp \
 	mpithread.hpp \
 	mpithread.cpp \
-    mpiicpc_syms.cpp \
+	mpiicpc_syms.cpp \
+	hostinfo.hpp \
+	hostinfo.cpp \
 	$(END)
 
 mpiincludedir = $(prefix)/src/arch/mpi

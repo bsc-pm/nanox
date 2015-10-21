@@ -132,6 +132,13 @@ void MPIProcessor::prepareConfig(Config &config) {
     config.registerArgOption("offl-disable-spawn-lock", "offl-disable-spawn-lock");
     config.registerEnvOption("offl-disable-spawn-lock", "NX_OFFL_DISABLE_SPAWN_LOCK");
     #endif
+
+    config.registerConfigOption("offl-workers", NEW Config::SizeVar(_workers_per_process, 0), "Specifies how many worker threads per spawned process should be created.");
+    config.registerArgOption("offl-workers", "offl-workers");
+    config.registerEnvOption("offl-workers", "OFFL_NX_SMP_WORKERS");
+
+    config.registerAlias( "offl-workers", "offl-num-threads","Specifies how many worker threads per spawned process should be created.");
+    config.registerEnvOption("offl-num-threads", "OFFL_OMP_NUM_THREADS");
 }
 
 WorkDescriptor & MPIProcessor::getWorkerWD() const {

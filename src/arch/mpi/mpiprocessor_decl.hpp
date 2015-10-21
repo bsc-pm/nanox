@@ -25,6 +25,7 @@
 #include "config.hpp"
 #include "mpidevice.hpp"
 #include "mpithread.hpp"
+#include "hostinfo.hpp"
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
@@ -35,9 +36,14 @@ namespace nanos {
 
         class MPIProcessor : public ProcessingElement {
         private:
+            friend class nanos::mpi::HostInfo;
+
             // config variables
             static bool _useUserThreads;
             static size_t _threadsStackSize;
+            static std::string _mpiNodeType;
+            static size_t _workers_per_process;
+            static nanos::mpi::HostInfo _defaultHostInfo;
             
             //MPI Node data
             static size_t _cacheDefaultSize;
@@ -45,7 +51,6 @@ namespace nanos {
             //! Save OmpSS-mpi filename
             static std::string _mpiExecFile;
             static std::string _mpiLauncherFile;
-            static std::string _mpiNodeType;
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;    
             static std::string _mpiControlFile;   
@@ -104,8 +109,6 @@ namespace nanos {
             static std::string getMpiExecFile();
 
             static std::string getMpiLauncherFile();
-
-            static std::string getMpiNodeType();
             
             static size_t getAlignment();
             

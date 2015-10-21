@@ -39,6 +39,7 @@
 #include "nanos-mpi.h"
 #include "mpi-api.cpp"
 #include "mpiicpc_syms.cpp"
+#include "hostinfo.cpp"
 
 #endif	/* MPIALL_HPP */
 
