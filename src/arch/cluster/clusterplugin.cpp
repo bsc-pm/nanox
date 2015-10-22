@@ -278,19 +278,35 @@ void ClusterPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) c
 }
 
 unsigned int ClusterPlugin::getNumPEs() const {
-   return _nodes->size() - 1;
+   if ( _nodes ) {
+      return _nodes->size() - 1;
+   } else {
+      return 0;
+   }
 }
 
 unsigned int ClusterPlugin::getMaxPEs() const {
-   return _nodes->size() - 1;
+   if ( _nodes ) {
+      return _nodes->size() - 1;
+   } else {
+      return 0;
+   }
 }
 
 unsigned int ClusterPlugin::getNumWorkers() const {
-   return _nodes->size() - 1;
+   if ( _nodes ) {
+      return _nodes->size() - 1;
+   } else {
+      return 0;
+   }
 }
 
 unsigned int ClusterPlugin::getMaxWorkers() const {
-   return _nodes->size() - 1;
+   if ( _nodes ) {
+      return _nodes->size() - 1;
+   } else {
+      return 0;
+   }
 }
 
 bool ClusterPlugin::unalignedNodeMemory() const {
