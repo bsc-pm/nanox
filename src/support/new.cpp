@@ -34,7 +34,7 @@ void operator delete[] ( void *p, const char *file, int line  ) { nanos::getMemT
 
 #else // ----- default -----
 
-#ifndef NANOS_DISABLE_ALLOCATOR
+#ifdef NANOS_ENABLE_ALLOCATOR
 
 #include "allocator.hpp"
 

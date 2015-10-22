@@ -61,18 +61,22 @@ C++ compiler: $ax_cv_cxx_compiler_vendor
 AS_CASE([$ac_cv_compiler_type],
  [ibm],
    [
-     cc_dep_CPPFLAGS="-qinclude=\"new_decl.hpp\" -qinclude=\"config.h\""
+     cc_dep_CPPFLAGS="-qinclude=\"config.h\""
+     cc_dep_CXXFLAGS="-qinclude=\"new_decl.hpp\""
      AX_APPEND_FLAG([-qlanglvl=variadictemplates],[CXXFLAGS])
      AX_APPEND_FLAG([-Wl,-z,muldefs],[LDFLAGS])
      no_inline_flag=-qno-inline
    ],
  [
    # Default: use -include flag
-   cc_dep_CPPFLAGS="-include new_decl.hpp -include config.h"
+   cc_dep_CPPFLAGS="-include \"config.h\""
+   cc_dep_CXXFLAGS="-include \"new_decl.hpp\""
    AX_APPEND_FLAG([-Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter -Werror],[CXXFLAGS])
    no_inline_flag=-fno-inline
  ])
 
 AC_SUBST([cc_dep_CPPFLAGS])
+AC_SUBST([cc_dep_CXXFLAGS])
+AC_SUBST([no_inline_flag])
 
 ]) dnl AX_CONFIG_CC

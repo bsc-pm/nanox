@@ -103,7 +103,7 @@ AS_IF([test "x$with_opencl" != xno],[
 
     #tests if provided headers and libraries are usable and correct
     AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $openclinc])
-    AX_VAR_PUSHVALUE([CxXFLAGS])
+    AX_VAR_PUSHVALUE([CxXFLAGS],[$CXXFLAGS -Wno-error=comment])
     AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $opencllib])
     AX_VAR_PUSHVALUE([LIBS])
 
@@ -188,7 +188,7 @@ OpenCL version test execution failed
 
     AC_LANG_POP([C++])
 
-    AS_IF([test "$user_requested" = yes -a "$opencl != yes"],[
+    AS_IF([test "$user_requested" = yes -a "$opencl" != yes],[
         AC_MSG_ERROR([
 ------------------------------
 OpenCL path was not correctly specified. 

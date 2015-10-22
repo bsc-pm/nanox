@@ -24,7 +24,7 @@ api_includes=\
 devincludedir = $(prefix)/include/nanox-dev
 
 AM_CPPFLAGS=-D_NANOS_INTERNAL @cc_dep_CPPFLAGS@ $(common_includes) -DLIBDIR='$(libdir)'
-AM_CXXFLAGS=@PTHREAD_CFLAGS@
+AM_CXXFLAGS=@PTHREAD_CFLAGS@ @cc_dep_CXXFLAGS@
 
 common_performance_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @performance_CPPFLAGS@
 common_debug_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @debug_CPPFLAGS@
