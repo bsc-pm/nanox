@@ -21,7 +21,7 @@ $END"
 VERSIONS="@VERSIONS@"
 PLUGINS="@PLUGINS@"
 
-LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -Xlinker --as-needed"
+LIBS="-Xlinker --no-as-needed -lnanox-omp -lnanox -lnanox-c -Xlinker --as-needed"
 
 @is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @CPPFLAGS@"
 @is_debug_enabled_TRUE@ debug_CFLAGS="@debug_CXXFLAGS@ @CFLAGS@"
