@@ -43,7 +43,7 @@ AS_CASE([$host],
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=ia64
   ],
-  [arm*-*-gnueabi],
+  [arm*-*-gnueabi*],
   [
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"

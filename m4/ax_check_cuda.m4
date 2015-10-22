@@ -166,6 +166,11 @@ CUDA 5 or greater is required.
   
       AC_DEFINE_UNQUOTED([NANOS_CUDA_VERSION],[$cuda_version],[API version of the CUDA package specified by the user])
       AC_DEFINE([GPU_DEV],[],[Indicates the presence of the GPU arch plugin.])
+  ], [
+  cuda_prefix=
+  cudainc=
+  cudalib=
+  cudalibs=
   ])
   
   AC_SUBST([cuda])
