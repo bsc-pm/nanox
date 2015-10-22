@@ -25,8 +25,8 @@
 void* operator new ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 void* operator new[] ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 
-void* operator new ( size_t size ) throw (std::bad_alloc) { return nanos::getMemTracker().allocate( size ); }
-void* operator new[] ( size_t size ) throw (std::bad_alloc) { return nanos::getMemTracker().allocate( size ); }
+void* operator new ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
 void operator delete ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
 void operator delete[] ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
 void operator delete ( void *p, const char *file, int line  ) { nanos::getMemTracker().deallocate( p ); }
@@ -38,9 +38,9 @@ void operator delete[] ( void *p, const char *file, int line  ) { nanos::getMemT
 
 #include "allocator.hpp"
 
-void* operator new ( size_t size ) throw (std::bad_alloc) { return nanos::getAllocator().allocate( size ); }
+void* operator new ( size_t size ) { return nanos::getAllocator().allocate( size ); }
 
-void* operator new[] ( size_t size ) throw (std::bad_alloc) { return nanos::getAllocator().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getAllocator().allocate( size ); }
 void* operator new ( size_t size, std::nothrow_t const& ) throw () { return nanos::getAllocator().allocate( size ); }
 void* operator new[] ( size_t size, std::nothrow_t const& ) throw () { return nanos::getAllocator().allocate( size ); }
 void operator delete ( void *p ) throw() { nanos::getAllocator().deallocate( p ); }
