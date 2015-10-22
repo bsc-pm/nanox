@@ -175,22 +175,30 @@ namespace nanos {
 
            WD * atPrefetch ( BaseThread *thread, WD &current )
            {
-              if ( !_usePriority && !_useSmartPriority ) {
-                 WD * found = current.getImmediateSuccessor(*thread);
-                 return found != NULL ? found : atIdle(thread,false);
-              } else {
-                 return atIdle(thread,false);
+              WD * found = current.getImmediateSuccessor(*thread);
+              if ( found && (_usePriority || _useSmartPriority) ) {
+                 WDPriorityQueue<> &tdata = (WDPriorityQueue<> &) *((TeamData *) thread->getTeam()->getScheduleData())->_readyQueue;
+                 if (found->getPriority() < tdata.maxPriority() ) {
+                    queue(thread, *found);
+                    found = NULL;
+                 }
               }
+              return found != NULL ? found : atIdle(thread,false);
            }
         
            WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
            {
-              if ( !_usePriority && !_useSmartPriority && schedule ) {
-                 return current.getImmediateSuccessor(*thread);
-              } else {
-                 return 0;
+              WD * found = current.getImmediateSuccessor(*thread);
+              if ( found && (_usePriority || _useSmartPriority) && schedule ) {
+                 WDPriorityQueue<> &tdata = (WDPriorityQueue<> &) *((TeamData *) thread->getTeam()->getScheduleData())->_readyQueue;
+                 if (found->getPriority() < tdata.maxPriority() ) {
+                    queue(thread, *found);
+                    found = NULL;
+                 }
               }
+              return found;
            }
+
             bool reorderWD ( BaseThread *t, WD *wd )
             {
               //! \bug FIXME flags of priority must be in queue

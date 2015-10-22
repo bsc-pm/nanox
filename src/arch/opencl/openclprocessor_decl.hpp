@@ -52,7 +52,7 @@ public:
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _progCache() {}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _workGroupMultiple(0), _maxWorkGroup(0), _progCache()  {}
 
 public:
    void initialize(cl_device_id dev);
@@ -120,6 +120,18 @@ public:
                         size_t* ndrOffset,
                         size_t* ndrLocalSize,
                         size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function performs kernel executions to determine
+    * the best work-group parameters using the device hints.
+    */
+   void smartProfileKernel( void* oclKernel,
+                        int workDim,
+                        int range_size,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
 
    /**
     * @brief Function to launch an OpenCL kernel under profiling mode
@@ -212,6 +224,16 @@ private:
       }
    }
 
+   /**
+    * @brief This function set the work-group multiple preferred values
+    */
+   void getWorkGroupMultiple(cl_kernel kernel);
+
+   /**
+    * @brief This function set the maximum work-group on the device
+    */
+   void getMaxWorkGroup(cl_kernel kernel);
+
 private:
 
    cl_device_id _dev;
@@ -228,6 +250,8 @@ private:
    std::map<cl_kernel,DimsExecutions> _nExecutions;
    bool _preallocateWholeMemory;
    bool _synchronize;
+   size_t _workGroupMultiple;
+   size_t _maxWorkGroup;
 
    ProgramCache _progCache;
    bool _useHostPtrs;
