@@ -83,7 +83,7 @@ AS_IF([test "x$with_hwloc$with_hwloc_include$with_hwloc_lib" != x],[
   AX_VAR_PUSHVALUE([LIBS],[])
 
   # Check if hwloc.h header file exists and compiles
-  AC_CHECK_HEADER([hwloc.h], [hwloc=yes],[hwloc=no])
+  AC_CHECK_HEADERS([hwloc.h], [hwloc=yes],[hwloc=no])
 
   # Look for hwloc_get_api_version function in libhwloc.so library
   AS_IF([test "x$hwloc" = xyes],[

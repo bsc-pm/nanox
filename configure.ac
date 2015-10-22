@@ -163,8 +163,8 @@ AC_ARG_WITH([extrae],
            [
                 extrae_version_h=$withval/include/extrae_version.h
                 AS_IF([test -e $extrae_version_h],[
-                   extrae_version_string=$("sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h")
-                   extrae_version=$("echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/'")
+                   extrae_version_string=$(sed -ne '/^\s*#\s*define\s\+EXTRAE_VERSION .*$/p' $extrae_version_h)
+                   extrae_version=$(echo $extrae_version_string | sed -e 's/#define EXTRAE_VERSION EXTRAE_VERSION_NUMBER(\([0-9]*\),\([0-9]*\),\([0-9]*\).*$/\1\2\3/')
                    AS_IF([test "$extrae_version" -ge 240],[
                       MPITRACE_HOME="$withval"
                       MPITRACE_INC="$withval/include"
