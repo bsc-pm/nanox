@@ -349,7 +349,7 @@ Memory tracker:           $enable_memtracker
 Memory allocator:         $enable_allocator
 Task resiliency:          $resiliency"])
 
-AS_IF([test x$cluster_enabled = xyes],[
+AS_IF([test "$gasnet_available_conduits" != ""],[
    AS_ECHO(["\
 Cluster/GASNet conduits:  $gasnet_available_conduits"])
 ])

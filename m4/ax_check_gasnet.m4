@@ -94,7 +94,7 @@ AS_IF([test "x$gasnet" = xyes],[
   AC_LANG_PUSH([C++])
 
   AX_VAR_PUSHVALUE([CXX])
-  AX_VAR_PUSHVALUE([CPPFLAGS])
+  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS -DGASNET_PAR])
   AX_VAR_PUSHVALUE([CXXFLAGS])
   AX_VAR_PUSHVALUE([LIBS],[])
   AX_VAR_PUSHVALUE([LDFLAGS])
@@ -213,9 +213,9 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
     ])
   ])
     
-  AS_IF([test x$conduit_available = xyes],[
-    AS_VAR_APPEND([gasnet_available_conduits],[$1])
-    AS_VAR_SET([conduit_libs], ["$conduit_prereq_libs $LIBS"])
+  AS_IF([test "$conduit_available" = yes],[
+    AS_VAR_APPEND([gasnet_available_conduits],[" $1"])
+    AS_VAR_SET([conduit_libs],["$conduit_prereq_libs $LIBS"])
   ])
 
   AX_VAR_POPVALUE([CXX])
