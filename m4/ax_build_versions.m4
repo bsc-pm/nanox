@@ -67,7 +67,7 @@ instrumentation_CPPFLAGS="-DNANOS_INSTRUMENTATION_ENABLED"
 instrumentation_CXXFLAGS="-O3"
 
 # Instrumentation-debug
-m4_define(is_instrumentation_debug_default,yes)
+m4_define(is_instrumentation_debug_default,no)
 instrumentation_debug_CPPFLAGS="-DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED"
 instrumentation_debug_CXXFLAGS="-O0 -g2 $no_inline_flag"
 
@@ -103,8 +103,8 @@ AC_DEFUN([_ax_enable_version],[
   AC_MSG_CHECKING([if version_name version is enabled])
   AC_ARG_ENABLE($1,
     [m4_if(version_default,yes,
-       AS_HELP_STRING(--enable-$1,Enable generation of $1 version),
-       AS_HELP_STRING(--disable-$1,Disable generation of $1 version)
+       AS_HELP_STRING(--disable-$1,Disable generation of $1 version),
+       AS_HELP_STRING(--enable-$1,Enable generation of $1 version)
     )],
     [version_enabled=${enableval}],
     [version_enabled=]version_default)
