@@ -49,7 +49,8 @@ public:
   static bool getForceShMem() { return _forceShMem; } 
   static int getPrefetchNum() { return _prefetchNum +1; }
   static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
-  
+  static bool isEnableProfiling() { return _enableProfiling; }
+
 private:
   static void prepare( Config &cfg );
   static void apply( const std::string devTypeIn, std::map<cl_device_id, cl_context>* devices );
@@ -89,6 +90,9 @@ private:
   // Whether to disable OpenCL dev2dev.
   static bool _disableOCLdev2dev;
   static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by OCL devices
+
+  // Whether to enable profiling: default=false
+  static bool _enableProfiling;
 
   friend class OpenCLPlugin;
 };

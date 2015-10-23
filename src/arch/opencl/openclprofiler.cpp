@@ -64,102 +64,38 @@ uint32_t OpenCLProfilerDbManager::getKernelHash(const Dims &dims, const std::str
   return nanos::ext::gnuHash(fullString.str().c_str());
 }
 
-/**
- * @brief callback for the SQL select statement execution
- */
-int oclDbSelectCallback(void *Execution, int argc, char **argv, char **azColName);
-
-/**
- * @brief callback for the SQL insert execution
- */
-int oclDbInsertCallback(void *notUsed, int argc, char **argv, char **azColName);
-
-/**
- * @brief callback for the sql statement execution
- */
-int oclDbCheckCallback(void *nrows, int argc, char **argv, char **azColName);
-
-int oclDbInsertCallback(void *notUsed, int argc, char **argv, char **azColName)
-{
-  return 0;
-}
-
-int oclDbSelectCallback(void *openCLProfilerDbManager, int argc, char **argv, char **azColName)
-{
-  if ( argc != 3 )
-    throw; // Select statement expect only three columns: x, y and z
-
-  nanos::Execution *bestExecution;
-  bestExecution = new nanos::Execution(0/*Not read*/, atoi(argv[0]), atoi(argv[1]), atoi(argv[2]), 0/*Not read*/);
-
-  nanos::OpenCLProfilerDbManager *openCLProfilerDbManagerPtr = static_cast<nanos::OpenCLProfilerDbManager*>(openCLProfilerDbManager);
-
-  openCLProfilerDbManagerPtr->setExecution(bestExecution);
-
-  return 0;
-}
-
-
-int oclDbCheckCallback(void *nrows, int argc, char **argv, char **azColName)
-{
-  *((int*)nrows) = argc; // Set the number of columns to check if exists
-  return 0;
-}
-
 void OpenCLProfilerDbManager::setKernelConfig(Dims &dims, Execution &execution, std::string kernelName)
 {
-  const std::string tableString = "CREATE TABLE IF NOT EXISTS opencl_kernels(hash INT, dims INT, x INT, y INT, z INT, PRIMARY KEY(hash));";
-  std::stringstream finalStmt; // Schema: 'INSERT INTO TABLE VALUES(HASH, DIMS, X, Y, Z)
-  if ( !isTableCreated() )
-    finalStmt << tableString;
+  _dbManager.bindIntParameter(_insertStmtNumber, 1, getKernelHash(dims, kernelName));   // Hash
+  _dbManager.bindIntParameter(_insertStmtNumber, 2, static_cast<int>(dims.getNdims())); // Dims
+  _dbManager.bindIntParameter(_insertStmtNumber, 3, execution.getLocalX());             // X
+  _dbManager.bindIntParameter(_insertStmtNumber, 4, execution.getLocalY());             // Y
+  _dbManager.bindIntParameter(_insertStmtNumber, 5, execution.getLocalZ());             // Z
 
-  // SQL statement generation
-  const std::string baseInsertStmt = "INSERT INTO " + CL_PROFILING_DEFAULT_TABLE + " VALUES(";
-  finalStmt << baseInsertStmt;
-  finalStmt << getKernelHash(dims, kernelName) << ",";
-  finalStmt << static_cast<int>(dims.getNdims()) << ",";
-  finalStmt << execution.getLocalX() << ",";
-  finalStmt << execution.getLocalY() << ",";
-  finalStmt << execution.getLocalZ();
-  finalStmt << ")";
+  _dbManager.doStep(_insertStmtNumber);
 
-  _dbManager.executeStatement(finalStmt.str(), oclDbInsertCallback);
   _created = true;
 }
 
 Execution* OpenCLProfilerDbManager::getKernelConfig(Dims &dims, std::string kernelName)
 {
-  if ( isTableCreated() ) {
-    destroyExecution();
-    std::stringstream selectStmt;
-    selectStmt << "SELECT x,y,z FROM ";
-    selectStmt << CL_PROFILING_DEFAULT_TABLE;
-    selectStmt << " WHERE hash = ";
-    selectStmt << getKernelHash(dims, kernelName);
-    _dbManager.executeStatement(selectStmt.str(), oclDbSelectCallback, this);
-    if ( !_isExecutionSet )
-      setExecution(new Execution(9,0,0,0,0)); // No configurations found
+  destroyExecution();
+
+  _dbManager.bindIntParameter(_selectStmtNumber, 1, getKernelHash(dims, kernelName));
+
+  if ( _dbManager.doStep(_selectStmtNumber) ) {
+    setExecution(new Execution(
+        0,
+        _dbManager.getIntColumnValue(_selectStmtNumber, 0),
+        _dbManager.getIntColumnValue(_selectStmtNumber, 1),
+        _dbManager.getIntColumnValue(_selectStmtNumber, 2),
+        0));
   } else {
-    setExecution(new Execution(10,0,0,0,0));   // No table found
+    // No configurations found
+    setExecution(new Execution(9,0,0,0,0));
   }
+
   return _execution;
-}
-
-bool OpenCLProfilerDbManager::isTableCreated()
-{
-  if ( !_created ) {
-    int nrows = 0; // TODO: Optimize this query!!!!!
-    const std::string checkTableStmt = "PRAGMA table_info(" + CL_PROFILING_DEFAULT_TABLE + ")";
-    _dbManager.executeStatement(checkTableStmt, oclDbCheckCallback, (void*)&nrows);
-    _created = nrows > 0 ? true : false;
-  }
-  return _created;
-}
-
-bool OpenCLProfilerDbManager::createTable()
-{
-  const std::string tableString = "CREATE TABLE IF NOT EXISTS opencl_kernels(hash INT, dims INT, x INT, y INT, z INT, PRIMARY KEY(hash));";
-  return _dbManager.executeStatement(tableString, oclDbSelectCallback);
 }
 
 OpenCLProfilerDbManager::~OpenCLProfilerDbManager()
@@ -174,4 +110,18 @@ void OpenCLProfilerDbManager::destroyExecution()
     _isExecutionSet = false;
     _execution = NULL;
   }
+}
+
+void OpenCLProfilerDbManager::initialize()
+{
+  const std::string tableSql  = "CREATE TABLE IF NOT EXISTS opencl_kernels(hash INT, dims INT, x INT, y INT, z INT, PRIMARY KEY(hash));";
+  const std::string selectSql = "SELECT x,y,z FROM " + CL_PROFILING_DEFAULT_TABLE + " WHERE hash = @hash";
+  const std::string insertSql = "INSERT INTO " + CL_PROFILING_DEFAULT_TABLE + " VALUES(@hash, @dims, @x, @y, @z)";
+
+  // Create table if not exists
+  _tableStmtNumber = _dbManager.prepareStmt(tableSql);
+  _dbManager.doStep(_tableStmtNumber);
+
+  _selectStmtNumber = _dbManager.prepareStmt(selectSql);
+  _insertStmtNumber = _dbManager.prepareStmt(insertSql);
 }

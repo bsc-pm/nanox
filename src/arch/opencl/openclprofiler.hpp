@@ -176,9 +176,14 @@ class OpenCLProfilerDbManager {
   Execution *_execution;
   bool _created;
   bool _isExecutionSet;
+  unsigned int _selectStmtNumber;
+  unsigned int _insertStmtNumber;
+  unsigned int _tableStmtNumber;
+  const std::string CL_PROFILING_DEFAULT_TABLE;
 public:
-  OpenCLProfilerDbManager() : _execution(NULL), _created(false), _isExecutionSet(false) {
+  OpenCLProfilerDbManager() : _execution(NULL), _created(false), _isExecutionSet(false), CL_PROFILING_DEFAULT_TABLE("opencl_kernels") {
     _dbManager.openConnection("nanos_opencl_kernels.db");
+    initialize();
   }
 
   ~OpenCLProfilerDbManager();
@@ -194,8 +199,7 @@ public:
   }
 
 private:
-  bool isTableCreated();
-  bool createTable();
+  void initialize();
   uint32_t getKernelHash(const Dims &dims, const std::string kernelName);
   void destroyExecution();
 
@@ -205,7 +209,6 @@ private:
 
 };
 
-static const std::string CL_PROFILING_DEFAULT_TABLE = "opencl_kernels";
 typedef std::map<Dims, Execution*> DimsBest;
 typedef std::map<Dims, ulong> DimsExecutions;
 

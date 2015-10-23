@@ -77,6 +77,11 @@ OpenCLAdapter::~OpenCLAdapter()
   _bestExec.clear();
   _nExecutions.clear();
 
+  if ( OpenCLConfig::isEnableProfiling() ) {
+    // Closing the database and deallocating the object
+    delete _openCLProfilerDbManager;
+  }
+
   for( ProgramCache::iterator i = _progCache.begin(),
                               e = _progCache.end();
                               i != e;
@@ -135,6 +140,11 @@ void OpenCLAdapter::initialize(cl_device_id dev)
 
    std::string deviceVendor = getDeviceVendor();
    setSynchronization(deviceVendor);
+
+   if ( OpenCLConfig::isEnableProfiling() ) {
+     // Allocating the object and opening the database
+     _openCLProfilerDbManager = new OpenCLProfilerDbManager();
+   }
 
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 }
@@ -815,20 +825,19 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2], cost);
 
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_DB_ACCESS );
-   OpenCLProfilerDbManager oclDbManager;
    Execution *bestExecution = NULL;
    std::string kernelName = getKernelName(kernel);
-   bestExecution = oclDbManager.getKernelConfig(dims, kernelName);
+   if ( getOpenClProfilerDbManager() == NULL )
+      fatal0("OpenCL Profiler flag was not provided")
+   bestExecution = getOpenClProfilerDbManager()->getKernelConfig(dims, kernelName);
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
-   // Run with the best execution or start profile the kernel
+   // Run with the best execution or start to profile the kernel
    if ( bestExecution != NULL && bestExecution->getNdims() < 9) {
      local_work_size[0] = bestExecution->getLocalX();
      local_work_size[1] = bestExecution->getLocalY();
      local_work_size[2] = bestExecution->getLocalZ();
-     Execution *execution;
-     execution = singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, ndrGlobalSize);
-     std::cout << "### OPENCL TIME = " << execution->getTime() << std::endl;
+     singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, ndrGlobalSize);
    }
    else {
      switch ( workDim )
@@ -883,7 +892,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
      NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_DB_ACCESS );
      DimsBest dimsBest = _bestExec[kernel];
      Execution execution(*dimsBest[dims]);
-     oclDbManager.setKernelConfig(dims, execution, kernelName);
+     getOpenClProfilerDbManager()->setKernelConfig(dims, execution, kernelName);
      NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    }
 }

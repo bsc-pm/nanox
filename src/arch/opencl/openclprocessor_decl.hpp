@@ -50,7 +50,7 @@ public:
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _workGroupMultiple(0), _maxWorkGroup(0), _progCache()  {}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _workGroupMultiple(0), _maxWorkGroup(0), _openCLProfilerDbManager(NULL), _progCache()  {}
 
 public:
    void initialize(cl_device_id dev);
@@ -199,6 +199,10 @@ public:
 		return _nExecutions;
 	}
 
+  OpenCLProfilerDbManager* getOpenClProfilerDbManager() const {
+    return _openCLProfilerDbManager;
+  }
+
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
 
@@ -250,6 +254,7 @@ private:
    bool _synchronize;
    size_t _workGroupMultiple;
    size_t _maxWorkGroup;
+   OpenCLProfilerDbManager *_openCLProfilerDbManager;
 
    ProgramCache _progCache;
    bool _useHostPtrs;

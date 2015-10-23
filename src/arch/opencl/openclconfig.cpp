@@ -36,6 +36,7 @@ int OpenCLConfig::_prefetchNum = 1;
 unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::DEFAULT;
 //System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
+bool OpenCLConfig::_enableProfiling = false;
 
 std::map<cl_device_id,cl_context>* OpenCLConfig::_devicesPtr=0;
 
@@ -129,6 +130,14 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerConfigOption ( "opencl-cache-policy", cachePolicyCfg, "Defines the cache policy for OpenCL architectures: write-through / write-back (wb by default)" );
    cfg.registerEnvOption ( "opencl-cache-policy", "NX_OPENCL_CACHE_POLICY" );
    cfg.registerArgOption( "opencl-cache-policy", "opencl-cache-policy" );
+
+   // Enable/disable Profiling.
+   const std::string openclProfilingOptName = "opencl-profiling";
+   cfg.registerConfigOption( openclProfilingOptName,
+                             NEW Config::FlagOption( _enableProfiling ),
+                             "Enable the OpenCL Profiling mode");
+   cfg.registerEnvOption( openclProfilingOptName, "NX_OPENCL_PROFILING" );
+   cfg.registerArgOption( openclProfilingOptName, openclProfilingOptName );
 }
 
 void OpenCLConfig::apply(const std::string devTypeIn, std::map<cl_device_id, cl_context>* devices) {
