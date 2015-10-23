@@ -153,7 +153,7 @@ GASNet is linked with.
   AX_VAR_POPVALUE([CXX])
   AX_VAR_POPVALUE([CPPFLAGS])
   AX_VAR_POPVALUE([CXXFLAGS])
-  AX_VAR_POPVALUE([LIBS],[])
+  AX_VAR_POPVALUE([LIBS])
   AX_VAR_POPVALUE([LDFLAGS])
 
   AC_LANG_POP([C++])
@@ -183,14 +183,13 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])
 
-  CXX="$2"
   conduit_prereq_libs="$3 $PTHREAD_LIBS -lrt"
   conduit_inc="-isystem $gasnetinc -I$gasnetinc/$1-conduit $4"
 
-  CPPFLAGS="${save_CPPFLAGS} $conduit_inc"
-  LDFLAGS="${save_LDFLAGS} $gasnetlib"
-  LIBS=
-
+  AX_VAR_PUSHVALUE([CXX],[$2])
+  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $conduit_inc])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $gasnetlib])
+  AX_VAR_PUSHVALUE([LIBS],[])
 
   # We do not want autoconf to cache header/library checks.
   # We will use different environments for each check.
@@ -218,6 +217,11 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
     AS_VAR_APPEND([gasnet_available_conduits],[$1])
     AS_VAR_SET([conduit_libs], ["$conduit_prereq_libs $LIBS"])
   ])
+
+  AX_VAR_POPVALUE([CXX])
+  AX_VAR_POPVALUE([CPPFLAGS])
+  AX_VAR_POPVALUE([LDFLAGS])
+  AX_VAR_POPVALUE([LIBS])
 
   AS_VAR_POPDEF([conduit_available])dnl
   AS_VAR_POPDEF([conduit_inc])dnl

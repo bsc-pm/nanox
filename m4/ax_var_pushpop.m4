@@ -16,7 +16,7 @@
 #   AX_VAR_PUSHVALUE and AX_VAR_POPVALUE are clean way to temporarily
 #   store a variable's value and restore it later, using a stack-like
 #   behaviour.
-#   Warning: these macros don't support multiple push/pop levels
+#   These macros support nested push/pop levels
 #
 #   Example:
 #   AX_VAR_PUSHVALUE([CXXFLAGS],["my test flags"])
@@ -54,20 +54,55 @@
 #   Macro released by the Autoconf Archive. When you make and distribute a
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
-
+#
+# Auxiliary macros
+#
+# -------------------------
+# increment
+# Increment the value of a named counter.
+# Initialize to 1 if not defined
+# -------------------------
+m4_define([increment],[dnl
+  m4_ifdef([$1],dnl
+    [m4_define([$1],m4_incr($1))],dnl
+    [m4_define([$1],[1])]dnl
+  )dnl
+])dnl
+# -------------------------
+# decrement
+# Decrement the value of a named counter.
+# Throws an error if counter not defined
+# or value reaches zero.
+# -------------------------
+m4_define([decrement],[dnl
+ m4_ifdef([$1],dnl
+   [m4_if(m4_eval($1 > 0),
+     [1],m4_define([$1],m4_decr($1)),dnl
+     [m4_fatal([Missing call to AX_VAR_PUSHVALUE with var $1])]dnl
+   )],dnl
+   [m4_fatal([Missing call to AX_VAR_PUSHVALUE with var $1])])dnl
+])dnl
+# Main macros
 AC_DEFUN([AX_VAR_PUSHVALUE],[
+  increment([$1_counter])
+
   AS_VAR_PUSHDEF([variable],[$1]) dnl
-  AS_VAR_PUSHDEF([backup],[save_$1]) dnl
+  AS_VAR_PUSHDEF([backup],[save_$1_]$1_counter) dnl
+
   AS_VAR_SET(backup,$variable) dnl
-  AS_VAR_SET(variable,m4_default("$2",$variable)) dnl
+  AS_VAR_SET(variable,["]m4_default($2,$variable)["]) dnl
+
   AS_VAR_POPDEF([variable]) dnl
   AS_VAR_POPDEF([backup]) dnl
 ])dnl AX_PUSH_VAR
 
 AC_DEFUN([AX_VAR_POPVALUE],[
   AS_VAR_PUSHDEF([variable],[$1]) dnl
-  AS_VAR_PUSHDEF([backup],[save_$1]) dnl
+  AS_VAR_PUSHDEF([backup],[save_$1_]$1_counter) dnl
+
   AS_VAR_SET(variable,$backup) dnl
+
+  decrement([$1_counter])
   AS_VAR_POPDEF([variable]) dnl
   AS_VAR_POPDEF([backup]) dnl
 ])dnl AX_POP_VAR
