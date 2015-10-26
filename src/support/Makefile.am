@@ -207,7 +207,7 @@ noinst_LTLIBRARIES += debug/libsupport.la
 debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @dlbinc@ @cudainc@
 debug_libsupport_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-debug_libsupport_la_LDFLAGS=@dlblib@
+debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@
 debug_libsupport_la_LIBADD=@dlb_dbg@ @cudalib@ @cudalibs@
 endif
 
@@ -217,7 +217,7 @@ noinst_LTLIBRARIES += instrumentation-debug/libsupport.la
 instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @dlbinc@ @cudainc@
 instrumentation_debug_libsupport_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(instrumentation_debug_sources) $(gpu_support_sources)
-instrumentation_debug_libsupport_la_LDFLAGS=@dlblib@ @cudalib@
+instrumentation_debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
 instrumentation_debug_libsupport_la_LIBADD=@dlb_instr_dbg@ @cudalibs@
 endif
 
@@ -227,7 +227,7 @@ noinst_LTLIBRARIES += instrumentation/libsupport.la
 instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @dlbinc@ @cudainc@
 instrumentation_libsupport_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libsupport_la_SOURCES=$(support_sources) $(instrumentation_sources) $(gpu_support_sources)
-instrumentation_libsupport_la_LDFLAGS=@dlblib@ @cudalib@
+instrumentation_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
 instrumentation_libsupport_la_LIBADD=@dlb_instr@ @cudalibs@
 endif
 
@@ -237,7 +237,7 @@ noinst_LTLIBRARIES += performance/libsupport.la
 performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @dlbinc@ @cudainc@
 performance_libsupport_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libsupport_la_SOURCES=$(support_sources) $(performance_sources) $(gpu_support_sources)
-performance_libsupport_la_LDFLAGS=@dlblib@ @cudalib@
+performance_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
 performance_libsupport_la_LIBADD=@dlb@ @cudalibs@
 endif
 

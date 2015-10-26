@@ -89,7 +89,7 @@ debug_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 debug_libnanox_pe_smp_la_CPPFLAGS=$(common_debug_CPPFLAGS) @memkindinc@
 debug_libnanox_pe_smp_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) @memkindlib@
+debug_libnanox_pe_smp_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @memkindlib@
 debug_libnanox_pe_smp_la_LIBADD=$(common_libadd) @memkindlibs@
 debug_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
@@ -105,7 +105,7 @@ instrumentation_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 instrumentation_libnanox_pe_smp_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @memkindinc@
 instrumentation_libnanox_pe_smp_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) @memkindlib@
+instrumentation_libnanox_pe_smp_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @memkindlib@
 instrumentation_libnanox_pe_smp_la_LIBADD=$(common_libadd) @memkindlibs@
 instrumentation_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
@@ -121,7 +121,7 @@ instrumentation_debug_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 instrumentation_debug_libnanox_pe_smp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @memkindinc@
 instrumentation_debug_libnanox_pe_smp_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) @memkindlib@
+instrumentation_debug_libnanox_pe_smp_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @memkindlib@
 instrumentation_debug_libnanox_pe_smp_la_LIBADD=$(common_libadd) @memkindlibs@
 instrumentation_debug_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
@@ -137,7 +137,7 @@ performance_libsmp_la_SOURCES=$(smp_sources) $(smp_ult_sources)
 
 performance_libnanox_pe_smp_la_CPPFLAGS=$(common_performance_CPPFLAGS) @memkindinc@
 performance_libnanox_pe_smp_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_pe_smp_la_LDFLAGS=$(ld_plugin_flags) @memkindlib@
+performance_libnanox_pe_smp_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @memkindlib@
 performance_libnanox_pe_smp_la_LIBADD=$(common_libadd) @memkindlibs@
 performance_libnanox_pe_smp_la_SOURCES=$(pe_smp_sources)
 endif
