@@ -48,6 +48,7 @@ AS_IF([test -d "$srcdir/.git"],[
     build_version="\"unknown revision\""
   ])
 ])
+AC_SUBST([NANOX_VERSION],[$build_version])
 AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 
 # Debian release
@@ -297,7 +298,6 @@ AC_CONFIG_FILES([
                  doc/Makefile
                  doc/doxy-nanox
                  scripts/Makefile
-                 src/common
                  src/Makefile
                  src/core/Makefile
                  src/support/Makefile
