@@ -71,6 +71,7 @@ opencl_sources = \
     $(END)
 
 pe_opencl_sources = \
+	openclplugin.hpp \
 	openclplugin.cpp \
 	$(END)
 
