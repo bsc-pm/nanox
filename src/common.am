@@ -39,4 +39,4 @@ common_instrumentation_CXXFLAGS= $(AM_CXXFLAGS) @instrumentation_CXXFLAGS@
 common_instrumentation_debug_CXXFLAGS= $(AM_CXXFLAGS) @instrumentation_debug_CXXFLAGS@
 
 version_flags= -version-info 1:0:0
-ld_plugin_flags= -avoid-version
+ld_plugin_flags= -module -avoid-version

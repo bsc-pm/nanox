@@ -13,47 +13,45 @@ function tr_sh() {
 }
 
 common_includes="
--I\@abs_top_srcdir@/src/apis/c \
--I\@abs_top_builddir@/src/apis/c \
--I\@abs_top_srcdir@/src/arch/unix-os \
--I\@abs_top_srcdir@/src/support \
--I\@abs_top_srcdir@/src/core \
--I\@abs_top_srcdir@/src/arch/smp \
--I\@abs_top_srcdir@/src/arch/opencl \
--I\@abs_top_srcdir@/src/arch/gpu \
--I\@abs_top_srcdir@/src/arch/cluster
+-I@abs_top_builddir@
+-I@abs_top_builddir@/src/apis/c \
+-I@abs_top_srcdir@/src/apis/c \
+-I@abs_top_srcdir@/src/arch/unix-os \
+-I@abs_top_srcdir@/src/support \
+-I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/arch/smp \
+-I@abs_top_srcdir@/src/arch/opencl \
+-I@abs_top_srcdir@/src/arch/gpu \
+-I@abs_top_srcdir@/src/arch/cluster
 $END"
-
-VERSIONS="@VERSIONS@"
-PLUGINS="@PLUGINS@"
 
 LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -lnanox-opencl-api -Xlinker --as-needed @opencllibs@"
 
 dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
 
-@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_debug_enabled_TRUE@ debug_CFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
-@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
-@is_debug_enabled_TRUE@ debug_LIBS="${LIBS}"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_debug_enabled_TRUE@ debug_LIBS=${LIBS}
 
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
-@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS="${LIBS}"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=${LIBS}
 
-@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_instrumentation_enabled_TRUE@ instrumentation_CFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
-@is_instrumentation_enabled_TRUE@ instrumentation_LIBS="${LIBS}"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS=${LIBS}
 
-@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @openclinc@ @CPPFLAGS@"
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
 @is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
 @is_performance_enabled_TRUE@ performance_CFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
-@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@"
-@is_performance_enabled_TRUE@ performance_LIBS="${LIBS}"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_performance_enabled_TRUE@ performance_LIBS=${LIBS}
 
 # Common to all versions
 cat << EOF
@@ -63,19 +61,22 @@ EOF
 
 # Specific to each version
 compile_versions=
-for version in $VERSIONS; do
+for version in @VERSIONS@; do
   sh_version=$(tr_sh $version)
   compile_versions+="${sh_version} "
-  for plugin in $PLUGINS; do
+  for libdir in @PLUGINS@ core pms apis; do
+    library_dir=@abs_top_builddir@/src/${libdir}/${version}/.libs
     eval "${sh_version}_LDFLAGS=\"\
--L @abs_top_builddir@/src/${plugin}/${version}/.libs  -Wl,-rpath,@abs_top_builddir@/src/${plugin}/${version}/.libs \
+-L${library_dir} -Wl,-rpath,${library_dir} \
 \${${sh_version}_LDFLAGS}\""
+
+    eval "${sh_version}_LD_LIBRARY_PATH=\"\
+${library_dir}\
+\${${sh_version}_LD_LIBRARY_PATH+:}\
+\${${sh_version}_LD_LIBRARY_PATH}\""
   done
 
   eval "${sh_version}_LDFLAGS=\"\
--L @abs_top_builddir@/src/core/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/core/${version}/.libs \
--L @abs_top_builddir@/src/pms/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/pms/${version}/.libs \
--L @abs_top_builddir@/src/apis/${version}/.libs -Wl,-rpath,@abs_top_builddir@/src/apis/${version}/.libs \
 @PTHREAD_LIBS@ \
 \${${sh_version}_LIBS} \
 \${${sh_version}_LDFLAGS}\""
@@ -86,7 +87,7 @@ test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} -
 test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} -Wno-error )"
 test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS})"
 test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
-test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
+test_ENV_${sh_version}="$(eval echo LD_LIBRARY_PATH=\${${sh_version}_LD_LIBRARY_PATH} \${${sh_version}_ENV} ${test_ENV})"
 EOF
 
 done # for version 

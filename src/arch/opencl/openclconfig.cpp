@@ -192,7 +192,7 @@ void OpenCLConfig::apply( OpenCLPlugin const* plugin ) {
             e = _plats.end();
             i != e;
             ++i) {
-#ifndef NANOS_DISABLE_ALLOCATOR
+#ifdef NANOS_ENABLE_ALLOCATOR
         char buffer[200];
         clGetPlatformInfo(*i, CL_PLATFORM_VENDOR, 200, buffer, NULL);
         if (std::string(buffer) == "Intel(R) Corporation" || std::string(buffer) == "ARM") {
