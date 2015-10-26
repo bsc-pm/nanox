@@ -108,7 +108,7 @@ AS_IF([test "x$with_opencl" != xno],[
     AX_VAR_PUSHVALUE([LIBS])
 
     # One of the following two header files has to exist
-    AC_CHECK_HEADERS([CL/opencl.h OpenCL/opencl.h], [opencl=yes; break])
+    AC_CHECK_HEADERS([CL/opencl.h OpenCL/opencl.h], [opencl=yes; break], [opencl=no])
     # Look for clGetPlatformIDs function in either libmali.so or libOpenCL.so libraries
     AS_IF([test x$opencl = xyes],[
         AC_SEARCH_LIBS([clGetPlatformIDs],
