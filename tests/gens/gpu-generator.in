@@ -96,6 +96,8 @@ ${library_dir}\
 \${${sh_version}_LIBS} \
 \${${sh_version}_LDFLAGS}\""
 
+  eval "${sh_version}_ENV=\"
+LD_LIBRARY_PATH=\${${sh_version}_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}\""
 
 # Prepend each preprocessor and compiler flag with -Xcompiler
 # Same for linker flags with -Xlinker
@@ -106,8 +108,9 @@ test_CFLAGS_${sh_version}="$(eval put_xcompiler \${${sh_version}_CFLAGS} ${test_
 test_CXXFLAGS_${sh_version}="$(eval put_xcompiler \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} -Wno-error )"
 test_LDFLAGS_${sh_version}="$(eval put_xlinker \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS} )"
 test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
-test_ENV_${sh_version}="$(eval echo LD_LIBRARY_PATH=\${${sh_version}_LD_LIBRARY_PATH} \${${sh_version}_ENV} ${test_ENV})"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
 EOF
+
 done # for version 
 
 cat << EOF
