@@ -174,10 +174,13 @@ because cross-compilation mode has been detected.
 ])dnl with_hwloc
 
 AS_IF([test "$hwloc" = yes],[
-    OPTIONS="$OPTIONS hwloc"
-
-    AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])
-    AC_DEFINE([HWLOC],[],[Indicates the presence of hwloc library.])
+  OPTIONS="$OPTIONS hwloc"
+  AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])
+  AC_DEFINE([HWLOC],[],[Indicates the presence of hwloc library.])
+],[
+  hwlocinc=
+  hwloclib=
+  hwloclibs=
 ])dnl
 
 AC_SUBST([hwloc])
