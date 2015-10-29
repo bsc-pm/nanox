@@ -65,8 +65,8 @@ AC_ARG_WITH(xdma,
 AS_IF([test "$xdma_path_provided" = yes],[
   xdmainc="-I$with_xdma/include"
   AS_IF([test -d $with_xdma/lib64],
-    [xdmalib="-L$with_xdma/lib64 -Wl,-rpath=$with_xdma/lib64"],
-    [xdmalib="-L$with_xdma/lib -Wl,-rpath=$with_xdma/lib"])dnl
+    [xdmalib="-L$with_xdma/lib64 -Wl,-rpath,$with_xdma/lib64"],
+    [xdmalib="-L$with_xdma/lib -Wl,-rpath,$with_xdma/lib"])dnl
 ])dnl
 
 AS_IF([test "$xdma" = yes],[

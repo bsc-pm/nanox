@@ -82,8 +82,8 @@ AS_IF([test "x$with_opencl$with_opencl_include$with_opencl_lib" != x],[
 AS_IF([test "$opencl_path_provided" = yes],[
   openclinc="-isystem $with_opencl/include"
   AS_IF([test -d $with_opencl/lib64],
-    [opencllib="-L$with_opencl/lib64 -Wl,-rpath=$with_opencl/lib64"],
-    [opencllib="-L$with_opencl/lib -Wl,-rpath=$with_opencl/lib"])dnl
+    [opencllib="-L$with_opencl/lib64 -Wl,-rpath,$with_opencl/lib64"],
+    [opencllib="-L$with_opencl/lib -Wl,-rpath,$with_opencl/lib"])dnl
 ])dnl
 
 AS_IF([ test $with_opencl_include],[
@@ -91,7 +91,7 @@ AS_IF([ test $with_opencl_include],[
 ])dnl
 
 AS_IF([test $with_opencl_lib],[
-  opencllib="-L$with_opencl_lib"
+  opencllib="-L$with_opencl_lib -Wl,-rpath,$with_opencl_lib"
 ])dnl
 
 # This is fulfilled even if $with_opencl="yes" 

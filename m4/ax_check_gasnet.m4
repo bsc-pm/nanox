@@ -75,8 +75,8 @@ AC_ARG_WITH(gasnet-lib,
 AS_IF([test x$gasnet_path_provided = xyes],[
   gasnetinc="$with_gasnet/include"
   AS_IF([test -d "$with_gasnet/lib64"],
-    [gasnetlib="-L$with_gasnet/lib64 -Wl,-rpath=$with_gasnet/lib64"],
-    [gasnetlib="-L$with_gasnet/lib -Wl,-rpath=$with_gasnet/lib"])dnl
+    [gasnetlib="-L$with_gasnet/lib64 -Wl,-rpath,$with_gasnet/lib64"],
+    [gasnetlib="-L$with_gasnet/lib -Wl,-rpath,$with_gasnet/lib"])dnl
 ])dnl
 
 AS_IF([test "$with_gasnet_include"],[
@@ -84,7 +84,7 @@ AS_IF([test "$with_gasnet_include"],[
 ])dnl
 
 AS_IF([test "$with_gasnet_lib"],[
-  gasnetlib="-L$with_gasnet_lib -Wl,-rpath=$with_gasnet_lib"
+  gasnetlib="-L$with_gasnet_lib -Wl,-rpath,$with_gasnet_lib"
 ])dnl
 
 AS_IF([test "x$gasnet" = xyes],[

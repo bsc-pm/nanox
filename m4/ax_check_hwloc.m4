@@ -58,8 +58,8 @@ AS_IF([test "x$with_hwloc" != xyes dnl
   hwlocinc="-I $with_hwloc/include"
   hwloc_h="$with_hwloc/include/hwloc.h"
   AS_IF([test -d $with_hwloc/lib64],
-    [hwloclib="-L$with_hwloc/lib64 -Wl,-rpath=$with_hwloc/lib64"],
-    [hwloclib="-L$with_hwloc/lib -Wl,-rpath=$with_hwloc/lib"])dnl
+    [hwloclib="-L$with_hwloc/lib64 -Wl,-rpath,$with_hwloc/lib64"],
+    [hwloclib="-L$with_hwloc/lib -Wl,-rpath,$with_hwloc/lib"])dnl
 ])dnl
 
 AS_IF([test "x$with_hwloc_include" != x],[
@@ -68,7 +68,7 @@ AS_IF([test "x$with_hwloc_include" != x],[
 ])dnl
 
 AS_IF([test "x$with_hwloc_lib" != x],[
-  hwloclib="-L$with_hwloc_lib"
+  hwloclib="-L$with_hwloc_lib -Wl,-rpath,$with_hwloc_lib"
 ])
 
 # This condition is satisfied even if $with_hwloc="yes" 

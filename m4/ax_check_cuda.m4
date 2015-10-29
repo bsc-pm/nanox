@@ -77,8 +77,8 @@ AC_DEFUN([AX_CHECK_CUDA],[
     cudainc="-isystem $cuda_prefix/include"
     cuda_h="$cuda_prefix/include/cuda.h"
     AS_IF([test -d $cuda_prefix/lib64],
-      [cudalib="-L$cuda_prefix/lib64 -Wl,-rpath=$cuda_prefix/lib64"],
-      [cudalib="-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib"])dnl
+      [cudalib="-L$cuda_prefix/lib64 -Wl,-rpath,$cuda_prefix/lib64"],
+      [cudalib="-L$cuda_prefix/lib -Wl,rpath,$cuda_prefix/lib"])dnl
   ])dnl
 
   AS_IF([test "x$with_cuda_include" != x],[
@@ -87,7 +87,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
   ])dnl
 
   AS_IF([test "x$with_cuda_lib" != x],[
-    cudalib="-L$with_cuda_lib"
+    cudalib="-L$with_cuda_lib -Wl,-rpath,$with_cuda_lib"
   ])dnl
   
   # This condition is satisfied even if $with_cuda="yes" 

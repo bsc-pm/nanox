@@ -71,7 +71,7 @@ AC_ARG_WITH(dlb-lib,
 #                       --with-dlb=somevalue, $with_dlb value will be 'somevalue'
 AS_IF([test x$dlb_path_provided = xyes],[
   dlbinc="-I$with_dlb/include"
-  dlblib="-L$with_dlb/lib -Wl,-rpath=$with_dlb/lib"
+  dlblib="-L$with_dlb/lib -Wl,-rpath,$with_dlb/lib"
 ])dnl
 
 AS_IF([test "$with_dlb_include"],[
@@ -79,7 +79,7 @@ AS_IF([test "$with_dlb_include"],[
 ])dnl
 
 AS_IF([test "$with_dlb_lib"],[
-  dlblib="-L$with_dlb_lib -Wl,-rpath=$with_dlb_lib"
+  dlblib="-L$with_dlb_lib -Wl,-rpath,$with_dlb_lib"
 ])dnl
 
 AS_IF([test "$dlb_check" = yes],[
