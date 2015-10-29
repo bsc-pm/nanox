@@ -28,7 +28,7 @@
 
 /*
 <testinfo>
-   test_generator="gens/mixed-generator -a --no-warmup-threads|--warmup-threads"
+   test_generator="gens/core-generator -a --no-warmup-threads|--warmup-threads"
    test_generator_ENV=( "NX_TEST_MAX_CPUS=1"
                         "NX_TEST_SCHEDULE=bf"
                         "NX_TEST_ARCH=smp")

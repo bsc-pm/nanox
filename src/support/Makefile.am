@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include ../common.am
+include $(top_srcdir)/src/common.am
 
 devinclude_HEADERS = \
 	containeradapter_fwd.hpp \
@@ -92,9 +92,10 @@ devinclude_HEADERS = \
 	functor_decl.hpp \
 	requestqueue_decl.hpp \
 	requestqueue.hpp \
-        smpbaseplugin_decl.hpp \
+	smpbaseplugin_decl.hpp \
 	pinnedallocator_decl.hpp \
 	genericevent_decl.hpp \
+	hwloc_decl.hpp \
 	$(END) 
 
 support_sources = \
@@ -178,6 +179,8 @@ support_sources = \
 	requestqueue.hpp \
 	genericevent_decl.hpp \
 	genericevent.cpp \
+	hwloc_decl.hpp \
+	hwloc.cpp \
 	$(END) 
 
 debug_sources = \
@@ -198,34 +201,43 @@ endif
 
 noinst_LTLIBRARIES =
 
-if DEBUG_VERSION
+if is_debug_enabled
 noinst_LTLIBRARIES += debug/libsupport.la
 
-debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_debug_cxxflags)
+debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @dlbinc@ @cudainc@
+debug_libsupport_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-debug_libsupport_la_LDFLAGS=$(dlb_debug_ldflags)
+debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@
+debug_libsupport_la_LIBADD=@dlb_dbg@ @cudalib@ @cudalibs@
 endif
 
-if INSTRUMENTATION_VERSION
-noinst_LTLIBRARIES += instrumentation/libsupport.la
-
-instrumentation_libsupport_la_CXXFLAGS=$(common_includes) $(common_instr_cxxflags)
-instrumentation_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
-instrumentation_libsupport_la_LDFLAGS=$(dlb_instr_ldflags)
-endif
-
-if INSTRUMENTATION_DEBUG_VERSION
+if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libsupport.la
 
-instrumentation_debug_libsupport_la_CXXFLAGS=$(common_includes) $(common_instrdebug_cxxflags)
-instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
-instrumentation_debug_libsupport_la_LDFLAGS=$(dlb_instrdebug_ldflags)
+instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @dlbinc@ @cudainc@
+instrumentation_debug_libsupport_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(instrumentation_debug_sources) $(gpu_support_sources)
+instrumentation_debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
+instrumentation_debug_libsupport_la_LIBADD=@dlb_instr_dbg@ @cudalibs@
 endif
 
-if PERFORMANCE_VERSION
+if is_instrumentation_enabled
+noinst_LTLIBRARIES += instrumentation/libsupport.la
+
+instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @dlbinc@ @cudainc@
+instrumentation_libsupport_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libsupport_la_SOURCES=$(support_sources) $(instrumentation_sources) $(gpu_support_sources)
+instrumentation_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
+instrumentation_libsupport_la_LIBADD=@dlb_instr@ @cudalibs@
+endif
+
+if is_performance_enabled
 noinst_LTLIBRARIES += performance/libsupport.la
 
-performance_libsupport_la_CXXFLAGS=$(common_includes) $(common_perfo_cxxflags)
-performance_libsupport_la_SOURCES=$(support_sources) $(gpu_support_sources)
-performance_libsupport_la_LDFLAGS=$(dlb_perfo_ldflags)
+performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @dlbinc@ @cudainc@
+performance_libsupport_la_CXXFLAGS=$(common_performance_CXXFLAGS)
+performance_libsupport_la_SOURCES=$(support_sources) $(performance_sources) $(gpu_support_sources)
+performance_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@
+performance_libsupport_la_LIBADD=@dlb@ @cudalibs@
 endif
+

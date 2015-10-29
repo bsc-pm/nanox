@@ -25,7 +25,10 @@
 #include <iostream>
 #include <algorithm>
 
+#if defined(__GNUC__) && __GNUC__ > 4
+// This is not understood by icpc
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -1383,6 +1386,7 @@ BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd, SMPMultiThread *p
 {
 
    OpenCLThread &thr = *NEW OpenCLThread( wd, this, _core );
+   thr.setMaxPrefetch( nanos::ext::OpenCLConfig::getPrefetchNum() );
 
    return thr;
 }

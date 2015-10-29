@@ -32,13 +32,14 @@ typedef struct {
 } main__task_1_data_t;
 
 // compiler: outlined function
+void main__task_1 ( void *args );
 void main__task_1 ( void *args )
 {
    main__task_1_data_t *hargs = (main__task_1_data_t * ) args;
 
    nanos_wd_t wd = nanos_current_wd();
 
-   char *description;
+   const char *description;
    NANOS_SAFE( nanos_get_wd_description ( &description, wd ) );
 
    usleep ( hargs->value );

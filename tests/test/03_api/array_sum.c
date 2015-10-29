@@ -34,6 +34,7 @@ test_generator=gens/api-generator
 #include <nanos.h>
 #include <stdlib.h>
 
+void array_sum(int array_data[16834], int result[1], int tid);
 void array_sum(int array_data[16834], int result[1], int tid)
 {
     int l_i, l_j;
@@ -55,6 +56,7 @@ typedef struct _nx_data_env_0_t_tag
 } _nx_data_env_0_t;
 
 int main(int argc, char * argv[]);
+void _smp__ol_main_0(_nx_data_env_0_t * _args);
 void _smp__ol_main_0(_nx_data_env_0_t * _args)
 {
     array_sum((_args->l_array_of_arrays_0)[(_args->l_i_0)], &((_args->l_partial_sums_0)[(_args->l_i_0)]), (_args->l_i_0));

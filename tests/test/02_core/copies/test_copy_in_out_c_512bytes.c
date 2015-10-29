@@ -35,6 +35,7 @@ typedef struct {
    char *b;
 } my_args;
 
+void first( void *ptr );
 void first( void *ptr )
 {
 }
@@ -89,8 +90,8 @@ int main ( int argc, char **argv )
       dims[0] = (nanos_region_dimension_internal_t) {sizeof(args->a), 0, sizeof(args->a)};
       dims[1] = (nanos_region_dimension_internal_t) {sizeof(char)*128, 0, sizeof(char)*128};
    
-      cd[0] = (nanos_copy_data_t) {(uint64_t)&(args->a), NANOS_PRIVATE, {true, false}, 1, &dims[0], 0};
-      cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, false}, 1, &dims[1], 0}; 
+      cd[0] = (nanos_copy_data_t) {(void*)&(args->a), NANOS_PRIVATE, {true, false}, 1, &dims[0], 0};
+      cd[1] = (nanos_copy_data_t) {(void*)args->b, NANOS_SHARED, {true, false}, 1, &dims[1], 0}; 
    
       NANOS_SAFE( nanos_submit( wd1,0,0,0 ) );
    

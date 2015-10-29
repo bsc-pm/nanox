@@ -20,9 +20,11 @@
 #ifndef _NANOS_OpenCL_CFG
 #define _NANOS_OpenCL_CFG
 
-#ifdef __APPLE__
+#ifdef HAVE_OPENCL_OPENCL_H
 #include <OpenCL/opencl.h>
-#else
+#endif
+
+#ifdef HAVE_CL_OPENCL_H
 #include <CL/opencl.h>
 #endif
 
@@ -50,7 +52,7 @@ public:
   
 private:
   static void prepare( Config &cfg );
-  static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
+  static void apply( OpenCLPlugin const* plugin );
 
 private:
   // These properties contains raw info set by the user.

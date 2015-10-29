@@ -1,83 +1,42 @@
 END=
 
-# Common flags and files
-common_includes= \
-	-I$(top_srcdir)/src/arch/@OS@ \
-	-I$(top_srcdir)/src/support \
-	-I$(top_srcdir)/src/core \
-	-I$(top_srcdir)/src/arch/smp \
-	-I$(top_srcdir)/src/arch/spu \
-	-I$(top_srcdir)/src/arch/gpu \
-	-I$(top_srcdir)/src/arch/fpga\
-	-I$(top_srcdir)/src/arch/cluster \
-	-I$(top_srcdir)/src/arch/opencl \
-	$(END)
+# Generate include list
+# Build directory is included to
+# avoid problems with config.h inclusion
+common_includes=\
+ -I$(top_builddir)\
+ -I$(top_srcdir)/src/arch/@OS@\
+ -I$(top_srcdir)/src/arch/cluster\
+ -I$(top_srcdir)/src/arch/common\
+ -I$(top_srcdir)/src/arch/gpu\
+ -I$(top_srcdir)/src/arch/fpga\
+ -I$(top_srcdir)/src/arch/opencl\
+ -I$(top_srcdir)/src/arch/smp\
+ -I$(top_srcdir)/src/arch/spu\
+ -I$(top_srcdir)/src/core\
+ -I$(top_srcdir)/src/support\
+ $(END)
+
+api_includes=\
+ -I$(top_srcdir)/src/apis/c\
+ -I$(top_builddir)/src/apis/c
 
 devincludedir = $(prefix)/include/nanox-dev
 
-if HWLOC 
-hwloc_cxxflags = -DHWLOC -I@HWLOC_INC@ 
-hwloc_rpath = -Xlinker -rpath -Xlinker @HWLOC_LIB@
-hwloc_ldflags = $(hwloc_rpath) -L@HWLOC_LIB@ -lhwloc 
-endif 
+AM_CPPFLAGS=-D_NANOS_INTERNAL @cc_dep_CPPFLAGS@ @hwlocinc@ $(common_includes) -DLIBDIR='$(libdir)'
+AM_CXXFLAGS=@PTHREAD_CFLAGS@ @cc_dep_CXXFLAGS@
+AM_LDFLAGS=@hwloclib@
+LIBS+=@hwloclibs@
 
+common_performance_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @performance_CPPFLAGS@
+common_debug_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @debug_CPPFLAGS@
+common_instrumentation_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @instrumentation_CPPFLAGS@
+common_instrumentation_debug_CPPFLAGS= $(AM_CPPFLAGS) -D_NANOS_INTERNAL @instrumentation_debug_CPPFLAGS@
 
-if RESILIENCY
-ft_cxxflags = -fnon-call-exceptions -DNANOS_RESILIENCY_ENABLED
-ft_fcflags = -fnon-call-exceptions
-endif
-
-if DLB
-dlb_cppflags = -DDLB -I@DLB_INC@
-dlb_perfo_ldflags = -L@DLB_LIB@ -ldlb
-dlb_debug_ldflags = -L@DLB_LIB@ -ldlb_dbg
-dlb_instr_ldflags = -L@DLB_LIB@ -ldlb_instr
-dlb_instrdebug_ldflags = -L@DLB_LIB@ -ldlb_instr_dbg
-endif
-
-if GNU_C
-common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter  -include"new_decl.hpp" -pthread $(hwloc_cxxflags) $(ft_cxxflags) $(dlb_cppflags)
-common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC $(ft_fcflags)
-no_inline_flag= -fno-inline
-endif
-
-if IBM_C
-common_cflags= -qinclude="new_decl.hpp" -qlanglvl=variadictemplates $(CFLAGS) $(hwloc_cxxflags) $(dlb_cppflags)
-common_fcflags= -qPIC -DPIC
-no_inline_flag= -qnoinline
-ignore_muldefs= -Wl,-z,muldefs
-endif
-
-if INTEL_C
-common_cflags= -Wall -Wextra -Werror -Wshadow -Wmissing-declarations -Wno-unused-parameter -include"new_decl.hpp" -pthread  $(hwloc_cxxflags) $(ft_cxxflags)
-common_fcflags= -Wall -Wextra -Wshadow -Wno-unused-parameter -pthread -fPIC -DPIC $(ft_fcflags)
-endif
-
-bin_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -D_NANOS_INTERNAL 
-
-global_perfo_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3
-common_perfo_cxxflags= $(global_perfo_cxxflags) -D_NANOS_INTERNAL
-global_perfo_fcflags= $(common_fcflags) -DLIBDIR=\"$(libdir)\" -O3
-common_perfo_fcflags= $(global_perfo_fcflags) -D_NANOS_INTERNAL
-perfo_cflags=-O3
-
-global_debug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED
-common_debug_cxxflags= $(global_debug_cxxflags) -D_NANOS_INTERNAL
-global_debug_fcflags= $(common_fcflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED
-common_debug_fcflags= $(global_debug_fcflags) -D_NANOS_INTERNAL
-debug_cflags=-O0 -g2
-
-global_instr_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
-common_instr_cxxflags= $(global_instr_cxxflags) -D_NANOS_INTERNAL
-global_instr_fcflags= $(common_fcflags) -DLIBDIR=\"$(libdir)\" -O3 -DNANOS_INSTRUMENTATION_ENABLED
-common_instr_fcflags= $(global_instr_fcflags) -D_NANOS_INTERNAL
-instr_cflags=-O3
-
-global_instrdebug_cxxflags= $(common_cflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED
-common_instrdebug_cxxflags= $(global_instrdebug_cxxflags) -D_NANOS_INTERNAL
-global_instrdebug_fcflags= $(common_fcflags) -DLIBDIR=\"$(libdir)\" -O0 -g2 $(no_inline_flag) -DNANOS_DEBUG_ENABLED -DNANOS_INSTRUMENTATION_ENABLED 
-common_instrdebug_fcflags= $(global_instrdebug_fcflags) -D_NANOS_INTERNAL
-instrdebug_cflags=-O0 -g2
+common_performance_CXXFLAGS= $(AM_CXXFLAGS) @performance_CXXFLAGS@
+common_debug_CXXFLAGS= $(AM_CXXFLAGS) @debug_CXXFLAGS@
+common_instrumentation_CXXFLAGS= $(AM_CXXFLAGS) @instrumentation_CXXFLAGS@
+common_instrumentation_debug_CXXFLAGS= $(AM_CXXFLAGS) @instrumentation_debug_CXXFLAGS@
 
 version_flags= -version-info 1:0:0
-ld_plugin_flags= -avoid-version $(hwloc_ldflags)
+ld_plugin_flags= -module -avoid-version

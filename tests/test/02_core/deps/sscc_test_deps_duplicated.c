@@ -25,6 +25,7 @@ test_deps_plugins=plain,regions,perfect-regions
 */
 #include <nanos.h>
 
+void task(int *a, int *b);
 void task(int *a, int *b)
 {
 }

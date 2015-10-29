@@ -1,103 +1,11 @@
 #!/bin/bash
+path=$(dirname $0)
 
-if [ x@resiliency@ = xyes ];
-then
-cat <<EOF
+if [ x@enable_resiliency@ = xyes ]; then
 
-SRC=@SRCDIR@/src
-BUILD=@BUILDDIR@/src
+$( ${path}/core-generator )
 
-PERFO_CFLAGS=@PERFO_CFLAGS@
-PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
-DEBUG_CFLAGS=@DEBUG_CFLAGS@
-DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
-INSTR_CFLAGS=@INSTR_CFLAGS@
-INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
-INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
-INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
-
-PLUGINS_performance=@PLUGINS_PERFORMANCE@
-PLUGINS_debug=@PLUGINS_DEBUG@
-PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
-PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
-
-common_includes="-I\$SRC/core -I\$SRC/apis/c"
-
-common_includes="
-	-I\$SRC/arch/unix-os \
-	-I\$SRC/support \
-	-I\$SRC/core \
-	-I\$SRC/arch/smp \
-	-I\$SRC/arch/gpu \
-	-I\$SRC/arch/opencl \
-	-I\$SRC/arch/spu \
-	-I\$SRC/arch/cluster"
-
-compile_versions="@COMPILE_VERSIONS@"
-
-test_CC=@CONFIG_CC@
-test_CXX=@CONFIG_CXX@
-
-test_CFLAGS="\$common_includes"
-test_CXXFLAGS="\$common_includes"
-
-test_CFLAGS_performance="\$PERFO_CFLAGS"
-test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
-test_CFLAGS_debug="\$DEBUG_CFLAGS"
-test_CXXFLAGS_debug="\$DEBUG_CXXFLAGS"
-test_CFLAGS_instrumentation="\$INSTR_CFLAGS"
-test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS"
-test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
-test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
-
-test_LDFLAGS_performance=" -Wl,--no-as-needed \
-\$BUILD/pms/performance/.libs/libnanox-ompss.so \
-\$BUILD/apis/performance/.libs/libnanox-c.so \
-\$BUILD/core/performance/.libs/libnanox.so"
-
-test_ENV_performance="LD_LIBRARY_PATH=\
-\$BUILD/core/performance/.libs:\
-\$BUILD/apis/performance/.libs:\
-\$BUILD/pms/performance/.libs:\
-\$PLUGINS_performance:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_debug=" -Wl,--no-as-needed \
-\$BUILD/pms/debug/.libs/libnanox-ompss.so \
-\$BUILD/apis/debug/.libs/libnanox-c.so \
-\$BUILD/core/debug/.libs/libnanox.so"
-
-test_ENV_debug="LD_LIBRARY_PATH=\
-\$BUILD/core/debug/.libs:\
-\$BUILD/apis/debug/.libs:\
-\$BUILD/pms/debug/.libs:\
-\$PLUGINS_debug:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation=" -Wl,--no-as-needed \
-\$BUILD/pms/instrumentation/.libs/libnanox-ompss.so \
-\$BUILD/apis/instrumentation/.libs/libnanox-c.so \
-\$BUILD/core/instrumentation/.libs/libnanox.so"
-
-test_ENV_instrumentation="LD_LIBRARY_PATH=\
-\$BUILD/pms/instrumentation/.libs:\
-\$BUILD/apis/instrumentation/.libs:\
-\$BUILD/core/instrumentation/.libs:\
-\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation_debug=" -Wl,--no-as-needed \
-\$BUILD/pms/instrumentation-debug/.libs/libnanox-ompss.so \
-\$BUILD/apis/instrumentation-debug/.libs/libnanox-c.so \
-\$BUILD/core/instrumentation-debug/.libs/libnanox.so"
-
-test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\
-\$BUILD/pms/instrumentation-debug/.libs:\
-\$BUILD/apis/instrumentation-debug/.libs:\
-\$BUILD/core/instrumentation-debug/.libs:\
-\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
-
-`@SRCDIR@/tests/gens/config.py $*`
-EOF
-
-else
+else #no resiliency
 
 cat <<EOF
 test_ignore=yes

@@ -77,7 +77,7 @@ void ThreadTeam::cleanUpReductionList( void )
       { 
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
          nanos::getMemTracker().deallocate( red->descriptor ); 
-#elif !defined(NANOS_DISABLE_ALLOCATOR)
+#elif defined(NANOS_ENABLE_ALLOCATOR)
          nanos::getAllocator().deallocate ( red->descriptor ); 
 #else
          free( red->descriptor );
@@ -85,7 +85,7 @@ void ThreadTeam::cleanUpReductionList( void )
       }
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
       nanos::getMemTracker().deallocate( (void *) red );
-#elif !defined(NANOS_DISABLE_ALLOCATOR)
+#elif defined(NANOS_ENABLE_ALLOCATOR)
       nanos::getAllocator().deallocate ( (void *) red );
 #else
       free ( (void*) red );

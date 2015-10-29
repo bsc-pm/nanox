@@ -61,6 +61,7 @@ typedef struct {
 } main__loop_1_data_t;
 
 // compiler: outlined function
+void main__loop_1 ( void *args );
 void main__loop_1 ( void *args )
 {
    int i;
