@@ -19,7 +19,7 @@
 
 /*
 <testinfo>
-   test_generator="gens/mixed-generator"
+   test_generator="gens/core-generator"
    test_generator_ENV=( "NX_TEST_MODE=performance"
                         "NX_TEST_MAX_CPUS=1"
                         "NX_TEST_SCHEDULE=bf"

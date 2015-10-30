@@ -37,6 +37,7 @@ test_generator=gens/api-generator
 // compiler: outlined function arguments
 typedef struct { int *M; } main__section_1_data_t;
 // compiler: outlined function
+void main__section_1 ( void *p_args );
 void main__section_1 ( void *p_args )
 {
    int i;
@@ -52,6 +53,7 @@ nanos_smp_args_t main__section_1_device_args = { main__section_1 };
 // compiler: outlined function arguments
 typedef struct { int *M; } main__section_2_data_t;
 // compiler: outlined function
+void main__section_2 ( void *p_args );
 void main__section_2 ( void *p_args )
 {
    int i;
@@ -67,6 +69,7 @@ nanos_smp_args_t main__section_2_device_args = { main__section_2 };
 // compiler: outlined function arguments
 typedef struct { int *M; } main__section_3_data_t;
 // compiler: outlined function
+void main__section_3 ( void *p_args );
 void main__section_3 ( void *p_args )
 {
    int i;
@@ -82,6 +85,7 @@ nanos_smp_args_t main__section_3_device_args = { main__section_3 };
 // compiler: outlined function arguments
 typedef struct { int *M; } main__section_4_data_t;
 // compiler: outlined function
+void main__section_4 ( void *p_args );
 void main__section_4 ( void *p_args )
 {
    int i;
@@ -95,6 +99,7 @@ nanos_smp_args_t main__section_4_device_args = { main__section_4 };
 
 /* ******************************* SECTIONS ***************************** */
 // compiler: outlined function
+void main__sections ( void *p_args );
 void main__sections ( void *p_args ) { fprintf(stderr,"es\n"); }
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */

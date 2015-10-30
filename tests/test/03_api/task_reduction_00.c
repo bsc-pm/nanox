@@ -987,10 +987,12 @@ static void nanos_xlate_fun_testc_0(struct nanos_args_0_t *const arg, void *wd)
     (*arg).red = (int *)device_base_address;
   }
 }
+void nanos_red_0x2584520_380301290(int *const omp_out, int *const omp_in);
 void nanos_red_0x2584520_380301290(int *const omp_out, int *const omp_in)
 {
   (*omp_out) += (*omp_in);
 }
+void nanos_ini_0x2584520_380301290(int *const omp_priv, int *const omp_orig);
 void nanos_ini_0x2584520_380301290(int *const omp_priv, int *const omp_orig)
 {
   (*omp_priv) = 0;
@@ -1441,11 +1443,11 @@ int main(int argc, char **argv)
   if (red != 100) rv = 1;
   return rv;
 }
-static void smp_ol_main_0_unpacked(int *const red)
+static void smp_ol_main_0_unpacked(int *const red2)
 {
   {
     {
-      (*red) = 0;
+      (*red2) = 0;
     }
   }
 }
@@ -1455,13 +1457,13 @@ static void smp_ol_main_0(struct nanos_args_0_t *const args)
     smp_ol_main_0_unpacked((*args).red);
   }
 }
-static void smp_ol_main_1_unpacked(int *const red)
+static void smp_ol_main_1_unpacked(int *const red2)
 {
   {
     {
       nanos_err_t nanos_err;
       int *red_storage;
-      nanos_err = nanos_task_reduction_get_thread_storage((void *)(int *) red, (void **)&red_storage);
+      nanos_err = nanos_task_reduction_get_thread_storage((void *)(int *) red2, (void **)&red_storage);
       {
         (*red_storage)++;
       }
@@ -1474,10 +1476,10 @@ static void smp_ol_main_1(struct nanos_args_1_t *const args)
     smp_ol_main_1_unpacked((*args).red);
   }
 }
-static void smp_ol_main_2_unpacked(int *const red, struct _IO_FILE **const stderr)
+static void smp_ol_main_2_unpacked(int *const red2, struct _IO_FILE **const stderr2)
 {
   {
-    fprintf((*stderr), "Result = %d\n", (*red));
+    fprintf((*stderr2), "Result = %d\n", (*red2));
   }
 }
 static void smp_ol_main_2(struct nanos_args_2_t *const args)

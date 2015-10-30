@@ -24,7 +24,7 @@
  */
 
 /*<testinfo>
-test_generator="gens/mixed-generator -a \"--gpus=0\""
+test_generator="gens/core-generator -a \"--gpus=0\""
 </testinfo>*/
 
 #include <iostream>

@@ -30,6 +30,7 @@ test_generator=gens/api-generator
 
 int cutoff_value = 10;
 
+int fib_seq ( int n );
 int fib_seq ( int n )
 {
    int x, y;
@@ -51,12 +52,14 @@ typedef struct {
    int *x;
 } fib_args;
 
+void fib_1( void *ptr );
 void fib_1( void *ptr )
 {
    fib_args * args = ( fib_args * )ptr;
    *args->x = fib( args->n-1,args->d+1 );
 }
 
+void fib_2( void *ptr );
 void fib_2( void *ptr )
 {
    fib_args * args = ( fib_args * )ptr;   
@@ -107,6 +110,7 @@ struct nanos_const_wd_definition_1 const_data2 =
 
 nanos_wd_dyn_props_t dyn_props = {0};
 
+int fib ( int n, int d );
 int fib ( int n, int d )
 {
    nanos_event_t event;
@@ -165,6 +169,7 @@ int fib ( int n, int d )
    return x + y;
 }
 
+double get_wtime( void );
 double get_wtime( void )
 {
 
@@ -178,6 +183,7 @@ double get_wtime( void )
    return t;
 }
 
+void fib0 ( int n );
 void fib0 ( int n )
 {
    double start,end;

@@ -25,7 +25,10 @@
 #include <iostream>
 #include <algorithm>
 
+#if defined(__GNUC__) && __GNUC__ > 4
+// This is not understood by icpc
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -860,6 +863,95 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    }
 }
 
+void OpenCLAdapter::smartProfileKernel(void* oclKernel,
+         int workDim,
+         int range_size,
+         size_t* ndrOffset,
+         size_t* ndrLocalSize,
+         size_t* ndrGlobalSize)
+{
+   size_t local_work_size[3], global_work_size[3];
+   double cost = 0;
+
+#ifdef NANOS_DEBUG_ENABLED
+   debug( "[opencl] Profiling kernel: " + toString( oclKernel ) + ". Profiling configuration:" );
+   for ( int i=0; i<workDim; i++ )
+   {
+      debug( "[opencl] Dimension: " + toString( i ) );
+      for ( int j=0; j<range_size; j++ )
+      {
+         debug( "[opencl]    [" + toString( j ) + "]Global size: " + toString( ndrGlobalSize[i*range_size+j] ) );
+         debug( "[opencl]    [" + toString( j ) + "]Local size:  " + toString( ndrLocalSize[i*range_size+j] ) );
+      }
+   }
+#endif
+
+   cl_kernel kernel = (cl_kernel) oclKernel;
+   Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2], cost);
+   if ( _maxWorkGroup == 0 )
+      getMaxWorkGroup(kernel);
+   if ( _workGroupMultiple == 0 )
+      getWorkGroupMultiple(kernel);
+
+   //int rangeSize = _maxWorkGroup / _workGroupMultiple;
+
+   switch ( workDim )
+   {
+      // One dimension
+      case 1:
+      {
+         for ( int x=1; _workGroupMultiple*x<=_maxWorkGroup; x++ )
+         {
+            local_work_size[0] = _workGroupMultiple*x;
+            global_work_size[0] = ndrGlobalSize[x];
+            updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+         }
+         break;
+         // Two dimensions
+      }
+      case 2:
+      {
+         const unsigned int multiplePreferred = _workGroupMultiple/2;
+         for ( int x=1; _workGroupMultiple*x<=_maxWorkGroup; x++ )
+         {
+            local_work_size[0] = multiplePreferred*x;
+            global_work_size[0] = ndrGlobalSize[x];
+            for ( int y=1; _workGroupMultiple*x*y<=_maxWorkGroup; y++ )
+            {
+               local_work_size[1] = multiplePreferred*y;
+               global_work_size[1] = ndrGlobalSize[range_size+y];
+               updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+            }
+         }
+         break;
+         // Three dimensions
+      }
+      case 3:
+      {
+         const unsigned int multiplePreferred = _workGroupMultiple/4;
+         for ( int x=1; _workGroupMultiple*x<=_maxWorkGroup; x++ )
+         {
+            local_work_size[0] = multiplePreferred*x;
+            global_work_size[0] = ndrGlobalSize[x];
+            for ( int y=1; _workGroupMultiple*x*y<=_maxWorkGroup; y++ )
+            {
+               local_work_size[1] = multiplePreferred*y;
+               global_work_size[1] = ndrGlobalSize[range_size+y];
+               for ( int z=1; _workGroupMultiple*x*y*z<=_maxWorkGroup; z++ )
+               {
+                  local_work_size[2] = multiplePreferred*z;
+                  global_work_size[2] = ndrGlobalSize[2*range_size+z];
+                  updateProfiling(kernel, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+               }
+            }
+         }
+         break;
+      }
+      default:
+         throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
+   }
+}
+
 Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
          int workDim,
          size_t* ndrOffset,
@@ -872,6 +964,8 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
 
    debug0( "[opencl] global size: " + toString( *ndrGlobalSize ) + ", local size: " + toString( *ndrLocalSize ) );
    // Exec it.
+
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_KERNEL );
 
    errCode = clEnqueueNDRangeKernel( _profilingQueue,
             openclKernel,
@@ -912,11 +1006,14 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
       localY = localZ = 0;
    }
 
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
+
    return new Execution(workDim,localX,localY,localZ,endTime-startTime);
 }
 
 void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution, Dims& dims)
 {
+   NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_UPDATE_PROFILE_DATA );
    if ( _bestExec.count(kernel) > 0 ) {
       // We have at least one execution for this kernel
       DimsBest &dimsBest = _bestExec[kernel];
@@ -949,6 +1046,7 @@ void OpenCLAdapter::updateProfiling(cl_kernel kernel, Execution *execution, Dims
       (*dimsExecutions)[dims] = 1;
       _nExecutions[kernel] = *dimsExecutions;
    }
+   NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 }
 
 void OpenCLAdapter::printProfiling()
@@ -1237,6 +1335,16 @@ std::string OpenCLAdapter::getDeviceVendor(){
    return ret;
 }
 
+void OpenCLAdapter::getWorkGroupMultiple(cl_kernel kernel)
+{
+   clGetKernelWorkGroupInfo(kernel, _dev, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &_workGroupMultiple, NULL);
+}
+
+void OpenCLAdapter::getMaxWorkGroup(cl_kernel kernel)
+{
+   clGetKernelWorkGroupInfo(kernel, _dev, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &_maxWorkGroup, NULL);
+}
+
 //
 // OpenCLProcessor implementation.
 //
@@ -1278,6 +1386,7 @@ BaseThread &OpenCLProcessor::createThread( WorkDescriptor &wd, SMPMultiThread *p
 {
 
    OpenCLThread &thr = *NEW OpenCLThread( wd, this, _core );
+   thr.setMaxPrefetch( nanos::ext::OpenCLConfig::getPrefetchNum() );
 
    return thr;
 }

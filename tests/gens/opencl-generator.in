@@ -1,144 +1,107 @@
 #!/bin/bash
 
-if [ x@OPENCL_VALID@ = xyes ];
+if [ "@opencl@" = yes ];
 then
 
-cat <<EOF
-
-SRC=@SRCDIR@/src
-BUILD=@BUILDDIR@/src
-
-PERFO_CFLAGS=@PERFO_CFLAGS@
-PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
-DEBUG_CFLAGS=@DEBUG_CFLAGS@
-DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
-INSTR_CFLAGS=@INSTR_CFLAGS@
-INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
-INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
-INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
-
-PLUGINS_performance=@PLUGINS_PERFORMANCE@
-PLUGINS_debug=@PLUGINS_DEBUG@
-PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
-PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
+# Transforms a text so that it is valid
+# to be used as a shell variable name
+# Note: it actually calls tr (translate)
+# and translates every alphanumeric character
+# into an underscore
+function tr_sh() {
+  echo $(echo -n "$@" | tr -c [:alnum:] '_')
+}
 
 common_includes="
-	-I\$SRC/apis/c \
-	-I\$BUILD/apis/c \
-	-I\$SRC/arch/unix-os \
-	-I\$SRC/support \
-	-I\$SRC/core \
-	-I\$SRC/arch/smp \
-	-I\$SRC/arch/opencl \
-	-I\$SRC/arch/spu \
-	-I\$SRC/arch/opencl \
-	-I\$SRC/arch/cluster"
+-I@abs_top_builddir@
+-I@abs_top_builddir@/src/apis/c \
+-I@abs_top_srcdir@/src/apis/c \
+-I@abs_top_srcdir@/src/arch/unix-os \
+-I@abs_top_srcdir@/src/support \
+-I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/arch/smp \
+-I@abs_top_srcdir@/src/arch/opencl \
+-I@abs_top_srcdir@/src/arch/gpu \
+-I@abs_top_srcdir@/src/arch/cluster
+$END"
 
-compile_versions="@COMPILE_VERSIONS@"
+LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -lnanox-opencl-api -Xlinker --as-needed @opencllibs@"
 
-test_CC=@CONFIG_CC@
-test_CXX=@CONFIG_CXX@
+dynamic_list="--dynamic-list=@abs_top_srcdir@/tests/gens/nanos-exports.def"
 
-test_CFLAGS="\$common_includes"
-test_CXXFLAGS="\$common_includes"
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_CFLAGS="@debug_CXXFLAGS@ @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_debug_enabled_TRUE@ debug_LIBS=${LIBS}
 
-cuda_inc="@CONFIG_CUDA_INC@"
-cuda_ld="@CONFIG_CUDA_LD@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CFLAGS="@instrumentation_debug_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=${LIBS}
 
-if [ "\$cuda_inc" != "" ] ; then \
-    cuda_inc="-I \$cuda_inc";
-fi; \
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CFLAGS="@instrumentation_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS=${LIBS}
 
-if [ "\$cuda_ld" != "" ] ; then \
-    cuda_ld="-L \$cuda_ld";
-fi; \
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @openclinc@ @CPPFLAGS@ @hwlocinc@"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_CFLAGS="@performance_CXXFLAGS@ @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@opencllib@ -Xlinker ${dynamic_list} @LDFLAGS@ @cudalib@ @hwloclib@"
+@is_performance_enabled_TRUE@ performance_LIBS=${LIBS}
 
-opencl_inc="@CONFIG_OPENCL_INC@ \$cuda_inc"
-opencl_ld="@CONFIG_OPENCL_LD@ \$cuda_ld"
+# Common to all versions
+cat << EOF
+test_CC=@CC@
+test_CXX=@CXX@
+EOF
 
-OPENCL_PERFO_CFLAGS="\$PERFO_CFLAGS -I \$opencl_inc -L \$opencl_ld"
-OPENCL_PERFO_CXXFLAGS="\$PERFO_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
-OPENCL_DEBUG_CFLAGS="\$DEBUG_CFLAGS -I \$opencl_inc -L \$opencl_ld"
-OPENCL_DEBUG_CXXFLAGS="\$DEBUG_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
-OPENCL_INSTR_CFLAGS="\$INSTR_CFLAGS -I \$opencl_inc -L \$opencl_ld"
-OPENCL_INSTR_CXXFLAGS="\$INSTR_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
-OPENCL_INSTRDEBUG_CFLAGS="\$INSTRDEBUG_CFLAGS -I \$opencl_inc -L \$opencl_ld"
-OPENCL_INSTRDEBUG_CXXFLAGS="\$INSTRDEBUG_CXXFLAGS -I \$opencl_inc -L \$opencl_ld"
+# Specific to each version
+compile_versions=
+for version in @VERSIONS@; do
+  sh_version=$(tr_sh $version)
+  compile_versions+="${sh_version} "
+  for libdir in @PLUGINS@ core pms apis; do
+    library_dir=@abs_top_builddir@/src/${libdir}/${version}/.libs
+    eval "${sh_version}_LDFLAGS=\"\
+-L${library_dir} -Wl,-rpath,${library_dir} \
+\${${sh_version}_LDFLAGS}\""
 
-DYNAMIC_LIST="--dynamic-list=\$SRC/../tests/gens/nanos-exports.def"
+    eval "${sh_version}_LD_LIBRARY_PATH=\"\
+${library_dir}\
+\${${sh_version}_LD_LIBRARY_PATH+:}\
+\${${sh_version}_LD_LIBRARY_PATH}\""
+  done
 
-opencl_flags_performance="-Wl,-rpath,"\$BUILD"/arch/opencl/performance/.libs,-rpath,"\$BUILD"/core/performance/.libs/,-rpath,"\$BUILD"/apis/performance/.libs,-rpath,"\$BUILD"/pms/performance/.libs -Xlinker \$DYNAMIC_LIST"
-opencl_flags_debug="-Wl,-rpath,"\$BUILD"/arch/opencl/debug/.libs,-rpath,"\$BUILD"/core/debug/.libs/,-rpath,"\$BUILD"/apis/debug/.libs,-rpath,"\$BUILD"/pms/debug/.libs -Xlinker \$DYNAMIC_LIST"
-opencl_flags_instrumentation="-Wl,-rpath,"\$BUILD"/arch/opencl/instrumentation/.libs,-rpath,"\$BUILD"/core/instrumentation/.libs/,-rpath,"\$BUILD"/apis/instrumentation/.libs,-rpath,"\$BUILD"/pms/instrumentation/.libs -Xlinker \$DYNAMIC_LIST"
-opencl_flags_instrumentation_debug="-Wl,-rpath,"\$BUILD"/arch/opencl/instrumentation-debug/.libs,-rpath,"\$BUILD"/core/instrumentation-debug/.libs/,-rpath,"\$BUILD"/apis/instrumentation-debug/.libs,-rpath,"\$BUILD"/pms/instrumentation-debug/.libs -Xlinker \$DYNAMIC_LIST"
+  eval "${sh_version}_LDFLAGS=\"\
+@PTHREAD_LIBS@ \
+\${${sh_version}_LIBS} \
+\${${sh_version}_LDFLAGS}\""
 
-test_CFLAGS_performance="\$OPENCL_PERFO_CFLAGS"
-test_CXXFLAGS_performance="\$OPENCL_PERFO_CXXFLAGS"
-test_CFLAGS_debug="\$OPENCL_DEBUG_CFLAGS"
-test_CXXFLAGS_debug="\$OPENCL_DEBUG_CXXFLAGS"
-test_CFLAGS_instrumentation="\$OPENCL_INSTR_CFLAGS"
-test_CXXFLAGS_instrumentation="\$OPENCL_INSTR_CXXFLAGS"
-test_CFLAGS_instrumentation_debug="\$OPENCL_INSTRDEBUG_CFLAGS"
-test_CXXFLAGS_instrumentation_debug="\$OPENCL_INSTRDEBUG_CXXFLAGS"
+  eval "${sh_version}_ENV=\"
+LD_LIBRARY_PATH=\${${sh_version}_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}\""
 
-test_LDFLAGS_performance=" \
--L \$BUILD/core/performance/.libs -lnanox \
--L \$BUILD/apis/performance/.libs -lnanox-c \
--L \$BUILD/pms/performance/.libs -lnanox-ompss \
--L \$BUILD/arch/opencl/performance/.libs -lnanox-opencl-api \
- \$opencl_flags_performance"
+  cat << EOF
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} )"
+test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} -Wno-error )"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} -Wno-error )"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS})"
+test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
+EOF
 
-test_ENV_performance="LD_LIBRARY_PATH=\
-\$BUILD/core/performance/.libs:\
-\$BUILD/apis/performance/.libs:\
-\$BUILD/pms/performance/.libs:\
-\$PLUGINS_performance:$LD_LIBRARY_PATH"
+done # for version
 
-test_LDFLAGS_debug=" \
--L \$BUILD/core/debug/.libs -lnanox \
--L \$BUILD/apis/debug/.libs -lnanox-c \
--L \$BUILD/pms/debug/.libs -lnanox-ompss \
--L \$BUILD/arch/opencl/debug/.libs -lnanox-opencl-api \
- \$opencl_flags_debug"
-
-test_ENV_debug="LD_LIBRARY_PATH=\
-\$BUILD/core/debug/.libs:\
-\$BUILD/apis/debug/.libs:\
-\$BUILD/pms/debug/.libs:\
-\$PLUGINS_debug:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation=" \
--L \$BUILD/core/instrumentation/.libs -lnanox \
--L \$BUILD/apis/instrumentation/.libs -lnanox-c \
--L \$BUILD/pms/instrumentation/.libs -lnanox-ompss \
--L \$BUILD/arch/opencl/instrumentation/.libs -lnanox-opencl-api \
- \$opencl_flags_instrumentation"
-
-test_ENV_instrumentation="LD_LIBRARY_PATH=\
-\$BUILD/core/instrumentation/.libs:\
-\$BUILD/apis/instrumentation/.libs:\
-\$BUILD/pms/instrumentation/.libs:\
-\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
-
-test_LDFLAGS_instrumentation_debug=" \
--L \$BUILD/core/instrumentation-debug/.libs -lnanox \
--L \$BUILD/apis/instrumentation-debug/.libs -lnanox-c \
--L \$BUILD/pms/instrumentation-debug/.libs -lnanox-ompss \
--L \$BUILD/arch/opencl/instrumentation-debug/.libs -lnanox-opencl-api \
- \$opencl_flags_instrumentation_debug"
-
-test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\
-\$BUILD/core/instrumentation-debug/.libs:\
-\$BUILD/apis/instrumentation-debug/.libs:\
-\$BUILD/pms/instrumentation-debug/.libs:\
-\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
-
-`@SRCDIR@/tests/gens/config.py -a '--opencl-max-devices=1' -c 1`
+cat << EOF
+compile_versions="${compile_versions}"
+$(@abs_top_srcdir@/tests/gens/config.py -a '--opencl-max-devices=1' -c 1 $*)
 EOF
 
 else
-
-cat <<EOF
+cat << EOF
 test_ignore=yes
 EOF
 

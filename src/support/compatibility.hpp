@@ -107,14 +107,6 @@ bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 
 #endif
 
-#ifdef GPU_DEV
-#  ifdef NANOS_CUDA_VERSION
-#    if NANOS_CUDA_VERSION <= 3020
-#      define NANOS_GPU_USE_CUDA32
-#    endif
-#  endif
-#endif
-
 // For old machines that do not define CPU_SET macros
 #if !__GLIBC_PREREQ (2, 7)
 # define __CPU_OP_S(setsize, destset, srcset1, srcset2, op) \

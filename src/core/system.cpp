@@ -46,11 +46,6 @@
 #include "spuprocessor.hpp"
 #endif
 
-#ifdef GPU_DEV
-#include "gpuprocessor_decl.hpp"
-#include "gpumemoryspace_decl.hpp"
-#include "gpudd.hpp"
-#endif
 
 #ifdef FPGA_DEV
 #include "fpgaprocessor.hpp"
@@ -63,9 +58,6 @@
 
 #include "addressspace.hpp"
 
-#ifdef OpenCL_DEV
-#include "openclprocessor.hpp"
-#endif
 
 using namespace nanos;
 

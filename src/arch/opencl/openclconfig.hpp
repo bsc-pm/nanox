@@ -20,9 +20,11 @@
 #ifndef _NANOS_OpenCL_CFG
 #define _NANOS_OpenCL_CFG
 
-#ifdef __APPLE__
+#ifdef HAVE_OPENCL_OPENCL_H
 #include <OpenCL/opencl.h>
-#else
+#endif
+
+#ifdef HAVE_CL_OPENCL_H
 #include <CL/opencl.h>
 #endif
 
@@ -50,7 +52,7 @@ public:
   
 private:
   static void prepare( Config &cfg );
-  static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
+  static void apply( OpenCLPlugin const* plugin );
 
 private:
   // These properties contains raw info set by the user.
@@ -114,7 +116,9 @@ typedef enum {
    NANOS_OPENCL_CREATE_SUBBUFFER_EVENT,                   /* 10 */
    NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT,                 /* 11 */
    NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT,                 /* 12 */
-   NANOS_OPENCL_GENERIC_EVENT                         /* 13 */
+   NANOS_OPENCL_GENERIC_EVENT,                         /* 13 */
+   NANOS_OPENCL_PROFILE_KERNEL,                         /* 14 */
+   NANOS_OPENCL_UPDATE_PROFILE_DATA                     /* 15 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.

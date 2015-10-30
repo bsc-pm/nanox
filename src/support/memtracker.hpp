@@ -55,7 +55,7 @@ namespace nanos {
 
          LockBlock_noinst guard(_lock);
 
-#ifdef NANOS_DISABLE_ALLOCATOR
+#ifndef NANOS_ENABLE_ALLOCATOR
          void *p = malloc ( size );
          if ( p == NULL ) throw(NANOS_ENOMEM);
 #else
@@ -97,7 +97,7 @@ namespace nanos {
          _numBlocks--;
          _totalMem -= size;
 
-#ifdef NANOS_DISABLE_ALLOCATOR
+#ifndef NANOS_ENABLE_ALLOCATOR
          free( p );
 #else
          if ( _setZeroDeallocate ) {

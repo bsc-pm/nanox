@@ -28,7 +28,7 @@
 #include "cpuset.hpp"
 #include <limits>
 
-#ifdef NANOX_MEMKIND_SUPPORT
+#ifdef HAVE_MEMKIND_H
 #include <memkind.h>
 #endif
 
@@ -174,7 +174,7 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "smp-private-memory-size", "smp-private-memory-size" );
       cfg.registerEnvOption( "smp-private-memory-size", "NX_SMP_PRIVATE_MEMORY_SIZE" );
 
-#ifdef NANOX_MEMKIND_SUPPORT
+#ifdef MEMKIND_SUPPORT
       cfg.registerConfigOption( "smp-memkind", NEW Config::FlagOption( _memkindSupport, true ),
             "SMP memkind support." );
       cfg.registerArgOption( "smp-memkind", "smp-memkind" );
@@ -247,7 +247,7 @@ class SMPPlugin : public SMPBasePlugin
       loadNUMAInfo();
 
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
-#ifdef NANOX_MEMKIND_SUPPORT
+#ifdef MEMKIND_SUPPORT
       if ( _memkindSupport ) {
          mem_id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide, sys.getRegionCacheSlabSize() );
          SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );

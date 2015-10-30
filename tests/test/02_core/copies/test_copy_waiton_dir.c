@@ -40,6 +40,7 @@ typedef struct {
    char *b;
 } my_args;
 
+void first( void *ptr );
 void first( void *ptr )
 {
    int i;
@@ -69,6 +70,7 @@ void first( void *ptr )
       local.b[i] = '9'-i;
 }
 
+void second( void *ptr );
 void second( void *ptr )
 {
    int i;
@@ -170,8 +172,8 @@ int main ( int argc, char **argv )
    dims[0] = (nanos_region_dimension_internal_t) {sizeof(int), 0, sizeof(int)};
    dims[1] = (nanos_region_dimension_internal_t) {sizeof(char)*10, 0, sizeof(char)*10};
 
-   cd[0] = (nanos_copy_data_t) {(uint64_t)args->a, NANOS_SHARED, {true, false}, 1, &dims[0], 0};
-   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, 1, &dims[1], 0}; 
+   cd[0] = (nanos_copy_data_t) {(void*)args->a, NANOS_SHARED, {true, false}, 1, &dims[0], 0};
+   cd[1] = (nanos_copy_data_t) {(void*)args->b, NANOS_SHARED, {true, true}, 1, &dims[1], 0}; 
 
    NANOS_SAFE( nanos_submit( wd1,1,data_accesses,0 ) );
 
@@ -198,8 +200,8 @@ int main ( int argc, char **argv )
    dims[0] = (nanos_region_dimension_internal_t) {sizeof(int), 0, sizeof(int)};
    dims[1] = (nanos_region_dimension_internal_t) {sizeof(char)*10, 0, sizeof(char)*10};
 
-   cd[0] = (nanos_copy_data_t) {(uint64_t)args->a, NANOS_SHARED, {true, false}, 1, &dims[0], 0};
-   cd[1] = (nanos_copy_data_t) {(uint64_t)args->b, NANOS_SHARED, {true, true}, 1, &dims[1], 0}; 
+   cd[0] = (nanos_copy_data_t) {(void*)args->a, NANOS_SHARED, {true, false}, 1, &dims[0], 0};
+   cd[1] = (nanos_copy_data_t) {(void*)args->b, NANOS_SHARED, {true, true}, 1, &dims[1], 0}; 
 
 
    NANOS_SAFE( nanos_submit( wd1,1,data_accesses2,0 ) );

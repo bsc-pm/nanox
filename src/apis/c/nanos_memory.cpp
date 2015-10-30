@@ -45,7 +45,7 @@ NANOS_API_DEF(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *fi
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
       if ( line != 0 ) *p = nanos::getMemTracker().allocate( size, file, line );
       else *p = nanos::getMemTracker().allocate( size );
-#elif !defined(NANOS_DISABLE_ALLOCATOR)
+#elif defined(NANOS_ENABLE_ALLOCATOR)
       *p = nanos::getAllocator().allocate ( size );
 #else
       *p = malloc(size);
@@ -115,7 +115,7 @@ NANOS_API_DEF(nanos_err_t, nanos_free, ( void *p ))
    {
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
       nanos::getMemTracker().deallocate( p );
-#elif !defined(NANOS_DISABLE_ALLOCATOR)
+#elif defined(NANOS_ENABLE_ALLOCATOR)
       nanos::getAllocator().deallocate ( p );
 #else
       free ( p );

@@ -19,14 +19,14 @@
 
 /*
 <testinfo>
-test_generator=gens/mixed-generator
+test_generator=gens/core-generator
 test_schedule="bf --schedule-smart-priority"
 test_LDFLAGS="-Wl,--export-dynamic"
 </testinfo>
 */
 
 extern "C"{
-   unsigned int nanos_need_priorities_ __attribute__((common)) = 1;
+   unsigned int nanos_need_priorities_ __attribute__((common));
 }
 
 #include "config.hpp"

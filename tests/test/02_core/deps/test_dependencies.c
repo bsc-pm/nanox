@@ -31,6 +31,7 @@ test_deps_plugins=plain,regions,perfect-regions
 
 int orderer = 0;
 
+void first();
 void first()
 {
    orderer++;
@@ -38,6 +39,7 @@ void first()
    fflush(stdout);
 }
 
+void second();
 void second()
 {
    if ( orderer != 1 ) {
@@ -50,8 +52,8 @@ void second()
 }
 
 
-nanos_smp_args_t test_device_arg_1 = { first };
-nanos_smp_args_t test_device_arg_2 = { second };
+nanos_smp_args_t test_device_arg_1 = { (void(*)())first };
+nanos_smp_args_t test_device_arg_2 = { (void(*)())second };
 
 /* ************** CONSTANT PARAMETERS IN WD CREATION ******************** */
 
