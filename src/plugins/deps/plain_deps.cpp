@@ -55,11 +55,13 @@ namespace nanos {
                DepsMap::iterator it = _addressDependencyMap.find( target() ); 
 
                if ( it == _addressDependencyMap.end() ) {
-                  // FIXME: xteruel following lock is not needed
-                  // Lock this so we avoid problems when concurrently calling deleteLastWriter
-                  // SyncRecursiveLockBlock lock1( getInstanceLock() );
-                  status = NEW TrackableObject();
-                  _addressDependencyMap.insert( std::make_pair( target(), status ) );
+                   status = NEW TrackableObject();
+                   {
+                      // Lock this so we avoid problems when concurrently calling deleteLastWriter
+                      // due this function will also chase also the map
+                      SyncRecursiveLockBlock lock1( getInstanceLock() );
+                      _addressDependencyMap.insert( std::make_pair( target(), status ) );
+                   }
                } else {
                   status = it->second;
                }
@@ -123,29 +125,27 @@ namespace nanos {
             void submitDependableObjectDataAccess( DependableObject &depObj, Address const &target,
                                                    AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
             {
+
+               ensure(!(accessType.concurrent && accessType.commutative),"Task cannot be concurrent AND commutative");
+
                TrackableObject &status = *lookupDependency( target );
-               //! TODO (gmiranda): enable this if required
-               //status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
                
                if ( accessType.concurrent || accessType.commutative ) {
+                  ensure(accessType.input && accessType.output,"Commutative & concurrent must be inout");
+                  ensure(!depObj.waits(), "Commutative & concurrent should not wait" );
                   submitDependableObjectCommutativeDataAccess( depObj, target, accessType, status, callback );
-               } else if ( accessType.input && accessType.output ) {
-                  submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
-               } else if ( accessType.input ) {
-                  submitDependableObjectInputDataAccess( depObj, target, accessType, status, callback );
                } else if ( accessType.output ) {
-                  submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
+                  if ( accessType.input ) submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
+                  else submitDependableObjectOutputDataAccess( depObj, target, accessType, status, callback );
+                  if ( !depObj.waits() ) depObj.addWriteTarget( target );
+               } else if ( accessType.input ) {
+                  if ( accessType.output ) submitDependableObjectInoutDataAccess( depObj, target, accessType, status, callback );
+                  else submitDependableObjectInputDataAccess( depObj, target, accessType, status, callback );
+                  if ( !depObj.waits() ) depObj.addReadTarget( target );
                } else {
                   fatal( "Invalid data access" );
                }
                
-               if ( !depObj.waits() && !accessType.concurrent && !accessType.commutative ) {
-                  if ( accessType.output ) {
-                     depObj.addWriteTarget( target );
-                  } else if (accessType.input ) {
-                     depObj.addReadTarget( target );
-                  }
-               }
             }
             
             inline void deleteLastWriter ( DependableObject &depObj, BaseDependency const &target )
