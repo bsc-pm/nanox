@@ -26,15 +26,25 @@ inline void * TaskReduction::have( const void *ptr, size_t id )
 {
    bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
 
-   if ( inside ) return & _storage[_size*id];
+   if ( inside ) return & _storage[_size_target*id];
    else return NULL;
 }
 
 inline void * TaskReduction::finalize( void )
 {
    void * result = _original;
-   for ( size_t i=1; i< _threads; i++) _reducer( &_storage[0] ,&_storage[i*_size] );
-   _reducer_orig_var( _original, &_storage[0] );
+
+   //For each thread
+   for ( size_t i=1; i<_num_threads; i++)
+	   //Reduce all elements
+	   for(size_t j=0; j<_num_elements; j++ )
+		 {
+			   _reducer( &_storage[j*_size_element] ,&_storage[i*_size_target + j*_size_element] );
+		 }
+
+   //reduce all to original
+   for(size_t j=0; j<_num_elements; j++ )
+	  _reducer_orig_var( &((char*)_original)[j * _size_element], &_storage[j * _size_element] );
    return result;
 }
 

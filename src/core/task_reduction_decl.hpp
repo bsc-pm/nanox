@@ -26,6 +26,7 @@
 //! thread private copies and also keep all the information in order to compute final
 //! reduction: reducers.
 //
+
 class TaskReduction {
 
    public:
@@ -50,8 +51,10 @@ class TaskReduction {
       reducer_t       _reducer_orig_var; //!< Reducer on orignal variable
 
       storage_t       _storage;          //!< Private copy vector
-      size_t          _size;             //!< Size of element
-      size_t          _threads;          //!< Number of threads (private copies)
+      size_t          _size_target;      //!< Size of array (size of element is scalar)
+      size_t          _size_element;     //!< Size of element
+      size_t          _num_elements;     //!< Number of elements (for a scalar reduction, this is 1)
+      size_t          _num_threads;      //!< Number of threads (private copies)
       void           *_min;              //!< Pointer to first private copy
       void           *_max;              //!< Pointer to last private copy
 
@@ -60,18 +63,47 @@ class TaskReduction {
 
    public:
 
+
+      //*************************************//
+      //*Original code for Scalar reduction*//
+      //*************************************//
+
       //! \brief Common TaskReduction constructor
-      TaskReduction( void *orig, initializer_t init, reducer_t red,
-                      size_t size, size_t threads, unsigned depth )
+    /*  TaskReduction( void *orig, initializer_t init, reducer_t red,
+                      size_t elem_size, size_t threads, unsigned depth )
                     : _original(orig), _dependence(orig), _depth(depth), _initializer(init),
-                      _reducer(red), _reducer_orig_var(red), _storage(size*threads),
-                      _size(size), _threads(threads), _min(NULL), _max(NULL)
+                      _reducer(red), _reducer_orig_var(red), _storage(_size_target*threads),
+					  _size_target(elem_size), _size_element(elem_size), _num_threads(threads),
+					  _num_elements(1), _min(NULL), _max(NULL)
       {
+    	 _num_elements = _size_target / _size_element;
          _min = & _storage[0];
-         _max = & _storage[_size*threads];
+         _max = & _storage[_size_element*threads];
 
          for ( size_t i=0; i<threads; i++) {
-             _initializer( &_storage[i*_size], _original );
+             _initializer( &_storage[i*_size_element], _original );
+         }
+      }*/
+
+
+      //! \brief TaskReduction constructor only used when we are performing a Reduction
+      TaskReduction( void *orig, initializer_t init, reducer_t red,
+    		  	  size_t size_target, size_t size_elem, size_t
+				  threads, unsigned depth )
+               	   : _original(orig), _dependence(orig), _depth(depth), _initializer(init),
+					 _reducer(red), _reducer_orig_var(red), _storage(size_target*threads),
+					 _size_target(size_target), _size_element(size_elem),_num_elements(size_target/size_elem),
+					 _num_threads(threads), _min(NULL), _max(NULL)
+      {
+    	 _min          = & _storage[0];
+         _max          = & _storage[_size_target*threads];
+
+         //For each thread
+         for ( size_t i=0; i<threads; i++) {
+        	 //Initialize all elements (1 for scalars)
+        	 for(size_t j=0; j<_num_elements; j++ ) {
+        		 _initializer( &_storage[i*_size_target + j*_size_element], _original );
+        	 }
          }
       }
 
@@ -81,16 +113,17 @@ class TaskReduction {
             threads, unsigned depth )
                : _original(orig), _dependence(dep), _depth(depth),
                  _initializer(init), _reducer(red), _reducer_orig_var(red_orig_var),
-                 _storage(array_descriptor_size*threads), _size(array_descriptor_size),
-                 _threads(threads), _min(NULL), _max(NULL)
+                 _storage(array_descriptor_size*threads), _size_target(array_descriptor_size),
+				 _size_element(0),_num_elements(0),
+                 _num_threads(threads), _min(NULL), _max(NULL)
       {
          _min = & _storage[0];
-         _max = & _storage[_size*threads];
+         _max = & _storage[_size_target*threads];
 
          for ( size_t i=0; i<threads; i++) {
             // char ** addr = (char**) &_storage[i*_size];
             // *addr = &_storage[i*_size + array_descriptor];
-            _initializer( &_storage[i*_size], _original );
+            _initializer( &_storage[i*_size_target], _original );
          }
       }
 

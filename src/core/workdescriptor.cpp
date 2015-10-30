@@ -541,7 +541,7 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
-void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size,
+void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t p_el_size,
       void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) )
 {
    //! Check if we have registered a reduction with this address
@@ -555,7 +555,7 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size,
        NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
        _taskReductions.push_back(
                new TaskReduction( p_orig, p_init, p_reducer,
-                   p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+                   p_size, p_el_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
    }
 }
 
