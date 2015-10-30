@@ -123,16 +123,6 @@ namespace nanos {
             void submitDependableObjectDataAccess( DependableObject &depObj, Address const &target,
                                                    AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
             {
-               if ( accessType.concurrent || accessType.commutative ) {
-                  if ( !( accessType.input && accessType.output ) || depObj.waits() ) {
-                     fatal( "Commutation/concurrent task must be inout" );
-                  }
-               }
-               
-               if ( accessType.concurrent && accessType.commutative ) {
-                  fatal( "Task cannot be concurrent AND commutative" );
-               }
-               
                TrackableObject &status = *lookupDependency( target );
                //! TODO (gmiranda): enable this if required
                //status.hold(); // This is necessary since we may trigger a removal in finalizeReduction
