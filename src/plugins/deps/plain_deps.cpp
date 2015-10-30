@@ -35,23 +35,29 @@ namespace nanos {
          private:
             DepsMap _addressDependencyMap; /**< Used to track dependencies between DependableObject */
          private:
+
+            //! \brief Clear current dependencies domain
+            //!
+            //! This function should be called withing a thread safe area. It is, when other
+            //! tasks can not update the domain: after a taskwait and before any task submission.
             void clearDependenciesDomain ( void )
             {
                _addressDependencyMap.clear(); 
             }
 
-            /*! \brief Looks for the dependency's address in the domain and returns the trackableObject associated.
-             *  \param dep Dependency to be checked.
-             *  \sa Dependency TrackableObject
-             */
+            //! \brief Looks for the dependency's address, returns the trackableObject associated
+            //! \param dep Dependency to be checked.
+            //! \sa Dependency TrackableObject
             TrackableObject* lookupDependency ( const Address& target )
             {
                TrackableObject* status = NULL;
                
                DepsMap::iterator it = _addressDependencyMap.find( target() ); 
+
                if ( it == _addressDependencyMap.end() ) {
+                  // FIXME: xteruel following lock is not needed
                   // Lock this so we avoid problems when concurrently calling deleteLastWriter
-                  SyncRecursiveLockBlock lock1( getInstanceLock() );
+                  // SyncRecursiveLockBlock lock1( getInstanceLock() );
                   status = NEW TrackableObject();
                   _addressDependencyMap.insert( std::make_pair( target(), status ) );
                } else {
@@ -61,78 +67,61 @@ namespace nanos {
                return status;
             }
          protected:
-            /*! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
-             *  \param depObj DependableObject to be added to the domain.
-             *  \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
-             *  \param end Iterator to the end of the mentioned list.
-             *  \param callback A function to call when a WD has a successor [Optional].
-             *  \sa Dependency DependableObject TrackableObject
-             */
+            //! \brief Assigns the DependableObject depObj an id in this domain and adds it to the domains dependency system.
+            //! \param depObj DependableObject to be added to the domain.
+            //! \param begin Iterator to the start of the list of dependencies to be associated to the Dependable Object.
+            //! \param end Iterator to the end of the mentioned list.
+            //! \param callback A function to call when a WD has a successor [Optional].
+            //! \sa Dependency DependableObject TrackableObject
             template<typename iterator>
-            void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end, SchedulePolicySuccessorFunctor* callback )
+            void submitDependableObjectInternal ( DependableObject &depObj, iterator begin, iterator end,
+                                                  SchedulePolicySuccessorFunctor* callback )
             {
+               // Initializing several properties of the depObject
                depObj.setId ( _lastDepObjId++ );
                depObj.init();
                depObj.setDependenciesDomain( this );
             
-               // Object is not ready to get its dependencies satisfied
-               // so we increase the number of predecessors to permit other dependableObjects to free some of
-               // its dependencies without triggering the "dependenciesSatisfied" method
+               // Object is not ready to get its dependencies satisfied, so we increase the
+               // number of predecessors to permit other dependableObjects to free some of
+               // its dependencies without triggering the "dependenciesSatisfied" method.
                depObj.increasePredecessors();
             
-               std::list<DataAccess *> filteredDeps;
+               // flushDeps will be needed for waiting (see decreasePredecessors)
+               std::list<uint64_t> flushDeps;
+
+               // Iterate from begin to end, just to handle each data access
                for ( iterator it = begin; it != end; it++ ) {
-                  DataAccess& newDep = (*it);
+                  DataAccess &dep = (*it);
+                  Address target = dep.getDepAddress();
 
                   // if address == NULL, just ignore it
-                  if ( newDep.getDepAddress() == NULL ) continue;
-                  
-                  bool found = false;
-                  // For every dependency processed earlier
-                  for ( std::list<DataAccess *>::iterator current = filteredDeps.begin(); current != filteredDeps.end(); current++ ) {
-                     DataAccess* currentDep = *current;
-                     if ( newDep.getDepAddress()  == currentDep->getDepAddress() ) {
-                        // Both dependencies use the same address, put them in common
-                        currentDep->setInput( newDep.isInput() || currentDep->isInput() );
-                        currentDep->setOutput( newDep.isOutput() || currentDep->isOutput() );
-                        found = true;
-                        break;
-                     }
-                  }
-
-                  if ( !found ) filteredDeps.push_back(&newDep);
-               }
-               
-               // This list is needed for waiting
-               std::list<uint64_t> flushDeps;
-               
-               for ( std::list<DataAccess *>::iterator it = filteredDeps.begin(); it != filteredDeps.end(); it++ ) {
-                  DataAccess &dep = *(*it);
-                  
-                  Address target = dep.getDepAddress();
+                  if ( target() == NULL ) continue;
                   AccessType const &accessType = dep.flags;
-                  
+
                   submitDependableObjectDataAccess( depObj, target, accessType, callback );
                   flushDeps.push_back( (uint64_t) target() );
                }
-
+               
+               // Calling scheduler policy "atCreate"
                sys.getDefaultSchedulePolicy()->atCreate( depObj );
                
-               // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
+               // To Task In Graph count consistent before releasing the fake dependency
                increaseTasksInGraph();
             
                depObj.submitted();
             
-               // now everything is ready
+               // Now everything is ready, release fake dependency
                depObj.decreasePredecessors( &flushDeps, NULL, false, true );
             }
-            /*! \brief Adds a region access of a DependableObject to the domains dependency system.
-             *  \param depObj target DependableObject
-             *  \param target accessed memory address
-             *  \param accessType kind of region access
-             *  \param callback Function to call if an immediate predecessor is found.
-             */
-            void submitDependableObjectDataAccess( DependableObject &depObj, Address const &target, AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
+
+            //! \brief Adds a region access of a DependableObject to the domains dependency system.
+            //! \param depObj target DependableObject
+            //! \param target accessed memory address
+            //! \param accessType kind of region access
+            //! \param callback Function to call if an immediate predecessor is found.
+            void submitDependableObjectDataAccess( DependableObject &depObj, Address const &target,
+                                                   AccessType const &accessType, SchedulePolicySuccessorFunctor* callback )
             {
                if ( accessType.concurrent || accessType.commutative ) {
                   if ( !( accessType.input && accessType.output ) || depObj.waits() ) {
