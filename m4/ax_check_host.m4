@@ -52,7 +52,6 @@ AS_CASE([$host],
   ],
   [aarch64-*-linux-gnu],
   [
-    ult_support=no
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=aarch64
