@@ -129,6 +129,8 @@ namespace nanos {
                ensure(!(accessType.concurrent && accessType.commutative),"Task cannot be concurrent AND commutative");
 
                TrackableObject &status = *lookupDependency( target );
+
+               if ( status.getLastWriter() == &depObj ) return;
                
                if ( accessType.concurrent || accessType.commutative ) {
                   ensure(accessType.input && accessType.output,"Commutative & concurrent must be inout");
