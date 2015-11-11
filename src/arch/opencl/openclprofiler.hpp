@@ -58,7 +58,7 @@ private:
 
 public:
    Execution(unsigned int ndims, unsigned int localX, unsigned int localY, unsigned int localZ, long long int time) :
-               _ndims(ndims), _localX(localX), _localY(localY), _localZ(localZ), _time(time) {}
+      _ndims(ndims), _localX(localX), _localY(localY), _localZ(localZ), _time(time) {}
    unsigned char getNdims() const
    {
       return _ndims;
@@ -102,7 +102,7 @@ private:
    const double _cost;
 public:
    Dims(unsigned long long int ndims, unsigned long long int globalX, unsigned long long int globalY, unsigned long long int globalZ, double cost) :
-               _ndims(ndims), _globalX(globalX), _globalY(globalY), _globalZ(globalZ), _cost(cost) {}
+      _ndims(ndims), _globalX(globalX), _globalY(globalY), _globalZ(globalZ), _cost(cost) {}
 
    unsigned int getGlobalX() const
    {
@@ -172,40 +172,40 @@ public:
 };
 
 class OpenCLProfilerDbManager {
-  DbManager _dbManager;
-  Execution *_execution;
-  bool _created;
-  bool _isExecutionSet;
-  unsigned int _selectStmtNumber;
-  unsigned int _insertStmtNumber;
-  unsigned int _tableStmtNumber;
-  const std::string CL_PROFILING_DEFAULT_TABLE;
+   DbManager _dbManager;
+   Execution *_execution;
+   bool _created;
+   bool _isExecutionSet;
+   unsigned int _selectStmtNumber;
+   unsigned int _insertStmtNumber;
+   unsigned int _tableStmtNumber;
+   const std::string CL_PROFILING_DEFAULT_TABLE;
 public:
-  OpenCLProfilerDbManager() : _execution(NULL), _created(false), _isExecutionSet(false), CL_PROFILING_DEFAULT_TABLE("opencl_kernels") {
-    _dbManager.openConnection("nanos_opencl_kernels.db");
-    initialize();
-  }
+   OpenCLProfilerDbManager() : _execution(NULL), _created(false), _isExecutionSet(false), CL_PROFILING_DEFAULT_TABLE("opencl_kernels") {
+      _dbManager.openConnection("nanos_opencl_kernels.db");
+      initialize();
+   }
 
-  ~OpenCLProfilerDbManager();
+   ~OpenCLProfilerDbManager();
 
-  void setKernelConfig(Dims &dims, Execution &execution, std::string kernelName);
-  Execution* getKernelConfig(Dims &dims, std::string kernelName);
+   void setKernelConfig(Dims &dims, Execution &execution, std::string kernelName);
+   Execution* getKernelConfig(Dims &dims, std::string kernelName);
 
-  void setExecution(Execution* execution) {
-    if ( _isExecutionSet )
-      delete _execution;
-    _execution = execution;
-    _isExecutionSet = true;
-  }
+   void setExecution(Execution* execution) {
+      if ( _isExecutionSet )
+         delete _execution;
+      _execution = execution;
+      _isExecutionSet = true;
+   }
 
 private:
-  void initialize();
-  uint32_t getKernelHash(const Dims &dims, const std::string kernelName);
-  void destroyExecution();
+   void initialize();
+   uint32_t getKernelHash(const Dims &dims, const std::string kernelName);
+   void destroyExecution();
 
-  const Execution* getExecution() const {
-    return _execution;
-  }
+   const Execution* getExecution() const {
+      return _execution;
+   }
 
 };
 

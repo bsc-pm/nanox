@@ -113,37 +113,53 @@ public:
     * the best work-group parameters.
     */
    void profileKernel( void* oclKernel,
-                        int workDim,
-						int range_size,
-                        size_t* ndrOffset,
-                        size_t* ndrLocalSize,
-                        size_t* ndrGlobalSize);
+                       int workDim,
+                       int range_size,
+                       size_t* ndrOffset,
+                       size_t* ndrLocalSize,
+                       size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function performs kernel executions to determine
+    * the best work-group parameters using the given range.
+    */
+   void manualProfileKernel( void* oclKernel,
+                             std::string kernelName,
+                             int workDim,
+                             int range_size,
+                             const double cost,
+                             Dims &dims,
+                             size_t* ndrOffset,
+                             size_t* ndrLocalSize,
+                             size_t* ndrGlobalSize);
 
    /**
     * @brief This function performs kernel executions to determine
     * the best work-group parameters using the device hints.
     */
-   void smartProfileKernel( void* oclKernel,
-                        int workDim,
-                        int range_size,
-                        size_t* ndrOffset,
-                        size_t* ndrLocalSize,
-                        size_t* ndrGlobalSize);
+   void smartProfileKernel(void* oclKernel,
+                           std::string kernelName,
+                           int workDim,
+                           int range_size,
+                           const double cost,
+                           Dims &dims,
+                           size_t* ndrOffset,
+                           size_t* ndrGlobalSize);
 
 
    /**
     * @brief Function to launch an OpenCL kernel under profiling mode
     */
    Execution* singleExecKernel( void* oclKernel,
-                        int workDim,
-                        size_t* ndrOffset,
-                        size_t* ndrLocalSize,
-                        size_t* ndrGlobalSize);
+                                int workDim,
+                                size_t* ndrOffset,
+                                size_t* ndrLocalSize,
+                                size_t* ndrGlobalSize);
 
    /**
     * @brief This function update the profiling data during the execution
     */
-   void updateProfiling(cl_kernel kernel, Execution *execution, Dims& dims);
+   void updateProfiling(std::string kernelName, Execution *execution, Dims& dims);
 
    /**
     * @brief Show kernel profiling and information
@@ -184,23 +200,23 @@ public:
    }
 
    ProgramCache& getProgCache() {
-        return _progCache;
-    }
+      return _progCache;
+   }
    
    cl_context& getContext() {
-        return _ctx;
-    }
+      return _ctx;
+   }
 
-	const std::map<cl_kernel, DimsBest>& getBestExec() const {
-		return _bestExec;
-	}
+   const std::map<std::string, DimsBest>& getBestExec() const {
+      return _bestExec;
+   }
 
-	const std::map<cl_kernel, DimsExecutions>& getExecutions() const {
-		return _nExecutions;
-	}
+   const std::map<std::string, DimsExecutions>& getExecutions() const {
+      return _nExecutions;
+   }
 
-  OpenCLProfilerDbManager* getOpenClProfilerDbManager() const {
-    return _openCLProfilerDbManager;
+   OpenCLProfilerDbManager* getOpenClProfilerDbManager() const {
+      return _openCLProfilerDbManager;
   }
 
 private:
@@ -248,8 +264,8 @@ private:
    BufferCache _bufCache;
    std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
-   std::map<cl_kernel,DimsBest> _bestExec;
-   std::map<cl_kernel,DimsExecutions> _nExecutions;
+   std::map<std::string,DimsBest> _bestExec;
+   std::map<std::string,DimsExecutions> _nExecutions;
    bool _preallocateWholeMemory;
    bool _synchronize;
    size_t _workGroupMultiple;
