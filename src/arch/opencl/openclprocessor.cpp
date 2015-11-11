@@ -808,7 +808,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    size_t local_work_size[3];
    const double cost = 0;
 
-   std::string kernelName = getKernelName(oclKernel);
+   const std::string kernelName = getKernelName(oclKernel);
 
 #ifdef NANOS_DEBUG_ENABLED
    debug( "[opencl] Profiling kernel: " + toString( oclKernel ) + ". Profiling configuration:" );
@@ -856,7 +856,8 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
      local_work_size[0] = bestExecution->getLocalX();
      local_work_size[1] = bestExecution->getLocalY();
      local_work_size[2] = bestExecution->getLocalZ();
-     singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, ndrGlobalSize);
+     // Do not profile
+     execKernel(oclKernel, workDim, ndrOffset, local_work_size, ndrGlobalSize);
    }
    else {
       // Start to profile the kernel
@@ -868,6 +869,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
      // New configuration found. Save it
      NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_DB_ACCESS );
      DimsBest dimsBest = _bestExec[kernelName];
+     assert(dimsBest[dims] != NULL);
      Execution execution(*dimsBest[dims]);
      getOpenClProfilerDbManager()->setKernelConfig(dims, execution, kernelName);
      NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
@@ -886,52 +888,25 @@ void OpenCLAdapter::manualProfileKernel( void* oclKernel,
 {
    size_t local_work_size[3], global_work_size[3];
 
-   switch ( workDim )
+   // Limit the iterations based on number of dimensions
+   const int zLimit = workDim == 3 ? range_size : 1;
+   const int yLimit = workDim == 2 ? range_size : 1;
+
+   for ( int z=0; z<zLimit; z++ )
    {
-      // One dimension
-      case 1:
+      local_work_size[2] = ndrLocalSize[2*range_size+z];
+      global_work_size[2] = ndrGlobalSize[2*range_size+z];
+      for ( int y=0; y<yLimit; y++ )
+      {
+         local_work_size[1] = ndrLocalSize[range_size+y];
+         global_work_size[1] = ndrGlobalSize[range_size+y];
          for ( int x=0; x<range_size; x++ )
          {
             local_work_size[0] = ndrLocalSize[x];
             global_work_size[0] = ndrGlobalSize[x];
             updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
          }
-         break;
-         // Two dimensions
-      case 2:
-         for ( int x=0; x<range_size; x++ )
-         {
-            local_work_size[0] = ndrLocalSize[x];
-            global_work_size[0] = ndrGlobalSize[x];
-            for ( int y=0; y<range_size; y++ )
-            {
-               local_work_size[1] = ndrLocalSize[range_size+y];
-               global_work_size[1] = ndrGlobalSize[range_size+y];
-               updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-            }
-         }
-         break;
-         // Three dimensions
-      case 3:
-         for ( int x=0; x<range_size; x++ )
-         {
-            local_work_size[0] = ndrLocalSize[x];
-            global_work_size[0] = ndrGlobalSize[x];
-            for ( int y=0; y<range_size; y++ )
-            {
-               local_work_size[1] = ndrLocalSize[range_size+y];
-               global_work_size[1] = ndrGlobalSize[range_size+y];
-               for ( int z=0; z<range_size; z++ )
-               {
-                  local_work_size[2] = ndrLocalSize[2*range_size+z];
-                  global_work_size[2] = ndrGlobalSize[2*range_size+z];
-                  updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-               }
-            }
-         }
-         break;
-      default:
-         throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
+      }
    }
 }
 
@@ -958,8 +933,10 @@ void OpenCLAdapter::smartProfileKernel(void* oclKernel,
       getWorkGroupMultiple(kernel);
 
    // Safe check for Intel drivers
-   if ( _workGroupMultiple > limitWorkGroupMultiple || _workGroupMultiple < 1 ) {
+   const size_t maxGlobal = std::max(ndrGlobalSize[0], std::max(ndrGlobalSize[1], ndrGlobalSize[2]));
+   if ( _workGroupMultiple > limitWorkGroupMultiple || _workGroupMultiple < 1 || _workGroupMultiple > maxGlobal ) {
       _workGroupMultiple = safeWorkGroupMultiple;
+      _workGroupMultiple = _workGroupMultiple > maxGlobal ? maxGlobal : _workGroupMultiple;
       std::stringstream msg;
       msg << " OpenCL Profiling: Applying safe work-group multiple value to ";
       msg << _workGroupMultiple;
@@ -968,69 +945,55 @@ void OpenCLAdapter::smartProfileKernel(void* oclKernel,
    if ( _maxWorkGroup > limitMaxWorkGroup || _maxWorkGroup < 1) {
       // Device check
       _maxWorkGroup = _workGroupMultiple > safeMaxWorkGroup ? safeMaxWorkGroup : _workGroupMultiple ;
-      // Global size check
-      const size_t maxGlobal = std::max(ndrGlobalSize[0], std::max(ndrGlobalSize[1], ndrGlobalSize[2]));
-      _maxWorkGroup = _workGroupMultiple > maxGlobal ? maxGlobal : _workGroupMultiple;
       std::stringstream msg;
       msg << " OpenCL Profiling: max. work-group value to ";
       msg << _maxWorkGroup;
       warning( msg.str() )
    }
 
+   // Limit the iterations based on number of dimensions
+   unsigned int multiplePreferred;
+   unsigned int zLimit = _workGroupMultiple;
+   unsigned int yLimit = _workGroupMultiple;
    switch ( workDim )
    {
-      // One dimension
       case 1:
       {
-         for ( int x=1; _workGroupMultiple*x<=_maxWorkGroup; x++ )
-         {
-            local_work_size[0] = _workGroupMultiple*x;
-            global_work_size[0] = ndrGlobalSize[x];
-            updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-         }
+         multiplePreferred = _workGroupMultiple;
          break;
       }
-      // Two dimensions
       case 2:
       {
-         const unsigned int multiplePreferred = _workGroupMultiple/2;
-         for ( int x=1; _workGroupMultiple*x<=_maxWorkGroup; x++ )
-         {
-            local_work_size[0] = multiplePreferred*x;
-            global_work_size[0] = ndrGlobalSize[x];
-            for ( int y=1; _workGroupMultiple*x*y<=_maxWorkGroup; y++ )
-            {
-               local_work_size[1] = multiplePreferred*y;
-               global_work_size[1] = ndrGlobalSize[range_size+y];
-               updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-            }
-         }
+         multiplePreferred = _workGroupMultiple/2;
+         yLimit = _maxWorkGroup;
          break;
       }
-      // Three dimensions
       case 3:
       {
-         const unsigned int multiplePreferred = _workGroupMultiple/4;
-         for ( int x=1; _workGroupMultiple*x<=_maxWorkGroup; x++ )
-         {
-            local_work_size[0] = multiplePreferred*x;
-            global_work_size[0] = ndrGlobalSize[x];
-            for ( int y=1; _workGroupMultiple*x*y<=_maxWorkGroup; y++ )
-            {
-               local_work_size[1] = multiplePreferred*y;
-               global_work_size[1] = ndrGlobalSize[range_size+y];
-               for ( int z=1; _workGroupMultiple*x*y*z<=_maxWorkGroup; z++ )
-               {
-                  local_work_size[2] = multiplePreferred*z;
-                  global_work_size[2] = ndrGlobalSize[2*range_size+z];
-                  updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-               }
-            }
-         }
+         multiplePreferred = _workGroupMultiple/4;
+         zLimit = _maxWorkGroup;
+         yLimit = _maxWorkGroup;
          break;
       }
       default:
-         throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
+         multiplePreferred = _workGroupMultiple;
+   }
+
+   for ( int z=1; _workGroupMultiple*z<=zLimit; z++ )
+   {
+      local_work_size[2] = multiplePreferred*z;
+      global_work_size[2] = ndrGlobalSize[2*range_size+z];
+      for ( int y=1; _workGroupMultiple*z*y<=yLimit; y++ )
+      {
+         local_work_size[1] = multiplePreferred*y;
+         global_work_size[1] = ndrGlobalSize[range_size+y];
+         for ( int x=1; _workGroupMultiple*z*y*x<=_maxWorkGroup; x++ )
+         {
+            local_work_size[0] = multiplePreferred*x;
+            global_work_size[0] = ndrGlobalSize[x];
+            updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+         }
+      }
    }
 }
 
