@@ -862,7 +862,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    else {
       // Start to profile the kernel
       if ( true /* whatever */ )
-         manualProfileKernel(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrLocalSize, ndrGlobalSize);
+         manualProfileKernelStep(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrLocalSize, ndrGlobalSize);
       else
          smartProfileKernel(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrGlobalSize);
 
@@ -877,6 +877,40 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
 }
 
 void OpenCLAdapter::manualProfileKernel( void* oclKernel,
+                                         std::string kernelName,
+                                         int workDim,
+                                         int range_size,
+                                         const double cost,
+                                         Dims &dims,
+                                         size_t* ndrOffset,
+                                         size_t* ndrLocalSize,
+                                         size_t* ndrGlobalSize)
+{
+   size_t local_work_size[3], global_work_size[3];
+
+   // Limit the iterations based on number of dimensions
+   const int zLimit = workDim == 3 ? range_size : 1;
+   const int yLimit = workDim == 2 ? range_size : 1;
+
+   for ( int z=0; z<zLimit; z++ )
+   {
+      local_work_size[2] = ndrLocalSize[2*range_size+z];
+      global_work_size[2] = ndrGlobalSize[2*range_size+z];
+      for ( int y=0; y<yLimit; y++ )
+      {
+         local_work_size[1] = ndrLocalSize[range_size+y];
+         global_work_size[1] = ndrGlobalSize[range_size+y];
+         for ( int x=0; x<range_size; x++ )
+         {
+            local_work_size[0] = ndrLocalSize[x];
+            global_work_size[0] = ndrGlobalSize[x];
+            updateProfiling(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+         }
+      }
+   }
+}
+
+void OpenCLAdapter::manualProfileKernelStep( void* oclKernel,
                                          std::string kernelName,
                                          int workDim,
                                          int range_size,

@@ -135,6 +135,20 @@ public:
 
    /**
     * @brief This function performs kernel executions to determine
+    * the best work-group parameters using the given range.
+    */
+   void manualProfileKernelStep( void* oclKernel,
+                                 std::string kernelName,
+                                 int workDim,
+                                 int range_size,
+                                 const double cost,
+                                 Dims &dims,
+                                 size_t* ndrOffset,
+                                 size_t* ndrLocalSize,
+                                 size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function performs kernel executions to determine
     * the best work-group parameters using the device hints.
     */
    void smartProfileKernel(void* oclKernel,

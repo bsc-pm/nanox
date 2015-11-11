@@ -71,6 +71,7 @@ void OpenCLProfilerDbManager::setKernelConfig(Dims &dims, Execution &execution, 
    _dbManager.bindIntParameter(_insertStmtNumber, 3, execution.getLocalX());             // X
    _dbManager.bindIntParameter(_insertStmtNumber, 4, execution.getLocalY());             // Y
    _dbManager.bindIntParameter(_insertStmtNumber, 5, execution.getLocalZ());             // Z
+   _dbManager.bindInt64Parameter(_insertStmtNumber, 6, execution.getTime());             // Time
 
    _dbManager.doStep(_insertStmtNumber);
 
@@ -89,7 +90,7 @@ Execution* OpenCLProfilerDbManager::getKernelConfig(Dims &dims, std::string kern
                _dbManager.getIntColumnValue(_selectStmtNumber, 0),
                _dbManager.getIntColumnValue(_selectStmtNumber, 1),
                _dbManager.getIntColumnValue(_selectStmtNumber, 2),
-               0));
+               _dbManager.getIntColumnValue(_selectStmtNumber, 3)));
    } else {
       // No configurations found
       setExecution(new Execution(9,0,0,0,0));
@@ -114,9 +115,9 @@ void OpenCLProfilerDbManager::destroyExecution()
 
 void OpenCLProfilerDbManager::initialize()
 {
-   const std::string tableSql  = "CREATE TABLE IF NOT EXISTS opencl_kernels(hash INT, dims INT, x INT, y INT, z INT, PRIMARY KEY(hash));";
-   const std::string selectSql = "SELECT x,y,z FROM " + CL_PROFILING_DEFAULT_TABLE + " WHERE hash = @hash";
-   const std::string insertSql = "INSERT INTO " + CL_PROFILING_DEFAULT_TABLE + " VALUES(@hash, @dims, @x, @y, @z)";
+   const std::string tableSql  = "CREATE TABLE IF NOT EXISTS opencl_kernels(hash INT, dims INT, x INT, y INT, z INT, time INT64, PRIMARY KEY(hash));";
+   const std::string selectSql = "SELECT x,y,z,time FROM " + CL_PROFILING_DEFAULT_TABLE + " WHERE hash = @hash";
+   const std::string insertSql = "INSERT INTO " + CL_PROFILING_DEFAULT_TABLE + " VALUES(@hash, @dims, @x, @y, @z, @time)";
 
    // Create table if not exists
    _tableStmtNumber = _dbManager.prepareStmt(tableSql);

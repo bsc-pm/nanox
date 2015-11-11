@@ -70,6 +70,14 @@ public:
    void bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value);
 
    /**
+    * @brief This function bind an integer64 value to a prepared statement
+    * @param stmtNumber Parameter to reference the prepared statement
+    * @param parameterIndex Parameter to choose the parameter to reference
+    * @param value value to be set on the parameter
+    */
+   void bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value);
+
+   /**
     * @brief This function return the value of a given column
     * @param stmtNumber stmtNumber Parameter to reference the prepared statement
     * @param columnIndex Parameter to choose the column to reference

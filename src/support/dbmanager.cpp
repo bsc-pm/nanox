@@ -87,6 +87,11 @@ void DbManager::bindIntParameter(const unsigned int stmtNumber, const unsigned i
    sqlCheck(sqlite3_bind_int(_stmtVector[stmtNumber], parameterIndex, value), "SQLite - Can't bind integer value: ");
 }
 
+void DbManager::bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value)
+{
+   sqlCheck(sqlite3_bind_int64(_stmtVector[stmtNumber], parameterIndex, value), "SQLite - Can't bind integer64 value: ");
+}
+
 int DbManager::getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex)
 {
    return sqlite3_column_int(_stmtVector[stmtNumber], columnIndex);
