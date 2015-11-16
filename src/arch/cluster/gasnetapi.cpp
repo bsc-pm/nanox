@@ -208,12 +208,12 @@ GASNetAPI::SendDataPutRequest::~SendDataPutRequest() {
 }
 
 void GASNetAPI::SendDataPutRequest::doSingleChunk() {
-    //std::cerr << "process request for wd " << _wdId << " to node " << getDestination() << " dstAddr is " << (void *) _destAddr << std::endl;
+    //(myThread != NULL ? (*myThread->_file) : std::cerr) << "process request for wd " << _wdId << " to node " << getDestination() << " dstAddr is " << (void *) _destAddr << std::endl;
    _gasnetApi->_put( getDestination(), (uint64_t) _destAddr, _origAddr, _len, _tmpBuffer, _wdId, *_wd, _functor, _hostObject, _hostRegId, _metaSeq );
 }
 
 void GASNetAPI::SendDataPutRequest::doStrided( void *localAddr ) {
-    //std::cerr << "process strided request for wd " << _wdId << " to node " << getDestination() << " dstAddr is " << (void *) _destAddr << std::endl;
+    //(myThread != NULL ? (*myThread->_file) : std::cerr) << "process strided request for wd " << _wdId << " to node " << getDestination() << " dstAddr is " << (void *) _destAddr << std::endl;
    _gasnetApi->_putStrided1D( getDestination(), (uint64_t) _destAddr, _origAddr, localAddr, _len, _count, _ld, _tmpBuffer, _wdId, *_wd, _functor, _hostObject, _hostRegId, _metaSeq );
 }
 
@@ -246,6 +246,7 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
          NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_DATA, id, sizeKey, xferSize, 0 ); )
       }
 
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGetReply" << std::endl; );
       if ( gasnet_AMRequestLong2( 0, 212,
                &( ( char *) _origAddr )[ sent ],
                thisReqSize,
@@ -256,6 +257,7 @@ void GASNetAPI::SendDataGetRequest::doSingleChunk() {
       {
          fprintf(stderr, "gasnet: Error sending a message to node %d.\n", 0);
       }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGetReply done" << std::endl; );
       sent += thisReqSize;
    }
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
@@ -266,10 +268,12 @@ void GASNetAPI::SendDataGetRequest::doStrided( void *localAddr ) {
    NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
    NANOS_INSTRUMENT ( static nanos_event_key_t network_transfer_key = ID->getEventKey("network-transfer"); )
    NANOS_INSTRUMENT( instr->raiseOpenBurstEvent( network_transfer_key, (nanos_event_value_t) 1 ); )
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGetReply" << std::endl; );
    if ( gasnet_AMRequestLong2( 0, 212, localAddr, _len*_count, _destAddr, ARG_LO( _req ), ARG_HI( _req ) ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error sending reply msg.\n" );
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGetReply done" << std::endl; );
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
@@ -314,26 +318,26 @@ void GASNetAPI::amFinalize(gasnet_token_t token)
 {
    DisableAM c;
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error obtaining node information.\n");
    }
    //gasnet_AMReplyShort0(token, 204);
    sys.stopFirstThread();
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amFinalizeReply(gasnet_token_t token)
 {
    DisableAM c;
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error obtaining node information.\n");
    }
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
@@ -451,7 +455,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 
    sys.createWD( &localWD, (std::size_t) 1, devPtr, (std::size_t) dataSize, (int) ( sizeof(void *) ), (void **) &data, (WD *)rwg, (nanos_wd_props_t *) NULL, (nanos_wd_dyn_props_t *) NULL, (std::size_t) numCopies, newCopiesPtr, num_dimensions, dimensions_ptr, xlate, NULL, NULL );
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " from " << src_node << " wid "<< wdId << " wdAddr "<< (void *) localWD << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " from " << src_node << " wid "<< wdId << " wdAddr "<< (void *) localWD << std::endl; );
    std::memcpy(data, work_data, dataSize);
 
    //unsigned int numDeps = *( ( int * ) &work_data[ dataSize + sizeof( int ) + numCopies * sizeof( CopyData ) + sizeof( int ) + num_dimensions * sizeof( nanos_region_dimension_t ) ] );
@@ -479,7 +483,7 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    delete[] work_data;
    work_data = NULL;
    //work_data_len = 0;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amWorkData(gasnet_token_t token, void *buff, std::size_t len,
@@ -491,7 +495,7 @@ void GASNetAPI::amWorkData(gasnet_token_t token, void *buff, std::size_t len,
    DisableAM c;
    gasnet_node_t src_node;
    std::size_t totalLen = (std::size_t) MERGE_ARG( totalLenHi, totalLenLo );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if (gasnet_AMGetMsgSource(token, &src_node) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error obtaining node information.\n");
@@ -499,8 +503,8 @@ void GASNetAPI::amWorkData(gasnet_token_t token, void *buff, std::size_t len,
 
    getInstance()->_incomingWorkBuffers._add(wdId, msgNum, totalLen, len, (char *) buff);
 
-   //std::cerr<<"UNSUPPORTED FOR NOW"<<std::endl;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   //(myThread != NULL ? (*myThread->_file) : std::cerr)<<"UNSUPPORTED FOR NOW"<<std::endl;
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi, gasnet_handlerarg_t peId )
@@ -508,7 +512,7 @@ void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, ga
    DisableAM c;
    gasnet_node_t src_node;
    void * addr = (void *) MERGE_ARG( addrHi, addrLo );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " host wd addr "<< (void *) addr << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " host wd addr "<< (void *) addr << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -521,7 +525,7 @@ void GASNetAPI::amWorkDone( gasnet_token_t token, gasnet_handlerarg_t addrLo, ga
    }
 
    sys.getNetwork()->notifyWorkDone( src_node, addr, peId );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " from "<< src_node <<" host wd addr "<< (void *) addr <<" done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " from "<< src_node <<" host wd addr "<< (void *) addr <<" done." << std::endl; );
 }
 
 void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasnet_handlerarg_t sizeHi,
@@ -531,7 +535,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
    gasnet_node_t src_node;
    void *addr = NULL;
    std::size_t size = ( std::size_t ) MERGE_ARG( sizeHi, sizeLo );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -544,7 +548,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       addr = a.allocate( size );
    }
    if ( addr == NULL )  {
-      std::cerr << "ERROR at amMalloc" << std::endl;
+      (myThread != NULL ? (*myThread->_file) : std::cerr) << "ERROR at amMalloc" << std::endl;
    }
    
    if ( addr == NULL )
@@ -559,7 +563,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
    {
       fprintf( stderr, "gasnet: Error sending a message to node %d.\n", src_node );
    }
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amMallocReply( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi,
@@ -569,13 +573,13 @@ void GASNetAPI::amMallocReply( gasnet_token_t token, gasnet_handlerarg_t addrLo,
    void * addr = ( void * ) MERGE_ARG( addrHi, addrLo );
    Network::mallocWaitObj *request = ( Network::mallocWaitObj * ) MERGE_ARG( waitObjAddrHi, waitObjAddrLo );
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
    sys.getNetwork()->notifyMalloc( src_node, addr, request );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amFree( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet_handlerarg_t addrHi )
@@ -584,13 +588,13 @@ void GASNetAPI::amFree( gasnet_token_t token, gasnet_handlerarg_t addrLo, gasnet
    void * addr = (void *) MERGE_ARG( addrHi, addrLo );
    gasnet_node_t src_node;
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
    free( addr );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amRealloc( gasnet_token_t token, gasnet_handlerarg_t oldAddrLo, gasnet_handlerarg_t oldAddrHi,
@@ -605,21 +609,21 @@ void GASNetAPI::amRealloc( gasnet_token_t token, gasnet_handlerarg_t oldAddrLo, 
    //std::size_t newSize = (std::size_t) MERGE_ARG( newSizeHi, newSizeLo );
    gasnet_node_t src_node;
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
 
    std::memcpy( newAddr, oldAddr, oldSize );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amMasterHostname( gasnet_token_t token, void *buff, std::size_t nbytes )
 {
    DisableAM c;
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -629,7 +633,7 @@ void GASNetAPI::amMasterHostname( gasnet_token_t token, void *buff, std::size_t 
    {
       sys.getNetwork()->setMasterHostname( ( char  *) buff );
    }
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amPut( gasnet_token_t token,
@@ -663,7 +667,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
    Functor *f = ( Functor * ) MERGE_ARG( functorHi, functorLo );
    WD *wd = ( WD * ) MERGE_ARG( wdHi, wdLo );
    std::size_t totalLen = ( std::size_t ) MERGE_ARG( totalLenHi, totalLenLo );
-   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " size " << len << " addrTag " << (void*) realTag << " addrAddr "<< (void*)realAddr<< std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " size " << len << " addrTag " << (void*) realTag << " addrAddr "<< (void*)realAddr<< std::endl; );
 
    getInstance()->_rxBytes += len;
 
@@ -691,7 +695,7 @@ void GASNetAPI::amPut( gasnet_token_t token,
       void *hostObject = ( void * ) MERGE_ARG( hostObjectHi, hostObjectLo );
       getInstance()->_net->notifyPut( src_node, wdId, totalLen, 1, 0, (uint64_t) realTag, hostObject, hostRegId, (unsigned int) seq );
    }
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amPutStrided1D( gasnet_token_t token,
@@ -716,7 +720,7 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
 {
    DisableAM c;
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -753,7 +757,7 @@ void GASNetAPI::amPutStrided1D( gasnet_token_t token,
       void *hostObject = ( void * ) MERGE_ARG( hostObjectHi, hostObjectLo );
       getInstance()->_net->notifyPut( src_node, wdId, size, count, ld, (uint64_t)realTag, hostObject, hostRegId, (unsigned int) seq );
    }
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amGetReply( gasnet_token_t token,
@@ -766,7 +770,7 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
    gasnet_node_t src_node;
    GetRequest *req = ( GetRequest * ) MERGE_ARG( reqHi, reqLo );
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -785,7 +789,7 @@ void GASNetAPI::amGetReply( gasnet_token_t token,
    {
       req->complete();
    }
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
@@ -798,7 +802,7 @@ void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
    gasnet_node_t src_node;
    GetRequestStrided *req = ( GetRequestStrided * ) MERGE_ARG( reqHi, reqLo );
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -815,7 +819,7 @@ void GASNetAPI::amGetReplyStrided1D( gasnet_token_t token,
    {
       req->complete();
    }
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amGet( gasnet_token_t token, void *buff, std::size_t nbytes ) {
@@ -824,7 +828,7 @@ void GASNetAPI::amGet( gasnet_token_t token, void *buff, std::size_t nbytes ) {
    SendDataGetRequestPayload *msg = ( SendDataGetRequestPayload * ) buff;
    nanos_region_dimension_internal_t *dims = (nanos_region_dimension_internal_t *)( ((char *)buff)+ sizeof( SendDataGetRequestPayload ) );
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -844,7 +848,7 @@ void GASNetAPI::amGet( gasnet_token_t token, void *buff, std::size_t nbytes ) {
    SendDataGetRequest *req = NEW SendDataGetRequest( getInstance(), msg->_seqNumber, msg->_destAddr, msg->_origAddr, msg->_len, 1, 0, msg->_req, msg->_cd, dims );
    getInstance()->_net->notifyRegionMetaData( &( req->_cd ), 0 );
    getInstance()->_net->notifyGet( req );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amPutF( gasnet_token_t token,
@@ -861,7 +865,7 @@ void GASNetAPI::amPutF( gasnet_token_t token,
    void *destAddr = ( void * ) MERGE_ARG( destAddrHi, destAddrLo );
    uint64_t value = ( uint64_t ) MERGE_ARG( valueHi, valueLo );
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -913,7 +917,7 @@ void GASNetAPI::amPutF( gasnet_token_t token,
    //NANOS_INSTRUMENT ( nanos_event_value_t xferSize = len; )
    //NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( destAddr ) ; )
    //NANOS_INSTRUMENT ( instr->raiseClosePtPEvent( NANOS_XFER_DATA, id, sizeKey, xferSize, src_node ); )
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amRequestPut( gasnet_token_t token, void *buff, std::size_t nbytes ) {
@@ -921,12 +925,12 @@ void GASNetAPI::amRequestPut( gasnet_token_t token, void *buff, std::size_t nbyt
    gasnet_node_t src_node;
    SendDataPutRequestPayload *msg = ( SendDataPutRequestPayload * ) buff;
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
-   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " to " << msg->_destination <<" size " << msg->_len << " origAddr " << (void*) msg->_origAddr << " destAddr "<< (void*)msg->_destAddr<< std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " to " << msg->_destination <<" size " << msg->_len << " origAddr " << (void*) msg->_origAddr << " destAddr "<< (void*)msg->_destAddr<< std::endl; );
 
    if ( _emitPtPEvents ) {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
@@ -939,7 +943,7 @@ void GASNetAPI::amRequestPut( gasnet_token_t token, void *buff, std::size_t nbyt
 
    SendDataPutRequest *req = NEW SendDataPutRequest( getInstance(), msg );
    getInstance()->_net->notifyRequestPut( req );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amRequestPutStrided1D( gasnet_token_t token, void *buff, std::size_t nbytes ) {
@@ -949,7 +953,7 @@ void GASNetAPI::amRequestPutStrided1D( gasnet_token_t token, void *buff, std::si
 
    //NANOS_INSTRUMENT( InstrumentState inst(NANOS_amRequestPutStrided1D); );
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -967,7 +971,7 @@ void GASNetAPI::amRequestPutStrided1D( gasnet_token_t token, void *buff, std::si
    SendDataPutRequest *req = NEW SendDataPutRequest( getInstance(), msg );
    getInstance()->_net->notifyRequestPut( req );
    //NANOS_INSTRUMENT( inst.close(); );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amWaitRequestPut( gasnet_token_t token, 
@@ -985,7 +989,7 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
-   VERBOSE_AM( std::cerr << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " addr " << (void*)addr << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << gasnet_mynode() << ": " << __FUNCTION__ << " from " << src_node << " addr " << (void*)addr << std::endl; );
 
    if ( _emitPtPEvents ) {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
@@ -998,7 +1002,7 @@ void GASNetAPI::amWaitRequestPut( gasnet_token_t token,
 
    getInstance()->_net->notifyWaitRequestPut( addr, wdId, seqNumber );
    //NANOS_INSTRUMENT( inst.close(); );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amFreeTmpBuffer( gasnet_token_t token,
@@ -1018,12 +1022,12 @@ void GASNetAPI::amFreeTmpBuffer( gasnet_token_t token,
       (*f)(); 
    }
    gasnet_node_t src_node;
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
-   //std::cerr << __FUNCTION__ << " addr " << addr << " from "<< src_node << " allocator "<< (void *) _pinnedAllocators[ src_node ] << std::endl;
+   //(myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " addr " << addr << " from "<< src_node << " allocator "<< (void *) _pinnedAllocators[ src_node ] << std::endl;
    if ( _emitPtPEvents ) {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
       NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = instr->getInstrumentationDictionary(); )
@@ -1040,7 +1044,7 @@ void GASNetAPI::amFreeTmpBuffer( gasnet_token_t token,
    // wd->notifyCopy();
    
    // XXX call notify copy wd->
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nbytes )
@@ -1050,7 +1054,7 @@ void GASNetAPI::amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nb
    SendDataGetRequestPayload *msg = ( SendDataGetRequestPayload * ) buff;
    nanos_region_dimension_internal_t *dims = (nanos_region_dimension_internal_t *)( ((char *)buff)+ sizeof( SendDataGetRequestPayload ) );
 
-   VERBOSE_AM( std::cerr << __FUNCTION__ << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    if ( gasnet_AMGetMsgSource( token, &src_node ) != GASNET_OK )
    {
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
@@ -1070,14 +1074,16 @@ void GASNetAPI::amGetStrided1D( gasnet_token_t token, void *buff, std::size_t nb
    SendDataGetRequest *req = NEW SendDataGetRequest( getInstance(), msg->_seqNumber, msg->_destAddr, msg->_origAddr, msg->_len, msg->_count, msg->_ld, msg->_req, msg->_cd, dims );
    getInstance()->_net->notifyRegionMetaData( &( req->_cd ), 0 );
    getInstance()->_net->notifyGet( req );
-   VERBOSE_AM( std::cerr << __FUNCTION__ << " done." << std::endl; );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amRegionMetadata(gasnet_token_t token, void *arg, std::size_t argSize, gasnet_handlerarg_t seq ) {
    DisableAM c;
    CopyData *cd = (CopyData *) arg;
    cd->setDimensions( (nanos_region_dimension_internal_t *) ( ((char*)arg) + sizeof(CopyData) ) );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << std::endl; );
    getInstance()->_net->notifyRegionMetaData( cd, (unsigned int) seq );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " done." << std::endl; );
 }
 
 void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
@@ -1225,7 +1231,7 @@ void GASNetAPI::initialize ( Network *net )
    #error unimplemented
 #endif
 
-   //std::cerr << "Max long request size: " << MAX_LONG_REQUEST << std::endl;
+   //(myThread != NULL ? (*myThread->_file) : std::cerr) << "Max long request size: " << MAX_LONG_REQUEST << std::endl;
 }
 
 void GASNetAPI::finalize ()
@@ -1252,17 +1258,19 @@ void GASNetAPI::poll ()
       checkForPutReqs();
       checkForFreeBufferReqs();
       checkWorkDoneReqs();
-   }
-   else
+   } else if ( myThread == NULL ) {
       gasnet_AMPoll();
+   }
 }
 
 void GASNetAPI::sendExitMsg ( unsigned int dest )
 {
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amFinalize" << std::endl; );
    if (gasnet_AMRequestShort0( dest, 203 ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amFinalize done" << std::endl; );
 }
 
 void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int dataSize, unsigned int wdId, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *remoteWdAddr/*, void *remoteThd*/, std::size_t expectedData )
@@ -1272,6 +1280,7 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
 
    while ( (argSize - sent) > gasnet_AMMaxMedium() )
    {
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWorkData" << std::endl; );
       if ( gasnet_AMRequestMedium4( dest, 215, &arg[ sent ], gasnet_AMMaxMedium(),
                wdId,
                msgCount, 
@@ -1280,6 +1289,7 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
       {
          fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
       }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWorkData done" << std::endl; );
       msgCount++;
       sent += gasnet_AMMaxMedium();
    }
@@ -1292,6 +1302,7 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_AM_WORK, id, 0, 0, dest ); )
    }
 
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWork" << std::endl; );
    if (gasnet_AMRequestMedium14( dest, 205, &arg[ sent ], argSize - sent,
             ARG_LO( work ),
             ARG_HI( work ),
@@ -1310,6 +1321,7 @@ void GASNetAPI::sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsi
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWork done" << std::endl; );
 }
 
 void GASNetAPI::sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int peId )
@@ -1326,8 +1338,9 @@ void GASNetAPI::_sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int pe
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_AM_WORK_DONE, id, 0, 0, dest ); )
    }
 #ifdef HALF_PRESEND
-   if ( wdindc-- == 2 ) { sys.submit( *buffWD ); /*std::cerr<<"n:" <<gasnet_mynode()<< " submitted wd " << buffWD->getId() <<std::endl;*/} 
+   if ( wdindc-- == 2 ) { sys.submit( *buffWD ); /*(myThread != NULL ? (*myThread->_file) : std::cerr)<<"n:" <<gasnet_mynode()<< " submitted wd " << buffWD->getId() <<std::endl;*/} 
 #endif
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWorkDone" << std::endl; );
    if (gasnet_AMRequestShort3( dest, 206, 
             ARG_LO( remoteWdAddr ),
             ARG_HI( remoteWdAddr ),
@@ -1335,6 +1348,7 @@ void GASNetAPI::_sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr, int pe
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWorkDone done" << std::endl; );
 }
 
 void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
@@ -1427,6 +1441,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
                NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_DATA, id, sizeKey, xferSize, remoteNode ); )
             }
             //fprintf(stderr, "try to send [%d:%p=>%d:%p,%ld < %f >].\n", gasnet_mynode(), (void*)localAddr, remoteNode, (void*)remoteAddr, size, *((double *)localAddr));
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amPut" << std::endl; );
             if ( gasnet_AMRequestLong16( remoteNode, 210,
                      &( ( char *) localAddr )[ sent ],
                      thisReqSize,
@@ -1451,6 +1466,7 @@ void GASNetAPI::_put ( unsigned int remoteNode, uint64_t remoteAddr, void *local
             {
                fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
             }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amPut done" << std::endl; );
             //fprintf(stderr, "Req sent to node %d.\n", remoteNode);
          }
          else { fprintf(stderr, "error sending a PUT to node %d, did not get a tmpBuffer\n", remoteNode ); }
@@ -1484,6 +1500,7 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
                NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ((uint64_t)remoteTmpBuffer) + sent ) ; )
                NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_DATA, id, sizeKey, xferSize, remoteNode ); )
             }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amPutStrided1D" << std::endl; );
             if ( gasnet_AMRequestLong16( remoteNode, 220,
                      &( ( char *) localPack )[ sent ],
                      thisReqSize,
@@ -1508,8 +1525,9 @@ void GASNetAPI::_putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, vo
             {
                fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
             }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amPutStrided1D done" << std::endl; );
          }
-         else { std::cerr <<"Unsupported. this node is " <<gasnet_mynode()<< std::endl; }
+         else { (myThread != NULL ? (*myThread->_file) : std::cerr) <<"Unsupported. this node is " <<gasnet_mynode()<< std::endl; }
          sent += thisReqSize;
       }
    }
@@ -1525,7 +1543,7 @@ void GASNetAPI::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, voi
       _pinnedAllocatorsLocks[ remoteNode ]->release();
       if ( tmp == NULL ) _net->poll(0);
    }
-   if ( tmp == NULL ) std::cerr << "what... "<< tmp << std::endl; 
+   if ( tmp == NULL ) (myThread != NULL ? (*myThread->_file) : std::cerr) << "what... "<< tmp << std::endl; 
    _putStrided1D( remoteNode, remoteAddr, localAddr, localPack, size, count, ld, tmp, wdId, wd, NULL, hostObject, hostRegId, metaSeq );
 }
 
@@ -1565,10 +1583,12 @@ void GASNetAPI::get ( void *localAddr, unsigned int remoteNode, uint64_t remoteA
    nanos_region_dimension_internal_t *dims = ( nanos_region_dimension_internal_t * ) ( buffer + sizeof( SendDataGetRequestPayload ) );
    ::memcpy( dims, cd.getDimensions(), sizeof( nanos_region_dimension_internal_t ) * cd.getNumDimensions() );
 
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGet" << std::endl; );
    if ( gasnet_AMRequestMedium0( remoteNode, 211, buffer, buffer_size ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGet done" << std::endl; );
 
    _rxBytes += size;
    _totalBytes += size;
@@ -1600,10 +1620,12 @@ void GASNetAPI::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64
    nanos_region_dimension_internal_t *dims = ( nanos_region_dimension_internal_t * ) ( buffer + sizeof( SendDataGetRequestPayload ) );
    ::memcpy( dims, cd.getDimensions(), sizeof( nanos_region_dimension_internal_t ) * cd.getNumDimensions() );
 
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGetStrided1D" << std::endl; );
    if ( gasnet_AMRequestMedium0( remoteNode, 221, buffer, buffer_size ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amGetStrided1D done" << std::endl; );
 
    _rxBytes += thisReqSize;
    _totalBytes += thisReqSize;
@@ -1612,16 +1634,19 @@ void GASNetAPI::getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64
 void GASNetAPI::malloc ( unsigned int remoteNode, std::size_t size, void * waitObjAddr )
 {
    //message0("Requesting alloc of " << size << " bytes (" << (void *) size << ") to node " << remoteNode );
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amMalloc" << std::endl; );
    if (gasnet_AMRequestShort4( remoteNode, 207,
             ARG_LO( size ), ARG_HI( size ),
             ARG_LO( waitObjAddr ), ARG_HI( waitObjAddr ) ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amMalloc done" << std::endl; );
 } 
 
 void GASNetAPI::memRealloc ( unsigned int remoteNode, void *oldAddr, std::size_t oldSize, void *newAddr, std::size_t newSize )
 {
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRealloc" << std::endl; );
    if (gasnet_AMRequestShort8( remoteNode, 217,
             ARG_LO( oldAddr ), ARG_HI( oldAddr ),
             ARG_LO( oldSize ), ARG_HI( oldSize ),
@@ -1630,16 +1655,19 @@ void GASNetAPI::memRealloc ( unsigned int remoteNode, void *oldAddr, std::size_t
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRealloc done" << std::endl; );
 }
 
 void GASNetAPI::memFree ( unsigned int remoteNode, void *addr )
 {
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amFree" << std::endl; );
    if (gasnet_AMRequestShort2( remoteNode, 216,
             ARG_LO( addr ), ARG_HI( addr ) ) != GASNET_OK)
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", remoteNode);
    }
-   //std::cerr << "FIXME: I should do something in GASNetAPI::memFree." << std::endl;
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amFree done" << std::endl; );
+   //(myThread != NULL ? (*myThread->_file) : std::cerr) << "FIXME: I should do something in GASNetAPI::memFree." << std::endl;
 }
 
 void GASNetAPI::nodeBarrier()
@@ -1657,10 +1685,12 @@ void GASNetAPI::sendMyHostName( unsigned int dest )
    if ( masterHostname == NULL )
       fprintf(stderr, "Error, master hostname not set!\n" );
 
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amMasterHostname" << std::endl; );
    if ( gasnet_AMRequestMedium0( dest, 209, ( void * ) masterHostname, ::strlen( masterHostname ) + 1 ) != GASNET_OK ) //+1 to add the last \0 character
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest );
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amMasterHostname done" << std::endl; );
 }
 
 void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
@@ -1688,10 +1718,12 @@ void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned i
       NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ((uint64_t)tmpBuffer) ) ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_REQ, id, sizeKey, xferSize, dest ); )
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRequestPut" << std::endl; );
    if ( gasnet_AMRequestMedium0( dest, 214, (void *) &msg, sizeof( msg ) ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRequestPut done" << std::endl; );
 }
 
 void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
@@ -1725,11 +1757,13 @@ void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, u
       NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( ((uint64_t)tmpBuffer) ) ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_REQ, id, sizeKey, xferSize, dest ); )
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRequestPutStrided1D" << std::endl; );
    if ( gasnet_AMRequestMedium0( dest, 222, (void *) &msg, sizeof( msg ) ) != GASNET_OK )
 
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRequestPutStrided1D done" << std::endl; );
    //NANOS_INSTRUMENT( inst2.close(); );
 }
 
@@ -1746,11 +1780,13 @@ void GASNetAPI::sendWaitForRequestPut( unsigned int dest, uint64_t addr, unsigne
 
    unsigned int seq_number = sys.getNetwork()->getPutRequestSequenceNumber( dest );
 
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWaitRequestPut" << std::endl; );
    if ( gasnet_AMRequestShort4( dest, 218,
             ARG_LO( addr ), ARG_HI( addr ), wdId, seq_number ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWaitRequestPut done" << std::endl; );
 }
 
 void GASNetAPI::sendFreeTmpBuffer( void *addr, WD const *wd, Functor *f )
@@ -1763,11 +1799,13 @@ void GASNetAPI::sendFreeTmpBuffer( void *addr, WD const *wd, Functor *f )
       NANOS_INSTRUMENT ( nanos_event_id_t id = (nanos_event_id_t) ( addr ) ; )
       NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_XFER_FREE_TMP_BUFF, id, sizeKey, xferSize, 0 ); )
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amFreeTmpBuffer" << std::endl; );
    if ( gasnet_AMRequestShort6( 0, 219,
             ARG_LO( addr ), ARG_HI( addr ), ARG_LO( wd ), ARG_HI( wd ), ARG_LO( f ), ARG_HI( f ) ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node 0.\n");
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amFreeTmpBuffer done" << std::endl; );
 }
 
 void GASNetAPI::sendRegionMetadata( unsigned int dest, CopyData *cd, unsigned int seq ) {
@@ -1777,17 +1815,21 @@ void GASNetAPI::sendRegionMetadata( unsigned int dest, CopyData *cd, unsigned in
    ::memcpy(buffer, cd, sizeof(CopyData) );
    ::memcpy(buffer + sizeof(CopyData), cd->getDimensions(), cd->getNumDimensions() * sizeof(nanos_region_dimension_internal_t));
 
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRegionMetadata" << std::endl; );
    if ( gasnet_AMRequestMedium1( dest, 224, (void *) buffer, data_size, seq ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRegionMetadata done" << std::endl; );
 }
 
 void GASNetAPI::synchronizeDirectory(unsigned int dest) {
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amSynchronizeDirectory" << std::endl; );
    if ( gasnet_AMRequestShort0( dest, 225 ) != GASNET_OK )
    {
       fprintf(stderr, "gasnet: Error sending a message to node %d.\n", dest);
    }
+   VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amSynchronizeDirectory done" << std::endl; );
 }
 
 std::size_t GASNetAPI::getRxBytes()
