@@ -62,6 +62,10 @@ void HostAddressSpace::unregisterObject( void *baseAddr ) {
    _directory.unregisterObject( baseAddr );
 }
 
+NewNewRegionDirectory const &HostAddressSpace::getDirectory() const {
+   return _directory;
+}
+
 SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
 }
 

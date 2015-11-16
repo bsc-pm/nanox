@@ -177,8 +177,6 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         NewNewRegionDirectory _masterRegionDirectory;
-         
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
 
@@ -571,7 +569,7 @@ namespace nanos
       public:
          //std::list<GraphEntry *> *getGraphRepList();
          
-         NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
+         NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
          
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
