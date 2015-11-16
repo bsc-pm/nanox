@@ -171,6 +171,9 @@ public:
    }
 };
 
+/**
+ * @brief This class manages database interaction for the OpenCL Profiler extension
+ */
 class OpenCLProfilerDbManager {
    DbManager _dbManager;
    Execution *_execution;
@@ -209,8 +212,107 @@ private:
 
 };
 
+/**
+ * @brief This class keeps the OpenCL Profiling status for a given kernel+dimensions combination
+ */
+class OpenCLProfCurrConfig {
+   unsigned int _currentX;  // The same _workGroupMultiple
+   unsigned int _currentY;
+   unsigned int _currentZ;
+   unsigned int _limitX;
+   unsigned int _limitY;
+   unsigned int _limitZ;
+   unsigned int _multiplePreferred;
+   bool         _finished;
+public:
+   OpenCLProfCurrConfig(unsigned int currentX, unsigned int currentY, unsigned int currentZ, unsigned int limitX, unsigned int limitY, unsigned int limitZ, unsigned int workGroupMultiple, bool finished) :
+      _currentX(currentX), _currentY(currentY), _currentZ(currentZ), _limitX(limitX), _limitY(limitY), _limitZ(limitZ), _multiplePreferred(workGroupMultiple), _finished(finished) {}
+   OpenCLProfCurrConfig() : _currentX(0), _currentY(0), _currentZ(0), _limitX(0), _limitY(0), _limitZ(0), _multiplePreferred(0), _finished(false)  {}
+
+   unsigned int getCurrentX() const
+   {
+      return _currentX;
+   }
+
+   void setCurrentX(unsigned int currentX)
+   {
+      _currentX=currentX;
+   }
+
+   unsigned int getCurrentY() const
+   {
+      return _currentY;
+   }
+
+   void setCurrentY(unsigned int currentY)
+   {
+      _currentY=currentY;
+   }
+
+   unsigned int getCurrentZ() const
+   {
+      return _currentZ;
+   }
+
+   void setCurrentZ(unsigned int currentZ)
+   {
+      _currentZ=currentZ;
+   }
+
+   unsigned int getLimitX() const
+   {
+      return _limitX;
+   }
+
+   void setLimitX(unsigned int limitX)
+   {
+      _limitX=limitX;
+   }
+
+   unsigned int getLimitY() const
+   {
+      return _limitY;
+   }
+
+   void setLimitY(unsigned int limitY)
+   {
+      _limitY=limitY;
+   }
+
+   unsigned int getLimitZ() const
+   {
+      return _limitZ;
+   }
+
+   void setLimitZ(unsigned int limitZ)
+   {
+      _limitZ=limitZ;
+   }
+   
+   unsigned int getMultiplePreferred() const
+   {
+      return _multiplePreferred;
+   }
+   
+   void setMultiplePreferred(unsigned int multiplePreferred)
+   {
+      _multiplePreferred=multiplePreferred;
+   }
+   
+   bool isFinished() const
+   {
+      return _finished;
+   }
+   
+   void setFinished(bool finished)
+   {
+      _finished=finished;
+   }
+};
+
 typedef std::map<Dims, Execution*> DimsBest;
 typedef std::map<Dims, ulong> DimsExecutions;
+typedef std::map<Dims, OpenCLProfCurrConfig> DimsCurr;
 
 }
 
