@@ -16,6 +16,7 @@ MemCacheCopy::MemCacheCopy() :
    , _policy( sys.getRegionCachePolicy() )
    , _invalControl()
    , _allocFrom( -1 )
+   , _regionsToCommit()
 {
 }
 
@@ -50,13 +51,42 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
          _version = _reg.getVersion();
       }
    }
-   if ( input ) {
-      ops.copyInputData( *this, wd, copyIdx );
-   } else if ( output ) {
-      ops.allocateOutputMemory( _reg, _version, wd, copyIdx );
+
+
+   if ( ops.getPE()->getMemorySpaceId() != 0 ) {
+      /* CACHE ACCESS */
+      if ( input )  {
+         ops.lockSourceChunks( _reg, _version, _locations, ops.getPE()->getMemorySpaceId(), wd, copyIdx );
+         _chunk->NEWaddReadRegion2( ops, _reg.id, _version, _locations, wd, copyIdx );
+      } else if ( output ) {
+         _chunk->NEWaddWriteRegion( _reg.id, _version, wd, copyIdx );
+      } else {
+         fatal("invalid path");
+      }
    } else {
-      fprintf(stderr, "Error at %s.\n", __FUNCTION__);
+      /* HOST ACCESS */
+      if ( input )  {
+         ops.copyInputData( *this, wd, copyIdx );
+      }
    }
+
+
+   // if ( input ) {
+   //    if ( ops.getPE()->getMemorySpaceId() == 0 ) {
+   //       ops.copyInputData( *this, wd, copyIdx );
+   //    } else {
+   //       ops.lockSourceChunks( _reg, _version, _locations, ops.getPE()->getMemorySpaceId(), wd, copyIdx );
+   //       _chunk->NEWaddReadRegion2( ops, _reg.id, _version, _locations, wd, copyIdx );
+   //    }
+   // } else if ( output ) {
+   //    if ( ops.getPE()->getMemorySpaceId() != 0 ) {
+   //       //*myThread->_file << " calling allocateOutputMemory w/version " << _version << std::endl;
+   //       //ops.allocateOutputMemory( _reg, _version, wd, copyIdx );
+   //       _chunk->NEWaddWriteRegion( _reg.id, _version, wd, copyIdx );
+   //    }
+   // } else {
+   //    fprintf(stderr, "Error at %s.\n", __FUNCTION__);
+   // }
    //NANOS_INSTRUMENT( inst4.close(); );
 }
 
@@ -78,7 +108,7 @@ bool MemCacheCopy::isRooted( memory_space_id_t &loc ) const {
    //bool result2;
    bool result3;
 
-   global_reg_t whole_obj( 1, _reg.key );
+   global_reg_t whole_obj( _reg.id, _reg.key );
    result3 = whole_obj.isRooted();
    if ( result3 ) {
       loc = whole_obj.getRootedLocation();

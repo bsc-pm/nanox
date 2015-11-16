@@ -319,7 +319,7 @@ bool global_reg_t::isRooted() const {
 }
 void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
    //setRooted();
-   NewNewRegionDirectory::addRootedAccess( key, id, loc, 1 );
+   NewNewRegionDirectory::addRootedAccess( key, id, loc, 2 );
 }
 
 unsigned int global_reg_t::getNumLocations() const {

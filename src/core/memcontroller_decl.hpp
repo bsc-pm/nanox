@@ -30,7 +30,6 @@ class MemController {
    std::size_t                 _maxAffinityScore;
    RegionSet _ownedRegions;
    RegionSet _parentRegions;
-   std::set< NewNewRegionDirectory::RegionDirectoryKey > _lockedObjects;
 
 public:
    enum MemControllerPolicy {
@@ -40,8 +39,6 @@ public:
    };
    MemCacheCopy *_memCacheCopies;
    MemController( WD &wd );
-   void addAndLock( NewNewRegionDirectory::RegionDirectoryKey key );
-   void releaseLockedObjects();
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );
    void preInit();

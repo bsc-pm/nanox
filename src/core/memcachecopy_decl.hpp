@@ -16,6 +16,7 @@ namespace nanos {
          enum RegionCache::CachePolicy _policy;
          InvalidationController _invalControl;
          int                    _allocFrom;
+         std::set<reg_t>        _regionsToCommit;
          MemCacheCopy();
          MemCacheCopy( WD const &wd, unsigned int index );
 

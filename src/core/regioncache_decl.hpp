@@ -32,12 +32,23 @@
 #include "cachedregionstatus_decl.hpp"
 #include "memcachecopy_fwd.hpp"
 #include "memcontroller_fwd.hpp"
+#include "invalidationcontroller_fwd.hpp"
 
 #define VERBOSE_CACHE 0
 
 namespace nanos {
 
    class RegionCache;
+
+   class LockedObjects {
+      std::set< NewNewRegionDirectory::RegionDirectoryKey > _lockedObjects;
+      LockedObjects( LockedObjects const & );
+      LockedObjects &operator=( LockedObjects const & );
+      public:
+      LockedObjects();
+      void addAndLock( NewNewRegionDirectory::RegionDirectoryKey key );
+      void releaseLockedObjects();
+   };
 
    class AllocatedChunk {
       private:
@@ -75,13 +86,13 @@ namespace nanos {
          void clearRegions();
          void clearNewRegions( global_reg_t const &newAllocatedRegion );
          CacheRegionDictionary *getNewRegions();
-         bool invalidate( RegionCache *targetCache, MemController &mcontrol, WD const &wd, unsigned int copyIdx, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess );
+         bool invalidate( RegionCache *targetCache, LockedObjects &srcRegions, WD const &wd, unsigned int copyIdx, SeparateAddressSpaceOutOps &invalOps, std::set< global_reg_t > &regionsToRemoveAccess );
 
          bool trylock();
          void lock( bool setVerbose=false );
          void unlock( bool unsetVerbose=false );
          bool locked() const;
-         bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, std::set< reg_t > &notPresentRegions, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
+         bool NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx );
          void NEWaddWriteRegion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          void setRegionVersion( reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx );
          void addReference(WD const& wd, unsigned int loc);
@@ -178,13 +189,13 @@ namespace nanos {
       public:
          RegionCache( memory_space_id_t memorySpaceId, Device &cacheArch, enum CacheOptions flags, std::size_t slabSize );
          AllocatedChunk *tryGetAddress( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
-         AllocatedChunk *getOrCreateChunk( MemController &mcontrol, global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
+         AllocatedChunk *getOrCreateChunk( LockedObjects &srcRegions, global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, WD const &wd, unsigned int copyIdx ) const;
          AllocatedChunk *getAllocatedChunk( global_reg_t const &reg, bool complain, WD const &wd, unsigned int copyIdx );
          AllocatedChunk *_getAllocatedChunk( global_reg_t const &reg, bool complain, bool lock, WD const &wd, unsigned int copyIdx ) const;
          AllocatedChunk *getAddress( uint64_t hostAddr, std::size_t len );
          AllocatedChunk **selectChunkToInvalidate( std::size_t allocSize );
-         AllocatedChunk *invalidate( MemController &mcontrol, MemCacheCopy &memCacheCopy, global_reg_t const &allocatedRegion, WD const &wd, unsigned int copyIdx );
+         AllocatedChunk *invalidate( LockedObjects &srcRegions, InvalidationController &invalControl, global_reg_t const &allocatedRegion, WD const &wd, unsigned int copyIdx );
          void invalidateObject( global_reg_t const &reg );
          void selectChunksToInvalidate( std::size_t allocSize, std::set< std::pair< AllocatedChunk **, AllocatedChunk * > > &chunksToInvalidate, WD const &wd, unsigned int &otherReferencedChunks );
          void syncRegion( global_reg_t const &r ) ;
@@ -220,7 +231,7 @@ namespace nanos {
          //void releaseRegion( global_reg_t const &hostMem, WD const &wd, unsigned int copyIdx, enum CachePolicy policy );
 
          void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
-         bool prepareRegions( MemController &mcontrol, MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
+         bool prepareRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
          void setRegionVersion( global_reg_t const &hostMem, AllocatedChunk *chunk, unsigned int version, WD const &wd, unsigned int copyIdx );
 
          void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
@@ -256,6 +267,8 @@ namespace nanos {
          bool hasFreeMem() const;
          std::size_t getUnallocatedBytes() const;
    };
+
+
 }
 
 #endif

@@ -11,10 +11,11 @@
 #endif
 
 namespace nanos {
+
 MemController::MemController( WD &wd ) : _initialized( false ), _preinitialized(false), _inputDataReady(false),
       _outputDataReady(false), _memoryAllocated( false ), _invalidating( false ),
       _mainWd( false ), _wd( wd ), _pe( NULL ), _provideLock(), _providedRegions(), _affinityScore( 0 ),
-      _maxAffinityScore( 0 ), _ownedRegions(), _parentRegions(), _lockedObjects() {
+      _maxAffinityScore( 0 ), _ownedRegions(), _parentRegions() {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -67,8 +68,8 @@ void MemController::preInit( ) {
          if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " " <<(_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a") << " copy "<< index <<" got location info from predecessor, reg [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<< _memCacheCopies[ index ]._reg.id << " ] got version " << _memCacheCopies[ index ].getVersion()<< " "; }
          _memCacheCopies[ index ]._locationDataReady = true;
       } else {
-         if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " " <<(_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a") << " copy "<< index <<" got requesting location info to global directory for region [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<<  _memCacheCopies[ index ]._reg.id << " ] "; }
          _memCacheCopies[ index ].getVersionInfo();
+         if ( _VERBOSE_CACHE ) { *(myThread->_file) << "WD " << _wd.getId() << " " <<(_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a") << " copy "<< index <<" got requesting location info to global directory for region [ "<< (void*)_memCacheCopies[ index ]._reg.key << ","<<  _memCacheCopies[ index ]._reg.id << " ] "; }
       }
       if ( _VERBOSE_CACHE ) { 
          for ( NewLocationInfoList::const_iterator it = _memCacheCopies[ index ]._locations.begin(); it != _memCacheCopies[ index ]._locations.end(); it++ ) {
@@ -144,7 +145,7 @@ bool MemController::allocateTaskMemory() {
       
       if ( !_memoryAllocated && !_invalidating ) {
          //o << "### Allocating data for task " << std::dec << _wd.getId() <<  " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << std::endl;
-         bool tmp_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( *this, _memCacheCopies, _wd.getNumCopies(), _wd );
+         bool tmp_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
          if ( tmp_result ) {
             for ( unsigned int idx = 0; idx < _wd.getNumCopies() && !pending_invalidation; idx += 1 ) {
                pending_invalidation = (_memCacheCopies[idx]._invalControl._invalOps != NULL);
@@ -178,7 +179,7 @@ bool MemController::allocateTaskMemory() {
          }
          _invalidating = false;
 
-         bool tmp_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( *this, _memCacheCopies, _wd.getNumCopies(), _wd );
+         bool tmp_result = sys.getSeparateMemory( _pe->getMemorySpaceId() ).prepareRegions( _memCacheCopies, _wd.getNumCopies(), _wd );
          //o << "# retry result:" << ( tmp_result ? (_invalidating ? " invalidating " : " success " ) : " failed " ) << " task " << std::dec << _wd.getId() <<  " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << std::endl;
          if ( tmp_result ) {
             pending_invalidation = false;
@@ -494,24 +495,6 @@ bool MemController::hasObjectOfRegion( global_reg_t const &reg ) {
 }
 
 
-void MemController::addAndLock( NewNewRegionDirectory::RegionDirectoryKey key ) {
-   std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator dict_it = _lockedObjects.find( key );
-   if ( dict_it == _lockedObjects.end() ) {
-      //*myThread->_file <<"trying lock object " << key << std::endl;
-      key->lock();
-      //*myThread->_file <<"locked object " << key << std::endl;
-      _lockedObjects.insert( key );
-   }
-}
-
-void MemController::releaseLockedObjects() {
-   for ( std::set< NewNewRegionDirectory::RegionDirectoryKey >::iterator locked_object_it = _lockedObjects.begin(); locked_object_it != _lockedObjects.end(); locked_object_it++ ) {
-      (*locked_object_it)->unlock();
-      //*myThread->_file <<"released object " << *locked_object_it << std::endl;
-   }
-   _lockedObjects.clear();
-}
-
 bool MemController::containsAllCopies( MemController const &target ) const {
    bool result = true;
    for ( unsigned int idx = 0; idx < target._wd.getNumCopies() && result; idx += 1 ) {
@@ -537,6 +520,5 @@ bool MemController::containsAllCopies( MemController const &target ) const {
    }
    return result;
 }
-
 
 }
