@@ -315,6 +315,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int node, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_cmalloc_2dim_distributed, ( void **p, size_t rows, size_t cols, size_t elem_size, unsigned int start_node, size_t num_nodes, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ));
 NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
 NANOS_API_DECL(void, nanos_free0, ( void *p )); 

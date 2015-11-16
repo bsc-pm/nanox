@@ -618,7 +618,7 @@ namespace nanos
          //It will act as an slave and call exit(0) when we need slave behaviour
          //in offload or cluster version
          void ompss_nanox_main ();         
-         void _registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len);
+         global_reg_t _registerMemoryChunk(void *addr, std::size_t len);
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
@@ -656,6 +656,8 @@ namespace nanos
          void allocLock();
          void allocUnlock();
          bool useFineAllocLock() const;
+void _distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t num_nodes );
+global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size);
 
          SMPDevice &_getSMPDevice();
    };

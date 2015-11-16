@@ -148,6 +148,9 @@ pthread_rwlock_t _containerLock;
       uint64_t _realBaseAddress;
       RecursiveLock _lock;
 
+      /* this should be on a different class, for global objects */
+      std::set< reg_t > _fixedRegions;
+
       public:
       void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise = false, bool giveSubFragmentsWithSameVersion = false );
       void lock();
@@ -183,6 +186,9 @@ pthread_rwlock_t _containerLock;
       reg_t isThisPartOf( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version );
       bool doTheseRegionsForm( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version ) ;
       bool doTheseRegionsForm( reg_t target, std::list< std::pair< reg_t, reg_t > >::const_iterator ibegin, std::list< std::pair< reg_t, reg_t > >::const_iterator iend, bool checkVersion ) ;
+
+      std::set< reg_t > const &getFixedRegions() const;
+      void addFixedRegion( reg_t id );
 
    };
    

@@ -1482,7 +1482,7 @@ void System::ompss_nanox_main(){
     #endif
 }
 
-void System::_registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len) {
+global_reg_t System::_registerMemoryChunk(void *addr, std::size_t len) {
    CopyData cd;
    nanos_region_dimension_internal_t dim;
    dim.lower_bound = 0;
@@ -1493,20 +1493,75 @@ void System::_registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t
    cd.setNumDimensions( 1 );
    global_reg_t reg;
    getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
-   reg.setOwnedMemory(loc);
-   //not really needed.., *it->registerOwnedMemory( reg );
+   return reg;
+}
+
+global_reg_t System::_registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size) {
+   CopyData cd;
+   nanos_region_dimension_internal_t dim[2];
+   dim[0].lower_bound = 0;
+   dim[0].size = cols * elem_size;
+   dim[0].accessed_length = cols * elem_size;
+   dim[1].lower_bound = 0;
+   dim[1].size = rows;
+   dim[1].accessed_length = rows;
+   cd.setBaseAddress( addr );
+   cd.setDimensions( &dim[0] );
+   cd.setNumDimensions( 2 );
+   global_reg_t reg;
+   getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
+   return reg;
+}
+
+void System::_distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t num_nodes ) {
+   CopyData cd;
+   std::size_t num_dims = reg.getNumDimensions();
+   nanos_region_dimension_internal_t dims[num_dims];
+   cd.setBaseAddress( (void *) reg.getRealFirstAddress() );
+   cd.setDimensions( &dims[0] );
+   cd.setNumDimensions( 2 );
+   reg.fillDimensionData( dims );
+   std::size_t size_per_node = dims[ num_dims-1 ].size / num_nodes;
+   std::size_t rest_size = dims[ num_dims -1 ].size % num_nodes;
+
+   std::size_t assigned_size = 0;
+   for ( std::size_t node_idx = 0; node_idx < num_nodes; node_idx += 1 ) {
+      dims[ num_dims-1 ].lower_bound = assigned_size;
+      dims[ num_dims-1 ].accessed_length = size_per_node + (node_idx < rest_size);
+      assigned_size += size_per_node + (node_idx < rest_size);
+      global_reg_t fragmented_reg;
+      getHostMemory().getRegionId( cd, fragmented_reg, *((WD *) 0), 0 );
+      std::cerr << "fragment " << node_idx << " is "; fragmented_reg.key->printRegion(std::cerr, fragmented_reg.id); std::cerr << std::endl;
+      fragmented_reg.key->addFixedRegion( fragmented_reg.id );
+      unsigned int version = 0;
+      NewLocationInfoList missing_parts;
+      do {
+         NewNewRegionDirectory::tryGetLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version, *((WD *) 0) );
+      } while ( version == 0 );
+      memory_space_id_t loc = 0;
+      for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
+         if ( *it != NULL ) {
+            if ((*it)->getNodeNumber() == (start_node + node_idx) ) {
+               fragmented_reg.setOwnedMemory(loc);
+            }
+         }
+         loc++;
+      }
+   }
 }
 
 void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len) {
    memory_space_id_t loc = 0;
    if ( node == 0 ) {
-      _registerMemoryChunk( loc, addr, len );
+      global_reg_t reg = _registerMemoryChunk( addr, len );
+      reg.setOwnedMemory(loc);
    } else {
       //_separateAddressSpaces[0] is always NULL (because loc = 0 is the local node memory)
       for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
          if ( *it != NULL ) {
             if ((*it)->getNodeNumber() == node) {
-               _registerMemoryChunk( loc, addr, len );
+               global_reg_t reg = _registerMemoryChunk( addr, len );
+               reg.setOwnedMemory(loc);
             }
          }
          loc++;

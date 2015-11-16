@@ -374,7 +374,7 @@ RegionDictionary< Sparsity >::RegionDictionary( CopyData const &cd ) :
 
 template < template <class> class Sparsity>
 RegionDictionary< Sparsity >::RegionDictionary( GlobalRegionDictionary &dict ) : Sparsity< RegionVectorEntry >( dict ), _intersects( dict.getNumDimensions(), MemoryMap< std::set< reg_t > >() ),
-      _keyBaseAddress( dict.getKeyBaseAddress() ), _realBaseAddress( dict.getRealBaseAddress() ), _lock() {
+      _keyBaseAddress( dict.getKeyBaseAddress() ), _realBaseAddress( dict.getRealBaseAddress() ), _lock(), _fixedRegions() {
    //std::cerr << "CREATING CACHE DICT: tree: " << (void *) &_tree << " orig tree: " << (void *) &dict._tree << std::endl;
 }
 
@@ -1242,6 +1242,16 @@ void RegionDictionary< Sparsity >::printRegionGeom( std::ostream &o, reg_t regio
       o << "[" << std::dec << lowerBound << ";" << std::dec << accessedLength << "]";
       regNode = regNode->getParent();
    }
+}
+
+template < template <class> class Sparsity>
+std::set< reg_t > const &RegionDictionary< Sparsity >::getFixedRegions() const {
+   return _fixedRegions;
+}
+
+template < template <class> class Sparsity>
+void RegionDictionary< Sparsity >::addFixedRegion( reg_t id ) {
+   _fixedRegions.insert( id );
 }
 
 }
