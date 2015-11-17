@@ -112,13 +112,13 @@ namespace nanos
           *        This operation can either be synchronous or asynchronous
           */
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops,
-               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
+               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) ;
 
          /* \brief Copy from localSrc in the device to remoteDst in the host
           *        This operation can either be synchronous or asynchronous
           */
          virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops,
-               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
+               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) ;
 
          /* \brief Copy locally in the device from src to dst
           */
@@ -177,27 +177,27 @@ namespace nanos
           *        Returns true if the operation is synchronous
           */
          virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest,
-               SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const ;
+               SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId );
 
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx );
 
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem );
 
-         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const;
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace &mem );
 
-         virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const;
+         virtual void _canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes );
 
-         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const;
+         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list );
 
          virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld,
-               SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) ;
+               SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId );
 
          virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld,
-               SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) ;
+               SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId );
 
          virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count,
-               std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops,
-               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const;
+               std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops,
+               Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId );
 
          void syncTransfer( uint64_t hostAddress, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
    };
