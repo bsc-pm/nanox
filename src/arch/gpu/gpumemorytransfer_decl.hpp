@@ -34,18 +34,22 @@ namespace ext
       public:
          CopyDescriptor _hostAddress; 
          void *         _deviceAddress;
-         size_t         _size;
+         size_t         _len;
+         size_t         _count;
+         size_t         _ld;
          bool           _requested;
 
-         GPUMemoryTransfer( CopyDescriptor &hostAddress, void * deviceAddress, size_t s ) :
-            _hostAddress( hostAddress ), _deviceAddress( deviceAddress ), _size( s ), _requested( false ) {}
+         GPUMemoryTransfer( CopyDescriptor &hostAddress, void * deviceAddress, size_t len, size_t count, size_t ld ) :
+            _hostAddress( hostAddress ), _deviceAddress( deviceAddress ), _len( len ), _count( count ), _ld( ld ), _requested( false ) {}
 
          GPUMemoryTransfer( GPUMemoryTransfer &mt ) :
-            _hostAddress( mt._hostAddress ), _deviceAddress( mt._deviceAddress ), _size( mt._size ),
+            _hostAddress( mt._hostAddress ), _deviceAddress( mt._deviceAddress ),
+            _len( mt._len ), _count( mt._count ), _ld( mt._ld ),
             _requested( mt._requested ) {}
 
          GPUMemoryTransfer ( const GPUMemoryTransfer &mt ) :
-                     _hostAddress( mt._hostAddress ), _deviceAddress( mt._deviceAddress ), _size( mt._size ),
+                     _hostAddress( mt._hostAddress ), _deviceAddress( mt._deviceAddress ),
+                     _len( mt._len ), _count( mt._count ), _ld( mt._ld ),
                      _requested( mt._requested ) {}
 
          void completeTransfer();
@@ -60,8 +64,8 @@ namespace ext
          GPUMemoryTransferList() {}
          virtual ~GPUMemoryTransferList() {}
 
-         virtual void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size ) {}
-         virtual void addMemoryTransfer ( CopyDescriptor &hostAddress ) {}
+         virtual void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t len, size_t count, size_t ld ) {}
+         //virtual void addMemoryTransfer ( CopyDescriptor &hostAddress ) {}
          virtual void removeMemoryTransfer ( CopyDescriptor &hostAddress ) {}
          virtual void removeMemoryTransfer () {}
          virtual void checkAddressForMemoryTransfer ( void * address ) {}
@@ -88,7 +92,7 @@ namespace ext
 
          /*! \brief Add a new memory transfer to the list of pending transfers (synchronous or asynchronous)
           */
-         virtual void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size );
+         virtual void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t len, size_t count, size_t ld );
 
          virtual void removeMemoryTransfer ( GPUMemoryTransfer * mt ) {}
 
@@ -141,7 +145,7 @@ namespace ext
 
          /*! \brief Add a new memory transfer to the list of pending transfers (asynchronous)
           */
-         void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size );
+         void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t len, size_t count, size_t ld );
 
          /*! \brief Remove the given memory transfer (asynchronous)
           */
@@ -181,7 +185,7 @@ namespace ext
 
          /*! \brief Add a new memory transfer to the list of requested transfers (asynchronous)
           */
-         void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t size );
+         void addMemoryTransfer ( CopyDescriptor &hostAddress, void * deviceAddress, size_t len, size_t count, size_t ld );
 
          /*! \brief Execute the given memory transfer (asynchronous)
           */

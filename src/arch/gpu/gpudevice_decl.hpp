@@ -40,7 +40,7 @@ namespace nanos
 
          /*! \brief copy in when the thread invoking this function belongs to pe
           */
-         void isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const ;
+         void isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu );
 
 
          /*! \brief copy in when the thread invoking this function does not belong to pe
@@ -48,12 +48,12 @@ namespace nanos
           *         thread (which is periodically checking the list) will perform the copy and notify
           *         the cache when it has finished
           */
-         void isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
+         void isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu );
 
 
          /*! \brief copy out when the thread invoking this function belongs to pe
           */
-         void isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
+         void isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu );
 
 
          /*! \brief copy out when the thread invoking this function does not belong to pe
@@ -61,7 +61,7 @@ namespace nanos
           *         thread (which is periodically checking the list) will perform the copy and notify
           *         the cache when it has finished
           */
-         void isNotMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const;
+         void isNotMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu );
 
 
          /*! \brief GPUDevice copy constructor
@@ -136,17 +136,17 @@ namespace nanos
 
          /* \brief copy from src in the host to dst in the device synchronously
           */
-         static void copyInSyncToDevice ( void * dst, void * src, size_t size );
+         static void copyInSyncToDevice ( void * dst, void * src, size_t len, size_t count, size_t ld );
 
          /* \brief when transferring with asynchronous modes, copy from src in the host
           *        to dst in the host, where dst is an intermediate buffer
           */
-         static void copyInAsyncToBuffer( void * dst, void * src, size_t size );
+         static void copyInAsyncToBuffer( void * dst, void * src, size_t len, size_t count, size_t ld );
 
          /* \brief when transferring with asynchronous modes, copy from src in the host
           *        to dst in the device, where src is an intermediate buffer
           */
-         static void copyInAsyncToDevice( void * dst, void * src, size_t size );
+         static void copyInAsyncToDevice( void * dst, void * src, size_t len, size_t count, size_t ld );
 
          /* \brief when transferring with asynchronous modes, wait until all input copies
           *        (from host to device) have been completed
@@ -156,12 +156,12 @@ namespace nanos
          /* \brief when transferring with synchronous mode, copy from src in the device
           *        to dst in the host
           */
-         static void copyOutSyncToHost ( void * dst, void * src, size_t size );
+         static void copyOutSyncToHost ( void * dst, void * src, size_t len, size_t count, size_t ld );
 
          /* \brief when transferring with asynchronous modes, copy from src in the device
           *        to dst in the host, where dst is an intermediate buffer
           */
-         static void copyOutAsyncToBuffer( void * src, void * dst, size_t size );
+         static void copyOutAsyncToBuffer( void * src, void * dst, size_t len, size_t count, size_t ld );
 
          /* \brief when transferring with asynchronous modes, wait until all output copies
           *        (from device to host) have been completed
@@ -171,7 +171,7 @@ namespace nanos
          /* \brief when transferring with asynchronous modes, copy from src in the host
           *        to dst in the host, where src is an intermediate buffer
           */
-         static void copyOutAsyncToHost( void * src, void * dst, size_t size );
+         static void copyOutAsyncToHost( void * src, void * dst, size_t len, size_t count, size_t ld );
 
          /* \brief Copy from addrSrc in peSrc device to addrDst in peDst device
           *        Returns true if the operation is synchronous
