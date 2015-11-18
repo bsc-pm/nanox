@@ -60,8 +60,8 @@ std::ostream & nanos::operator<< (std::ostream &o, nanos::NewNewDirectoryEntryDa
    o << " V: " << ent.getVersion() << " Locs: ";
    for ( std::set<memory_space_id_t>::iterator it = ent._location.begin(); it != ent._location.end(); it++ ) {
       o << *it << " ";
-      o << "R: " << ent.getRootedLocation() << " ";
    }
+   o << "R: " << ent.getRootedLocation();
    return o;
 }
 
