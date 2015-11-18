@@ -167,22 +167,38 @@ bool GPUThread::inlineWorkDependent ( WD &wd )
 
    if ( GPUConfig::isPrefetchingDefined() ) {
       WD * last = &wd;
-      while ( canPrefetch() ) {
+
+      WD * held = getHeldWD();
+      if ( held != NULL ) {
+         if ( held->_mcontrol.allocateTaskMemory() ) {
+            // *(myThread->_file) << myThread->getId() <<" ------ succeeded allocation for wd " << held->getId() << std::endl;
+            held->init();
+            _prefetchedWDs += 1;
+            addNextWD( held );
+            setHeldWD( NULL );
+         }
+      } else {
+
+      while ( canPrefetch() && getHeldWD() == NULL ) {
          // Get next task in order to prefetch data to device memory
          WD *next = Scheduler::prefetch( ( nanos::BaseThread * ) this, *last );
          if ( next != NULL ) {
             next->_mcontrol.initialize( *(this->runningOn()) );
             if ( next->_mcontrol.allocateTaskMemory() ) {
                next->init();
+               _prefetchedWDs += 1;
+               addNextWD( next );
+               last = next;
             } else {
-               *(myThread->_file) << "------ failed allocation for wd " << next->getId() << std::endl;
+               // *(myThread->_file) << myThread->getId() << " ------ failed allocation for wd " << next->getId() << std::endl;
+               setHeldWD( next );
+               break;
             }
-            _prefetchedWDs += 1;
-            addNextWD( next );
-            last = next;
          } else {
             break;
          }
+      }
+
       }
    }
 
