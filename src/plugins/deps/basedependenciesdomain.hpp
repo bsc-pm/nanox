@@ -38,7 +38,8 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
 
       TaskReduction *tr = myThread->getCurrentWD()->getTaskReduction( (const void *) target.getAddress() );
       if ( tr != NULL ) {
-         if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() ) commDO->setTaskReduction( tr );
+    	  if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() )
+				commDO->setTaskReduction( tr );
       }
 
       commDO->resetReferences();

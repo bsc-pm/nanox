@@ -553,10 +553,12 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
    if ( it == _taskReductions.rend() ) {
       //! We must register p_orig as a new reduction
        NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+       NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
        _taskReductions.push_back(
                new TaskReduction( p_orig, p_init, p_reducer,
                    p_size, p_el_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
    }
+
 }
 
 void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_dep, size_t array_descriptor_size,
@@ -599,7 +601,7 @@ bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
    }
 
    if ( it != _taskReductions.rend() ) {
-      if ( del ) delete (*it);
+      if ( del ) {delete (*it);}
       // Reverse iterators cannot be erased directly, we need to transform them
       // to common iterators
       _taskReductions.erase( --(it.base()) );

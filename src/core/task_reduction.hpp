@@ -27,25 +27,20 @@ inline void * TaskReduction::have( const void *ptr, size_t id )
    bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
 
    if ( inside ) return & _storage[_size_target*id];
-   else return NULL;
 }
 
 inline void * TaskReduction::finalize( void )
 {
    void * result = _original;
-
-   //For each thread
-   for ( size_t i=1; i<_num_threads; i++)
-	   //Reduce all elements
-	   for(size_t j=0; j<_num_elements; j++ )
-		 {
-			   _reducer( &_storage[j*_size_element] ,&_storage[i*_size_target + j*_size_element] );
-		 }
-
-   //reduce all to original
-   for(size_t j=0; j<_num_elements; j++ )
-	  _reducer_orig_var( &((char*)_original)[j * _size_element], &_storage[j * _size_element] );
-   return result;
+	//For each thread
+   	for ( size_t i=0; i<_num_threads; i++){
+	//Reduce all elements
+		for(size_t j=0; j<_num_elements; j++ )
+		{
+			_reducer( &((char*)_original)[j*_size_element] ,&_storage[i*_size_target + j*_size_element] );
+		}
+   	}
+	return result;
 }
 
 inline unsigned TaskReduction::getDepth( void ) const

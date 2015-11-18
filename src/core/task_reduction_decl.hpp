@@ -63,29 +63,6 @@ class TaskReduction {
 
    public:
 
-
-      //*************************************//
-      //*Original code for Scalar reduction*//
-      //*************************************//
-
-      //! \brief Common TaskReduction constructor
-    /*  TaskReduction( void *orig, initializer_t init, reducer_t red,
-                      size_t elem_size, size_t threads, unsigned depth )
-                    : _original(orig), _dependence(orig), _depth(depth), _initializer(init),
-                      _reducer(red), _reducer_orig_var(red), _storage(_size_target*threads),
-					  _size_target(elem_size), _size_element(elem_size), _num_threads(threads),
-					  _num_elements(1), _min(NULL), _max(NULL)
-      {
-    	 _num_elements = _size_target / _size_element;
-         _min = & _storage[0];
-         _max = & _storage[_size_element*threads];
-
-         for ( size_t i=0; i<threads; i++) {
-             _initializer( &_storage[i*_size_element], _original );
-         }
-      }*/
-
-
       //! \brief TaskReduction constructor only used when we are performing a Reduction
       TaskReduction( void *orig, initializer_t init, reducer_t red,
     		  	  size_t size_target, size_t size_elem, size_t
@@ -102,6 +79,7 @@ class TaskReduction {
          for ( size_t i=0; i<threads; i++) {
         	 //Initialize all elements (1 for scalars)
         	 for(size_t j=0; j<_num_elements; j++ ) {
+
         		 _initializer( &_storage[i*_size_target + j*_size_element], _original );
         	 }
          }
