@@ -106,6 +106,8 @@ namespace ext
 
          static bool isCUBLASInitDefined ( void ) { return _initCublas; }
 
+         static bool isCUSPARSEInitDefined ( void ) { return _initCuSparse; }
+
          static void getGPUsProperties( int device, void * deviceProps );
 
          static bool getAllocWide( void );
