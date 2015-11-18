@@ -1229,7 +1229,7 @@ namespace nanos {
                         //for ( int i = winner - 1; i >= start; i -= 1 )
                         for ( int i = winner - 1; i >= start; i -= 1 )
                         {
-                           winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
+                           winner = ( tdata._createdData[ winner ] <= tdata._createdData[ i ] ) ? winner : i ;
                         }
                         tdata._createdData[ winner ] += createdDataSize;
 //          *thread->_file << "Ranked init wd (id=" << wd.getId() << ", desc=" <<
