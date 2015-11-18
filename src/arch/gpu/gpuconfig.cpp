@@ -43,6 +43,7 @@ size_t GPUConfig::_maxGPUMemory = 0;
 bool GPUConfig::_allocatePinnedBuffers = true;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
+bool GPUConfig::_initCuSparse = false;
 void * GPUConfig::_gpusProperties = NULL;
 bool GPUConfig::_allocWide = false;
 
@@ -134,6 +135,12 @@ void GPUConfig::prepare( Config& config )
                                 "Enable or disable CUBLAS initialization (disabled by default)" );
    config.registerEnvOption( "gpu-cublas-init", "NX_GPUCUBLASINIT" );
    config.registerArgOption( "gpu-cublas-init", "gpu-cublas-init" );
+
+   // Enable / disable cuSPARSE initialization
+   config.registerConfigOption( "gpu-sparse-init", NEW Config::FlagOption( _initCuSparse ),
+                                "Enable or disable cuSPARSE initialization (disabled by default)" );
+   config.registerEnvOption( "gpu-sparse-init", "NX_GPUCUBLASINIT" );
+   config.registerArgOption( "gpu-sparse-init", "gpu-sparse-init" );
 
    config.registerConfigOption( "gpu-alloc-wide", NEW Config::FlagOption( _allocWide ),
                                 "Alloc full objects in the cache." );

@@ -63,6 +63,7 @@ namespace ext
          static bool                      _allocatePinnedBuffers; //! Enable / disable allocation of pinned memory buffers used by transfers
          static bool                      _gpuWarmup; //! Enable / disable driver warmup (during runtime startup)
          static bool                      _initCublas; //! Init CUBLAS library during runtime startup
+         static bool                      _initCuSparse; //! Init cuSPARSE library during runtime startup
          static void *                    _gpusProperties; //! Array of structs of cudaDeviceProp
          static bool                      _allocWide; //! Use wide allocation policy for the region cache
 
