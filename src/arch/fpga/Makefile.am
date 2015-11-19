@@ -34,14 +34,13 @@ devinclude_HEADERS = \
     fpgaprocessorinfo.hpp \
     fpgathread.hpp \
     fpgamemorytransfer.hpp \
-	fpgaworker.hpp \
-	fpgapinnedallocator.hpp \
-	$(END) 
+    fpgaworker.hpp \
+    $(END) 
 
 fpga_api_sources = \
-	nanos-fpga.h \
-	fpga-api.cpp \
-	$(END)
+    nanos-fpga.h \
+    fpga-api.cpp \
+    $(END)
 
 fpga_sources = \
     fpgaconfig.hpp \
@@ -57,15 +56,13 @@ fpga_sources = \
     fpgathread.cpp \
     fpgamemorytransfer.hpp \
     fpgamemorytransfer.cpp \
-	fpgaworker.hpp \
-	fpgaworker.cpp \
-	fpgapinnedallocator.hpp \
-	fpgapinnedallocator.cpp \
-	$(END)
+    fpgaworker.hpp \
+    fpgaworker.cpp \
+    $(END)
 
 pe_fpga_sources = \
     fpgaplugin.cpp \
-	$(END)
+    $(END)
 
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
