@@ -20,9 +20,6 @@
 #ifndef _NANOS_OS
 #define _NANOS_OS
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 #include <string>
 #include <vector>
 #include <stdlib.h>
