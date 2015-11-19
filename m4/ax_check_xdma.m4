@@ -82,7 +82,7 @@ AS_IF([test "$xdma" = yes],[
 
   # Look for xdma_init function in libxdma
   AS_IF([test "$xdma" = yes],[
-      AC_SEARCH_LIBS([xdma_init],
+      AC_SEARCH_LIBS([xdmaOpen],
                 [xdma],
                 [xdma=yes],
                 [xdma=no])
