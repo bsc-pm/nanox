@@ -118,7 +118,7 @@ AS_IF([test $mpi = yes],[
   #  - Dont unset CPPFLAGS, CXXFLAGS and LDFLAGS. Respect additional user provided flags
   AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $mpiinc -DMPICH_IGNORE_CXX_SEEK -DMPICH_SKIP_MPICXX])
   AX_VAR_PUSHVALUE([CXXFLAGS])
-  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilibs])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
   AX_VAR_PUSHVALUE([LIBS])
 
   # For cached values and tools, it implies unsetting the variable itself,
@@ -135,7 +135,7 @@ AS_IF([test $mpi = yes],[
   AC_LANG_PUSH([C++])
   
   # Check for a valid MPI compiler
-  AC_PROG_CXX([$MPICXX mpiicpc mpicxx])
+  AC_PROG_CXX([$MPICXX $with_mpi/mpiicpc $with_mpi/mpicxx mpiicpc mpicxx])
   AC_PROG_CXXCPP()
 
   # Check if mpi.h and mpicxx.h header files exists and compiles
@@ -143,18 +143,23 @@ AS_IF([test $mpi = yes],[
   
   # Check if the provided MPI implementation is Intel MPI
   # Multithread support will be provided if the flag -mt_mpi is used
-  AS_IF([test x$mpi == xyes],[
-    LDFLAGS=-mt_mpi
-    AC_CHECK_LIB([mpi_mt],
-                   [MPI_Init_thread],
-                   [impi=yes],
-                   [impi=no])
+  # or if we link against libmpi_mt library.
+  AX_CHECK_LINK_FLAG([-mt-mpi],[
+    AX_APPEND_FLAG([ -mt_mpi],[LDFLAGS])
   ])dnl
   
-  # Look for MPI_Init_thread function in libmpicxx, libmpi_cxx or libmpichcxx libraries
+  # Look for MPI_Init_thread function in libmpi_mt, libmpi or libmpich libraries
   AS_IF([test x$mpi == xyes],[
     AC_SEARCH_LIBS([MPI_Init_thread],
-                   [mpicxx mpi_cxx mpichcxx],
+                   [mpi_mt mpich mpi],
+                   [mpi=yes;break],
+                   [mpi=no])dnl
+  ])dnl
+
+  # Look for MPI::Comm::Comm() function in libmpicxx, libmpi_cxx or libmpichcxx libraries
+  AS_IF([test x$mpi == xyes],[
+    AC_SEARCH_LIBS([_ZN3MPI4CommD0Ev],
+                   [mpichcxx mpi_cxx],
                    [mpi=yes;break],
                    [mpi=no])dnl
   ])dnl
@@ -174,6 +179,8 @@ Please, check that provided directories are correct.
       [AC_RUN_IFELSE(
         [AC_LANG_PROGRAM(
           [
+             #include <string>
+
              #include <stdio.h>
              #include <stdlib.h>
              #include <unistd.h>
@@ -198,7 +205,7 @@ Please, check that provided directories are correct.
                  return 1;
              }
   
-             char *mt_support;
+             std::string mt_support;
              switch( provided ) {
                  case MPI_THREAD_SINGLE:
                  mt_support = "none";
@@ -222,7 +229,7 @@ Please, check that provided directories are correct.
              }
   
              FILE* out = fopen("conftest.out","w");
-             fprintf(out,"%s\n", mt_support);
+             fprintf(out,"%s\n", mt_support.c_str());
              fclose(out);
              
              return 0;
@@ -242,7 +249,7 @@ The execution of MPI multithread support test failed
       ])
   ])dnl
 
-  AS_IF([$ac_cv_mpi_mt = skip],[
+  AS_IF([test $ac_cv_mpi_mt = skip],[
     AC_MSG_WARN([
 ------------------------------
 Multithreading support check was not done
@@ -258,10 +265,19 @@ Maximun multithread level supported: $ac_cv_mpi_mt
 ------------------------------])
     ])dnl
   ])dnl
-  
-  mpilib="$LIBS"
-  mpildflags="$LDFLAGS"
+
+  AS_CASE([$LIBS],
+    [*"-lmpichcxx "*"-lmpi_mt"*],[mpi_implementation=intel],
+    [*"-lmpichcxx "*"-lmpich"*], [mpi_implementation=mpich],
+    [*"-lmpicxx "*"-lmpi"*],     [mpi_implementation=openmpi],
+    [mpi_implementation=none]
+  )
+  AC_DEFINE_UNQUOTED([MPI_IMPLEMENTATION],[$mpi_implementation],
+    [Identifies which MPI implementation is being used. Supported values: intel, mpich, openmpi])
+
   MPICXX="$CXX"
+  mpilib="$LDFLAGS"
+  mpilibs="$LIBS"
 
   # Restore variables to its original state
   AX_VAR_POPVALUE([CPPFLAGS])
@@ -287,7 +303,7 @@ AM_CONDITIONAL([MPI_SUPPORT],[test x$mpi = xyes ])
 AC_SUBST([MPICXX])
 AC_SUBST([mpiinc])
 AC_SUBST([mpilib])
-AC_SUBST([mpildflags])
+AC_SUBST([mpilibs])
 
 ])dnl AX_CHECK_MPI
 
