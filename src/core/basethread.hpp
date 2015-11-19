@@ -108,7 +108,7 @@ namespace nanos
    inline BaseThread::BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator, ext::SMPMultiThread *parent ) :
       _id( sys.nextThreadId() ), _osId( osId ), _maxPrefetch( 1 ), _status( ), _parent( parent ), _pe( creator ), _mlock( ),
       _threadWD( wd ), _currentWD( NULL ), _heldWD( NULL ), _nextWDs( /* enableDeviceCounter */ false ), _teamData( NULL ), _nextTeamData( NULL ),
-      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL ), _nextTeam( NULL )
+      _name( "Thread" ), _description( "" ), _allocator( ), _steps(0), _bpCallBack( NULL ), _nextTeam( NULL ), _gasnetAllowAM( true ), _pendingRequests()
    {
          if ( sys.getSplitOutputForThreads() ) {
             if ( _parent != NULL ) {

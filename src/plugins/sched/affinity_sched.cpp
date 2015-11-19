@@ -1168,7 +1168,7 @@ namespace nanos {
 
                std::list< memory_space_id_t > locs;
                bool lol = wd._mcontrol.isMultipleRooted( locs );
-               std::cerr << "rooted=" << rooted << ", tiedToLocation=" << wd.isTiedToLocation() << ", multipleRooted=" << lol << std::endl;
+               //std::cerr << "rooted=" << rooted << ", tiedToLocation=" << wd.isTiedToLocation() << ", multipleRooted=" << lol << std::endl;
                if ( lol ) {
                   memory_space_id_t frn = locs.front();
                   unsigned int queue_idx = ( frn != 0 ? sys.getSeparateMemory( frn ).getNodeNumber() : 0 );
