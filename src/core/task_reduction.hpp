@@ -22,25 +22,45 @@
 
 #include "task_reduction_decl.hpp"
 
-inline void * TaskReduction::have( const void *ptr, size_t id )
+inline bool TaskReduction::has( const void *ptr)
 {
-   bool inside =  ( ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) ) );
+   bool inside =  ( ( ptr == _dependence ) /*|| ( (ptr >= _min) && (ptr <= _max) )*/ );
 
-   if ( inside ) return & _storage[_size_target*id];
+   if ( inside ) return true;//_storage[id];
+   return false;
+}
+
+inline void * TaskReduction::get( const void *ptr, size_t id )
+{
+   return _storage[id];
 }
 
 inline void * TaskReduction::finalize( void )
 {
-   void * result = _original;
+	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 2); )
+	void * result = _original;
 	//For each thread
    	for ( size_t i=0; i<_num_threads; i++){
 	//Reduce all elements
 		for(size_t j=0; j<_num_elements; j++ )
 		{
-			_reducer( &((char*)_original)[j*_size_element] ,&_storage[i*_size_target + j*_size_element] );
+			_reducer( &((char*)_original)[j*_size_element] ,& ((char*)(_storage[i]))[j*_size_element]);
 		}
+		free(_storage[i]);
    	}
+   	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
 	return result;
+}
+
+inline  void * TaskReduction::init( size_t id )
+{
+	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 1 ); )
+	_storage[id] = malloc (_size);
+	for(size_t j=0; j<_num_elements; j++ ) {
+		_initializer( & ((char*)(_storage)[id])[j*_size_element], _original );
+	}
+	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
+	return _storage[id];
 }
 
 inline unsigned TaskReduction::getDepth( void ) const
