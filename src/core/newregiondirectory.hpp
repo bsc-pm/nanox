@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -22,7 +22,6 @@
 
 #include "deviceops.hpp"
 #include "version.hpp"
-#include "printbt_decl.hpp"
 
 
 inline NewNewDirectoryEntryData::NewNewDirectoryEntryData() : Version( 1 )

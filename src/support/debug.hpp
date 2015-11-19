@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -51,6 +51,10 @@ namespace nanos
                   + " (" + file + ":" + toString<int>( line )+ ")" ) {}
 
    };
+
+   void printBt( std::ostream &o );
+
+   void printCpuSet( std::ostream &o, const std::string str, const cpu_set_t *cpu_set );
 
 #define _nanos_ostream ( /* myThread ? *(myThread->_file) : */ std::cerr )
 

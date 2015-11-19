@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 /*! \file nanos_sys.cpp
  *  \brief 
  */
@@ -23,6 +24,9 @@
 #include "config.h"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
+
+// atexit
+#include <stdlib.h>
 
 using namespace nanos;
 
@@ -105,10 +109,26 @@ NANOS_API_DEF(nanos_err_t, nanos_get_num_sockets, (int *num_sockets ))
    return NANOS_OK;
 }
 
-//This main will do nothing normally
-//It will act as an slave and call exit(0) when we need slave behaviour
-//in offload or cluster version
+
+NANOS_API_DEF(void, ompss_nanox_main_begin, ( void *addr, const char* file, int line ))
+{
+    sys.ompss_nanox_main(addr, file, line);
+}
+
+NANOS_API_DEF(void, ompss_nanox_main_end, ( ))
+{
+    sys.ompss_nanox_main_end();
+}
+
+// Deprecated API
 NANOS_API_DEF(void, ompss_nanox_main, ( ))
 {    
-    sys.ompss_nanox_main();    
+    warning("This application is using an old instrumentation API, please update your compiler");
+
+    ompss_nanox_main_begin( (void*)ompss_nanox_main, __FILE__, __LINE__);
+}
+
+NANOS_API_DEF(void, nanos_atexit, (void *p))
+{
+    ::atexit((void (*)())p);
 }

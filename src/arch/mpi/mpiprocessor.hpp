@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -45,6 +45,7 @@ std::string MPIProcessor::_mpiExecFile;
 std::string MPIProcessor::_mpiLauncherFile=NANOX_PREFIX"/bin/offload_slave_launch.sh";
 std::string MPIProcessor::_mpiHosts;
 std::string MPIProcessor::_mpiHostsFile;
+std::string MPIProcessor::_mpiControlFile;
 int MPIProcessor::_numPrevPEs=-1;
 int MPIProcessor::_numFreeCores;
 int MPIProcessor::_currPE;
@@ -78,6 +79,9 @@ std::string MPIProcessor::getMpiExecFile() {
     return _mpiExecFile;
 }
 
+std::string MPIProcessor::getMpiControlFile() {
+    return _mpiControlFile;
+}
 
 bool MPIProcessor::getAllocWide() {
     return _allocWide;
@@ -150,6 +154,15 @@ bool MPIProcessor::isBusy() const {
 void MPIProcessor::setBusy(bool busy) {
     _busy = busy;
 }       
+
+            
+void MPIProcessor::setPphList(int* list){
+    _pphList=list;
+}
+
+int* MPIProcessor::getPphList() {
+    return _pphList;
+}
 
 //Try to reserve this PE, if the one who reserves it is the same
 //which already has the PE, return true

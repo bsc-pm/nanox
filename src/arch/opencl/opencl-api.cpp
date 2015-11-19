@@ -1,6 +1,5 @@
-
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -53,6 +52,13 @@ NANOS_API_DEF(nanos_err_t,nanos_opencl_set_arg, (void* opencl_kernel, int arg_nu
 NANOS_API_DEF(nanos_err_t,nanos_exec_kernel, (void* opencl_kernel, int work_dim, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size)){
    nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
    pe->execKernel(opencl_kernel, work_dim, ndr_offset, ndr_local_size, ndr_global_size);
+
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t,nanos_profile_exec_kernel, (void* opencl_kernel, int work_dim, int range_size, size_t* ndr_offset, size_t* ndr_local_size, size_t* ndr_global_size)){
+   nanos::ext::OpenCLProcessor *pe=( nanos::ext::OpenCLProcessor * ) getMyThreadSafe()->runningOn();
+   pe->profileKernel(opencl_kernel, work_dim, range_size, ndr_offset, ndr_local_size, ndr_global_size);
 
    return NANOS_OK;
 }

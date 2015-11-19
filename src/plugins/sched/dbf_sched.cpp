@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -41,8 +41,8 @@ namespace nanos {
 
                ThreadData () : ScheduleThreadData(), _readyQueue( NULL )
                {
-                 if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* optimise option */ );
-                 else _readyQueue = NEW WDDeque();
+                 if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* enableDeviceCounter */, true /* optimise option */ );
+                 else _readyQueue = NEW WDDeque( true /* enableDeviceCounter */ );
                }
                virtual ~ThreadData () { delete _readyQueue; }
             };
@@ -53,7 +53,10 @@ namespace nanos {
 
          public:
             // constructor
-            DistributedBFPolicy() : SchedulePolicy ( "Cilk" ) {}
+            DistributedBFPolicy() : SchedulePolicy ( "Cilk" )
+            {
+              _usePriority = _usePriority && sys.getPrioritiesNeeded();
+            }
 
             // destructor
             virtual ~DistributedBFPolicy() {}
@@ -80,23 +83,23 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            void atSuccessor   ( DependableObject &successor, DependableObject &predecessor )
             {
                //debug( "Scheduler::successorFound" );
 
                if ( ! _useSmartPriority ) return;
 
 
-               if ( predecessor == NULL || successor == NULL ) return;
-               
-               WD *pred = ( WD* ) predecessor->getRelatedObject();
+ //              if ( predecessor == NULL || successor == NULL ) return;
+
+               WD *pred = ( WD* ) predecessor.getRelatedObject();
                if ( pred == NULL ) return;
 
-               WD *succ = ( WD* ) successor->getRelatedObject();
+               WD *succ = ( WD* ) successor.getRelatedObject();
                if ( succ == NULL ) {
                   fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
                }
-               
+
                debug ( "Propagating priority from "
                   << (void*)succ << ":" << succ->getId() << " to "
                   << (void*)pred << ":"<< pred->getId()
@@ -104,11 +107,11 @@ namespace nanos {
                   << ", new priority: " << std::max( pred->getPriority(),
                   succ->getPriority() )
                );
-               
+
                // Propagate priority
                if ( pred->getPriority() < succ->getPriority() ) {
                   pred->setPriority( succ->getPriority() );
-                  
+
                   // Reorder
                   ThreadData &tdata = (ThreadData &) *myThread->getTeam()->getScheduleData();
                   WDPriorityQueue<> *q = (WDPriorityQueue<> *) tdata._readyQueue;
@@ -143,7 +146,7 @@ namespace nanos {
             }
 
 
-            virtual WD *atIdle ( BaseThread *thread );
+            virtual WD *atIdle ( BaseThread *thread, int numSteal );
 
             bool reorderWD ( BaseThread *t, WD *wd )
             {
@@ -155,6 +158,11 @@ namespace nanos {
                   return true;
                }
             }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority || _useSmartPriority;
+            }
       };
 
 
@@ -164,38 +172,30 @@ namespace nanos {
        *  \param thread pointer to the thread to be scheduled
        *  \sa BaseThread
        */
-      WD * DistributedBFPolicy::atIdle ( BaseThread *thread )
+      WD * DistributedBFPolicy::atIdle ( BaseThread *thread, int numSteal )
       {
          WorkDescriptor * wd;
          WorkDescriptor * next = NULL; 
 
          ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
 
-         /*
-          *  First try to schedule the thread with a task from its queue
-          */
+         //! First try to schedule the thread with a task from its queue
          if ( ( wd = data._readyQueue->pop_front ( thread ) ) != NULL ) {
             return wd;
          } else {
-            /*
-            *  If the local queue is empty, try to steal the parent (possibly enqueued in the queue of another thread)
-            */
+            //! If the local queue is empty, try to steal the parent (possibly enqueued in the queue of another thread)
             if ( ( wd = thread->getCurrentWD()->getParent() ) != NULL ) {
-               //removing it from the queue. 
-               //Try to remove from one queue: if someone move it, I stop looking for it to avoid ping-pongs.
-               if ( wd->isEnqueued() ) {
-                  //not in queue = in execution, in queue = not in execution
-                  if ( wd->getMyQueue()->removeWD( thread, wd, &next ) ) { //found it!
-                     return next;
-                  }
+               WDPool *pq; //!< Parent queue
+               //! Removing it from the queue, if someone move it stop looking for it to avoid ping-pongs
+               if ( (pq = wd->getMyQueue()) != NULL ) {
+                  //! Not in queue = in execution, in queue = not in execution
+                  if ( pq->removeWD( thread, wd, &next ) ) return next; //!< Found it!
                }
             }
 
-            /*!
-            *  If also the parent is NULL or if someone moved it to another queue while was trying to steal it, 
-            *  try to steal tasks from other queues
-            *  \warning other queues are checked cyclically: should be random
-            */
+            //! If also the parent is NULL or if someone moved it to another queue while was trying to steal it, 
+            //! try to steal tasks from other queues
+            //! \warning other queues are checked cyclically: should be random
             int size = thread->getTeam()->getFinalSize();
             int thid = rand() % size;
             int count = 0;
@@ -204,10 +204,10 @@ namespace nanos {
             do {
                thid = ( thid + 1 ) % size;
 
-               BaseThread *victim = &thread->getTeam()->getThread(thid);
+               BaseThread &victim = thread->getTeam()->getThread(thid);
 
-               if ( victim && victim->getTeam() != NULL ) {
-                 ThreadData &tdata = ( ThreadData & ) *victim->getTeamData()->getScheduleData();
+               if ( victim.getTeam() != NULL ) {
+                 ThreadData &tdata = ( ThreadData & ) *victim.getTeamData()->getScheduleData();
                  wd = tdata._readyQueue->pop_back ( thread );
                }
 
@@ -219,7 +219,7 @@ namespace nanos {
          }
       }
 
-      bool DistributedBFPolicy::_usePriority = false;
+      bool DistributedBFPolicy::_usePriority = true;
       bool DistributedBFPolicy::_useSmartPriority = false;
 
       class DistributedBFSchedPlugin : public Plugin

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -44,6 +44,7 @@ typedef struct {
 } my_args3;
 
 
+void first(void *ptr);
 void first(void *ptr)
 {
    int *i = ((my_args *) ptr)->p_i;
@@ -54,6 +55,7 @@ void first(void *ptr)
 #endif
 }
 
+void second(void *ptr);
 void second(void *ptr)
 {
    int *i = ((my_args *) ptr)->p_i;
@@ -64,6 +66,7 @@ void second(void *ptr)
 #endif
 }
 
+void third(void *ptr);
 void third(void *ptr)
 {
    int j;
@@ -73,6 +76,7 @@ void third(void *ptr)
    }
 }
 
+void fourth(void *ptr);
 void fourth(void *ptr)
 {
    int *i = ((my_args *) ptr)[0].p_i;
@@ -80,6 +84,7 @@ void fourth(void *ptr)
    (*j) = *i;
 }
 
+void fifth(void *ptr);
 void fifth(void *ptr)
 {
 #ifdef VERBOSE
@@ -91,6 +96,7 @@ void fifth(void *ptr)
    red_array[index]++;
 }
 
+void sixth(void *ptr);
 void sixth(void *ptr)
 {
 #ifdef VERBOSE
@@ -106,6 +112,7 @@ void sixth(void *ptr)
    }
 }
 
+void seventh(void *ptr);
 void seventh(void *ptr)
 {
 #ifdef VERBOSE
@@ -120,6 +127,7 @@ void seventh(void *ptr)
    }
 }
 
+void eighth(void *ptr);
 void eighth(void *ptr)
 {
 #ifdef VERBOSE
@@ -287,6 +295,7 @@ struct nanos_const_wd_definition_1 const_data8 =
 
 nanos_wd_dyn_props_t dyn_props = {0};
 
+bool single_dependency();
 bool single_dependency()
 {
    int my_value;
@@ -314,6 +323,7 @@ bool single_dependency()
    return (my_value == 1);
 }
 
+bool single_inout_chain();
 bool single_inout_chain()
 {
    int i;
@@ -345,6 +355,7 @@ bool single_inout_chain()
    return (my_value == 100);
 }
 
+bool multiple_inout_chains();
 bool multiple_inout_chains()
 {
    int i, j;
@@ -383,6 +394,7 @@ bool multiple_inout_chains()
    return true;
 }
 
+bool multiple_predecessors();
 bool multiple_predecessors()
 {
    int j;
@@ -417,6 +429,7 @@ bool multiple_predecessors()
    nanos_wd_t wd2=0;
    const_data3.base.data_alignment = __alignof__(my_args);
    NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data3.base, &dyn_props, sizeof( my_args )*size, ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+   for ( j = 0; j < size; j++);
    for ( j = 0; j < size; j++)
       args2[j].p_i = dep_addr2[j];
    NANOS_SAFE( nanos_submit( wd2,size,data_accesses2,0 ) );
@@ -428,6 +441,7 @@ bool multiple_predecessors()
    return true;
 }
 
+bool multiple_antidependencies();
 bool multiple_antidependencies()
 {
    int j;
@@ -468,6 +482,7 @@ bool multiple_antidependencies()
    return true;
 }
 
+bool out_dep_chain();
 bool out_dep_chain()
 {
    int i;
@@ -502,6 +517,7 @@ bool out_dep_chain()
    return (my_value == 500);
 }
 
+bool wait_on_test();
 bool wait_on_test()
 {
    int j;
@@ -539,13 +555,12 @@ bool wait_on_test()
    return true;
 }
 
+bool create_and_run_test();
 bool create_and_run_test()
 {
    int j;
    int __attribute__( ( aligned( 128 ) ) ) my_value[100];
    int other_value=0;
-
-   nanos_wd_dyn_props_t dyn_props = {0};
 
    for ( j = 0; j < 100; j++ ) {
       my_value[j] = 500;
@@ -586,6 +601,7 @@ bool create_and_run_test()
 // Test concurrent tasks, this test creates a task with an inout dependency on an array an then
 // a bunch of concurrent (reduction) tasks that update it. Finally it waits for them all to finish and
 // checks the result
+bool concurrent_task_1();
 bool concurrent_task_1()
 {
    int i, j;
@@ -609,16 +625,16 @@ bool concurrent_task_1()
    NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
 
    for ( j = 0; j < size; j++ ) {
-      my_args2 *args1=0;
-      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1,0}, 1, dimensions1, 0}};
-      nanos_wd_t wd1 = 0;
+      my_args2 *args2=0;
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{my_value, {1,1,0,1,0}, 1, dimensions2, 0}};
+      nanos_wd_t wd2 = 0;
 
       const_data5.base.data_alignment = __alignof__(my_args2);
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data5.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );
-      args1->p_i = my_value;
-      args1->index = j;
-      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data5.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+      args2->p_i = my_value;
+      args2->index = j;
+      NANOS_SAFE( nanos_submit( wd2,1,data_accesses2,0 ) );
    }
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
@@ -631,6 +647,7 @@ bool concurrent_task_1()
 // Test concurrent tasks, this test creates a task with an inout dependency on an array an then
 // a bunch of concurrent (reduction) tasks that update it. Then, another set of tasks are successors
 // of the concurrent ones. This checks that the concurrent task behaves correctly
+bool concurrent_task_2();
 bool concurrent_task_2()
 {
    int i, j;
@@ -656,30 +673,30 @@ bool concurrent_task_2()
    NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
 
    for ( j = 0; j < size; j++ ) {
-      my_args2 *args1=0;
-      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,1,0}, 1, dimensions1, 0}};
-      nanos_wd_t wd1 = 0;
+      my_args2 *args2=0;
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{my_value, {1,1,0,1,0}, 1, dimensions2, 0}};
+      nanos_wd_t wd2 = 0;
 
       const_data5.base.data_alignment = __alignof__(my_args2);
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data5.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );
-      args1->p_i = my_value;
-      args1->index = j;
-      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data5.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+      args2->p_i = my_value;
+      args2->index = j;
+      NANOS_SAFE( nanos_submit( wd2,1,data_accesses2,0 ) );
    }
 
    for ( j = 0; j < size; j++ ) {
-      my_args3 *args1=0;
-      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,0,0,0,0}, 1, dimensions1, 0}};
-      nanos_wd_t wd1 = 0;
+      my_args3 *args2=0;
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{my_value, {1,0,0,0,0}, 1, dimensions2, 0}};
+      nanos_wd_t wd2 = 0;
 
       const_data7.base.data_alignment = __alignof__(my_args3);
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data7.base, &dyn_props, sizeof( my_args3 ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );
-      args1->p_i = my_value;
-      args1->p_result = &my_results[j];
-      args1->index = j;
-      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data7.base, &dyn_props, sizeof( my_args3 ), ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+      args2->p_i = my_value;
+      args2->p_result = &my_results[j];
+      args2->index = j;
+      NANOS_SAFE( nanos_submit( wd2,1,data_accesses2,0 ) );
    }
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
@@ -694,6 +711,7 @@ bool concurrent_task_2()
 // a bunch of tasks that read the dependency, then, again, a bunch of concurrent (reduction) tasks 
 // that update it. Then, another set of tasks are successors
 // of the concurrent ones. This checks that the concurrent task behaves correctly
+bool concurrent_task_3();
 bool concurrent_task_3()
 {
    int i, j;
@@ -720,43 +738,43 @@ bool concurrent_task_3()
    NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
 
    for ( j = 0; j < size; j++ ) {
-      my_args2 *args1=0;
-      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0,0}, 1, dimensions1, 0}};
-      nanos_wd_t wd1 = 0;
+      my_args2 *args2=0;
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{&my_value, {1,0,0,0,0}, 1, dimensions2, 0}};
+      nanos_wd_t wd2 = 0;
 
       const_data8.base.data_alignment = __alignof__(my_args2);
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data8.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );
-      args1->p_i = my_value;
-      args1->index = j;
-      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data8.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+      args2->p_i = my_value;
+      args2->index = j;
+      NANOS_SAFE( nanos_submit( wd2,1,data_accesses2,0 ) );
    }
 
    for ( j = 0; j < size; j++ ) {
-      my_args2 *args1=0;
-      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,1,0,1,0}, 1, dimensions1, 0}};
-      nanos_wd_t wd1 = 0;
+      my_args2 *args2=0;
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{&my_value, {1,1,0,1,0}, 1, dimensions2, 0}};
+      nanos_wd_t wd2 = 0;
 
       const_data5.base.data_alignment = __alignof__(my_args2);
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data5.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );
-      args1->p_i = my_value;
-      args1->index = j;
-      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data5.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+      args2->p_i = my_value;
+      args2->index = j;
+      NANOS_SAFE( nanos_submit( wd2,1,data_accesses2,0 ) );
    }
 
    for ( j = 0; j < size; j++ ) {
-      my_args3 *args1=0;
-      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{&my_value, {1,0,0,0,0}, 1, dimensions1, 0}};
-      nanos_wd_t wd1 = 0;
+      my_args3 *args2=0;
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{&my_value, {1,0,0,0,0}, 1, dimensions2, 0}};
+      nanos_wd_t wd2 = 0;
 
       const_data7.base.data_alignment = __alignof__(my_args3);
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data7.base, &dyn_props, sizeof( my_args3 ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );
-      args1->p_i = my_value;
-      args1->p_result = &my_results[j];
-      args1->index = j;
-      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data7.base, &dyn_props, sizeof( my_args3 ), ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+      args2->p_i = my_value;
+      args2->p_result = &my_results[j];
+      args2->index = j;
+      NANOS_SAFE( nanos_submit( wd2,1,data_accesses2,0 ) );
    }
 
    NANOS_SAFE( nanos_wg_wait_completion( nanos_current_wd(), false ) );
@@ -770,6 +788,7 @@ bool concurrent_task_3()
 // This test creates a task that increases the the elements of an array by once,
 // and then 100 tasks that do the same but with the commutative property set.
 // Concurrent should fail while commutative should work.
+bool commutative_task_1();
 bool commutative_task_1()
 {
    int i, j;
@@ -795,16 +814,16 @@ bool commutative_task_1()
    NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
 
    for ( j = 0; j < size; j++ ) {
-      my_args2 *args1=0;
-      nanos_region_dimension_t dimensions1[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
-      nanos_data_access_t data_accesses1[1] = {{my_value, {1,1,0,0,1}, 1, dimensions1, 0}};
-      nanos_wd_t wd1 = 0;
+      my_args2 *args2=0;
+      nanos_region_dimension_t dimensions2[1] = {{sizeof(my_value), 0, sizeof(my_value)}};
+      nanos_data_access_t data_accesses2[1] = {{my_value, {1,1,0,0,1}, 1, dimensions2, 0}};
+      nanos_wd_t wd2 = 0;
 
       const_data6.base.data_alignment = __alignof__(my_args2);
-      NANOS_SAFE( nanos_create_wd_compact ( &wd1, &const_data6.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args1, nanos_current_wd(), NULL, NULL ) );
-      args1->p_i = my_value;
-      args1->index = size;
-      NANOS_SAFE( nanos_submit( wd1,1,data_accesses1,0 ) );
+      NANOS_SAFE( nanos_create_wd_compact ( &wd2, &const_data6.base, &dyn_props, sizeof( my_args2 ), ( void ** )&args2, nanos_current_wd(), NULL, NULL ) );
+      args2->p_i = my_value;
+      args2->index = size;
+      NANOS_SAFE( nanos_submit( wd2,1,data_accesses2,0 ) );
    }
    
    nanos_start_scheduler();
@@ -816,6 +835,7 @@ bool commutative_task_1()
    return true;
 }
 
+bool dependency_offset();
 bool dependency_offset()
 {
    int i;

@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #include <iostream>
 #include "memoryops_decl.hpp"
 #include "system_decl.hpp"
@@ -149,6 +168,7 @@ void BaseAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int
 }
 
 void BaseAddressSpaceInOps::issue( WD const &wd ) {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE, true); );
    for ( MapType::iterator it = _separateTransfers.begin(); it != _separateTransfers.end(); it++ ) {
      sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* regions */, wd );
    }
@@ -295,6 +315,7 @@ void SeparateAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned
 }
 
 void SeparateAddressSpaceInOps::issue( WD const &wd ) {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE, true); );
    for ( MapType::iterator it = _separateTransfers.begin(); it != _separateTransfers.end(); it++ ) {
       _destination.copy( *(it->first) /* mem space */, it->second /* list of regions */, wd );
    }
@@ -344,6 +365,7 @@ void SeparateAddressSpaceOutOps::addOutOp( memory_space_id_t to, memory_space_id
 }
 
 void SeparateAddressSpaceOutOps::issue( WD const &wd ) {
+   NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE, true); );
    for ( MapType::iterator it = _transfers.begin(); it != _transfers.end(); it++ ) {
       if (it->first.first == 0 ) {
          sys.getHostMemory().copy( sys.getSeparateMemory(it->first.second) /* mem space */, it->second /* region */, wd, _invalidation );

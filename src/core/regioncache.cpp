@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -158,6 +158,25 @@ void AllocatedChunk::copyRegionToHost( SeparateAddressSpaceOutOps &ops, reg_t re
       
       printBt( *(myThread->_file) );
    }
+}
+void AllocatedChunk::copyRegionFromHost( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, WD const &wd, unsigned int copyIdx ) {
+   NewNewRegionDirectory::RegionDirectoryKey key = _newRegions->getGlobalDirectoryKey();
+   CachedRegionStatus *entry = ( CachedRegionStatus * ) _newRegions->getRegionData( reg );
+   if ( !entry ) {
+      entry = NEW CachedRegionStatus();
+      _newRegions->setRegionData( reg, entry );
+   }
+      global_reg_t greg( reg, key );
+      //jbueno: We want to force the operation for each thread issuing the copy
+      //  if we use "addCacheOp" and several threads issue the same operation,
+      //  only one will be issued, and we do not want this.
+      //DeviceOps * dops = greg.getDeviceOps();
+      //if ( dops->addCacheOp( &wd, 8 ) ) {
+         //ops.insertOwnOp( dops, greg, version, 0 );
+         ops.addOpFromHost( greg, version, this, copyIdx );
+      //} else {
+      //   ops.getOtherOps().insert( dops );
+      //}
 }
 
 bool AllocatedChunk::NEWaddReadRegion2( BaseAddressSpaceInOps &ops, reg_t reg, unsigned int version, NewLocationInfoList const &locations, WD const &wd, unsigned int copyIdx ) {
@@ -1367,7 +1386,7 @@ void RegionCache::_syncAndCopyIn( global_reg_t const &reg, unsigned int syncFrom
    origChunk->unlock();
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
    sys.getSeparateMemory( syncFrom ).getCache()._copyOut( reg, hostAddr, origDevAddr, len, cout, fsource, wd, fake );
-   while ( !cout->allCompleted() ){ myThread->idle(); }
+   while ( !cout->allCompleted() ){ myThread->processTransfers(); }
    delete cout;
    this->_copyIn( reg, devAddr, hostAddr, len, ops, (CompleteOpFunctor *) NULL, wd, fake );
 }
@@ -1380,7 +1399,7 @@ void RegionCache::_syncAndCopyInStrided1D( global_reg_t const &reg, unsigned int
    origChunk->unlock();
    CompleteOpFunctor *fsource = NEW CompleteOpFunctor( ops, origChunk );
    sys.getSeparateMemory( syncFrom ).getCache()._copyOutStrided1D( reg, hostAddr, origDevAddr, len, numChunks, ld, cout, fsource, wd, fake );
-   while ( !cout->allCompleted() ){ myThread->idle(); }
+   while ( !cout->allCompleted() ){ myThread->processTransfers(); }
    delete cout;
    this->_copyInStrided1D( reg, devAddr, hostAddr, len, numChunks, ld, ops, (CompleteOpFunctor *) NULL, wd, fake );
 }
@@ -1590,7 +1609,7 @@ unsigned int RegionCache::getVersion( global_reg_t const &reg, WD const &wd, uns
 
 void RegionCache::releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd ) {
    while ( !_lock.tryAcquire() ) {
-      myThread->idle();
+      //myThread->idle();
    }
 
    for ( unsigned int idx = 0; idx < numCopies; idx += 1 ) {
@@ -1816,11 +1835,13 @@ void RegionCache::copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const 
    //      for ( NewLocationInfoList::const_iterator it2 = locations.begin(); it2 != locations.end(); it2++ ) {
    //         *myThread->_file << "[ " << it2->first << "," << it2->second << " ] ";
    //      }
-   //      *myThread->_file << std::endl;
-//   if ( policy == FPGA ) {
-//   } else {
-      chunk->NEWaddReadRegion2( ops, reg.id, version, locations, wd, copyIdx );
-//}
+   //      std::cerr << std::endl;
+   if ( policy == FPGA ) { //emit copy for all data
+       chunk->copyRegionFromHost( ops, reg.id, version, wd, copyIdx );
+   } else {
+       if ( chunk->NEWaddReadRegion2( ops, reg.id, version, locations, wd, copyIdx ) ) {
+       }
+   }
    //chunk->unlock();
    _lock.release();
 }
@@ -1975,11 +1996,17 @@ void RegionCache::invalidateObject( global_reg_t const &reg ) {
 }
 
 void RegionCache::copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx ) {
-   if ( output ) {
-      if ( policy != WRITE_BACK || chunk->isFlushable() ) {
-         chunk->copyRegionToHost( ops, reg.id, version + 1, wd, copyIdx );
+   if ( policy == FPGA ) { //emit copy for all data
+      if ( output ) {
+        chunk->copyRegionToHost( ops, reg.id, version + (output ? 1 : 0), wd, copyIdx );
       }
-   } 
+   } else {
+      if ( output ) {
+         if ( policy != WRITE_BACK ) {
+            chunk->copyRegionToHost( ops, reg.id, version + 1, wd, copyIdx );
+         }
+      } 
+   }
 }
 
 void RegionCache::printReferencedChunksAndWDs() const {

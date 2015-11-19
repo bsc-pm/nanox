@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2012 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -21,6 +21,7 @@
 #define _NANOS_ADDRESS_DECL_H
 
 #include "basedependency_decl.hpp"
+#include "trackableobject_decl.hpp"
 
 namespace nanos
 {
@@ -73,6 +74,10 @@ namespace nanos
 
          //! \brief Returns dependence base address
          virtual void * getAddress () const;
+         
+        /*! \brief Overlap operator.
+         */
+         virtual bool overlap ( const BaseDependency &obj ) const;
    };
 
 };

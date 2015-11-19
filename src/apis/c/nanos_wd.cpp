@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 //! \file nanos_wd.cpp
 //! \brief Nanos++ services related with WorkDescriptor 
 
@@ -75,7 +76,7 @@ NANOS_API_DEF(int, nanos_get_wd_id, ( nanos_wd_t wd ))
  *  \param [out] string description
  *  \param [in] wd is the WorkDescriptor
  */
-NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( char **description, nanos_wd_t wd ))
+NANOS_API_DEF(nanos_err_t, nanos_get_wd_description, ( const char **description, nanos_wd_t wd ))
 {
    try 
    {
@@ -262,12 +263,15 @@ NANOS_API_DEF( nanos_err_t, nanos_create_wd_and_run_compact, ( nanos_const_wd_de
       
       WD wd( (DD*) const_data->devices[0].factory( const_data->devices[0].arg ), data_size, const_data->data_alignment,
              data, const_data->num_copies, copies, NULL, (char *) const_data->description);
+
       wd.setTranslateArgs( translate_args );
       wd.forceParent( myThread->getCurrentWD() );
       
       // Set WD's socket
       wd.setNUMANode( sys.getUserDefinedNUMANode() );
-      
+
+      wd.copyReductions (myThread->getCurrentWD() );
+
       if ( wd.getNUMANode() >= (int)sys.getNumNumaNodes() )
          throw NANOS_INVALID_PARAM;
 
@@ -567,4 +571,66 @@ NANOS_API_DEF(nanos_err_t, nanos_set_create_local_tasks, ( bool value ))
     return NANOS_OK;
 }
 
+NANOS_API_DEF(nanos_err_t, nanos_switch_to_thread, ( unsigned int *thid ))
+{
+    // FIXME NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","switch_to_thread",NANOS_RUNTIME) );
+    try {
+       if ( myThread->getCurrentWD()->isTiedTo() ) {
+          return NANOS_INVALID_REQUEST;
+       }
+       sys.switchToThread( *thid );
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_is_tied, ( bool *result ))
+{
+    // FIXME NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","is_tied",NANOS_RUNTIME) );
+    try {
+       *result = myThread->getCurrentWD()->isTiedTo() != NULL;
+    } catch ( nanos_err_t e) {
+       return e;
+    }
+    return NANOS_OK;
+}
+
+NANOS_API_DEF (nanos_err_t, nanos_task_fortran_array_reduction_register, ( void *orig, void *dep,
+         size_t array_descriptor_size, void (*init)( void *, void * ), void (*reducer)( void *, void * ),
+         void (*reducer_orig_var)( void *, void * ) ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_register",NANOS_RUNTIME) );
+   try {
+      myThread->getCurrentWD()->registerFortranArrayTaskReduction(
+            orig, dep, array_descriptor_size, init, reducer, reducer_orig_var );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
+
+
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size,
+         void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_register",NANOS_RUNTIME) );
+   try {
+       myThread->getCurrentWD()->registerTaskReduction( orig, size, init, reducer );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
+
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_get_thread_storage, ( void *orig, void **tpd ) )
+{
+   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_get_thread_storage",NANOS_RUNTIME) );
+   try {
+      *tpd = myThread->getCurrentWD()->getTaskReductionThreadStorage( orig, myThread->getTeamId() );
+   } catch ( nanos_err_t e) {
+      return e;
+   }
+   return NANOS_OK;
+}
 //! \}

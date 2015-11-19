@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -23,7 +23,9 @@
 #include "gputhread_decl.hpp"
 #include "compatibility.hpp"
 #include "gpudd.hpp"
+#include "gpuevent.hpp"
 #include "gpuprocessor.hpp"
+#include "pthread.hpp"
 
 
 namespace nanos {
@@ -35,9 +37,41 @@ int GPUThread::getGPUDevice ()
    return _gpuDevice;
 }
 
-void GPUThread::enableWDClosingEvents ()
+int GPUThread::getCpuId() const
 {
-   _wdClosingEvents = true;
+   return _pthread.getCpuId();
+}
+
+GenericEvent * GPUThread::createPreRunEvent( WD * wd )
+{
+   GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+#ifdef NANOS_GENERICEVENT_DEBUG
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getInTransferStream(), "Pre-run event" );
+#else
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getInTransferStream() );
+#endif
+}
+
+GenericEvent * GPUThread::createRunEvent( WD * wd )
+{
+   unsigned int streamIdx = ( wd->getCudaStreamIdx() != -1 ) ? wd->getCudaStreamIdx() : _kernelStreamIdx;
+   GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream( streamIdx ), "Run event" );
+#else
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getKernelExecStream( streamIdx ) );
+#endif
+}
+
+GenericEvent * GPUThread::createPostRunEvent( WD * wd )
+{
+   GPUProcessor * pe = ( GPUProcessor * ) this->AsyncThread::runningOn();
+#ifdef NANOS_GENERICEVENT_DEBUG
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getOutTransferStream(), "Post-run event" );
+#else
+   return NEW GPUEvent( wd, pe->getGPUProcessorInfo()->getOutTransferStream() );
+#endif
 }
 
 }

@@ -1,6 +1,5 @@
-
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -31,4 +30,12 @@ OpenCLDD * OpenCLDD::copyTo ( void *toAddr )
 {
    OpenCLDD *dd = new ( toAddr ) OpenCLDD( *this );
    return dd;
+}
+
+void OpenCLDD::setOpenclStreamIdx(int streamIdx){
+    _oclStreamIdx=streamIdx;
+}
+
+int OpenCLDD::getOpenCLStreamIdx(){
+    return _oclStreamIdx;
 }

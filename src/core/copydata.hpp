@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -55,7 +55,7 @@ inline CopyData::CopyData ( const CopyData &cd )
 
 inline const CopyData & CopyData::operator= ( const CopyData &cd )
 {
-   if ( this == &cd ) return *this; 
+   if ( this == &cd ) return *this;
    address = cd.address;
    sharing = cd.sharing;
    flags.input = cd.flags.input;

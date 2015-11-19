@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -35,8 +35,8 @@ namespace nanos {
 
               TeamData () : ScheduleTeamData(), _readyQueue( NULL )
               {
-                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* optimise option */ );
-                else _readyQueue = NEW WDDeque();
+                if ( _usePriority || _useSmartPriority ) _readyQueue = NEW WDPriorityQueue<>( true /* enableDeviceCounter */, true /* optimise option */ );
+                else _readyQueue = NEW WDDeque( true /* enableDeviceCounter */ );
               }
               ~TeamData () { delete _readyQueue; }
            };
@@ -46,7 +46,15 @@ namespace nanos {
            static bool       _usePriority;
            static bool       _useSmartPriority;
 
-           BreadthFirst() : SchedulePolicy("Breadth First") {}
+           BreadthFirst() : SchedulePolicy("Breadth First")
+           {
+              /* If priorities are disabled by the user and detected
+                 by the compiler, disable them. If enabled by the
+                 user (default) and not detected by the compiler,
+                 disable too
+               */
+               _usePriority = _usePriority && sys.getPrioritiesNeeded();
+           }
            virtual ~BreadthFirst () {}
 
          private:
@@ -66,9 +74,13 @@ namespace nanos {
 
            virtual void queue ( BaseThread *thread, WD &wd )
            {
-              TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
-              if ( _useStack ) return tdata._readyQueue->push_front( &wd );
-              else tdata._readyQueue->push_back( &wd );
+              BaseThread *targetThread = wd.isTiedTo();
+              if ( targetThread ) targetThread->addNextWD(&wd);
+              else {
+                 TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
+                 if ( _useStack ) return tdata._readyQueue->push_front( &wd );
+                 else tdata._readyQueue->push_back( &wd );
+              }
            }
 
             virtual void queue ( BaseThread ** threads, WD ** wds, size_t numElems )
@@ -111,19 +123,20 @@ namespace nanos {
              * \param [in] successor DependableObject whose WD priority has to be
              * propagated.
              */
-            void successorFound( DependableObject *predecessor, DependableObject *successor )
+//            void successorFound( DependableObject *predecessor, DependableObject *successor )
+            void atSuccessor   ( DependableObject &successor, DependableObject &predecessor )
             {
                //debug( "Scheduler::successorFound" );
 
                if ( ! _useSmartPriority ) return;
 
 
-               if ( predecessor == NULL || successor == NULL ) return;
+ //              if ( predecessor == NULL || successor == NULL ) return;
                
-               WD *pred = ( WD* ) predecessor->getRelatedObject();
+               WD *pred = ( WD* ) predecessor.getRelatedObject();
                if ( pred == NULL ) return;
 
-               WD *succ = ( WD* ) successor->getRelatedObject();
+               WD *succ = ( WD* ) successor.getRelatedObject();
                if ( succ == NULL ) {
                   fatal( "SmartPriority::successorFound  successor->getRelatedObject() is NULL" );
                }
@@ -153,7 +166,7 @@ namespace nanos {
               return 0;
            }
 
-           WD * atIdle ( BaseThread *thread )
+           WD * atIdle ( BaseThread *thread, int numSteal )
            {
               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
               
@@ -162,22 +175,30 @@ namespace nanos {
 
            WD * atPrefetch ( BaseThread *thread, WD &current )
            {
-              if ( !_usePriority && !_useSmartPriority ) {
-                 WD * found = current.getImmediateSuccessor(*thread);
-                 return found != NULL ? found : atIdle(thread);
-              } else {
-                 return atIdle(thread);
+              WD * found = current.getImmediateSuccessor(*thread);
+              if ( found && (_usePriority || _useSmartPriority) ) {
+                 WDPriorityQueue<> &tdata = (WDPriorityQueue<> &) *((TeamData *) thread->getTeam()->getScheduleData())->_readyQueue;
+                 if (found->getPriority() < tdata.maxPriority() ) {
+                    queue(thread, *found);
+                    found = NULL;
+                 }
               }
+              return found != NULL ? found : atIdle(thread,false);
            }
         
            WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
            {
-              if ( !_usePriority && !_useSmartPriority && schedule ) {
-                 return current.getImmediateSuccessor(*thread);
-              } else {
-                 return 0;
+              WD * found = current.getImmediateSuccessor(*thread);
+              if ( found && (_usePriority || _useSmartPriority) && schedule ) {
+                 WDPriorityQueue<> &tdata = (WDPriorityQueue<> &) *((TeamData *) thread->getTeam()->getScheduleData())->_readyQueue;
+                 if (found->getPriority() < tdata.maxPriority() ) {
+                    queue(thread, *found);
+                    found = NULL;
+                 }
               }
+              return found;
            }
+
             bool reorderWD ( BaseThread *t, WD *wd )
             {
               //! \bug FIXME flags of priority must be in queue
@@ -188,10 +209,27 @@ namespace nanos {
                   return true;
                }
             }
+
+            int getPotentiallyParallelWDs( void )
+            {
+               TeamData &tdata = (TeamData &) *myThread->getTeam()->getScheduleData();
+               if ( _usePriority || _useSmartPriority ) {
+                  WDPriorityQueue<> &q = (WDPriorityQueue<> &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
+               } else {
+                  WDDeque &q = (WDDeque &) *(tdata._readyQueue);
+                  return q.getPotentiallyParallelWDs();
+               }
+            }
+            
+            bool usingPriorities() const
+            {
+               return _usePriority || _useSmartPriority;
+            }
       };
 
       bool BreadthFirst::_useStack = false;
-      bool BreadthFirst::_usePriority = false;
+      bool BreadthFirst::_usePriority = true;
       bool BreadthFirst::_useSmartPriority = false;
 
       class BFSchedPlugin : public Plugin

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -35,6 +35,7 @@ test_ignore_fail=yes
 #define PRE 40
 int pre[PRE] = {0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711,28657,46368,75025,121393,196418,317811,514229,832040,1346269,2178309,3524578,5702887,9227465,14930352,24157817,39088169,63245986};
 
+int fib_seq ( int n );
 int fib_seq ( int n )
 {
    int x, y;
@@ -56,12 +57,14 @@ typedef struct {
    int *x;
 } fib_args;
 
+void fib_1( void *ptr );
 void fib_1( void *ptr )
 {
    fib_args * args = ( fib_args * )ptr;
    *args->x = fib( args->n-1,args->d+1 );
 }
 
+void fib_2( void *ptr );
 void fib_2( void *ptr )
 {
    fib_args * args = ( fib_args * )ptr;
@@ -164,6 +167,7 @@ int fib ( int n, int d )
    return x + y;
 }
 
+double get_wtime( void );
 double get_wtime( void )
 {
 
@@ -177,6 +181,7 @@ double get_wtime( void )
    return t;
 }
 
+int fib0 ( int n );
 int fib0 ( int n )
 {
    double start,end;

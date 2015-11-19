@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -283,7 +283,11 @@ void * Network::malloc ( unsigned int remoteNode, std::size_t size )
    {
       _api->malloc( remoteNode, size, ( void * ) &request );
 
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+      while ( __atomic_load_n( &request.complete, __ATOMIC_ACQUIRE) == 0 )
+#else
       while ( ( (volatile int) request.complete ) == 0 )
+#endif
       {
          poll( /*myThread->getId()*/0 );
       }
@@ -308,7 +312,11 @@ void Network::mallocSlaves ( void **addresses, std::size_t size )
       //std::cerr << "malloc on slaves... wait responses" << std::endl;
 
       for ( index = 0; index < ( _numNodes - 1 ); index += 1) {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         while ( __atomic_load_n( &request[ index ].complete, __ATOMIC_ACQUIRE) == 0 )
+#else
          while ( ( (volatile int) request[ index ].complete ) == 0 )
+#endif
          {
             poll( /*myThread->getId()*/0 );
          }
@@ -830,7 +838,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
             }
          }
          outOps.issue( *( (WD *) NULL ) );
-         while ( !outOps.isDataReady( myThread->getThreadWD()) ) { myThread->idle(); }
+         while ( !outOps.isDataReady( myThread->getThreadWD()) ) { myThread->processTransfers(); }
          //(*myThread->_file) << "[net] ops completed, addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << " data is [" << *((double *)addr) << "]" <<std::endl;
       } 
       //else {
@@ -875,11 +883,19 @@ GetRequest::~GetRequest() {
 
 void GetRequest::complete() {
    (*_f)();
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_store_n(&_complete, 1, __ATOMIC_RELEASE);
+#else
    _complete = 1;
+#endif
 }
 
 bool GetRequest::isCompleted() const {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_load_n(&_complete, __ATOMIC_ACQUIRE);
+#else
    return _complete == 1;
+#endif
 }
 
 void GetRequest::clear() {

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -594,7 +594,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       hb._lock.release();
    }
    outOps.issue( *( (WD *) NULL ) );
-   while ( !outOps.isDataReady( wd ) ) { myThread->idle(); }
+   while ( !outOps.isDataReady( wd ) ) { myThread->processTransfers(); }
 
    //*myThread->_file << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
    //printBt();

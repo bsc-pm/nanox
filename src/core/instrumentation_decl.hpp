@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 //! \file instrumentation_decl.hpp
 //! \brief Instrumentation main classes declaration.
 //
@@ -214,6 +215,10 @@
 #define NANOX_INSTRUMENTATION_PARTNER_MYSELF 0xFFFFFFFF
 
 namespace nanos {
+   // This is an ordered list. The idea is to emit all events below or equal the event category
+   // predetermined.
+   typedef enum { EVENT_ENABLED = 0, EVENT_NONE, EVENT_USER, EVENT_DEVELOPER,
+                  EVENT_DEFAULT, EVENT_ADVANCED, EVENT_ALL, EVENT_DISABLED } nanos_event_level_t;
 
 //   extern __thread BaseThread *myThread;
 #ifdef NANOS_INSTRUMENTATION_ENABLED
@@ -251,7 +256,7 @@ namespace nanos {
 
          /*! \brief Gets value descriptor textual description
           */
-         const std::string getDescription ( void );
+         const std::string getDescription ( void ) const;
 
    };
 
@@ -263,8 +268,8 @@ namespace nanos {
          typedef ValueMap::const_iterator ConstValueMapIterator;
       private:
          nanos_event_key_t    _id;          /**< InstrumentationKeyDescriptor id */
-         bool                 _enabled;     /**< Is the event enabled */
-         bool                 _stacked;     /**< Is the event enabled */
+         nanos_event_level_t  _level;       /**< Event level of verbosity */
+         bool                 _stacked;     /**< Is the event stacked */
          std::string          _description; /**< InstrumenotrKeyDescriptor description */
          Atomic<unsigned int> _totalValues; /**< Total number of values */
          Lock                 _lock;        /**< _valueMap exclusive lock */
@@ -282,12 +287,12 @@ namespace nanos {
       public:
          /*! \brief InstrumentationKeyDescriptor constructor
           */
-         InstrumentationKeyDescriptor ( nanos_event_key_t id, const std::string &description, bool enabled, bool stacked ) : _id( id ), _enabled(enabled),_stacked(stacked), _description ( description ),
+         InstrumentationKeyDescriptor ( nanos_event_key_t id, const std::string &description, nanos_event_level_t level, bool stacked ) : _id( id ), _level(level),_stacked(stacked), _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
 
          /*! \brief InstrumentationKeyDescriptor constructor
           */
-         InstrumentationKeyDescriptor ( nanos_event_key_t id, const char *description, bool enabled, bool stacked ) : _id( id ), _enabled(enabled), _stacked(stacked),  _description ( description ),
+         InstrumentationKeyDescriptor ( nanos_event_key_t id, const char *description, nanos_event_level_t level, bool stacked ) : _id( id ), _level(level), _stacked(stacked),  _description ( description ),
                                      _totalValues(1), _lock(), _valueMap() {}
 
          /*! \brief InstrumentationKeyDescriptor destructor
@@ -296,15 +301,15 @@ namespace nanos {
 
          /*! \brief Gets key descriptor id
           */
-         nanos_event_key_t getId ( void );
+         nanos_event_key_t getId ( void ) const;
 
-         /*! \brief return if the event is enabled
+         /*! \brief Set the event level
           */
-         bool isEnabled ( void );
+         void setLevel ( nanos_event_level_t value );
 
-         /*! \brief Set if the event is enabled (or not)
+         /*! \brief Normalize level
           */
-         void setEnabled ( bool value );
+         void normalizeLevel ( nanos_event_level_t value );
 
          /*! \brief return if the event is stacked
           */
@@ -312,7 +317,7 @@ namespace nanos {
 
          /*! \brief Gets key descriptor textual description
           */
-         const std::string getDescription ( void );
+         const std::string getDescription ( void ) const;
 
          /*! \brief Inserts (or gets) a value into (from) valueMap
           */
@@ -370,6 +375,7 @@ namespace nanos {
          Atomic<unsigned int> _totalKeys; /**< Total number of keys */
          Lock                 _lock;      /**< Is the _keyMap exclusive lock */
          KeyMap               _keyMap;    /**< Registered Key elements */
+         nanos_event_level_t  _level;     //!< Default verbosity level
 
          /*! \brief InstrumentationDictionary copy constructor (private)
           */
@@ -380,13 +386,13 @@ namespace nanos {
       public:
          /*! \brief InstrumentationDictionary default constructor
           */
-         InstrumentationDictionary () : _totalKeys(1), _lock(), _keyMap()
+         InstrumentationDictionary () : _totalKeys(1), _lock(), _keyMap(), _level(EVENT_DEFAULT)
          {
             /* ******************************************** */
             /* Instrumentation events: In order initialization */
             /* ******************************************** */
 
-            /* 01 */ registerEventKey("api","Nanos Runtime API", true, true, true );
+            /* 01 */ registerEventKey("api","Nanos Runtime API", true, EVENT_DEVELOPER, true );
             registerEventValue("api","find_slicer","nanos_find_slicer()");
             registerEventValue("api","wg_wait_completion","nanos_wg_wait_completion()");
             registerEventValue("api","*_create_sync_cond","nanos_create_xxx_cond()");
@@ -435,44 +441,46 @@ namespace nanos {
             registerEventValue("api","memalign","nanos_memalign()");
             registerEventValue("api","cmalloc","nanos_cmalloc()");
             registerEventValue("api","stick_to_producer","nanos_stick_to_producer()");
+            registerEventValue("api","task_reduction_register","nanos_task_reduction_register()");
+            registerEventValue("api","task_reduction_get_thread_storage","nanos_task_reduction_get_thread_storage()");
 
-            /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, true, true);
+            /* 02 */ registerEventKey("wd-id","Work Descriptor id:", true, EVENT_DEVELOPER, true);
 
-            /* 03 */ registerEventKey("cache-copy-in","Transfer data into device cache", true);
-            /* 04 */ registerEventKey("cache-copy-out","Transfer data to main memory", true);
-            /* 05 */ registerEventKey("cache-local-copy","Local copy in device memory", true);
-            /* 06 */ registerEventKey("cache-malloc","Memory allocation in device cache", true);
-            /* 07 */ registerEventKey("cache-free","Memory free in device cache", true);
-            /* 08 */ registerEventKey("cache-hit","Hit in the cache", true);
+            /* 03 */ registerEventKey("cache-copy-in","Transfer data into device cache", true, EVENT_DISABLED );
+            /* 04 */ registerEventKey("cache-copy-out","Transfer data to main memory", true, EVENT_DISABLED );
+            /* 05 */ registerEventKey("cache-local-copy","Local copy in device memory", true, EVENT_DISABLED );
+            /* 06 */ registerEventKey("cache-malloc","Memory allocation in device cache", true, EVENT_DISABLED );
+            /* 07 */ registerEventKey("cache-free","Memory free in device cache", true, EVENT_DISABLED );
+            /* 08 */ registerEventKey("cache-hit","Hit in the cache", true, EVENT_DISABLED );
 
-            /* 09 */ registerEventKey("copy-in","Copying WD inputs", true);
-            /* 10 */ registerEventKey("copy-out","Copying WD outputs", true);
+            /* 09 */ registerEventKey("copy-in","Copying WD inputs", true, EVENT_DISABLED );
+            /* 10 */ registerEventKey("copy-out","Copying WD outputs", true, EVENT_DISABLED );
 
-            /* 11 */ registerEventKey("user-funct-name","User Function Name", true, true, true);
+            /* 11 */ registerEventKey("user-funct-name","User Function Name", true, EVENT_USER, true);
 
-            /* 12 */ registerEventKey("user-code","User Code (wd)", true);
+            /* 12 */ registerEventKey("user-code","User Code (wd)", true, EVENT_DISABLED );
 
-            /* 13 */ registerEventKey("create-wd-id","Create WD Id:", true);
-            /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:", true);
-            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps.", true);
-            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer", true);
+            /* 13 */ registerEventKey("create-wd-id","Create WD Id:", true, EVENT_ADVANCED ); // TODO: consider to disable
+            /* 14 */ registerEventKey("create-wd-ptr","Create WD pointer:", true, EVENT_DEVELOPER );
+            /* 15 */ registerEventKey("wd-num-deps","Create WD num. deps.", true, EVENT_ADVANCED );
+            /* 16 */ registerEventKey("wd-deps-ptr","Create WD dependence pointer", true, EVENT_ADVANCED );
 
-            /* 17 */ registerEventKey("lock-addr","Lock address", true);
+            /* 17 */ registerEventKey("lock-addr","Lock address", true, EVENT_DEVELOPER );
 
-            /* 18 */ registerEventKey("num-spins","Number of Spins", true);
-            /* 19 */ registerEventKey("num-yields","Number of Yields", true);
-            /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)", true);
+            /* 18 */ registerEventKey("num-spins","Number of Spins", true, EVENT_DEVELOPER );
+            /* 19 */ registerEventKey("num-yields","Number of Yields", true, EVENT_DEVELOPER );
+            /* 20 */ registerEventKey("time-yields","Time on Yield (in nsecs)", true, EVENT_DEVELOPER );
 
-            /* 21 */ registerEventKey("user-funct-location","User Function Location", true, true, true);
+            /* 21 */ registerEventKey("user-funct-location","User Function Location", true, EVENT_USER, true);
 
-            /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues", true);
-            /* 23 */ registerEventKey("graph-size","Number tasks in the graph", true);
+            /* 22 */ registerEventKey("num-ready","Number of ready tasks in the queues", true, EVENT_USER );
+            /* 23 */ registerEventKey("graph-size","Number tasks in the graph", true, EVENT_USER );
 
-            /* 24 */ registerEventKey("loop-lower","Loop lower bound", true);
-            /* 25 */ registerEventKey("loop-upper","Loop upper", true);
-            /* 26 */ registerEventKey("loop-step","Loop step", true);
+            /* 24 */ registerEventKey("loop-lower","Loop lower bound", true, EVENT_DEVELOPER );
+            /* 25 */ registerEventKey("loop-upper","Loop upper", true, EVENT_DEVELOPER );
+            /* 26 */ registerEventKey("loop-step","Loop step", true, EVENT_DEVELOPER );
 
-            /* 27 */ registerEventKey("in-cuda-runtime","Inside CUDA runtime", true);
+            /* 27 */ registerEventKey("in-cuda-runtime","Inside CUDA runtime", true, EVENT_DEVELOPER );
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_EVENT", "cudaMalloc()" );                                     /* 1 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_FREE_EVENT", "cudaFree()" );                                         /* 2 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_MALLOC_HOST_EVENT", "cudaMallocHost()" );                            /* 3 */
@@ -493,9 +501,20 @@ namespace nanos {
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_LAST_ERROR_EVENT", "cudaGetLastError()" );                       /* 18 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GENERIC_EVENT", "CUDA generic event" );                              /* 19 */
             registerEventValue("in-cuda-runtime", "NANOS_GPU_MEMCOPY_EVENT", "memcpy()" );                                             /* 20 */
-            /* 28 */ registerEventKey("xfer-size","Transfer size", true);
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_CREATE_EVENT", "cudaEventCreate()" );                          /* 21 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_DESTROY_EVENT", "cudaEventDestroy()" );                        /* 22 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_RECORD_EVENT", "cudaEventRecord()" );                          /* 23 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_QUERY_EVENT", "cudaEventQuery()" );                            /* 24 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_EVENT_SYNC_EVENT", "cudaEventSynchronize()" );                       /* 25 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_KERNEL_LAUNCH_EVENT", "Launching CUDA kernel(s) in task" );          /* 26 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_STREAM_CREATE_EVENT", "cudaStreamCreate()" );                        /* 27 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_STREAM_DESTROY_EVENT", "cudaStreamDestroy" );                        /* 28 */
+            registerEventValue("in-cuda-runtime", "NANOS_GPU_CUDA_GET_PCI_BUS_EVENT", "cudaDeviceGetPCIBusId()" );                     /* 29 */
 
-            /* 29 */ registerEventKey("cache-wait","Cache waiting for something", true);
+
+            /* 28 */ registerEventKey("xfer-size","Transfer size", true, EVENT_DEVELOPER );
+
+            /* 29 */ registerEventKey("cache-wait","Cache waiting for something", true, EVENT_DISABLED );
             registerEventValue("cache-wait","registerCacheAccess() L.94","registerCacheAccess() waiting for data allocation (not registered in directory)");
             registerEventValue("cache-wait","registerCacheAccess() L.112","registerCacheAccess() waiting for data invalidation in another cache (new entry)");
             registerEventValue("cache-wait","registerCacheAccess() L.122","registerCacheAccess() waiting for data to have no owner");
@@ -510,15 +529,15 @@ namespace nanos {
             registerEventValue("cache-wait","freeSpaceToFit()","freeSpaceToFit()");
             registerEventValue("cache-wait","waitInput()","waitInput()");
 
-            /* 30 */ registerEventKey("chunk-size","Chunk size", true);
+            /* 30 */ registerEventKey("chunk-size","Chunk size", true, EVENT_DEVELOPER );
 
-            /* 31 */ registerEventKey("num-blocks","Number of blocking operations", true);
-            /* 32 */ registerEventKey("time-blocks","Time on block (in nsecs)", true);
+            /* 31 */ registerEventKey("num-blocks","Number of blocking operations", true, EVENT_DEVELOPER );
+            /* 32 */ registerEventKey("time-blocks","Time on block (in nsecs)", true, EVENT_DEVELOPER );
 
-            /* 33 */ registerEventKey("num-scheds","Number of scheduler operations", true);
-            /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)", true);
+            /* 33 */ registerEventKey("num-scheds","Number of scheduler operations", true, EVENT_DEVELOPER );
+            /* 34 */ registerEventKey("time-scheds","Time on scheduler operations (in nsecs)", true, EVENT_DEVELOPER );
 
-            /* 35 */ registerEventKey("sched-versioning","Versioning scheduler decisions", true);
+            /* 35 */ registerEventKey("sched-versioning","Versioning scheduler decisions", true, EVENT_ADVANCED );
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_SETDEVICE_CANRUN", "Set WD device + thread can run" );
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_SETDEVICE_CANNOTRUN", "Set WD device + thread cannot run" );
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_SELECTWD_FIRSTCANRUN", "Select WD first record + thread can run" );
@@ -538,12 +557,12 @@ namespace nanos {
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_FINDEARLIESTEW_BETTERTIME", "Found earliest execution worker timing reason" );
             registerEventValue("sched-versioning", "NANOS_SCHED_VER_FINDEARLIESTEW_IDLEWORKER", "Found earliest execution worker idle reason" );
 
-            /* 36 */ registerEventKey("dependence","Dependence analysis", true); /* System have found a new dependence */
-            /* 37 */ registerEventKey("dep-direction", "Dependence direction", true);
+            /* 36 */ registerEventKey("dependence","Dependence analysis", true, EVENT_DEVELOPER ); /* System have found a new dependence */
+            /* 37 */ registerEventKey("dep-direction", "Dependence direction", true, EVENT_DEVELOPER );
 
-            /* 38 */ registerEventKey("wd-priority","Priority of a work descriptor");
+            /* 38 */ registerEventKey("wd-priority","Priority of a work descriptor", true, EVENT_DEVELOPER );
 
-            /* 39 */ registerEventKey("in-opencl-runtime","Inside OpenCL runtime", true);
+            /* 39 */ registerEventKey("in-opencl-runtime","Inside OpenCL runtime", true, EVENT_DEVELOPER );
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_ALLOC_EVENT", "clCreateBuffer()" );                                     /* 1 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_FREE_EVENT", "clReleaseMemObject()" );                                         /* 2 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GET_DEV_INFO_EVENT", "clGetDeviceInfo()" );                            /* 3 */
@@ -558,18 +577,17 @@ namespace nanos {
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT", "clEnqueueUnmapMemObject(blocking=true)" );                /* 12 */
             registerEventValue("in-opencl-runtime", "NANOS_OPENCL_GENERIC_EVENT", "OpenCL generic event" );                              /* 13 */
 
-            /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true);
-            /* 41 */ registerEventKey("set-num-threads","Number of Threads");
-            /* 42 */ registerEventKey("cpuid","Thread cpuid");
+            /* 40 */ registerEventKey("taskwait", "Call to the taskwait nanos runtime function", true, EVENT_USER );
+            /* 41 */ registerEventKey("set-num-threads","Number of Threads", true, EVENT_USER );
+            /* 42 */ registerEventKey("cpuid","Thread cpuid", true, EVENT_USER );
 
-            /* 43 */ registerEventKey("dep-address", "Dependence address", true);
-            /* 44 */ registerEventKey("copy-data-in","WD id that is copying data in");
-            /* 45 */ registerEventKey("cache-copy-data-in","WD id that is copying data in");
-            /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data in");
-            /* 47 */ registerEventKey("sched-affinity-constraint","Constraint used by affinity scheduler");
+            /* 43 */ registerEventKey("dep-address", "Dependence address", true, EVENT_DEVELOPER );
+            /* 44 */ registerEventKey("copy-data-in","WD id that is copying data in", true, EVENT_DEVELOPER );
+            /* 45 */ registerEventKey("cache-copy-data-in","WD id that is copying data in", true, EVENT_DEVELOPER );
+            /* 46 */ registerEventKey("cache-copy-data-out","WD id that is copying data in", true, EVENT_DEVELOPER );
+            /* 47 */ registerEventKey("sched-affinity-constraint","Constraint used by affinity scheduler", true, EVENT_DEVELOPER );
 
-                     
-            /* 48*/ registerEventKey("in-mpi-runtime","Inside MPI runtime", true);
+            /* 48*/ registerEventKey("in-mpi-runtime","Inside MPI runtime", true, EVENT_DEVELOPER );
             registerEventValue("in-mpi-runtime", "NANOS_MPI_ALLOC_EVENT", "malloc()" );                                     /* 1 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_FREE_EVENT", "free()" );                                         /* 2 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_DEEP_BOOSTER_ALLOC_EVENT", "deep_booster_alloc(...)" );                            /* 3 */
@@ -597,27 +615,79 @@ namespace nanos {
             registerEventValue("in-mpi-runtime", "NANOS_MPI_ISEND_EVENT", "Async send" );  /* 25 */
             registerEventValue("in-mpi-runtime", "NANOS_MPI_GENERIC_EVENT", "MPI generic event" );                /* 26 */
 
-            /* 49 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false);
-            /* 50 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false);
-            /* 51 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false);
-            /* 52 */ registerEventKey("network-transfer", "Network transfer to node ", false);
-            /* 52 */ registerEventKey("cache-evict", "Cache eviction", false);
-            /* 53 */ registerEventKey("copy-data-alloc","WD id that is copying data in");
+            /* 49 */ registerEventKey("wd-ready", "Work descriptor becomes ready", false, EVENT_ADVANCED );
+            /* 50 */ registerEventKey("wd-blocked", "Work descriptor becomes blocked", false, EVENT_ADVANCED );
+            /* 51 */ registerEventKey("parallel-outline-fct", "Parallel Outline Function", false, EVENT_ADVANCED );
 
-            /* ** */ registerEventKey("debug","Debug Key", true); /* Keep this key as the last one */
+            /* 52 */ registerEventKey("async-thread","Asynchronous thread state events", true, EVENT_DEVELOPER );
+            registerEventValue("async-thread", "ASYNC_THREAD_INLINE_WORK_DEP_EVENT", "inlineWorkDependent()" );  /* 1 */
+            registerEventValue("async-thread", "ASYNC_THREAD_PRE_RUN_EVENT", "WD pre-run" );                     /* 2 */
+            registerEventValue("async-thread", "ASYNC_THREAD_RUN_EVENT", "Running WD" );                         /* 3 */
+            registerEventValue("async-thread", "ASYNC_THREAD_POST_RUN_EVENT", "WD post-run" );                   /* 4 */
+            registerEventValue("async-thread", "ASYNC_THREAD_SCHEDULE_EVENT", "Scheduling tasks" );              /* 5 */
+            //registerEventValue("async-thread", "ASYNC_THREAD_WAIT_INPUTS_EVENT", "Waiting for inputs" );         /* 5 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CHECK_WD_INPUTS_EVENT", "Checking for inputs" );    /* 6 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CHECK_WD_OUTPUTS_EVENT", "Checking for outputs" );  /* 7 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CP_DATA_IN_EVENT", "Copy data in" );                /* 8 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CP_DATA_OUT_EVENT", "Copy data out" );              /* 9 */
+            registerEventValue("async-thread", "ASYNC_THREAD_CHECK_EVTS_EVENT", "Check events" );                /* 10 */
+            registerEventValue("async-thread", "ASYNC_THREAD_PROCESS_EVT_EVENT", "Processing finished event" );  /* 11 */
+            registerEventValue("async-thread", "ASYNC_THREAD_SYNCHRONIZE_EVENT", "Synchronize copy" );           /* 12 */
+
+            /* 53 */ registerEventKey("copy-in-gpu", "Asynchronous memory copy from host to device", true, EVENT_DISABLED );
+            /* 54 */ registerEventKey("copy-out-gpu", "Asynchronous memory copy from device to host", true, EVENT_DISABLED );
+            /* 55 */ registerEventKey("gpu-wd-id","GPU Work Descriptor id:", true, EVENT_DEVELOPER, true );
+
+            /* 56 */ registerEventKey("wd-criticality","Work descriptor criticality", true,  EVENT_DEVELOPER );
+            /* 57 */ registerEventKey("blev-overheads", "Total overheads of botlev scheduler", true, EVENT_DEVELOPER );
+            /* 58 */ registerEventKey("blev-overheads-breakdown", "Overheads of botlev scheduler broken down", true,  EVENT_DEVELOPER );
+            /* 59 */ registerEventKey("critical-wd-id", "A critical work descriptor is submitted", true, EVENT_DEVELOPER );
+
+            /* 60 */ registerEventKey("copy-dir-devices", "Asynchronous memory copy between host and devices", true , EVENT_DEVELOPER );
+            registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_H2D_GPU_EVENT", "Host to GPU device transfer (CUDA)" );                     /* 1 */
+            registerEventValue("copy-dir-devices", "NANOS_DEVS_CPDIR_D2H_GPU_EVENT", "GPU device to host transfer (CUDA)" );                     /* 2 */
+            /* 61 */ registerEventKey("concurrent-tasks", "Number of concurrent tasks in the ready queue", false, EVENT_DEVELOPER );
+            /* 62 */ registerEventKey("network-transfer", "Network transfer to node ", false, EVENT_DEVELOPER);
+            /* 63 */ registerEventKey("team-ptr", "Team info", false, EVENT_DEVELOPER);
+
+            /* 64 */ registerEventKey("thread-numa-node","Thread NUMA node", true, EVENT_ADVANCED);
+            /* 65 */ registerEventKey("wd-numa-node","WD NUMA node", true, EVENT_ADVANCED);
+
+            /* 66 */ registerEventKey("steal","Stolen WD", true, EVENT_DEVELOPER );
+
+            /* 67 */ registerEventKey("in-xdma", "Inside xdma FPGA DMA library", true, EVENT_ADVANCED);
+            registerEventValue("in-xdma", "NANOS_FPGA_OPEN_EVENT", "xdma open()");                       /* 1 */
+            registerEventValue("in-xdma", "NANOS_FPGA_CLOSE_EVENT", "xdma close");                     /* 2 */
+            registerEventValue("in-xdma", "NANOS_FPGA_REQ_CHANNEL_EVENT", "xdma open channel");          /* 3 */
+            registerEventValue("in-xdma", "NANOS_FPGA_REL_CHANNEL_EVENT", "xdma close channel");          /* 4 */
+            registerEventValue("in-xdma", "NANOS_FPGA_SUBMIT_IN_DMA_EVENT", "xdma submit in");      /* 5 */
+            registerEventValue("in-xdma", "NANOS_FPGA_SUBMIT_OUT_DMA_EVENT", "xdma submit out");    /* 5 */
+            registerEventValue("in-xdma", "NANOS_FPGA_WAIT_INPUT_DMA_EVENT", "xdma wait in");                /* 6 */
+            registerEventValue("in-xdma", "NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT", "xdma wait out");                /* 7 */
+            /* 68 */ registerEventKey("accelerator#", "Accelerator on which task is being executed", EVENT_ADVANCED);
+
+            /* 69 */ registerEventKey("network-transfer", "Network transfer to node ", false);
+            /* 70 */ registerEventKey("cache-evict", "Cache eviction", false);
+            /* 71 */ registerEventKey("copy-data-alloc","WD id that is copying data in");
+
+            /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }
 
          /*! \brief InstrumentationDictionary destructor
           */
          ~InstrumentationDictionary() {}
 
-         /*! \brief Inserts (or gets) a key into (from) the keyMap
+         /*! \brief Normalize levels
           */
-         nanos_event_key_t registerEventKey ( const std::string &key, const std::string &description="", bool abort_when_registered=true, bool enabled=true, bool stacked=false );
+         void normalizeLevels ( void );
 
          /*! \brief Inserts (or gets) a key into (from) the keyMap
           */
-         nanos_event_key_t registerEventKey ( const char *key, const char *description="", bool abort_when_registered=true, bool enabled=true, bool stacked=false );
+         nanos_event_key_t registerEventKey ( const std::string &key, const std::string &description="", bool abort_when_registered=true, nanos_event_level_t level=EVENT_ENABLED, bool stacked=false );
+
+         /*! \brief Inserts (or gets) a key into (from) the keyMap
+          */
+         nanos_event_key_t registerEventKey ( const char *key, const char *description="", bool abort_when_registered=true, nanos_event_level_t level=EVENT_ENABLED, bool stacked=false );
 
          /*! \brief Gets a key into (from) the keyMap
           */
@@ -649,11 +719,13 @@ namespace nanos {
 
          /*! \brief Enable/disable all events in dictionary
           */
-         void switchAllEvents ( bool on_off );
+         void setDefaultLevel ( nanos_event_level_t level );
+
+         void printEventVerbosity ( void );
 
          /*! \brief Enable/disable all events prefixed with prefix
           */
-         void switchEventPrefix ( const char *prefix, bool on_off );
+         void switchEventPrefix ( const char *prefix, nanos_event_level_t level );
 
          /*! \brief Gets a value into (from) the valueMap (which belongs to 'key' parameter )
           */
@@ -902,6 +974,7 @@ namespace nanos {
          InstrumentationContext        &_instrumentationContext; /**< Instrumentation Context */
          bool                           _emitStateEvents;
          bool                           _emitPtPEvents;
+         bool                           _emitInternalEvents;
       private:
          /*! \brief Instrumentation default constructor (private)
           */
@@ -915,7 +988,7 @@ namespace nanos {
       public:
          /*! \brief Instrumentation constructor
           */
-         Instrumentation( InstrumentationContext &ic ) : _instrumentationDictionary(), _instrumentationContext(ic), _emitStateEvents(true), _emitPtPEvents(true) {}
+         Instrumentation( InstrumentationContext &ic ) : _instrumentationDictionary(), _instrumentationContext(ic), _emitStateEvents(true), _emitPtPEvents(true), _emitInternalEvents(false) {}
 
          /*! \brief Instrumentation destructor
           */
@@ -926,6 +999,9 @@ namespace nanos {
           */
          InstrumentationDictionary * getInstrumentationDictionary ( void );
 
+         bool isStateEnabled() const;
+         bool isPtPEnabled() const;
+         bool isInternalsEnabled() const;
          /*! \brief Enable/disable events
           */
          void filterEvents(std::string event_default, std::list<std::string> &enable_events, std::list<std::string> &disable_events );
@@ -992,6 +1068,12 @@ namespace nanos {
          /*! \brief Used when creating a work descriptor (initializes instrumentation context associated to a WD)
           */
          virtual void wdCreate( WorkDescriptor* newWD );
+
+         /*! \brief Flush the deferred events (if any) of the given work descriptor
+          *
+          *  \param[in] wd, this work descriptor's deferred events will be flushed
+          */
+         virtual void flushDeferredEvents ( WorkDescriptor* wd );
 
          /*! \brief Used in work descriptor context switch (oldWD has finished completely its execution
           *

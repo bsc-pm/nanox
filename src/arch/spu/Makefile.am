@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,7 +17,7 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include ../../common.am
+include $(top_srcdir)/src/common.am
 
 EXTRAD_DIST= spu_idle.spu
 
@@ -49,45 +49,41 @@ spu_ccflags = -I @CELLSDK_INC@
 
 noinst_LTLIBRARIES =
 
-if DEBUG_VERSION
+if is_debug_enabled
 noinst_LTLIBRARIES += debug/libspu.la
 
-nanos_debug_cxxflags=$(common_includes) $(common_debug_cxxflags) $(spu_ccflags)
 
-debug_libspu_la_CXXFLAGS=$(nanos_debug_cxxflags)
+debug_libspu_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libspu_la_SOURCES=$(spu_sources)
 debug_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
 debug_libspu_la_LIBADD=$(spu_libadd)
 endif
 
-if INSTRUMENTATION_VERSION
+if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libspu.la
 
-nanos_instr_cxxflags=$(common_includes) $(common_instr_cxxflags) $(spu_ccflags)
 
-instrumentation_libspu_la_CXXFLAGS=$(nanos_instr_cxxflags)
+instrumentation_libspu_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libspu_la_SOURCES=$(spu_sources)
 instrumentation_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
 instrumentation_libspu_la_LIBADD=$(spu_libadd)
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
+if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libspu.la
 
-nanos_instrdebug_cxxflags=$(common_includes) $(common_instrdebug_cxxflags) $(spu_ccflags)
 
-instrumentation_debug_libspu_la_CXXFLAGS=$(nanos_instrdebug_cxxflags)
+instrumentation_debug_libspu_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libspu_la_SOURCES=$(spu_sources)
 instrumentation_debug_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
 instrumentation_debug_libspu_la_LIBADD=$(spu_libadd)
 endif
 
-if PERFORMANCE_VERSION
+if is_performance_enabled
 noinst_LTLIBRARIES += performance/libspu.la
 
-nanos_perfo_cxxflags=$(common_includes) $(common_perfo_cxxflags) $(spu_ccflags)
 
-performance_libspu_la_CXXFLAGS=$(nanos_perfo_cxxflags)
+performance_libspu_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libspu_la_SOURCES=$(spu_sources)
 performance_libspu_la_DEPENDENCIES=.libs/libspu_embed.a
 performance_libspu_la_LIBADD=$(spu_libadd)

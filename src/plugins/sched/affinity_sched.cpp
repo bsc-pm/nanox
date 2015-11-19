@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -1356,7 +1356,7 @@ namespace nanos {
                return 0;
             }
 
-            virtual WD *atIdle ( BaseThread *thread );
+            virtual WD *atIdle ( BaseThread *thread, int numSteal );
             virtual WD *atBlock ( BaseThread *thread, WD *current );
 
             virtual WD *atAfterExit ( BaseThread *thread, WD *current )
@@ -1384,7 +1384,7 @@ namespace nanos {
                   //   (*myThread->_file) << " atPrefetch (getImmediateSuccessor) returns wd " << found->getId() << std::endl;
                   //}
                }
-               return found != NULL ? found : atIdle(thread);
+               return found != NULL ? found : atIdle(thread,false);
             }
          
             WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
@@ -1929,7 +1929,7 @@ namespace nanos {
 
       /*! 
        */
-      WD * CacheSchedPolicy::atIdle ( BaseThread *thread )
+      WD * CacheSchedPolicy::atIdle ( BaseThread *thread, int numSteal )
       {
          WorkDescriptor * wd = NULL;
 

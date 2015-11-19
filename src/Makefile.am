@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -18,100 +18,4 @@
 #####################################################################################
 
 SUBDIRS = arch support core apis pms utils plugins
-
-EXTRA_DIST =
-
-noinst_DATA = plugins-list
-
-CLEANFILES = plugins-list
-
-if PERFORMANCE_VERSION
-perfo=performance
-endif
-if DEBUG_VERSION
-debug=debug
-endif
-if INSTRUMENTATION_VERSION
-instr=instrumentation
-endif
-if INSTRUMENTATION_DEBUG_VERSION
-instrdebug=instrumentation_debug
-endif
-
-plugins-list-dyn:
-	ls -1 -d plugins | sed -e "s/\/$$//" > plugins-list-dyn
-	ls -1 -d arch/*/ | sed -e "s/\/$$//" >> plugins-list-dyn
-	ls -1 -d pms/*/ | sed -e "s/\/$$//" >> plugins-list-dyn
-
-plugins-list: $(perfo) $(debug) $(instr) $(instrdebug)
-	rm -f plugins-list
-	if test -e plugins-list-perfo; then \
-	cat plugins-list-perfo >> plugins-list; \
-	fi
-	if test -e plugins-list-debug; then \
-	cat plugins-list-debug >> plugins-list; \
-	fi
-	if test -e plugins-list-instr; then \
-	cat plugins-list-instr >> plugins-list; \
-	fi
-	if test -e plugins-list-instrdebug; then \
-	cat plugins-list-instrdebug >> plugins-list; \
-	fi
-	rm -rf plugins-list-perfo plugins-list-debug plugins-list-instr plugins-list-instrdebug
-
-performance: plugins-list-dyn
-	tmp_builddir=$(abs_top_builddir) ; \
-	sed \
-		-e's|\(.*\)|'"$$tmp_builddir"'/src/\1/performance/.libs|g' \
-		plugins-list-dyn > plugins-list-perfo.tmp
-	sed \
-		-e :a -e N -e's/\n/:/' -e ta \
-		plugins-list-perfo.tmp > plugins-list-perfo.tmp2
-	sed \
-		-e's|\(.*\)|performance=\1|g' \
-		plugins-list-perfo.tmp2 > plugins-list-perfo
-	rm -f plugins-list-perfo.tmp plugins-list-perfo.tmp2
-
-debug: plugins-list-dyn
-	tmp_builddir=$(abs_top_builddir) ; \
-	tmp_srcdir=$(srcdir) ; \
-	sed \
-		-e's|\(.*\)|'"$$tmp_builddir"'/src/\1/debug/.libs|g' \
-		plugins-list-dyn > plugins-list-debug.tmp
-	sed \
-		-e :a -e N -e's/\n/:/' -e ta \
-		plugins-list-debug.tmp > plugins-list-debug.tmp2
-	sed \
-		-e's|\(.*\)|debug=\1|g' \
-		plugins-list-debug.tmp2 > plugins-list-debug
-	rm -f plugins-list-debug.tmp plugins-list-debug.tmp2
-
-instrumentation: plugins-list-dyn
-	tmp_builddir=$(abs_top_builddir) ; \
-	sed \
-		-e's|\(.*\)|'"$$tmp_builddir"'/src/\1/instrumentation/.libs|g' \
-		plugins-list-dyn > plugins-list-instr.tmp
-	sed \
-		-e :a -e N -e's/\n/:/' -e ta \
-		plugins-list-instr.tmp > plugins-list-instr.tmp2
-	sed \
-		-e's|\(.*\)|instrumentation=\1|g' \
-		plugins-list-instr.tmp2 > plugins-list-instr
-	rm -f plugins-list-instr.tmp plugins-list-instr.tmp2
-
-instrumentation_debug: plugins-list-dyn
-	tmp_builddir=$(abs_top_builddir) ; \
-	sed \
-		-e's|\(.*\)|'"$$tmp_builddir"'/src/\1/instrumentation-debug/.libs|g' \
-		plugins-list-dyn > plugins-list-instrdebug.tmp
-	sed \
-		-e :a -e N -e's/\n/:/' -e ta \
-		plugins-list-instrdebug.tmp > plugins-list-instrdebug.tmp2
-	sed \
-		-e's|\(.*\)|instrumentation_debug=\1|g' \
-		plugins-list-instrdebug.tmp2 > plugins-list-instrdebug
-	rm -f plugins-list-instrdebug.tmp plugins-list-instrdebug.tmp2
-
-clean-local:
-	rm -f plugins-list-dyn
 

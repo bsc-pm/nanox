@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -159,6 +159,12 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
+
          void transferElemsFrom( WDDeque &dq );
          template <typename Test>
          void iterate ();
@@ -294,6 +300,8 @@ namespace nanos
       public:
          typedef T         type;
          typedef std::const_mem_fun_t<T, WD> PriorityValueFun;
+         typedef std::map< const Device *, Atomic<unsigned int> > WDDeviceCounter;
+
       private:
          // TODO (gmiranda): Measure if vector is better as a container
          WDPQ::BaseContainer _dq;
@@ -308,7 +316,11 @@ namespace nanos
          
          /*! \brief Revert insertion */
          bool              _reverse;
-         
+
+         /*! \brief Counts the number of WDs in the queue for each architecture */
+         WDDeviceCounter   _ndevs;
+         bool              _deviceCounter;
+
          /*! \brief Functor that will be used to get the priority or
           *  deadline */
          PriorityValueFun  _getter;
@@ -336,10 +348,12 @@ namespace nanos
         
          /*! \brief Performs lower bound reversely or not depending on the settings */
          WDPQ::BaseContainer::iterator lower_bound( const WD *wd );
+
+
       public:
          /*! \brief WDPriorityQueue default constructor
           */
-         WDPriorityQueue( bool optimise = true, bool reverse = false,
+         WDPriorityQueue( bool enableDeviceCounter = true, bool optimise = true, bool reverse = false,
                PriorityValueFun getter = std::mem_fun( &WD::getPriority ) );
          
          /*! \brief WDPriorityQueue destructor
@@ -387,6 +401,11 @@ namespace nanos
 
          void increaseTasksInQueues( int tasks, int increment = 1 );
          void decreaseTasksInQueues( int tasks, int decrement = 1 );
+
+         /*! \brief Returns the number of ready tasks that could be ran simultaneously
+          * Tied and commutative WDs in the queue could decrease this number.
+          */
+         int getPotentiallyParallelWDs( void );
    };
 
 

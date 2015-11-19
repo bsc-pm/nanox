@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -38,11 +38,12 @@ SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active,
 
 void SMPProcessor::prepareConfig ( Config &config )
 {
-   config.registerConfigOption( "user-threads", NEW Config::FlagOption( _useUserThreads, false), "Disable use of user threads to implement workdescriptor" );
+   config.registerConfigOption( "user-threads", NEW Config::FlagOption( _useUserThreads, false), "Disable User Level Threads" );
    config.registerArgOption( "user-threads", "disable-ut" );
 
-   config.registerConfigOption ( "pthreads-stack-size", NEW Config::SizeVar( _threadsStackSize ), "Defines pthreads stack size" );
-   config.registerArgOption( "pthreads-stack-size", "pthreads-stack-size" );
+   config.registerConfigOption ( "thread-stack-size", NEW Config::SizeVar( _threadsStackSize ), "Defines thread stack size" );
+   config.registerArgOption( "thread-stack-size", "thread-stack-size" );
+   config.registerEnvOption( "thread-stack-size", "OMP_STACKSIZE" );
 }
 
 WorkDescriptor & SMPProcessor::getWorkerWD () const
@@ -97,20 +98,24 @@ BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned i
 }
 
 SMPThread &SMPProcessor::associateThisThread( bool untieMain ) {
-   WD & worker = getMasterWD();
-   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) worker.getId(), 0, 0 ); )
-   NANOS_INSTRUMENT (InstrumentationContextData *icd = worker.getInstrumentationContextData() );
+
+   WD & master = getMasterWD();
+   WD & worker = getWorkerWD();
+
+   NANOS_INSTRUMENT (sys.getInstrumentation()->raiseOpenPtPEvent ( NANOS_WD_DOMAIN, (nanos_event_id_t) master.getId(), 0, 0 ); )
+   NANOS_INSTRUMENT (InstrumentationContextData *icd = master.getInstrumentationContextData() );
    NANOS_INSTRUMENT (icd->setStartingWD(true) );
-   
+
    SMPThread &thread = (SMPThread &)createThread( worker );
 
+   thread.initMain();
    thread.setMainThread();
-   thread.associate();
+   thread.associate( &master );
 
    getThreads().push_back( &thread );
 
    if ( !untieMain ) {
-      worker.tieTo(thread);
+      master.tieTo(thread);
    }
 
    return thread;

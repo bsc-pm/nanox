@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -19,6 +19,10 @@
 
 #ifndef _NANOX_NETWORK_API
 #define _NANOX_NETWORK_API
+
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
 
 #include <stdint.h>
 #include <vector>

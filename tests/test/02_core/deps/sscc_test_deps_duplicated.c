@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -25,6 +25,7 @@ test_deps_plugins=plain,regions,perfect-regions
 */
 #include <nanos.h>
 
+void task(int *a, int *b);
 void task(int *a, int *b)
 {
 }

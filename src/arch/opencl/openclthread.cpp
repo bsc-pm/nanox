@@ -1,6 +1,5 @@
-
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -21,6 +20,9 @@
 #include "openclprocessor.hpp"
 #include "basethread.hpp"
 #include "openclthread.hpp"
+#include "pthread.hpp"
+#include "openclevent.hpp"
+#include "os.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -35,47 +37,36 @@ void OpenCLThread::initializeDependent() {
     // order to be executed in parallel.
     OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
     myProc->initialize();
+    setMaxPrefetch( OpenCLConfig::getPrefetchNum() );
 }
 
 void OpenCLThread::runDependent() {    
-    WD &wd = getThreadWD();
-    setCurrentWD( wd );
-    OpenCLDD &dd = static_cast<OpenCLDD &> (wd.activateDevice(OpenCLDev));
+   WD &wd = getThreadWD();
+   setCurrentWD( wd );
+   OpenCLDD &dd = static_cast<OpenCLDD &> (wd.activateDevice(OpenCLDev));
 
-    dd.getWorkFct()(wd.getData());    
+   while ( getTeam() == NULL ) { OS::nanosleep( 100 ); }
+    
+   dd.getWorkFct()(wd.getData());    
    ( ( OpenCLProcessor * ) myThread->runningOn() )->cleanUp();
 }
 
-bool OpenCLThread::inlineWorkDependent(WD &wd) {
-   // Now the WD will be inminently run
-   wd.start(WD::IsNotAUserLevelThread);
+bool OpenCLThread::runWDDependent( WD &wd, GenericEvent * evt ) {
+   _currKernelEvent=evt;
 
    OpenCLDD &dd = ( OpenCLDD & )wd.getActiveDevice();
-   
-   
-   OpenCLProcessor *myProc = static_cast<OpenCLProcessor *> (myThread->runningOn());
-   myProc->waitForEvents();
-   
+      
    NANOS_INSTRUMENT ( InstrumentStateAndBurst inst1( "user-code", wd.getId(), NANOS_RUNNING ) );
    ( dd.getWorkFct() )( wd.getData() );
-   
+   _currKernelEvent=NULL;
    
    NANOS_INSTRUMENT ( raiseWDClosingEvents() );
-   return true;
+   return false;
 }
 
-void OpenCLThread::yield() {
-    //OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
-
-   // proc.execTransfers();
-
-}
-
-void OpenCLThread::idle() {
-    //OpenCLProcessor &proc = *static_cast<OpenCLProcessor *> (myThread->runningOn());
-
-   // proc.execTransfers();
-
+int OpenCLThread::getCpuId() const
+{
+   return _pthread.getCpuId();
 }
 
 void OpenCLThread::enableWDClosingEvents ()
@@ -96,12 +87,121 @@ void OpenCLThread::raiseWDClosingEvents ()
       _wdClosingEvents = false;
    }
 }
-//bool OpenCLLocalThread::checkForAbort(OpenCLDD::event_iterator i,
-//        OpenCLDD::event_iterator e) {
-//    bool abortNeeded = false;
-//
-//    for (; i != e; ++i)
-//        abortNeeded = abortNeeded || **i < 0;
-//
-//    return abortNeeded;
-//}
+
+GenericEvent * OpenCLThread::createPreRunEvent( WD * wd )
+{
+   OpenCLProcessor * pe = ( OpenCLProcessor * ) this->AsyncThread::runningOn();
+#ifdef NANOS_GENERICEVENT_DEBUG
+   return NEW OpenCLEvent( wd, pe->getContext(), "Pre-run event" );
+#else
+   return NEW OpenCLEvent( wd, pe->getContext() );
+#endif
+}
+
+GenericEvent * OpenCLThread::createRunEvent( WD * wd )
+{
+   //unsigned int streamIdx = ( wd->getCudaStreamIdx() != -1 ) ? wd->getCudaStreamIdx() : _kernelStreamIdx;
+   OpenCLProcessor * pe = ( OpenCLProcessor * ) this->AsyncThread::runningOn();
+
+#ifdef NANOS_GENERICEVENT_DEBUG
+   return NEW OpenCLEvent( wd, pe->getContext(), "Run event" );
+#else
+   return NEW OpenCLEvent( wd, pe->getContext() );
+#endif
+}
+
+GenericEvent * OpenCLThread::createPostRunEvent( WD * wd )
+{
+   OpenCLProcessor * pe = ( OpenCLProcessor * ) this->AsyncThread::runningOn();
+#ifdef NANOS_GENERICEVENT_DEBUG
+   return NEW OpenCLEvent( wd, pe->getContext(), "Post-run event" );
+#else
+   return NEW OpenCLEvent( wd, pe->getContext() );
+#endif
+}
+
+void OpenCLThread::switchTo( WD *work, SchedulerHelper *helper )
+{
+   fatal("A Device Thread cannot call switchTo function.");
+}
+void OpenCLThread::exitTo( WD *work, SchedulerHelper *helper )
+{
+   fatal("A Device Thread cannot call exitTo function.");
+}
+
+void OpenCLThread::switchHelperDependent( WD* oldWD, WD* newWD, void *arg )
+{
+   fatal("A Device Thread cannot call switchHelperDependent function.");
+}
+
+
+void OpenCLThread::join()
+{
+   _pthread.join();
+   joined();
+}
+
+void OpenCLThread::wait()
+{
+   fatal("An OpenCLThread cannot call wait function.");
+}
+
+void OpenCLThread::wakeup()
+{
+   // For convenience we may call wakeup for all threads, just ignore then
+}
+
+void OpenCLThread::idle( bool debug )
+{
+   AsyncThread::idle();
+}
+
+bool OpenCLThread::processDependentWD ( WD * wd )
+{
+   DOSubmit * doSubmit = wd->getDOSubmit();
+   OpenCLDD& ddCurr=static_cast<OpenCLDD&>(wd->getActiveDevice());
+
+   if ( doSubmit != NULL ) {
+      DependableObject::DependableObjectVector & preds = wd->getDOSubmit()->getPredecessors();
+      for ( DependableObject::DependableObjectVector::iterator it = preds.begin(); it != preds.end(); it++ ) {
+         WD * wdPred = ( WD * ) ( *it )->getRelatedObject();         
+         OpenCLDD& ddPred=static_cast<OpenCLDD&>(wdPred->getActiveDevice());
+         if ( wdPred != NULL ) {
+            if ( wdPred->isTiedTo() == NULL || wdPred->isTiedTo() == ( BaseThread * ) this ) {
+               if ( ddPred.getOpenCLStreamIdx() != -1 ) {
+                  ddCurr.setOpenclStreamIdx( ddPred.getOpenCLStreamIdx() );
+                  verbose( "Setting stream for WD " << wd->getId() << " index " << ddPred.getOpenCLStreamIdx()
+                        << " (from WD " << wdPred->getId() << ")" );
+                  return false;
+               }
+            }
+         }
+      }
+   }
+   return AsyncThread::processDependentWD( wd );
+}
+
+
+void OpenCLThread::addEvent( GenericEvent * evt ){
+   if (myThread==this) {
+      AsyncThread::addEvent(evt);          
+   } else {
+      _evlLock.acquire();
+      _externalEventsList.push_back(evt);
+      _evlLock.release();
+   }
+}
+
+
+void OpenCLThread::checkEvents(){
+    if (!_externalEventsList.empty()) {
+       _evlLock.acquire();
+       for ( nanos::AsyncThread::GenericEventList::iterator it=_externalEventsList.begin(); 
+              it != _externalEventsList.end(); ++it) {
+         AsyncThread::addEvent(*it);     
+       }
+       _externalEventsList.clear();
+       _evlLock.release();    
+    }
+    AsyncThread::checkEvents();         
+}

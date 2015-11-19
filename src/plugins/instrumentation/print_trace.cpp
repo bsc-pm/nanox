@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include "plugin.hpp"
@@ -71,17 +90,20 @@ class InstrumentationPrintTrace: public Instrumentation
          for (unsigned int i = 0; i < count; i++)
          {
             Event &e = events[i];
+            nanos_event_type_t type = e.getType();
+            nanos_event_key_t key = e.getKey();
+            if ( key == 0 ) continue;
             int64_t value = e.getValue();
-            switch ( e.getType() ) {
+            switch ( type ) {
                case NANOS_POINT:
-                  if ( e.getKey() == create_task ) {
+                  if ( key == create_task ) {
                      WorkDescriptor *wd = (WorkDescriptor *) value;
                      int64_t wd_id = wd->getId();
                      int64_t funct_id = (int64_t) wd->getActiveDevice().getWorkFct();
                      fprintf(stderr,"NANOS++: (WD) Executing %" PRId64 " function within task %" PRId64 " in thread %d\n",
                              funct_id, wd_id, myThread->getId());
                   }
-                  if ( (nanos_event_key_t)(events[i]).getKey() == dependence ) {
+                  if ( key == dependence ) {
                      nanos_event_value_t dependence_value = (events[i]).getValue();
                      int sender_id = (int) ( dependence_value >> 32 );
                      int receiver_id = (int) ( dependence_value & 0xFFFFFFFF );
@@ -109,50 +131,54 @@ class InstrumentationPrintTrace: public Instrumentation
                         fprintf(stderr,"NANOS++: (DEP) Adding (%s) dependence %d->%d (related data address %p)\n",dirStr[direction],sender_id,receiver_id, address_id );
 
                   }
-                  if ( e.getKey() == wd_ready ) {
+                  if ( key == wd_ready ) {
                      fprintf(stderr,"NANOS++: (WD-STATE) Task %d [%s] becomes ready\n", ((WD*)value)->getId(), ((WD*)value)->getDescription() );
                   }
-                  if ( e.getKey() == wd_blocked ) {
+                  if ( key == wd_blocked ) {
                      fprintf(stderr,"NANOS++: (WD-STATE) Task %d [%s] becomes blocked\n", ((WD*)value)->getId(), ((WD*)value)->getDescription()  );
                   }
                   break;
                case NANOS_BURST_START:
-                  if ( e.getKey() == wd_id_event ) {
+                  if ( key == wd_id_event ) {
                      fprintf(stderr,"NANOS++: (WD-ID) Entering %ld Work Descriptor\n", (long) value );
                   }
-                  if ( e.getKey() == user_code ) {
+                  if ( key == user_code ) {
                      fprintf(stderr,"NANOS++: (USER-CODE) Entering %ld User Code Function\n", (long) value );
                   }
-                  if ( e.getKey() == nanos_api ) {
+                  if ( key == nanos_api ) {
                      std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
                      fprintf(stderr,"NANOS++: (API) Entering %ld named %s\n", (long) value, description.c_str() );
                   }
-                  if ( e.getKey() == funct_location ) {
+                  if ( key == funct_location ) {
                      std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
                      fprintf(stderr,"NANOS++: (TASK) Executing %s function location\n", description.c_str() );
                   }
                   break;
                case NANOS_BURST_END:
-                  if ( e.getKey() == wd_id_event ) {
+                  if ( key == wd_id_event ) {
                      fprintf(stderr,"NANOS++: (WD-ID) Exiting %ld Work Descriptor\n", (long) value );
                   }
-                  if ( e.getKey() == user_code ) {
+                  if ( key == user_code ) {
                      fprintf(stderr,"NANOS++: (USER-CODE) Exiting %ld User Code Function\n", (long) value );
                   }
-                  if ( e.getKey() == nanos_api ) {
+                  if ( key == nanos_api ) {
                      std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
                      fprintf(stderr,"NANOS++: (API) Exiting %ld named %s\n", (long) value, description.c_str() );
                   }
-                  if ( e.getKey() == funct_location ) {
+                  if ( key == funct_location ) {
                      std::string description = iD->getValueDescription( e.getKey(), e.getValue() );
                      fprintf(stderr,"NANOS++: (TASK) Finishing %s function location\n", description.c_str() );
                   }
                   break;
                case NANOS_PTP_START:
+                  if ( key != 0xFFFFFFFF ) {
                   fprintf(stderr,"NANOS++: (P2P Start) Start p2p with key %u, %u, %llu\n", (unsigned int) e.getKey() , (unsigned int) e.getDomain(), (long long) e.getId() );                   
+                  }
                   break;
                case NANOS_PTP_END:      
-                  fprintf(stderr,"NANOS++: (P2P End) end p2p with key %u, %u, %llu\n", (unsigned int) e.getKey() , (unsigned int) e.getDomain(), (long long) e.getId() );                   
+                  if ( key != 0xFFFFFFFF ) {
+                     fprintf(stderr,"NANOS++: (P2P End) end p2p with key %u, %u, %llu\n", (unsigned int) e.getKey() , (unsigned int) e.getDomain(), (long long) e.getId() );                   
+                  }
                   break;
                default:
                   break;

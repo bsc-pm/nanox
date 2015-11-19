@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -30,6 +30,7 @@
 #include "malign.hpp"
 #include "simpleallocator_decl.hpp"
 #include "copydescriptor_decl.hpp"
+#include "smpprocessor.hpp"
 
 #include <map>
 
@@ -88,9 +89,14 @@ namespace ext
          GPUProcessorTransfers   _gpuProcessorTransfers; //! Keep the list of pending memory transfers
          GPUProcessorInfo *      _gpuProcessorInfo; //! Information related to the GPU device that represents
          GPUProcessorStats       _gpuProcessorStats; //! Statistics of data copied in and out to / from cache
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         bool                    _initialized; //! Object is initialized
+#else
          volatile bool           _initialized; //! Object is initialized
+#endif
          GPUMemorySpace         &_gpuMemory;
          SMPProcessor           *_core;
+         BaseThread             *_thread;
 
 
          //SimpleAllocator               _allocator;
@@ -127,7 +133,6 @@ namespace ext
 
          //! Capability query functions
          bool supportsUserLevelThreads () const { return false; }
-         bool isGPU () const { return true; }
 
          int getDeviceId ()
          {
@@ -170,26 +175,45 @@ namespace ext
          }
 
 
-         void printStats ()
-         {
-            message("GPU " << _gpuDevice << " TRANSFER STATISTICS");
-            message("    Total input transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesIn.value() ) );
-            message("    Total output transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesOut.value() ) );
-            message("    Total device transfers: " << bytesToHumanReadable( _gpuProcessorStats._bytesDevice.value() ) );
-         }
+         void printStats ();
 
          void setInitialized ()
          {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            __atomic_store_n(&_initialized, true, __ATOMIC_RELEASE);
+#else
             _initialized = true;
+            memoryFence();
+#endif
          }
          void waitInitialized ()
          {
-            while ( !_initialized ) { }
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            while ( ! __atomic_load_n(&_initialized, __ATOMIC_ACQUIRE) ) { }
+#else
+            while ( !_initialized ) { memoryFence(); }
+#endif
          }
          //virtual bool supportsDirectTransfersWith(ProcessingElement const &pe) const;
          std::size_t getMaxMemoryAvailable () const;
 
-         BaseThread &startGPUThread();
+      // Methods related to GPUThread management
+      protected:
+         ProcessingElement::ThreadList & getThreads() { return _core->getThreads(); }
+
+      public:
+         BaseThread & startGPUThread();
+
+         std::size_t getNumThreads() const { return _core->getNumThreads(); }
+         void stopAllThreads ();
+         BaseThread * getFirstThread();
+//xteruel
+#if 0
+         BaseThread * getFirstRunningThread_FIXME();
+         BaseThread * getFirstStoppedThread_FIXME();
+         BaseThread * getUnassignedThread();
+#endif
+
    };
 
 }

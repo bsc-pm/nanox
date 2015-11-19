@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -69,7 +69,11 @@ inline bool DependenciesDomain::haveDependencePendantWrites ( void *addr )
    fatal("haveDependencePendantWrites service has not been implemented in that dependence plugin!");
    return true;
 }
+inline void DependenciesDomain::finalizeAllReductions ( void ) 
+{
+}
 
+inline void DependenciesDomain::clearDependenciesDomain ( void ) { }
 }
 
 #endif

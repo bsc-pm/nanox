@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #include "new_decl.hpp"
 
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED) // ----- debug AND memtracker -----
@@ -24,8 +25,8 @@
 void* operator new ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 void* operator new[] ( size_t size, const char *file, int line ) { return nanos::getMemTracker().allocate( size, file, line ); }
 
-void* operator new ( size_t size ) throw (std::bad_alloc) { return nanos::getMemTracker().allocate( size ); }
-void* operator new[] ( size_t size ) throw (std::bad_alloc) { return nanos::getMemTracker().allocate( size ); }
+void* operator new ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getMemTracker().allocate( size ); }
 void operator delete ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
 void operator delete[] ( void *p ) throw() { nanos::getMemTracker().deallocate( p ); }
 void operator delete ( void *p, const char *file, int line  ) { nanos::getMemTracker().deallocate( p ); }
@@ -33,13 +34,13 @@ void operator delete[] ( void *p, const char *file, int line  ) { nanos::getMemT
 
 #else // ----- default -----
 
-#ifndef NANOS_DISABLE_ALLOCATOR
+#ifdef NANOS_ENABLE_ALLOCATOR
 
 #include "allocator.hpp"
 
-void* operator new ( size_t size ) throw (std::bad_alloc) { return nanos::getAllocator().allocate( size ); }
+void* operator new ( size_t size ) { return nanos::getAllocator().allocate( size ); }
 
-void* operator new[] ( size_t size ) throw (std::bad_alloc) { return nanos::getAllocator().allocate( size ); }
+void* operator new[] ( size_t size ) { return nanos::getAllocator().allocate( size ); }
 void* operator new ( size_t size, std::nothrow_t const& ) throw () { return nanos::getAllocator().allocate( size ); }
 void* operator new[] ( size_t size, std::nothrow_t const& ) throw () { return nanos::getAllocator().allocate( size ); }
 void operator delete ( void *p ) throw() { nanos::getAllocator().deallocate( p ); }
@@ -48,5 +49,3 @@ void operator delete[] ( void *p ) throw() { nanos::getAllocator().deallocate( p
 #endif
 
 #endif
-
-

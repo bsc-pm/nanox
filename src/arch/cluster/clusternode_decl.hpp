@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -63,7 +63,6 @@ namespace nanos {
 
             // capability query functions
             virtual bool supportsUserLevelThreads () const;
-            virtual bool isGPU () const;
             //virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const;
             virtual unsigned int getMyNodeNumber() const;
 

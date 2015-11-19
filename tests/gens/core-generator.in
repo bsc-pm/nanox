@@ -1,65 +1,97 @@
 #!/bin/bash
 
-cat <<EOF
+# Transforms a text so that it is valid
+# to be used as a shell variable name
+# Note: it actually calls tr (translate)
+# and translates every alphanumeric character
+# into an underscore
+function tr_sh() {
+  echo $(echo -n "$@" | tr -c [:alnum:] '_')
+}
 
-SRC=@SRCDIR@/src
-BUILD=@BUILDDIR@/src
+common_includes="\
+-I@abs_top_builddir@ \
+-I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/support \
+-I@abs_top_srcdir@/src/apis/c \
+-I@abs_top_builddir@/src/apis/c \
+-I@abs_top_srcdir@/src/arch/smp \
+-I@abs_top_srcdir@/src/arch/unix-os
+-I@abs_top_srcdir@/src/arch/gpu \
+-I@abs_top_srcdir@/src/arch/opencl \
+-I@abs_top_srcdir@/src/arch/spu \
+-I@abs_top_srcdir@/src/arch/cluster \
+$END"
 
-PERFO_CFLAGS=@PERFO_CFLAGS@
-PERFO_CXXFLAGS=@PERFO_CXXFLAGS@
-DEBUG_CFLAGS=@DEBUG_CFLAGS@
-DEBUG_CXXFLAGS=@DEBUG_CXXFLAGS@
-INSTR_CFLAGS=@INSTR_CFLAGS@
-INSTR_CXXFLAGS=@INSTR_CXXFLAGS@
-INSTRDEBUG_CFLAGS=@INSTRDEBUG_CFLAGS@
-INSTRDEBUG_CXXFLAGS=@INSTRDEBUG_CXXFLAGS@
+VERSIONS="@VERSIONS@"
+PLUGINS="@PLUGINS@"
 
-PLUGINS_performance=@PLUGINS_PERFORMANCE@
-PLUGINS_debug=@PLUGINS_DEBUG@
-PLUGINS_instrumentation=@PLUGINS_INSTRUMENTATION@
-PLUGINS_instrumentation_debug=@PLUGINS_INSTRUMENTATION_DEBUG@
+LIBS="-Xlinker --no-as-needed -lnanox-ompss -lnanox -lnanox-c -Xlinker --as-needed"
 
-common_includes="-I\$SRC/core -I\$SRC/apis/c"
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_debug_enabled_TRUE@ debug_LIBS=${LIBS}
 
-common_includes=" 
-        -I\$SRC/arch/unix-os \
-        -I\$SRC/support \
-        -I\$SRC/core \
-        -I\$SRC/arch/smp \
-        -I\$SRC/arch/gpu \
-        -I\$SRC/arch/opencl \
-        -I\$SRC/arch/spu \
-        -I\$SRC/arch/cluster"
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS=${LIBS}
 
-compile_versions="@COMPILE_VERSIONS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=${LIBS}
 
-test_CC=@CONFIG_CC@
-test_CXX=@CONFIG_CXX@
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ @cc_dep_CXXFLAGS@ @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_performance_enabled_TRUE@ performance_LIBS=${LIBS}
 
-test_CFLAGS="\$common_includes"
-test_CXXFLAGS="\$common_includes"
+# Common to all versions
+cat << EOF
+test_CC=@CC@
+test_CXX=@CXX@
+EOF
 
-test_CFLAGS_performance="\$PERFO_CFLAGS"
-test_CXXFLAGS_performance="\$PERFO_CXXFLAGS"
-test_CFLAGS_debug="\$DEBUG_CFLAGS"
-test_CXXFLAGS_debug="\$DEBUG_CXXFLAGS"
-test_CFLAGS_instrumentation="\$INSTR_CFLAGS"
-test_CXXFLAGS_instrumentation="\$INSTR_CXXFLAGS"
-test_CFLAGS_instrumentation_debug="\$INSTRDEBUG_CFLAGS"
-test_CXXFLAGS_instrumentation_debug="\$INSTRDEBUG_CXXFLAGS"
+# Specific to each version
+compile_versions=
+for version in @VERSIONS@; do
+  sh_version=$(tr_sh $version)
+  compile_versions+="${sh_version} "
+  for libdir in @PLUGINS@ core pms apis; do
+    library_dir=@abs_top_builddir@/src/${libdir}/${version}/.libs
+    eval "${sh_version}_LDFLAGS=\"\
+-L${library_dir} -Wl,-rpath,${library_dir} \
+\${${sh_version}_LDFLAGS}\""
 
-test_LDFLAGS_performance="\$BUILD/core/performance/.libs/libnanox.so"
-test_ENV_performance="LD_LIBRARY_PATH=\$BUILD/core/performance/.libs:\$PLUGINS_performance:$LD_LIBRARY_PATH"
+    eval "${sh_version}_LD_LIBRARY_PATH=\"\
+${library_dir}\
+\${${sh_version}_LD_LIBRARY_PATH+:}\
+\${${sh_version}_LD_LIBRARY_PATH}\""
+  done
 
-test_LDFLAGS_debug="\$BUILD/core/debug/.libs/libnanox.so"
-test_ENV_debug="LD_LIBRARY_PATH=\$BUILD/core/debug/.libs:\$PLUGINS_debug:$LD_LIBRARY_PATH"
+  eval "${sh_version}_LDFLAGS=\"\
+@PTHREAD_LIBS@ \
+\${${sh_version}_LIBS} \
+\${${sh_version}_LDFLAGS}\""
 
-test_LDFLAGS_instrumentation="\$BUILD/core/instrumentation/.libs/libnanox.so"
-test_ENV_instrumentation="LD_LIBRARY_PATH=\$BUILD/core/instrumentation/.libs:\$PLUGINS_instrumentation:$LD_LIBRARY_PATH"
+  eval "${sh_version}_ENV=\"
+LD_LIBRARY_PATH=\${${sh_version}_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}\""
 
-test_LDFLAGS_instrumentation_debug="\$BUILD/core/instrumentation-debug/.libs/libnanox.so"
-test_ENV_instrumentation_debug="LD_LIBRARY_PATH=\$BUILD/core/instrumentation-debug/.libs:\$PLUGINS_instrumentation_debug:$LD_LIBRARY_PATH"
+  cat << EOF
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} )"
+test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} -Wno-error )"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} -Wno-error )"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS})"
+test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
+EOF
 
-`@SRCDIR@/tests/gens/config.py $*`
+done # for version
+
+cat << EOF
+compile_versions="${compile_versions}"
+$(@abs_top_srcdir@/tests/gens/config.py $*)
 EOF
 

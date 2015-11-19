@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -100,10 +100,6 @@ namespace nanos
          static void initMPICacheStruct();
          
          static void remoteNodeCacheWorker();
-         
-         static void taskPreInit(MPI_Comm& comm, int pendingCopies);
-         
-         static void taskPostFinish(MPI_Comm& comm);
          
          
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx);

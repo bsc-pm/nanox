@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,7 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
- 
+
 /*
 <testinfo>
 test_generator=gens/api-generator
@@ -30,6 +30,7 @@ test_generator=gens/api-generator
 
 int cutoff_value = 10;
 
+int fib_seq ( int n );
 int fib_seq ( int n )
 {
    int x, y;
@@ -51,12 +52,14 @@ typedef struct {
    int *x;
 } fib_args;
 
+void fib_1( void *ptr );
 void fib_1( void *ptr )
 {
    fib_args * args = ( fib_args * )ptr;
    *args->x = fib( args->n-1,args->d+1 );
 }
 
+void fib_2( void *ptr );
 void fib_2( void *ptr )
 {
    fib_args * args = ( fib_args * )ptr;   
@@ -155,6 +158,7 @@ int fib ( int n, int d )
    return x + y;
 }
 
+double get_wtime( void );
 double get_wtime( void )
 {
 
@@ -168,6 +172,7 @@ double get_wtime( void )
    return t;
 }
 
+int fib0 ( int n );
 int fib0 ( int n )
 {
    double start,end;

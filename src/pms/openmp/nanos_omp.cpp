@@ -1,5 +1,25 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #include "nanos.h"
 #include "os.hpp"
+#include "cpuset.hpp"
 #include "omp_init.hpp"
 #include "nanos_omp.h"
 #include "omp_wd_data.hpp"
@@ -15,6 +35,40 @@ namespace nanos
 
 using namespace nanos;
 using namespace nanos::OpenMP;
+
+NANOS_API_DEF(void, nanos_omp_get_process_mask, ( nanos_cpu_set_t cpu_set ))
+{
+   const CpuSet& process_mask = sys.getPMInterface().getCpuProcessMask();
+   process_mask.copyTo( static_cast<cpu_set_t*>(cpu_set) );
+}
+
+NANOS_API_DEF(int, nanos_omp_set_process_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   bool b = sys.getPMInterface().setCpuProcessMask( static_cast<cpu_set_t*>(cpu_set) );
+   return (b) ? 0 : -1;
+}
+
+NANOS_API_DEF(void, nanos_omp_add_process_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().addCpuProcessMask( static_cast<cpu_set_t*>(cpu_set) );
+}
+
+NANOS_API_DEF(void, nanos_omp_get_active_mask, ( nanos_cpu_set_t cpu_set ))
+{
+   const CpuSet& active_mask = sys.getCpuActiveMask();
+   active_mask.copyTo( static_cast<cpu_set_t*>(cpu_set) );
+}
+
+NANOS_API_DEF(int, nanos_omp_set_active_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   bool b = sys.getPMInterface().setCpuActiveMask( static_cast<cpu_set_t*>(cpu_set) );
+   return (b) ? 0 : -1;
+}
+
+NANOS_API_DEF(void, nanos_omp_add_active_mask, ( const nanos_cpu_set_t cpu_set ))
+{
+   sys.getPMInterface().addCpuActiveMask( static_cast<cpu_set_t*>(cpu_set) );
+}
 
 NANOS_API_DEF ( int, nanos_omp_get_max_processors, (void ) )
 {
@@ -71,3 +125,4 @@ NANOS_API_DEF(nanos_err_t, nanos_omp_get_schedule, ( nanos_omp_sched_t *kind, in
    }
    return NANOS_OK;
 }
+

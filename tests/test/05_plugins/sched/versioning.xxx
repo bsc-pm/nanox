@@ -1,0 +1,237 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
+/*
+<testinfo>
+test_generator=gens/core-generator
+test_schedule="versioning"
+</testinfo>
+*/
+
+#include <nanos.h>
+
+void task1(int *A, int size, int k);
+void task2(int *A, int size, int k);
+
+struct  nanos_const_wd_definition_2
+{
+    ::nanos_const_wd_definition_t base;
+    ::nanos_device_t devices[2];
+};
+
+void task1(int *A, int size, int k)
+{
+  int i;
+  for (i = 0; i < size; i++)
+    {
+      A[i] += k;
+    }
+}
+
+void task2(int *A, int size, int k)
+{
+  int i;
+  int j;
+  int m;
+  int n;
+  for (i = 0; i < size; i++)
+    {
+      j = k;
+      j += size * i + k * i;
+      m = size * i;
+      n = k * i;
+      j = j - m - n;
+      A[i] += j;
+    }
+}
+struct  nanos_args_0_t
+{
+    int *A;
+    int size;
+    int k;
+};
+static void smp_ol_task1_2_unpacked(int *&A, int &size, int &k) throw();
+static void smp_ol_task1_2(::nanos_args_0_t &args) throw();
+static void smp_ol_task2_3_unpacked(int *&A, int &size, int &k) throw();
+static void smp_ol_task2_3(::nanos_args_0_t &args) throw();
+static void nanos_xlate_fun_versioningcpp_0(::nanos_args_0_t &arg, void *wd) throw()
+{
+  {
+    void *device_base_address;
+    ::nanos_err_t err;
+    device_base_address = 0;
+    err = ::nanos_get_addr(0, &device_base_address, wd);
+    if (err != ::NANOS_OK)
+      {
+        ::nanos_handle_error(err);
+      }
+    arg.A = (int *)device_base_address;
+  }
+}
+int main(int argc, char **argv)
+{
+  const int size(256);
+  int times(16);
+  int k(7);
+  int A[256];
+  int i;
+  for (i = 0; i < size; i++)
+    {
+      A[i] = i;
+    }
+  for (i = 0; i < times; i++)
+    {
+      {
+        int *mcc_arg_0(A);
+        int mcc_arg_1(size);
+        int mcc_arg_2(k);
+        {
+          bool mcc_is_in_final;
+          ::nanos_err_t mcc_err_in_final(::nanos_in_final(&mcc_is_in_final));
+          if (mcc_err_in_final != ::NANOS_OK)
+            {
+              ::nanos_handle_error(mcc_err_in_final);
+            }
+          if (mcc_is_in_final)
+            {
+              ::task1(A, size, k);
+            }
+          else
+            {
+              {
+                static ::nanos_smp_args_t smp_ol_task1_2_args = { /* .::nanos_smp_args_t::outline =  */ (void (*)(void *))(void (*)(::nanos_args_0_t &))::smp_ol_task1_2};
+                static ::nanos_smp_args_t smp_ol_task2_3_args = { /* .::nanos_smp_args_t::outline =  */ (void (*)(void *))(void (*)(::nanos_args_0_t &))::smp_ol_task2_3};
+                static ::nanos_const_wd_definition_2 nanos_wd_const_data = { /* .::nanos_const_wd_definition_2::base =  */ { /* .::nanos_const_wd_definition_tag::props =  */ { /* .::nanos_wd_props_t::mandatory_creation =  */ 0,  /* .::nanos_wd_props_t::tied =  */ 1,  /* .::nanos_wd_props_t::clear_chunk =  */ 0,  /* .::nanos_wd_props_t::reserved0 =  */ 0,  /* .::nanos_wd_props_t::reserved1 =  */ 0,  /* .::nanos_wd_props_t::reserved2 =  */ 0,  /* .::nanos_wd_props_t::reserved3 =  */ 0,  /* .::nanos_wd_props_t::reserved4 =  */ 0},  /* .::nanos_const_wd_definition_tag::data_alignment =  */ __alignof__(::nanos_args_0_t),  /* .::nanos_const_wd_definition_tag::num_copies =  */ 1,  /* .::nanos_const_wd_definition_tag::num_devices =  */ 2,  /* .::nanos_const_wd_definition_tag::num_dimensions =  */ 1,  /* .::nanos_const_wd_definition_tag::description =  */ 0},  /* .::nanos_const_wd_definition_2::devices =  */ { /* [0] =  */ { /* .::nanos_device_t::factory =  */ &::nanos_smp_factory,  /* .::nanos_device_t::arg =  */ &smp_ol_task1_2_args},  /* [1] =  */ { /* .::nanos_device_t::factory =  */ &::nanos_smp_factory,  /* .::nanos_device_t::arg =  */ &smp_ol_task2_3_args}}};
+                ::nanos_wd_dyn_props_t nanos_wd_dyn_props;
+                nanos_wd_dyn_props.tie_to = 0;
+                nanos_wd_dyn_props.priority = 0;
+                nanos_wd_dyn_props.flags.is_final = 0;
+                ::nanos_args_0_t *ol_args;
+                ol_args = (::nanos_args_0_t *)0;
+                ::nanos_args_0_t imm_args;
+                ::nanos_wd_t nanos_wd_((::nanos_wd_t)0);
+                ::nanos_copy_data_t *ol_copy_data((::nanos_copy_data_t *)0);
+                ::nanos_region_dimension_internal_t *ol_copy_dimensions((::nanos_region_dimension_internal_t *)0);
+                ::nanos_err_t err;
+                err = ::nanos_create_wd_compact(&nanos_wd_, &nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(::nanos_args_0_t &), (void **)&ol_args, ::nanos_current_wd(), &ol_copy_data, &ol_copy_dimensions);
+                if (err != ::NANOS_OK)
+                  {
+                    ::nanos_handle_error(err);
+                  }
+                ::nanos_region_dimension_t dimensions_0[1] = { /* [0] =  */ { /* .::nanos_region_dimension_internal_t::size =  */ sizeof(int) * (((mcc_arg_1) - 1 - 0) + 1),  /* .::nanos_region_dimension_internal_t::lower_bound =  */ sizeof(int) * 0,  /* .::nanos_region_dimension_internal_t::accessed_length =  */ sizeof(int) * (((mcc_arg_1) - 1 - 0) + 1)}};
+                ::nanos_data_access_t dependences[1] = { /* [0] =  */ { /* .::nanos_data_access_internal_t::address =  */ (void *)mcc_arg_0,  /* .::nanos_data_access_internal_t::flags =  */ { /* .::nanos_access_type_internal_t::input =  */ 1,  /* .::nanos_access_type_internal_t::output =  */ 1,  /* .::nanos_access_type_internal_t::can_rename =  */ 0,  /* .::nanos_access_type_internal_t::concurrent =  */ 0,  /* .::nanos_access_type_internal_t::commutative =  */ 0},  /* .::nanos_data_access_internal_t::dimension_count =  */ 1,  /* .::nanos_data_access_internal_t::dimensions =  */ dimensions_0,  /* .::nanos_data_access_internal_t::offset =  */ 0}};
+                ;
+                if (nanos_wd_ != (::nanos_wd_t)0)
+                  {
+                    (*ol_args).A = mcc_arg_0;
+                    (*ol_args).size = mcc_arg_1;
+                    (*ol_args).k = mcc_arg_2;
+                    ol_copy_dimensions[0].size = (((mcc_arg_1) - 1 - 0) + 1) * sizeof(int);
+                    ol_copy_dimensions[0].lower_bound = (0 - 0) * sizeof(int);
+                    ol_copy_dimensions[0].accessed_length = ((mcc_arg_1) - 1 - 0 - (0 - 0) + 1) * sizeof(int);
+                    ol_copy_data[0].sharing = ::NANOS_SHARED;
+                    ol_copy_data[0].address = (void *)mcc_arg_0;
+                    ol_copy_data[0].flags.input = 1;
+                    ol_copy_data[0].flags.output = 1;
+                    ol_copy_data[0].dimension_count = 1;
+                    ol_copy_data[0].dimensions = &ol_copy_dimensions[0];
+                    ol_copy_data[0].offset = 0;
+                    err = ::nanos_set_translate_function(nanos_wd_, (::nanos_translate_args_t)::nanos_xlate_fun_versioningcpp_0);
+                    if (err != ::NANOS_OK)
+                      {
+                        ::nanos_handle_error(err);
+                      }
+                    err = ::nanos_submit(nanos_wd_, 1, dependences, (::nanos_team_t)0);
+                    if (err != ::NANOS_OK)
+                      {
+                        ::nanos_handle_error(err);
+                      }
+                  }
+                else
+                  {
+                    imm_args.A = mcc_arg_0;
+                    imm_args.size = mcc_arg_1;
+                    imm_args.k = mcc_arg_2;
+                    ::nanos_copy_data_t imm_copy_data[1];
+                    ::nanos_region_dimension_internal_t imm_copy_dimensions[1];
+                    imm_copy_dimensions[0].size = (((mcc_arg_1) - 1 - 0) + 1) * sizeof(int);
+                    imm_copy_dimensions[0].lower_bound = (0 - 0) * sizeof(int);
+                    imm_copy_dimensions[0].accessed_length = ((mcc_arg_1) - 1 - 0 - (0 - 0) + 1) * sizeof(int);
+                    imm_copy_data[0].sharing = ::NANOS_SHARED;
+                    imm_copy_data[0].address = (void *)mcc_arg_0;
+                    imm_copy_data[0].flags.input = 1;
+                    imm_copy_data[0].flags.output = 1;
+                    imm_copy_data[0].dimension_count = 1;
+                    imm_copy_data[0].dimensions = &imm_copy_dimensions[0];
+                    imm_copy_data[0].offset = 0;
+                    err = ::nanos_create_wd_and_run_compact(&nanos_wd_const_data.base, &nanos_wd_dyn_props, sizeof(::nanos_args_0_t &), &imm_args, 1, dependences, imm_copy_data, imm_copy_dimensions, (::nanos_translate_args_t)::nanos_xlate_fun_versioningcpp_0);
+                    if (err != ::NANOS_OK)
+                      {
+                        ::nanos_handle_error(err);
+                      }
+                  }
+              }
+            }
+        }
+      }
+    }
+  {
+    ::nanos_wd_t nanos_wd_(::nanos_current_wd());
+    ::nanos_err_t err;
+    err = ::nanos_wg_wait_completion(nanos_wd_, 0);
+    if (err != ::NANOS_OK)
+      {
+        ::nanos_handle_error(err);
+      }
+  }
+  int err(0);
+  for (i = 0; i < size; i++)
+    {
+      if (A[i] != i + k * times)
+        {
+          err++;
+        }
+    }
+  return err;
+}
+static void smp_ol_task1_2_unpacked(int *&A, int &size, int &k) throw()
+{
+  {
+    ::task1(A, size, k);
+  }
+}
+static void smp_ol_task1_2(::nanos_args_0_t &args) throw()
+{
+  {
+    ::smp_ol_task1_2_unpacked(args.A, args.size, args.k);
+  }
+}
+static void smp_ol_task2_3_unpacked(int *&A, int &size, int &k) throw()
+{
+  {
+    ::task2(A, size, k);
+  }
+}
+static void smp_ol_task2_3(::nanos_args_0_t &args) throw()
+{
+  {
+    ::smp_ol_task2_3_unpacked(args.A, args.size, args.k);
+  }
+}
+

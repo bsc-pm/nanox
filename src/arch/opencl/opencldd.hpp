@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -61,14 +61,17 @@ extern OpenCLDevice OpenCLDev;
 class OpenCLDD : public DD
    {
     
+      private:
+         int _oclStreamIdx;
+    
       public:
          // constructors
-         OpenCLDD( work_fct w ) : DD( &OpenCLDev, w ) {}
+         OpenCLDD( work_fct w ) : DD( &OpenCLDev, w ), _oclStreamIdx(-1) {}
 
-         OpenCLDD() : DD( &OpenCLDev, NULL ) {}
+         OpenCLDD() : DD( &OpenCLDev, NULL ), _oclStreamIdx(-1) {}
 
          // copy constructors
-         OpenCLDD( const OpenCLDD &dd ) : DD( dd ) {}
+         OpenCLDD( const OpenCLDD &dd ) : DD( dd ), _oclStreamIdx( dd._oclStreamIdx ) {}
 
          // assignment operator
          const OpenCLDD & operator= ( const OpenCLDD &wd );
@@ -80,6 +83,8 @@ class OpenCLDD : public DD
          virtual size_t size ( void ) { return sizeof(OpenCLDD); }
          virtual OpenCLDD *copyTo ( void *toAddr );
          virtual OpenCLDD *clone () const { return NEW OpenCLDD ( *this); }
+         void setOpenclStreamIdx(int streamIdx);
+         int getOpenCLStreamIdx();
    };
 
    inline const OpenCLDD & OpenCLDD::operator= ( const OpenCLDD &dd )
@@ -88,6 +93,7 @@ class OpenCLDD : public DD
       if ( &dd == this ) return *this;
 
       DD::operator= ( dd );
+      _oclStreamIdx= dd._oclStreamIdx;
 
       return *this;
    }

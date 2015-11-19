@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2012 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -122,14 +122,15 @@ namespace nanos {
                      flushDeps.push_back( (uint64_t) region.getFirstValue() );
                   }
                }
-                  
+               sys.getDefaultSchedulePolicy()->atCreate( depObj );                 
+ 
                // To keep the count consistent we have to increase the number of tasks in the graph before releasing the fake dependency
                increaseTasksInGraph();
             
                depObj.submitted();
             
                // now everything is ready
-               depObj.decreasePredecessors( &flushDeps, true );
+               depObj.decreasePredecessors( &flushDeps, NULL, false, true );
             }
             
             /*! \brief Adds a region access of a DependableObject to the domains dependency system.
@@ -316,8 +317,31 @@ namespace nanos {
             {
                submitDependableObjectInternal ( depObj, deps, deps+numDeps, callback );
             }
+
+            void finalizeAllReductions ( void )
+            {
+               // Region lacks of reduction finalizer
+            }
             
-         
+            bool haveDependencePendantWrites ( void *addr )
+            {
+               SyncRecursiveLockBlock lock1( getInstanceLock() );                
+               size_t additionalContribution = 0UL;               
+               Region region = RegionBuilder::build( (size_t) addr, 1UL, 1, additionalContribution);
+               
+               RegionMap::iterator_list_t subregions;
+               _regionMap.find( region, /* out */subregions );
+               for (
+                  RegionMap::iterator_list_t::iterator it = subregions.begin();
+                  it != subregions.end();
+                  it++
+               ) {
+                  RegionMap::iterator &accessor = *it;
+                  TrackableObject &status = *accessor;
+                  if (status.getLastWriter() != NULL) return true;
+               }
+               return false;
+            }
       };
       
       template void RegionDependenciesDomain::submitDependableObjectInternal ( DependableObject &depObj, const DataAccess* begin, const DataAccess* end, SchedulePolicySuccessorFunctor* callback );

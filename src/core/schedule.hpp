@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -47,19 +47,14 @@ inline bool Scheduler::checkBasicConstraints ( WD &wd, BaseThread const &thread 
    return result;
 }
 
-inline void SchedulerConf::setUseYield ( const bool value )
-{
-   _useYield = value;
-}
-
-inline void SchedulerConf::setUseBlock ( const bool value )
-{
-   _useBlock = value;
-}
-
 inline void SchedulerConf::setSchedulerEnabled ( const bool value )
 {
    _schedulerEnabled = value;
+}
+
+inline bool SchedulerConf::getSchedulerEnabled ( void ) const
+{
+   return _schedulerEnabled;
 }
 
 inline unsigned int SchedulerConf::getNumSpins ( void ) const
@@ -72,24 +67,9 @@ inline unsigned int SchedulerConf::getNumChecks ( void ) const
    return _numChecks;
 }
 
-inline unsigned int SchedulerConf::getNumYields ( void ) const
+inline unsigned int SchedulerConf::getNumStealAfterSpins ( void ) const
 {
-   return _numYields;
-}
-
-inline bool SchedulerConf::getUseYield ( void ) const
-{
-   return _useYield;
-}
-
-inline bool SchedulerConf::getUseBlock ( void ) const
-{
-   return _useBlock;
-}
-
-inline bool SchedulerConf::getSchedulerEnabled ( void ) const
-{
-   return _schedulerEnabled;
+   return _numStealAfterSpins;
 }
 
 inline const std::string & SchedulePolicy::getName () const
@@ -102,19 +82,24 @@ inline WD * SchedulePolicy::atBeforeExit  ( BaseThread *thread, WD &current, boo
    return 0;
 }
 
-inline WD * SchedulePolicy::atAfterExit   ( BaseThread *thread, WD *current )
+inline WD * SchedulePolicy::atAfterExit   ( BaseThread *thread, WD *current, int numSteal )
 {
-   return atIdle( thread );
+   return atIdle( thread, numSteal );
 }
 
 inline WD * SchedulePolicy::atBlock       ( BaseThread *thread, WD *current )
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline WD * SchedulePolicy::atYield       ( BaseThread *thread, WD *current)
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
+}
+
+inline void SchedulePolicy::atCreate ( DependableObject &depObj )
+{
+   return;
 }
 
 inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
@@ -147,10 +132,20 @@ inline WD * SchedulePolicy::atWakeUp      ( BaseThread *thread, WD &wd )
 
 inline WD * SchedulePolicy::atPrefetch    ( BaseThread *thread, WD &current )
 {
-   return atIdle( thread );
+   return atIdle( thread, false );
 }
 
 inline void SchedulePolicy::atSupport    ( BaseThread *thread )
+{
+   return;
+}
+
+inline void SchedulePolicy::atShutdown   ( void )
+{
+   return;
+}
+
+inline void SchedulePolicy::atSuccessor  ( DependableObject &depObj, DependableObject &pred )
 {
    return;
 }
@@ -161,6 +156,11 @@ inline void SchedulePolicy::queue ( BaseThread ** threads, WD ** wds, size_t num
    {
       queue( threads[i], *wds[i] );
    }
+}
+
+inline int SchedulePolicy::getPotentiallyParallelWDs ( void )
+{
+   return sys.getReadyNum();
 }
 
 inline void SchedulePolicySuccessorFunctor::operator() ( DependableObject *predecessor, DependableObject *successor )

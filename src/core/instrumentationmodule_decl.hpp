@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef __NANOS_INSTRUMENTOR_MODULE_DECL_H
 #define __NANOS_INSTRUMENTOR_MODULE_DECL_H
 #include "debug.hpp"
@@ -79,7 +80,8 @@ namespace nanos {
    class InstrumentState {
       private:
          Instrumentation     &_inst;    /**< Instrumentation object*/
-	 bool		      _closed;  /**< Closed flag */
+         bool                 _internal;  /**< Internal flag */
+         bool                 _closed;  /**< Closed flag */
       private:
          /*! \brief InstrumentState default constructor (private)
           */
@@ -93,17 +95,27 @@ namespace nanos {
       public:
          /*! \brief InstrumentState constructor
           */
-         InstrumentState ( nanos_event_state_value_t state )
-            : _inst(*sys.getInstrumentation()), _closed(false)
+         InstrumentState ( nanos_event_state_value_t state, bool internal = false )
+            : _inst(*sys.getInstrumentation()), _internal(internal), _closed(false)
          {
+            if ( _internal && !_inst.isInternalsEnabled() ) return;
             _inst.raiseOpenStateEvent( state );
          }
          /*! \brief InstrumentState destructor 
           */
-         ~InstrumentState ( ) { if (!_closed) close(); }
+         ~InstrumentState ( )
+         {
+            if ( (_internal && !_inst.isInternalsEnabled()) || _closed ) return;
+            close();
+         }
          /*! \brief Closes states
           */
-	 void close() { _closed=true; _inst.raiseCloseStateEvent();  }
+	 void close()
+    {
+       _closed = true;
+       if ( _internal && !_inst.isInternalsEnabled() ) return;
+       _inst.raiseCloseStateEvent();
+    }
    };
 
 /*!\class InstrumentBurst

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -22,6 +22,7 @@
 #include "plugin.hpp"
 // We need to include system.hpp (to use verbose0(msg)), as debug.hpp does not include it
 #include "system.hpp"
+#include <dlfcn.h>
 
 #include <cuda_runtime.h>
 
@@ -32,12 +33,14 @@ bool GPUConfig::_enableCUDA = false;
 bool GPUConfig::_forceDisableCUDA = false;
 int  GPUConfig::_numGPUs = -1;
 System::CachePolicyType GPUConfig::_cachePolicy = System::DEFAULT;
-bool GPUConfig::_prefetch = false;
-bool GPUConfig::_overlap = false;
-bool GPUConfig::_overlapInputs = false;
-bool GPUConfig::_overlapOutputs = false;
+int GPUConfig::_numPrefetch = 1;
+bool GPUConfig::_concurrentExec = true;
+bool GPUConfig::_overlap = true;
+bool GPUConfig::_overlapInputs = true;
+bool GPUConfig::_overlapOutputs = true;
 transfer_mode GPUConfig::_transferMode = NANOS_GPU_TRANSFER_NORMAL;
 size_t GPUConfig::_maxGPUMemory = 0;
+bool GPUConfig::_allocatePinnedBuffers = true;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
 void * GPUConfig::_gpusProperties = NULL;
@@ -73,16 +76,23 @@ void GPUConfig::prepare( Config& config )
    config.registerEnvOption ( "gpu-cache-policy", "NX_GPU_CACHE_POLICY" );
    config.registerArgOption( "gpu-cache-policy", "gpu-cache-policy" );
 
-   // Enable / disable prefetching
-   config.registerConfigOption( "gpu-prefetch", NEW Config::FlagOption( _prefetch ),
-                                "Set whether data prefetching must be activated or not (disabled by default)" );
-   config.registerEnvOption( "gpu-prefetch", "NX_GPUPREFETCH" );
-   config.registerArgOption( "gpu-prefetch", "gpu-prefetch" );
+   // Set #tasks for prefetching
+   config.registerConfigOption ( "gpu-prefetch", NEW Config::IntegerVar( _numPrefetch ),
+                                 "Defines the maximum number of tasks to prefetch (defaults to 1)" );
+   config.registerEnvOption ( "gpu-prefetch", "NX_GPUPREFETCH" );
+   config.registerArgOption ( "gpu-prefetch", "gpu-prefetch" );
+
+   // Enable / disable concurrent kernel execution
+   config.registerConfigOption( "gpu-concurrent-exec", NEW Config::FlagOption( _concurrentExec ),
+                                "Enable or disable concurrent kernel execution, if supported\n\
+                                     by the hardware (enabled by default)" );
+   config.registerEnvOption( "gpu-concurrent-exec", "NX_GPU_CONCURRENT_EXEC" );
+   config.registerArgOption( "gpu-concurrent-exec", "gpu-concurrent-exec" );
 
    // Enable / disable overlapping
    config.registerConfigOption( "gpu-overlap", NEW Config::FlagOption( _overlap ),
                                 "Set whether GPU computation should be overlapped with\n\
-                                     all data transfers, whenever possible, or not (disabled by default)" );
+                                     all data transfers, whenever possible, or not (enabled by default)" );
    config.registerEnvOption( "gpu-overlap", "NX_GPUOVERLAP" );
    config.registerArgOption( "gpu-overlap", "gpu-overlap" );
 
@@ -106,6 +116,13 @@ void GPUConfig::prepare( Config& config )
    config.registerEnvOption ( "gpu-max-memory", "NX_GPUMAXMEM" );
    config.registerArgOption ( "gpu-max-memory", "gpu-max-memory" );
 
+   // Enable / disable overlapping of outputs
+   config.registerConfigOption( "gpu-pinned-buffers", NEW Config::FlagOption( _allocatePinnedBuffers ),
+                                "Set whether GPU component should allocate pinned buffers used by data transfers (enabled by default)" );
+   config.registerEnvOption( "gpu-pinned-buffers", "NX_GPU_PINNED_BUFFERS" );
+   config.registerArgOption( "gpu-pinned-buffers", "gpu-pinned-buffers" );
+
+
    // Enable / disable GPU warmup
    config.registerConfigOption( "gpu-warmup", NEW Config::FlagOption( _gpuWarmup ),
                                 "Enable or disable warming up the GPU (enabled by default)" );
@@ -126,22 +143,29 @@ void GPUConfig::prepare( Config& config )
 
 void GPUConfig::apply()
 {
-   //Auto-enable CUDA if it was not done before
+   //Auto-enable CUDA if it was not done before (#1050)
+   void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
+   bool mercuriumHasTasks = dlsym(myself, "ompss_uses_cuda") != NULL;
+   
+   // Init cublas if it wasn't manually enabled, but detected in the binary (#1050)
+   _initCublas = _initCublas || ( dlsym(myself, "gpu_cublas_init") != NULL );
+   
+   dlclose( myself );
+   
    if ( !_enableCUDA ) {
-       //ompss_uses_cuda pointer will be null (it's extern) if the compiler did not fill it
-      _enableCUDA = ( sys.getOmpssUsesCuda() != NULL );
+      //ompss_uses_cuda pointer will be null (it's extern) if the compiler didn't fill it
+      _enableCUDA = mercuriumHasTasks;
    }
 
    if ( _forceDisableCUDA || !_enableCUDA || _numGPUs == 0 ) {
-      bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != NULL );
-
       if ( mercuriumHasTasks ) {
          message0( " CUDA tasks were compiled and CUDA was disabled, execution"
                " could have unexpected behavior and can even hang, check configuration parameters" );
       }
       _numGPUs = 0;
       _cachePolicy = System::DEFAULT;
-      _prefetch = false;
+      _numPrefetch = 0;
+      _concurrentExec = false;
       _overlap = false;
       _overlapInputs = false;
       _overlapOutputs = false;
@@ -160,7 +184,8 @@ void GPUConfig::apply()
          totalCount = 0;
          _numGPUs = 0;
          _cachePolicy = System::DEFAULT;
-         _prefetch = false;
+         _numPrefetch = 0;
+         _concurrentExec = false;
          _overlap = false;
          _overlapInputs = false;
          _overlapOutputs = false;
@@ -244,9 +269,7 @@ void GPUConfig::apply()
          }
       }
 
-      if ( _initCublas || ( sys.getOmpssUsesCublas() != 0 ) ) {
-         //gpu_cublas_init pointer will be null (it's extern) if the compiler did not fill it
-         _initCublas = true;
+      if ( _initCublas ) {
          verbose0( "Initializing CUBLAS Library" );
          if ( !sys.loadPlugin( "gpu-cublas" ) ) {
             _initCublas = false;
@@ -255,7 +278,6 @@ void GPUConfig::apply()
       }
       
       if ( _numGPUs == 0 ) {
-         bool mercuriumHasTasks = ( sys.getOmpssUsesCuda() != NULL );
          if ( mercuriumHasTasks ) {
             message0( " CUDA tasks were compiled and no CUDA devices were found, execution"
                     " could have unexpected behavior and can even hang" );
@@ -273,14 +295,15 @@ void GPUConfig::printConfiguration()
    verbose0( "--- GPUDD configuration ---" );
    verbose0( "  Number of GPU's: " << _numGPUs );
    verbose0( "  GPU cache policy: " << ( _cachePolicy == System::WRITE_THROUGH ? "write-through" : "write-back" ) );
-   verbose0( "  Prefetching: " << ( _prefetch ? "Enabled" : "Disabled" ) );
+   verbose0( "  Prefetching: " << _numPrefetch );
+   verbose0( "  Concurrent kernel execution: " << ( _concurrentExec ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping: " << ( _overlap ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping inputs: " << ( _overlapInputs ? "Enabled" : "Disabled" ) );
    verbose0( "  Overlapping outputs: " << ( _overlapOutputs ? "Enabled" : "Disabled" ) );
    verbose0( "  Transfer mode: " << ( _transferMode == NANOS_GPU_TRANSFER_NORMAL ? "Sync" : "Async" ) );
    if ( _maxGPUMemory != 0 ) {
       if ( _maxGPUMemory > 100 ) {
-         verbose0( "  Limited memory: Enabled: " << bytesToHumanReadable( _maxGPUMemory ) );
+         verbose0( "  Limited memory: Enabled: " << GPUUtils::bytesToHumanReadable( _maxGPUMemory ) );
       } else {
          verbose0( "  Limited memory: Enabled: " << _maxGPUMemory << "% of the total device memory" );
       }
@@ -288,6 +311,7 @@ void GPUConfig::printConfiguration()
    else {
       verbose0( "  Limited memory: Disabled" );
    }
+   verbose0( "  Allocate pinned buffers: " << ( _allocatePinnedBuffers ? "Enabled" : "Disabled" ) );
    verbose0( "  GPU warm up: " << ( _gpuWarmup ? "Enabled" : "Disabled" ) );
    verbose0( "  CUBLAS initialization: " << ( _initCublas ? "Enabled" : "Disabled" ) );
 

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -320,6 +320,37 @@ inline void WDDeque::decreaseTasksInQueues( int tasks, int decrement )
    _nelems -= decrement;
 }
 
+inline int WDDeque::getPotentiallyParallelWDs( void )
+{
+   int num_wds = 0;
+   WDDeque::BaseContainer::iterator it;
+   LockBlock lock( _lock );
+   for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+      WD &wd = *(WD *)*it;
+
+      if ( wd.getSlicer() ) {
+         nanos_loop_info_t *loop_info;
+         loop_info = ( nanos_loop_info_t * ) wd.getData();
+         int _chunk = loop_info->chunk;
+         int _lower = loop_info->lower;
+         int _upper = loop_info->upper;
+         int _step  = loop_info->step;
+         int _niters = (((_upper - _lower) / _step ) + 1 );
+
+         if (_chunk == 0){
+            num_wds ++;
+         }else{
+            num_wds += (_niters + _chunk - 1) / _chunk;
+         }
+      }
+      else if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() ) {
+         num_wds++;
+      }
+   }
+
+   return num_wds;
+}
+
 inline void WDDeque::transferElemsFrom( WDDeque &dq )
 {
    LockBlock lock( _lock );
@@ -477,10 +508,20 @@ inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, Work
 }
 
 template <typename T>
-inline WDPriorityQueue<T>::WDPriorityQueue( bool optimise, bool reverse, PriorityValueFun getter )
-   : _dq(), _lock(), _nelems(0), _optimise( optimise ), _reverse( reverse ),
+inline WDPriorityQueue<T>::WDPriorityQueue( bool enableDeviceCounter, bool optimise, bool reverse, PriorityValueFun getter )
+   : _dq(), _lock(), _nelems(0), _optimise( optimise ), _reverse( reverse ), _ndevs(), _deviceCounter( enableDeviceCounter ),
      _getter( getter ), _maxPriority( 0 ), _minPriority( 0 )
 {
+   if ( _deviceCounter ) {
+
+         DeviceList devs = sys.getSupportedDevices();
+
+         for ( DeviceList::iterator it = devs.begin(); it != devs.end(); it++ ) {
+            const Device * dev = *it;
+            Atomic<unsigned int> num = 0;
+            _ndevs.insert( std::make_pair( dev, num ) );
+         }
+   }
 }
 
 template<typename T>
@@ -563,6 +604,34 @@ inline void WDPriorityQueue<T>::insertOrdered( WorkDescriptor ** wds, size_t num
 }
 
 template<typename T>
+inline int WDPriorityQueue<T>::getPotentiallyParallelWDs( void )
+{
+   int num_wds = 0;
+   WDPQ::BaseContainer::iterator it;
+   LockBlock lock( _lock );
+   for ( it = _dq.begin() ; it != _dq.end(); it++ ) {
+      WD &wd = *(WD *)*it;
+
+      if ( wd.getSlicer() ) {
+         nanos_loop_info_t *loop_info;
+         loop_info = ( nanos_loop_info_t * ) wd.getData();
+         int _chunk = loop_info->chunk;
+         int _lower = loop_info->lower;
+         int _upper = loop_info->upper;
+         int _step  = loop_info->step;
+         int _niters = (((_upper - _lower) / _step ) + 1 );
+
+         num_wds += (_niters + _chunk - 1) / _chunk;
+      }
+      else if ( !wd.isTied() && wd.tryAcquireCommutativeAccesses() ) {
+         num_wds++;
+      }
+   }
+
+   return num_wds;
+}
+
+template<typename T>
 inline WDPQ::BaseContainer::iterator
 WDPriorityQueue<T>::upper_bound( const WD *wd )
 {
@@ -591,6 +660,11 @@ inline void WDPriorityQueue<T>::push_back ( WorkDescriptor *wd )
    {
       LockBlock lock( _lock );
       insertOrdered( wd, true );
+      if ( _deviceCounter ) {
+         for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) {
+            _ndevs[( wd->getDevices()[i]->getDevice() )]++;
+         }
+      }
       int tasks = ++( sys.getSchedulerStats()._readyTasks );
       increaseTasksInQueues(tasks);
       memoryFence();
@@ -608,6 +682,11 @@ inline void WDPriorityQueue<T>::push_front ( WorkDescriptor *wd )
    {
       LockBlock lock( _lock );
       insertOrdered( wd, false );
+      if ( _deviceCounter ) {
+         for ( unsigned int i = 0; i < wd->getNumDevices(); i++ ) {
+            _ndevs[( wd->getDevices()[i]->getDevice() )]++;
+         }
+      }
       int tasks = ++( sys.getSchedulerStats()._readyTasks );
       increaseTasksInQueues(tasks);
       memoryFence();
@@ -649,6 +728,11 @@ inline void WDPriorityQueue<T>::push_front( WD** wds, size_t numElems )
       WD* wd = wds[i];
       wd->setMyQueue( this );
       insertOrdered( wd, false );
+      if ( _deviceCounter ) {
+         for ( unsigned int j = 0; j < wd->getNumDevices(); j++ ) {
+            _ndevs[( wd->getDevices()[j]->getDevice() )]++;
+         }
+      }
    }
    int tasks = sys.getSchedulerStats()._readyTasks += numElems;
    increaseTasksInQueues(tasks,numElems);
@@ -675,6 +759,11 @@ inline void WDPriorityQueue<T>::push_back( WD** wds, size_t numElems )
          WD* wd = wds[i];
          wd->setMyQueue( this );
          insertOrdered( wd, true );
+         if ( _deviceCounter ) {
+            for ( unsigned int j = 0; j < wd->getNumDevices(); j++ ) {
+               _ndevs[( wd->getDevices()[j]->getDevice() )]++;
+            }
+         }
       }
    /*}
    // Otherwise, insert in the same position
@@ -686,6 +775,11 @@ inline void WDPriorityQueue<T>::push_back( WD** wds, size_t numElems )
          wd->setMyQueue( this );
       }
       insertOrdered( wds, numElems, true );
+      if ( _deviceCounter ) {
+         for ( unsigned int j = 0; j < wd->getNumDevices(); j++ ) {
+            _ndevs[( wd->getDevices()[j]->getDevice() )]++;
+         }
+      }
 
    }*/
    int tasks = sys.getSchedulerStats()._readyTasks += numElems;
@@ -723,6 +817,11 @@ inline WorkDescriptor * WDPriorityQueue<T>::popFrontWithConstraints ( BaseThread
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
                if ( wd.dequeue( &found ) ) {
                   _dq.erase( it );
+                  if ( _deviceCounter ) {
+                     for ( unsigned int i = 0; i < wd.getNumDevices(); i++ ) {
+                        _ndevs[( wd.getDevices()[i]->getDevice() )]--;
+                     }
+                  }
                   // Update max and min
                   if ( _dq.empty() ){
                      _maxPriority = 0;
@@ -773,6 +872,11 @@ inline WorkDescriptor * WDPriorityQueue<T>::popBackWithConstraints ( BaseThread 
             if ( Scheduler::checkBasicConstraints( wd, *thread) && Constraints::check(wd,*thread)) {
                if ( wd.dequeue( &found ) ) {
                   _dq.erase( it );
+                  if ( _deviceCounter ) {
+                     for ( unsigned int i = 0; i < wd.getNumDevices(); i++ ) {
+                        _ndevs[( wd.getDevices()[i]->getDevice() )]--;
+                     }
+                  }
                   // Update max and min
                   if ( _dq.empty() ){
                      _maxPriority = 0;
@@ -822,6 +926,11 @@ inline bool WDPriorityQueue<T>::removeWDWithConstraints( BaseThread *thread, Wor
             if ( *it == toRem ) {
                if ( ( *it )->dequeue( next ) ) {
                   _dq.erase( it );
+                  if ( _deviceCounter ) {
+                     for ( unsigned int i = 0; i < ( *it )->getNumDevices(); i++ ) {
+                        _ndevs[( ( *it )->getDevices()[i]->getDevice() )]--;
+                     }
+                  }
                   int tasks = --(sys.getSchedulerStats()._readyTasks);
                   decreaseTasksInQueues(tasks);
                }

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -105,14 +105,6 @@ template<> struct hash<unsigned long long> : public std::unary_function<unsigned
 
 bool __sync_bool_compare_and_swap( int *ptr, int oldval, int newval );
 
-#endif
-
-#ifdef GPU_DEV
-#  ifdef NANOS_CUDA_VERSION
-#    if NANOS_CUDA_VERSION <= 3020
-#      define NANOS_GPU_USE_CUDA32
-#    endif
-#  endif
 #endif
 
 // For old machines that do not define CPU_SET macros

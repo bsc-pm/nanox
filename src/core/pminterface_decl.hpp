@@ -1,6 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                               */
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -24,6 +23,7 @@
 #include "config_fwd.hpp"
 #include "workdescriptor_decl.hpp"
 #include "threadteam_decl.hpp"
+#include "cpuset.hpp"
 
 namespace nanos
 {
@@ -66,12 +66,16 @@ namespace nanos
 
          bool isMalleable( void ) const { return _malleable; }
 
+         virtual int getMaxThreads() const { return 0; }
          virtual void setNumThreads( int nthreads ) {}
          virtual void setNumThreads_globalState( int nthreads ) {}
 
-         virtual void getCpuMask( cpu_set_t *cpu_set ) {}
-         virtual void setCpuMask( const cpu_set_t *cpu_set ) {}
-         virtual void addCpuMask( const cpu_set_t *cpu_set ) {}
+         virtual const CpuSet& getCpuProcessMask() const = 0;
+         virtual bool setCpuProcessMask( const CpuSet& cpu_set ) { return false; }
+         virtual void addCpuProcessMask( const CpuSet& cpu_set ) {}
+         virtual const CpuSet& getCpuActiveMask() const = 0;
+         virtual bool setCpuActiveMask( const CpuSet& cpu_set ) { return false; }
+         virtual void addCpuActiveMask( const CpuSet& cpu_set ) {}
 
          //! By default, OmpSs is assumed (required for the bare run in system.cpp)
          virtual Interfaces getInterface() const { return PMInterface::OmpSs; }

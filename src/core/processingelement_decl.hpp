@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -35,8 +35,10 @@ namespace nanos
 
    class ProcessingElement : public Location
    {
-      private:
+      protected:
          typedef std::vector<BaseThread *>    ThreadList;
+
+      private:
          int                                  _id;
          //! Unique ID
          int                                  _uid;
@@ -58,12 +60,11 @@ namespace nanos
          /*! \brief ProcessingElement copy assignment operator (private)
           */
          const ProcessingElement & operator= ( const ProcessingElement &pe );
-      protected:
+      public:
          virtual WorkDescriptor & getMasterWD () const = 0;
          virtual WorkDescriptor & getWorkerWD () const = 0;
          virtual WorkDescriptor & getMultiWorkerWD () const = 0;
-         ThreadList &getThreads();
-      public:
+
          /*! \brief ProcessingElement constructor
           */
          ProcessingElement ( const Device *arch, unsigned int memSpaceId,
@@ -83,6 +84,8 @@ namespace nanos
          const Device * getSubDeviceType () const;
          virtual const Device * getCacheDeviceType () const;
 
+         ThreadList &getThreads();
+
          BaseThread & startThread ( WorkDescriptor &wd, ext::SMPMultiThread *parent=NULL );
          BaseThread & startThread ( ProcessingElement &representedPE, WD &work, ext::SMPMultiThread *parent );
          BaseThread & startMultiThread ( WorkDescriptor &wd, unsigned int numPEs, ProcessingElement **repPEs );
@@ -93,22 +96,10 @@ namespace nanos
 
          BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
-         
+
          void setCurrentDevice( int idx ) {
             _device = _supportedDevices[ idx ];
          }
-
-//          void disableDevice( int num )
-// {
-//  if ( num == 0 ) { _deviceNo = _device; _device = NULL; } 
-//  if ( num == 1 ) { _subDeviceNo = _subDevice; _subDevice = NULL; } 
-// }
-//          void enableDevice( int num )
-// {
-//  if ( num == 0 ) { _device = _deviceNo; _deviceNo = NULL; } 
-//  if ( num == 1 ) { _subDevice = _subDeviceNo; _subDeviceNo = NULL; } 
-// }
-// 
          void stopAll();
          void stopAllThreads();
 
@@ -118,7 +109,7 @@ namespace nanos
          unsigned int getMemorySpaceId() const { return _memorySpaceId; }
          virtual unsigned int getMyNodeNumber() const { return 0; }
 
-         /* Memory space suport */
+         /* Memory space support */
          void copyDataIn( WorkDescriptor& wd );
          virtual void copyDataOut( WorkDescriptor& wd );
          //virtual bool dataCanBlockUs( WorkDescriptor& wd );
@@ -126,29 +117,22 @@ namespace nanos
          virtual void waitInputs( WorkDescriptor& wd );
          bool testInputs( WorkDescriptor& wd );
 
-         virtual bool isGPU() const = 0;
          BaseThread *getFirstThread() const { return _threads[0]; }
 
          /*!
-          * \brief Returns the first thread of the PE that has team and is not tagged to sleep
+          * \brief Wake up all threads associated with the PE
           */
-         virtual BaseThread* getFirstRunningThread_FIXME();
+         virtual void wakeUpThreads();
 
          /*!
-          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
+          * \brief Sleep up all threads associated with the PE
           */
-         virtual BaseThread* getFirstStoppedThread_FIXME();
-
-         /*!
-          * \brief Returns the first thread of the PE that has no team or is tagged to sleep
-          */
-         virtual BaseThread* getUnassignedThread();
-         /*!
-          * \brief Returns the first thread of the PE that is not tagged to sleep
-          */
-         virtual BaseThread* getActiveThread();
+         virtual void sleepThreads();
 
          std::size_t getNumThreads() const;
+         std::size_t getRunningThreads() const;
+
+         virtual bool isActive() const { return true; }
    };
 
    typedef class ProcessingElement PE;

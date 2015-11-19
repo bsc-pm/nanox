@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -41,6 +41,7 @@
 #include "addressspace_decl.hpp"
 #include "smpbaseplugin_decl.hpp"
 #include "hwloc_decl.hpp"
+#include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
 
 #include "newregiondirectory_decl.hpp"
@@ -82,45 +83,49 @@ namespace nanos
          typedef std::multimap<std::string, std::string> ModulesPlugins;
          typedef std::vector<ArchPlugin*> ArchitecturePlugins;
          
+         //! \brief Compiler supplied flags in symbols
+         struct SuppliedFlags
+         {
+            //! If the program is using priorities
+            bool prioritiesNeeded : 1;
+         };
+         
+         SuppliedFlags        _compilerSuppliedFlags; //!< \brief Compiler supplied flags
+         
          // global seeds
-         Atomic<int> _atomicWDSeed; /*!< \brief ID seed for new WD's */
-         Atomic<int> _threadIdSeed; /*!< \brief ID seed for new threads */
-         Atomic<unsigned int> _peIdSeed;     /*!< \brief ID seed for new PE's */
+         Atomic<int> _atomicWDSeed;                   //!< \brief ID seed for new WD's 
+         Atomic<int> _threadIdSeed;                   //!< \brief ID seed for new threads 
+         Atomic<unsigned int> _peIdSeed;              //!< \brief ID seed for new PE's
 
          // Devices
          SMPDevice _SMP;
 
          // configuration variables
-         int                  _deviceStackSize;
+         size_t               _deviceStackSize;
          bool                 _profile;
          bool                 _instrument;
          bool                 _verboseMode;
-         bool                 _summary;            /*!< \brief Flag to enable the summary */
-         time_t               _summaryStartTime;   /*!< \brief Track time to show duration in summary */
+         bool                 _summary;               //!< \brief Flag to enable the summary 
+         time_t               _summaryStartTime;      //!< \brief Track time to show duration in summary 
          ExecutionMode        _executionMode;
          InitialMode          _initialMode;
          bool                 _untieMaster;
          bool                 _delayedStart;
          bool                 _synchronizedStart;
-         //! Enable Dynamic Load Balancing library
-         bool                 _enableDLB;
+         bool                 _alreadyFinished;       //!< \brief Prevent System::finish from being executed more than once.
+         bool                 _predecessorLists;      //!< \brief Maintain predecessors list (disabled by default).
 
 
-         //cutoff policy and related variables
          ThrottlePolicy      *_throttlePolicy;
          SchedulerStats       _schedStats;
          SchedulerConf        _schedConf;
-
-         /*! names of the scheduling, cutoff, barrier and instrumentation plugins */
-         std::string          _defSchedule;
-         std::string          _defThrottlePolicy;
-         std::string          _defBarr;
-         std::string          _defInstr;
-         /*! Name of the dependencies manager plugin */
-         std::string          _defDepsManager;
-
-         std::string          _defArch;
-         std::string          _defDeviceName;
+         std::string          _defSchedule;           //!< \brief Name of default scheduler
+         std::string          _defThrottlePolicy;     //!< \brief Name of default throttole policy (cutoff)
+         std::string          _defBarr;               //!< \brief Name of default barrier
+         std::string          _defInstr;              //!< \brief Name of default instrumentation
+         std::string          _defDepsManager;        //!< \brief Name of default dependences manager
+         std::string          _defArch;               //!< \brief Name of default architercture
+         std::string          _defDeviceName;         //!< \brief Name of default device
 
          const Device         *_defDevice;
 
@@ -194,7 +199,11 @@ namespace nanos
          unsigned int                                  _acceleratorCount;
          //! Maps from a physical NUMA node to a user-selectable node
          std::vector<int>                              _numaNodeMap;
-         
+
+         /*! Thread Manager members */
+         ThreadManagerConf                             _threadManagerConf;
+         ThreadManager *                               _threadManager;
+
 #ifdef GPU_DEV
          //! Keep record of the data that's directly allocated on pinned memory
          PinnedAllocator      _pinnedMemoryCUDA;
@@ -218,29 +227,12 @@ namespace nanos
          System( const System &sys );
          const System & operator= ( const System &sys );
 
+         //! \brief Reads environment variables and compiler-supplied flags
          void config ();
          void loadModules();
+         void loadArchitectures();
          void unloadModules();
 
-         /*!
-          * \brief Creates a new PE and a new thread associated to it
-          * \param[in] p ID of the new PE
-          */
-         void createWorker( unsigned p );
-
-         /*!
-          * \brief Updates team members so that it matches with system's _cpu_active_set
-          */
-         void applyCpuMask();
-
-         /*!
-          * \brief Processes the system's _cpu_active_set for later update the threads
-          *
-          * Depending on the system binding configuration, this function will update _bindings to be able
-          * later to create new PE's or just update the raw number of threads if binding is disabled
-          */
-         void processCpuMask( void );
-         
          Atomic<int> _atomicSeedWg;
          Atomic<unsigned int> _affinityFailureCount;
          bool                      _createLocalTasks;
@@ -314,15 +306,9 @@ namespace nanos
          */                                                                     
         DeviceList & getSupportedDevices();
 
-         /*!
-          * \brief Add mas to the current system's _cpu_active_set
-          * \param[in] mask
-          */
-         void addCpuMask ( const cpu_set_t *mask );
+         void setDeviceStackSize ( size_t stackSize );
 
-         void setDeviceStackSize ( int stackSize );
-
-         int getDeviceStackSize () const;
+         size_t getDeviceStackSize () const;
 
          ExecutionMode getExecutionMode () const;
 
@@ -346,13 +332,14 @@ namespace nanos
          int getReadyNum() const;
 
          int getRunningTasks() const;
-         
-         int getNumCreatedPEs() const;
 
          int getNumWorkers() const;
 
+         int getNumCreatedPEs() const;
+
          int getNumWorkers( DeviceData *arch );
 
+         int getNumThreads() const;
 
          void setUntieMaster ( bool value );
 
@@ -361,15 +348,15 @@ namespace nanos
          void setSynchronizedStart ( bool value );
          bool getSynchronizedStart ( void ) const;
 
+         //! \brief Enables or disables the use of predecessor lists
+         void setPredecessorLists ( bool value );
+         //! \brief Checks if predecessor lists are enabled
+         bool getPredecessorLists ( void ) const;
+
          int nextThreadId ();
          unsigned int nextPEId ();
 
          bool isSummaryEnabled() const;
-         
-         /*!
-          * \brief Returns whether DLB is enabled or not
-          */
-         bool dlbEnabled() const;
 
          /*!
           * \brief Returns the maximum number of times a task can try to recover from an error by re-executing itself.
@@ -382,16 +369,6 @@ namespace nanos
           */
          BaseThread * getUnassignedWorker ( void );
 
-         /*!
-          * \brief Returns, if any, the worker thread with upper ID that has team and still has not been tagged to sleep
-          */
-         //BaseThread * getAssignedWorker ( ThreadTeam *team );
-
-         /*!
-          * \brief Returns, if any, the worker thread is inactive
-          */
-         //BaseThread * getInactiveWorker ( void );
-  
          /*!
           * \brief Returns a new team of threads 
           * \param[in] nthreads Number of threads in the team.
@@ -406,16 +383,53 @@ namespace nanos
          void endTeam ( ThreadTeam *team );
 
          /*!
-          * \brief Releases a worker thread from its team
-          * \param[in,out] thread
-          */
-         void releaseWorker ( BaseThread * thread );
-
-         /*!
           * \brief Updates the number of active worker threads and adds them to the main team
           * \param[in] nthreads
           */
-         void updateActiveWorkers ( int nthreads );
+         void updateActiveWorkers( int nthreads );
+
+         /*!
+          * \brief Get the process mask of active CPUs by reference
+          */
+         const CpuSet& getCpuProcessMask() const;
+
+         /*!
+          * \brief Set the process mask
+          * \param[in] mask
+          * \return True if the mask was completely set,
+          *          False if the mask was either invalid or only partially set
+          */
+         bool setCpuProcessMask( const CpuSet& mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current process mask
+          * \param[in] mask
+          */
+         void addCpuProcessMask( const CpuSet& mask );
+
+         /*!
+          * \brief Get the current mask of active CPUs by reference
+          */
+         const CpuSet& getCpuActiveMask() const;
+
+         /*!
+          * \brief Set the mask of active CPUs
+          * \param[in] mask
+          * \return True if the mask was completely set,
+          *          False if the mask was either invalid or only partially set
+          */
+         bool setCpuActiveMask( const CpuSet& mask );
+
+         /*!
+          * \brief Add the CPUs in mask into the current mask of active CPUs
+          * \param[in] mask
+          */
+         void addCpuActiveMask( const CpuSet& mask );
+
+         /*!
+          * \brief Force the creation of at least 1 thread per PE, which are blocked afterwards
+          */
+         void forceMaxThreadCreation();
 
          void setThrottlePolicy( ThrottlePolicy * policy );
 
@@ -529,9 +543,6 @@ namespace nanos
          size_t registerArchitecture( ArchPlugin * plugin );
 
 #ifdef GPU_DEV
-         char * getOmpssUsesCuda();
-         char * getOmpssUsesCublas();
-
          PinnedAllocator& getPinnedAllocatorCUDA();
 #endif
 
@@ -611,13 +622,29 @@ namespace nanos
 
          /*! \brief Active current thread (i.e. pthread ) and include it into the main team
           */
-         void admitCurrentThread ( void );
-         void expelCurrentThread ( void );
+         void admitCurrentThread ( bool isWorker );
+         void expelCurrentThread ( bool isWorker );
          
-         //This main will do nothing normally
-         //It will act as an slave and call exit(0) when we need slave behaviour
-         //in offload or cluster version
-         void ompss_nanox_main ();         
+         /*! \brief Setup of the runtime at the beginning of the top level function of the program
+          *
+          * Some devices (like MPI and cluster) may require extra
+          * initialization steps, this function performs them.
+          *
+          * Also resilency support uses this function to set up signal handlers.
+          *
+          * Under instrumentation, this function emits an initial event that it
+          * is used to track the entry point of the program.
+          */
+         void ompss_nanox_main(void *addr, const char* file, int line);
+
+         /*! \brief Shutdown notification of leaving the top level function of the program
+          *
+          * This function is typically called from an atexit handler and
+          * currently it only emits an event to track finalization of the
+          * program.
+          */
+         void ompss_nanox_main_end ();
+
          global_reg_t _registerMemoryChunk(void *addr, std::size_t len);
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
@@ -634,7 +661,10 @@ namespace nanos
          std::size_t getRegionCacheSlabSize() const;
          void createDependence( WD* pred, WD* succ);
          unsigned int getNumClusterNodes() const;
-         unsigned int getNumNumaNodes() const;
+	 unsigned int getNumNumaNodes() const;
+	 //! Return a vector which maps physical NUMA nodes (vector indexes)
+	 //! with virtual nodes (vector values)
+	 const std::vector<int>& getNumaNodeMap() const;
          //! Return INT_MIN if physicalNode does not have a mapping.
          int getVirtualNUMANode( int physicalNode ) const;
          std::set<unsigned int> const &getClusterNodeSet() const;
@@ -647,7 +677,14 @@ namespace nanos
          unsigned int getNumAccelerators() const;
          unsigned int getNewAcceleratorId();
          memory_space_id_t getMemorySpaceIdOfAccelerator( unsigned int acceleratorId ) const;
+
+         const ThreadManagerConf& getThreadManagerConf() const;
+         ThreadManager* getThreadManager() const;
+         
+         //! \brief Returns true if the compiler says priorities are required
+         bool getPrioritiesNeeded() const;
          Router& getRouter();
+         void switchToThread( unsigned int thid );
          bool isImmediateSuccessorEnabled() const;
          bool usePredecessorCopyInfo() const;
          bool invalControlEnabled() const;

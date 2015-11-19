@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -47,7 +47,8 @@ char ** OS::_argv = 0;
 OS::ModuleList * OS::_moduleList = 0;
 OS::InitList * OS::_initList = 0;
 OS::InitList * OS::_postInitList = 0;
-cpu_set_t OS::_processMask;
+CpuSet OS::_systemMask;
+CpuSet OS::_processMask;
 
 static void findArgs (long *argc, char ***argv) 
 {
@@ -73,7 +74,11 @@ void OS::init ()
    _initList = NEW InitList(&__start_nanos_init, &__stop_nanos_init);
    _postInitList = NEW InitList(&__start_nanos_post_init, &__stop_nanos_post_init);
 
-   CPU_ZERO( &_processMask );
+   for (int i=0; i<OS::getMaxProcessors(); i++) {
+      // FIXME: we are assuming a range of [0,N-1]. Use hwloc if present
+      _systemMask.set(i);
+   }
+
 #ifdef IS_BGQ_MACHINE
    uint32_t myT = Kernel_MyTcoord();
    uint64_t mask = Kernel_ThreadMask( myT );
@@ -93,9 +98,9 @@ void OS::init ()
    /***/
    mask = x;
 
-   memcpy( &_processMask, &mask, sizeof(uint64_t) );
+   memcpy( &(_processMask.get_cpu_set()), &mask, sizeof(uint64_t) );
 #else
-   sched_getaffinity( 0, sizeof(cpu_set_t), &_processMask );
+   sched_getaffinity( 0, sizeof(cpu_set_t), &(_processMask.get_cpu_set()) );
 #endif
 }
 
@@ -110,8 +115,6 @@ void * OS::loadDL( const std::string &dir, const std::string &name )
    /* open the module */
    return dlopen ( filename.c_str(), RTLD_NOW );
 }
-
-
 
 void * OS::loadLocalDL(  )
 {
@@ -128,22 +131,16 @@ void * OS::dlFindSymbol( void *dlHandler, const char *symbolName )
    return dlsym ( dlHandler, symbolName );
 }
 
-void OS::getProcessAffinity( cpu_set_t *cpu_set )
-{
-   memcpy( cpu_set, &_processMask, sizeof(cpu_set_t) );
-}
-
-void OS::bindThread( pthread_t pth, cpu_set_t *cpu_set )
-{
-   pthread_setaffinity_np( pth, sizeof(cpu_set_t), cpu_set );
-}
-
 int OS::getMaxProcessors ( void )
 {
+#ifdef IS_BGQ_MACHINE
+   return (int) 64;
+#else
 #ifdef _SC_NPROCESSORS_ONLN
    return (int) sysconf(_SC_NPROCESSORS_CONF);
 #else
    return (int) 0;
+#endif
 #endif
 }
 
@@ -160,7 +157,7 @@ int OS::nanosleep ( unsigned long long nanoseconds )
    cpu_set_t cpu_set;
    CPU_ZERO( &cpu_set );
    sched_getaffinity( 0, sizeof(cpu_set_t), &cpu_set );
-   CPU_AND( &cpu_set, &cpu_set, &_processMask );
+   CPU_AND( &cpu_set, &cpu_set, &(_processMask.get_cpu_set()) );
    if ( CPU_COUNT( &cpu_set ) == 0 )
       return 0;
 #endif

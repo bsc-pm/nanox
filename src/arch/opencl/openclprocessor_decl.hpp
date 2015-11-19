@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -26,9 +26,14 @@
 #include "opencldd.hpp"
 #include "opencldevice_decl.hpp"
 #include "sharedmemallocator.hpp"
-#ifdef __APPLE__
+#include "smpprocessor.hpp"
+#include "openclprofiler.hpp"
+
+#ifdef HAVE_OPENCL_OPENCL_H
 #include <OpenCL/opencl.h>
-#else
+#endif
+
+#ifdef HAVE_CL_OPENCL_H
 #include <CL/opencl.h>
 #endif
 
@@ -42,10 +47,12 @@ class OpenCLAdapter
 public: 
    typedef std::map<uint32_t, cl_program> ProgramCache;
    typedef std::map<std::pair<uint64_t,size_t>, cl_mem> BufferCache;
+   typedef std::map<Dims, Execution*> DimsBest;
+   typedef std::map<Dims, ulong> DimsExecutions;
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _progCache() {}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _workGroupMultiple(0), _maxWorkGroup(0), _progCache()  {}
 
 public:
    void initialize(cl_device_id dev);
@@ -62,15 +69,15 @@ public:
    cl_int freeBuffer( cl_mem &buf );
    void freeSharedMemBuffer( void* addr );
 
-   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter);
-   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter);
-   cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size );
-   cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size );
-   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, size_t offset, size_t size );
-   size_t getSizeFromCache(size_t addr);
-   cl_mem createBuffer(cl_mem parentBuf, size_t offset, size_t size, void* hostPtr);   
+   cl_int readBuffer( cl_mem buf, void *dst, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter, cl_event& ev);
+   cl_int writeBuffer( cl_mem buf, void *src, size_t offset, size_t size, Atomic<size_t>* globalSizeCounter, cl_event& ev);
+   cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size, cl_event& ev );
+   cl_int unmapBuffer( cl_mem buf, void *src, size_t offset, size_t size, cl_event& ev );
+   cl_mem getBuffer(SimpleAllocator& allocator, cl_mem parentBuf, uint64_t offset, size_t size );
+   size_t getSizeFromCache(uint64_t addr);
+   cl_mem createBuffer(cl_mem parentBuf, uint64_t offset, size_t size, void* hostPtr);
    void freeAddr(void* addr );
-   cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size );
+   cl_int copyInBuffer( cl_mem buf, cl_mem remoteBuffer, size_t offset_buff, size_t offset_remotebuff, size_t size, cl_event& ev );
    
    // Low-level program builder. Lifetime of prog is under caller
    // responsability.
@@ -97,18 +104,59 @@ public:
    // Return program to the cache, decreasing reference-counting.
    cl_int putProgram( cl_program &prog );
 
-   cl_int execKernel( void* oclKernel, 
+   void execKernel( void* oclKernel, 
                         int workDim, 
                         size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
 
+   /**
+    * @brief This function performs kernel executions to determine
+    * the best work-group parameters.
+    */
+   void profileKernel( void* oclKernel,
+                        int workDim,
+						int range_size,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function performs kernel executions to determine
+    * the best work-group parameters using the device hints.
+    */
+   void smartProfileKernel( void* oclKernel,
+                        int workDim,
+                        int range_size,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
+
+   /**
+    * @brief Function to launch an OpenCL kernel under profiling mode
+    */
+   Execution* singleExecKernel( void* oclKernel,
+                        int workDim,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function update the profiling data during the execution
+    */
+   void updateProfiling(cl_kernel kernel, Execution *execution, Dims& dims);
+
+   /**
+    * @brief Show kernel profiling and information
+    */
+   void printProfiling();
+
    // TODO: replace with new APIs.
    size_t getGlobalSize();
    
    std::string getDeviceName();
-   
-   void waitForEvents();
+   std::string getDeviceVendor();
    
    
 
@@ -144,10 +192,14 @@ public:
    cl_context& getContext() {
         return _ctx;
     }
-   
-   cl_command_queue& getCommandQueue(){
-       return _queue;
-   }
+
+	const std::map<cl_kernel, DimsBest>& getBestExec() const {
+		return _bestExec;
+	}
+
+	const std::map<cl_kernel, DimsExecutions>& getExecutions() const {
+		return _nExecutions;
+	}
 
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
@@ -164,17 +216,44 @@ private:
 
    cl_int getPlatformName( std::string &name );
 
+   void setSynchronization( std::string &vendor );
+
+   static inline void clCheckError(cl_int clError, char* errorString) {
+      if (clError != CL_SUCCESS) {
+         nanos::OpenCLProfilerException(CLP_OPENCL_STANDARD_ERROR, clError, errorString);
+      }
+   }
+
+   /**
+    * @brief This function set the work-group multiple preferred values
+    */
+   void getWorkGroupMultiple(cl_kernel kernel);
+
+   /**
+    * @brief This function set the maximum work-group on the device
+    */
+   void getMaxWorkGroup(cl_kernel kernel);
+
 private:
+
    cl_device_id _dev;
    cl_context _ctx;
-   cl_command_queue _queue;
+   cl_command_queue* _queues;
+   int _currQueue;
+   cl_command_queue _copyInQueue;
+   cl_command_queue _copyOutQueue;
+   cl_command_queue _profilingQueue;
    BufferCache _bufCache;
    std::map<cl_mem, int> _unmapedCache;
    std::map<uint64_t,size_t> _sizeCache;
+   std::map<cl_kernel,DimsBest> _bestExec;
+   std::map<cl_kernel,DimsExecutions> _nExecutions;
    bool _preallocateWholeMemory;
+   bool _synchronize;
+   size_t _workGroupMultiple;
+   size_t _maxWorkGroup;
 
    ProgramCache _progCache;
-   std::vector<cl_event> _pendingEvents;
    bool _useHostPtrs;
 };
 
@@ -206,7 +285,6 @@ public:
     
 
    bool supportsUserLevelThreads () const { return false; }
-   bool isGPU () const { return true; }
 
    BaseThread &startOpenCLThread();
 
@@ -229,14 +307,22 @@ public:
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
+   void profileKernel(void* openclKernel,
+                        int workDim,
+						int range_size,
+                        size_t* ndrOffset,
+                        size_t* ndrLocalSize,
+                        size_t* ndrGlobalSize);
+
    void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);
    
    void printStats();
-   
-   void waitForEvents() {       
-       _openclAdapter.waitForEvents();
-   }
-   
+
+   /**
+    * @brief This shows the kernel profiling info and some kernel properties
+    */
+   void printProfiling();
+      
    void cleanUp();
      
    void *allocate( size_t size, uint64_t tag, uint64_t offset )
@@ -269,29 +355,17 @@ public:
       return _cache.getBuffer( localSrc, size );
    } 
    
-   bool copyInBuffer( void *localSrc, cl_mem remoteBuffer, size_t size )
+   bool copyInBuffer( void *localSrc, cl_mem remoteBuffer, size_t size, DeviceOps *ops)
    {
-      return _cache.copyInBuffer( localSrc, remoteBuffer, size );
+      return _cache.copyInBuffer( localSrc, remoteBuffer, size, ops );
    }
    
     cl_context& getContext() {    
         return _openclAdapter.getContext();
     }
 
-    cl_command_queue& getCommandQueue() {    
-        return _openclAdapter.getCommandQueue();
-    }
-
     cl_int getOpenCLDeviceType( cl_device_type &deviceType ){
        return _openclAdapter.getDeviceType(deviceType);
-    }
-    
-    cl_int mapBuffer( cl_mem buf, void *dst, size_t offset, size_t size ){
-       return _openclAdapter.mapBuffer( buf, dst, offset, size);
-    }
-    
-    cl_int unmapBuffer( cl_mem buf, void *dst, size_t offset, size_t size ){
-       return _openclAdapter.unmapBuffer( buf, dst, offset, size);
     }
     
     static SharedMemAllocator& getSharedMemAllocator() {
@@ -310,9 +384,16 @@ public:
     SimpleAllocator const &getConstCacheAllocator() const {
         return _cache.getConstAllocator();
     }
+    
+    BaseThread * getOpenCLThread()
+    {
+       return _thread;
+    }
+
 
 private:
    SMPProcessor *_core;
+   BaseThread *_thread;
    OpenCLAdapter _openclAdapter;
    OpenCLCache _cache;
    int _devId;

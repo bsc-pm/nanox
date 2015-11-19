@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -51,7 +51,7 @@ inline void BaseRegionsDependenciesDomain::finalizeReduction( CONTAINER_T &conta
          commDO->addWriteTarget( target );
          status.setLastWriter( *commDO );
          commDO->resetReferences();
-         commDO->decreasePredecessors( NULL );
+         commDO->decreasePredecessors( NULL, NULL, false );
       }
    }
 }
@@ -137,7 +137,7 @@ inline void BaseRegionsDependenciesDomain::submitDependableObjectCommutativeData
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
    if ( initialCommDO != NULL ) {
-      initialCommDO->decreasePredecessors( NULL );
+      initialCommDO->decreasePredecessors( NULL, NULL, false );
    }
 }
 

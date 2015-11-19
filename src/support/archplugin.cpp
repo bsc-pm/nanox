@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2013 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -45,8 +45,8 @@ void ArchPlugin::finalize() {
 void ArchPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
    std::cerr << "Generic " << __FUNCTION__ << std::endl;
 }
-void ArchPlugin::addDevices( DeviceList &devices ) const {                       
-   std::cerr << "Generic " << __FUNCTION__ << std::endl;                         
+void ArchPlugin::addDevices( DeviceList &devices ) const {
+   std::cerr << "Generic " << __FUNCTION__ << std::endl;
 }
 void ArchPlugin::startSupportThreads() {
    std::cerr << "Generic " << __FUNCTION__ << std::endl;

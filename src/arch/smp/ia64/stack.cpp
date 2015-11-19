@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -62,19 +62,19 @@ extern "C"
    void startHelper ();
 }
 
-intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
-                          void *cleanup, void *cleanupArg )
+void * initContext ( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+                     void *cleanup, void *cleanupArg )
 {
-   // stack grows down
-   intptr_t *state = stack;
-   state += stackSize;
+   //! In this architecture stack grows down
+   intptr_t *state = (intptr_t *) stack;
+   state += (stackSize/sizeof(intptr_t));
 
    state -= 68;
 
    // argument
    state[60] = ( intptr_t ) wd;
 
-   // return pointer
+   // Return pointer
    // The union here avoids breaking strict C aliasing rules for type-punning
    // A simple cast wouldn't have worked 
    union {
@@ -107,5 +107,5 @@ intptr_t * initContext ( intptr_t *stack, size_t stackSize, void (*wrapperFuncti
    // ar.fpsr
    state[40] = ( intptr_t ) 0x9804c0270033f;
 
-   return state;
+   return (void *) state;
 }

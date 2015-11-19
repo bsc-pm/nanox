@@ -1,10 +1,30 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
 
 #ifndef _NANOS_OpenCL_CFG
 #define _NANOS_OpenCL_CFG
 
-#ifdef __APPLE__
+#ifdef HAVE_OPENCL_OPENCL_H
 #include <OpenCL/opencl.h>
-#else
+#endif
+
+#ifdef HAVE_CL_OPENCL_H
 #include <CL/opencl.h>
 #endif
 
@@ -27,10 +47,12 @@ public:
   static bool getDisableDev2Dev() { return _disableOCLdev2dev; }
   static size_t getDevCacheSize() { return _devCacheSize; }
   static bool getForceShMem() { return _forceShMem; } 
+  static int getPrefetchNum() { return _prefetchNum +1; }
+  static System::CachePolicyType getCachePolicy ( void ) { return _cachePolicy; }
   
 private:
   static void prepare( Config &cfg );
-  static void apply(std::string& _devTy, std::map<cl_device_id, cl_context>& _devices);
+  static void apply( OpenCLPlugin const* plugin );
 
 private:
   // These properties contains raw info set by the user.
@@ -49,7 +71,9 @@ private:
   static bool _forceShMem;
   
   //Maximum number of devices to be used by nanox
-  static unsigned int _devNum;
+  static int _devNum;
+  //Number of prefetchs
+  static int _prefetchNum;
   // These properties contains runtime info, not directly settable by the user.
 
   // All found OpenCL platforms.
@@ -64,6 +88,7 @@ private:
   static Atomic<unsigned> _freeDevice;
   // Whether to disable OpenCL dev2dev.
   static bool _disableOCLdev2dev;
+  static System::CachePolicyType   _cachePolicy; //! Defines the cache policy used by OCL devices
 
   friend class OpenCLPlugin;
 };
@@ -91,7 +116,9 @@ typedef enum {
    NANOS_OPENCL_CREATE_SUBBUFFER_EVENT,                   /* 10 */
    NANOS_OPENCL_MAP_BUFFER_SYNC_EVENT,                 /* 11 */
    NANOS_OPENCL_UNMAP_BUFFER_SYNC_EVENT,                 /* 12 */
-   NANOS_OPENCL_GENERIC_EVENT                         /* 13 */
+   NANOS_OPENCL_GENERIC_EVENT,                         /* 13 */
+   NANOS_OPENCL_PROFILE_KERNEL,                         /* 14 */
+   NANOS_OPENCL_UPDATE_PROFILE_DATA                     /* 15 */
 } in_opencl_runtime_event_value;
 
 } // End namespace ext.

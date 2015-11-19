@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #include "instrumentation.hpp"
 
 #include "instrumentationcontext.hpp"
@@ -307,7 +308,7 @@ void Instrumentation::raiseCloseStateAndBurst ( nanos_event_key_t key, nanos_eve
 
 void Instrumentation::wdCreate( WorkDescriptor* newWD )
 {
-   Event e1,e2,e3; /* Event */
+   Event e1,e2,e3,e4; /* Event */
 
    /* Gets key for wd-id bursts and wd->id as value*/
    InstrumentationContextData *icd = newWD->getInstrumentationContextData();
@@ -323,7 +324,11 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
    static nanos_event_key_t priorityKey = getInstrumentationDictionary()->getEventKey("wd-priority");
    nanos_event_value_t wd_priority = (nanos_event_value_t) newWD->getPriority() + 1;
    createBurstEvent( &e3, priorityKey, wd_priority, icd );
-   
+
+   static nanos_event_key_t numaNodeKey = getInstrumentationDictionary()->getEventKey("wd-numa-node");
+   nanos_event_value_t wd_numa_node = (nanos_event_value_t) newWD->getNUMANode() + 1;
+   createBurstEvent( &e4, numaNodeKey, wd_numa_node, icd );
+ 
    /* Create event: STATE */
    if ( _emitStateEvents == true ) createStateEvent( &e1, NANOS_RUNTIME, icd );
 
@@ -332,7 +337,32 @@ void Instrumentation::wdCreate( WorkDescriptor* newWD )
       if ( _emitStateEvents == true ) _instrumentationContext.insertDeferredEvent( icd, e1 );
       if ( key != 0 ) _instrumentationContext.insertDeferredEvent( icd, e2 );
       if ( priorityKey != 0 )_instrumentationContext.insertDeferredEvent( icd, e3 );
+      if ( numaNodeKey != 0 ) _instrumentationContext.insertDeferredEvent( icd, e4 );
    }
+}
+
+void Instrumentation::flushDeferredEvents ( WorkDescriptor* wd )
+{
+
+   if ( !wd ) return;
+
+   InstrumentationContextData *icd = wd->getInstrumentationContextData();
+   int numEvents = _instrumentationContext.getNumDeferredEvents ( icd );
+
+   if ( numEvents == 0 ) return;
+
+   Event *e = (Event *) alloca( sizeof( Event ) * numEvents );
+
+   int i = 0;
+   InstrumentationContextData::EventIterator itDE;
+   for ( itDE  = _instrumentationContext.beginDeferredEvents( icd );
+         itDE != _instrumentationContext.endDeferredEvents( icd ); itDE++ ) {
+      e[i++] = *itDE;
+   }
+   _instrumentationContext.clearDeferredEvents( icd );
+
+   addEventList ( numEvents, e );
+
 }
 
 void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bool last )
@@ -435,7 +465,6 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       _instrumentationContext.clearDeferredEvents( new_icd );
 
    }
-   
 
    ensure0( i == numEvents , "Computed number of events doesn't fit with number of real events");
 
@@ -444,15 +473,7 @@ void Instrumentation::wdSwitch( WorkDescriptor* oldWD, WorkDescriptor* newWD, bo
       if ( numEvents != 0 ) addEventList ( numEvents, &e[0] );
    } else {
       if ( oldWD != NULL) {
-         if ( _emitStateEvents == true ) {
-            createStateEvent( &e[numEvents], NANOS_NOT_RUNNING, old_icd );
-         }
          if ( numOldEvents != 0 ) addEventList ( numOldEvents, &e[0] );
-         addEventList ( 1, &e[numEvents] );
-         if ( _emitStateEvents == true ) {
-            returnPreviousStateEvent( &e[numEvents], old_icd );
-            _instrumentationContext.insertDeferredEvent( old_icd, e[numEvents]  );
-         }
          addSuspendTask( *oldWD, last );
       }
       if ( newWD != NULL) {

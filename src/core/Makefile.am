@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -19,12 +19,9 @@
 
 #SUBDIRS = performance debug instrumentation instrumentation-debug
 
-include ../common.am
+include $(top_srcdir)/src/common.am
 
 pkginclude_HEADERS=nanos-int.h nanos_error.h
-
-common_libadd=\
-	$(END)
 
 devinclude_HEADERS = \
 	nanos-int.h \
@@ -32,8 +29,9 @@ devinclude_HEADERS = \
 	barrier_fwd.hpp \
 	barrier_decl.hpp \
 	barrier.hpp \
-   cachedaccelerator_decl.hpp \
-   cachedaccelerator.hpp \
+	cachedaccelerator_decl.hpp \
+	cachedaccelerator.hpp \
+	threadmanager_decl.hpp \
 	threadteam_fwd.hpp \
 	threadteam_decl.hpp \
 	threadteam.hpp \
@@ -92,6 +90,9 @@ devinclude_HEADERS = \
 	synchronizedcondition.hpp \
 	pminterface_decl.hpp  \
 	basethread_decl.hpp \
+	asyncthread_fwd.hpp \
+	asyncthread_decl.hpp \
+	asyncthread.hpp \
 	networkapi.hpp  \
 	network_decl.hpp  \
 	bitcounter.hpp \
@@ -124,9 +125,6 @@ devinclude_HEADERS = \
 	address_fwd.hpp \
 	address_decl.hpp \
 	address.hpp \
-	depsregion_fwd.hpp \
-	depsregion_decl.hpp \
-	depsregion.hpp \
 	basedependency_fwd.hpp \
 	basedependency_decl.hpp \
 	graphentry_decl.hpp \
@@ -134,13 +132,14 @@ devinclude_HEADERS = \
 	taskexecutionexception.hpp \
 	trackableobject_fwd.hpp \
 	trackableobject_decl.hpp \
-   trackableobject.hpp \
-	hwloc_decl.hpp \
+	trackableobject.hpp \
 	regionset_decl.hpp \
 	router_fwd.hpp \
 	router_decl.hpp \
 	router.hpp \
 	invalidationcontroller_decl.hpp \
+	task_reduction_decl.hpp \
+	task_reduction.hpp \
 	$(END)
 
 common_sources=\
@@ -149,8 +148,8 @@ common_sources=\
 	barrier_fwd.hpp \
 	barrier_decl.hpp \
 	barrier.hpp \
-   cachedaccelerator_decl.hpp \
-   cachedaccelerator.hpp \
+	cachedaccelerator_decl.hpp \
+	cachedaccelerator.hpp \
 	threadteam_fwd.hpp \
 	threadteam_decl.hpp \
 	threadteam.hpp \
@@ -159,6 +158,10 @@ common_sources=\
 	basethread_decl.hpp\
 	basethread.hpp\
 	basethread.cpp\
+	asyncthread_fwd.hpp \
+	asyncthread_decl.hpp \
+	asyncthread.hpp \
+	asyncthread.cpp \
 	processingelement_fwd.hpp \
 	processingelement_decl.hpp \
 	processingelement.hpp \
@@ -274,12 +277,14 @@ common_sources=\
 	taskexecutionexception_decl.hpp \
 	taskexecutionexception.hpp \
 	taskexecutionexception.cpp \
-	hwloc_decl.hpp \
-	hwloc.cpp \
 	regionset_decl.hpp \
 	regionset.cpp \
 	invalidationcontroller_decl.hpp \
 	invalidationcontroller.cpp \
+	threadmanager_decl.hpp \
+	threadmanager.cpp \
+   task_reduction_decl.hpp \
+   task_reduction.hpp \
 	$(END)
 
 instr_sources = \
@@ -293,48 +298,47 @@ instrumentation_LTLIBRARIES=
 instrumentation_debug_LTLIBRARIES=
 performance_LTLIBRARIES=
 
-if DEBUG_VERSION
+if is_debug_enabled
 debug_LTLIBRARIES+=debug/libnanox.la
 
-debug_libnanox_la_CFLAGS=$(common_cflags) $(common_debug_cflags)
-debug_libnanox_la_CXXFLAGS=$(common_includes) $(common_debug_cxxflags) $(hwloc_cxxflags)
-debug_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(debugdir) $(ignore_muldefs) $(hwloc_ldflags)
-debug_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_DEBUG@
+debug_libnanox_la_CPPFLAGS=$(common_includes) $(common_debug_CPPFLAGS) @dlbinc@
+debug_libnanox_la_CXXFLAGS=$(common_includes) $(common_debug_CXXFLAGS)
+debug_libnanox_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs) @cudalib@ @dlblib@ -Wl,-rpath,$(libdir)/debug
+debug_libnanox_la_LIBADD=$(common_libadd) @cudalibs@ @dlb_dbg@ @nanos_config_libs_debug@
 debug_libnanox_la_SOURCES=$(common_sources)
-debug_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_DEBUG@
+debug_libnanox_la_DEPENDENCIES=$(common_libadd) @nanos_config_libs_debug@
 endif
 
-
-if INSTRUMENTATION_VERSION
-instrumentation_LTLIBRARIES+=instrumentation/libnanox.la
-
-instrumentation_libnanox_la_CFLAGS=$(common_cflags) $(common_instr_cflags)
-instrumentation_libnanox_la_CXXFLAGS=$(common_includes) $(common_instr_cxxflags) $(hwloc_cxxflags)
-instrumentation_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrumentationdir) $(ignore_muldefs) $(hwloc_ldflags)
-instrumentation_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_INSTR@
-instrumentation_libnanox_la_SOURCES=$(common_sources) $(instr_sources)
-instrumentation_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_INSTR@
-endif
-
-if INSTRUMENTATION_DEBUG_VERSION
+if is_instrumentation_debug_enabled
 instrumentation_debug_LTLIBRARIES+=instrumentation-debug/libnanox.la
 
-instrumentation_debug_libnanox_la_CFLAGS=$(common_cflags) $(common_instrdebug_cflags)
-instrumentation_debug_libnanox_la_CXXFLAGS=$(common_includes) $(common_instrdebug_cxxflags) $(hwloc_cxxflags)
-instrumentation_debug_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(instrumentation_debugdir) $(ignore_muldefs) $(hwloc_ldflags)
-instrumentation_debug_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_INSTRDEBUG@
+instrumentation_debug_libnanox_la_CPPFLAGS=$(common_includes) $(common_instrumentation_debug_CPPFLAGS) @dlbinc@
+instrumentation_debug_libnanox_la_CXXFLAGS=$(common_includes) $(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libnanox_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs) @cudalib@ @dlblib@ -Wl,-rpath,$(libdir)/instrumentation-debug
+instrumentation_debug_libnanox_la_LIBADD=$(common_libadd) @cudalibs@ @dlb_instr_dbg@ @nanos_config_libs_instrumentation_debug@
 instrumentation_debug_libnanox_la_SOURCES=$(common_sources) $(instr_sources)
-instrumentation_debug_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_INSTRDEBUG@
+instrumentation_debug_libnanox_la_DEPENDENCIES=$(common_libadd) @nanos_config_libs_instrumentation_debug@
 endif
 
-if PERFORMANCE_VERSION
+if is_instrumentation_enabled
+instrumentation_LTLIBRARIES+=instrumentation/libnanox.la
+
+instrumentation_libnanox_la_CPPFLAGS=$(common_includes) $(common_instrumentation_CPPFLAGS) @dlbinc@
+instrumentation_libnanox_la_CXXFLAGS=$(common_includes) $(common_instrumentation_CXXFLAGS)
+instrumentation_libnanox_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs) @cudalib@ @dlblib@ -Wl,-rpath,$(libdir)/instrumentation
+instrumentation_libnanox_la_LIBADD=$(common_libadd) @cudalibs@ @dlb_instr@ @nanos_config_libs_instrumentation@
+instrumentation_libnanox_la_SOURCES=$(common_sources) $(instr_sources)
+instrumentation_libnanox_la_DEPENDENCIES=$(common_libadd) @nanos_config_libs_instrumentation@
+endif
+
+if is_performance_enabled
 performance_LTLIBRARIES+=performance/libnanox.la
 
-performance_libnanox_la_CFLAGS=$(common_cflags) $(common_perfo_cflags)
-performance_libnanox_la_CXXFLAGS=$(common_includes) $(common_perfo_cxxflags) $(hwloc_cxxflags)
-performance_libnanox_la_LDFLAGS=$(version_flags) @NANOS_CONFIG_LIBDIRS@ -Wl,-rpath,$(performancedir) $(ignore_muldefs) $(hwloc_ldflags)
-performance_libnanox_la_LIBADD=$(common_libadd) @NANOS_CONFIG_LIBS_PERFO@
+performance_libnanox_la_CPPFLAGS=$(common_includes) $(common_performance_CPPFLAGS) @dlbinc@
+performance_libnanox_la_CXXFLAGS=$(common_includes) $(common_performance_CXXFLAGS)
+performance_libnanox_la_LDFLAGS=$(AM_LDFLAGS) $(version_flags) $(ignore_muldefs) @cudalib@ @dlblib@ -Wl,-rpath,$(libdir)/performance
+performance_libnanox_la_LIBADD=$(common_libadd) @cudalibs@ @dlb@ @nanos_config_libs_performance@
 performance_libnanox_la_SOURCES=$(common_sources)
-performance_libnanox_la_DEPENDENCIES=$(common_libadd) @NANOS_CONFIG_LIBS_PERFO@
+performance_libnanox_la_DEPENDENCIES=$(common_libadd) @nanos_config_libs_performance@
 endif
 

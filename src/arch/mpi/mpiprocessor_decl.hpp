@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -47,6 +47,7 @@ namespace nanos {
             static std::string _mpiLauncherFile;
             static std::string _mpiHosts;
             static std::string _mpiHostsFile;    
+            static std::string _mpiControlFile;   
             static bool _useMultiThread;
             static bool _allocWide;
             #ifndef OPEN_MPI
@@ -64,12 +65,16 @@ namespace nanos {
             bool _owner; //if we are the owner (process in charge of freeing the remote process)
             bool _shared; //if more processes also have access to this PE
             bool _hasWorkerThread;
+            int* _pphList; //saves which hosts in list/hostfile were ocuppied by this spawn
+
             Atomic<bool> _busy;
             WorkDescriptor* _currExecutingWd;
             int _currExecutingDD;
             std::list<MPI_Request> _pendingReqs;
             MPI_Comm _commOfParents;
+
             SMPProcessor* _core;
+            Lock _peLock;
             
 
             // disable copy constructor and assignment operator
@@ -92,6 +97,8 @@ namespace nanos {
             static std::string getMpiHosts();
             
             static std::string getMpiHostsFile();
+            
+            static std::string getMpiControlFile();
             
             static std::string getMpiExecFile();
 
@@ -138,9 +145,14 @@ namespace nanos {
             bool isBusy() const;
 
             void setBusy(bool busy);
+            
+            void setPphList(int* list);
+            
+            int* getPphList();
                       
-            //Try to reserve this PE, if the one who reserves it is the same
-            //which already has the PE, return true
+            /**
+             * Try to reserve this PE, if the one who reserves it is the same
+            */
             bool testAndSetBusy(int dduid, bool multithreadedAccess);
             
             int getCurrExecutingDD() const;
@@ -149,7 +161,16 @@ namespace nanos {
             
             void appendToPendingRequests(MPI_Request& req);
             
+            /**
+             * Waits or clears all Pending Requests
+             * Non thread-safe function
+             */
             void clearAllRequests();
+            /**
+             * Tests all pending requests
+             * Thread-safe function
+             */
+            bool testAllRequests();
 
             BaseThread& startMPIThread(WD* work);
             
@@ -172,8 +193,6 @@ namespace nanos {
             bool supportsUserLevelThreads() const {
                 return false;
             }       
-            
-            bool isGPU () const { return true; }
         };   
 
         // Macros to instrument the code and make it cleaner

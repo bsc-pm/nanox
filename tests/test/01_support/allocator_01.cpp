@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,12 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 /* DESCRIPTION: Just checking basic functionality of Allocator alternating memory
  * allocations and memory deallocations in a single thread.
  */
 
 /*<testinfo>
-test_generator="gens/mixed-generator"
+test_generator="gens/core-generator"
 </testinfo>*/
 
 #include <iostream>

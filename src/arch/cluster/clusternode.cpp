@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -68,10 +68,6 @@ BaseThread & ClusterNode::createMultiThread ( WorkDescriptor &wd, unsigned int n
 }
 
 bool ClusterNode::supportsUserLevelThreads () const {
-   return false;
-}
-
-bool ClusterNode::isGPU () const {
    return false;
 }
 

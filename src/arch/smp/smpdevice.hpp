@@ -56,12 +56,12 @@ void SMPDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
    sallocator->unlock();
 }
 
-void SMPDevice::_canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const {
+void SMPDevice::_canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) {
    SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
    sallocator->canAllocate( sizes, numChunks, remainingSizes );
 }
 
-std::size_t SMPDevice::getMemCapacity( SeparateMemoryAddressSpace const &mem ) const {
+std::size_t SMPDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) {
    SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
    return sallocator->getCapacity();
 }
@@ -109,7 +109,7 @@ bool SMPDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
    return true;
 }
 
-void SMPDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+void SMPDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) devAddr), ((char *) hostAddr), len, numChunks, ld, true );
    } else {
@@ -141,7 +141,7 @@ void SMPDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::siz
    }
 }
 
-bool SMPDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+bool SMPDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
    if ( sys.getSMPPlugin()->asyncTransfersEnabled() ) {
       _transferQueue.addTransfer( ops, ((char *) devDestAddr), ((char *) devOrigAddr), len, numChunks, ld, true );
    } else {
@@ -158,7 +158,7 @@ bool SMPDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAd
    return true;
 }
 
-void SMPDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const {
+void SMPDevice::_getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) {
    SimpleAllocator *sallocator = (SimpleAllocator *) mem.getSpecificData();
    sallocator->getFreeChunksList( list );
 }

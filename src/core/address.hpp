@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2012 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef _NANOS_ADDRESS_H
 #define _NANOS_ADDRESS_H
 
@@ -37,6 +38,12 @@ inline const Address::TargetType& Address::operator() () const
 inline bool Address::operator== ( const Address &obj ) const
 {
    return _address == obj._address;
+}
+
+inline bool Address::overlap ( const BaseDependency &obj ) const
+{
+   const Address& address( static_cast<const Address&>( obj ) );
+   return _address == address._address;
 }
 
 inline bool Address::operator< ( const Address &obj ) const

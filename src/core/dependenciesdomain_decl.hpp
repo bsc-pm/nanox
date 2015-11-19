@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 //! \file dependenciesdomain_decl.hpp
 //! \brief Dependencies main classes declaration.
 //
@@ -186,6 +187,12 @@ namespace nanos
          *  \return if there are any pendant write on the address passed as a parameter
          */
          virtual bool haveDependencePendantWrites ( void *addr ) ;
+
+         //! \brief Finalize all pendant reductions
+         virtual void finalizeAllReductions ( void ) ;
+
+         //! \brief Clear all pendants references
+         virtual void clearDependenciesDomain ( void ) ;
    };
    
    /*! \class DependenciesManager.

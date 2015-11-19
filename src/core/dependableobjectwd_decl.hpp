@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -19,6 +19,10 @@
 
 #ifndef _NANOS_DEPENDABLE_OBJECT_WD_DECL
 #define _NANOS_DEPENDABLE_OBJECT_WD_DECL
+
+#ifdef HAVE_CONFIG_H
+   #include <config.h>
+#endif
 
 #include "synchronizedcondition_decl.hpp"
 #include "dependableobject_decl.hpp"
@@ -44,7 +48,7 @@ namespace nanos
          /*! \brief DOSubmit copy constructor
           *  \param dos another DOSubmit
           */
-         DOSubmit ( const DOSubmit &dos ) : DependableObject(dos) { } 
+         DOSubmit ( const DOSubmit &dos ) : DependableObject( dos ) { }
 
          /*! \brief DOSubmit assignment operator, can be self-assigned.
           *  \param dos another DOSubmit
@@ -90,7 +94,11 @@ namespace nanos
    class DOWait : public DependableObject
    {
       private:
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         bool       _depsSatisfied; /**< Condition to satisfy before execution can go forward */
+#else
          volatile bool       _depsSatisfied; /**< Condition to satisfy before execution can go forward */
+#endif
          SingleSyncCond<EqualConditionChecker<bool> >  _syncCond; /**< TODO */
       public:
          /*! \brief DOWait default constructor
@@ -133,7 +141,8 @@ namespace nanos
 
          /*! \brief
           */
-         int decreasePredecessors ( std::list<uint64_t>const * flushDeps, bool blocking = false, DependableObject *predecessor = NULL );
+         int decreasePredecessors ( std::list<uint64_t>const * flushDeps,  DependableObject * finishedPred,
+               bool batchRelease, bool blocking = false );
 
          /*! \brief TODO
           */

@@ -1,5 +1,5 @@
-
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -56,7 +56,6 @@ void DependableObject::finished ( )
 
       DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
 
-
       //*(myThread->_file) << "Successors for wd " << this->getWD()->getId() << " : " << ( this->getWD()->getDescription() != NULL ? this->getWD()->getDescription() : "[no description]" ) << " { " ;
       //for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
       //   WD *wd = (*it)->getWD();
@@ -73,7 +72,7 @@ void DependableObject::finished ( )
       // use it.
       if ( succ.size() > 1 )
       {
-         // Construct list of successors to be release immediately.
+         // Construct list of successors to be released immediately.
          // Allocate as many elements as we have in the successor list
          WD** immediateSucc = (WD**) alloca( sizeof(WD*) * succ.size() );
          WD** pIS = immediateSucc;
@@ -83,14 +82,14 @@ void DependableObject::finished ( )
             // If this dependable object can't be released in batch
             if ( !(*it)->canBeBatchReleased() )
             {
-               (*it)->decreasePredecessors( NULL, false, this );
+               (*it)->decreasePredecessors( NULL, this, false, false );
                continue;
             }
             
             // Release this Dependable Object without triggering submission
             DependableObject& dSucc = **it;
             // Decrease predecessors
-            int numPred = --dSucc._numPredecessors;
+            int numPred = dSucc.decreasePredecessors( NULL, this, true, false );
             
             // If after decreasing the predecessors it's not 0, fatal_cond
             fatal_cond( numPred != 0, "Num predecessors is not 0" );
@@ -120,19 +119,73 @@ void DependableObject::finished ( )
       else 
       {
          for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); it++ ) {
-            NANOS_INSTRUMENT ( instrument ( *(*it) ); ) 
-            (*it)->decreasePredecessors( NULL, false, this );
+            NANOS_INSTRUMENT ( instrument ( *(*it) ); )
+            (*it)->decreasePredecessors( NULL, this, false, false );
          }
       }
    }
 }
+
+void DependableObject::releaseReadDependencies ()
+{
+   DependableObject& depObj = *this;
+   DependableObject::DependableObjectVector &succ = depObj.getSuccessors();
+
+   // This step guarantees that any Object that wants to add depObj as a successor has done it
+   // before we continue or, alternatively, won't do it.
+   DependenciesDomain *domain = depObj.getDependenciesDomain();
+   DependableObject::TargetVector const &reads = depObj.getReadTargets();
+   DependableObject::TargetVector const &writes = depObj.getWrittenTargets();
+   //  Delete depObj from all trackableObjects it reads 
+   if ( domain != 0 ) {
+      for ( DependableObject::TargetVector::const_iterator it = reads.begin(); it != reads.end(); it++ ) {
+         BaseDependency const & target = *(*it);
+         //if ( target.getAddress() == addr ) {    
+            domain->deleteReader ( depObj, target );
+         //}
+      }
+   }
+
+   //Decrease predecessor for sucessor tasks
+   //Only decrease if they are NOT writing or reading something that we write
+   for ( DependableObject::DependableObjectVector::iterator currSucessorIt = succ.begin(); currSucessorIt != succ.end(); ) {
+      DependableObject::TargetVector const &sucessorWrites = (*currSucessorIt)->getWrittenTargets();
+      DependableObject::TargetVector const &sucessorReads = (*currSucessorIt)->getReadTargets();
+      bool canRemovePredecessor=true;
+      for ( DependableObject::TargetVector::const_iterator itCurrWrites = writes.begin(); itCurrWrites != writes.end() && canRemovePredecessor; itCurrWrites++ ) {
+         BaseDependency const & currWrite = *(*itCurrWrites);
+         for ( DependableObject::TargetVector::const_iterator it = sucessorWrites.begin(); it != sucessorWrites.end() && canRemovePredecessor; it++ ) {
+            BaseDependency const & succWrite = *(*it);            
+            //If address is the "released" or dependency is different, we can remove predecessor
+            canRemovePredecessor &= ( !currWrite.overlap(succWrite) );
+         }
+
+         for ( DependableObject::TargetVector::const_iterator it = sucessorReads.begin(); it != sucessorReads.end() && canRemovePredecessor; it++ ) {
+            BaseDependency const & succRead = *(*it);            
+            //If address is the "released" or dependency is different, we can remove predecessor
+            canRemovePredecessor &= ( !currWrite.overlap(succRead) );
+         }
+      }
+      if (canRemovePredecessor) {
+         //DependenciesDomain::decreaseTasksInGraph();
+         NANOS_INSTRUMENT ( instrument ( *(*currSucessorIt) ); ) 
+         (*currSucessorIt)->decreasePredecessors( NULL, this, false, false );
+         succ.erase(currSucessorIt++);
+      }
+      else 
+      {
+         currSucessorIt++;
+      }
+   }
+}
+
 
 bool DependableObject::canBeBatchReleased ( ) const
 {
    return false;
 }
 
-DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjectPredicate &condition )
+DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjectPredicate &condition, bool keepDeps )
 {
    DependableObject * found = NULL;
 
@@ -145,23 +198,46 @@ DependableObject * DependableObject::releaseImmediateSuccessor ( DependableObjec
       for ( DependableObject::DependableObjectVector::iterator it = succ.begin(); it != succ.end(); ) {
          // Is this an immediate successor? 
          if ( (*it)->numPredecessors() == 1 && condition(**it) && !((*it)->waits()) ) {
-            // remove it
-            found = *it;
             if ((*it)->isSubmitted()) {
+               // remove it
+               found = *it;
                succ.erase(it++);
                if ( found->numPredecessors() != 1 ) {
                   incorrectlyErased.insert( found );
                   found = NULL;
                } else {
                   NANOS_INSTRUMENT ( instrument ( *found ); )
+
                   DependenciesDomain::decreaseTasksInGraph();
+
+                  if ( keepDeps ) {
+                     // This means that the WD related to this DO does not need to be submitted,
+                     // because someone else will do it
+                     // Keep the dependency to signal when the WD can actually be run respecting dependencies
+                     found->disableSubmission();
+                     succ.insert( found );
+                  } else {
+                     // We have removed the successor, so we need to decrease its predecessors
+                     if(sys.getPredecessorLists()) {
+                        int  numPred = --_numPredecessors;
+                        found->decreasePredecessorsInLock( this, numPred );
+                      //  sys.getDefaultSchedulePolicy()->atSuccessor( *found, this );
+                     }
+                     else
+                        --_numPredecessors;
+//                     found->decreasePredecessorsInLock( this, numPred );
+                  }
+
                   //*(myThread->_file) << "Immediate successor for wd " << this->getWD()->getId() << " : " <<
                   //   ( this->getWD()->getDescription() != NULL ? this->getWD()->getDescription() : "[no description]" ) <<
                   //   " { " << found->getWD()->getId() << 
                   //   " : " << ( found->getWD()->getDescription() != NULL ? found->getWD()->getDescription() : "[no description]" ) <<
                   //   " }" << std::endl;
+
                   break;
                }
+            } else {
+               it++;
             }
          } else {
             it++;

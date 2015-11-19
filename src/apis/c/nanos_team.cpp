@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 /*! \file nanos_team.cpp
  *  \brief 
  */
@@ -58,8 +59,9 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    NANOS_INSTRUMENT( static nanos_event_value_t api_value = ID->getEventValue("api","create_team"); )
    NANOS_INSTRUMENT( static nanos_event_key_t threads_key = ID->getEventKey("set-num-threads"); )
    NANOS_INSTRUMENT( static nanos_event_key_t parallel_ol_key = ID->getEventKey("parallel-outline-fct"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t team_info_key = ID->getEventKey("team-ptr"); )
 
-   NANOS_INSTRUMENT( Instrumentation::Event events[4]; )
+   NANOS_INSTRUMENT( Instrumentation::Event events[5]; )
    NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
    NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], threads_key, (nanos_event_value_t ) *nthreads ); )
@@ -68,6 +70,7 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
    NANOS_INSTRUMENT ( } else { )
    NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], parallel_ol_key, (nanos_event_value_t ) NULL ) ; )
    NANOS_INSTRUMENT ( } )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], team_info_key, (nanos_event_value_t ) 0 ); )
    NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
@@ -88,6 +91,14 @@ NANOS_API_DEF(nanos_err_t, nanos_create_team, ( nanos_team_t *team, nanos_sched_
       return e;
    }
 
+   NANOS_INSTRUMENT( i = 0; )
+   NANOS_INSTRUMENT( INS->returnPreviousStateEvent ( &events[i++] ); )
+   NANOS_INSTRUMENT( INS->closeBurstEvent ( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT ( i++; ) // nthreads
+   NANOS_INSTRUMENT ( i++; ) // parallel fct
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], team_info_key, (nanos_event_value_t ) *team ); )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
+
    return NANOS_OK;
 }
 
@@ -101,7 +112,9 @@ NANOS_API_DEF(nanos_err_t, nanos_enter_team, (void))
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","enter_team",NANOS_RUNTIME) );
    try {
+      myThread->lock();
       myThread->enterTeam( NULL );
+      myThread->unlock();
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -113,7 +126,10 @@ NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","leave_team",NANOS_RUNTIME) );
 
    try {
+      myThread->lock();
+      myThread->setLeaveTeam(true);
       myThread->leaveTeam( );
+      myThread->unlock();
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -122,13 +138,30 @@ NANOS_API_DEF(nanos_err_t, nanos_leave_team, (void))
 
 NANOS_API_DEF(nanos_err_t, nanos_end_team, ( nanos_team_t team ))
 {
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","end_team",NANOS_RUNTIME) );
+   NANOS_INSTRUMENT( unsigned i = 0; )
+   NANOS_INSTRUMENT( static Instrumentation *INS = sys.getInstrumentation(); )
+   NANOS_INSTRUMENT( static InstrumentationDictionary *ID = INS->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT( static nanos_event_key_t api_key = ID->getEventKey("api"); )
+   NANOS_INSTRUMENT( static nanos_event_value_t api_value = ID->getEventValue("api","end_team"); )
+   NANOS_INSTRUMENT( static nanos_event_key_t team_info_key = ID->getEventKey("team-ptr"); )
+
+   NANOS_INSTRUMENT( Instrumentation::Event events[3]; )
+   NANOS_INSTRUMENT( INS->createStateEvent( &events[i++], NANOS_RUNTIME ); )
+   NANOS_INSTRUMENT( INS->createBurstEvent( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT( INS->createPointEvent( &events[i++], team_info_key, (nanos_event_value_t ) team ); )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
 
    try {
       sys.endTeam((ThreadTeam *)team);
    } catch ( nanos_err_t e) {
          return e;
    }
+
+   NANOS_INSTRUMENT( i = 0; )
+   NANOS_INSTRUMENT( INS->returnPreviousStateEvent ( &events[i++] ); )
+   NANOS_INSTRUMENT( INS->closeBurstEvent ( &events[i++], api_key, api_value ); )
+   NANOS_INSTRUMENT( INS->addEventList ( i, events ); )
+
    return NANOS_OK;
 }
 
@@ -142,32 +175,6 @@ NANOS_API_DEF(nanos_err_t, nanos_team_barrier, ( void ))
 
    try {
       myThread->getTeam()->barrier();
-   } catch ( nanos_err_t e) {
-      return e;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_team_get_num_starring_threads_FIXME, ( int *n ))
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_num_starring_threads",NANOS_RUNTIME) );
-
-   try {
-      *n = myThread->getTeam()->getNumStarringThreads();
-   } catch ( nanos_err_t e) {
-      return e;
-   }
-
-   return NANOS_OK;
-}
-
-NANOS_API_DEF(nanos_err_t, nanos_team_get_starring_threads_FIXME, ( int *n, nanos_thread_t *list_of_threads ) )
-{
-   NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","get_starring_threads",NANOS_RUNTIME) );
-
-   try {
-      *n = myThread->getTeam()->getStarringThreads( (BaseThread **) list_of_threads );
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -243,7 +250,7 @@ NANOS_API_DEF(nanos_err_t, nanos_admit_current_thread, (void))
 {
 
    try {
-       sys.admitCurrentThread( );
+       sys.admitCurrentThread( true );
    } catch ( nanos_err_t e) {
       return e;
    }
@@ -255,13 +262,14 @@ NANOS_API_DEF(nanos_err_t, nanos_expel_current_thread, (void))
 {
 
    try {
-       sys.expelCurrentThread( );
+       sys.expelCurrentThread( true );
    } catch ( nanos_err_t e) {
       return e;
    }
 
    return NANOS_OK;
 }
+
 /*!
  * \}
  */ 

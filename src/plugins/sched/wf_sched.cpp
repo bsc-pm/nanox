@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -110,7 +110,7 @@ namespace nanos {
                return &newWD;
             }
 
-            virtual WD * atIdle ( BaseThread *thread );
+            virtual WD * atIdle ( BaseThread *thread, int numSteal );
       };
 
       bool WorkFirst::_stealParent = true;
@@ -122,7 +122,7 @@ namespace nanos {
        *  \param thread pointer to the thread to be scheduled
        *  \sa BaseThread
        */
-      WD * WorkFirst::atIdle ( BaseThread *thread )
+      WD * WorkFirst::atIdle ( BaseThread *thread, int numSteal )
       {
          WorkDescriptor * wd;
          WorkDescriptor * next = NULL; 

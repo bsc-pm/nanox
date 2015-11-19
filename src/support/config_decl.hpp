@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <vector>
 #include <list>
+#include <set>
 #include "compatibility.hpp"
 #include <memory>
 #include <sstream>
@@ -55,7 +56,7 @@ namespace nanos
             public:
                virtual ~CheckValue() {}
 
-               virtual bool operator() ( const T &value ) const;
+               virtual bool operator() ( T &value, const char suffix ) const;
          };
 
          // isPositive predicate
@@ -66,7 +67,18 @@ namespace nanos
             public:
                virtual ~isPositive() {}
 
-               virtual bool operator() ( const T &value ) const;
+               virtual bool operator() ( T &value, const char suffix ) const;
+         };
+
+         // isMetric predicate
+
+         template<typename T> class isMetric : public CheckValue<T>
+         {
+
+            public:
+               virtual ~isMetric() {}
+
+               virtual bool operator() ( T &value, const char suffix ) const;
          };
 
          /** Configuration options */
@@ -148,7 +160,7 @@ namespace nanos
                virtual void parse ( const char *value );
                virtual void setValue ( const T &value ) = 0;
 
-               bool checkValue ( const T &value ) const;
+               bool checkValue ( T &value, char suffix ) const;
 
                virtual ActionOption * clone () = 0;
 
@@ -245,6 +257,14 @@ namespace nanos
                virtual std::string operator()();
          };
 
+         class MetricHelpFormat : public HelpFormat
+         {
+            public:
+               virtual ~MetricHelpFormat() {}
+
+               virtual std::string operator()();
+         };
+
          class BoolHelpFormat : public HelpFormat
          {
             public:
@@ -271,6 +291,8 @@ namespace nanos
 
          typedef class VarOption<int,IntegerHelpFormat>                         IntegerVar;
 
+         typedef class VarOption<size_t,MetricHelpFormat,isMetric<size_t> >     SizeVar;
+
          typedef class VarOption<bool,BoolHelpFormat>                           BoolVar;
 
          typedef class VarOption<std::string, StringHelpFormat>                 StringVar;
@@ -282,8 +304,6 @@ namespace nanos
          typedef class VarOption<unsigned int,PositiveHelpFormat,isPositive<unsigned int> >
                                                                                 UintVar;
          
-         typedef class VarOption<size_t,PositiveHelpFormat,isPositive<size_t> > SizeVar;
-
          typedef class ActionOption<int,IntegerHelpFormat>                      IntegerAction;
 
          typedef class ActionOption<bool,BoolHelpFormat>                        BoolAction;
@@ -505,11 +525,13 @@ namespace nanos
 
                const HelpTriplet& operator=( const HelpTriplet& ht );
 
+               bool operator<( const HelpTriplet& ht ) const { return _argHelp < ht._argHelp; }
+
                ~HelpTriplet() {}
 
-               size_t getHelpLength();
-               std::string getEnvHelp( size_t size );
-               std::string getArgHelp( size_t size );
+               size_t getHelpLength() const;
+               std::string getEnvHelp( size_t size ) const;
+               std::string getArgHelp( size_t size ) const;
          };
 
         /* \brief High-Level Instances of configuration options
@@ -649,7 +671,7 @@ namespace nanos
 //                typedef std::pair<std::string, std::string> argAndEnvHelps;
                 /**< List of helps in a section */
 //                typedef std::vector<argAndEnvHelps> HelpStringList;
-                typedef std::vector<HelpTriplet> HelpStringList;
+                typedef std::set<HelpTriplet> HelpStringList;
                 /**< Sections by name */
                 typedef TR1::unordered_map<std::string, HelpStringList> SectionsMap;
                 /**< Section descriptions by name */

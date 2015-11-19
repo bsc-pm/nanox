@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,13 +17,17 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-// FIXME: add priority queue option to this benchmark see #807
 /*
 <testinfo>
-test_generator=gens/mixed-generator
+test_generator=gens/core-generator
 test_schedule="bf --schedule-priority"
+test_LDFLAGS="-Wl,--export-dynamic"
 </testinfo>
 */
+
+extern "C"{
+   unsigned int nanos_need_priorities_ __attribute__((common));
+}
 
 #include "config.hpp"
 #include "nanos.h"

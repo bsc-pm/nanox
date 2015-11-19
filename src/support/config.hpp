@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -31,15 +31,48 @@
 using namespace nanos;
 
 template<typename T>
-inline bool Config::CheckValue<T>::operator() ( const T &value ) const
+inline bool Config::CheckValue<T>::operator() ( T &value, char suffix ) const
 {
    return true;
 }
 
 template<typename T>
-inline bool Config::isPositive<T>::operator() ( const T &value ) const
+inline bool Config::isPositive<T>::operator() ( T &value, char suffix ) const
 {
    return value > 0;
+}
+
+template<typename T>
+inline bool Config::isMetric<T>::operator() ( T &value, char suffix ) const
+{
+   bool rv = false;
+   switch (suffix) {
+      case  0 :
+      case 'B':
+      case 'b':
+         rv = true;
+         break;
+      case 'K':
+      case 'k':
+         value = value << 10;
+         rv = true;
+         break;
+      case 'M':
+      case 'm':
+         value = value << 20;
+         rv = true;
+         break;
+      case 'G':
+      case 'g':
+         value = value << 30;
+         rv = true;
+         break;
+      default:
+         value = 0;
+         break;
+   }
+
+   return rv;
 }
 
 inline std::string Config::getOrphanOptions()
@@ -106,24 +139,26 @@ template<typename T, class helpFormat, typename checkT>
 void Config::ActionOption<T,helpFormat,checkT>::parse ( const char *value )
 {
    T t;
+   char suffix = 0;
    std::istringstream iss( value );
 
+   // taking advantage of the fact that istream::operator>> skips whitespaces
    if ( ( iss >> t ).fail() )
       throw InvalidOptionException( *this,value );
 
-   if ( !iss.eof() )
+   if ( (!iss.eof()) && ( ( iss >> suffix ).fail() ) )
       throw InvalidOptionException( *this,value );
 
-   if ( ! checkValue( t ) )
+   if ( ! checkValue( t,suffix ) )
       throw InvalidOptionException( *this,value );
 
    setValue( t );
 }
 
 template<typename T, class helpFormat, typename checkT>
-inline bool Config::ActionOption<T,helpFormat,checkT>::checkValue ( const T &value ) const
+inline bool Config::ActionOption<T,helpFormat,checkT>::checkValue ( T &value, char suffix ) const
 {
-   return _check( value );
+   return _check( value, suffix );
 }
 
 template<typename T, class helpFormat, typename checkT>
@@ -174,6 +209,11 @@ inline std::string Config::HelpFormat::operator()()
 inline std::string Config::IntegerHelpFormat::operator()()
 {
    return "integer";
+}
+
+inline std::string Config::MetricHelpFormat::operator()()
+{
+   return "integer + suffix";
 }
 
 inline std::string Config::BoolHelpFormat::operator()()

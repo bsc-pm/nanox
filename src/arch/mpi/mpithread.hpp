@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -42,6 +42,9 @@ namespace ext
          std::vector<MPIThread*> _threadList;
          Lock _selfLock;
          std::vector<MPIProcessor*> _runningPEs;
+         //Optimization so we do not search for active comms for early-release across all the nodes
+         //Its a little slower but in an hipotetical distributed exascale scenario, it should be much better
+         std::list<int> _ranksWithPendingComms;
          int _currPe;
          std::vector<MPIThread*>* _groupThreadList;
          Lock* _groupLock;
@@ -60,7 +63,7 @@ namespace ext
 
       public:
          // constructor
-         MPIThread( WD &w, PE *pe, SMPProcessor *core) : SMPThread( w,pe ,core), _threadList() , _selfLock(), _runningPEs()  {
+         MPIThread( WD &w, PE *pe, SMPProcessor *core) : SMPThread( w,pe ,core), _threadList() , _selfLock(), _runningPEs(), _ranksWithPendingComms()  {
              _currPe=0;
              _selfTotRunningWds=0;
              _groupTotRunningWds=&_selfTotRunningWds;
@@ -84,10 +87,6 @@ namespace ext
          void initializeDependent( void );
          
          void idle( bool debug = false );
-         
-         virtual void block();
-         
-         virtual void unblock();
 
          void addRunningPEs( MPIProcessor** pe, int nPes);
          
@@ -97,6 +96,9 @@ namespace ext
 
          virtual bool inlineWorkDependent( WD &work );
          
+         virtual bool canBlock() { return false;}
+
+         
          /**
           * Deletes an WD if no thread is executing it
           * @param wd
@@ -105,6 +107,14 @@ namespace ext
           */
          bool deleteWd(WD* wd, bool markToDelete);
          
+         /**
+          * Checks which tasks have completed "input" communication and early-releases deps
+          */
+         void checkCommunicationsCompletion();
+         
+         /**
+          * Checks which tasks have finished and frees/release deps them
+          */
          void checkTaskEnd();
          
          void finish();

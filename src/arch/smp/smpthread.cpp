@@ -1,22 +1,21 @@
-/**************************************************************************/
-/*      Copyright 2010 Barcelona Supercomputing Center                    */
-/*      Copyright 2009 Barcelona Supercomputing Center                    */
-/*                                                                        */
-/*      This file is part of the NANOS++ library.                         */
-/*                                                                        */
-/*      NANOS++ is free software: you can redistribute it and/or modify   */
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
 /*      it under the terms of the GNU Lesser General Public License as published by  */
-/*      the Free Software Foundation, either version 3 of the License, or  */
-/*      (at your option) any later version.                               */
-/*                                                                        */
-/*      NANOS++ is distributed in the hope that it will be useful,        */
-/*      but WITHOUT ANY WARRANTY; without even the implied warranty of    */
-/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the     */
-/*      GNU Lesser General Public License for more details.               */
-/*                                                                        */
-/*      You should have received a copy of the GNU Lesser General Public License  */
-/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.  */
-/**************************************************************************/
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
 
 #include "os.hpp"
 #include "smpprocessor.hpp"
@@ -25,17 +24,17 @@
 #include "debug.hpp"
 #include "system.hpp"
 #include <iostream>
-#include <sched.h>
 #include <unistd.h>
 #include <signal.h>
 #include <assert.h>
 #include "smp_ult.hpp"
 #include "basethread.hpp"
 #include "instrumentation.hpp"
+//#include "clusterdevice_decl.hpp"
+//#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
-
 
 SMPThread & SMPThread::stackSize( size_t size )
 {
@@ -89,51 +88,82 @@ void SMPThread::wait()
    lock();
    _pthread.mutexLock();
 
-   ThreadTeam *team = getTeam();
+   if ( isSleeping() && !hasNextWD() && canBlock() ) {
 
-   if ( hasNextWD() ) {
-      WD *next = getNextWD();
-      next->untie();
-      team->getSchedulePolicy().queue( this, *next );
-   }
-   fatal_cond( hasNextWD(), "Can't sleep a thread with more than 1 WD in its local queue" );
+      /* Only leave team if it's been told to */
+      ThreadTeam *team = getTeam() ? getTeam() : getNextTeam();
+      if ( team && isLeavingTeam() ) {
+         leaveTeam();
+      }
 
-   if ( team != NULL ) leaveTeam();
-
-   if ( isSleeping() ) {
+      /* Set 'is_waiting' flag */
       BaseThread::wait();
 
       unlock();
-      _pthread.condWait();
 
-      //! \note Then we call base thread wakeup, which just mark thread as active
-      lock();
+      NANOS_INSTRUMENT( InstrumentState state_stop(NANOS_STOPPED) );
+
+      /* It is recommended to wait under a while loop to handle spurious wakeups
+       * http://pubs.opengroup.org/onlinepubs/009695399/functions/pthread_cond_wait.html
+       * But, for some reason this is causing deadlocks.
+       */
+      //while ( isSleeping() ) {
+      _pthread.condWait();
+      //}
+
+      NANOS_INSTRUMENT( InstrumentState state_wake(NANOS_WAKINGUP) );
+   //WORKAROUND for deadlock. Waiting for correctness checking
+   //   lock();
+      /* Unset 'is_waiting' flag */
       BaseThread::resume();
-      BaseThread::wakeup();
-      unlock();
-   } else {
+   //   unlock();
+      _pthread.mutexUnlock();
+
+      /* Whether the thread should wait for the cpu to be free before doing some work */
+      sys.getThreadManager()->waitForCpuAvailability();
+      sys.getThreadManager()->returnMyCpuIfClaimed();
+
+      if ( isSleeping() ) wait();
+      else {
+         NANOS_INSTRUMENT ( if ( sys.getSMPPlugin()->getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
+         NANOS_INSTRUMENT ( if ( !sys.getSMPPlugin()->getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
+         NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
+
+         lock();
+         // FIXME: consider OpenMP? An OMP thread should not enter any team at this point
+         /* Enter team if the thread is teamless */
+         if ( getTeam() == NULL ) {
+            team = getNextTeam();
+            if ( team ) {
+               reserve();
+               sys.acquireWorker( team, this, true, false, false );
+            }
+         };
+         unlock();
+      }
+   }
+   else {
+      _pthread.mutexUnlock();
       unlock();
    }
-
-   _pthread.mutexUnlock();
-
-   //NANOS_INSTRUMENT ( if ( sys.getBinding() ) { cpuid_value = (nanos_event_value_t) getCpuId() + 1; } )
-   //NANOS_INSTRUMENT ( if ( !sys.getBinding() && sys.isCpuidEventEnabled() ) { cpuid_value = (nanos_event_value_t) sched_getcpu() + 1; } )
-   NANOS_INSTRUMENT ( cpuid_value = (nanos_event_value_t) getCpuId() + 1; )
-   NANOS_INSTRUMENT ( sys.getInstrumentation()->raisePointEvents(1, &cpuid_key, &cpuid_value); )
 }
 
 void SMPThread::wakeup()
 {
-   //! \note This function has to be in free race condition environment or externally
-   // protected, when called, with the thread common lock: lock() & unlock() functions.
-
-   //! \note If thread is not marked as waiting, just ignore wakeup
-   if ( !isSleeping() || !isWaiting() ) return;
-
-   _pthread.wakeup();
+   _pthread.mutexLock();
+   BaseThread::wakeup();
+   if ( isWaiting() ) {
+      _pthread.condSignal();
+   }
+   _pthread.mutexUnlock();
 }
 
+void SMPThread::sleep()
+{
+   _pthread.mutexLock();
+   BaseThread::sleep();
+   _pthread.mutexUnlock();
+}
 
 // This is executed in between switching stacks
 void SMPThread::switchHelperDependent ( WD *oldWD, WD *newWD, void *oldState  )

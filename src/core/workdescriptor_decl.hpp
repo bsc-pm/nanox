@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -39,8 +39,8 @@
 #include "memcontroller_decl.hpp"
 
 #include "dependenciesdomain_decl.hpp"
+#include "task_reduction_decl.hpp"
 #include "simpleallocator_decl.hpp"
-
 #include "schedule_fwd.hpp"   // ScheduleWDData
 
 namespace nanos
@@ -85,16 +85,16 @@ typedef std::set<const Device *>  DeviceList;
 
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) = 0;
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) = 0;
-         virtual void _canAllocate( SeparateMemoryAddressSpace const &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) const = 0;
-         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace const &mem ) const = 0;
+         virtual void _canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) = 0;
+         virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace &mem ) = 0;
 
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
          virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
          virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
          virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace const &mem, SimpleAllocator::ChunkList &list ) const = 0;
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) = 0;
    };
 
   /*! \brief This class holds the specific data for a given device
@@ -109,6 +109,14 @@ typedef std::set<const Device *>  DeviceList;
          const Device *_architecture; /**< Related Device (architecture). */
       private:
          work_fct       _work;
+         
+         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
+          * **REQUERIMENT** If pe == NULL, this function must return true
+          *
+          *  \param[pe] pe is the ProcessingElement which we have to compare to.
+          *  \return a boolean indicating if both elements (DeviceData and PE) are compatible.
+          */
+         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
       public:
 
@@ -149,14 +157,6 @@ typedef std::set<const Device *>  DeviceList;
           *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
           */
          bool isCompatible ( const Device &arch, const ProcessingElement *pe=NULL) ;
-         
-         /*! \brief Indicates if DeviceData is compatible with a given ProcessingElement
-          * **REQUERIMENT** If pe == NULL, this function must return true
-          *
-          *  \param[pe] pe is the ProcessingElement which we have to compare to.
-          *  \return a boolean indicating if both elements (DeviceData and Device) are compatible.
-          */
-         virtual bool isCompatibleWithPE ( const ProcessingElement *pe ) ;
 
          /*! \brief FIXME: (#170) documentation needed
           */
@@ -204,24 +204,25 @@ typedef std::set<const Device *>  DeviceList;
    class WorkDescriptor
    {
       public: /* types */
-	      typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
+         typedef enum { IsNotAUserLevelThread=false, IsAUserLevelThread=true } ULTFlag;
          typedef std::vector<WorkDescriptor **> WorkDescriptorPtrList;
          typedef TR1::unordered_map<void *, TR1::shared_ptr<WorkDescriptor *> > CommutativeOwnerMap;
          typedef struct {
-            bool is_final:1;         //!< Work descriptor will not create more work descriptors
-            bool is_initialized:1;   //!< Work descriptor is initialized
-            bool is_started:1;       //!< Work descriptor has been already started
-            bool is_ready:1;         //!< Work descriptor is ready to execute
-            bool to_tie:1;           //!< Work descriptor should to be tied to first thread executing it
-            bool is_submitted:1;     //!< Has this WD been submitted to the Scheduler?
-            bool is_configured:1;    //!< Has this WD been configured to the Scheduler?
+            bool is_final;         //!< Work descriptor will not create more work descriptors
+            bool is_initialized;   //!< Work descriptor is initialized
+            bool is_started;       //!< Work descriptor has been already started
+            bool is_ready;         //!< Work descriptor is ready to execute
+            bool to_tie;           //!< Work descriptor should to be tied to first thread executing it
+            bool is_submitted;     //!< Has this WD been submitted to the Scheduler?
+            bool is_configured;    //!< Has this WD been configured to the Scheduler?
             bool is_implicit;        //!< Is the WD an implicit task (in a team)?
-            bool is_recoverable:1;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
-            bool is_invalid:1;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
+            bool is_recoverable;   //!< Flags a task as recoverable, that is, it can be re-executed if it finished with errors.
+            bool is_invalid;       //!< Flags an invalid workdescriptor. Used in resiliency when a task fails.
          } WDFlags;
          typedef int PriorityType;
          typedef enum { INIT, START, READY, BLOCKED } State;
          typedef SingleSyncCond<EqualConditionChecker<int> >  components_sync_cond_t;
+         typedef std::vector<TaskReduction *>        task_reduction_vector_t;  //< List of task reductions type
       private: /* data members */
          int                           _id;                     //!< Work descriptor identifier
          int                           _hostId;                 //!< Work descriptor identifier @ host
@@ -245,12 +246,17 @@ typedef std::set<const Device *>  DeviceList;
          unsigned char                 _numDevices;             //!< Number of suported devices for this workdescriptor
          DeviceData                  **_devices;                //!< Supported devices for this workdescriptor
          unsigned char                 _activeDeviceIdx;        //!< In _devices, index where we can find the current active DeviceData (if any)
+#ifdef GPU_DEV
+         int                           _cudaStreamIdx;          //!< FIXME: Only used in CUDA tasks, should not be here...
+#endif
          size_t                        _numCopies;              //!< Copy-in / Copy-out data
          CopyData                     *_copies;                 //!< Copy-in / Copy-out data
          size_t                        _paramsSize;             //!< Total size of WD's parameters
          unsigned long                 _versionGroupId;         //!< The way to link different implementations of a task into the same group
-         double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time
-         double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time
+         double                        _executionTime;          //!< FIXME:scheduler data. WD starting wall-clock time, accounting data transfers
+         double                        _estimatedExecTime;      //!< FIXME:scheduler data. WD estimated execution time, accounting data transfers
+         double                        _runTime;          //!< FIXME:scheduler data. WD starting wall-clock time, without data transfers
+         double                        _estimatedRunTime;      //!< FIXME:scheduler data. WD estimated execution time, without data transfers
          DOSubmit                     *_doSubmit;               //!< DependableObject representing this WD in its parent's depsendencies domain
          LazyInit<DOWait>              _doWait;                 //!< DependableObject used by this task to wait on dependencies
          DependenciesDomain           *_depsDomain;             //!< Dependences domain. Each WD has one where DependableObjects can be submitted            //!< Directory to mantain cache coherence
@@ -260,9 +266,11 @@ typedef std::set<const Device *>  DeviceList;
          WorkDescriptorPtrList        *_commutativeOwners;      //!< Array of commutative target owners
          int                           _numaNode;               //!< FIXME:scheduler data. The NUMA node this WD was assigned to
          bool                          _copiesNotInChunk;       //!< States whether the buffer of the copies is allocated in the chunk of the WD
-         char                         *_description;            //!< WorkDescriptor description, usually user function name
+         const char                   *_description;            //!< WorkDescriptor description, usually user function name
          InstrumentationContextData    _instrumentationContextData; //!< Instrumentation Context Data (empty if no instr. enabled)
          Slicer                       *_slicer;                 //! Related slicer (NULL if does'nt apply)
+         task_reduction_vector_t       _taskReductions;         //< Vector of task reductions
+         int                           _criticality;
          //Atomic< std::list<GraphEntry *> * > _myGraphRepList;
          //bool _listed;
          void                        (*_notifyCopy)( WD &wd, BaseThread const &thread);
@@ -284,12 +292,12 @@ typedef std::set<const Device *>  DeviceList;
          /*! \brief WorkDescriptor constructor - 1
           */
          WorkDescriptor ( int ndevices, DeviceData **devs, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, const char *description = NULL );
 
          /*! \brief WorkDescriptor constructor - 2
           */
          WorkDescriptor ( DeviceData *device, size_t data_size = 0, size_t data_align = 1, void *wdata=0,
-                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, char *description = NULL );
+                          size_t numCopies = 0, CopyData *copies = NULL, nanos_translate_args_t translate_args = NULL, const char *description = NULL );
 
          /*! \brief WorkDescriptor copy constructor (using a given WorkDescriptor)
           *
@@ -301,7 +309,7 @@ typedef std::set<const Device *>  DeviceList;
           *
           *  \see WorkDescriptor System::duplicateWD
           */
-         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, char *description = NULL );
+         WorkDescriptor ( const WorkDescriptor &wd, DeviceData **devs, CopyData * copies, void *data = NULL, const char *description = NULL );
 
          /*! \brief WorkDescriptor destructor
           *
@@ -422,6 +430,11 @@ typedef std::set<const Device *>  DeviceList;
          void setActiveDeviceIdx( unsigned char idx );
          unsigned char getActiveDeviceIdx() const;
 
+#ifdef GPU_DEV
+         void setCudaStreamIdx( int idx );
+         int getCudaStreamIdx() const;
+#endif
+
          /*! \brief Sets specific internal data of the programming model
           * \param [in] data Pointer to internal data
           * \param [in] ownedByWD States if the pointer to internal data will be owned by this WD. 
@@ -500,7 +513,10 @@ typedef std::set<const Device *>  DeviceList;
          // headers
          void submit ( bool force_queue = false );
 
+         bool isOutputDataReady();
+
          void finish ();
+         void preFinish ();
 
          void done ();
 
@@ -518,6 +534,14 @@ typedef std::set<const Device *>  DeviceList;
           */
          size_t getCopiesSize() const;
 
+         /*! \brief perform (submit) all output copies
+          */
+         void submitOutputCopies ();
+
+         /*! \brief wait for output copies to finish
+          */
+         void waitOutputCopies();
+
          /*! \brief returns the total size of the WD's parameters
           */
          size_t getParamsSize() const;
@@ -530,21 +554,45 @@ typedef std::set<const Device *>  DeviceList;
           */
          void setVersionGroupId( unsigned long id );
 
-         /*! \brief returns the total execution time of the WD
+         /*! \brief returns the total execution time of the WD, accounting data transfers
           */
          double getExecutionTime() const;
 
-         /*! \brief returns the estimated execution time of the WD
+         /*! \brief returns the estimated execution time of the WD, accounting data transfers
           */
          double getEstimatedExecutionTime() const;
 
-         /*! \brief sets the estimated execution time of the WD
+         /*! \brief sets the estimated execution time of the WD, accounting data transfers
           */
          void setEstimatedExecutionTime( double time );
+
+         /*! \brief returns the running time of the WD, without data transfers
+          */
+         double getRunTime() const;
+
+         /*! \brief sets the running time of the WD, without data transfers
+          */
+         void setRunTime( double time );
+
+         /*! \brief returns the estimated execution time of the WD, without data transfers
+          */
+         double getEstimatedRunTime() const;
+
+         /*! \brief sets the estimated execution time of the WD, without data transfers
+          */
+         void setEstimatedRunTime( double time );
 
          /*! \brief Returns a pointer to the DOSubmit of the WD
           */
          DOSubmit * getDOSubmit();
+
+         /*! \brief Returns DOSubmit's number of predecessors
+          */
+         int getNumDepsPredecessors();
+
+         /*! \brief Returns if DOSubmit's has predecessors
+          */
+         bool hasDepsPredecessors();
 
          /*! \brief Add a new WD to the domain of this WD.
           *  \param wd Must be a WD created by "this". wd will be submitted to the
@@ -560,7 +608,7 @@ typedef std::set<const Device *>  DeviceList;
           */
          void waitOn( size_t numDeps, DataAccess* deps );
 
-         /*! If this WorkDescriptor has an immediate succesor (i.e., anothur WD that only depends on him)
+         /*! If this WorkDescriptor has an immediate successor (i.e., another WD that only depends on him)
              remove it from the dependence graph and return it. */
          WorkDescriptor * getImmediateSuccessor ( BaseThread &thread );
 
@@ -568,6 +616,10 @@ typedef std::set<const Device *>  DeviceList;
           *  \paran wd Must be a wd created in this WD's context.
           */
          void workFinished(WorkDescriptor &wd);
+         
+         /*! \brief Early-release all the input dependencies of this WD
+          */
+         void releaseInputDependencies();
 
          /*! \brief Returns the DependenciesDomain object.
           */
@@ -632,7 +684,7 @@ typedef std::set<const Device *>  DeviceList;
           */
          void setCopies(size_t numCopies, CopyData * copies);
 
-         char * getDescription ( void ) const;
+         const char * getDescription ( void ) const;
 
          //! \brief Removing work from current WorkDescriptor
          virtual void exitWork ( WorkDescriptor &work );
@@ -650,7 +702,26 @@ typedef std::set<const Device *>  DeviceList;
          //!
          //! This functions change slicible WD attribute which is used in
          //! submit() and dequeue() when _slicer attribute is specified.
-         void convertToRegularWD( void );
+         void convertToRegularWD();
+
+         //! \brief This function registers a new task reduction over a
+         //variable if it is not already registered.
+         void registerTaskReduction( void *p_orig, size_t p_size,
+                 void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) );
+
+         //! \brief This function registers a new fortran task reduction over an
+         //array if it is not already registered.
+         void registerFortranArrayTaskReduction( void *p_orig, void *dep,
+                 size_t array_descriptor_size, void (*p_init)( void *, void * ),
+                 void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) );
+
+         bool removeTaskReduction( void *p_dep, bool del = false );
+
+         void * getTaskReductionThreadStorage( void *p_addr, size_t id );
+
+         TaskReduction * getTaskReduction( const void *p_dep );
+
+         void copyReductions(WorkDescriptor *parent);
 
          bool resourceCheck( BaseThread const &thd, bool considerInvalidations ) const;
 
@@ -675,6 +746,9 @@ typedef std::set<const Device *>  DeviceList;
 
          //!brief Returns whether a WorkDescriptor is able to re-execute from the beginning if an error is detected.
          bool isRecoverable ( void ) const;
+
+         void setCriticality ( int cr );
+         int getCriticality ( void ) const;
    };
 
    typedef class WorkDescriptor WD;

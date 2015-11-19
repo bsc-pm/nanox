@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -21,6 +21,8 @@
 #define _NANOS_BASE_DEPENDENCIES_DOMAIN
 
 #include "basedependenciesdomain_decl.hpp"
+#include "threadteam.hpp"
+#include "task_reduction.hpp"
 #include "debug.hpp"
 #include "schedule_decl.hpp"
 
@@ -33,9 +35,15 @@ inline void BaseDependenciesDomain::finalizeReduction( TrackableObject &status, 
    if ( commDO != NULL ) {
       status.setCommDO( NULL );
       status.setLastWriter( *commDO );
+
+      TaskReduction *tr = myThread->getCurrentWD()->getTaskReduction( (const void *) target.getAddress() );
+      if ( tr != NULL ) {
+         if ( myThread->getCurrentWD()->getDepth() == tr->getDepth() ) commDO->setTaskReduction( tr );
+      }
+
       commDO->resetReferences();
       //! Finally decrease dummy dependence added in createCommutationDO
-      commDO->decreasePredecessors( NULL ); 
+      commDO->decreasePredecessors( NULL, NULL, false );
    }
 }
 
@@ -43,6 +51,8 @@ inline void BaseDependenciesDomain::dependOnLastWriter ( DependableObject &depOb
                                                          BaseDependency const &target, SchedulePolicySuccessorFunctor* callback, AccessType const &accessType )
 {
    DependableObject *lastWriter = status.getLastWriter();
+   if ( lastWriter == &depObj) return;
+
    if ( lastWriter != NULL ) {
       SyncLockBlock lck( lastWriter->getLock() );
       if ( status.getLastWriter() == lastWriter ) {
@@ -108,6 +118,8 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
    SyncLockBlock lock4( status.getReadersLock() );
    for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
       DependableObject * predecessorReader = *i;
+      if ( predecessorReader == &depObj ) continue;
+
       SyncLockBlock lock5(predecessorReader->getLock());
 
       // new instrument event: dependence predecessorReader -> depObj
@@ -285,7 +297,7 @@ inline void BaseDependenciesDomain::submitDependableObjectCommutativeDataAccess 
    // The dummy predecessor is to make sure that initialCommDO does not execute 'finished'
    // while depObj is being added as its successor
    if ( initialCommDO != NULL ) {
-      initialCommDO->decreasePredecessors( NULL );
+      initialCommDO->decreasePredecessors( NULL, NULL, false );
    }
 }
 

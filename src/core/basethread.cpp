@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -41,6 +41,14 @@ void BaseThread::run ()
    NANOS_INSTRUMENT ( sys.getInstrumentation()->threadFinish ( *this ) );
 }
 
+void BaseThread::finish ()
+{
+   if ( _status.has_team ) {
+      setLeaveTeam(true);
+      leaveTeam();
+   }
+}
+
 void BaseThread::addNextWD ( WD *next )
 {
    if ( next != NULL ) {
@@ -61,21 +69,22 @@ WDDeque &BaseThread::getNextWDQueue() {
    return _nextWDs;
 }
 
-void BaseThread::associate ()
+void BaseThread::associate ( WD *wd )
 {
+   WD * current = wd? wd:&_threadWD;
    _status.has_started = true;
 
    myThread = this;
-   setCurrentWD( _threadWD );
+   setCurrentWD( *current );
 
    if ( sys.getSMPPlugin()->getBinding() ) bind();
 
-   _threadWD._mcontrol.preInit();
-   _threadWD._mcontrol.initialize( *runningOn() );
-   _threadWD.init();
-   _threadWD.start(WD::IsNotAUserLevelThread);
+   current->_mcontrol.preInit();
+   current->_mcontrol.initialize( *runningOn() );
+   current->init();
+   current->start(WD::IsNotAUserLevelThread);
 
-   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, &_threadWD, false); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->wdSwitch( NULL, current, false); )
 }
 
 bool BaseThread::singleGuard ()
@@ -125,23 +134,63 @@ int BaseThread::getCpuId() const {
    return _parent->getCpuId();
 }
 
-bool BaseThread::tryWakeUp() {
-   bool result = false;
-   if ( !this->hasTeam() && this->isWaiting() ) {
-      // recheck availability with exclusive access
-      this->lock();
-      if ( this->hasTeam() || !this->isWaiting() ) {
-         // we lost it
-         this->unlock();
-      } else {
-         this->reserve(); // set team flag only
-         this->wakeup();
-         this->unlock();
+void BaseThread::leaveTeam()
+{
+   ensure( this == myThread, "thread is not leaving team by itself" );
+   if ( _teamData )
+   {
+      TeamData *td = _teamData;
+      debug( "removing thread " << this << " with id " << toString<int>(getTeamId()) << " from " << _teamData->getTeam() );
 
-         result = true;
+      td->getTeam()->removeThread( getTeamId() );
+      _teamData = _teamData->getParentTeamData();
+      _status.has_team = _teamData != NULL;
+      _status.must_leave_team = false;
+      delete td;
+   }
+}
+
+void BaseThread::setLeaveTeam( bool leave )
+{
+   _status.must_leave_team = leave;
+   if ( leave ) {
+      // Remove myself from the expected list,
+      // either from my current team or from my next one
+      ThreadTeam *team = getTeam() ? getTeam() : getNextTeam();
+      if ( team ) team->removeExpectedThread( this );
+   }
+}
+
+void BaseThread::sleep()
+{
+   if ( !_status.must_sleep && canBlock() ) {
+      _status.must_sleep = true;
+      // Only abandon team if the PE is not active
+      if ( sys.getSMPPlugin()->getBinding()
+            && !runningOn()->isActive() ) {
+         setLeaveTeam( true );
       }
    }
-   return result;
+}
+
+void BaseThread::tryWakeUp( ThreadTeam *team )
+{
+   lock();
+   if ( isSleeping() ) {
+      // Thread is tagged to sleep. It may be already waiting or just tagged
+      reserve();
+      setNextTeam( team );
+      wakeup();
+   }
+   if ( !isWaiting() && !getTeam() ) {
+      // Thread is already running but without team
+      reserve();
+      setNextTeam( NULL );
+      sys.acquireWorker( team, this, true, false, false );
+   }
+   // either way, this thread must be in the expected set
+   team->addExpectedThread(this);
+   unlock();
 }
 
 unsigned int BaseThread::getOsId() const {

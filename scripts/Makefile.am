@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -37,6 +37,9 @@ dist_bin_SCRIPTS=\
 	offload_slave_launch.sh \
 	offload_instrumentation.sh \
 	nanox\
+   track_deps.sh\
+   task_numbers_in_path_to_selected_tasks.REF.cfg\
+   tasks_in_path_to_selected.REF.cfg\
 	$(END)
 
 rpm:

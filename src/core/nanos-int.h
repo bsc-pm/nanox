@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,11 +16,12 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef __NANOS_INT_H
 #define __NANOS_INT_H
 
 //! \file nanos_c_api_macros.h
-//! \brief 
+//! \brief
 //
 //! \defgroup core Nanos++ Core
 
@@ -39,6 +40,10 @@
        Type Name Params
 
 #endif
+
+// FIXME: Following macro must be architecture dependant (64 bytes)
+#define NANOS_ARCHITECTURE_PADDING_SIZE(size)\
+      size = size + (63 & (64 - (63 & size)));
 
 //! \addtogroup capi_types Types and Structures
 //! \ingroup capi
@@ -213,7 +218,11 @@ typedef struct {
 } nanos_ws_item_loop_t; /* nanos_ws_item_t, specific loop data */
 
 typedef struct nanos_ws_desc {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   nanos_ws_t            ws;         // Worksharing plugin (specified at worksharing create service), API -> Worksharing plugin
+#else
    volatile nanos_ws_t   ws;         // Worksharing plugin (specified at worksharing create service), API -> Worksharing plugin
+#endif
    nanos_ws_data_t       data;       // Worksharing plugin data (specified at worksharing create service), API -> Worksharing plugin
    struct nanos_ws_desc *next;       // Sequence management: this is 'next' global enqueued worksharing descriptor, internal use
    nanos_thread_t       *threads;    // Slicer plugin information: supporting thread map (lives at slicer creator's stack), API -> Slicer plugin
@@ -235,7 +244,7 @@ typedef struct {
 typedef struct {
    bool is_final:1;
    bool is_recover:1;
-   bool reserved2:1;
+   bool is_implicit:1;
    bool reserved3:1;
    bool reserved4:1;
    bool reserved5:1;
@@ -282,17 +291,16 @@ typedef unsigned long long   nanos_event_value_t; /**< Value (on key-value pair)
 
 typedef enum { NANOS_NOT_CREATED, NANOS_NOT_RUNNING, NANOS_STARTUP, NANOS_SHUTDOWN, NANOS_ERROR, NANOS_IDLE,
                NANOS_RUNTIME, NANOS_RUNNING, NANOS_SYNCHRONIZATION, NANOS_SCHEDULING, NANOS_CREATION,
-               NANOS_MEM_TRANSFER_IN, NANOS_MEM_TRANSFER_OUT, NANOS_MEM_TRANSFER_LOCAL,
-               NANOS_MEM_TRANSFER_DEVICE_IN, NANOS_MEM_TRANSFER_DEVICE_OUT, NANOS_MEM_TRANSFER_DEVICE_LOCAL,
-               NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH, NANOS_DEBUG, 
- /*22*/        NANOS_EVENT_STATE_TYPES
+               NANOS_MEM_TRANSFER_ISSUE, NANOS_CACHE, NANOS_YIELD, NANOS_ACQUIRING_LOCK, NANOS_CONTEXT_SWITCH,
+               NANOS_FILL1, NANOS_WAKINGUP, NANOS_STOPPED, NANOS_SYNCED_RUNNING,
+               NANOS_DEBUG, NANOS_EVENT_STATE_TYPES
 } nanos_event_state_value_t; /**< State enum values */
 
 typedef enum { NANOS_WD_DOMAIN, NANOS_WD_DEPENDENCY, NANOS_WAIT, NANOS_XFER_DATA, NANOS_XFER_REQ, NANOS_WD_REMOTE,
                NANOS_AM_WORK, NANOS_AM_WORK_DONE, NANOS_XFER_WAIT_REQ_PUT, NANOS_XFER_FREE_TMP_BUFF } nanos_event_domain_t; /**< Specifies a domain */
 
 typedef long long  nanos_event_id_t; /**< Used as unique id within a given domain */
-  
+
 typedef struct {
    nanos_event_type_t   type;
    nanos_event_key_t    key;
@@ -304,7 +312,11 @@ typedef struct {
 /* Lock C interface */
 typedef enum { NANOS_LOCK_FREE = 0, NANOS_LOCK_BUSY = 1 } nanos_lock_state_t;
 typedef struct nanos_lock_t {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   nanos_lock_state_t state_;
+#else
    volatile nanos_lock_state_t state_;
+#endif
 #ifdef __cplusplus
    nanos_lock_t ( nanos_lock_state_t init=NANOS_LOCK_FREE ) : state_(init) {}
 #endif

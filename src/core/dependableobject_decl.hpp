@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -33,6 +33,15 @@
 namespace nanos
 {
    class DependableObject;
+
+   class DOSchedulerData
+   {
+      public:
+         DOSchedulerData() {}
+         virtual ~DOSchedulerData() {}
+         virtual void reset() = 0;
+   };
+
 
    class DependableObjectPredicate
    {
@@ -80,29 +89,39 @@ namespace nanos
          unsigned int             _id;              /**< DependableObject identifier */
          Atomic<unsigned int>     _numPredecessors; /**< Number of predecessors locking this object */
          unsigned int             _references;      /** References counter */
-         DependableObjectVector   _successors;      /**< List of successiors */
+         DependableObjectVector   _predecessors;    /**< List of predecessors */
+         DependableObjectVector   _successors;      /**< List of successors */
          DependenciesDomain      *_domain;          /**< DependenciesDomain where this is located */
          TargetVector             _outputObjects;   /**< List of output objects */
          TargetVector             _readObjects;     /**< List of read objects */
          Lock                     _objectLock;      /**< Lock to do exclusive use of the DependableObject */
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         bool                     _submitted;
+#else
          volatile bool            _submitted;
+#endif
+         bool                     _needsSubmission; /**< Does this DependableObject need to be submitted? */
          WorkDescriptor           *_wd;             /**< Pointer to the work descriptor represented by this DependableObject */
+         DOSchedulerData          *_schedulerData;  /**< Data needed for specific scheduling policies */
 
       public:
         /*! \brief DependableObject default constructor
          */
          DependableObject ( ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted(false), _wd( NULL ) {}
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references( 1 ), _predecessors(), _successors(), _domain( NULL ), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted( false ), _needsSubmission( false ), _wd( NULL ), _schedulerData(NULL) {}
+
          DependableObject ( WorkDescriptor *wd ) 
-            :  _id ( 0 ), _numPredecessors ( 0 ), _references(1), _successors(), _domain( NULL ), _outputObjects(),
-               _readObjects(), _objectLock(), _submitted(false), _wd( wd ) {}
+            :  _id ( 0 ), _numPredecessors ( 0 ), _references( 1 ), _predecessors(), _successors(), _domain( NULL ), _outputObjects(),
+               _readObjects(), _objectLock(), _submitted( false ), _needsSubmission( false ), _wd( wd ), _schedulerData(NULL) {}
+
         /*! \brief DependableObject copy constructor
          *  \param depObj another DependableObject
          */
          DependableObject ( const DependableObject &depObj )
             : _id ( depObj._id ), _numPredecessors ( depObj._numPredecessors ), _references(depObj._references),
-              _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(), _objectLock(), _submitted(false), _wd( depObj._wd ) {}
+              _predecessors ( depObj._predecessors ), _successors ( depObj._successors ), _domain ( depObj._domain ), _outputObjects( ), _readObjects(),
+              _objectLock(), _submitted( false ), _needsSubmission( false ), _wd( depObj._wd ), _schedulerData(NULL) {}
 
         /*! \brief DependableObject copy assignment operator, can be self-assigned.
          *  \param depObj another DependableObject
@@ -173,16 +192,33 @@ namespace nanos
          *         method dependenciesSatisfied is invoked. It can be also a blocking
          *         call in some cases, if blocking is set to true.
          */
-         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, bool blocking = false, DependableObject *predecessor = NULL );
+         virtual int decreasePredecessors ( std::list<uint64_t> const * flushDeps, DependableObject * finishedPred,
+               bool batchRelease, bool blocking = false );
+
+         /*! \brief Auxiliar function of decreasePredecessors() that encapsulates the
+          *         mutual exclusion operations.
+          */
+          virtual void decreasePredecessorsInLock (  DependableObject * finishedPred, int numPred );
 
          /*! \brief  Returns the number of predecessors of this DependableObject
           */
          int numPredecessors () const;
 
+         /*! \brief Obtain the list of predecessors
+          *  \return List of DependableObject* that "this" depends on
+          */
+         DependableObjectVector & getPredecessors ( );
+
         /*! \brief Obtain the list of successors
          *  \return List of DependableObject* that depend on "this"
          */
          DependableObjectVector & getSuccessors ( );
+
+         /*! \brief Add a predecessor to the predecessors list
+          *  \param depObj DependableObject to be added.
+          *  returns true if the predecessor didn't already exist in the list (a new edge has been added)
+          */
+         bool addPredecessor ( DependableObject &depObj );
 
         /*! \brief Add a successor to the successors list
          *  \param depObj DependableObject to be added.
@@ -190,6 +226,14 @@ namespace nanos
          */
          bool addSuccessor ( DependableObject &depObj );
          
+         /*! \brief Delete a successor from the successors list
+          *  \param depObj DependableObject to be erased.
+          *  returns true if the successor was found (and consequently erased)
+          */
+         bool deleteSuccessor ( DependableObject *depObj );
+         bool deleteSuccessor ( DependableObject &depObj );
+
+
         /*! \brief Get the DependenciesDomain where this belongs
          *  \returns the DependenciesDomain where this belongs
          */
@@ -233,11 +277,23 @@ namespace nanos
          */
          bool isSubmitted();
 
-        /*! \breif sets the DO to submitted state
+        /*! \brief sets the DO to submitted state
          */
          void submitted();
 
-        /*! \brief returns a reference to the object's lock
+         /*! \brief returns true if the DependableObject needs to be submitted in the domain
+          */
+         bool needsSubmission() const;
+
+         /*! \brief sets the DO to submitted
+          */
+         void enableSubmission();
+
+         /*! \brief sets the DO to not submitted
+          */
+         void disableSubmission();
+
+         /*! \brief returns a reference to the object's lock
          */
          Lock& getLock();
 
@@ -247,14 +303,24 @@ namespace nanos
          *  \sa DependableObject
          */
          void finished ( );
+         
+         
+         
+        /*! \brief Release input dependencies
+         *  NOTE: this function is not thread safe
+         */
+         void releaseReadDependencies ();
 
         /*! If there is an object that only depends from this dependable object, then release it and
             return it
          */
-         DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition );
+         DependableObject * releaseImmediateSuccessor ( DependableObjectPredicate &condition, bool keepDeps );
 
          void setWD( WorkDescriptor *wd );
          WorkDescriptor * getWD( void ) const;
+
+         DOSchedulerData* getSchedulerData ( );
+         void setSchedulerData ( DOSchedulerData * scData );
    };
 
 };

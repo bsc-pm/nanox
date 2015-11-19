@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -178,18 +178,23 @@ NANOS_API_DEF(int, nanos_mpi_send_taskinit, (void *buf, int count, int dest, MPI
 NANOS_API_DEF(int, nanos_mpi_send_taskend, (void *buf, int count, int disconnect, MPI_Comm comm)){
         return nanos::ext::MPIRemoteNode::nanosMPISendTaskend(buf,count,MPI_INT,disconnect,comm);
 }
-NANOS_API_DEF(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm)){
-        return nanos::ext::MPIRemoteNode::nanosMPISendDatastruct(buf,count,datatype,dest,comm);
+NANOS_API_DEF(int, nanos_mpi_send_datastruct, (void *buf, int count, MPI_Datatype* datatype, int dest, MPI_Comm comm)){
+        return nanos::ext::MPIRemoteNode::nanosMPISendDatastruct(buf,count,*datatype,dest,comm);
 }
-NANOS_API_DEF(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype datatype, int dest, MPI_Comm comm)){
-        return nanos::ext::MPIRemoteNode::nanosMPIRecvDatastruct(buf,count,datatype,dest,comm,MPI_STATUS_IGNORE);
+NANOS_API_DEF(int, nanos_mpi_recv_datastruct, (void *buf, int count, MPI_Datatype* datatype, int dest, MPI_Comm comm)){
+        return nanos::ext::MPIRemoteNode::nanosMPIRecvDatastruct(buf,count,*datatype,dest,comm,MPI_STATUS_IGNORE);
 }
 
 NANOS_API_DEF(int, nanos_mpi_type_create_struct, ( int count, int array_of_blocklengths[],  
-        MPI_Aint array_of_displacements[], MPI_Datatype array_of_types[], MPI_Datatype *newtype)){
-    return nanos::ext::MPIRemoteNode::nanosMPITypeCreateStruct(count,array_of_blocklengths,array_of_displacements, array_of_types,newtype);
+        MPI_Aint array_of_displacements[], MPI_Datatype array_of_types[], MPI_Datatype **newtype, int taskId)){
+    return nanos::ext::MPIRemoteNode::nanosMPITypeCreateStruct(count, array_of_blocklengths,
+            array_of_displacements, array_of_types, newtype, taskId);
 }
 
+NANOS_API_DEF(int, nanos_mpi_type_get_struct, ( int taskId, MPI_Datatype **newtype )){
+    nanos::ext::MPIRemoteNode::nanosMPITypeCacheGet( taskId, newtype );
+    return NANOS_OK;
+}
 
 NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (int type)) {
     MPI_Datatype result = MPI_DATATYPE_NULL;
@@ -242,6 +247,9 @@ NANOS_API_DEF(MPI_Datatype, ompss_get_mpi_type, (int type)) {
         case mpitype_ompss_unsigned_long_long:
             result = MPI_UNSIGNED_LONG_LONG;
             break;
+        case mpitype_ompss_signed_long_long:
+            result = MPI_LONG_LONG;
+            break;
         default:
         break;
     }
@@ -254,4 +262,8 @@ NANOS_API_DEF(int, nanos_mpi_get_parent, (MPI_Comm* parent_out)){
 
 NANOS_API_DEF(int, ompss_mpi_get_function_index_host, (void* func_pointer)){
     return nanos::ext::MPIRemoteNode::ompssMpiGetFunctionIndexHost(func_pointer);
+}
+
+NANOS_API_DEF(int, ompss_mpi_get_function_index_dev, (void* func_pointer)){
+    return nanos::ext::MPIRemoteNode::ompssMpiGetFunctionIndexDevice(func_pointer);
 }

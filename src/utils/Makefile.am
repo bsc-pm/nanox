@@ -1,5 +1,5 @@
 #####################################################################################
-#      Copyright 2009 Barcelona Supercomputing Center                               #
+#      Copyright 2015 Barcelona Supercomputing Center                               #
 #                                                                                   #
 #      This file is part of the NANOS++ library.                                    #
 #                                                                                   #
@@ -17,69 +17,77 @@
 #      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             #
 #####################################################################################
 
-include ../common.am
+include $(top_srcdir)/src/common.am
 
-nanox_sources = \
+nanox_sources= \
    nanox.cpp \
    $(END)
 
-bin_PROGRAMS =
-if DEBUG_VERSION
-
+bin_PROGRAMS=
+if is_debug_enabled
 bin_PROGRAMS += nanox-dbg
 
-nanox_dbg_CPPFLAGS = $(common_includes) $(common_debug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(debugdir)\"
-
-nanox_dbg_SOURCES=  $(nanox_sources)
-
+nanox_dbg_CPPFLAGS= $(common_debug_CPPFLAGS) -DPLUGIN_DIR=\"$(debugdir)\"
+nanox_dbg_SOURCES= $(nanox_sources)
+nanox_dbg_LDFLAGS=$(AM_LDFLAGS) @cudalib@
 nanox_dbg_LDADD=\
-	-ldl \
-	$(top_builddir)/src/core/debug/libnanox.la \
-	$(END)
+-ldl \
+$(top_builddir)/src/core/debug/libnanox.la \
+@cudalibs@ \
+$(END)
 
 endif
 
-if INSTRUMENTATION_VERSION
-
+if is_instrumentation_enabled
 bin_PROGRAMS += nanox-ins
 
-nanox_ins_CPPFLAGS = $(common_includes) $(common_instr_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(instrumentationdir)\"
-
-nanox_ins_SOURCES=  $(nanox_sources)
-
+nanox_ins_CPPFLAGS= $(common_instrumentation_CPPFLAGS) -DPLUGIN_DIR=\"$(instrumentationdir)\"
+nanox_ins_SOURCES= $(nanox_sources)
+nanox_ins_LDFLAGS=$(AM_LDFLAGS) @cudalib@
 nanox_ins_LDADD=\
-	-ldl \
-	$(top_builddir)/src/core/instrumentation/libnanox.la \
-	$(END)
+-ldl \
+$(top_builddir)/src/core/instrumentation/libnanox.la \
+@cudalibs@ \
+$(END)
 
 endif
 
-if INSTRUMENTATION_DEBUG_VERSION
-
+if is_instrumentation_debug_enabled
 bin_PROGRAMS += nanox-ins-dbg
 
-nanox_ins_dbg_CPPFLAGS = $(common_includes) $(common_instrdebug_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(instrdebugdir)\"
-
-nanox_ins_dbg_SOURCES=  $(nanox_sources)
-
+nanox_ins_dbg_CPPFLAGS= $(common_instrumentation_debug_CPPFLAGS) -DPLUGIN_DIR=\"$(instrumentation_debugdir)\"
+nanox_ins_dbg_SOURCES= $(nanox_sources)
+nanox_ins_dbg_LDFLAGS=$(AM_LDFLAGS) @cudalib@
 nanox_ins_dbg_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/instrumentation-debug/libnanox.la \
+	@cudalibs@ \
 	$(END)
 
 endif
 
-if PERFORMANCE_VERSION
-
+if is_performance_enabled
 bin_PROGRAMS += nanox-pfm
 
-nanox_pfm_CPPFLAGS = $(common_includes) $(common_perfo_cxxflags) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
-
-nanox_pfm_SOURCES=  $(nanox_sources)
-
+nanox_pfm_CPPFLAGS= $(common_performance_CPPFLAGS) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_pfm_SOURCES= $(nanox_sources)
+nanox_pfm_LDFLAGS=$(AM_LDFLAGS) @cudalib@
 nanox_pfm_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/performance/libnanox.la \
+	@cudalibs@ \
+	$(END)
+
+# For simplicity, we will only build nanox-bindings in PERFORMANCE version
+bin_PROGRAMS += nanox-bindings
+nanox_bindings_CPPFLAGS = $(common_performance_CPPFLAGS) $(common_includes) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
+nanox_bindings_SOURCES = nanox_bindings.cpp
+nanox_bindings_LDFLAGS=$(AM_LDFLAGS) @cudalib@
+nanox_bindings_LDADD = \
+	$(top_builddir)/src/core/performance/libnanox.la \
+	$(top_builddir)/src/pms/performance/libnanox-ompss.la \
+	$(top_builddir)/src/apis/performance/libnanox-c.la \
+	@cudalibs@
 	$(END)
 
 endif

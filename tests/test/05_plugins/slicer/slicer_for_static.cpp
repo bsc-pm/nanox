@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -19,7 +19,7 @@
 
 /*
 <testinfo>
-test_generator=gens/mixed-generator
+test_generator=gens/core-generator
 </testinfo>
 */
 

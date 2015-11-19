@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -27,13 +27,13 @@ extern "C"
    void startHelper ();
 }
 
-intptr_t * initContext( intptr_t *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
-                       void *cleanup, void *cleanupArg )
+void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+                    void *cleanup, void *cleanupArg )
 {
-   intptr_t * state = stack;
-   state += stackSize - 1;
+   intptr_t * state = (intptr_t *) stack;
+   state += (stackSize/sizeof(intptr_t)) - 1;
 
-   // align stack to 8 byte boundary
+   //! Stack must be aligned to 8 byte boundary
    unsigned int align = ( ( (unsigned int) state ) & 7) / sizeof(intptr_t *);
    state -= align;
 
@@ -46,8 +46,7 @@ intptr_t * initContext( intptr_t *stack, size_t stackSize, void (*wrapperFunctio
    *state = ( intptr_t )wd;
    state--;
    *state = ( intptr_t )startHelper;
-   state-=9; //number of push and pop registers except for the lr on pc on stack.s
+   state -= 9; //number of push and pop registers except for the lr on pc on stack.s
 
-
-   return state;
+   return (void *) state;
 }

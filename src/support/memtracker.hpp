@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,13 +16,13 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 #ifndef _NANOS_MEMTRACKER_HPP
 #define _NANOS_MEMTRACKER_HPP
 
 #if defined(NANOS_DEBUG_ENABLED) && defined(NANOS_MEMTRACKER_ENABLED)
 
 #include "memtracker_decl.hpp"
-#include "printbt_decl.hpp"
 #include "new_decl.hpp"
 #include "allocator.hpp"
 #include "config.hpp"
@@ -55,7 +55,7 @@ namespace nanos {
 
          LockBlock_noinst guard(_lock);
 
-#ifdef NANOS_DISABLE_ALLOCATOR
+#ifndef NANOS_ENABLE_ALLOCATOR
          void *p = malloc ( size );
          if ( p == NULL ) throw(NANOS_ENOMEM);
 #else
@@ -97,7 +97,7 @@ namespace nanos {
          _numBlocks--;
          _totalMem -= size;
 
-#ifdef NANOS_DISABLE_ALLOCATOR
+#ifndef NANOS_ENABLE_ALLOCATOR
          free( p );
 #else
          if ( _setZeroDeallocate ) {

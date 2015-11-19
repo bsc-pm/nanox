@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -46,7 +46,8 @@ namespace nanos {
             static bool _disconnectedFromParent;
             static Lock _taskLock;
             static std::list<int> _pendingTasksQueue;
-            static std::list<int> _pendingTaskParentsQueue;   
+            static std::list<int> _pendingTaskParentsQueue;  
+            static std::vector<MPI_Datatype*> _taskStructsCache;   
             static int _currentTaskParent;
             static int _currProcessor;
             static pthread_cond_t          _taskWait;         //! Condition variable to wait for completion
@@ -94,8 +95,11 @@ namespace nanos {
              */
             static void mpiOffloadSlaveMain();
             
-            //Search function pointer and get index
+            //Search function pointer and get index of host array
             static int ompssMpiGetFunctionIndexHost(void* func_pointer);
+            
+            //Search function pointer and get index of device array
+            static int ompssMpiGetFunctionIndexDevice(void* func_pointer);
             
             /**
              * This routine implements a worker thread which will execute
@@ -179,7 +183,7 @@ namespace nanos {
              */
             static void DEEPBoosterAlloc(MPI_Comm comm, int number_of_hosts, int process_per_host, MPI_Comm *intercomm,
                     bool strict, int* provided,
-                    int offset,const int* pph_list);  
+                    int offset, int* pph_list);  
             
             /*
              * Subkernel for DEEPBoosterAlloc
@@ -197,6 +201,7 @@ namespace nanos {
             static inline void callMPISpawn( 
                 MPI_Comm comm,
                 const int availableHosts,
+                const bool strict,
                 std::vector<std::string>& tokensParams,
                 std::vector<std::string>& tokensHost, 
                 std::vector<int>& hostInstances,
@@ -217,7 +222,9 @@ namespace nanos {
                 int spawnedHosts,
                 int totalNumberOfSpawns,
                 bool shared,
-                int mpiSize);
+                int mpiSize,
+                int currRank,
+                int* pphList);
             
             /**
              * Wrappers for MPI functions
@@ -266,13 +273,16 @@ namespace nanos {
                      MPI_Comm comm, MPI_Request *req);
             
             static int nanosMPITypeCreateStruct(int count, int array_of_blocklengths[], MPI_Aint array_of_displacements[], 
-                    MPI_Datatype array_of_types[], MPI_Datatype *newtype);
+                    MPI_Datatype array_of_types[], MPI_Datatype **newtype, int taskId);
+            
+            static void nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype );
+                        
                         
             /**
              * Specialized functions
              */
             static void nanosSyncDevPointers(int* file_mask, unsigned int* file_namehash, unsigned int* file_size,
-                    unsigned int* task_per_file,void (*ompss_mpi_func_pointers_dev[])());
+                    unsigned int* task_per_file,void* ompss_mpi_func_pointers_dev[]);
             
         };   
 

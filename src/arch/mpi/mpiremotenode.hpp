@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -43,6 +43,7 @@ pthread_cond_t MPIRemoteNode::_taskWait;         //! Condition variable to wait 
 pthread_mutex_t MPIRemoteNode::_taskMutex;        //! Mutex to access the completion 
 std::list<int> MPIRemoteNode::_pendingTasksQueue;
 std::list<int> MPIRemoteNode::_pendingTaskParentsQueue;
+std::vector<MPI_Datatype*>  MPIRemoteNode::_taskStructsCache;
 bool MPIRemoteNode::_initialized=false;
 bool MPIRemoteNode::_disconnectedFromParent=false;
 int MPIRemoteNode::_currentTaskParent=-1;
@@ -103,8 +104,6 @@ bool MPIRemoteNode::getDisconnectedFromParent(){
 ////////////////////////////////
 //Auxiliar filelock routines////
 ////////////////////////////////
-//Lock not used with OMPI, remove unused function warning
-#ifndef OPEN_MPI
 /*! Try to get lock. Return its file descriptor or -1 if failed.
  *
  *  @param lockName Name of file used as lock (i.e. '/var/lock/myLock').
@@ -139,10 +138,9 @@ static void releaseLock( int fd, char const *lockName )
     lock.l_start   = 0;
     lock.l_whence  = SEEK_SET;
     lock.l_len     = 0;        
-    fcntl(fd, F_SETLKW, &lock);  /* Overwrites lock structure with preventors. */
+    fcntl(fd, F_UNLCK, &lock);  /* Overwrites lock structure with preventors. */
     //remove( lockName );
     close( fd );
 }
-#endif
 
 #endif

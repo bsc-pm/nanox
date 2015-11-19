@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -16,6 +16,7 @@
 /*      You should have received a copy of the GNU Lesser General Public License     */
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
+
 /*! \file nanos_instrument.cpp
  *  \brief Nanos++ services related with the instrumentation
  */
@@ -178,19 +179,41 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_events, ( unsigned int num_events, n
 NANOS_API_DEF(nanos_err_t, nanos_instrument_close_user_fun_event, ( void ))
 {
 #ifdef NANOS_INSTRUMENTATION_ENABLED
-#ifdef GPU_DEV
-   try
-   {
-      ( ( ext::GPUThread *) myThread )->enableWDClosingEvents();
-   } catch ( nanos_err_t err) {
-      return err;
-   }
-#endif
 #ifdef OpenCL_DEV
    try
    {
-      ( ( ext::OpenCLThread *) myThread )->enableWDClosingEvents();
-   } catch ( nanos_err_t err) {
+      ( ( ext::OpenCLThread * ) myThread )->enableWDClosingEvents();
+   } catch ( nanos_err_t err ) {
+      return err;
+   }
+#endif
+#endif
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_instrument_raise_gpu_kernel_launch_event, ( void ))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+#ifdef GPU_DEV
+   try
+   {
+      ( ( ext::GPUThread * ) myThread )->raiseKernelLaunchEvent();
+   } catch ( nanos_err_t err ) {
+      return err;
+   }
+#endif
+#endif
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_instrument_close_gpu_kernel_launch_event, ( void ))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+#ifdef GPU_DEV
+   try
+   {
+      ( ( ext::GPUThread * ) myThread )->closeKernelLaunchEvent();
+   } catch ( nanos_err_t err ) {
       return err;
    }
 #endif
@@ -253,6 +276,42 @@ NANOS_API_DEF(nanos_err_t, nanos_instrument_end_burst,(nanos_string_t key, nanos
         nanos_event_t e;
         nanos_instrument_get_key( (const char*) key, &e.key);
         nanos_instrument_get_value( (const char*) key, (const char*) value, &e.value);
+        e.type = NANOS_BURST_END;
+        nanos_instrument_events( 1, &e);
+    } catch ( nanos_err_t err) {
+        return err;
+    }
+ #endif
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_instrument_begin_burst_with_val,(nanos_string_t key, nanos_string_t key_descr, nanos_event_value_t *val))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+    try
+    {
+        nanos_event_t e;
+        nanos_instrument_register_key ( &e.key, (const char*) key,
+                (const char*) key_descr, /* abort_when_registered */ false );
+
+        e.value = *val;
+        e.type = NANOS_BURST_START;
+        nanos_instrument_events( 1, &e);
+    } catch ( nanos_err_t err) {
+        return err;
+    }
+ #endif
+   return NANOS_OK;
+}
+
+NANOS_API_DEF(nanos_err_t, nanos_instrument_end_burst_with_val,(nanos_string_t key, nanos_event_value_t *val))
+{
+#ifdef NANOS_INSTRUMENTATION_ENABLED
+    try
+    {
+        nanos_event_t e;
+        nanos_instrument_get_key( (const char*) key, &e.key);
+        e.value = *val;
         e.type = NANOS_BURST_END;
         nanos_instrument_events( 1, &e);
     } catch ( nanos_err_t err) {

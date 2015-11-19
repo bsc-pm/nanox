@@ -1,3 +1,22 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 #ifndef OMPT_API_H
 #define OMPT_API_H
 #include "ompt_callbacks.h"
@@ -37,7 +56,7 @@ OMPT_API int ompt_get_parallel_team_size( /* query # threads in a parallel regio
       int ancestor_level /* how many levels the ancestor is removed from the current region */
       );
 /* task inquiry */
-OMPT_API ompt_task_id_t *ompt_get_task_id( /* identify a task */
+OMPT_API ompt_task_id_t ompt_get_task_id( /* identify a task */
       int depth /* how many levels removed from the current task */
       );
 OMPT_API ompt_frame_t *ompt_get_task_frame(

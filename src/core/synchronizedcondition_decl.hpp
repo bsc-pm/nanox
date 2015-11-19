@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -19,6 +19,10 @@
 
 #ifndef _NANOS_SYNCHRONIZED_CONDITION_DECL
 #define _NANOS_SYNCHRONIZED_CONDITION_DECL
+
+#ifdef HAVE_CONFIG_H
+  #include <config.h>
+#endif
 
 #include <stdlib.h>
 #include <list>
@@ -62,7 +66,11 @@ namespace nanos
    class EqualConditionChecker : public ConditionChecker
    {
       protected:
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         T     *_var;       /**< variable wich value has to be checked. */
+#else
          volatile T     *_var;       /**< variable wich value has to be checked. */
+#endif
          T               _condition; /**< variable value to ckeck for. */
       public:
          /*! \brief EqualConditionChecker default constructor
@@ -70,7 +78,11 @@ namespace nanos
          EqualConditionChecker() : ConditionChecker(), _var( NULL ), _condition() {}
          /*! \brief EqualConditionChecker destructor
           */
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         EqualConditionChecker(T* var, T condition) : ConditionChecker(), _var( var ), _condition( condition ) {}
+#else
          EqualConditionChecker(volatile T* var, T condition) : ConditionChecker(), _var( var ), _condition( condition ) {}
+#endif
          /*! \brief EqualConditionChecker copy constructor
           */
          EqualConditionChecker ( const EqualConditionChecker & cc ) : ConditionChecker( cc )
@@ -92,7 +104,11 @@ namespace nanos
          /*! \brief Checks the variable against the condition.
           */
          virtual bool checkCondition() {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            return ( __atomic_load_n(this->_var, __ATOMIC_ACQUIRE) == (this->_condition) );
+#else
             return ( *(this->_var) == (this->_condition) );
+#endif
          }
    };
 
@@ -102,7 +118,11 @@ namespace nanos
    class LessOrEqualConditionChecker : public ConditionChecker
    {
       protected:
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         T     *_var;       /**< variable wich value has to be checked. */
+#else
          volatile T     *_var;       /**< variable wich value has to be checked. */
+#endif
          T               _condition; /**< variable value to ckeck for. */
       public:
          /*! \brief LessOrEqualConditionChecker default constructor
@@ -125,15 +145,24 @@ namespace nanos
          }
          /*! \brief LessOrEqualConditionChecker constructor - 1
           */
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+         LessOrEqualConditionChecker(T* var, T condition)
+            : ConditionChecker(), _var(var), _condition(condition) {}
+#else
          LessOrEqualConditionChecker(volatile T* var, T condition)
             : ConditionChecker(), _var(var), _condition(condition) {}
+#endif
          /*! \brief LessOrEqualConditionChecker destructor
           */
          virtual ~LessOrEqualConditionChecker() {}
          /*! \brief Checks the variable against the condition.
           */
          virtual bool checkCondition() {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+            return ( __atomic_load_n(this->_var, __ATOMIC_ACQUIRE) <= (this->_condition) );
+#else
             return ( *(this->_var) <= (this->_condition) );
+#endif
          }
    };
 

@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -33,6 +33,7 @@ namespace nanos {
       private:
          uint64_t _tag;
          unsigned int _dirVersion;
+
       public:
          DeviceOps *_ops;
          Functor *_functor;

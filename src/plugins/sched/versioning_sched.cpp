@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -932,7 +932,7 @@ namespace ext
          }
 
 
-         WD * atIdle ( BaseThread *thread )
+         WD * atIdle ( BaseThread *thread, int numSteal )
          {
             TeamData &tdata = ( TeamData & ) *thread->getTeam()->getScheduleData();
 
@@ -1043,7 +1043,7 @@ namespace ext
 
             NANOS_SCHED_VER_CLOSE_EVENT;
 
-            return atIdle( thread );
+            return atIdle( thread, false );
          }
 
          WD * atBeforeExit ( BaseThread *thread, WD &currentWD, bool schedule )

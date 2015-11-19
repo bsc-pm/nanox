@@ -1,8 +1,27 @@
+/*************************************************************************************/
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*                                                                                   */
+/*      This file is part of the NANOS++ library.                                    */
+/*                                                                                   */
+/*      NANOS++ is free software: you can redistribute it and/or modify              */
+/*      it under the terms of the GNU Lesser General Public License as published by  */
+/*      the Free Software Foundation, either version 3 of the License, or            */
+/*      (at your option) any later version.                                          */
+/*                                                                                   */
+/*      NANOS++ is distributed in the hope that it will be useful,                   */
+/*      but WITHOUT ANY WARRANTY; without even the implied warranty of               */
+/*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                */
+/*      GNU Lesser General Public License for more details.                          */
+/*                                                                                   */
+/*      You should have received a copy of the GNU Lesser General Public License     */
+/*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
+/*************************************************************************************/
+
 /*
 <testinfo>
 compile_versions="stdlist nanoslist"
 test_CXXFLAGS_nanoslist="-DUSE_NANOS_LIST"
-test_generator="gens/mixed-generator -a \"--gpus=0\""
+test_generator="gens/core-generator -a \"--gpus=0\""
 </testinfo>
 */
 
@@ -22,7 +41,6 @@ using namespace std;
 using namespace nanos;
 using namespace nanos::ext;
 
-int size;
 /*
 typedef List<int,int> IntList;
 typedef ListNode<int,int> IntNode;
@@ -210,21 +228,17 @@ int main (int argc, char **argv)
 */
 
    cout << "start threaded tests" << endl;
+
    //all threads perform a barrier , before the barrier they will freely access the list
+   WD *wg = getMyThreadSafe()->getCurrentWD();
    ThreadTeam &team = *getMyThreadSafe()->getTeam();
-   size = team.size();
-   for ( i = 1; i < team.size(); i++ ) {
-          WD * wd = new WD(new SMPDD(barrier_code));
-          wd->tieTo(team[i]);
-          sys.submit(*wd);
+   for ( i = 0; i < team.size(); i++ ) {
+      WD * wd = new WD(new SMPDD(barrier_code));
+      wg->addWork( *wd );
+      wd->tieTo(team[i]);
+      sys.submit(*wd);
    }
-   usleep(100);
-
-   WD *wd = getMyThreadSafe()->getCurrentWD();
-   wd->tieTo(*getMyThreadSafe());
-
-   mainWD = wd;
-   barrier_code(NULL);
+   wg->waitCompletion();
 
    cout << "end" << endl;
 }

@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Transforms a text so that it is valid
+# to be used as a shell variable name
+# Note: it actually calls tr (translate)
+# and translates every alphanumeric character
+# into an underscore
+function tr_sh() {
+  echo $(echo -n "$@" | tr -c [:alnum:] '_')
+}
+
+if [ x@MCC_SUPPORT@ = xyes ];
+then
+
+common_includes="\
+-I@abs_top_srcdir@/src/core \
+-I@abs_top_srcdir@/src/apis/c \
+-I@abs_top_builddir@/src/apis/c \
+-I@abs_top_srcdir@/src/pms/openmp \
+-I@abs_top_srcdir@/tests/pfm \
+$END"
+
+VERSIONS="@VERSIONS@"
+PLUGINS="@PLUGINS@"
+
+@is_debug_enabled_TRUE@ debug_CPPFLAGS="@debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_debug_enabled_TRUE@ debug_CXXFLAGS="@debug_CXXFLAGS@ --ompss --debug @CXXFLAGS@"
+@is_debug_enabled_TRUE@ debug_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_debug_enabled_TRUE@ debug_LIBS=
+
+@is_instrumentation_enabled_TRUE@ instrumentation_CPPFLAGS="@instrumentation_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_instrumentation_enabled_TRUE@ instrumentation_CXXFLAGS="@instrumentation_CXXFLAGS@ --ompss --instrument @CXXFLAGS@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_enabled_TRUE@ instrumentation_LIBS=
+
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CPPFLAGS="@instrumentation_debug_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_CXXFLAGS="@instrumentation_debug_CXXFLAGS@ --ompss --instrument --debug @CXXFLAGS@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_instrumentation_debug_enabled_TRUE@ instrumentation_debug_LIBS=
+
+@is_performance_enabled_TRUE@ performance_CPPFLAGS="@performance_CPPFLAGS@ ${common_includes} @cc_dep_CPPFLAGS@ @CPPFLAGS@ @hwlocinc@"
+@is_performance_enabled_TRUE@ performance_CXXFLAGS="@performance_CXXFLAGS@ --ompss @CXXFLAGS@"
+@is_performance_enabled_TRUE@ performance_LDFLAGS="@LDFLAGS@ @cudalib@ @hwloclib@"
+@is_performance_enabled_TRUE@ performance_LIBS=
+
+# Common to all versions
+cat << EOF
+test_CC=@MCC@
+test_CXX=@MCXX@
+EOF
+
+# Specific to each version
+compile_versions=
+for version in @VERSIONS@; do
+  sh_version=$(tr_sh $version)
+  compile_versions+="${sh_version} "
+  for libdir in @PLUGINS@ core pms apis; do
+    library_dir=@abs_top_builddir@/src/${libdir}/${version}/.libs
+    eval "${sh_version}_LDFLAGS=\"\
+-L${library_dir} -Wl,-rpath,${library_dir} \
+\${${sh_version}_LDFLAGS}\""
+
+    eval "${sh_version}_LD_LIBRARY_PATH=\"\
+${library_dir}\
+\${${sh_version}_LD_LIBRARY_PATH+:}\
+\${${sh_version}_LD_LIBRARY_PATH}\""
+  done
+
+  eval "${sh_version}_LDFLAGS=\"\
+@PTHREAD_LIBS@ \
+\${${sh_version}_LIBS} \
+\${${sh_version}_LDFLAGS}\""
+
+  eval "${sh_version}_ENV=\"
+LD_LIBRARY_PATH=\${${sh_version}_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}\""
+
+  cat << EOF
+test_CPPFLAGS_${sh_version}="$(eval echo \${${sh_version}_CPPFLAGS} ${test_CPPFLAGS} )"
+test_CFLAGS_${sh_version}="$(eval echo \${${sh_version}_CFLAGS} ${test_CFLAGS} -Wno-error )"
+test_CXXFLAGS_${sh_version}="$(eval echo \${${sh_version}_CXXFLAGS} ${test_CXXFLAGS} -Wno-error )"
+test_LDFLAGS_${sh_version}="$(eval echo \${${sh_version}_LDFLAGS} \${${sh_version}_LIBS} ${test_LDFLAGS})"
+test_PLUGINS_${sh_version}="$(eval echo \${${sh_version}_PLUGINS})"
+test_ENV_${sh_version}="$(eval echo \${${sh_version}_ENV} ${test_ENV})"
+EOF
+done # for version
+
+cat << EOF
+compile_versions="${compile_versions}"
+$(@abs_top_srcdir@/tests/gens/config.py $*)
+EOF
+
+else
+
+cat <<EOF
+test_ignore=yes
+EOF
+
+fi
