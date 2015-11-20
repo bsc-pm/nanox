@@ -585,9 +585,9 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      void *ptr = (*it)->get( p_addr, id );
-      if ( ptr != NULL ) {/*std::cout << "1:" << this << ", " << id  << ", " << p_addr << std::endl;*/return ptr;}
-     // std::cout << "2:" << this << ", " << id  << ", " << p_addr << std::endl;
+      void *ptr = (*it)->get(id );
+      if ( ptr != NULL ) {std::cout << "1:" << this << ", " << id  << ", " << p_addr << std::endl;return ptr;}
+      std::cout << "2:" << this << ", " << id  << ", " << p_addr << std::endl;
       return (*it)->init(id);
    }
 

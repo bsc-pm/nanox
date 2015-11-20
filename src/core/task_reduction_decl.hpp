@@ -73,7 +73,7 @@ class TaskReduction {
 					 _num_threads(threads), _min(NULL), _max(NULL)
       {
          //For each thread
-         for ( size_t i=0; i<threads; i++) {
+         for ( size_t i=0; i<_num_threads; i++) {
         	 _storage[i] = NULL;
          }
       }
@@ -102,10 +102,12 @@ class TaskReduction {
      ~TaskReduction() {}
 
       //! \brief
-      //! \kk
+      //! \smart text here
       bool has ( const void *ptr );
 
-      void * get ( const void *ptr, size_t id );
+      //! \brief
+      //! \smart text here
+      void * get ( size_t id );
 
       //! \brief Finalizes reduction
       void * finalize ( void );

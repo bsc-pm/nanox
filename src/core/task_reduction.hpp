@@ -25,12 +25,11 @@
 inline bool TaskReduction::has( const void *ptr)
 {
    bool inside =  ( ( ptr == _dependence ) /*|| ( (ptr >= _min) && (ptr <= _max) )*/ );
-
    if ( inside ) return true;//_storage[id];
    return false;
 }
 
-inline void * TaskReduction::get( const void *ptr, size_t id )
+inline void * TaskReduction::get( size_t id )
 {
    return _storage[id];
 }
@@ -55,7 +54,9 @@ inline void * TaskReduction::finalize( void )
 inline  void * TaskReduction::init( size_t id )
 {
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 1 ); )
-	_storage[id] = malloc (_size);
+	_storage[id] = calloc (_num_elements, _size_element);
+	//make sure malloc succeeded
+
 	for(size_t j=0; j<_num_elements; j++ ) {
 		_initializer( & ((char*)(_storage)[id])[j*_size_element], _original );
 	}
