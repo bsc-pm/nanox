@@ -46,11 +46,6 @@
 #include "spuprocessor.hpp"
 #endif
 
-
-#ifdef FPGA_DEV
-#include "fpgaprocessor.hpp"
-#endif
-
 #ifdef CLUSTER_DEV
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
