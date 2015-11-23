@@ -40,6 +40,7 @@ extern "C" {
    void DLB_Update( void ) __attribute__(( weak ));
    void DLB_AcquireCpu( int cpu ) __attribute__(( weak ));
    void DLB_AcquireCpus( cpu_set_t* mask ) __attribute__(( weak ));
+   void DLB_NotifyProcessMaskChangeTo(const cpu_set_t* mask) __attribute__(( weak ));
 }
 #define DLB_SYMBOLS_DEFINED ( \
          DLB_UpdateResources_max && \
@@ -53,6 +54,7 @@ extern "C" {
          DLB_Finalize && \
          DLB_AcquireCpu && \
          DLB_AcquireCpus && \
+         DLB_NotifyProcessMaskChangeTo \
          DLB_Update )
 #endif
 
@@ -374,6 +376,12 @@ void BlockingThreadManager::unblockThreads( std::vector<BaseThread*> threads )
    }
 }
 
+void BlockingThreadManager::processMaskChanged()
+{
+   if ( _useDLB )
+      DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
+}
+
 /**********************************/
 /**** BusyWait Thread Manager *****/
 /**********************************/
@@ -510,8 +518,13 @@ void BusyWaitThreadManager::waitForCpuAvailability()
 {
    if ( !_initialized ) return;
    if ( !_useDLB ) return;
-   int cpu = getMyThreadSafe()->getCpuId();
-  
+
+   BaseThread *thread = getMyThreadSafe();
+   int cpu = thread->getCpuId();
+
+   // Do not check CPU if this thread has been signaled in order to stop
+   if ( !thread->isRunning() ) return;
+
    OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
    sched_yield();
 
@@ -566,6 +579,12 @@ void BusyWaitThreadManager::unblockThreads( std::vector<BaseThread*> threads )
       thread->wakeup();
       sys.getSMPPlugin()->updateCpuStatus( thread->getCpuId() );
    }
+}
+
+void BusyWaitThreadManager::processMaskChanged()
+{
+   if ( _useDLB )
+      DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
 }
 
 /**********************************/
@@ -695,7 +714,12 @@ void DlbThreadManager::returnMyCpuIfClaimed()
 
 void DlbThreadManager::waitForCpuAvailability()
 {
-   int cpu = getMyThreadSafe()->getCpuId();
+   BaseThread *thread = getMyThreadSafe();
+   int cpu = thread->getCpuId();
+
+   // Do not check CPU if this thread has been signaled in order to stop
+   if ( !thread->isRunning() ) return;
+
    while ( !lastActiveThread() && !DLB_CheckCpuAvailability(cpu) ) {
       // Sleep and Yield the thread to reduce cycle consumption
       OS::nanosleep( ThreadManagerConf::DEFAULT_SLEEP_NS );
@@ -749,4 +773,9 @@ void DlbThreadManager::unblockThreads(std::vector<BaseThread*> threads) {
       }
    }
    DLB_AcquireCpus( &cpus.get_cpu_set() );
+}
+
+void DlbThreadManager::processMaskChanged()
+{
+   DLB_NotifyProcessMaskChangeTo(_cpuProcessMask->get_cpu_set_pointer());
 }
