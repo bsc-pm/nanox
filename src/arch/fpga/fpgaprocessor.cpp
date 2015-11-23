@@ -27,6 +27,7 @@
 #include "fpgamemorytransfer.hpp"
 #include "instrumentationmodule_decl.hpp"
 #include "smpprocessor.hpp"
+#include "fpgapinnedallocator.hpp"
 
 #include "libxdma.h"
 
@@ -35,7 +36,7 @@ using namespace nanos::ext;
 
 int FPGAProcessor::_accelSeed = 0;
 Lock FPGAProcessor::_initLock;
-
+FPGAPinnedAllocator FPGAProcessor::_allocator;
 /*
  * TODO: Support the case where each thread may manage a different number of accelerators
  */
