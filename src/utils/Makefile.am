@@ -29,11 +29,11 @@ bin_PROGRAMS += nanox-dbg
 
 nanox_dbg_CPPFLAGS= $(common_debug_CPPFLAGS) -DPLUGIN_DIR=\"$(debugdir)\"
 nanox_dbg_SOURCES= $(nanox_sources)
-nanox_dbg_LDFLAGS=$(AM_LDFLAGS) @cudalib@
+nanox_dbg_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @xdmalib@
 nanox_dbg_LDADD=\
 -ldl \
 $(top_builddir)/src/core/debug/libnanox.la \
-@cudalibs@ \
+@cudalibs@ @xdmalibs@ \
 $(END)
 
 endif
@@ -43,11 +43,11 @@ bin_PROGRAMS += nanox-ins
 
 nanox_ins_CPPFLAGS= $(common_instrumentation_CPPFLAGS) -DPLUGIN_DIR=\"$(instrumentationdir)\"
 nanox_ins_SOURCES= $(nanox_sources)
-nanox_ins_LDFLAGS=$(AM_LDFLAGS) @cudalib@
+nanox_ins_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @xdmalib@
 nanox_ins_LDADD=\
 -ldl \
 $(top_builddir)/src/core/instrumentation/libnanox.la \
-@cudalibs@ \
+@cudalibs@ @xdmalibs@ \
 $(END)
 
 endif
@@ -57,11 +57,11 @@ bin_PROGRAMS += nanox-ins-dbg
 
 nanox_ins_dbg_CPPFLAGS= $(common_instrumentation_debug_CPPFLAGS) -DPLUGIN_DIR=\"$(instrumentation_debugdir)\"
 nanox_ins_dbg_SOURCES= $(nanox_sources)
-nanox_ins_dbg_LDFLAGS=$(AM_LDFLAGS) @cudalib@
+nanox_ins_dbg_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @xdmalib@
 nanox_ins_dbg_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/instrumentation-debug/libnanox.la \
-	@cudalibs@ \
+	@cudalibs@ @xdmalibs@ \
 	$(END)
 
 endif
@@ -71,23 +71,23 @@ bin_PROGRAMS += nanox-pfm
 
 nanox_pfm_CPPFLAGS= $(common_performance_CPPFLAGS) -DPLUGIN_DIR=\"$(performancedir)\"
 nanox_pfm_SOURCES= $(nanox_sources)
-nanox_pfm_LDFLAGS=$(AM_LDFLAGS) @cudalib@
+nanox_pfm_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @xdmalib@
 nanox_pfm_LDADD=\
 	-ldl \
 	$(top_builddir)/src/core/performance/libnanox.la \
-	@cudalibs@ \
+	@cudalibs@ @xdmalibs@ \
 	$(END)
 
 # For simplicity, we will only build nanox-bindings in PERFORMANCE version
 bin_PROGRAMS += nanox-bindings
 nanox_bindings_CPPFLAGS = $(common_performance_CPPFLAGS) $(common_includes) $(bin_cxxflags) -DPLUGIN_DIR=\"$(performancedir)\"
 nanox_bindings_SOURCES = nanox_bindings.cpp
-nanox_bindings_LDFLAGS=$(AM_LDFLAGS) @cudalib@
+nanox_bindings_LDFLAGS=$(AM_LDFLAGS) @cudalib@ @xdmalib@
 nanox_bindings_LDADD = \
 	$(top_builddir)/src/core/performance/libnanox.la \
 	$(top_builddir)/src/pms/performance/libnanox-ompss.la \
 	$(top_builddir)/src/apis/performance/libnanox-c.la \
-	@cudalibs@
+	@cudalibs@ @xdmalibs@ \
 	$(END)
 
 endif
