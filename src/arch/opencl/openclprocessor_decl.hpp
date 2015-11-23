@@ -50,7 +50,7 @@ public:
 
 public:
    ~OpenCLAdapter();
-   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _workGroupMultiple(0), _maxWorkGroup(0), _openCLProfilerDbManager(NULL), _progCache()  {}
+   OpenCLAdapter() : _bufCache(), _unmapedCache(), _sizeCache(), _preallocateWholeMemory(false), _synchronize(false), _openCLProfilerDbManager(NULL), _progCache()  {}
 
 public:
    void initialize(cl_device_id dev);
@@ -135,68 +135,24 @@ public:
 
    /**
     * @brief This function performs kernel executions to determine
-    * the best work-group parameters using the given range.
-    */
-   void manualProfileKernelStep( void* oclKernel,
-                                 std::string kernelName,
-                                 int workDim,
-                                 int range_size,
-                                 const double cost,
-                                 Dims &dims,
-                                 size_t* ndrOffset,
-                                 size_t* ndrLocalSize,
-                                 size_t* ndrGlobalSize);
-
-   /**
-    * @brief This function performs kernel executions to determine
     * the best work-group parameters using the device hints.
     */
-   void smartProfileKernel(void* oclKernel,
-                           std::string kernelName,
-                           int workDim,
-                           int range_size,
-                           const double cost,
-                           Dims &dims,
-                           size_t* ndrOffset,
-                           size_t* ndrGlobalSize);
+   void automaticProfileKernel(void* oclKernel,
+                               std::string kernelName,
+                               int workDim,
+                               int range_size,
+                               const double cost,
+                               Dims &dims,
+                               size_t* ndrOffset,
+                               size_t* ndrGlobalSize);
 
-   /**
-    * @brief This function performs kernel executions to determine
-    * the best work-group parameters using the device hints.
-    */
-   void smartProfileKernel2(void* oclKernel,
-                            std::string kernelName,
-                            int workDim,
-                            int range_size,
-                            const double cost,
-                            Dims &dims,
-                            size_t* ndrOffset,
-                            size_t* ndrGlobalSize);
-
-
-   /**
-    * @brief Function to launch an OpenCL kernel under profiling mode
-    */
-   Execution* singleExecKernel( void* oclKernel,
-                                int workDim,
-                                size_t* ndrOffset,
-                                size_t* ndrLocalSize,
-                                size_t* ndrGlobalSize);
-
-   /**
-    * @brief This function update the profiling data during the execution
-    */
-   void updateProfStats(std::string kernelName, Execution *execution, Dims& dims);
-
-   /**
-    * @brief This function update the profiling configuration during the execution
-    */
-   void updateProfStatus(std::string kernelName, OpenCLProfCurrConfig &currConfig, Dims &dims);
 
    /**
     * @brief This function returns the OpenCLProfCurrConfig for a given kernel
+    * @return NULL whether there is no a execution for this combination or the pointer to the object
+    * in the opposite case.
     */
-   OpenCLProfCurrConfig* getProfStatus(std::string kernelName, Dims &dims);
+   Execution* getProfStatus(std::string &kernelName, Dims &dims);
 
    /**
     * @brief Show kernel profiling and information
@@ -280,14 +236,28 @@ private:
    }
 
    /**
+    * @brief Function to launch an OpenCL kernel under profiling mode
+    */
+   cl_ulong singleExecKernel( void* oclKernel,
+                              int workDim,
+                              size_t* ndrOffset,
+                              size_t* ndrLocalSize,
+                              size_t* ndrGlobalSize);
+
+   /**
+    * @brief This function update the profiling data during the execution
+    */
+   void updateProfStats(std::string kernelName, Dims& dims, Execution &execution);
+
+   /**
     * @brief This function set the work-group multiple preferred values
     */
-   void getWorkGroupMultiple(cl_kernel kernel);
+   size_t getWorkGroupMultiple(cl_kernel kernel);
 
    /**
     * @brief This function set the maximum work-group on the device
     */
-   void getMaxWorkGroup(cl_kernel kernel);
+   size_t getMaxWorkGroup(cl_kernel kernel);
 
 private:
 
@@ -304,12 +274,10 @@ private:
    /* >>> OpenCL Profiling >>> */
    std::map<std::string,DimsBest> _bestExec;
    std::map<std::string,DimsExecutions> _nExecutions;
-   std::map<std::string,DimsCurr> _oclCurrConf;
+   DevPerfInfo _devPerfInfo;
    /* <<< OpenCL Profiling <<< */
    bool _preallocateWholeMemory;
    bool _synchronize;
-   size_t _workGroupMultiple;
-   size_t _maxWorkGroup;
    OpenCLProfilerDbManager *_openCLProfilerDbManager;
 
    ProgramCache _progCache;

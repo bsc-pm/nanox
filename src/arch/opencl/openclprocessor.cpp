@@ -62,32 +62,32 @@ OpenCLAdapter::~OpenCLAdapter()
   // Release the track memory of profiling executions
   for ( std::map<std::string, DimsBest>::iterator kernelIt = _bestExec.begin(); kernelIt != _bestExec.end(); kernelIt++ )
   {
-     // Clean best executions
      DimsBest &dimsBest = kernelIt->second;
-     for (DimsBest::iterator dimIt = dimsBest.begin(); dimIt != dimsBest.end(); dimIt++ )
+     for ( DimsBest::iterator dimsIt = dimsBest.begin(); dimsIt != dimsBest.end(); dimsIt++ )
      {
-        delete dimIt->second;
+        if ( OpenCLConfig::isEnableProfiling() ) {
+           Execution &bestExecution = dimsIt->second;
+           if ( !bestExecution.isFinished() ) {
+              getOpenClProfilerDbManager()->setKernelConfig(const_cast<Dims&>(dimsIt->first), bestExecution, const_cast<std::string&>(kernelIt->first));
+           }
+        } else {
+           fatal0("OpenCL Profiler flag was not provided");
+        }
      }
+
+     // Clean best executions
      dimsBest.clear();
 
      // Clean statistics
      DimsExecutions &dimsExecutions = _nExecutions[kernelIt->first];
      dimsExecutions.clear();
   }
-  // Release the track memory of profiling status
-  for ( std::map<std::string, DimsCurr>::iterator kernelIt = _oclCurrConf.begin(); kernelIt != _oclCurrConf.end(); kernelIt++ )
-  {
-     // Clean best executions
-     DimsCurr &dimsCurr = kernelIt->second;
-     dimsCurr.clear();
-  }
   _bestExec.clear();
   _nExecutions.clear();
-  _oclCurrConf.clear();
 
   if ( OpenCLConfig::isEnableProfiling() ) {
-    // Closing the database and deallocating the object
-    delete _openCLProfilerDbManager;
+     // Closing the database and deallocating the object
+     delete _openCLProfilerDbManager;
   }
 
   for( ProgramCache::iterator i = _progCache.begin(),
@@ -816,17 +816,17 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    size_t local_work_size[3];
    const double cost = 0;
 
-   const std::string kernelName = getKernelName(oclKernel);
+   std::string kernelName = getKernelName(oclKernel);
 
 #ifdef NANOS_DEBUG_ENABLED
-   debug( "[opencl] Profiling kernel: " + toString( oclKernel ) + ". Profiling configuration:" );
+   debug( " [OpenCL][Profiling] kernel: " + toString( oclKernel ) + ". Profiling configuration:" );
    for ( int i=0; i<workDim; i++ )
    {
-      debug( "[opencl] Dimension: " + toString( i ) );
+      debug( " [OpenCL][Profiling] Dimension: " + toString( i ) );
       for ( int j=0; j<range_size; j++ )
       {
-         debug( "[opencl]    [" + toString( j ) + "]Global size: " + toString( ndrGlobalSize[i*range_size+j] ) );
-         debug( "[opencl]    [" + toString( j ) + "]Local size:  " + toString( ndrLocalSize[i*range_size+j] ) );
+         debug( " [OpenCL][Profiling]    [" + toString( j ) + "]Global size: " + toString( ndrGlobalSize[i*range_size+j] ) );
+         debug( " [OpenCL][Profiling]    [" + toString( j ) + "]Local size:  " + toString( ndrLocalSize[i*range_size+j] ) );
       }
    }
 #endif
@@ -834,42 +834,27 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    Dims dims(workDim, ndrGlobalSize[0], ndrGlobalSize[1], ndrGlobalSize[2], cost);
 
    // Check whether Nanos already have the best configuration from this execution
-   Execution *bestExecution = NULL;
-   bool profStarted = false;
+   Execution *bestExecution;
+   bool finishedNow;
+   bool wasFinished = false;
 
-   if ( _oclCurrConf.count(kernelName) > 0 ) {
-      // The profiling for this kernel was already activated
-      DimsCurr &dimsCurr = _oclCurrConf[kernelName];
-      if ( dimsCurr.count(dims) > 0 ) {
-         // The profiling for this dimension was already activated
-         OpenCLProfCurrConfig &openCLProfCurrConfig = dimsCurr[dims];
-         if ( openCLProfCurrConfig.isFinished() ) {
-            DimsBest &dimsBest = _bestExec[kernelName];
-            bestExecution = dimsBest[dims];
-         }
-         profStarted = true;
-      }
-   }
+   bestExecution = getProfStatus(kernelName, dims);
 
    // Nanos does not have the best configuration from this execution
    // Access to the database and search for an optimal configuration
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_DB_ACCESS );
-   if ( bestExecution == NULL && !profStarted ) {
+   if ( bestExecution == NULL ) {
       if ( getOpenClProfilerDbManager() == NULL )
          fatal0("OpenCL Profiler flag was not provided")
-      bestExecution = getOpenClProfilerDbManager()->getKernelConfig(dims, kernelName);
-      if ( bestExecution->getNdims() < 9 ) {
-         Execution *bestExecutionTmp = new  Execution(*bestExecution);
-         updateProfStats(kernelName, bestExecutionTmp, dims);
-         /*
-          * TODO: update also the _oclCurrConf because if not, the next execution will find on the
-          * db when actually it already did it
-          */
+      Execution dbBestExecution(workDim);
+      if ( getOpenClProfilerDbManager()->getKernelConfig(dims, dbBestExecution, kernelName) == CLP_DBM_SUCCESS ) {
+         updateProfStats(kernelName, dims, dbBestExecution);
+         bestExecution = getProfStatus(kernelName, dims);
       }
    }
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
-   if ( bestExecution != NULL && bestExecution->getNdims() < 9 ) {
+   if ( bestExecution != NULL && bestExecution->isFinished() ) {
      // Run with the best execution
      local_work_size[0] = bestExecution->getLocalX();
      local_work_size[1] = bestExecution->getLocalY();
@@ -878,48 +863,46 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
      execKernel(oclKernel, workDim, ndrOffset, local_work_size, ndrGlobalSize);
    }
    else {
-      // Start to profile the kernel
-      if ( false /* whatever */ )
-         manualProfileKernelStep(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrLocalSize, ndrGlobalSize);
+      if ( bestExecution )
+         wasFinished = bestExecution->isFinished();
       else
-         smartProfileKernel2(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrGlobalSize);
+         wasFinished = false;
+      debug( " [OpenCL][Profiling] Pre-Prof. wasFinished: " + toString( wasFinished ) );
+
+      // Start to profile the kernel
+      if ( false /* manualProfileKernel is working but automaticProfileKernel was chosen by default */ )
+         manualProfileKernel(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrLocalSize, ndrGlobalSize);
+      else
+         automaticProfileKernel(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrGlobalSize);
 
       NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_DB_ACCESS );
-      if ( _oclCurrConf.count(kernelName) > 0 ) {
-         // The profiling for this kernel was already activated
-         DimsCurr &dimsCurr = _oclCurrConf[kernelName];
-         if ( dimsCurr.count(dims) > 0 ) {
-            // The profiling for this dimension was already activated
-            OpenCLProfCurrConfig &openCLProfCurrConfig = dimsCurr[dims];
-            if ( openCLProfCurrConfig.isFinished() ) {
-               // The profiling finished, save it
-               DimsBest dimsBest = _bestExec[kernelName];
-               assert(dimsBest[dims] != NULL);
-               Execution execution(*dimsBest[dims]);
-               getOpenClProfilerDbManager()->setKernelConfig(dims, execution, kernelName);
-            }
-            profStarted = true;
-         }
+      bestExecution = getProfStatus(kernelName, dims);
+      finishedNow = !wasFinished && bestExecution->isFinished();
+      debug( " [OpenCL][Profiling] Post-Prof. finishedNow: " + toString( finishedNow ) + ", isFinished: " + toString(bestExecution->isFinished()) );
+      if ( bestExecution != NULL && bestExecution->isFinished() && finishedNow ) { // bestExecution should be never NULL
+         getOpenClProfilerDbManager()->setKernelConfig(dims, *bestExecution, kernelName);
       }
       NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
    }
 }
 
 void OpenCLAdapter::manualProfileKernel( void* oclKernel,
-                                         std::string kernelName,
-                                         int workDim,
-                                         int range_size,
-                                         const double cost,
-                                         Dims &dims,
-                                         size_t* ndrOffset,
-                                         size_t* ndrLocalSize,
-                                         size_t* ndrGlobalSize)
+         std::string kernelName,
+         int workDim,
+         int range_size,
+         const double cost,
+         Dims &dims,
+         size_t* ndrOffset,
+         size_t* ndrLocalSize,
+         size_t* ndrGlobalSize)
 {
    size_t local_work_size[3], global_work_size[3];
 
    // Limit the iterations based on number of dimensions
    const int zLimit = workDim == 3 ? range_size : 1;
    const int yLimit = workDim == 2 ? range_size : 1;
+
+   Execution executionTmp;
 
    for ( int z=0; z<zLimit; z++ )
    {
@@ -933,67 +916,20 @@ void OpenCLAdapter::manualProfileKernel( void* oclKernel,
          {
             local_work_size[0] = ndrLocalSize[x];
             global_work_size[0] = ndrGlobalSize[x];
-            updateProfStats(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+            executionTmp.setTime(singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size));
+            executionTmp.setLocalX(local_work_size[0]);
+            executionTmp.setLocalY(local_work_size[1]);
+            executionTmp.setLocalZ(local_work_size[2]);
+            updateProfStats(kernelName, dims, executionTmp);
          }
       }
    }
+
+   executionTmp.setFinished(true);
+   updateProfStats(kernelName, dims, executionTmp);
 }
 
-void OpenCLAdapter::manualProfileKernelStep( void* oclKernel,
-                                         std::string kernelName,
-                                         int workDim,
-                                         int range_size,
-                                         const double cost,
-                                         Dims &dims,
-                                         size_t* ndrOffset,
-                                         size_t* ndrLocalSize,
-                                         size_t* ndrGlobalSize)
-{
-   size_t local_work_size[3], global_work_size[3];
-
-   // Limit the iterations based on number of dimensions
-   const int zLimit = workDim == 3 ? range_size : 1;
-   const int yLimit = workDim == 2 ? range_size : 1;
-
-   OpenCLProfCurrConfig currConfig;
-
-   for ( int z=0; z<zLimit; z++ )
-   {
-      local_work_size[2] = ndrLocalSize[2*range_size+z];
-      global_work_size[2] = ndrGlobalSize[2*range_size+z];
-      currConfig.setCurrentZ(z);
-      for ( int y=0; y<yLimit; y++ )
-      {
-         local_work_size[1] = ndrLocalSize[range_size+y];
-         global_work_size[1] = ndrGlobalSize[range_size+y];
-         currConfig.setCurrentY(y);
-         for ( int x=0; x<range_size; x++ )
-         {
-            local_work_size[0] = ndrLocalSize[x];
-            global_work_size[0] = ndrGlobalSize[x];
-
-            // Save current configuration
-            currConfig.setCurrentX(x);
-            std::cout << " OOO - esta iter = " << currConfig.getCurrentX() << " - real x = " << x << std::endl;
-            updateProfStatus(kernelName, currConfig, dims);
-            for ( std::map<std::string,DimsCurr>::const_iterator it = _oclCurrConf.begin();
-                     it != _oclCurrConf.end(); it++ )
-            {
-               DimsCurr &tt = _oclCurrConf[it->first];
-               for ( std::map<Dims,OpenCLProfCurrConfig>::const_iterator it2 = tt.begin();
-                        it2 != tt.end() ; it2++ )
-               {
-                  std::cout << " {{{ x = " << it2->second.getCurrentX() << " - y = " << it2->second.getCurrentY() <<
-                           " - z = " << it2->second.getCurrentZ() << " }}} " << std::endl;
-               }
-            }
-            updateProfStats(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-         }
-      }
-   }
-}
-
-void OpenCLAdapter::smartProfileKernel(void* oclKernel,
+void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
                                        std::string kernelName,
                                        int workDim,
                                        int range_size,
@@ -1005,242 +941,128 @@ void OpenCLAdapter::smartProfileKernel(void* oclKernel,
    size_t local_work_size[3], global_work_size[3];
    cl_kernel kernel = (cl_kernel) oclKernel;
 
-   // Device work-groups bounds
-   const short safeWorkGroupMultiple = std::pow(2,workDim+1);
-   const short safeMaxWorkGroup = 64;
-   const short limitWorkGroupMultiple = 128;
-   const short limitMaxWorkGroup = 1024;
-   if ( _maxWorkGroup == 0 )
-      getMaxWorkGroup(kernel);
-   if ( _workGroupMultiple == 0 )
-      getWorkGroupMultiple(kernel);
-
-   // Safe check for Intel drivers
-   const size_t maxGlobal = std::max(ndrGlobalSize[0], std::max(ndrGlobalSize[1], ndrGlobalSize[2]));
-   if ( _workGroupMultiple > limitWorkGroupMultiple || _workGroupMultiple < 1 || _workGroupMultiple > maxGlobal ) {
-      _workGroupMultiple = safeWorkGroupMultiple;
-      _workGroupMultiple = _workGroupMultiple > maxGlobal ? maxGlobal : _workGroupMultiple;
-      std::stringstream msg;
-      msg << " OpenCL Profiling: Applying safe work-group multiple value to ";
-      msg << _workGroupMultiple;
-      warning( msg.str() )
-   }
-   if ( _maxWorkGroup > limitMaxWorkGroup || _maxWorkGroup < 1) {
-      // Device check
-      _maxWorkGroup = limitMaxWorkGroup > maxGlobal ? maxGlobal : safeMaxWorkGroup ;
-      std::stringstream msg;
-      msg << " OpenCL Profiling: max. work-group value to ";
-      msg << _maxWorkGroup;
-      warning( msg.str() )
-   }
-
-   // Limit the iterations based on number of dimensions
-   unsigned int multiplePreferred;
-   unsigned int zLimit = _workGroupMultiple;
-   unsigned int yLimit = _workGroupMultiple;
-   switch ( workDim )
-   {
-      case 1:
-      {
-         multiplePreferred = _workGroupMultiple;
-         break;
-      }
-      case 2:
-      {
-         multiplePreferred = _workGroupMultiple/2;
-         yLimit = _maxWorkGroup;
-         break;
-      }
-      case 3:
-      {
-         multiplePreferred = _workGroupMultiple/4;
-         zLimit = _maxWorkGroup;
-         yLimit = _maxWorkGroup;
-         break;
-      }
-      default:
-         multiplePreferred = _workGroupMultiple;
-   }
-
-   OpenCLProfCurrConfig *currConfigPtr = getProfStatus(kernelName, dims);
-   if ( currConfigPtr != NULL ) {
-
-   }
-   OpenCLProfCurrConfig currConfig;
-   currConfig.setLimitX(_maxWorkGroup);
-   currConfig.setLimitY(yLimit);
-   currConfig.setLimitZ(zLimit);
-
-   const unsigned int limitBase = multiplePreferred*std::pow(2,workDim-1);
-
-   for ( int z=1; limitBase*z<=zLimit; z++ )
-   {
-      local_work_size[2] = multiplePreferred*z;
-      global_work_size[2] = ndrGlobalSize[2*range_size+(z-1)];
-      currConfig.setCurrentZ(z);
-      for ( int y=1; limitBase*z*y<=yLimit; y++ )
-      {
-         local_work_size[1] = multiplePreferred*y;
-         global_work_size[1] = ndrGlobalSize[range_size+(y-1)];
-         currConfig.setCurrentY(y);
-         for ( int x=1; limitBase*z*y*x<=_maxWorkGroup; x++ )
-         {
-            local_work_size[0] = multiplePreferred*x;
-            global_work_size[0] = ndrGlobalSize[x-1];
-
-            // Save current configuration
-            currConfig.setCurrentX(x);
-            updateProfStatus(kernelName, currConfig, dims);
-            for ( std::map<std::string,DimsCurr>::const_iterator it = _oclCurrConf.begin();
-                     it != _oclCurrConf.end(); it++ )
-            {
-               DimsCurr &tt = _oclCurrConf[it->first];
-               for ( std::map<Dims,OpenCLProfCurrConfig>::const_iterator it2 = tt.begin();
-                        it2 != tt.end() ; it2++ )
-               {
-                  std::cout << " {{{ x = " << it2->second.getCurrentX() << " - y = " << it2->second.getCurrentY() <<
-                           " - z = " << it2->second.getCurrentZ()
-                           << " - xlimit = " << it2->second.getLimitX() << " - ylimit = " << it2->second.getLimitY()
-                           << " - zlimit = " << it2->second.getLimitZ() << " }}} " << std::endl;
-               }
-            }
-
-            updateProfStats(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
-         }
-      }
-   }
-}
-
-void OpenCLAdapter::smartProfileKernel2(void* oclKernel,
-                                       std::string kernelName,
-                                       int workDim,
-                                       int range_size,
-                                       const double cost,
-                                       Dims &dims,
-                                       size_t* ndrOffset,
-                                       size_t* ndrGlobalSize)
-{
-   size_t local_work_size[3], global_work_size[3];
-   cl_kernel kernel = (cl_kernel) oclKernel;
-
-   // Device work-groups bounds
-   const short safeWorkGroupMultiple = std::pow(2,workDim+1);
-   const short safeMaxWorkGroup = 64;
-   const short limitWorkGroupMultiple = 128;
-   const short limitMaxWorkGroup = 1024;
    unsigned int x,y,z;
-   OpenCLProfCurrConfig currConfigTmp;
 
-   OpenCLProfCurrConfig *nextConfigStored = getProfStatus(kernelName, dims);
    unsigned int multiplePreferred;
    unsigned int zLimit;
    unsigned int yLimit;
-   if ( nextConfigStored == NULL ) {
-      // We do not have the device information nor the ranges created
-      if ( _maxWorkGroup == 0 )
-         getMaxWorkGroup(kernel);
-      if ( _workGroupMultiple == 0 )
-         getWorkGroupMultiple(kernel);
+
+   // Device work-groups bounds
+   const short safeWorkGroupMultiple = std::pow(2,workDim+1);
+   const short safeMaxWorkGroup = 64;
+   const short limitWorkGroupMultiple = 128;
+   const short limitMaxWorkGroup = 1024;
+   // We do not have the device information
+   if ( !_devPerfInfo.isInitialized() ) {
+      _devPerfInfo.setDevName(getDeviceName());
+      _devPerfInfo.setMaxWorkGroup(getMaxWorkGroup(kernel));
+      _devPerfInfo.setMultiplePreferred(getWorkGroupMultiple(kernel));
 
       // Safe check for Intel drivers
       const size_t maxGlobal = std::max(ndrGlobalSize[0], std::max(ndrGlobalSize[1], ndrGlobalSize[2]));
-      if ( _workGroupMultiple > limitWorkGroupMultiple || _workGroupMultiple < 1 || _workGroupMultiple > maxGlobal ) {
-         _workGroupMultiple = safeWorkGroupMultiple;
-         _workGroupMultiple = _workGroupMultiple > maxGlobal ? maxGlobal : _workGroupMultiple;
+      if ( _devPerfInfo.getMultiplePreferred() > limitWorkGroupMultiple || _devPerfInfo.getMultiplePreferred() < 1 || _devPerfInfo.getMultiplePreferred() > maxGlobal ) {
+         _devPerfInfo.setMultiplePreferred(safeWorkGroupMultiple);
+         _devPerfInfo.setMultiplePreferred(_devPerfInfo.getMultiplePreferred() > maxGlobal ? maxGlobal : _devPerfInfo.getMultiplePreferred());
          std::stringstream msg;
          msg << " OpenCL Profiling: Applying safe work-group multiple value to ";
-         msg << _workGroupMultiple;
+         msg << _devPerfInfo.getMultiplePreferred();
          warning( msg.str() )
       }
-      if ( _maxWorkGroup > limitMaxWorkGroup || _maxWorkGroup < 1) {
+      if ( _devPerfInfo.getMaxWorkGroup() > limitMaxWorkGroup || _devPerfInfo.getMaxWorkGroup() < 1) {
          // Device check
-         _maxWorkGroup = limitMaxWorkGroup > maxGlobal ? maxGlobal : safeMaxWorkGroup ;
+         _devPerfInfo.setMaxWorkGroup(limitMaxWorkGroup > maxGlobal ? maxGlobal : safeMaxWorkGroup);
          std::stringstream msg;
          msg << " OpenCL Profiling: max. work-group value to ";
-         msg << _maxWorkGroup;
+         msg << _devPerfInfo.getMaxWorkGroup();
          warning( msg.str() )
       }
-
-      // Limit the iterations based on number of dimensions
-      yLimit = workDim > 1 ? _maxWorkGroup : _workGroupMultiple;
-      zLimit = workDim > 2 ? _maxWorkGroup : _workGroupMultiple;
-      multiplePreferred = _workGroupMultiple/(std::pow(2,workDim-1));
-
-      x = y = z = 1;
-      currConfigTmp.setMultiplePreferred(multiplePreferred);
-   } else {
-      // We already have the device information and profiling status
-      multiplePreferred = nextConfigStored->getMultiplePreferred();
-      yLimit = nextConfigStored->getLimitY();
-      zLimit = nextConfigStored->getLimitZ();
-      x = nextConfigStored->getCurrentX();
-      y = nextConfigStored->getCurrentY();
-      z = nextConfigStored->getCurrentZ();
-      _workGroupMultiple = multiplePreferred*(std::pow(2,workDim-1));
-      _maxWorkGroup = nextConfigStored->getLimitX();
    }
 
-   currConfigTmp.setLimitX(_maxWorkGroup);
-   currConfigTmp.setLimitY(yLimit);
-   currConfigTmp.setLimitZ(zLimit);
+   Execution executionTmp(workDim);
+   Execution *bestExecution = getProfStatus(kernelName, dims);
+
+   if ( bestExecution == NULL ) {
+      x = y = z = 1;
+   } else {
+      // We already have the device information and profiling status
+      executionTmp.setLocalX(bestExecution->getLocalX());
+      executionTmp.setLocalY(bestExecution->getLocalY());
+      executionTmp.setLocalZ(bestExecution->getLocalZ());
+      x = bestExecution->getNextX();
+      y = bestExecution->getNextY();
+      z = bestExecution->getNextZ();
+   }
+
+   // Limit the iterations based on number of dimensions
+   yLimit = workDim > 1 ? _devPerfInfo.getMaxWorkGroup() : _devPerfInfo.getMultiplePreferred();
+   zLimit = workDim > 2 ? _devPerfInfo.getMaxWorkGroup() : _devPerfInfo.getMultiplePreferred();
+   multiplePreferred = _devPerfInfo.getMultiplePreferred()/(std::pow(2,workDim-1));
 
    const unsigned int limitBase = multiplePreferred*std::pow(2,workDim-1);
 
    // triple 'for' as step by step
    bool executed = false;
-   while( !executed && !(currConfigTmp.isFinished()) )
+   while( !executed && !executionTmp.isFinished() )
    {
-       if ( limitBase*z<=zLimit ) {
-          local_work_size[2] = multiplePreferred*z;
-          global_work_size[2] = ndrGlobalSize[2*range_size+(z-1)];
-           if ( limitBase*z*y<=yLimit ) {
-              local_work_size[1] = multiplePreferred*y;
-              global_work_size[1] = ndrGlobalSize[range_size+(y-1)];
-               if ( limitBase*z*y*x<=_maxWorkGroup ) {
-                  local_work_size[0] = multiplePreferred*x;
-                  global_work_size[0] = ndrGlobalSize[x-1];
+      if ( limitBase*z<=zLimit ) {
+         local_work_size[2] = multiplePreferred*z;
+         global_work_size[2] = ndrGlobalSize[2*range_size+(z-1)];
+         if ( limitBase*z*y<=yLimit ) {
+            local_work_size[1] = multiplePreferred*y;
+            global_work_size[1] = ndrGlobalSize[range_size+(y-1)];
+            if ( limitBase*z*y*x<=_devPerfInfo.getMaxWorkGroup() ) {
+               local_work_size[0] = multiplePreferred*x;
+               global_work_size[0] = ndrGlobalSize[x-1];
 
-                  updateProfStats(kernelName, singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size), dims);
+               executionTmp.setTime(singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size));
+               executionTmp.setLocalX(local_work_size[0]);
+               executionTmp.setLocalY(local_work_size[1]);
+               executionTmp.setLocalZ(local_work_size[2]);
 
-                  executed = true;
-                  x++;
-               } else {
-                  x=1;
-                  y++;
-               }
-           } else {
-               y=1;
-               z++;
-           }
-       } else {
-          currConfigTmp.setFinished(true);
-       }
+               executed = true;
+               x++;
+            } else {
+               x=1;
+               y++;
+            }
+         } else {
+            y=1;
+            z++;
+         }
+      } else {
+         executionTmp.setFinished(true);
+         executionTmp.setLocalX(bestExecution->getLocalX());
+         executionTmp.setLocalY(bestExecution->getLocalY());
+         executionTmp.setLocalZ(bestExecution->getLocalZ());
+         executionTmp.setTime(bestExecution->getTime());
+         debug( " [OpenCL][Profiling] Finished" );
+      }
    }
 
    // Save current configuration
-   currConfigTmp.setCurrentX(x);
-   currConfigTmp.setCurrentY(y);
-   currConfigTmp.setCurrentZ(z);
+   executionTmp.setNextX(x);
+   executionTmp.setNextY(y);
+   executionTmp.setNextZ(z);
 
-   updateProfStatus(kernelName, currConfigTmp, dims);
+   updateProfStats(kernelName, dims, executionTmp);
 }
 
-OpenCLProfCurrConfig* OpenCLAdapter::getProfStatus(std::string kernelName, Dims &dims)
+Execution* OpenCLAdapter::getProfStatus(std::string &kernelName, Dims &dims)
 {
-   OpenCLProfCurrConfig* oclConfig = NULL;
-   if ( _oclCurrConf.count(kernelName) > 0 ) {
+   Execution* oclExecution = NULL;
+   if ( _bestExec.count(kernelName) > 0 ) {
       // We have at least one execution for this kernel
-      DimsCurr &dimsCurr = _oclCurrConf[kernelName];
+      DimsBest &dimsBest = _bestExec[kernelName];
 
-      if ( dimsCurr.count(dims) ) {
+      if ( dimsBest.count(dims) ) {
          // We have at least one execution with these dimensions
-         oclConfig = &(dimsCurr[dims]);
+         oclExecution = &(dimsBest[dims]);
       }
    }
-   return oclConfig;
+   return oclExecution;
 }
 
-Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
+cl_ulong OpenCLAdapter::singleExecKernel(void* oclKernel,
          int workDim,
          size_t* ndrOffset,
          size_t* ndrLocalSize,
@@ -1250,11 +1072,8 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
    cl_int errCode;
    cl_event event;
 
-   debug0( "[opencl] global size: " + toString( *ndrGlobalSize ) + "," + toString( ndrGlobalSize[1] ) + "," + toString( ndrGlobalSize[2] ) +
-            ", local size: " + toString( *ndrLocalSize ) + "," + toString( ndrLocalSize[1] + "," + toString( ndrLocalSize[2] ) ) );
-   // Exec it.
-
-   std::cout << "## OpenCL LWG Info x=" << ndrLocalSize[0] << ", y=" << ndrLocalSize[1] << " ,z=" << ndrLocalSize[2] << std::endl;
+   debug( " [OpenCL][Profiling] global size: x=" + toString(ndrGlobalSize[0]) + ", y=" + toString(ndrGlobalSize[1]) + ", z=" + toString(ndrGlobalSize[2]) );
+   debug( " [OpenCL][Profiling] local size: x=" + toString(ndrLocalSize[0]) + ", y=" + toString(ndrLocalSize[1]) + ", z=" + toString(ndrLocalSize[2]) );
 
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_KERNEL );
 
@@ -1283,26 +1102,12 @@ Execution* OpenCLAdapter::singleExecKernel(void* oclKernel,
    clCheckError(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), (char *)"Error reading start execution");
    clCheckError(clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), (char *)"Error reading end execution");
 
-   unsigned int localX, localY, localZ;
-   localX = ndrLocalSize[0];
-   if ( workDim > 1) {
-      localY = ndrLocalSize[1];
-      if ( workDim > 2) {
-         localZ = ndrLocalSize[2];
-      }
-      else {
-         localZ = 0;
-      }
-   } else {
-      localY = localZ = 0;
-   }
-
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
 
-   return new Execution(workDim,localX,localY,localZ,endTime-startTime);
+   return endTime-startTime;
 }
 
-void OpenCLAdapter::updateProfStats(std::string kernelName, Execution *execution, Dims& dims)
+void OpenCLAdapter::updateProfStats(std::string kernelName, Dims &dims, Execution &executionTmp)
 {
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_UPDATE_DATA );
    if ( _bestExec.count(kernelName) > 0 ) {
@@ -1312,68 +1117,50 @@ void OpenCLAdapter::updateProfStats(std::string kernelName, Execution *execution
 
       if ( dimsBest.count(dims) ) {
          // We have at least one execution with these dimensions
-         Execution *bestExecution = dimsBest[dims];
+         Execution &bestExecution = dimsBest[dims];
 
          // Update best execution
-         if ( *execution < *bestExecution )
+         if ( executionTmp < bestExecution )
          {
-            dimsBest[dims] = execution;
-            delete bestExecution;
-         } else {
-            delete execution;
+            bestExecution.setTime(executionTmp.getTime());
+            bestExecution.setLocalX(executionTmp.getLocalX());
+            bestExecution.setLocalY(executionTmp.getLocalY());
+            bestExecution.setLocalZ(executionTmp.getLocalZ());
          }
+         // Always store the next step
+         bestExecution.setNextX(executionTmp.getNextX());
+         bestExecution.setNextY(executionTmp.getNextY());
+         bestExecution.setNextZ(executionTmp.getNextZ());
 
-         dimsExecutions[dims]++;
+         bestExecution.setFinished(executionTmp.isFinished());
+         if ( executionTmp.isLoadedFromDb() )
+            bestExecution.setLoadedFromDb(executionTmp.isLoadedFromDb());
+
+         if ( !bestExecution.isFinished() )
+            dimsExecutions[dims]++;
       } else {
          // We do not have any executions with these dimensions for this kernel
+         Execution execution(dims.getNdims(), executionTmp.getLocalX(), executionTmp.getLocalY(), executionTmp.getLocalZ(), executionTmp.getTime(),
+                  executionTmp.getNextX(), executionTmp.getNextY(), executionTmp.getNextZ(), executionTmp.isFinished(), executionTmp.isLoadedFromDb());
+
          dimsBest[dims] = execution;
          dimsExecutions[dims] = 1;
       }
    } else {
       // This is the first execution for this kernel
-      DimsBest *dimsBest = new DimsBest;
-      (*dimsBest)[dims] = execution;
-      _bestExec[kernelName] = *dimsBest;
+      Execution execution(dims.getNdims(), executionTmp.getLocalX(), executionTmp.getLocalY(), executionTmp.getLocalZ(), executionTmp.getTime(),
+               executionTmp.getNextX(), executionTmp.getNextY(), executionTmp.getNextZ(), executionTmp.isFinished(), executionTmp.isLoadedFromDb());
+      DimsBest dimsBest;
+      dimsBest.insert(std::pair<Dims,Execution>(dims, execution));
+      _bestExec.insert(std::pair<std::string, DimsBest>(kernelName, dimsBest));
 
-      DimsExecutions *dimsExecutions = new DimsExecutions;
-      (*dimsExecutions)[dims] = 1;
-      _nExecutions[kernelName] = *dimsExecutions;
+      DimsExecutions dimsExecutions;
+      dimsExecutions[dims] = 1;
+      _nExecutions[kernelName] = dimsExecutions;
    }
+
+   debug( " [OpenCL][Profiling] Time " + toString(executionTmp.getTime()) );
    NANOS_OPENCL_CLOSE_IN_OCL_RUNTIME_EVENT;
-}
-
-void OpenCLAdapter::updateProfStatus(std::string kernelName, OpenCLProfCurrConfig &currConfigTmp, Dims &dims)
-{
-   if ( _oclCurrConf.count(kernelName) > 0 ) {
-      // We have at least one execution for this kernel
-      DimsCurr &dimsCurr = _oclCurrConf[kernelName];
-
-      if ( dimsCurr.count(dims) ) {
-         // We have at least one execution with these dimensions
-         OpenCLProfCurrConfig &currConfig = dimsCurr[dims];
-
-         // Update current configuration
-         currConfig.setCurrentX(currConfigTmp.getCurrentX());
-         currConfig.setCurrentY(currConfigTmp.getCurrentY());
-         currConfig.setCurrentZ(currConfigTmp.getCurrentZ());
-         currConfig.setFinished(currConfigTmp.isFinished());
-      } else {
-         // We do not have any executions with these dimensions for this kernel
-         OpenCLProfCurrConfig oclProfCurr(currConfigTmp.getCurrentX(), currConfigTmp.getCurrentY(), currConfigTmp.getCurrentZ(),
-                  currConfigTmp.getLimitX(), currConfigTmp.getLimitY(), currConfigTmp.getLimitZ(),
-                  currConfigTmp.getMultiplePreferred(), currConfigTmp.isFinished());
-
-         dimsCurr[dims] = oclProfCurr;
-      }
-   } else {
-      // This is the first execution for this kernel
-      DimsCurr dimsCurr;
-      OpenCLProfCurrConfig oclProfCurr(currConfigTmp.getCurrentX(), currConfigTmp.getCurrentY(), currConfigTmp.getCurrentZ(),
-               currConfigTmp.getLimitX(), currConfigTmp.getLimitY(), currConfigTmp.getLimitZ(),
-               currConfigTmp.getMultiplePreferred(), currConfigTmp.isFinished());
-      dimsCurr[dims] = oclProfCurr;
-      _oclCurrConf[kernelName] = dimsCurr;
-   }
 }
 
 void OpenCLAdapter::printProfiling()
@@ -1386,15 +1173,16 @@ void OpenCLAdapter::printProfiling()
       for ( std::map<std::string, DimsBest>::const_iterator dimsBestIt = _bestExec.begin(); dimsBestIt != _bestExec.end(); dimsBestIt++ )
       {
          std::string kernelName = dimsBestIt->first;
-         DimsExecutions &dimsExecutions = _nExecutions[kernelName];
+         DimsExecutions dimsExecutions = _nExecutions[kernelName];
+         DimsBest &dimsBest = _bestExec[kernelName];
          std::cout << "#################################################" << std::endl;
          std::cout << "Kernel name: " << kernelName << std::endl;
          std::cout << "#################################################" << std::endl;
          for ( DimsBest::const_iterator dim = dimsBestIt->second.begin(); dim != dimsBestIt->second.end(); dim++ )
          {
             Dims currDims = dim->first;
-            Execution *bestExecution = dim->second;
-            double performance = currDims.getCost()/(bestExecution->getTime()/1.e9f);
+            Execution &bestExecution = dimsBest[dim->first];
+            double performance = currDims.getCost()/(bestExecution.getTime()/1.e9f);
 
             std::cout << "................................................." << std::endl;
             std::cout << "Dimensions: ";
@@ -1412,21 +1200,22 @@ void OpenCLAdapter::printProfiling()
                   throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
             }
             std::cout << "Best configuration found (work-group dimensions):" << std::endl;
-            switch ( bestExecution->getNdims() ) {
+            switch ( bestExecution.getNdims() ) {
                case 1:
-                  std::cout << "X=" << bestExecution->getLocalX() << std::endl;
+                  std::cout << "X=" << bestExecution.getLocalX() << std::endl;
                   break;
                case 2:
-                  std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << std::endl;
+                  std::cout << "X=" << bestExecution.getLocalX() << ", Y=" << bestExecution.getLocalY() << std::endl;
                   break;
                case 3:
-                  std::cout << "X=" << bestExecution->getLocalX() << ", Y=" << bestExecution->getLocalY() << ", Z=" << bestExecution->getLocalZ() << std::endl;
+                  std::cout << "X=" << bestExecution.getLocalX() << ", Y=" << bestExecution.getLocalY() << ", Z=" << bestExecution.getLocalZ() << std::endl;
                   break;
                default:
                   throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
             }
-            std::cout << "Best execution time (in ns): " << bestExecution->getTime() << std::endl;
-            std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
+            std::cout << "Best execution time (in ns): " << bestExecution.getTime() << std::endl;
+            if ( !bestExecution.isLoadedFromDb() )
+               std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
             if ( performance > 0 )
                std::cout << "Performance: " << performance << " Gflops" << std::endl;
             std::cout << "................................................." << std::endl;
@@ -1657,14 +1446,18 @@ std::string OpenCLAdapter::getDeviceVendor(){
    return ret;
 }
 
-void OpenCLAdapter::getWorkGroupMultiple(cl_kernel kernel)
+size_t OpenCLAdapter::getWorkGroupMultiple(cl_kernel kernel)
 {
-   clGetKernelWorkGroupInfo(kernel, _dev, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &_workGroupMultiple, NULL);
+   size_t workGroupMultiple;
+   clGetKernelWorkGroupInfo(kernel, _dev, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(size_t), &workGroupMultiple, NULL);
+   return workGroupMultiple;
 }
 
-void OpenCLAdapter::getMaxWorkGroup(cl_kernel kernel)
+size_t OpenCLAdapter::getMaxWorkGroup(cl_kernel kernel)
 {
-   clGetKernelWorkGroupInfo(kernel, _dev, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &_maxWorkGroup, NULL);
+   size_t maxWorkGroup;
+   clGetKernelWorkGroupInfo(kernel, _dev, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &maxWorkGroup, NULL);
+   return maxWorkGroup;
 }
 
 //

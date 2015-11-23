@@ -30,11 +30,15 @@
 #endif
 namespace nanos {
 
-
-
-enum OpenCLProfilerExceptions {
+enum OCLP_Exception {
    CLP_WRONG_NUMBER_OF_DIMENSIONS = -1000,
    CLP_OPENCL_STANDARD_ERROR
+};
+
+enum OCLP_DBMError {
+   CLP_DBM_SUCCESS    = 0,
+   CLP_DBM_NOT_FOUND,
+   CLP_DBM_ERROR
 };
 
 /**
@@ -42,7 +46,7 @@ enum OpenCLProfilerExceptions {
  */
 class OpenCLProfilerException {
 public:
-   OpenCLProfilerException(nanos::OpenCLProfilerExceptions exception, cl_int clError = 0, char* errorString = NULL);
+   OpenCLProfilerException(nanos::OCLP_Exception exception, cl_int clError = 0, char* errorString = NULL);
 };
 
 /**
@@ -50,15 +54,31 @@ public:
  */
 class Execution {
 private:
-   const unsigned char _ndims;
-   const unsigned int _localX;
-   const unsigned int _localY;
-   const unsigned int _localZ;
-   const cl_ulong _time;
-
+   unsigned char _ndims;
+   // Represents the best one found so far
+   unsigned int _localX;
+   unsigned int _localY;
+   unsigned int _localZ;
+   cl_ulong _time;
+   // Represents the profiling status
+   int _nextX;
+   int _nextY;
+   int _nextZ;
+   bool _finished;
+   bool _loadedFromDB;
 public:
-   Execution(unsigned int ndims, unsigned int localX, unsigned int localY, unsigned int localZ, long long int time) :
-      _ndims(ndims), _localX(localX), _localY(localY), _localZ(localZ), _time(time) {}
+   explicit Execution() :
+      _ndims(0), _localX(0), _localY(0), _localZ(0), _time(0),
+      _nextX(0), _nextY(0), _nextZ(0), _finished(false), _loadedFromDB(false) {}
+
+   explicit Execution(unsigned int ndims) :
+      _ndims(ndims), _localX(0), _localY(0), _localZ(0), _time(0),
+      _nextX(0), _nextY(0), _nextZ(0), _finished(false), _loadedFromDB(false) {}
+
+   explicit Execution(unsigned int ndims, unsigned int localX, unsigned int localY, unsigned int localZ, long long int time,
+            unsigned int nextX, unsigned int nextY, unsigned int nextZ, bool finished, bool loadedFromDB) :
+      _ndims(ndims), _localX(localX), _localY(localY), _localZ(localZ), _time(time), _nextX(nextX), _nextY(nextY), _nextZ(nextZ), _finished(finished), _loadedFromDB(loadedFromDB) {}
+
    unsigned char getNdims() const
    {
       return _ndims;
@@ -87,6 +107,81 @@ public:
    unsigned int getLocalZ() const
    {
       return _localZ;
+   }
+
+   void setTime(cl_ulong time)
+   {
+      _time=time;
+   }
+
+   void setLocalX(unsigned int localX)
+   {
+      _localX=localX;
+   }
+
+   void setLocalY(unsigned int localY)
+   {
+      _localY=localY;
+   }
+
+   void setLocalZ(unsigned int localZ)
+   {
+      _localZ=localZ;
+   }
+
+   int getNextX() const
+   {
+      return _nextX;
+   }
+
+   void setNextX(int nextX)
+   {
+      _nextX=nextX;
+   }
+
+   int getNextY() const
+   {
+      return _nextY;
+   }
+
+   void setNextY(int nextY)
+   {
+      _nextY=nextY;
+   }
+
+   int getNextZ() const
+   {
+      return _nextZ;
+   }
+
+   void setNextZ(int nextZ)
+   {
+      _nextZ=nextZ;
+   }
+
+   void setNdims(unsigned char ndims)
+   {
+      _ndims=ndims;
+   }
+
+   bool isFinished() const
+   {
+      return _finished;
+   }
+
+   void setFinished(bool finished)
+   {
+      _finished=finished;
+   }
+
+   bool isLoadedFromDb() const
+   {
+      return _loadedFromDB;
+   }
+
+   void setLoadedFromDb(bool loadedFromDb)
+   {
+      _loadedFromDB = loadedFromDb;
    }
 };
 
@@ -176,143 +271,78 @@ public:
  */
 class OpenCLProfilerDbManager {
    DbManager _dbManager;
-   Execution *_execution;
    bool _created;
    bool _isExecutionSet;
    unsigned int _selectStmtNumber;
    unsigned int _insertStmtNumber;
+   unsigned int _updateStmtNumber;
    unsigned int _tableStmtNumber;
    const std::string CL_PROFILING_DEFAULT_TABLE;
 public:
-   OpenCLProfilerDbManager() : _execution(NULL), _created(false), _isExecutionSet(false), CL_PROFILING_DEFAULT_TABLE("opencl_kernels") {
+   OpenCLProfilerDbManager() : _created(false), _isExecutionSet(false), CL_PROFILING_DEFAULT_TABLE("opencl_kernels") {
       _dbManager.openConnection("nanos_opencl_kernels.db");
       initialize();
    }
 
-   ~OpenCLProfilerDbManager();
+   OCLP_DBMError setKernelConfig(Dims &dims, Execution &execution, std::string &kernelName);
 
-   void setKernelConfig(Dims &dims, Execution &execution, std::string kernelName);
-   Execution* getKernelConfig(Dims &dims, std::string kernelName);
-
-   void setExecution(Execution* execution) {
-      if ( _isExecutionSet )
-         delete _execution;
-      _execution = execution;
-      _isExecutionSet = true;
-   }
+   OCLP_DBMError getKernelConfig(Dims &dims, Execution &execution, std::string &kernelName);
 
 private:
    void initialize();
    uint32_t getKernelHash(const Dims &dims, const std::string kernelName);
-   void destroyExecution();
-
-   const Execution* getExecution() const {
-      return _execution;
-   }
-
 };
 
 /**
- * @brief This class keeps the OpenCL Profiling status for a given kernel+dimensions combination
+ * @brief Keeps the device performance information
  */
-class OpenCLProfCurrConfig {
-   unsigned int _currentX;  // The same _workGroupMultiple
-   unsigned int _currentY;
-   unsigned int _currentZ;
-   unsigned int _limitX;
-   unsigned int _limitY;
-   unsigned int _limitZ;
-   unsigned int _multiplePreferred;
-   bool         _finished;
+class DevPerfInfo {
+   std::string _devName;
+   size_t _multiplePreferred;
+   size_t _maxWorkGroup;
+   bool _initialized;
 public:
-   OpenCLProfCurrConfig(unsigned int currentX, unsigned int currentY, unsigned int currentZ, unsigned int limitX, unsigned int limitY, unsigned int limitZ, unsigned int workGroupMultiple, bool finished) :
-      _currentX(currentX), _currentY(currentY), _currentZ(currentZ), _limitX(limitX), _limitY(limitY), _limitZ(limitZ), _multiplePreferred(workGroupMultiple), _finished(finished) {}
-   OpenCLProfCurrConfig() : _currentX(0), _currentY(0), _currentZ(0), _limitX(0), _limitY(0), _limitZ(0), _multiplePreferred(0), _finished(false)  {}
+   DevPerfInfo() : _initialized(false) { }
 
-   unsigned int getCurrentX() const
+   const std::string& getDevName() const
    {
-      return _currentX;
+      return _devName;
    }
 
-   void setCurrentX(unsigned int currentX)
+   void setDevName(const std::string& devName)
    {
-      _currentX=currentX;
+      _devName = devName;
+      _initialized = true;
    }
 
-   unsigned int getCurrentY() const
+   size_t getMaxWorkGroup() const
    {
-      return _currentY;
+      return _maxWorkGroup;
    }
 
-   void setCurrentY(unsigned int currentY)
+   void setMaxWorkGroup(size_t maxWorkGroup)
    {
-      _currentY=currentY;
+      _maxWorkGroup = maxWorkGroup;
    }
 
-   unsigned int getCurrentZ() const
-   {
-      return _currentZ;
-   }
-
-   void setCurrentZ(unsigned int currentZ)
-   {
-      _currentZ=currentZ;
-   }
-
-   unsigned int getLimitX() const
-   {
-      return _limitX;
-   }
-
-   void setLimitX(unsigned int limitX)
-   {
-      _limitX=limitX;
-   }
-
-   unsigned int getLimitY() const
-   {
-      return _limitY;
-   }
-
-   void setLimitY(unsigned int limitY)
-   {
-      _limitY=limitY;
-   }
-
-   unsigned int getLimitZ() const
-   {
-      return _limitZ;
-   }
-
-   void setLimitZ(unsigned int limitZ)
-   {
-      _limitZ=limitZ;
-   }
-   
-   unsigned int getMultiplePreferred() const
+   size_t getMultiplePreferred() const
    {
       return _multiplePreferred;
    }
-   
-   void setMultiplePreferred(unsigned int multiplePreferred)
+
+   void setMultiplePreferred(size_t multiplePreferred)
    {
-      _multiplePreferred=multiplePreferred;
+      _multiplePreferred = multiplePreferred;
    }
-   
-   bool isFinished() const
+
+   bool isInitialized() const
    {
-      return _finished;
-   }
-   
-   void setFinished(bool finished)
-   {
-      _finished=finished;
+      return _initialized;
    }
 };
 
-typedef std::map<Dims, Execution*> DimsBest;
+typedef std::map<Dims, Execution> DimsBest;
 typedef std::map<Dims, ulong> DimsExecutions;
-typedef std::map<Dims, OpenCLProfCurrConfig> DimsCurr;
 
 }
 
