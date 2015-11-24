@@ -80,7 +80,7 @@ AS_IF([test "$sqlite3" = yes],[
 
   # Look for sqlite3_init function in libsqlite3
   AS_IF([test "$sqlite3" = yes],[
-      AC_SEARCH_LIBS(sqlite_version],
+      AC_SEARCH_LIBS([sqlite3_libversion_number],
                 [sqlite3],
                 [sqlite3=yes],
                 [sqlite3=no])
