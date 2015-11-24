@@ -776,7 +776,9 @@ void OpenCLAdapter::execKernel(void* oclKernel,
       currQueue = curdd.getOpenCLStreamIdx();
    }
 
-   debug0( "[opencl] global size: " + toString( *ndrGlobalSize ) + ", local size: " + toString( *ndrLocalSize ) );
+   debug( " [OpenCL] global size: x=" + toString(ndrGlobalSize[0]) + ", y=" + toString(ndrGlobalSize[1]) + ", z=" + toString(ndrGlobalSize[2]) );
+   debug( " [OpenCL] local size: x=" + toString(ndrLocalSize[0]) + ", y=" + toString(ndrLocalSize[1]) + ", z=" + toString(ndrLocalSize[2]) );
+
    // Exec it.
    errCode = clEnqueueNDRangeKernel( _queues[currQueue],
                                        openclKernel,
@@ -1035,6 +1037,13 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
          executionTmp.setLocalY(bestExecution->getLocalY());
          executionTmp.setLocalZ(bestExecution->getLocalZ());
          executionTmp.setTime(bestExecution->getTime());
+         local_work_size[0] = executionTmp.getLocalX();
+         local_work_size[1] = executionTmp.getLocalX();
+         local_work_size[2] = executionTmp.getLocalX();
+         global_work_size[0] = ndrGlobalSize[0];
+         global_work_size[1] = ndrGlobalSize[1*range_size];
+         global_work_size[2] = ndrGlobalSize[2*range_size];
+         singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size);
          debug( " [OpenCL][Profiling] Finished" );
       }
    }
