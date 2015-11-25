@@ -86,6 +86,13 @@ AS_IF([test "$sqlite3" = yes],[
                 [sqlite3=no])
   ])dnl
 
+  AS_IF([test "$sqlite3" != yes],[
+      AC_MSG_ERROR([
+------------------------------
+SQLite path was not correctly specified.
+Please, check that the provided directories are correct.
+------------------------------])
+  ])dnl
   
   sqlite3libs="$LIBS"
 

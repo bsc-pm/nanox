@@ -181,9 +181,14 @@ support_sources = \
 	genericevent.cpp \
 	hwloc_decl.hpp \
 	hwloc.cpp \
+	$(END)
+
+if SQLITE3_SUPPORT
+support_sources += \
 	dbmanager.hpp \
 	dbmanager.cpp \
-	$(END) 
+	$(END)
+endif
 
 debug_sources = \
 	memtracker_fwd.hpp\
