@@ -1593,9 +1593,16 @@ memory_space_id_t System::addSeparateMemoryAddressSpace( Device &arch, bool allo
    return id;
 }
 
-void System::registerObject(int numObjects, nanos_copy_data_internal_t *obj) {
+void System::registerObject( int numObjects, nanos_copy_data_internal_t *obj ) {
    for ( int i = 0; i < numObjects; i += 1 ) {
       _hostMemory.registerObject( &obj[i] );
+   }
+}
+
+void System::unregisterObject( int numObjects, void *base_addresses ) {
+   uint64_t* addrs = (uint64_t*)base_addresses;
+   for ( int i = 0; i < numObjects; i += 1 ) {
+      _hostMemory.unregisterObject((void*)(addrs[i]));
    }
 }
 
@@ -1604,8 +1611,4 @@ void System::switchToThread( unsigned int thid )
    if ( thid > _workers.size() ) return;
 
    Scheduler::switchToThread(_workers[thid]);
-}
-
-void System::unregisterObject( void *base_addr ) {
-   _hostMemory.unregisterObject( base_addr );
 }

@@ -144,9 +144,9 @@ NANOS_API_DEF(nanos_err_t, nanos_register_object, (int num_objects, nanos_copy_d
    return NANOS_OK;
 }
 
-NANOS_API_DEF(nanos_err_t, nanos_unregister_object, (void *base_addr))
+NANOS_API_DEF(nanos_err_t, nanos_unregister_object, (int num_objects, void *base_addresses))
 {
-   sys.unregisterObject( base_addr );
+   sys.unregisterObject( num_objects, base_addresses );
    return NANOS_OK;
 }
 
