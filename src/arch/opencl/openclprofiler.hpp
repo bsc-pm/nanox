@@ -342,7 +342,7 @@ public:
 };
 
 typedef std::map<Dims, Execution> DimsBest;
-typedef std::map<Dims, ulong> DimsExecutions;
+typedef std::map<Dims, unsigned long> DimsExecutions;
 
 }
 
