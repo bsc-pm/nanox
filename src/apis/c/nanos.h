@@ -379,7 +379,7 @@ NANOS_API_DECL(nanos_err_t, nanos_memcpy, (void *dest, const void *src, size_t n
 #endif
 
 NANOS_API_DECL(nanos_err_t, nanos_register_object, (int num_objects, nanos_copy_data_t *obj));
-NANOS_API_DECL(nanos_err_t, nanos_unregister_object, (void *base_addr));
+NANOS_API_DECL(nanos_err_t, nanos_unregister_object, (int num_objects, void *base_addresses));
 
 // scheduling interface
 NANOS_API_DECL(const char *, nanos_get_default_scheduler, ());

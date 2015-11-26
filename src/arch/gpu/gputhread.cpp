@@ -38,6 +38,7 @@ extern void cublasSetKernelStream( cudaStream_t );
 #else
 #include <cublas.h>
 #include <cublas_v2.h>
+#include <cusparse_v2.h>
 #endif
 
 using namespace nanos;
@@ -77,6 +78,7 @@ void GPUThread::runDependent ()
       cublasShutdown();
 #else
       cublasDestroy( ( cublasHandle_t ) _cublasHandle );
+      cusparseDestroy( ( cusparseHandle_t ) _cusparseHandle );
 #endif
    }
 
@@ -181,6 +183,21 @@ void GPUThread::initializeDependent ()
       }
    }
 #endif
+
+   if ( GPUConfig::isCUSPARSEInitDefined() ) {
+      NANOS_GPU_CREATE_IN_CUDA_RUNTIME_EVENT( GPUUtils::NANOS_GPU_CUDA_GENERIC_EVENT );
+      cusparseStatus_t cusparseErr = cusparseCreate( ( cusparseHandle_t * ) &_cusparseHandle );
+      NANOS_GPU_CLOSE_IN_CUDA_RUNTIME_EVENT;
+      if ( cusparseErr != CUSPARSE_STATUS_SUCCESS ) {
+         if ( cusparseErr == CUSPARSE_STATUS_NOT_INITIALIZED ) {
+            warning( "Couldn't set the context handle for cuSPARSE library: the CUDA Runtime initialization failed" );
+         } else if ( cusparseErr == CUSPARSE_STATUS_ALLOC_FAILED ) {
+            warning( "Couldn't set the context handle for cuSPARSE library: the resources could not be allocated" );
+         } else {
+            warning( "Couldn't set the context handle for cuSPARSE library: unknown error" );
+         }
+      }
+   }
 
    // Initialize GPUProcessor
    ( ( GPUProcessor * ) myThread->runningOn() )->init();
@@ -332,6 +349,18 @@ void * GPUThread::getCUBLASHandle()
          ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream( _kernelStreamIdx ));
 
    return _cublasHandle;
+}
+
+
+void * GPUThread::getCUSPARSEHandle()
+{
+   ensure( _cusparseHandle, "Trying to use cuSPARSE handle without initializing cuSPARSE library (please, use NX_GPUCUSPARSEINIT=yes)" );
+
+   // Set the appropriate stream for cuSPARSE handle
+   cusparseSetStream( ( cusparseHandle_t ) _cusparseHandle,
+         ( ( GPUProcessor * ) myThread->runningOn() )->getGPUProcessorInfo()->getKernelExecStream( _kernelStreamIdx ));
+
+   return _cusparseHandle;
 }
 
 

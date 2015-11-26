@@ -40,6 +40,7 @@ namespace ext
          int                           _kernelStreamIdx;
          bool                          _wdClosingEvents; //! controls whether an instrumentation event should be generated at WD completion
          void *                        _cublasHandle; //! Context pointer for CUBLAS library
+         void *                        _cusparseHandle; //! Context pointer for cuSPARSE library
          BaseThread *                  _cudaThreadInst;
          PThread                       _pthread;
          unsigned int _prefetchedWDs;
@@ -59,7 +60,7 @@ namespace ext
          // constructor
          GPUThread( WD &w, PE *pe, SMPProcessor *core, int device ) :
             AsyncThread( sys.getSMPPlugin()->getNewSMPThreadId(), w, pe ), _gpuDevice( device ), _kernelStreamIdx ( 0 ),
-               _wdClosingEvents( false ), _cublasHandle( NULL ), _cudaThreadInst( NULL ), _pthread( core ), _prefetchedWDs(0) { setCurrentWD( w ); }
+               _wdClosingEvents( false ), _cublasHandle( NULL ), _cusparseHandle( NULL ), _cudaThreadInst( NULL ), _pthread( core ), _prefetchedWDs(0) { setCurrentWD( w ); }
 
          // destructor
          ~GPUThread() {}
@@ -85,6 +86,8 @@ namespace ext
 
          void * getCUBLASHandle();
          unsigned int getPrefetchedWDsCount() const;
+
+         void * getCUSPARSEHandle();
 
          BaseThread * getCUDAThreadInst();
          void setCUDAThreadInst( BaseThread * thread );

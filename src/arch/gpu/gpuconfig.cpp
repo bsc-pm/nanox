@@ -43,6 +43,7 @@ size_t GPUConfig::_maxGPUMemory = 0;
 bool GPUConfig::_allocatePinnedBuffers = true;
 bool GPUConfig::_gpuWarmup = true;
 bool GPUConfig::_initCublas = false;
+bool GPUConfig::_initCuSparse = false;
 void * GPUConfig::_gpusProperties = NULL;
 bool GPUConfig::_allocWide = false;
 
@@ -135,6 +136,12 @@ void GPUConfig::prepare( Config& config )
    config.registerEnvOption( "gpu-cublas-init", "NX_GPUCUBLASINIT" );
    config.registerArgOption( "gpu-cublas-init", "gpu-cublas-init" );
 
+   // Enable / disable cuSPARSE initialization
+   config.registerConfigOption( "gpu-cusparse-init", NEW Config::FlagOption( _initCuSparse ),
+                                "Enable or disable cuSPARSE initialization (disabled by default)" );
+   config.registerEnvOption( "gpu-cusparse-init", "NX_GPUCUBLASINIT" );
+   config.registerArgOption( "gpu-cusparse-init", "gpu-cusparse-init" );
+
    config.registerConfigOption( "gpu-alloc-wide", NEW Config::FlagOption( _allocWide ),
                                 "Alloc full objects in the cache." );
    config.registerEnvOption( "gpu-alloc-wide", "NX_GPUALLOCWIDE" );
@@ -149,6 +156,8 @@ void GPUConfig::apply()
    
    // Init cublas if it wasn't manually enabled, but detected in the binary (#1050)
    _initCublas = _initCublas || ( dlsym(myself, "gpu_cublas_init") != NULL );
+   // Init cuSPARSE if it wasn't manually enabled, but detected in the binary (#1050)
+   _initCuSparse = _initCuSparse || ( dlsym(myself, "gpu_sparse_init") != NULL );
    
    dlclose( myself );
    
@@ -172,6 +181,7 @@ void GPUConfig::apply()
       _maxGPUMemory = 0;
       _gpuWarmup = false;
       _initCublas = false;
+      _initCuSparse = false;
       _gpusProperties = NULL;
 
    } else {
@@ -192,6 +202,7 @@ void GPUConfig::apply()
          _maxGPUMemory = 0;
          _gpuWarmup = false;
          _initCublas = false;
+         _initCuSparse = false;
          _gpusProperties = NULL;
          warning0( "Couldn't initialize the GPU support component at runtime startup: " << cudaGetErrorString( cudaErr ) );
 
@@ -274,6 +285,14 @@ void GPUConfig::apply()
          if ( !sys.loadPlugin( "gpu-cublas" ) ) {
             _initCublas = false;
             warning0( "Couldn't initialize CUBLAS library at runtime startup" );
+         }
+      }
+
+      if ( _initCuSparse ) {
+         verbose0( "Initializing cuSPARSE Library" );
+         if ( !sys.loadPlugin( "gpu-cusparse" ) ) {
+            _initCuSparse = false;
+            warning0( "Couldn't initialize cuSPARSE library at runtime startup" );
          }
       }
       
