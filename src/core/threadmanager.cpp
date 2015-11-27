@@ -54,7 +54,7 @@ extern "C" {
          DLB_Finalize && \
          DLB_AcquireCpu && \
          DLB_AcquireCpus && \
-         DLB_NotifyProcessMaskChangeTo \
+         DLB_NotifyProcessMaskChangeTo && \
          DLB_Update )
 #endif
 
