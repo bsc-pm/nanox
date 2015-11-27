@@ -71,7 +71,7 @@ AS_CASE([$ac_cv_compiler_type],
    # Default: use -include flag
    cc_dep_CPPFLAGS="-include \"config.h\""
    cc_dep_CXXFLAGS="-include \"new_decl.hpp\""
-   AX_APPEND_FLAG([-Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter -Werror],[cc_dep_CXXFLAGS])
+   AX_APPEND_FLAG([-Wall -Wextra -Wshadow -Wmissing-declarations -Wno-unused-parameter -Wno-missing-field-initializers -Werror],[cc_dep_CXXFLAGS])
    no_inline_flag=-fno-inline
  ])
 
