@@ -212,6 +212,11 @@ public:
       return _openCLProfilerDbManager;
   }
 
+   /**
+    * @brief This function update the profiling data during the execution
+    */
+   void updateProfStats(std::string kernelName, Dims& dims, Execution &execution);
+
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );
 
@@ -243,11 +248,6 @@ private:
                               size_t* ndrOffset,
                               size_t* ndrLocalSize,
                               size_t* ndrGlobalSize);
-
-   /**
-    * @brief This function update the profiling data during the execution
-    */
-   void updateProfStats(std::string kernelName, Dims& dims, Execution &execution);
 
    /**
     * @brief This function set the work-group multiple preferred values
