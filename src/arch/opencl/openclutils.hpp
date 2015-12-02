@@ -89,6 +89,20 @@ inline uint32_t gnuHash( const char *str, const char *end )
    return h;
 }
 
+/**
+ * @brief Returns whether the local parameters are suitable for these
+ * global dimensions
+ */
+inline bool wgChecker( size_t *global, size_t * local, unsigned int dims )
+{
+   for ( int i=0; i<dims; i++ )
+   {
+      if ( (global[i]%local[i])!=0 )
+         return false;
+   }
+   return true;
+}
+
 } // End namespace ext.
 } // End namespace nanos.
 

@@ -1008,20 +1008,25 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
    {
       if ( limitBase*z<=zLimit ) {
          local_work_size[2] = multiplePreferred*z;
-         global_work_size[2] = ndrGlobalSize[2*range_size+(z-1)];
+         global_work_size[2] = ndrGlobalSize[2*range_size];
          if ( limitBase*z*y<=yLimit ) {
             local_work_size[1] = multiplePreferred*y;
-            global_work_size[1] = ndrGlobalSize[range_size+(y-1)];
+            global_work_size[1] = ndrGlobalSize[1*range_size];
             if ( limitBase*z*y*x<=_devPerfInfo.getMaxWorkGroup() ) {
                local_work_size[0] = multiplePreferred*x;
-               global_work_size[0] = ndrGlobalSize[x-1];
+               global_work_size[0] = ndrGlobalSize[0*range_size];
 
-               executionTmp.setTime(singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size));
-               executionTmp.setLocalX(local_work_size[0]);
-               executionTmp.setLocalY(local_work_size[1]);
-               executionTmp.setLocalZ(local_work_size[2]);
-
-               executed = true;
+               if ( wgChecker(global_work_size, local_work_size, workDim) ) {
+                  executionTmp.setTime(singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size));
+                  executionTmp.setLocalX(local_work_size[0]);
+                  executionTmp.setLocalY(local_work_size[1]);
+                  executionTmp.setLocalZ(local_work_size[2]);
+                  executed = true;
+               } else {
+                  debug( " [OpenCL][Profiling] Skipping execution" );
+                  debug( " [OpenCL][Profiling] global size: x=" + toString(global_work_size[0]) + ", y=" + toString(global_work_size[1]) + ", z=" + toString(global_work_size[2]) );
+                  debug( " [OpenCL][Profiling] local size: x=" + toString(local_work_size[0]) + ", y=" + toString(local_work_size[1]) + ", z=" + toString(local_work_size[2]) );
+               }
                x++;
             } else {
                x=1;
@@ -1040,7 +1045,7 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
          local_work_size[0] = executionTmp.getLocalX();
          local_work_size[1] = executionTmp.getLocalX();
          local_work_size[2] = executionTmp.getLocalX();
-         global_work_size[0] = ndrGlobalSize[0];
+         global_work_size[0] = ndrGlobalSize[0*range_size];
          global_work_size[1] = ndrGlobalSize[1*range_size];
          global_work_size[2] = ndrGlobalSize[2*range_size];
          singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size);
