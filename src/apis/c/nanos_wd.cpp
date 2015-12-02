@@ -611,12 +611,12 @@ NANOS_API_DEF (nanos_err_t, nanos_task_fortran_array_reduction_register, ( void 
 }
 
 
-NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size_target,
+NANOS_API_DEF (nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size_target, size_t size_elem,
          void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) )
 {
    NANOS_INSTRUMENT( InstrumentStateAndBurst inst("api","task_reduction_register",NANOS_RUNTIME) );
    try {
-       myThread->getCurrentWD()->registerTaskReduction( orig, size_target, size_target, init, reducer );
+       myThread->getCurrentWD()->registerTaskReduction( orig, size_target, size_elem, init, reducer );
    } catch ( nanos_err_t e) {
       return e;
    }

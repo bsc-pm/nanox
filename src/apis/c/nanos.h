@@ -264,7 +264,7 @@ NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, voi
 
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
-NANOS_API_DECL(nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size_target, 
+NANOS_API_DECL(nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size_target, size_t size_elem,
             void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) );
 
 NANOS_API_DECL(nanos_err_t, nanos_task_fortran_array_reduction_register, ( void *orig, void *dep,
