@@ -979,6 +979,7 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
          warning( msg.str() )
       }
    }
+   debug( " [OpenCL][Profiling] maxWorkGroup = " + toString(_devPerfInfo.getMaxWorkGroup()) + " - multiplePreferred = " + toString(_devPerfInfo.getMultiplePreferred()) );
 
    Execution executionTmp(workDim);
    Execution *bestExecution = getProfStatus(kernelName, dims);
@@ -986,7 +987,7 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
    if ( bestExecution == NULL ) {
       x = y = z = 1;
    } else {
-      // We already have the device information and profiling status
+      // We already have the profiling status
       executionTmp.setLocalX(bestExecution->getLocalX());
       executionTmp.setLocalY(bestExecution->getLocalY());
       executionTmp.setLocalZ(bestExecution->getLocalZ());
@@ -996,23 +997,33 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
    }
 
    // Limit the iterations based on number of dimensions
-   yLimit = workDim > 1 ? _devPerfInfo.getMaxWorkGroup() : _devPerfInfo.getMultiplePreferred();
-   zLimit = workDim > 2 ? _devPerfInfo.getMaxWorkGroup() : _devPerfInfo.getMultiplePreferred();
    multiplePreferred = _devPerfInfo.getMultiplePreferred()/(std::pow(2,workDim-1));
+   if ( workDim == 1 ) {
+      multiplePreferred = _devPerfInfo.getMultiplePreferred();
+   } else {
+      multiplePreferred = 2;
+   }
+   assert(multiplePreferred!=0);
+   yLimit = workDim > 1 ? _devPerfInfo.getMaxWorkGroup() : multiplePreferred;
+   zLimit = workDim > 2 ? _devPerfInfo.getMaxWorkGroup() : multiplePreferred;
 
    const unsigned int limitBase = multiplePreferred*std::pow(2,workDim-1);
+
+   debug( " [OpenCL][Profiling] yLimit = " + toString(yLimit) + " - zLimit = " + toString(zLimit) +
+         " - multiplePreferred = " + toString(multiplePreferred) );
 
    // triple 'for' as step by step
    bool executed = false;
    while( !executed && !executionTmp.isFinished() )
    {
-      if ( limitBase*z<=zLimit ) {
+      if ( multiplePreferred*z<=zLimit ) {
          local_work_size[2] = multiplePreferred*z;
          global_work_size[2] = ndrGlobalSize[2*range_size];
-         if ( limitBase*z*y<=yLimit ) {
+         if ( multiplePreferred*y<=yLimit ) {
             local_work_size[1] = multiplePreferred*y;
             global_work_size[1] = ndrGlobalSize[1*range_size];
-            if ( limitBase*z*y*x<=_devPerfInfo.getMaxWorkGroup() ) {
+            if ( (multiplePreferred*x<=_devPerfInfo.getMaxWorkGroup()) &&
+                 (std::pow(multiplePreferred,workDim)*x*y*z <= _devPerfInfo.getMaxWorkGroup()) ) {
                local_work_size[0] = multiplePreferred*x;
                global_work_size[0] = ndrGlobalSize[0*range_size];
 
@@ -1023,9 +1034,9 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
                   executionTmp.setLocalZ(local_work_size[2]);
                   executed = true;
                } else {
-                  debug( " [OpenCL][Profiling] Skipping execution" );
-                  debug( " [OpenCL][Profiling] global size: x=" + toString(global_work_size[0]) + ", y=" + toString(global_work_size[1]) + ", z=" + toString(global_work_size[2]) );
-                  debug( " [OpenCL][Profiling] local size: x=" + toString(local_work_size[0]) + ", y=" + toString(local_work_size[1]) + ", z=" + toString(local_work_size[2]) );
+                  debug( " [OpenCL][Profiling] Skipping execution:" );
+                  debug( " [OpenCL][Profiling] - global size: x=" + toString(global_work_size[0]) + ", y=" + toString(global_work_size[1]) + ", z=" + toString(global_work_size[2]) );
+                  debug( " [OpenCL][Profiling] - local size: x=" + toString(local_work_size[0]) + ", y=" + toString(local_work_size[1]) + ", z=" + toString(local_work_size[2]) );
                }
                x++;
             } else {
@@ -1043,8 +1054,8 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
          executionTmp.setLocalZ(bestExecution->getLocalZ());
          executionTmp.setTime(bestExecution->getTime());
          local_work_size[0] = executionTmp.getLocalX();
-         local_work_size[1] = executionTmp.getLocalX();
-         local_work_size[2] = executionTmp.getLocalX();
+         local_work_size[1] = executionTmp.getLocalY();
+         local_work_size[2] = executionTmp.getLocalZ();
          global_work_size[0] = ndrGlobalSize[0*range_size];
          global_work_size[1] = ndrGlobalSize[1*range_size];
          global_work_size[2] = ndrGlobalSize[2*range_size];
@@ -1228,7 +1239,7 @@ void OpenCLAdapter::printProfiling()
                   throw nanos::OpenCLProfilerException(CLP_WRONG_NUMBER_OF_DIMENSIONS);
             }
             std::cout << "Best execution time (in ns): " << bestExecution.getTime() << std::endl;
-            if ( !bestExecution.isLoadedFromDb() )
+            if ( !bestExecution.isFinished() )
                std::cout << "Total configurations tested: " << dimsExecutions[currDims] << std::endl;
             if ( performance > 0 )
                std::cout << "Performance: " << performance << " Gflops" << std::endl;
