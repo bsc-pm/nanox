@@ -17,46 +17,49 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef DBMANAGER_HPP_
-#define DBMANAGER_HPP_
+#ifndef SQLITE3DBMANAGER_HPP_
+#define SQLITE3DBMANAGER_HPP_
+
+#include <sqlite3.h>
 
 #include <string>
 #include <vector>
-#include "debug.hpp"
+#include "dbmanager.hpp"
 
 namespace nanos {
 
-const std::string defaultDbName = "nanos.db";
-
-class DbManager {
+class SQLite3DbManager : public DbManager {
+   bool _isOpen;
+   sqlite3 *_db;
+   std::vector <sqlite3_stmt*> _stmtVector;
 public:
-   DbManager() {};
+   SQLite3DbManager() : _db(NULL), _isOpen(false) {}
 
-   virtual ~DbManager() {};
+   ~SQLite3DbManager();
 
    /**
     * @brief Open a new connection to databaseName database. If any connection
     * is already opened, it will be closed.
     */
-   virtual bool openConnection(const std::string &databaseName) = 0;
+   bool openConnection(const std::string &databaseName);
 
    /**
     * @brief Open a new connection to defaultDbName (nanos.db) database. If any connection
     * is already opened, it will be closed.
     */
-   virtual bool openConnection() = 0;
+   bool openConnection();
 
    /**
     * @brief Closes the database connection
     */
-   virtual bool closeConnection() = 0;
+   bool closeConnection();
 
    /**
-    * @brief This function pre-compile the statement to be used later
+    * @brief This function pre-compile and statement to be used later
     * @param stmt statement to be pre-compile
     * @return The number of the statement prepared
     */
-   virtual unsigned int prepareStmt(const std::string &stmt) = 0;
+   unsigned int prepareStmt(const std::string &stmt);
 
    /**
     * @brief This function bind an integer value to a prepared statement
@@ -64,7 +67,7 @@ public:
     * @param parameterIndex Parameter to choose the parameter to reference
     * @param value value to be set on the parameter
     */
-   virtual void bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value) { fatal0("DbManager: bindIntParameter not implemented") };
+   void bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value);
 
    /**
     * @brief This function bind an integer64 value to a prepared statement
@@ -72,7 +75,7 @@ public:
     * @param parameterIndex Parameter to choose the parameter to reference
     * @param value value to be set on the parameter
     */
-   virtual void bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value) { fatal0("DbManager: bindInt64Parameter not implemented") };
+   void bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value);
 
    /**
     * @brief This function return the value of a given column
@@ -80,26 +83,26 @@ public:
     * @param columnIndex Parameter to choose the column to reference
     * @return The value of a given column
     */
-   virtual int getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex) { fatal0("DbManager: getIntColumnValue not implemented") };
+   int getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex);
 
    /**
     * @brief This function makes to ask for a row with the according statement
     * @param stmtNumber stmtNumber Parameter to reference the prepared statement
     */
-   virtual bool doStep(const unsigned int stmtNumber) { fatal0("DbManager: doStep not implemented") };
+   bool doStep(const unsigned int stmtNumber);
 
 private:
    /**
-    * @brief Error check function
+    * @brief SQLite3 error check function
     */
-   virtual void sqlCheck(const int err, const std::string &msg) = 0;
+   void sqlCheck(const int err, const std::string &msg);
 
    /**
     * @brief Clean the prepared statement vector
     */
-   virtual void cleanPreparedStmts() = 0;
+   void cleanPreparedStmts();
 };
 
 }
 
-#endif /* DBMANAGER_HPP_ */
+#endif /* SQLITE3DBMANAGER_HPP_ */

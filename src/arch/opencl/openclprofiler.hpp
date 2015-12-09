@@ -20,7 +20,7 @@
 #ifndef _NANOS_OpenCL_PROFILER
 #define _NANOS_OpenCL_PROFILER
 
-#include "dbmanager.hpp"
+#include "dbmanager_sqlite3.hpp"
 #include <map>
 
 #ifdef __APPLE__
@@ -270,7 +270,7 @@ public:
  * @brief This class manages database interaction for the OpenCL Profiler extension
  */
 class OpenCLProfilerDbManager {
-   DbManager _dbManager;
+   SQLite3DbManager _dbManager;
    bool _created;
    bool _isExecutionSet;
    unsigned int _selectStmtNumber;

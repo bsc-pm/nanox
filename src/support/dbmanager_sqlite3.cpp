@@ -17,18 +17,18 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "dbmanager.hpp"
+#include "dbmanager_sqlite3.hpp"
 #include "debug.hpp"
 
 using namespace nanos;
 
-DbManager::~DbManager()
+SQLite3DbManager::~SQLite3DbManager()
 {
    cleanPreparedStmts();
    closeConnection();
 }
 
-bool DbManager::openConnection(const std::string &databaseName)
+bool SQLite3DbManager::openConnection(const std::string &databaseName)
 {
    if ( _isOpen )
       closeConnection();
@@ -39,7 +39,7 @@ bool DbManager::openConnection(const std::string &databaseName)
    return true;
 }
 
-void DbManager::cleanPreparedStmts()
+void SQLite3DbManager::cleanPreparedStmts()
 {
    for(std::vector<sqlite3_stmt*>::const_iterator iter = _stmtVector.begin(); iter != _stmtVector.end(); iter++)
    {
@@ -47,12 +47,12 @@ void DbManager::cleanPreparedStmts()
    }
 }
 
-bool DbManager::openConnection()
+bool SQLite3DbManager::openConnection()
 {
    return openConnection(defaultDbName);
 }
 
-void DbManager::sqlCheck(const int err, const std::string &msg)
+void SQLite3DbManager::sqlCheck(const int err, const std::string &msg)
 {
    if ( err != SQLITE_OK ) {
       std::string errMsg = msg;
@@ -61,7 +61,7 @@ void DbManager::sqlCheck(const int err, const std::string &msg)
    }
 }
 
-bool DbManager::closeConnection()
+bool SQLite3DbManager::closeConnection()
 {
    if ( _isOpen ) {
 
@@ -74,7 +74,7 @@ bool DbManager::closeConnection()
    }
 }
 
-unsigned int DbManager::prepareStmt(const std::string &stmt)
+unsigned int SQLite3DbManager::prepareStmt(const std::string &stmt)
 {
    sqlite3_stmt *stmtPtr;
    sqlCheck(sqlite3_prepare_v2(_db, stmt.c_str(), -1, &stmtPtr, 0), "SQLite - Can't prepare statement: ");
@@ -82,22 +82,22 @@ unsigned int DbManager::prepareStmt(const std::string &stmt)
    return _stmtVector.size()-1;
 }
 
-void DbManager::bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value)
+void SQLite3DbManager::bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value)
 {
    sqlCheck(sqlite3_bind_int(_stmtVector[stmtNumber], parameterIndex, value), "SQLite - Can't bind integer value: ");
 }
 
-void DbManager::bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value)
+void SQLite3DbManager::bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value)
 {
    sqlCheck(sqlite3_bind_int64(_stmtVector[stmtNumber], parameterIndex, value), "SQLite - Can't bind integer64 value: ");
 }
 
-int DbManager::getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex)
+int SQLite3DbManager::getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex)
 {
    return sqlite3_column_int(_stmtVector[stmtNumber], columnIndex);
 }
 
-bool DbManager::doStep(const unsigned int stmtNumber)
+bool SQLite3DbManager::doStep(const unsigned int stmtNumber)
 {
    const int err = sqlite3_step(_stmtVector[stmtNumber]);
    if ( err == SQLITE_ROW ) {

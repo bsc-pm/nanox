@@ -181,12 +181,17 @@ support_sources = \
 	genericevent.cpp \
 	hwloc_decl.hpp \
 	hwloc.cpp \
+	dbmanager.hpp \
 	$(END)
 
 if SQLITE3_SUPPORT
 support_sources += \
-	dbmanager.hpp \
-	dbmanager.cpp \
+	dbmanager_sqlite3.hpp \
+	dbmanager_sqlite3.cpp \
+	$(END)
+else
+	dbmanager_sqlite3_empty.hpp \
+	dbmanager_sqlite3_empty.cpp \
 	$(END)
 endif
 
