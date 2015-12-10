@@ -950,10 +950,10 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
    unsigned int yLimit;
 
    // Device work-groups bounds
-   const short safeWorkGroupMultiple = std::pow(2,workDim+1);
-   const short safeMaxWorkGroup = 64;
-   const short limitWorkGroupMultiple = 128;
-   const short limitMaxWorkGroup = 1024;
+   const unsigned short safeWorkGroupMultiple = std::pow(2,workDim+1);
+   const unsigned short safeMaxWorkGroup = 64;
+   const unsigned short limitWorkGroupMultiple = 128;
+   const unsigned short limitMaxWorkGroup = 1024;
    // We do not have the device information
    if ( !_devPerfInfo.isInitialized() ) {
       _devPerfInfo.setDevName(getDeviceName());
