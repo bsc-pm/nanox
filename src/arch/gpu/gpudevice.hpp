@@ -43,13 +43,13 @@ GPUDevice::~GPUDevice() {}
 //}
 
 
-void GPUDevice::isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const
+void GPUDevice::isNotMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu )
 {
-   gpu->getInTransferList()->addMemoryTransfer( remoteSrc, localDst, size );
+   gpu->getInTransferList()->addMemoryTransfer( remoteSrc, localDst, len, count, ld );
 }
 
 
-void GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const
+void GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu )
 {
    // Copy from host memory to device memory
    nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpu->getFirstThread();
@@ -69,21 +69,21 @@ void GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
    ext::GPUMemorySpace *gpuMem = ( ext::GPUMemorySpace * ) mem.getSpecificData();
    // Check for synchronous or asynchronous mode
    if ( gpu->getGPUProcessorInfo()->getInTransferStream() != 0 ) {
-      void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) remoteSrc.getTag(), size ) ) ?
+      void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) remoteSrc.getTag(), len * count ) ) ?
             ( void * ) remoteSrc.getTag() :
-            gpuMem->allocateInputPinnedMemory( size );
+            gpuMem->allocateInputPinnedMemory( len * count );
 
       // allocateInputPinnedMemory() can return NULL, so we have to check the pointer to pinned memory
       pinned = pinned ? pinned : ( void * ) remoteSrc.getTag();
 
       if ( pinned != ( void * ) remoteSrc.getTag() ) {
-         copyInAsyncToBuffer( pinned, ( void * ) remoteSrc.getTag(), size );
+         copyInAsyncToBuffer( pinned, ( void * ) remoteSrc.getTag(), len, count, ld );
       }
 
-      copyInAsyncToDevice( localDst, pinned, size );
+      copyInAsyncToDevice( localDst, pinned, len, count, ld );
 
    } else {
-      copyInSyncToDevice( localDst, ( void * ) remoteSrc.getTag(), size );
+      copyInSyncToDevice( localDst, ( void * ) remoteSrc.getTag(), len, count, ld );
    }
 
    evt->setPending();
@@ -92,22 +92,21 @@ void GPUDevice::isMycopyIn( void *localDst, CopyDescriptor &remoteSrc, size_t si
 }
 
 
-void GPUDevice::isNotMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const
+void GPUDevice::isNotMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu )
 {
    //ext::GPUMemorySpace *gpuMem = ( ext::GPUMemorySpace * ) mem.getSpecificData();
    //std::cerr << __FUNCTION__ << " from: "<< (void *)remoteDst.getTag() << " to: "<< localSrc <<std::endl;
-   gpu->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, size );
+   gpu->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, len, count, ld );
    // Mark the copy as requested, because the thread invoking this function needs the data
    syncTransfer( remoteDst.getTag(), mem, gpu );
 }
 
-
-void GPUDevice::isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu ) const
+void GPUDevice::isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t len, size_t count, size_t ld, SeparateMemoryAddressSpace &mem, ext::GPUProcessor *gpu )
 {
    // Copy from device memory to host memory
    // Check for synchronous or asynchronous mode
    if ( gpu->getGPUProcessorInfo()->getOutTransferStream() != 0 ) {
-      gpu->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, size );
+      gpu->getOutTransferList()->addMemoryTransfer( remoteDst, localSrc, len, count, ld );
    } else {
       nanos::ext::GPUThread * thread = ( nanos::ext::GPUThread * ) gpu->getFirstThread();
 
@@ -123,7 +122,7 @@ void GPUDevice::isMycopyOut( CopyDescriptor &remoteDst, void *localSrc, size_t s
       evt->setDescription( evt->getDescription() + " action:DeviceOps::completeOp" );
 #endif
 
-      copyOutSyncToHost( ( void * ) remoteDst.getTag(), localSrc, size );
+      copyOutSyncToHost( ( void * ) remoteDst.getTag(), localSrc, len, count, ld );
 
       evt->setPending();
 

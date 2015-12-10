@@ -17,41 +17,44 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos-gpu.h"
-#include "gpudd.hpp"
-#include "gpuprocessor.hpp"
 
-using namespace nanos;
+#include "smp_ult.hpp"
+#include <iostream>
 
-NANOS_API_DEF(void *, nanos_gpu_factory, ( void *args ))
+extern "C"
 {
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * ) NEW ext::GPUDD( smp->outline );
+// low-level helper routine to start a new user-thread
+   void startHelper ();
 }
 
-
-NANOS_API_DEF( cudaStream_t, nanos_get_kernel_execution_stream, ( void ) )
+void * initContext( void *stack, size_t stackSize, void (*wrapperFunction)(WD&), WD *wd,
+                    void *cleanup, void *cleanupArg )
 {
-   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
-}
+   intptr_t * state = (intptr_t *) stack;
+   state += (stackSize/sizeof(intptr_t)) - 1;
 
-NANOS_API_DEF( cublasHandle_t, nanos_get_cublas_handle, ( void ) )
-{
-   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUBLASHandle();
-}
+   // In AArch64 the stack must be aligned to 16-bytes
+   unsigned int align = ( ( (uintptr_t) state ) & 15) / sizeof(intptr_t);
+   state -= align;
 
-NANOS_API_DEF( cusparseHandle_t, nanos_get_cusparse_handle, ( void ) )
-{
-   return ( cusparseHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUSPARSEHandle();
-}
+   // (A) Adjust to 8 bytes here. See (B) below
+   state--;
 
-NANOS_API_DEF( void *, nanos_malloc_pinned_cuda, ( size_t size ) )
-{
-   return sys.getPinnedAllocatorCUDA().allocate( size );
-}
+   *state = ( intptr_t )cleanup;
+   state--;
+   *state = ( intptr_t )cleanupArg;
+   state --;
+   *state = ( intptr_t )wrapperFunction;
+   state--;
+   *state = ( intptr_t )wd;
+   state--;
+   *state = ( intptr_t )startHelper;
 
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
-{
-   return sys.getPinnedAllocatorCUDA().free( address );
-}
+   // Make room for stored registers except X30 (= the link register) that we
+   // want to be popped by switchStacks so it returns to startHelper
+   // (B) Note that this would leave the stack unaligned to 16-bytes.
+   // This is why in (A) above we compensated it
+   state -= 19;
 
+   return (void *) state;
+}

@@ -401,7 +401,7 @@ class SMPPlugin : public SMPBasePlugin
       int available_cpus = 0; /* my cpu is unavailable, numthreads is 1 */
       int active_cpus = 0;
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         available_cpus += ( (*it)->getNumThreads() == 0 && (*it)->isActive() );
+         available_cpus += ( (*it)->getNumThreads() == 0 && !((*it)->isReserved()) && (*it)->isActive() );
          active_cpus += (*it)->isActive();
       }
 
@@ -665,10 +665,9 @@ class SMPPlugin : public SMPBasePlugin
    {
       bool success = false;
       if ( isValidMask( mask ) ) {
-         // The new process mask is copied
+         // The new process mask is copied and assigned as a new active mask
          _cpuProcessMask = mask;
-         // The active mask must be a subset of the new process mask
-         _cpuActiveMask &= mask;
+         _cpuActiveMask = mask;
          int master_cpu = workers[0]->getCpuId();
          if ( !sys.getUntieMaster() && !mask.isSet(master_cpu) ) {
             // If master thread is tied and mask does not include master's cpu, force it
@@ -679,6 +678,7 @@ class SMPPlugin : public SMPBasePlugin
             success = true;
          }
          applyCpuMask( workers );
+         sys.getThreadManager()->processMaskChanged();
       }
       return success;
    }
@@ -688,6 +688,7 @@ class SMPPlugin : public SMPBasePlugin
       _cpuProcessMask.add( mask );
       _cpuActiveMask.add( mask );
       applyCpuMask( workers );
+      sys.getThreadManager()->processMaskChanged();
    }
 
    virtual const CpuSet& getCpuActiveMask () const

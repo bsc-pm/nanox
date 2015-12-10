@@ -90,7 +90,7 @@ void GPUMemoryTransferOutList::requestTransfer( void * address )
 
 void GPUMemoryTransferOutSyncList::removeMemoryTransfer ( GPUMemoryTransfer * mt )
 {
-   GPUDevice::copyOutSyncToHost( ( void * ) mt->_hostAddress.getTag(), mt->_deviceAddress, mt->_size );
+   GPUDevice::copyOutSyncToHost( ( void * ) mt->_hostAddress.getTag(), mt->_deviceAddress, mt->_len, mt->_count, mt->_ld );
    //( ( GPUProcessor * ) myThread->runningOn() )->synchronize( mt._hostAddress );
    mt->completeTransfer();
 }
@@ -130,9 +130,9 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer * m
 
    // Even there is only one copy, we must do it asynchronously, as we may be doing something else
    // No need to copy data to the intermediate pinned buffer if it's already pinned
-   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt->_hostAddress.getTag(), mt->_size ) ) ?
+   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt->_hostAddress.getTag(), mt->_len * mt->_count ) ) ?
          ( void * ) mt->_hostAddress.getTag() :
-         ( ( nanos::ext::GPUProcessor * ) thread->runningOn() )->getGPUMemory().allocateOutputPinnedMemory( mt->_size );
+         ( ( nanos::ext::GPUProcessor * ) thread->runningOn() )->getGPUMemory().allocateOutputPinnedMemory( mt->_len * mt->_count );
 
    // allocateOutputPinnedMemory() can return NULL, so we have to check the pointer to pinned memory
    pinned = pinned ? pinned : ( void * ) mt->_hostAddress.getTag();
@@ -142,16 +142,16 @@ void GPUMemoryTransferOutAsyncList::removeMemoryTransfer ( GPUMemoryTransfer * m
    evt->setDescription( evt->getDescription() + " remMemTxAsync DtH"
          + toString<uint64_t>( ( uint64_t ) mt->_deviceAddress )
          + "->" + toString<uint64_t>( mt->_hostAddress.getTag() )
-         + toString<size_t>( mt->_size ) );
+         + toString<size_t>( mt->_ld * mt->_count ) );
 #endif
 
-   GPUDevice::copyOutAsyncToBuffer( pinned, mt->_deviceAddress, mt->_size );
+   GPUDevice::copyOutAsyncToBuffer( pinned, mt->_deviceAddress, mt->_len, mt->_count, mt->_ld );
 
    evt->setPending();
 
    if ( pinned != ( void * ) mt->_hostAddress.getTag() ) {
-      Action * action = new_action( ( ActionFunPtr3<void *, void *, size_t>::FunPtr3 ) &GPUDevice::copyOutAsyncToHost,
-            ( void * ) mt->_hostAddress.getTag(), pinned, mt->_size );
+      Action * action = new_action( ( ActionFunPtr5<void *, void *, size_t, size_t, size_t>::FunPtr5 ) &GPUDevice::copyOutAsyncToHost,
+            ( void * ) mt->_hostAddress.getTag(), pinned, mt->_len, mt->_count, mt->_ld );
       evt->addNextAction( action );
    }
 
@@ -214,12 +214,12 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer * mt
    GPUThread * thread = ( GPUThread * ) myThread;
 
    // No need to copy data to the intermediate pinned buffer if it's already pinned
-   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt->_hostAddress.getTag(), mt->_size ) ) ?
+   void * pinned = ( sys.getPinnedAllocatorCUDA().isPinned( ( void * ) mt->_hostAddress.getTag(), mt->_len * mt->_count ) ) ?
          ( void * ) mt->_hostAddress.getTag() :
-         ( ( nanos::ext::GPUProcessor * ) thread->runningOn() )->getGPUMemory().allocateInputPinnedMemory( mt->_size );
+         ( ( nanos::ext::GPUProcessor * ) thread->runningOn() )->getGPUMemory().allocateInputPinnedMemory( mt->_len * mt->_count );
 
    if ( pinned != ( void * ) mt->_hostAddress.getTag() ) {
-      GPUDevice::copyInAsyncToBuffer( pinned, ( void * ) mt->_hostAddress.getTag(), mt->_size );
+      GPUDevice::copyInAsyncToBuffer( pinned, ( void * ) mt->_hostAddress.getTag(), mt->_len, mt->_count, mt->_ld );
    }
 
    GenericEvent * evt = thread->createPreRunEvent( thread->getCurrentWD() );
@@ -227,10 +227,10 @@ void GPUMemoryTransferInAsyncList::removeMemoryTransfer ( GPUMemoryTransfer * mt
    evt->setDescription( evt->getDescription() + " remMemTxAsync HtD"
          + toString<uint64_t>( mt->_hostAddress.getTag() ) + "(" + toString<uint64_t>( ( uint64_t ) pinned ) + ")"
          + "->" + toString<uint64_t>( ( uint64_t ) mt->_deviceAddress )
-         + toString<size_t>( mt->_size ) );
+         + toString<size_t>( mt->_len * mt->_count ) );
 #endif
 
-   GPUDevice::copyInAsyncToDevice( mt->_deviceAddress, pinned, mt->_size );
+   GPUDevice::copyInAsyncToDevice( mt->_deviceAddress, pinned, mt->_len, mt->_count, mt->_ld );
 
    evt->setPending();
 

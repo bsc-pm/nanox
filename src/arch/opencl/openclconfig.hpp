@@ -52,7 +52,7 @@ public:
   
 private:
   static void prepare( Config &cfg );
-  static void apply( OpenCLPlugin const* plugin );
+  static void apply( const std::string devTypeIn, std::map<cl_device_id, cl_context>* devices );
 
 private:
   // These properties contains raw info set by the user.

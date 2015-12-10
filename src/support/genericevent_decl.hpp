@@ -168,6 +168,41 @@ namespace nanos
    }
 
 
+   /* !\brief Action that calls a static function with 5 parameters
+    */
+   template <typename T, typename U, typename V, typename W, typename X>
+   struct ActionFunPtr5 : public Action
+   {
+      public:
+         typedef void ( *FunPtr5 )( T, U, V, W, X );
+
+      private:
+         FunPtr5 _fptr;
+         T _param1;
+         U _param2;
+         V _param3;
+         W _param4;
+         X _param5;
+
+      public:
+         ActionFunPtr5 ( FunPtr5 fptr, T param1, U param2, V param3, W param4, X param5 ) :
+            _fptr( fptr ), _param1( param1 ), _param2( param2 ), _param3( param3 ),
+            _param4( param4 ), _param5( param5 ) {}
+         virtual void run() { _fptr( _param1, _param2, _param3, _param4, _param5 ); }
+
+   };
+
+   /* !\brief Wrapper for static functions with 5 parameters
+    */
+   template <typename Param1, typename Param2, typename Param3, typename Param4, typename Param5>
+   Action * new_action( void ( *fun )( Param1, Param2, Param3, Param4, Param5 ), Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5 );
+
+   template <typename Param1, typename Param2, typename Param3, typename Param4, typename Param5>
+   Action * new_action( void ( *fun )( Param1, Param2, Param3, Param4, Param5 ), Param1 p1, Param2 p2, Param3 p3, Param4 p4, Param5 p5 )
+   {
+      return NEW ActionFunPtr5<Param1, Param2, Param3, Param4, Param5>( fun, p1, p2, p3, p4, p5 );
+   }
+
    /****** Actions with member functions (non-static) and wrappers ******/
 
    /* !\brief Action that calls a member function with no parameters

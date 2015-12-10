@@ -30,13 +30,31 @@
 #endif
 
 namespace nanos {
-MemController::MemController( WD &wd ) : _initialized( false ), _preinitialized(false), _inputDataReady(false),
-      _outputDataReady(false), _memoryAllocated( false ),
-      _mainWd( false ), _wd( wd ), _pe( NULL ), _provideLock(), _providedRegions(), _affinityScore( 0 ),
-      _maxAffinityScore( 0 ), _ownedRegions(), _parentRegions() {
+MemController::MemController( WD &wd ) : 
+   _initialized( false )
+   , _preinitialized( false )
+   , _inputDataReady( false )
+   , _outputDataReady( false )
+   , _memoryAllocated( false )
+   , _mainWd( false )
+   , _wd( wd )
+   , _pe( NULL )
+   , _provideLock()
+   , _providedRegions()
+   , _inOps( NULL )
+   , _outOps( NULL )
+   , _affinityScore( 0 )
+   , _maxAffinityScore( 0 )
+   , _ownedRegions()
+   , _parentRegions() {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
+}
+
+MemController::~MemController() {
+   delete _inOps;
+   delete _outOps;
 }
 
 bool MemController::ownsRegion( global_reg_t const &reg ) {

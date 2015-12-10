@@ -17,41 +17,43 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos-gpu.h"
-#include "gpudd.hpp"
-#include "gpuprocessor.hpp"
+#include "plugin.hpp"
+#include "system_decl.hpp"
 
-using namespace nanos;
+#include <iostream>
 
-NANOS_API_DEF(void *, nanos_gpu_factory, ( void *args ))
+#include <cuda_runtime.h>
+
+#ifdef NANOS_GPU_USE_CUDA32
+// Cannot include cublas.h, as the redeclaration of two CUBLAS functions makes the
+// compiler crash because we are treating warnings as errors
+//#include <cublas.h>
+extern void cusparseInit();
+#else
+#include <cusparse.h>
+#endif
+
+
+namespace nanos {
+namespace ext {
+
+class GPUCusparsePlugin : public Plugin
 {
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * ) NEW ext::GPUDD( smp->outline );
+   public:
+      GPUCusparsePlugin() : Plugin( "cuSPARSE Warmup Plugin", 1 ) {}
+
+      void config( Config& cfg ) {}
+
+      void init()
+      {
+#ifdef NANOS_GPU_USE_CUDA32
+         cusparseInit();
+#endif
+         cudaFree( NULL );
+      }
+};
+
+}
 }
 
-
-NANOS_API_DEF( cudaStream_t, nanos_get_kernel_execution_stream, ( void ) )
-{
-   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
-}
-
-NANOS_API_DEF( cublasHandle_t, nanos_get_cublas_handle, ( void ) )
-{
-   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUBLASHandle();
-}
-
-NANOS_API_DEF( cusparseHandle_t, nanos_get_cusparse_handle, ( void ) )
-{
-   return ( cusparseHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUSPARSEHandle();
-}
-
-NANOS_API_DEF( void *, nanos_malloc_pinned_cuda, ( size_t size ) )
-{
-   return sys.getPinnedAllocatorCUDA().allocate( size );
-}
-
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
-{
-   return sys.getPinnedAllocatorCUDA().free( address );
-}
-
+DECLARE_PLUGIN("arch-gpucusparse",nanos::ext::GPUCusparsePlugin);

@@ -51,6 +51,8 @@ inline void BaseDependenciesDomain::dependOnLastWriter ( DependableObject &depOb
                                                          BaseDependency const &target, SchedulePolicySuccessorFunctor* callback, AccessType const &accessType )
 {
    DependableObject *lastWriter = status.getLastWriter();
+   if ( lastWriter == &depObj) return;
+
    if ( lastWriter != NULL ) {
       SyncLockBlock lck( lastWriter->getLock() );
       if ( status.getLastWriter() == lastWriter ) {
@@ -116,6 +118,8 @@ inline void BaseDependenciesDomain::dependOnReaders( DependableObject &depObj, T
    SyncLockBlock lock4( status.getReadersLock() );
    for ( TrackableObject::DependableObjectList::iterator i = readersList.begin(); i != readersList.end(); i++) {
       DependableObject * predecessorReader = *i;
+      if ( predecessorReader == &depObj ) continue;
+
       SyncLockBlock lock5(predecessorReader->getLock());
 
       // new instrument event: dependence predecessorReader -> depObj
