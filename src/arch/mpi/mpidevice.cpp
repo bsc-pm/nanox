@@ -95,7 +95,7 @@ void MPIDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
     //std::cerr << "Fin free\n";
 }
 
-size_t MPIDevice::getMemCapacity( SeparateMemoryAddressSpace const &mem ) const{
+size_t MPIDevice::getMemCapacity( SeparateMemoryAddressSpace &mem ) {
     //MAXSIZE-1
     return (size_t)-1;
 }
