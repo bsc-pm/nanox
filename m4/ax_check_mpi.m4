@@ -156,16 +156,18 @@ AS_IF([test $mpi = yes],[
                    [mpi=no])dnl
   ])dnl
 
-  # Look for MPI::Comm::Comm() function in libmpicxx, libmpi_cxx or libmpichcxx libraries
+  # Look for MPI::Comm::Disconnect() function in libmpicxx, libmpi_cxx or libmpichcxx libraries
   AS_IF([test x$mpi == xyes],[
-    AC_SEARCH_LIBS([_ZN3MPI4CommD0Ev],
-                   [mpichcxx mpi_cxx],
+    AC_SEARCH_LIBS([_ZN3MPI4Comm10DisconnectEv],
+                   [mpichcxx mpicxx mpi_cxx],
                    [mpi=yes;break],
                    [mpi=no])dnl
   ])dnl
   
   # If one of the previous tests were not satisfied, exit with an error message.
-  AS_IF([test x$mpi != xyes],[
+  AS_IF([test x$mpi = xyes],[
+    ARCHITECTURES="$ARCHITECTURES mpi"
+  ],[
       AC_MSG_ERROR([
 ------------------------------
 MPI path was not correctly specified. 
