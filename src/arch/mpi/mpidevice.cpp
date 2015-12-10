@@ -125,7 +125,7 @@ void * MPIDevice::realloc(void *address, size_t size, size_t old_size, Processin
 /* \brief Copy from remoteSrc in the host to localDst in the device
  *        Returns true if the operation is synchronous
  */
-void MPIDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const {
+void MPIDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYIN_SYNC_EVENT);
     //std::cerr << "Inicio copyin\n";
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) &mem.getConstPE();
@@ -151,7 +151,7 @@ void MPIDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
 /* \brief Copy from localSrc in the device to remoteDst in the host
  *        Returns true if the operation is synchronous
  */
-void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const {
+void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYOUT_SYNC_EVENT);
     nanos::ext::MPIProcessor * myPE = (nanos::ext::MPIProcessor *) &mem.getConstPE();
     cacheOrder order;
@@ -193,7 +193,7 @@ void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
 //}
 
 
-bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) const {
+bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYDEV2DEV_SYNC_EVENT);
     //This will never be another PE type which is not MPI (or something is broken in core :) )
     nanos::ext::MPIProcessor * src = (nanos::ext::MPIProcessor *) &memOrig.getConstPE();
