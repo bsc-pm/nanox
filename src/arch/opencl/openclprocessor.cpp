@@ -1007,8 +1007,6 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
    yLimit = workDim > 1 ? _devPerfInfo.getMaxWorkGroup() : multiplePreferred;
    zLimit = workDim > 2 ? _devPerfInfo.getMaxWorkGroup() : multiplePreferred;
 
-   const unsigned int limitBase = multiplePreferred*std::pow(2,workDim-1);
-
    debug( " [OpenCL][Profiling] yLimit = " + toString(yLimit) + " - zLimit = " + toString(zLimit) +
          " - multiplePreferred = " + toString(multiplePreferred) );
 

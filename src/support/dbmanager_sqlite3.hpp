@@ -33,7 +33,7 @@ class SQLite3DbManager : public DbManager {
    sqlite3 *_db;
    std::vector <sqlite3_stmt*> _stmtVector;
 public:
-   SQLite3DbManager() : _db(NULL), _isOpen(false) {}
+   SQLite3DbManager() : _isOpen(false), _db(NULL)  {}
 
    ~SQLite3DbManager();
 
