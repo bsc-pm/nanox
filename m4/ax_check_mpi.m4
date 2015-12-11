@@ -274,6 +274,7 @@ Maximun multithread level supported: $ac_cv_mpi_mt
     [*"-lmpicxx "*"-lmpi"*],     [mpi_implementation=openmpi],
     [mpi_implementation=none]
   )
+  AC_DEFINE([MPICH_IGNORE_CXX_SEEK],[],[Ignore cxx seek errors when including mpi.h in C++])
   AC_DEFINE_UNQUOTED([MPI_IMPLEMENTATION],[$mpi_implementation],
     [Identifies which MPI implementation is being used. Supported values: intel, mpich, openmpi])
 
