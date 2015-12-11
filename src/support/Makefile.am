@@ -220,7 +220,7 @@ debug_libsupport_la_CPPFLAGS=$(common_debug_CPPFLAGS) @dlbinc@ @cudainc@ @sqlite
 debug_libsupport_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libsupport_la_SOURCES=$(support_sources) $(debug_sources) $(gpu_support_sources)
 debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
-debug_libsupport_la_LIBADD=@dlb_dbg@ @cudalibs@ @sqlite3libs@
+debug_libsupport_la_LIBADD=@dlb_dbg@ @sqlite3libs@
 endif
 
 if is_instrumentation_debug_enabled
@@ -230,7 +230,7 @@ instrumentation_debug_libsupport_la_CPPFLAGS=$(common_instrumentation_debug_CPPF
 instrumentation_debug_libsupport_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libsupport_la_SOURCES=$(support_sources) $(instrumentation_debug_sources) $(gpu_support_sources)
 instrumentation_debug_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
-instrumentation_debug_libsupport_la_LIBADD=@dlb_instr_dbg@ @cudalibs@ @sqlite3libs@
+instrumentation_debug_libsupport_la_LIBADD=@dlb_instr_dbg@ @sqlite3libs@
 endif
 
 if is_instrumentation_enabled
@@ -240,7 +240,7 @@ instrumentation_libsupport_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @dlbin
 instrumentation_libsupport_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libsupport_la_SOURCES=$(support_sources) $(instrumentation_sources) $(gpu_support_sources)
 instrumentation_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
-instrumentation_libsupport_la_LIBADD=@dlb_instr@ @cudalibs@ @sqlite3libs@
+instrumentation_libsupport_la_LIBADD=@dlb_instr@ @sqlite3libs@
 endif
 
 if is_performance_enabled
@@ -250,6 +250,6 @@ performance_libsupport_la_CPPFLAGS=$(common_performance_CPPFLAGS) @dlbinc@ @cuda
 performance_libsupport_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libsupport_la_SOURCES=$(support_sources) $(performance_sources) $(gpu_support_sources)
 performance_libsupport_la_LDFLAGS=$(AM_LDFLAGS) @dlblib@ @cudalib@ @sqlite3lib@
-performance_libsupport_la_LIBADD=@dlb@ @cudalibs@ @sqlite3libs@
+performance_libsupport_la_LIBADD=@dlb@ @sqlite3libs@
 endif
 
