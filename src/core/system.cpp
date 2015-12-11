@@ -178,7 +178,7 @@ void System::loadArchitectures()
 
    verbose0( "Architectures loaded");
 
-#ifdef MPI_DEV
+#ifdef HAVE_MPI_H
    char* isOffloadSlave = getenv(const_cast<char*> ("OMPSS_OFFLOAD_SLAVE")); 
    //Plugin->init of MPI will initialize MPI when we are slaves so MPI spawn returns ASAP in the master
    //This plugin does not reserve any PE at initialization time, just perform MPI Init and other actions
@@ -1488,7 +1488,7 @@ namespace {
 //If someone needs argc and argv, it may be possible, but then a fortran 
 //main should be done too
 void System::ompss_nanox_main(void *addr, const char* file, int line){
-    #ifdef MPI_DEV
+    #ifdef HAVE_MPI_H
     if (getenv("OMPSS_OFFLOAD_SLAVE")){
         //Plugin->init of MPI will do everything and then exit(0)
         sys.loadPlugin("arch-mpi");
