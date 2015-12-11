@@ -86,15 +86,15 @@ if is_debug_enabled
 	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/debug_flags
 endif
 if is_instrumentation_enabled
-	echo -n "${common_instrumentation_CPPFLAGS} -I$(DESTDIR)$(mpiincludedir) ${common_instrumentation_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g s/config.h/nanos-config.h/" > $(DESTDIR)$(mpiincludedir)/instrumentation_flags
+	echo -n "${common_instrumentation_CPPFLAGS} -I$(DESTDIR)$(mpiincludedir) ${common_instrumentation_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g; s/config.h/nanos-config.h/" > $(DESTDIR)$(mpiincludedir)/instrumentation_flags
 	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_flags
 endif
 if is_instrumentation_debug_enabled
-	echo -n "${common_instrumentation_debug_CPPFLAGS} -I$(DESTDIR)$(mpiincludedir) ${common_instrumentation_debug_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g s/config.h/nanos-config.h/" > $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
+	echo -n "${common_instrumentation_debug_CPPFLAGS} -I$(DESTDIR)$(mpiincludedir) ${common_instrumentation_debug_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g; s/config.h/nanos-config.h/" > $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
 	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/instrumentation_debug_flags
 endif
 if is_performance_enabled
-	echo -n "${common_performance_CPPFLAGS} -I$(DESTDIR)$(mpiincludedir) ${common_performance_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g s/config.h/nanos-config.h/" > $(DESTDIR)$(mpiincludedir)/performance_flags
+	echo -n "${common_performance_CPPFLAGS} -I$(DESTDIR)$(mpiincludedir) ${common_performance_CXXFLAGS}" | sed "s@${top_srcdir}@${abs_top_srcdir}@g; s/config.h/nanos-config.h/" > $(DESTDIR)$(mpiincludedir)/performance_flags
 	echo " -DMPICH_IGNORE_CXX_SEEK -I${devincludedir} -DNANOX_PREFIX=\"$(prefix)\"" >> $(DESTDIR)$(mpiincludedir)/performance_flags
 endif
 
