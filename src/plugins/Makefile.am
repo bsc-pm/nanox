@@ -25,9 +25,14 @@ instrumentation_debug_LTLIBRARIES =
 performance_LTLIBRARIES =
 
 devinclude_HEADERS=\
-	instrumentation/ompt_api.h \
-	instrumentation/ompt_callbacks.h \
-	instrumentation/ompt_types.h \
+	instrumentation/ompt-headers/ompt.h \
+	instrumentation/ompt-headers/ompt-api.h \
+	instrumentation/ompt-headers/ompt-events.h \
+	instrumentation/ompt-headers/ompt-initialize.h \
+	instrumentation/ompt-headers/ompt-records.h \
+	instrumentation/ompt-headers/ompt-states.h \
+	instrumentation/ompt-headers/ompt-types.h \
+	instrumentation/ompt-headers/ompt-types-callbacks.h \
 	$(END)
 
 
@@ -847,9 +852,14 @@ tdg_sources=\
 
 ompt_sources=\
     instrumentation/ompt.cpp \
-    instrumentation/ompt_api.h \
-    instrumentation/ompt_callbacks.h \
-    instrumentation/ompt_types.h \
+	instrumentation/ompt-headers/ompt.h \
+	instrumentation/ompt-headers/ompt-api.h \
+	instrumentation/ompt-headers/ompt-events.h \
+	instrumentation/ompt-headers/ompt-initialize.h \
+	instrumentation/ompt-headers/ompt-records.h \
+	instrumentation/ompt-headers/ompt-states.h \
+	instrumentation/ompt-headers/ompt-types.h \
+	instrumentation/ompt-headers/ompt-types-callbacks.h \
     $(END)
 
 if instrumentation_EXTRAE
@@ -960,7 +970,7 @@ instrumentation_libnanox_instrumentation_nextsim_la_LDFLAGS=$(AM_LDFLAGS) $(ld_p
 instrumentation_libnanox_instrumentation_nextsim_la_SOURCES=$(nextsim_sources)
 endif
 
-instrumentation_libnanox_instrumentation_ompt_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
+instrumentation_libnanox_instrumentation_ompt_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) -I$(top_srcdir)/src/plugins/instrumentation/ompt-headers
 instrumentation_libnanox_instrumentation_ompt_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libnanox_instrumentation_ompt_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags)
 instrumentation_libnanox_instrumentation_ompt_la_SOURCES=$(ompt_sources)
