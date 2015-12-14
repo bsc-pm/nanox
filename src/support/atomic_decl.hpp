@@ -20,10 +20,6 @@
 #ifndef _NANOS_ATOMIC_DECL
 #define _NANOS_ATOMIC_DECL
 
-#ifdef HAVE_CONFIG_H
-   #include <config.h>
-#endif
-
 #include "compatibility.hpp"
 #include "nanos-int.h"
 #include <algorithm> // for min/max
