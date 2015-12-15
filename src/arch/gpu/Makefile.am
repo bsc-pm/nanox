@@ -83,6 +83,10 @@ pe_gpu_sources = \
 gpu_cublas_sources = \
 	gpucublasplugin.cpp \
 	$(END)
+
+gpu_cusparse_sources = \
+	gpucusparseplugin.cpp \
+	$(END)
 	
 noinst_LTLIBRARIES =
 debug_LTLIBRARIES =
@@ -92,7 +96,7 @@ performance_LTLIBRARIES =
 
 if is_debug_enabled
 noinst_LTLIBRARIES += debug/libgpu.la
-debug_LTLIBRARIES += debug/libnanox-gpu-api.la debug/libnanox-pe-gpu.la debug/libnanox-gpu-cublas.la
+debug_LTLIBRARIES += debug/libnanox-gpu-api.la debug/libnanox-pe-gpu.la debug/libnanox-gpu-cublas.la debug/libnanox-gpu-cusparse.la
 
 debug_libgpu_la_CPPFLAGS=$(common_debug_CPPFLAGS) @cudainc@
 debug_libgpu_la_CXXFLAGS=$(common_debug_CXXFLAGS)
@@ -117,11 +121,17 @@ debug_libnanox_gpu_cublas_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libnanox_gpu_cublas_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
 debug_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 debug_libnanox_gpu_cublas_la_LIBADD=@cudalibs@
+
+debug_libnanox_gpu_cusparse_la_CPPFLAGS=$(common_debug_CPPFLAGS) @cudainc@
+debug_libnanox_gpu_cusparse_la_CXXFLAGS=$(common_debug_CXXFLAGS)
+debug_libnanox_gpu_cusparse_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
+debug_libnanox_gpu_cusparse_la_SOURCES=$(gpu_cusparse_sources)
+debug_libnanox_gpu_cusparse_la_LIBADD=@cudalibs@
 endif
 
 if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libgpu.la
-instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-gpu-api.la instrumentation-debug/libnanox-pe-gpu.la instrumentation-debug/libnanox-gpu-cublas.la
+instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-gpu-api.la instrumentation-debug/libnanox-pe-gpu.la instrumentation-debug/libnanox-gpu-cublas.la instrumentation-debug/libnanox-gpu-cusparse.la
 
 instrumentation_debug_libgpu_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @cudainc@
 instrumentation_debug_libgpu_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
@@ -146,11 +156,17 @@ instrumentation_debug_libnanox_gpu_cublas_la_CXXFLAGS=$(common_instrumentation_d
 instrumentation_debug_libnanox_gpu_cublas_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
 instrumentation_debug_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 instrumentation_debug_libnanox_gpu_cublas_la_LIBADD=@cudalibs@
+
+instrumentation_debug_libnanox_gpu_cusparse_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @cudainc@
+instrumentation_debug_libnanox_gpu_cusparse_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
+instrumentation_debug_libnanox_gpu_cusparse_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
+instrumentation_debug_libnanox_gpu_cusparse_la_SOURCES=$(gpu_cusparse_sources)
+instrumentation_debug_libnanox_gpu_cusparse_la_LIBADD=@cudalibs@
 endif
 
 if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libgpu.la
-instrumentation_LTLIBRARIES += instrumentation/libnanox-gpu-api.la instrumentation/libnanox-pe-gpu.la instrumentation/libnanox-gpu-cublas.la
+instrumentation_LTLIBRARIES += instrumentation/libnanox-gpu-api.la instrumentation/libnanox-pe-gpu.la instrumentation/libnanox-gpu-cublas.la instrumentation/libnanox-gpu-cusparse.la
 
 instrumentation_libgpu_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @cudainc@
 instrumentation_libgpu_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
@@ -175,11 +191,17 @@ instrumentation_libnanox_gpu_cublas_la_CXXFLAGS=$(common_instrumentation_CXXFLAG
 instrumentation_libnanox_gpu_cublas_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
 instrumentation_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 instrumentation_libnanox_gpu_cublas_la_LIBADD=@cudalibs@
+
+instrumentation_libnanox_gpu_cusparse_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @cudainc@
+instrumentation_libnanox_gpu_cusparse_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
+instrumentation_libnanox_gpu_cusparse_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
+instrumentation_libnanox_gpu_cusparse_la_SOURCES=$(gpu_cusparse_sources)
+instrumentation_libnanox_gpu_cusparse_la_LIBADD=@cudalibs@
 endif
 
 if is_performance_enabled
 noinst_LTLIBRARIES += performance/libgpu.la
-performance_LTLIBRARIES += performance/libnanox-gpu-api.la performance/libnanox-pe-gpu.la performance/libnanox-gpu-cublas.la
+performance_LTLIBRARIES += performance/libnanox-gpu-api.la performance/libnanox-pe-gpu.la performance/libnanox-gpu-cublas.la performance/libnanox-gpu-cusparse.la
 
 performance_libgpu_la_CPPFLAGS=$(common_performance_CPPFLAGS) @cudainc@
 performance_libgpu_la_CXXFLAGS=$(common_performance_CXXFLAGS)
@@ -204,5 +226,11 @@ performance_libnanox_gpu_cublas_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libnanox_gpu_cublas_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
 performance_libnanox_gpu_cublas_la_SOURCES=$(gpu_cublas_sources)
 performance_libnanox_gpu_cublas_la_LIBADD=@cudalibs@
+
+performance_libnanox_gpu_cusparse_la_CPPFLAGS=$(common_performance_CPPFLAGS) @cudainc@
+performance_libnanox_gpu_cusparse_la_CXXFLAGS=$(common_performance_CXXFLAGS)
+performance_libnanox_gpu_cusparse_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @cudalib@
+performance_libnanox_gpu_cusparse_la_SOURCES=$(gpu_cusparse_sources)
+performance_libnanox_gpu_cusparse_la_LIBADD=@cudalibs@
 endif
 

@@ -17,41 +17,17 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos-gpu.h"
-#include "gpudd.hpp"
-#include "gpuprocessor.hpp"
+#ifndef OMPT_H_INCLUDED
+#define OMPT_H_INCLUDED
 
-using namespace nanos;
+#include <stdint.h>
 
-NANOS_API_DEF(void *, nanos_gpu_factory, ( void *args ))
-{
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * ) NEW ext::GPUDD( smp->outline );
-}
+#include "ompt-types.h"
+#include "ompt-events.h"
+#include "ompt-types-callbacks.h"
+#include "ompt-records.h"
+#include "ompt-states.h"
+#include "ompt-api.h"
+#include "ompt-initialize.h"
 
-
-NANOS_API_DEF( cudaStream_t, nanos_get_kernel_execution_stream, ( void ) )
-{
-   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
-}
-
-NANOS_API_DEF( cublasHandle_t, nanos_get_cublas_handle, ( void ) )
-{
-   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUBLASHandle();
-}
-
-NANOS_API_DEF( cusparseHandle_t, nanos_get_cusparse_handle, ( void ) )
-{
-   return ( cusparseHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUSPARSEHandle();
-}
-
-NANOS_API_DEF( void *, nanos_malloc_pinned_cuda, ( size_t size ) )
-{
-   return sys.getPinnedAllocatorCUDA().allocate( size );
-}
-
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
-{
-   return sys.getPinnedAllocatorCUDA().free( address );
-}
-
+#endif /* OMPT_H_INCLUDED */

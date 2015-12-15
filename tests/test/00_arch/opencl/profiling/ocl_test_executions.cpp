@@ -27,7 +27,9 @@ test_schedule=bf
 
 #include "assert.h"
 #include <iostream>
+#include <map>
 #include "openclprocessor.hpp"
+#include "openclprofiler.hpp"
 
 using namespace std;
 using namespace nanos;
@@ -39,45 +41,47 @@ int main()
   ::OpenCLAdapter *openCLAdapter;
   openCLAdapter = new ::OpenCLAdapter();
 
-  cl_kernel kernel1 = (cl_kernel) 1111;
+  std::string kernelName1 = "kernel1";
 
-  ::Execution *execution1, *execution2, *execution3;
-  execution1 = new ::Execution(3,1,2,3,10);
-  execution2 = new ::Execution(3,1,2,3,5);
-  execution3 = new ::Execution(3,1,2,3,1);
+  Execution execution1(3,1,2,3,10,0,0,0,false,false);
+  Execution execution2(3,1,2,3,5,0,0,0,false,false);
+  Execution execution3(3,1,2,3,1,0,0,0,false,false);
 
-  std::map<cl_kernel,OpenCLAdapter::DimsBest> bestExec;
-  std::map<cl_kernel,OpenCLAdapter::DimsExecutions> nExec;
+  std::map<std::string,DimsBest> bestExec;
+  std::map<std::string,DimsExecutions> nExec;
 
   ::Dims dims1(3,2,4,8,1.0);
 
-  ::OpenCLAdapter::DimsBest dims1Best;
+  DimsBest dims1Best;
 
   /* Begin testing */
 
   assert(openCLAdapter->getBestExec().size() == 0);
   // Several updates
-  openCLAdapter->updateProfiling(kernel1, execution1/* 10 */, dims1); // Add one execution
+  openCLAdapter->updateProfStats(kernelName1, dims1, execution1/* 10 */); // Add one execution
   assert(openCLAdapter->getBestExec().size() == 1);
   bestExec = openCLAdapter->getBestExec();
   nExec = openCLAdapter->getExecutions();
-  dims1Best = bestExec[kernel1];
+  dims1Best = bestExec[kernelName1];
   assert(dims1Best.size() == 1);
-  assert(dims1Best[dims1]->getTime() == 10);
+  assert(dims1Best[dims1].getTime() == 10);
 
-  openCLAdapter->updateProfiling(kernel1, execution3/* 1 */, dims1); // Add one execution (better->update)
+  openCLAdapter->updateProfStats(kernelName1, dims1, execution3/* 1 */); // Add one execution (better->update)
   bestExec = openCLAdapter->getBestExec();
-  dims1Best = bestExec[kernel1];
-  assert(dims1Best[dims1]->getTime() == 1);
+  dims1Best = bestExec[kernelName1];
+  assert(dims1Best[dims1].getTime() == 1);
 
-  openCLAdapter->updateProfiling(kernel1, execution2/* 5 */, dims1); // Add one execution (worse->no update)
+  openCLAdapter->updateProfStats(kernelName1, dims1, execution2/* 5 */); // Add one execution (worse->no update)
   bestExec = openCLAdapter->getBestExec();
-  dims1Best = bestExec[kernel1];
-  assert(dims1Best[dims1]->getTime() == 1);
+  dims1Best = bestExec[kernelName1];
+  assert(dims1Best[dims1].getTime() == 1);
 
   /* End testing */
 
-  delete execution3;
+  // delete openCLAdapter;
+  /*
+   * OpenCLAdapter was not initialized, thus the destructor will try to release memory not allocated
+   */
 
   return 0;
 }

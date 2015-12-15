@@ -20,10 +20,6 @@
 #ifndef _NANOS_SCHEDULE_DECL_H
 #define _NANOS_SCHEDULE_DECL_H
 
-#ifdef HAVE_CONFIG_H
-  #include <config.h>
-#endif
-
 #include <stddef.h>
 #include <string>
 

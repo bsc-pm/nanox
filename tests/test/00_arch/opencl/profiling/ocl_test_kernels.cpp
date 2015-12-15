@@ -27,7 +27,9 @@ test_schedule=bf
 
 #include "assert.h"
 #include <iostream>
+#include <map>
 #include "openclprocessor.hpp"
+#include "openclprofiler.hpp"
 
 using namespace std;
 using namespace nanos;
@@ -39,43 +41,44 @@ int main()
   ::OpenCLAdapter *openCLAdapter;
   openCLAdapter = new ::OpenCLAdapter();
 
-  cl_kernel kernel1 = (cl_kernel) 1111;
-  cl_kernel kernel2 = (cl_kernel) 2222;
+  std::string kernel1 = "kernel1";
+  std::string kernel2 = "kernel2";
 
-  ::Execution *execution1, *execution2;
-  execution1 = new ::Execution(3,1,2,3,10);
-  execution2 = new ::Execution(3,1,2,3,5);
+  Execution execution1(3,1,2,3,10,0,0,0,false,false);
+  Execution execution2(3,1,2,3,5,0,0,0,false,false);
 
-  std::map<cl_kernel,OpenCLAdapter::DimsBest> bestExec;
-  std::map<cl_kernel,OpenCLAdapter::DimsExecutions> nExec;
+  std::map<std::string,DimsBest> bestExec;
+  std::map<std::string,DimsExecutions> nExec;
 
   ::Dims dims1(3,2,4,8,1.0);
   ::Dims dims2(3,8,4,2,1.0);
 
-  ::OpenCLAdapter::DimsBest dims1Best;
+  DimsBest dims1Best;
 
   /* Begin testing */
 
   assert(openCLAdapter->getBestExec().size() == 0);
   // Several kernels
-  openCLAdapter->updateProfiling(kernel1, execution1/* 10 */, dims1); // Add one execution
+  openCLAdapter->updateProfStats(kernel1, dims1, execution1/* 10 */); // Add one execution
   assert(openCLAdapter->getBestExec().size() == 1);
   bestExec = openCLAdapter->getBestExec();
   nExec = openCLAdapter->getExecutions();
   dims1Best = bestExec[kernel1];
   assert(dims1Best.size() == 1);
-  assert(dims1Best[dims1]->getTime() == 10);
+  assert(dims1Best[dims1].getTime() == 10);
 
-  openCLAdapter->updateProfiling(kernel2, execution2/* 5 */, dims2); // Add one execution
+  openCLAdapter->updateProfStats(kernel2, dims2, execution2/* 5 */); // Add one execution
   assert(openCLAdapter->getBestExec().size() == 2);
   bestExec = openCLAdapter->getBestExec();
   dims1Best = bestExec[kernel2];
-  assert(dims1Best[dims2]->getTime() == 5);
+  assert(dims1Best[dims2].getTime() == 5);
 
   /* End testing */
 
-  delete execution1;
-  delete execution2;
+  // delete openCLAdapter;
+  /*
+   * OpenCLAdapter was not initialized, thus the destructor will try to release memory not allocated
+   */
 
   return 0;
 }

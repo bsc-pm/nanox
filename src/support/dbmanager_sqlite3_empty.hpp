@@ -17,41 +17,29 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos-gpu.h"
-#include "gpudd.hpp"
-#include "gpuprocessor.hpp"
+#ifndef SQLITE3DBMANAGER_HPP_
+#define SQLITE3DBMANAGER_HPP_
 
-using namespace nanos;
+#include "dbmanager.hpp"
 
-NANOS_API_DEF(void *, nanos_gpu_factory, ( void *args ))
-{
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * ) NEW ext::GPUDD( smp->outline );
+namespace nanos {
+
+class SQLite3DbManager : public DbManager {
+public:
+   SQLite3DbManager();
+   bool openConnection(const std::string &databaseName);
+   bool openConnection();
+   bool closeConnection();
+   unsigned int prepareStmt(const std::string &stmt);
+   void bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value);
+   void bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value);
+   int getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex);
+   bool doStep(const unsigned int stmtNumber);
+private:
+   void sqlCheck(const int err, const std::string &msg);
+   void cleanPreparedStmts();
+};
+
 }
 
-
-NANOS_API_DEF( cudaStream_t, nanos_get_kernel_execution_stream, ( void ) )
-{
-   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
-}
-
-NANOS_API_DEF( cublasHandle_t, nanos_get_cublas_handle, ( void ) )
-{
-   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUBLASHandle();
-}
-
-NANOS_API_DEF( cusparseHandle_t, nanos_get_cusparse_handle, ( void ) )
-{
-   return ( cusparseHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUSPARSEHandle();
-}
-
-NANOS_API_DEF( void *, nanos_malloc_pinned_cuda, ( size_t size ) )
-{
-   return sys.getPinnedAllocatorCUDA().allocate( size );
-}
-
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
-{
-   return sys.getPinnedAllocatorCUDA().free( address );
-}
-
+#endif /* SQLITE3DBMANAGER_HPP_ */

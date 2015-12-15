@@ -17,41 +17,67 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "nanos-gpu.h"
-#include "gpudd.hpp"
-#include "gpuprocessor.hpp"
+#include "dbmanager_sqlite3.hpp"
+#include "debug.hpp"
 
 using namespace nanos;
 
-NANOS_API_DEF(void *, nanos_gpu_factory, ( void *args ))
+SQLite3DbManager::~SQLite3DbManager()
 {
-   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
-   return ( void * ) NEW ext::GPUDD( smp->outline );
+   fatal0("SQLite3DbManager: empty class compiled")
 }
 
-
-NANOS_API_DEF( cudaStream_t, nanos_get_kernel_execution_stream, ( void ) )
+bool SQLite3DbManager::openConnection(const std::string &databaseName)
 {
-   return ( ( nanos::ext::GPUProcessor *) getMyThreadSafe()->runningOn() )->getGPUProcessorInfo()->getKernelExecStream();
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
 }
 
-NANOS_API_DEF( cublasHandle_t, nanos_get_cublas_handle, ( void ) )
+void SQLite3DbManager::cleanPreparedStmts()
 {
-   return ( cublasHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUBLASHandle();
+   fatal0("SQLite3DbManager: empty class compiled")
 }
 
-NANOS_API_DEF( cusparseHandle_t, nanos_get_cusparse_handle, ( void ) )
+bool SQLite3DbManager::openConnection()
 {
-   return ( cusparseHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUSPARSEHandle();
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
 }
 
-NANOS_API_DEF( void *, nanos_malloc_pinned_cuda, ( size_t size ) )
+void SQLite3DbManager::sqlCheck(const int err, const std::string &msg)
 {
-   return sys.getPinnedAllocatorCUDA().allocate( size );
+   fatal0("SQLite3DbManager: empty class compiled")
 }
 
-NANOS_API_DEF( void, nanos_free_pinned_cuda, ( void * address ) )
+bool SQLite3DbManager::closeConnection()
 {
-   return sys.getPinnedAllocatorCUDA().free( address );
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
 }
 
+unsigned int SQLite3DbManager::prepareStmt(const std::string &stmt)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+   return 1;
+}
+
+void SQLite3DbManager::bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
+
+void SQLite3DbManager::bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
+
+int SQLite3DbManager::getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
+
+bool SQLite3DbManager::doStep(const unsigned int stmtNumber)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
+}
