@@ -39,15 +39,16 @@ inline void * TaskReduction::finalize( void )
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 2); )
 	void * result = _original;
 	//For each thread
-   	for ( size_t i=0; i<_num_threads; i++){
-	//Reduce all elements
-		for(size_t j=0; j<_num_elements; j++ )
-		{
-			_reducer( &((char*)_original)[j*_size_element] , & ((char*)(_storage[i]))[j*_size_element]);
-		}
-
-		free(_storage[i]);
-   	}
+        for ( size_t i=0; i<_num_threads; i++) {
+           if ( _storage[i] != NULL ) {
+              //Reduce all elements
+              for( size_t j=0; j<_num_elements; j++ )
+              {
+                 _reducer( &((char*)_original)[j*_size_element] ,& ((char*)(_storage[i]))[j*_size_element]);
+              }
+              free(_storage[i]);
+           }
+        }
    	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
 	return result;
 }
@@ -58,7 +59,7 @@ inline  void * TaskReduction::init( size_t id )
 	_storage[id] = calloc (_num_elements, _size_element);
 	//make sure malloc succeeded
 
-	for(size_t j=0; j<_num_elements; j++ ) {
+	for( size_t j=0; j<_num_elements; j++ ) {
 		_initializer( & ((char*)(_storage)[id])[j*_size_element], _original );
 	}
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
