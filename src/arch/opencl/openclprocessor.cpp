@@ -755,7 +755,6 @@ static void processOpenCLError(cl_int errCode) {
 
 void OpenCLAdapter::execKernel(void* oclKernel, 
                         int workDim, 
-                        size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize)
 {
@@ -783,7 +782,7 @@ void OpenCLAdapter::execKernel(void* oclKernel,
    errCode = clEnqueueNDRangeKernel( _queues[currQueue],
                                        openclKernel,
                                        workDim,
-                                       ndrOffset,
+                                       NULL,
                                        ndrGlobalSize,
                                        ndrLocalSize,
                                        0,
@@ -810,9 +809,6 @@ void OpenCLAdapter::execKernel(void* oclKernel,
 
 void OpenCLAdapter::profileKernel(void* oclKernel,
          int workDim,
-         int range_size,
-         size_t* ndrOffset,
-         size_t* ndrLocalSize,
          size_t* ndrGlobalSize)
 {
    size_t local_work_size[3];
@@ -824,12 +820,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
    debug( " [OpenCL][Profiling] kernel: " + toString( oclKernel ) + ". Profiling configuration:" );
    for ( int i=0; i<workDim; i++ )
    {
-      debug( " [OpenCL][Profiling] Dimension: " + toString( i ) );
-      for ( int j=0; j<range_size; j++ )
-      {
-         debug( " [OpenCL][Profiling]    [" + toString( j ) + "]Global size: " + toString( ndrGlobalSize[i*range_size+j] ) );
-         debug( " [OpenCL][Profiling]    [" + toString( j ) + "]Local size:  " + toString( ndrLocalSize[i*range_size+j] ) );
-      }
+      debug( " [OpenCL][Profiling] Dimension: [" + toString( i ) + "]Global size: " + toString( ndrGlobalSize[i] ) );
    }
 #endif
 
@@ -862,7 +853,7 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
      local_work_size[1] = bestExecution->getLocalY();
      local_work_size[2] = bestExecution->getLocalZ();
      // Do not profile
-     execKernel(oclKernel, workDim, ndrOffset, local_work_size, ndrGlobalSize);
+     execKernel(oclKernel, workDim, local_work_size, ndrGlobalSize);
    }
    else {
       if ( bestExecution )
@@ -872,10 +863,11 @@ void OpenCLAdapter::profileKernel(void* oclKernel,
       debug( " [OpenCL][Profiling] Pre-Prof. wasFinished: " + toString( wasFinished ) );
 
       // Start to profile the kernel
-      if ( false /* manualProfileKernel is working but automaticProfileKernel was chosen by default */ )
+#if 0
+         /* manualProfileKernel is working but automaticProfileKernel was chosen by default */
          manualProfileKernel(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrLocalSize, ndrGlobalSize);
-      else
-         automaticProfileKernel(oclKernel, kernelName, workDim, range_size, cost, dims, ndrOffset, ndrGlobalSize);
+#endif
+         automaticProfileKernel(oclKernel, kernelName, workDim, cost, dims, ndrGlobalSize);
 
       NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_DB_ACCESS );
       bestExecution = getProfStatus(kernelName, dims);
@@ -894,7 +886,6 @@ void OpenCLAdapter::manualProfileKernel( void* oclKernel,
          int range_size,
          const double cost,
          Dims &dims,
-         size_t* ndrOffset,
          size_t* ndrLocalSize,
          size_t* ndrGlobalSize)
 {
@@ -918,7 +909,7 @@ void OpenCLAdapter::manualProfileKernel( void* oclKernel,
          {
             local_work_size[0] = ndrLocalSize[x];
             global_work_size[0] = ndrGlobalSize[x];
-            executionTmp.setTime(singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size));
+            executionTmp.setTime(singleExecKernel(oclKernel, workDim, local_work_size, global_work_size));
             executionTmp.setLocalX(local_work_size[0]);
             executionTmp.setLocalY(local_work_size[1]);
             executionTmp.setLocalZ(local_work_size[2]);
@@ -934,10 +925,8 @@ void OpenCLAdapter::manualProfileKernel( void* oclKernel,
 void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
                                        std::string kernelName,
                                        int workDim,
-                                       int range_size,
                                        const double cost,
                                        Dims &dims,
-                                       size_t* ndrOffset,
                                        size_t* ndrGlobalSize)
 {
    size_t local_work_size[3], global_work_size[3];
@@ -1016,17 +1005,17 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
    {
       if ( multiplePreferred*z<=zLimit ) {
          local_work_size[2] = multiplePreferred*z;
-         global_work_size[2] = ndrGlobalSize[2*range_size];
+         global_work_size[2] = ndrGlobalSize[2];
          if ( multiplePreferred*y<=yLimit ) {
             local_work_size[1] = multiplePreferred*y;
-            global_work_size[1] = ndrGlobalSize[1*range_size];
+            global_work_size[1] = ndrGlobalSize[1];
             if ( (multiplePreferred*x<=_devPerfInfo.getMaxWorkGroup()) &&
                  (std::pow(multiplePreferred,workDim)*x*y*z <= _devPerfInfo.getMaxWorkGroup()) ) {
                local_work_size[0] = multiplePreferred*x;
-               global_work_size[0] = ndrGlobalSize[0*range_size];
+               global_work_size[0] = ndrGlobalSize[0];
 
                if ( wgChecker(global_work_size, local_work_size, workDim) ) {
-                  executionTmp.setTime(singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size));
+                  executionTmp.setTime(singleExecKernel(oclKernel, workDim, local_work_size, global_work_size));
                   executionTmp.setLocalX(local_work_size[0]);
                   executionTmp.setLocalY(local_work_size[1]);
                   executionTmp.setLocalZ(local_work_size[2]);
@@ -1054,10 +1043,10 @@ void OpenCLAdapter::automaticProfileKernel(void* oclKernel,
          local_work_size[0] = executionTmp.getLocalX();
          local_work_size[1] = executionTmp.getLocalY();
          local_work_size[2] = executionTmp.getLocalZ();
-         global_work_size[0] = ndrGlobalSize[0*range_size];
-         global_work_size[1] = ndrGlobalSize[1*range_size];
-         global_work_size[2] = ndrGlobalSize[2*range_size];
-         singleExecKernel(oclKernel, workDim, ndrOffset, local_work_size, global_work_size);
+         global_work_size[0] = ndrGlobalSize[0];
+         global_work_size[1] = ndrGlobalSize[1];
+         global_work_size[2] = ndrGlobalSize[2];
+         singleExecKernel(oclKernel, workDim, local_work_size, global_work_size);
          debug( " [OpenCL][Profiling] Finished" );
       }
    }
@@ -1087,7 +1076,6 @@ Execution* OpenCLAdapter::getProfStatus(std::string &kernelName, Dims &dims)
 
 cl_ulong OpenCLAdapter::singleExecKernel(void* oclKernel,
          int workDim,
-         size_t* ndrOffset,
          size_t* ndrLocalSize,
          size_t* ndrGlobalSize)
 {
@@ -1103,7 +1091,7 @@ cl_ulong OpenCLAdapter::singleExecKernel(void* oclKernel,
    errCode = clEnqueueNDRangeKernel( _profilingQueue,
             openclKernel,
             workDim,
-            ndrOffset,
+            NULL,
             ndrGlobalSize,
             ndrLocalSize,
             0,
@@ -1553,28 +1541,20 @@ void OpenCLProcessor::setKernelArg(void* openclKernel, int argNum, size_t size,c
 }
 
 void OpenCLProcessor::execKernel(void* openclKernel, 
-                        int workDim, 
-                        size_t* ndrOffset, 
+                        int workDim,
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize){
     _openclAdapter.execKernel(openclKernel,
                             workDim,
-                            ndrOffset,
                             ndrLocalSize,
                             ndrGlobalSize);
 }
 
 void OpenCLProcessor::profileKernel(void* openclKernel,
                         int workDim,
-						int range_size,
-                        size_t* ndrOffset,
-                        size_t* ndrLocalSize,
                         size_t* ndrGlobalSize){
     _openclAdapter.profileKernel(openclKernel,
                             workDim,
-							range_size,
-                            ndrOffset,
-                            ndrLocalSize,
                             ndrGlobalSize);
 }
 

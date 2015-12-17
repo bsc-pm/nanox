@@ -104,7 +104,6 @@ public:
 
    void execKernel( void* oclKernel, 
                         int workDim, 
-                        size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
 
@@ -114,9 +113,6 @@ public:
     */
    void profileKernel( void* oclKernel,
                        int workDim,
-                       int range_size,
-                       size_t* ndrOffset,
-                       size_t* ndrLocalSize,
                        size_t* ndrGlobalSize);
 
    /**
@@ -129,7 +125,6 @@ public:
                              int range_size,
                              const double cost,
                              Dims &dims,
-                             size_t* ndrOffset,
                              size_t* ndrLocalSize,
                              size_t* ndrGlobalSize);
 
@@ -140,10 +135,8 @@ public:
    void automaticProfileKernel(void* oclKernel,
                                std::string kernelName,
                                int workDim,
-                               int range_size,
                                const double cost,
                                Dims &dims,
-                               size_t* ndrOffset,
                                size_t* ndrGlobalSize);
 
 
@@ -245,7 +238,6 @@ private:
     */
    cl_ulong singleExecKernel( void* oclKernel,
                               int workDim,
-                              size_t* ndrOffset,
                               size_t* ndrLocalSize,
                               size_t* ndrGlobalSize);
 
@@ -330,15 +322,11 @@ public:
    
    void execKernel(void* openclKernel, 
                         int workDim, 
-                        size_t* ndrOffset, 
                         size_t* ndrLocalSize, 
                         size_t* ndrGlobalSize);
    
    void profileKernel(void* openclKernel,
                         int workDim,
-						int range_size,
-                        size_t* ndrOffset,
-                        size_t* ndrLocalSize,
                         size_t* ndrGlobalSize);
 
    void setKernelArg(void* opencl_kernel, int arg_num, size_t size,const void* pointer);

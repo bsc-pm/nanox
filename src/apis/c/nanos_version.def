@@ -6,4 +6,4 @@ task_reduction=1001
 openmp=8
 instrumentation_api=1001
 resiliency=1000
-opencl=1002
+opencl=1003
