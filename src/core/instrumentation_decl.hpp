@@ -668,8 +668,8 @@ namespace nanos {
 
 
             /* 69 */ registerEventKey("reduction", "Reduction support", true, EVENT_DEVELOPER);
-		    registerEventValue("reduction", "RED_REQUEST_NEW_STORAGE", "Allocating private storage" );
-		    registerEventValue("reduction", "RED_COMMIT_ALL", "Reducing private storages" );
+		    registerEventValue("reduction", "RED_REQUEST_NEW_STORAGE", "Allocating private storage" ); /* 1 */
+		    registerEventValue("reduction", "RED_COMMIT_ALL", "Reducing private storages" );           /* 2 */
 
             /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }

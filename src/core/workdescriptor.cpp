@@ -552,6 +552,7 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
 
    if ( it == _taskReductions.rend() ) {
 
+	  // std::cout << "Registered new reduction: " << p_orig << std::endl;
       //! We must register p_orig as a new reduction
        //NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
        //NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
@@ -585,9 +586,18 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      void *ptr = (*it)->get(id );
-      if ( ptr != NULL ) {std::cout << "1:" << this << ", " << id  << ", " << p_addr << std::endl;return ptr;}
-      std::cout << "2:" << this << ", " << id  << ", " << p_addr << std::endl;
+      if((*it)->has( p_addr )) break;
+   }
+
+   if ( it != _taskReductions.rend() ) {
+	  void * ptr = (*it)->get(id);
+      if ( ptr != NULL ) {
+    	  //in this case the memory was already allocated in this task so just return the ptr
+    	  //std::cout << "1:" << this << ", " << id  << ", " << p_addr << std::endl;
+    	  return ptr;
+      }
+      //allocate memory
+      //std::cout << "2:" << this << ", " << id  << ", " << p_addr << std::endl;
       return (*it)->init(id);
    }
 

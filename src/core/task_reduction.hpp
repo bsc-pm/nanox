@@ -43,8 +43,9 @@ inline void * TaskReduction::finalize( void )
 	//Reduce all elements
 		for(size_t j=0; j<_num_elements; j++ )
 		{
-			_reducer( &((char*)_original)[j*_size_element] ,& ((char*)(_storage[i]))[j*_size_element]);
+			_reducer( &((char*)_original)[j*_size_element] , & ((char*)(_storage[i]))[j*_size_element]);
 		}
+
 		free(_storage[i]);
    	}
    	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
