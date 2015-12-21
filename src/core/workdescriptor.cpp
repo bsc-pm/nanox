@@ -552,13 +552,22 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
 
    if ( it == _taskReductions.rend() ) {
 
-	  // std::cout << "Registered new reduction: " << p_orig << std::endl;
+	  // std::cout << "Registered new reduction: " << p_orig  << "," << sys._lazyPrivatizationEnabled << std::endl;
       //! We must register p_orig as a new reduction
        //NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
        //NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
        _taskReductions.push_back(
-               new TaskReduction( p_orig, p_init, p_reducer,
-                   p_size, p_el_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+               new TaskReduction(
+            		   p_orig,
+					   p_init,
+					   p_reducer,
+					   p_size,
+					   p_el_size,
+					   myThread->getTeam()->getFinalSize(),
+					   myThread->getCurrentWD()->getDepth(),
+					   sys._lazyPrivatizationEnabled
+					   )
+       );
    }
 
 }
@@ -574,10 +583,21 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
 
    if ( it == _taskReductions.rend() ) {
       //! We must register p_orig as a new reduction
-     //NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
-     // _taskReductions.push_back(
-     //       new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var,
-      //         array_descriptor_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+   //  NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
+
+     _taskReductions.push_back(
+            new TaskReduction(
+            		p_orig,
+					p_dep,
+					p_init,
+					p_reducer,
+					p_reducer_orig_var,
+					array_descriptor_size,
+					myThread->getTeam()->getFinalSize(),
+					myThread->getCurrentWD()->getDepth(),
+					sys._lazyPrivatizationEnabled
+					)
+     );
    }
 }
 
@@ -592,13 +612,23 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
    if ( it != _taskReductions.rend() ) {
 	  void * ptr = (*it)->get(id);
       if ( ptr != NULL ) {
-    	  //in this case the memory was already allocated in this task so just return the ptr
-    	  //std::cout << "1:" << this << ", " << id  << ", " << p_addr << std::endl;
-    	  return ptr;
+    	  if((*it)->isInitialized(id))
+    	  {
+			 //std::cout << "1:" << this << ", " << id  << ", " << p_addr << std::endl;
+			  return ptr;
+      	  }
+      	  else
+      	  {
+      		//std::cout << "2:" << this << ", " << id  << ", " << p_addr << std::endl;
+      		return (*it)->initialize(id);
+      	  }
+      }else
+      {
+    	  //allocate memory
+		  (*it)->allocate(id);
+		 //std::cout << "3:" << this << ", " << id  << ", " << p_addr << std::endl;
+		  return (*it)->initialize(id);
       }
-      //allocate memory
-      //std::cout << "2:" << this << ", " << id  << ", " << p_addr << std::endl;
-      return (*it)->init(id);
    }
 
    // If this address is not associated to a reduction, we return NULL

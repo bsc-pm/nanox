@@ -103,6 +103,7 @@ System::System () :
       , _hwloc()
       , _immediateSuccessorDisabled( false )
       , _predecessorCopyInfoDisabled( false )
+	  , _lazyPrivatizationEnabled (false)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -398,6 +399,10 @@ void System::config ()
    cfg.registerConfigOption( "disable-predecessor-info", NEW Config::FlagOption( _predecessorCopyInfoDisabled ),
                              "Disables sending the copy_data info to successor WDs." );
    cfg.registerArgOption( "disable-predecessor-info", "disable-predecessor-info" );
+
+   cfg.registerConfigOption ( "enable-lazy-privatization", NEW Config::BoolVar ( _lazyPrivatizationEnabled ),
+		   "Enable lazy reduction privatization" );
+   cfg.registerArgOption ( "enable-lazy-privatization", "enable-lazy-privatization" );
 
    _schedConf.config( cfg );
 

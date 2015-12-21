@@ -242,6 +242,7 @@ namespace nanos
          Hwloc _hwloc;
          bool _immediateSuccessorDisabled;
          bool _predecessorCopyInfoDisabled;
+         bool _lazyPrivatizationEnabled;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );

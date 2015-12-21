@@ -24,51 +24,83 @@
 
 inline bool TaskReduction::has( const void *ptr)
 {
-   bool inside =  ( ( ptr == _dependence ) /*|| ( (ptr >= _min) && (ptr <= _max) )*/ );
-   if ( inside ) return true;//_storage[id];
-   return false;
+   if( (ptr >= _min) && (ptr <= _max) ) printf("Tracking reduction renaming.\n");
+   return ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) );
 }
 
 inline void * TaskReduction::get( size_t id )
 {
-   return _storage[id];
+   return _storage[id].data;
+}
+
+inline void TaskReduction::allocate( size_t id )
+{
+	_storage[id].data = (void *) malloc (_num_elements *_size_element);
+}
+
+inline bool TaskReduction::isInitialized( size_t id )
+{
+	return _storage[id].isInitialized;
+}
+
+inline unsigned TaskReduction::getDepth( void ) const
+{
+   return _depth;
 }
 
 inline void * TaskReduction::finalize( void )
 {
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 2); )
 	void * result = _original;
-	//For each thread
-        for ( size_t i=0; i<_num_threads; i++) {
-           if ( _storage[i] != NULL ) {
-              //Reduce all elements
-              for( size_t j=0; j<_num_elements; j++ )
-              {
-                 _reducer( &((char*)_original)[j*_size_element] ,& ((char*)(_storage[i]))[j*_size_element]);
-              }
-              free(_storage[i]);
-           }
-        }
+
+	//find first private copy that was allocated during execution
+	size_t masterId = 0;
+	for ( size_t i=0; i<_num_threads; i++) {
+		if ( _storage[i].data != NULL ) masterId = i;
+	}
+
+	//reduce all to masterId
+	for ( size_t i=0; i<_num_threads; i++) {
+	   if ( _storage[i].data != NULL && _storage[i].isInitialized ) {
+
+		  if (i == masterId) continue;
+		  for( size_t j=0; j<_num_elements; j++ )
+		  {
+			 _reducer( &((char*)_storage[masterId].data)[j*_size_element] ,& ((char*)(_storage[i].data))[j*_size_element]);
+		  }
+		  if(_isLazyPriv)
+			  free(_storage[i].data);
+	   }
+	}
+
+	//reduce masterId to global
+	if(_storage[masterId].data != NULL)
+	{
+		for( size_t j=0; j<_num_elements; j++ ){
+			//use Fortran compatible reducer here
+			_reducer_orig_var( &((char*)_original)[j*_size_element] ,& ((char*)(_storage[masterId].data))[j*_size_element]);
+		}
+		 if(_isLazyPriv)
+			  free(_storage[masterId].data);
+	}
+
+	if(!_isLazyPriv)
+		free(_storage[0].data);
+
    	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
 	return result;
 }
 
-inline  void * TaskReduction::init( size_t id )
+inline  void * TaskReduction::initialize( size_t id )
 {
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 1 ); )
-	_storage[id] = calloc (_num_elements, _size_element);
-	//make sure malloc succeeded
-
+    //in case of lazy allocation, this memory needs to be allocated here
 	for( size_t j=0; j<_num_elements; j++ ) {
-		_initializer( & ((char*)(_storage)[id])[j*_size_element], _original );
+		_initializer( & ((char*)_storage[id].data)[j*_size_element], _original );
 	}
+	_storage[id].isInitialized = true;
 	NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent ( sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey( "reduction" ), 0 ); )
-	return _storage[id];
-}
-
-inline unsigned TaskReduction::getDepth( void ) const
-{
-   return _depth;
+	return _storage[id].data;
 }
 
 #endif
