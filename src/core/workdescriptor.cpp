@@ -614,19 +614,16 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
       if ( ptr != NULL ) {
     	  if((*it)->isInitialized(id))
     	  {
-			 //std::cout << "1:" << this << ", " << id  << ", " << p_addr << std::endl;
 			  return ptr;
       	  }
       	  else
       	  {
-      		//std::cout << "2:" << this << ", " << id  << ", " << p_addr << std::endl;
       		return (*it)->initialize(id);
       	  }
       }else
       {
     	  //allocate memory
 		  (*it)->allocate(id);
-		 //std::cout << "3:" << this << ", " << id  << ", " << p_addr << std::endl;
 		  return (*it)->initialize(id);
       }
    }
