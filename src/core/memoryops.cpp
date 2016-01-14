@@ -25,6 +25,8 @@
 #include "deviceops.hpp"
 #include "regiondict.hpp"
 #include "regioncache.hpp"
+#include "memcachecopy.hpp"
+#include "globalregt.hpp"
 
 #if VERBOSE_CACHE
  #define _VERBOSE_CACHE 1

@@ -44,6 +44,7 @@
 #include "hashfunction_decl.hpp"
 #include "regiondict.hpp"
 #include "os.hpp"
+#include "globalregt.hpp"
 
 #if VERBOSE_CACHE
  #define _VERBOSE_CACHE 1

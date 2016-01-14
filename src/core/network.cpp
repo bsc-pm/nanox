@@ -29,6 +29,8 @@
 #include "basethread.hpp"
 #include "regiondict.hpp"
 #include "version.hpp"
+#include "addressspace.hpp"
+#include "globalregt.hpp"
 
 #define VERBOSE_COMPLETION 0
 

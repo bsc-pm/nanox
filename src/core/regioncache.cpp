@@ -34,6 +34,7 @@
 #include "os.hpp"
 #include "regiondict.hpp"
 #include "memoryops_decl.hpp"
+#include "globalregt.hpp"
 
 #define VERBOSE_DEV_OPS ( sys.getVerboseDevOps() )
 #define VERBOSE_INVAL 0

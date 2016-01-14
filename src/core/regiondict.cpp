@@ -24,33 +24,9 @@
 #include "system_decl.hpp"
 #include "basethread.hpp"
 #include "os.hpp"
+#include "globalregt.hpp"
 
 using namespace nanos;
-RegionNode::RegionNode( RegionNode *parent, std::size_t value, reg_t id ) : _parent( parent ), _value( value ), _id( id ), _sons( NULL ) {
-   if ( id > 1 ) {
-      _memoIntersectInfo = NEW reg_t[ id - 1 ];
-      ::memset(_memoIntersectInfo, 0, sizeof( reg_t ) * (id - 1) );
-   } else {
-      _memoIntersectInfo = NULL;
-   }
-   //std::cerr << "created node with value " << value << " and id " << id << std::endl;
-}
-
-RegionNode::~RegionNode() {
-   delete _sons;
-}
-
-reg_t RegionNode::getId() const {
-   return _id;
-}
-
-reg_t RegionNode::getMemoIntersect( reg_t target ) const {
-   return _memoIntersectInfo[ target-1 ];
-}
-
-void RegionNode::setMemoIntersect( reg_t target, reg_t value ) const {
-   _memoIntersectInfo[ target-1 ] = value;
-}
 
 reg_t RegionNode::addNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep, ContainerDense< RegionVectorEntry > &container, bool rogue ) {
    bool lastNode = ( deep == ( 2 * numDimensions - 1 ) );
@@ -101,45 +77,6 @@ reg_t RegionNode::checkNode( nanos_region_dimension_internal_t const *dimensions
    }
    return retId;
 }
-
-std::size_t RegionNode::getValue() const {
-   return _value;
-}
-
-RegionNode *RegionNode::getParent() const {
-   return _parent;
-}
-
-RegionVectorEntry::RegionVectorEntry() : _leaf( NULL ), _data( NULL ) {
-}
-
-RegionVectorEntry::RegionVectorEntry( RegionVectorEntry const &rve ) : _leaf( rve._leaf ), _data( rve._data ) {
-}
-
-RegionVectorEntry &RegionVectorEntry::operator=( RegionVectorEntry const &rve ) {
-   _leaf = rve._leaf;
-   _data = rve._data;
-   return *this;
-}
-
-RegionVectorEntry::~RegionVectorEntry() {
-}
-
-void RegionVectorEntry::setLeaf( RegionNode *rn ) {
-   _leaf = rn;
-}
-RegionNode *RegionVectorEntry::getLeaf() const {
-   return _leaf;
-}
-
-void RegionVectorEntry::setData( Version *d ) {
-   _data = d;
-}
-
-Version *RegionVectorEntry::getData() const {
-   return _data;
-}
-
 
 namespace nanos {
 template <>

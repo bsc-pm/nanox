@@ -106,15 +106,6 @@ unsigned int global_reg_t::getNumDimensions() const {
    return key->getNumDimensions();
 }
 
-global_reg_t::global_reg_t( reg_t r, reg_key_t k ) : id( r ), key( k ) {
-}
-
-global_reg_t::global_reg_t( reg_t r, const_reg_key_t k ) : id( r ), ckey( k ) {
-}
-
-global_reg_t::global_reg_t() : id( 0 ), key( NULL ) {
-}
-
 void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t region[]) const {
    RegionNode *n = key->getRegionNode( id );
    std::vector< std::size_t > const &sizes = key->getDimensionSizes();
@@ -129,29 +120,6 @@ void global_reg_t::fillDimensionData( nanos_region_dimension_internal_t region[]
    }
 }
 
-
-bool global_reg_t::operator<( global_reg_t const &reg ) const {
-   bool result;
-   if ( key < reg.key )
-      result = true;
-   else if ( reg.key < key )
-      result = false;
-   else result = ( id < reg.id );
-   return result;
-}
-
-bool global_reg_t::operator!=( global_reg_t const &reg ) const {
-   bool result = false;
-   if ( key != reg.key )
-      result = true;
-   else if ( reg.key != key )
-      result = true;
-   return result;
-}
-
-memory_space_id_t global_reg_t::getFirstLocation() const {
-   return NewNewRegionDirectory::getFirstLocation( key, id );
-}
 
 memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t dest ) const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );

@@ -21,6 +21,8 @@
 #include "regiondict.hpp"
 #include "regionset_decl.hpp"
 #include "newregiondirectory.hpp"
+#include "addressspace.hpp"
+#include "globalregt.hpp"
 
 
 RegionSet::RegionSet() : _lock(), _set() {

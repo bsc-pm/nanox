@@ -21,6 +21,8 @@
 #include "workdescriptor.hpp"
 #include "regiondict.hpp"
 #include "newregiondirectory.hpp"
+#include "memcachecopy.hpp"
+#include "globalregt.hpp"
 
 #if VERBOSE_CACHE
  #define _VERBOSE_CACHE 1

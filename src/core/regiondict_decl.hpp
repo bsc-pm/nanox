@@ -51,6 +51,8 @@ typedef unsigned int reg_t;
 
       public:
       RegionNode( RegionNode *parent, std::size_t value, reg_t id );
+      RegionNode( RegionNode const & rn );
+      RegionNode &operator=( RegionNode const & rn );
       ~RegionNode();
       reg_t getId() const;
       reg_t addNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep, ContainerDense< RegionVectorEntry > &container, bool rogue);

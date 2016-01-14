@@ -41,6 +41,8 @@
 #include "smpprocessor.hpp"
 #include "location.hpp"
 #include "router.hpp"
+#include "addressspace.hpp"
+#include "globalregt.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"

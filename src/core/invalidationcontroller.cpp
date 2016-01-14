@@ -2,6 +2,7 @@
 #include "invalidationcontroller_decl.hpp"
 #include "regioncache.hpp"
 #include "system_decl.hpp"
+#include "globalregt.hpp"
 
 InvalidationController::InvalidationController() : 
    _invalOps( NULL )

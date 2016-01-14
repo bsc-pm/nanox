@@ -28,6 +28,8 @@
 #include "newregiondirectory.hpp"
 #include "smpdd.hpp"
 #include "regiondict.hpp"
+#include "memcachecopy.hpp"
+#include "globalregt.hpp"
 
 #define PUSH_BACK_TO_READY_QUEUE( idx, wd ) \
    do {                                     \

@@ -28,6 +28,87 @@
 
 namespace nanos {
 
+
+inline RegionVectorEntry::RegionVectorEntry() : _leaf( NULL ), _data( NULL ) {
+}
+
+inline RegionVectorEntry::RegionVectorEntry( RegionVectorEntry const &rve ) : _leaf( rve._leaf ), _data( rve._data ) {
+}
+
+inline RegionVectorEntry &RegionVectorEntry::operator=( RegionVectorEntry const &rve ) {
+   _leaf = rve._leaf;
+   _data = rve._data;
+   return *this;
+}
+
+inline RegionVectorEntry::~RegionVectorEntry() {
+}
+
+inline void RegionVectorEntry::setLeaf( RegionNode *rn ) {
+   _leaf = rn;
+}
+
+inline RegionNode *RegionVectorEntry::getLeaf() const {
+   return _leaf;
+}
+
+inline void RegionVectorEntry::setData( Version *d ) {
+   _data = d;
+}
+
+inline Version *RegionVectorEntry::getData() const {
+   return _data;
+}
+
+inline RegionNode::RegionNode( RegionNode *parent, std::size_t value, reg_t id ) : _parent( parent ), _value( value ), _id( id ), _sons( NULL ) {
+   if ( id > 1 ) {
+      _memoIntersectInfo = NEW reg_t[ id - 1 ];
+      ::memset(_memoIntersectInfo, 0, sizeof( reg_t ) * (id - 1) );
+   } else {
+      _memoIntersectInfo = NULL;
+   }
+   //std::cerr << "created node with value " << value << " and id " << id << std::endl;
+}
+
+inline RegionNode::RegionNode( RegionNode const& rn ) : _parent( rn._parent ),
+   _value( rn._value ), _id( rn._id ), _sons( rn._sons ),
+   _memoIntersectInfo( rn._memoIntersectInfo ) {
+}
+
+inline RegionNode &RegionNode::operator=( RegionNode const& rn ) {
+   _parent = rn._parent;
+   _value = rn._value;
+   _id = rn._id;
+   _sons = rn._sons;
+   _memoIntersectInfo = rn._memoIntersectInfo;
+   return *this;
+}
+
+inline RegionNode::~RegionNode() {
+   delete _sons;
+}
+
+inline reg_t RegionNode::getId() const {
+   return _id;
+}
+
+inline reg_t RegionNode::getMemoIntersect( reg_t target ) const {
+   return _memoIntersectInfo[ target-1 ];
+}
+
+inline void RegionNode::setMemoIntersect( reg_t target, reg_t value ) const {
+   _memoIntersectInfo[ target-1 ] = value;
+}
+
+inline std::size_t RegionNode::getValue() const {
+   return _value;
+}
+
+inline RegionNode *RegionNode::getParent() const {
+   return _parent;
+}
+
+
 template <class T>
 ContainerDense< T >::ContainerDense( CopyData const &cd ) : _container(2, T()), _leafCount( 0 ), _idSeed( 1 ), _dimensionSizes( cd.getNumDimensions(), 0 ), _root( NULL, 0, 0 ), _rogueLock(), _keepAtOrigin( false ), _registeredObject( NULL ), sparse( false ) {
    //_container.reserve( MAX_REG_ID );
