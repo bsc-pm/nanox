@@ -119,6 +119,7 @@ AS_IF([test "x$gasnet" = xyes],[
   _AX_CHECK_GASNET_CONDUIT(udp,$CXX,-lamudp)
   _AX_CHECK_GASNET_CONDUIT(mpi,$MPICXX,-lammpi $mpilibs)
   _AX_CHECK_GASNET_CONDUIT(ibv,$MPICXX,-libverbs $mpilibs,-DGASNET_CONDUIT_IBV)
+  _AX_CHECK_GASNET_CONDUIT(mxm,$MPICXX,-lmxm -L/opt/mellanox/mxm/lib $mpilibs)
 
   # Checks done. Disable silent mode again.
   #AX_SILENT_MODE(off)
@@ -162,7 +163,7 @@ GASNet is linked with.
 
 ])dnl if gasnet
 
-m4_foreach_w([conduit_name],[smp udp mpi ibv],[
+m4_foreach_w([conduit_name],[smp udp mpi ibv mxm],[
   _AX_CONDUIT_SUBST(conduit_name)
 ])
 
