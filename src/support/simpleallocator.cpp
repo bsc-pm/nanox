@@ -225,9 +225,10 @@ void SimpleAllocator::printMap()
 }
 
 void SimpleAllocator::lock() {
-   while ( !_lock.tryAcquire() ) {
-      myThread->idle();
-   }
+   //while ( !_lock.tryAcquire() ) {
+   //   myThread->idle();
+   //}
+   _lock.acquire();
 }
 
 void SimpleAllocator::unlock() {
