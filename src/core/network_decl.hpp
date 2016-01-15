@@ -265,6 +265,7 @@ namespace nanos {
 
          void initialize ( void );
          void finalize ( void );
+         void finalizeNoBarrier ( void );
          void poll ( unsigned int id );
          void sendExitMsg( unsigned int nodeNum );
          void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *remoteWdAddr );

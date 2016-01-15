@@ -17,18 +17,19 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef CLUSTERPLUGIN_DECL_H
-#define CLUSTERPLUGIN_DECL_H
+#ifndef CLUSTERMPIPLUGIN_DECL_H
+#define CLUSTERMPIPLUGIN_DECL_H
 
 #include "plugin.hpp"
 #include "system_decl.hpp"
 #include "clusternode_decl.hpp"
 #include "gasnetapi_fwd.hpp"
+#include "remoteworkdescriptor_fwd.hpp"
 
 namespace nanos {
 namespace ext {
 
-class ClusterPlugin : public ArchPlugin
+class ClusterMPIPlugin : public ArchPlugin
 {
       GASNetAPI *_gasnetApi;
 
@@ -50,7 +51,7 @@ class ClusterPlugin : public ArchPlugin
       std::size_t _gasnetSegmentSize;
 
    public:
-      ClusterPlugin();
+      ClusterMPIPlugin();
       virtual void config( Config& cfg );
       virtual void init();
 
@@ -58,9 +59,9 @@ class ClusterPlugin : public ArchPlugin
       // void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
       // void * getSegmentAddr( unsigned int idx );
       // std::size_t getSegmentLen( unsigned int idx );
-      // void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      // void * getPinnedSegmentAddr( unsigned int idx ) const;
-      // std::size_t getPinnedSegmentLen( unsigned int idx ) const;
+      //void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
+      //void * getPinnedSegmentAddr( unsigned int idx ) const;
+      //std::size_t getPinnedSegmentLen( unsigned int idx ) const;
       std::size_t getNodeMem() const;
       int getGpuPresend() const;
       int getSmpPresend() const;
@@ -69,6 +70,7 @@ class ClusterPlugin : public ArchPlugin
       bool getAllocFit() const;
       bool unalignedNodeMemory() const;
       //std::size_t getGASNetSegmentSize() const;
+      virtual int initNetwork(int *argc, char ***argv);
 
 
       virtual void startSupportThreads();
@@ -88,4 +90,4 @@ class ClusterPlugin : public ArchPlugin
 }
 }
 
-#endif /* CLUSTERPLUGIN_DECL_H */
+#endif /* CLUSTERMPIPLUGIN_DECL_H */

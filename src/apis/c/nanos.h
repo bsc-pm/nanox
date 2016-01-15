@@ -414,6 +414,9 @@ do {\
 
 void nanos_reduction_int_vop ( int, void *, void * );
 
+NANOS_API_DECL(int, nanos_cmpi_init, (int *argc, char **argv[]) );
+NANOS_API_DECL(void, nanos_cmpi_finalize, (void) );
+
 #ifdef __cplusplus
 }
 #endif

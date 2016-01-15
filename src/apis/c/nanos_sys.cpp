@@ -132,3 +132,12 @@ NANOS_API_DEF(void, nanos_atexit, (void *p))
 {
     ::atexit((void (*)())p);
 }
+NANOS_API_DEF(int, nanos_cmpi_init, (int *argc, char **argv[]))
+{
+   return sys.initClusterMPI(argc, argv);
+}
+
+NANOS_API_DEF(void, nanos_cmpi_finalize, (void))
+{
+   sys.finalizeClusterMPI();
+}

@@ -40,6 +40,7 @@ namespace nanos {
       public:
          virtual void initialize ( Network *net ) = 0;
          virtual void finalize () = 0;
+         virtual void finalizeNoBarrier () = 0;
          virtual void poll () = 0;
          virtual void sendExitMsg ( unsigned int dest ) = 0;
          virtual void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch , void *remoteWdAddr, std::size_t expectedData) = 0;

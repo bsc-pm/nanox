@@ -20,7 +20,7 @@
 #include "plugin.hpp"
 #include "system.hpp"
 #include "gasnetapi_decl.hpp"
-#include "clusterplugin_decl.hpp"
+#include "clustermpiplugin_decl.hpp"
 #include "clusternode_decl.hpp"
 #include "remoteworkdescriptor_decl.hpp"
 #include "basethread.hpp"
@@ -50,11 +50,10 @@
    #error "I need to know the size of a size_t"
 #endif
 
-
 namespace nanos {
 namespace ext {
 
-ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
+ClusterMPIPlugin::ClusterMPIPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
    _gasnetApi( NEW GASNetAPI() ), _numPinnedSegments( 0 ), _pinnedSegmentAddrList( NULL ),
    _pinnedSegmentLenList( NULL ), _extraPEsCount( 0 ), _conduit(""),
    _nodeMem( DEFAULT_NODE_MEM ), _allocFit( false ), _allowSharedThd( false ),
@@ -63,13 +62,17 @@ ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
    _clusterThread( NULL ), _gasnetSegmentSize( 0 ) {
 }
 
-void ClusterPlugin::config( Config& cfg )
+void ClusterMPIPlugin::config( Config& cfg )
 {
    cfg.setOptionsSection( "Cluster Arch", "Cluster specific options" );
    this->prepare( cfg );
 }
 
-void ClusterPlugin::init()
+void ClusterMPIPlugin::init()
+{
+}
+
+int ClusterMPIPlugin::initNetwork(int *argc, char ***argv)
 {
    sys.getNetwork()->setAPI(_gasnetApi);
    _gasnetApi->setGASNetSegmentSize( _gasnetSegmentSize );
@@ -78,14 +81,8 @@ void ClusterPlugin::init()
    sys.getNetwork()->setGpuPresend(this->getGpuPresend() );
    sys.getNetwork()->setSmpPresend(this->getSmpPresend() );
 
-   unsigned int nodes = _gasnetApi->getNumNodes();
-
-   if ( nodes > 1 ) {
+   if ( _gasnetApi->getNumNodes() > 1 ) {
       if ( _gasnetApi->getNodeNum() == 0 ) {
-         void *segmentAddr[ nodes ];
-         sys.getNetwork()->mallocSlaves( &segmentAddr[ 1 ], _nodeMem );
-         segmentAddr[ 0 ] = NULL;
-
          const Device * supported_archs[3] = { &getSMPDevice(), NULL, NULL };
          int num_supported_archs = 3;
          #ifdef GPU_DEV
@@ -98,7 +95,7 @@ void ClusterPlugin::init()
          for ( unsigned int nodeC = 1; nodeC < _gasnetApi->getNumNodes(); nodeC++ ) {
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ), 0 );
             SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
-            nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) segmentAddr[ nodeC ], _nodeMem ) );
+            nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) 0 /* FIXME */, _nodeMem ) );
             nodeMemory.setNodeNumber( nodeC );
             nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id, supported_archs, num_supported_archs );
             (*_nodes)[ node->getNodeNum() ] = node;
@@ -117,10 +114,14 @@ void ClusterPlugin::init()
             fatal0("Unable to get a cpu to run the cluster thread. Try using --cluster-allow-shared-thread");
          }
       }
+      _gasnetApi->_rwgSMP = NULL;
+      _gasnetApi->_rwgGPU = NULL;
+      _gasnetApi->_rwgOCL = NULL;
    }
+   return 0;
 }
 
-//void ClusterPlugin::addPinnedSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
+//void ClusterMPIPlugin::addPinnedSegments( unsigned int numSegments, void **segmentAddr, std::size_t *segmentSize ) {
 //   unsigned int idx;
 //   _numPinnedSegments = numSegments;
 //   _pinnedSegmentAddrList = new void *[ numSegments ];
@@ -132,43 +133,43 @@ void ClusterPlugin::init()
 //      _pinnedSegmentLenList[ idx ] = segmentSize[ idx ];
 //   }
 //}
+//
+//void * ClusterMPIPlugin::getPinnedSegmentAddr( unsigned int idx ) const {
+//   return _pinnedSegmentAddrList[ idx ];
+//}
+//
+//std::size_t ClusterMPIPlugin::getPinnedSegmentLen( unsigned int idx ) const {
+//   return _pinnedSegmentLenList[ idx ];
+//}
 
-// void * ClusterPlugin::getPinnedSegmentAddr( unsigned int idx ) const {
-//    return _pinnedSegmentAddrList[ idx ];
-// }
-// 
-// std::size_t ClusterPlugin::getPinnedSegmentLen( unsigned int idx ) const {
-//    return _pinnedSegmentLenList[ idx ];
-// }
-
-std::size_t ClusterPlugin::getNodeMem() const {
+std::size_t ClusterMPIPlugin::getNodeMem() const {
    return _nodeMem;
 }
 
-int ClusterPlugin::getSmpPresend() const {
+int ClusterMPIPlugin::getSmpPresend() const {
    return _smpPresend;
 }
 
-int ClusterPlugin::getGpuPresend() const {
+int ClusterMPIPlugin::getGpuPresend() const {
    return _gpuPresend;
 }
 
-System::CachePolicyType ClusterPlugin::getCachePolicy ( void ) const {
+System::CachePolicyType ClusterMPIPlugin::getCachePolicy ( void ) const {
    return _cachePolicy;
 }
 
-RemoteWorkDescriptor * ClusterPlugin::getRemoteWorkDescriptor( int archId ) {
+RemoteWorkDescriptor * ClusterMPIPlugin::getRemoteWorkDescriptor( int archId ) {
    RemoteWorkDescriptor *rwd = NEW RemoteWorkDescriptor( archId );
    rwd->_mcontrol.preInit();
    rwd->_mcontrol.initialize( *_cpu );
    return rwd;
 }
 
-bool ClusterPlugin::getAllocFit() const {
+bool ClusterMPIPlugin::getAllocFit() const {
    return _allocFit;
 }
 
-void ClusterPlugin::prepare( Config& cfg ) {
+void ClusterMPIPlugin::prepare( Config& cfg ) {
    /* Cluster: memory size to be allocated on remote nodes */
    cfg.registerConfigOption ( "node-memory", NEW Config::SizeVar ( _nodeMem ), "Sets the memory size that will be used on each node to send and receive data." );
    cfg.registerArgOption ( "node-memory", "cluster-node-memory" );
@@ -207,78 +208,76 @@ void ClusterPlugin::prepare( Config& cfg ) {
 
 }
 
-ProcessingElement * ClusterPlugin::createPE( unsigned id, unsigned uid ){
+ProcessingElement * ClusterMPIPlugin::createPE( unsigned id, unsigned uid ){
    return NULL;
 }
 
-unsigned ClusterPlugin::getNumThreads() const {
+unsigned ClusterMPIPlugin::getNumThreads() const {
    return 1;
 }
 
-void ClusterPlugin::startSupportThreads() {
-   if ( _gasnetApi->getNumNodes() > 1 )
-   {
-      if ( _gasnetApi->getNodeNum() == 0 ) {
-         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( _gasnetApi->getNumNodes() - 1, (ProcessingElement **) &(*_nodes)[1] ) );
-      } else {
-         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( 0, NULL ) );
-         if ( sys.getPMInterface().getInternalDataSize() > 0 )
-            _clusterThread->getThreadWD().setInternalData(NEW char[sys.getPMInterface().getInternalDataSize()]);
-         //_pmInterface->setupWD( smpRepThd->getThreadWD() );
-         //setSlaveParentWD( &mainWD );
-         if ( sys.getNumAccelerators() > 0 ) { 
-            /* This works, but it could happen that the cluster is initialized before the accelerators, and this call could return 0 */
-            sys.getNetwork()->enableCheckingForDataInOtherAddressSpaces();
-         }
-         _gasnetApi->_rwgSMP = getRemoteWorkDescriptor(1);
-         _gasnetApi->_rwgGPU = getRemoteWorkDescriptor(1);
-         _gasnetApi->_rwgOCL = getRemoteWorkDescriptor(2);
-      }
-   }
+void ClusterMPIPlugin::startSupportThreads() {
+   //_clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( 0, NULL ) );
+   //if ( _gasnetApi->getNumNodes() > 1 )
+   //{
+   //   if ( _gasnetApi->getNodeNum() == 0 ) {
+   //      _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( _gasnetApi->getNumNodes() - 1, (ProcessingElement **) &(*_nodes)[1] ) );
+   //   } else {
+   //      _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( 0, NULL ) );
+   //      if ( sys.getPMInterface().getInternalDataSize() > 0 )
+   //         _clusterThread->getThreadWD().setInternalData(NEW char[sys.getPMInterface().getInternalDataSize()]);
+   //      //_pmInterface->setupWD( smpRepThd->getThreadWD() );
+   //      //setSlaveParentWD( &mainWD );
+   //      if ( sys.getNumAccelerators() > 0 ) { 
+   //         /* This works, but it could happen that the cluster is initialized before the accelerators, and this call could return 0 */
+   //         sys.getNetwork()->enableCheckingForDataInOtherAddressSpaces();
+   //      }
+   //   }
+   //}
 }
 
-void ClusterPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
-   if ( _gasnetApi->getNodeNum() == 0 )
-   {
-      if ( _clusterThread ) {
-         for ( unsigned int thdIndex = 0; thdIndex < _clusterThread->getNumThreads(); thdIndex += 1 )
-         {
-            BaseThread *thd = _clusterThread->getThreadVector()[ thdIndex ];
-            workers.insert( std::make_pair( thd->getId(), thd ) );
-         }
-      }
-   } else {
-      workers.insert( std::make_pair( _clusterThread->getId(), _clusterThread ) ); 
-   }
+void ClusterMPIPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &workers ) {
+   // if ( _gasnetApi->getNodeNum() == 0 )
+   // {
+   //    if ( _clusterThread ) {
+   //       for ( unsigned int thdIndex = 0; thdIndex < _clusterThread->getNumThreads(); thdIndex += 1 )
+   //       {
+   //          BaseThread *thd = _clusterThread->getThreadVector()[ thdIndex ];
+   //          workers.insert( std::make_pair( thd->getId(), thd ) );
+   //       }
+   //    }
+   // } else {
+   //    workers.insert( std::make_pair( _clusterThread->getId(), _clusterThread ) ); 
+   // }
 }
 
-void ClusterPlugin::finalize() {
-   if ( _gasnetApi->getNodeNum() == 0 ) {
-      //message0("Master: Created " << createdWds << " WDs.");
-      message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
-      int soft_inv = 0;
-      int hard_inv = 0;
-      unsigned int max_execd_wds = 0;
-      if ( _nodes ) {
-         for ( unsigned int idx = 1; idx < _nodes->size(); idx += 1 ) {
-            soft_inv += sys.getSeparateMemory( (*_nodes)[idx]->getMemorySpaceId() ).getSoftInvalidationCount();
-            hard_inv += sys.getSeparateMemory( (*_nodes)[idx]->getMemorySpaceId() ).getHardInvalidationCount();
-            max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
-            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
-            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
-         }
-      }
-      message0("Cluster Soft invalidations: " << soft_inv);
-      message0("Cluster Hard invalidations: " << hard_inv);
-      //if ( max_execd_wds > 0 ) {
-      //   float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
-      //   message0("Cluster Balance: " << balance );
-      //}
-   }
+void ClusterMPIPlugin::finalize() {
+//   if ( _gasnetApi->getNodeNum() == 0 ) {
+//      //message0("Master: Created " << createdWds << " WDs.");
+//      message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
+//      int soft_inv = 0;
+//      int hard_inv = 0;
+//      unsigned int max_execd_wds = 0;
+//      if ( _nodes ) {
+//         for ( unsigned int idx = 1; idx < _nodes->size(); idx += 1 ) {
+//            soft_inv += sys.getSeparateMemory( (*_nodes)[idx]->getMemorySpaceId() ).getSoftInvalidationCount();
+//            hard_inv += sys.getSeparateMemory( (*_nodes)[idx]->getMemorySpaceId() ).getHardInvalidationCount();
+//            max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
+//            //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
+//         }
+//      }
+//      message0("Cluster Soft invalidations: " << soft_inv);
+//      message0("Cluster Hard invalidations: " << hard_inv);
+//      //if ( max_execd_wds > 0 ) {
+//      //   float balance = ( (float) createdWds) / ( (float)( max_execd_wds * (_separateMemorySpacesCount-1) ) );
+//      //   message0("Cluster Balance: " << balance );
+//      //}
+//   }
 }
 
 
-void ClusterPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
+void ClusterMPIPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
    if ( _nodes ) {
       std::vector<ClusterNode *>::const_iterator it = _nodes->begin();
       it++; //position 0 is null, node 0 does not have a ClusterNode object
@@ -288,7 +287,7 @@ void ClusterPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) c
    }
 }
 
-unsigned int ClusterPlugin::getNumPEs() const {
+unsigned int ClusterMPIPlugin::getNumPEs() const {
    if ( _nodes ) {
       return _nodes->size() - 1;
    } else {
@@ -296,7 +295,7 @@ unsigned int ClusterPlugin::getNumPEs() const {
    }
 }
 
-unsigned int ClusterPlugin::getMaxPEs() const {
+unsigned int ClusterMPIPlugin::getMaxPEs() const {
    if ( _nodes ) {
       return _nodes->size() - 1;
    } else {
@@ -304,7 +303,7 @@ unsigned int ClusterPlugin::getMaxPEs() const {
    }
 }
 
-unsigned int ClusterPlugin::getNumWorkers() const {
+unsigned int ClusterMPIPlugin::getNumWorkers() const {
    if ( _nodes ) {
       return _nodes->size() - 1;
    } else {
@@ -312,7 +311,7 @@ unsigned int ClusterPlugin::getNumWorkers() const {
    }
 }
 
-unsigned int ClusterPlugin::getMaxWorkers() const {
+unsigned int ClusterMPIPlugin::getMaxWorkers() const {
    if ( _nodes ) {
       return _nodes->size() - 1;
    } else {
@@ -320,11 +319,11 @@ unsigned int ClusterPlugin::getMaxWorkers() const {
    }
 }
 
-bool ClusterPlugin::unalignedNodeMemory() const {
+bool ClusterMPIPlugin::unalignedNodeMemory() const {
    return _unalignedNodeMem;
 }
 
-// std::size_t ClusterPlugin::getGASNetSegmentSize() const {
+// std::size_t ClusterMPIPlugin::getGASNetSegmentSize() const {
 //    return _gasnetSegmentSize;
 // }
 
@@ -332,5 +331,5 @@ bool ClusterPlugin::unalignedNodeMemory() const {
 }
 }
 
-DECLARE_PLUGIN("arch-cluster",nanos::ext::ClusterPlugin);
+DECLARE_PLUGIN("arch-cluster",nanos::ext::ClusterMPIPlugin);
 

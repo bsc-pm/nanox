@@ -145,10 +145,11 @@ GASNetAPI *GASNetAPI::getInstance() {
    return _instance;
 }
 
-GASNetAPI::GASNetAPI( ClusterPlugin &p ) : _plugin( p ), _net( 0 ), _rwgGPU( 0 ), _rwgSMP( 0 ), _rwgOCL( 0 ), _packSegment( 0 ),
+GASNetAPI::GASNetAPI() : _net( 0 ), _packSegment( 0 ),
    _pinnedAllocators(), _pinnedAllocatorsLocks(),
    _seqN( 0 ), _dataSendRequests(), _freeBufferReqs(), _workDoneReqs(), _rxBytes( 0 ), _txBytes( 0 ), _totalBytes( 0 ),
-   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ), _incomingWorkBuffers(), _nodeBarrierCounter( 0 ) {
+   _numSegments( 0 ), _segmentAddrList( NULL ), _segmentLenList ( NULL ), _incomingWorkBuffers(), _nodeBarrierCounter( 0 ),
+   _GASNetSegmentSize( 0 ), _unalignedNodeMemory( false ), _rwgGPU( 0 ), _rwgSMP( 0 ), _rwgOCL( 0 ) {
    _instance = this;
 }
 
@@ -418,8 +419,8 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       //SMP
       devPtr = &newDeviceSMP;
 
-      if (getInstance()->_rwgSMP == NULL) 
-         getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
+      //if (getInstance()->_rwgSMP == NULL) 
+      //   getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
 
       rwg = (WorkDescriptor *) getInstance()->_rwgSMP;
    }
@@ -429,8 +430,8 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       //FIXME: GPU support
       devPtr = &newDeviceGPU;
 
-      if (getInstance()->_rwgGPU == NULL)
-         getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
+      //if (getInstance()->_rwgGPU == NULL)
+      //   getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
 
       rwg = (WorkDescriptor *) getInstance()->_rwgGPU;
    }
@@ -441,8 +442,8 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
       //FIXME: OCL support
       devPtr = &newDeviceOCL;
 
-      if (getInstance()->_rwgOCL == NULL)
-         getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
+      //if (getInstance()->_rwgOCL == NULL)
+      //   getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
 
       rwg = (WorkDescriptor *) getInstance()->_rwgOCL;
    }
@@ -541,7 +542,7 @@ void GASNetAPI::amMalloc( gasnet_token_t token, gasnet_handlerarg_t sizeLo, gasn
       fprintf( stderr, "gasnet: Error obtaining node information.\n" );
    }
 
-   if ( getInstance()->_plugin.unalignedNodeMemory() ) {
+   if ( getInstance()->_unalignedNodeMemory ) {
       addr = (void *) NEW char[ size ];
    } else {
       OSAllocator a;
@@ -1091,17 +1092,17 @@ void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
    WorkDescriptor *wds[3];
    unsigned int numWDs = 0;
 
-   if (getInstance()->_rwgSMP == NULL) 
-      getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
-
-#ifdef GPU_DEV
-   if (getInstance()->_rwgGPU == NULL) 
-      getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
-#endif
-#ifdef OpenCL_DEV
-   if (getInstance()->_rwgOCL == NULL) 
-      getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
-#endif
+//   if (getInstance()->_rwgSMP == NULL) 
+//      getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
+//
+//#ifdef GPU_DEV
+//   if (getInstance()->_rwgGPU == NULL) 
+//      getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
+//#endif
+//#ifdef OpenCL_DEV
+//   if (getInstance()->_rwgOCL == NULL) 
+//      getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
+//#endif
 
    wds[numWDs] = (WorkDescriptor *) getInstance()->_rwgSMP;
    numWDs += 1;
@@ -1152,10 +1153,10 @@ void GASNetAPI::initialize ( Network *net )
 
    gasnet_init( &my_argc, &my_argv );
 
-   if ( _plugin.getGASNetSegmentSize() == 0 ) {
+   if ( _GASNetSegmentSize == 0 ) {
       segSize = DEFAULT_SEGMENT_SIZE;
    } else {
-      segSize = _plugin.getGASNetSegmentSize();
+      segSize = _GASNetSegmentSize;
    }
 
    gasnet_attach( htable, sizeof( htable ) / sizeof( gasnet_handlerentry_t ), segSize, 0);
@@ -1190,8 +1191,8 @@ void GASNetAPI::initialize ( Network *net )
 #ifndef GASNET_SEGMENT_EVERYTHING
     unsigned int idx;
     unsigned int nodes = gasnet_nodes();
-    void *segmentAddr[ nodes ];
-    std::size_t segmentLen[ nodes ];
+    //void *segmentAddr[ nodes ];
+    //std::size_t segmentLen[ nodes ];
     void *pinnedSegmentAddr[ nodes ];
     std::size_t pinnedSegmentLen[ nodes ];
     
@@ -1203,7 +1204,7 @@ void GASNetAPI::initialize ( Network *net )
        pinnedSegmentLen[ idx ] = seginfoTable[ idx ].size;
        //fprintf(stderr, "node %d, has segment addr %p and len %zu\n", idx, seginfoTable[ idx ].addr, seginfoTable[ idx ].size);
     }
-    _plugin.addPinnedSegments( nodes, pinnedSegmentAddr, pinnedSegmentLen );
+    //_plugin.addPinnedSegments( nodes, pinnedSegmentAddr, pinnedSegmentLen );
 
     uintptr_t offset = pinnedSegmentLen[ gasnet_mynode() ] / 2;
     _packSegment = NEW SimpleAllocator( ( ( uintptr_t ) pinnedSegmentAddr[ gasnet_mynode() ] ) + offset , pinnedSegmentLen[ gasnet_mynode() ] / 2 );
@@ -1214,18 +1215,18 @@ void GASNetAPI::initialize ( Network *net )
       _pinnedAllocatorsLocks.reserve( nodes );
       _seqN = NEW Atomic<unsigned int>[nodes];
       
-      _net->mallocSlaves( &segmentAddr[ 1 ], _plugin.getNodeMem() );
-      segmentAddr[ 0 ] = NULL;
+      //_net->mallocSlaves( &segmentAddr[ 1 ], _plugin.getNodeMem() );
+      //segmentAddr[ 0 ] = NULL;
 
       for ( idx = 0; idx < nodes; idx += 1)
       {
-         segmentLen[ idx ] = ( idx == 0 ) ? 0 : _plugin.getNodeMem(); 
+         //segmentLen[ idx ] = ( idx == 0 ) ? 0 : _plugin.getNodeMem(); 
          _pinnedAllocators[idx] = NEW SimpleAllocator( ( uintptr_t ) pinnedSegmentAddr[ idx ], pinnedSegmentLen[ idx ] / 2 );
          _pinnedAllocatorsLocks[idx] =  NEW Lock( );
          new (&_seqN[idx]) Atomic<unsigned int >( 0 );
       }
       _thisNodeSegment = _pinnedAllocators[0];
-      this->addSegments( nodes, segmentAddr, segmentLen );
+      //this->addSegments( nodes, segmentAddr, segmentLen );
    }
 #else
    #error unimplemented
@@ -1250,16 +1251,23 @@ void GASNetAPI::finalize ()
    _this_exit(0);
 }
 
+void GASNetAPI::finalizeNoBarrier ()
+{
+   _this_exit(0);
+}
+
 void GASNetAPI::poll ()
 {
-   if (myThread != NULL && myThread->_gasnetAllowAM)
-   {
-      gasnet_AMPoll();
-      checkForPutReqs();
-      checkForFreeBufferReqs();
-      checkWorkDoneReqs();
-   } else if ( myThread == NULL ) {
-      gasnet_AMPoll();
+   if ( sys.usingCluster() ) {
+      if (myThread != NULL && myThread->_gasnetAllowAM)
+      {
+         gasnet_AMPoll();
+         checkForPutReqs();
+         checkForFreeBufferReqs();
+         checkWorkDoneReqs();
+      } else if ( myThread == NULL ) {
+         gasnet_AMPoll();
+      }
    }
 }
 
@@ -1900,4 +1908,12 @@ unsigned int GASNetAPI::getNumNodes() const {
 
 unsigned int GASNetAPI::getNodeNum() const {
    return gasnet_mynode();
+}
+
+void GASNetAPI::setGASNetSegmentSize( std::size_t segmentSize ) {
+   _GASNetSegmentSize = segmentSize;
+}
+
+void GASNetAPI::setUnalignedNodeMemory( bool flag ) {
+   _unalignedNodeMemory = flag;
 }

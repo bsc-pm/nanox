@@ -43,6 +43,7 @@
 #include "hwloc_decl.hpp"
 #include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
+#include "clustermpiplugin_fwd.hpp"
 
 #include "newregiondirectory_decl.hpp"
 #include "smpdevice_decl.hpp"
@@ -164,6 +165,8 @@ namespace nanos
          /*! Cluster: system Network object */
          Network              _net;
          bool                 _usingCluster;
+         bool                 _usingClusterMPI;
+         ext::ClusterMPIPlugin *_clusterMPIPlugin;
          bool                 _usingNode2Node;
          bool                 _usingPacking;
          std::string          _conduit;
@@ -525,6 +528,7 @@ namespace nanos
 
          Network * getNetwork( void );
          bool usingCluster( void ) const;
+         bool usingClusterMPI( void ) const;
          bool usingNewCache( void ) const;
          bool useNode2Node( void ) const;
          bool usePacking( void ) const;
@@ -697,6 +701,8 @@ void _distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t 
 global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size);
 
          SMPDevice &_getSMPDevice();
+         int initClusterMPI(int *argc, char ***argv);
+         void finalizeClusterMPI();
    };
 
    extern System sys;

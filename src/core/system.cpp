@@ -57,9 +57,46 @@
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
 #endif
+#include "clustermpiplugin_decl.hpp"
 
 #include "addressspace.hpp"
 
+
+// extern "C" {
+// 
+//    // MPI INTERCEPTION
+// 
+//    int MPI_Init(int *argc, char ***argv);
+//    int MPI_Init(int *argc, char ***argv) 
+//    {
+//       //fprintf(stderr ,"Calling MPI_Init\n");
+//       //int result = MPI_Init_C_Wrapper(argc, argv);
+//       //int result = PMPI_Init( argc, argv );
+//       printf("Just called MPI_Init\n");
+//       sys.initClusterMPI(argc, argv);
+//       return 0;
+//    }
+// 
+//    int MPI_Init_thread( int *argc, char ***argv, int required, int *provided );
+//    int MPI_Init_thread( int *argc, char ***argv, int required, int *provided )
+//    {
+//       //fprintf(stderr,"Calling MPI_Init_thread\n");
+//       //int result = MPI_Init_thread_C_Wrapper(argc, argv, required, provided);
+//       //int result = PMPI_Init_thread( argc, argv, required, provided );
+//       printf("Just called MPI_Init_thread\n");
+//       sys.initClusterMPI(argc, argv);
+//       return 0;
+//    }
+// 
+//    // int MPI_Finalize() 
+//    // {
+//    //    //printf("Calling MPI_Finalize\n");
+//    //    FTI_Finalize();
+//    //    int result = PMPI_Finalize();
+//    //    //printf("Just called MPI_Finalize\n");
+//    //    return result;
+//    // }
+// }
 
 using namespace nanos;
 
@@ -84,7 +121,7 @@ System::System () :
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
-      _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
+      _net(), _usingCluster( false ), _usingClusterMPI( false ), _clusterMPIPlugin( NULL ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
       _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::getSMPDevice() ),
       _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(),
@@ -172,11 +209,17 @@ void System::loadArchitectures()
 #endif
 
 #ifdef CLUSTER_DEV
-   if ( usingCluster() )
-   {
+   if ( usingCluster() && usingClusterMPI() ) {
+      fatal0("Can't use --cluster and --cluster-mpi at the same time,");
+   } else if ( usingCluster() ) {
       verbose0( "Loading Cluster plugin (" + getNetworkConduit() + ")" ) ;
       if ( !loadPlugin( "pe-cluster-"+getNetworkConduit() ) )
          fatal0 ( "Couldn't load Cluster support" );
+   } else if ( usingClusterMPI() ) {
+      verbose0( "Loading ClusterMPI plugin (" + getNetworkConduit() + ")" ) ;
+      _clusterMPIPlugin = (ext::ClusterMPIPlugin *) loadAndGetPlugin( "pe-clustermpi-"+getNetworkConduit() );
+      if ( _clusterMPIPlugin == NULL )
+         fatal0 ( "Couldn't load ClusterMPI support" );
    }
 #endif
 
@@ -355,6 +398,8 @@ void System::config ()
    cfg.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _usingCluster, true ), "Enables the usage of Nanos++ Cluster" );
    cfg.registerArgOption ( "enable-cluster", "cluster" );
    //cfg.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
+   cfg.registerConfigOption ( "enable-cluster-mpi", NEW Config::FlagOption ( _usingClusterMPI, true ), "Enables the usage of Nanos++ Cluster with MPI applications" );
+   cfg.registerArgOption ( "enable-cluster-mpi", "cluster-mpi" );
 
    cfg.registerConfigOption ( "no-node2node", NEW Config::FlagOption ( _usingNode2Node, false ), "Disables the usage of Slave-to-Slave transfers" );
    cfg.registerArgOption ( "no-node2node", "disable-node2node" );
@@ -703,7 +748,9 @@ void System::finish ()
    verbose ( "NANOS++ statistics");
    verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
 
-   sys.getNetwork()->nodeBarrier();
+   if ( usingCluster() ) {
+      sys.getNetwork()->nodeBarrier();
+   }
 
    for ( unsigned int nodeCount = 0; nodeCount < sys.getNetwork()->getNumNodes(); nodeCount += 1 ) {
       if ( sys.getNetwork()->getNodeNum() == nodeCount ) {
@@ -736,7 +783,9 @@ void System::finish ()
          }
 #endif
       }
-      sys.getNetwork()->nodeBarrier();
+      if ( usingCluster() ) {
+         sys.getNetwork()->nodeBarrier();
+      }
    }
 
    //! \note Master leaves team and finalizes thread structures (before insrumentation ends)
@@ -1681,4 +1730,16 @@ void System::switchToThread( unsigned int thid )
    if ( thid > _workers.size() ) return;
 
    Scheduler::switchToThread(_workers[thid]);
+}
+
+int System::initClusterMPI(int *argc, char ***argv) {
+   return _clusterMPIPlugin->initNetwork(argc, argv);
+}
+
+void System::finalizeClusterMPI() {
+   //! \note finalizing instrumentation (if active)
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+   _net.finalizeNoBarrier();
+   std::cerr << "AFTER _net.finalizeNoBarrier()" << std::endl;
 }

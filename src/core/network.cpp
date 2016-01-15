@@ -109,6 +109,14 @@ void Network::finalize()
    }
 }
 
+void Network::finalizeNoBarrier()
+{
+   if ( _api != NULL )
+   {
+      _api->finalizeNoBarrier();
+   }
+}
+
 void Network::poll( unsigned int id)
 {
    //   ensure ( _api != NULL, "No network api loaded." );

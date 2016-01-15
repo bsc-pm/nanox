@@ -57,11 +57,7 @@ namespace ext {
             }
          };
 
-         ClusterPlugin &_plugin;
          Network *_net;
-         RemoteWorkDescriptor *_rwgGPU;
-         RemoteWorkDescriptor *_rwgSMP;
-         RemoteWorkDescriptor *_rwgOCL;
 #ifndef GASNET_SEGMENT_EVERYTHING
          SimpleAllocator *_thisNodeSegment;
 #endif
@@ -172,12 +168,19 @@ namespace ext {
 
          WorkBufferManager _incomingWorkBuffers;
          unsigned int _nodeBarrierCounter;
+         std::size_t _GASNetSegmentSize;
+         bool _unalignedNodeMemory;
 
       public:
-         GASNetAPI( ClusterPlugin &p );
+         RemoteWorkDescriptor *_rwgGPU;
+         RemoteWorkDescriptor *_rwgSMP;
+         RemoteWorkDescriptor *_rwgOCL;
+
+         GASNetAPI();
          ~GASNetAPI();
          void initialize ( Network *net );
          void finalize ();
+         void finalizeNoBarrier ();
          void poll ();
          void sendExitMsg ( unsigned int dest );
          void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd, std::size_t expectedData );
@@ -211,6 +214,10 @@ namespace ext {
          unsigned int getNumNodes() const;
          unsigned int getNodeNum() const;
          void synchronizeDirectory( unsigned int dest );
+
+
+         void setGASNetSegmentSize(std::size_t segmentSize);
+         void setUnalignedNodeMemory(bool flag);
 
       private:
          void _put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId, unsigned int metaSeq );

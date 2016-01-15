@@ -53,6 +53,8 @@ namespace nanos
          const char * getName() const;
 
          int getVersion() const;
+
+         virtual int initNetwork(int *argc, char ***argv) { return 0; }
    };
 
    class PluginManager
