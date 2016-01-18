@@ -2091,11 +2091,11 @@ namespace nanos {
                      ) ) {
                NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                maxPossibleScore += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
-               //*myThread->_file << "Affinity score for region "; wd._mcontrol._memCacheCopies[ i ]._reg.key->printRegion( *myThread->_file, wd._mcontrol._memCacheCopies[ i ]._reg.id );
-               //{
-               //   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
-               //   *myThread->_file << " " << *entry << std::endl;
-               //}
+               // *myThread->_file << "Affinity score for region "; wd._mcontrol._memCacheCopies[ i ]._reg.key->printRegion( *myThread->_file, wd._mcontrol._memCacheCopies[ i ]._reg.id );
+               // {
+               //    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
+               //    *myThread->_file << " " << *entry << std::endl;
+               // }
                if ( locs.empty() ) {
                   //(*myThread->_file) << "empty list, version "<<  wd._mcontrol._memCacheCopies[ i ]._version << std::endl;
                   for ( std::set< memory_space_id_t >::const_iterator locIt = wd._mcontrol._memCacheCopies[ i ]._reg.getLocations().begin();
@@ -2119,21 +2119,23 @@ namespace nanos {
                   }
                } else {
                   for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                     global_reg_t data_source_reg( it->second, wd._mcontrol._memCacheCopies[ i ]._reg.key );
+                     global_reg_t region_shape( it->first, wd._mcontrol._memCacheCopies[ i ]._reg.key );
 
-                     for ( std::set< memory_space_id_t >::const_iterator locIt = wd._mcontrol._memCacheCopies[ i ]._reg.getLocations().begin();
-                           locIt != wd._mcontrol._memCacheCopies[ i ]._reg.getLocations().end(); locIt++ ) {
+                     for ( std::set< memory_space_id_t >::const_iterator locIt = data_source_reg.getLocations().begin();
+                           locIt != data_source_reg.getLocations().end(); locIt++ ) {
                         memory_space_id_t loc = *locIt;
 
                         unsigned int score_idx = ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 );
-                        if (wd._mcontrol._memCacheCopies[ i ]._reg.isRooted()) {
+                        if (data_source_reg.isRooted()) {
                            scores[ score_idx ] = (std::size_t) -1;
                         } else if ( scores[ score_idx ] != (std::size_t) -1 ) {
-                           scores[ score_idx ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                           scores[ score_idx ] += region_shape.getDataSize();
                         }
                         if ( loc != 0 && sys.getSeparateMemory( loc ).isAccelerator()
                               && wd.canRunIn( sys.getSeparateMemory( loc ).getDevice() ) ) {
                            int accelerator_id = sys.getSeparateMemory( loc ).getAcceleratorNumber();
-                           scores[ numNodes + accelerator_id ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                           scores[ numNodes + accelerator_id ] += region_shape.getDataSize();
                            if ( score_idx == 0 && !wd.canRunIn( getSMPDevice() ) ) {
                               scores[ 0 ] = 0;
                            }
@@ -2203,7 +2205,8 @@ namespace nanos {
          }
          //if (sys.getNetwork()->getNodeNum() == 0 ) { 
          //   (*myThread->_file) << "WD: " << wd.getId() << " ROcopies: "<<ro_copies << " WOcopies: " << wo_copies << " RWcopies: " << rw_copies << " Locality results: [ ";
-         //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) (*myThread->_file) << i << ": " << (scores[i] / (16*512*512)) << " "; 
+         //   (*myThread->_file) << "WD: " << wd.getId() << " Locality results: [ ";
+         //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) (*myThread->_file) << i << ": " << scores[i] << " "; 
          //   (*myThread->_file) <<"] ties " << ties << " winner " << winner << std::endl;
          //}
          //if (winner == -1) winner = start;
