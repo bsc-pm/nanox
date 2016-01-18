@@ -456,7 +456,8 @@ void System::start ()
       }
    }
 
-   _smpPlugin->associateThisThread( getUntieMaster() );
+   //don't allow untiedMaster in cluster, otherwise Nanos finalization crashes
+   _smpPlugin->associateThisThread( usingCluster() ? false : getUntieMaster() );
 
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
@@ -1611,4 +1612,9 @@ void System::switchToThread( unsigned int thid )
    if ( thid > _workers.size() ) return;
 
    Scheduler::switchToThread(_workers[thid]);
+}
+
+void System::stopFirstThread( void ) {
+   //FIXME: this assumes that mainWD is tied to thread 0
+   _workers[0]->stop();
 }
