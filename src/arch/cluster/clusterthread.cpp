@@ -178,10 +178,8 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
 }
 
 void ClusterThread::join() {
-   unsigned int i;
    message( "Node " << ( ( ClusterNode * ) this->runningOn() )->getClusterNodeNum() << " executed " <<( ( ClusterNode * ) this->runningOn() )->getExecutedWDs() << " WDs" );
-   for ( i = 1; i < sys.getNetwork()->getNumNodes(); i++ )
-      sys.getNetwork()->sendExitMsg( i );
+   sys.getNetwork()->sendExitMsg( _clusterNode );
 }
 
 void ClusterThread::start() {

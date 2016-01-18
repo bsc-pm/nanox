@@ -512,7 +512,8 @@ void System::start ()
       }
    }
 
-   _smpPlugin->associateThisThread( getUntieMaster() );
+   //don't allow untiedMaster in cluster, otherwise Nanos finalization crashes
+   _smpPlugin->associateThisThread( usingCluster() ? false : getUntieMaster() );
 
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
@@ -1742,4 +1743,9 @@ void System::finalizeClusterMPI() {
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
    _net.finalizeNoBarrier();
    std::cerr << "AFTER _net.finalizeNoBarrier()" << std::endl;
+}
+
+void System::stopFirstThread( void ) {
+   //FIXME: this assumes that mainWD is tied to thread 0
+   _workers[0]->stop();
 }
