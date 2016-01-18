@@ -508,7 +508,7 @@ inline void WorkDescriptor::convertToRegularWD()
 
 inline void WorkDescriptor::copyReductions(WorkDescriptor *parent)
 {
-   _taskReductions = parent->_taskReductions;
+	_taskReductions = parent->_taskReductions;
 }
 
 inline void WorkDescriptor::setId( unsigned int id ) {

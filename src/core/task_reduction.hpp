@@ -24,8 +24,8 @@
 
 inline bool TaskReduction::has( const void *ptr)
 {
-   /*if( (ptr >= _min) && (ptr <= _max) ) printf("Tracking reduction renaming.\n");*/
-   return ( ptr == _dependence ) || ( (ptr >= _min) && (ptr <= _max) );
+	if( (ptr >= _min) && (ptr < _max) ) printf("Tracking reduction renaming.\n");
+	return ( ptr == _dependence ) || ( (ptr >= _min) && (ptr < _max) );
 }
 
 inline void * TaskReduction::get( size_t id )

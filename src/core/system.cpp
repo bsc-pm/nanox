@@ -1004,6 +1004,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->tieToLocation( 0 );
    }
 
+   //Copy reduction data from parent
    if (uwg) wd->copyReductions((WorkDescriptor *)uwg);
 }
 
