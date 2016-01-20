@@ -549,7 +549,6 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
       if ( (*it)->has( p_orig) )
       {
-    	 // std::cout << "Reusing reduction: " << p_orig  << "," << sys._lazyPrivatizationEnabled << std::endl;
     	  return;
       }
    }
@@ -637,7 +636,7 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
    }
 
    if(isFinal()) return NULL;
-   //std::cout << "4:" << p_addr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
+  // std::cout << "4:" << p_addr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
 
    //this should never be reached
    return NULL;
