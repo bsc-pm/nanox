@@ -106,23 +106,23 @@ test_flags:
 
 debug_flags:
 	echo -n "$(common_debug_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_debug_CXXFLAGS)" > $@
-	sed -i "s/-I[^-]*//g; s/config.h/nanos-config.h/" $@
-	echo " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
 
 instrumentation_flags:
 	echo -n "$(common_instrumentation_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_instrumentation_CXXFLAGS)" > $@
-	sed -i "s/-I[^-]*//g; s/config.h/nanos-config.h/" $@
-	echo " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
 
 instrumentation_debug_flags:
 	echo -n "$(common_instrumentation_debug_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_instrumentation_debug_CXXFLAGS)" > $@
-	sed -i "s/-I[^-]*//g; s/config.h/nanos-config.h/" $@
-	echo " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
 
 performance_flags:
 	echo -n "$(common_performance_CPPFLAGS) -DNANOX_PREFIX=\"$(prefix)\" $(common_performance_CXXFLAGS)" > $@
-	sed -i "s/-I[^-]*//g; s/config.h/nanos-config.h/" $@
-	echo " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
+	sed -i "s/-I[^\ ]*//g; s/config.h/nanos-config.h/" $@
+	echo -n " -I$(devincludedir) -I$(mpioffloaddir)" >> $@
 
 nanos-config.h: $(abs_top_builddir)/config.h
 	cp $(abs_top_builddir)/config.h $@
