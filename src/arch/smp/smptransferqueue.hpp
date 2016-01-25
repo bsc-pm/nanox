@@ -70,7 +70,7 @@ void SMPTransferQueue::addTransfer( DeviceOps *ops, char *dst, char *src, std::s
                while ( total_line < len ) {
                   _transfers.push_back( SMPTransfer(ops, dst+(ld*count_idx)+total_line, src+(ld*count_idx)+total_line, current_line_chunk, 1, ld, in) );
                   total_line += current_line_chunk;
-                  current_line_chunk = total_line + (CHUNK_SIZE*2) > len ? CHUNK_SIZE : len - total_line;
+                  current_line_chunk = total_line + (CHUNK_SIZE*2) > len ?  len - total_line : CHUNK_SIZE;
                }
             }
          } else {
@@ -79,7 +79,7 @@ void SMPTransferQueue::addTransfer( DeviceOps *ops, char *dst, char *src, std::s
             while ( total_count < count ) {
                _transfers.push_back( SMPTransfer(ops, dst+(ld*total_count), src+(ld*total_count), len, current_count_chunk, ld, in) );
                total_count += current_count_chunk;
-               current_count_chunk = total_count + (CHUNK_SIZE/len)*2 > count ? (CHUNK_SIZE/len) : count - total_count;
+               current_count_chunk = total_count + (CHUNK_SIZE/len)*2 > count ? count - total_count : (CHUNK_SIZE/len);
             }
          }
       }
