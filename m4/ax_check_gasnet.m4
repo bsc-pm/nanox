@@ -213,7 +213,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
     
   AS_IF([test "$conduit_available" = yes],[
     AS_VAR_APPEND([gasnet_available_conduits],[" $1"])
-    AS_VAR_SET([conduit_libs],["$conduit_prereq_libs $LIBS"])
+    AS_VAR_SET([conduit_libs],["$LIBS $conduit_prereq_libs"])
   ])
 
   AX_VAR_POPVALUE([CXX])
@@ -234,7 +234,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
 #   1) conduit name
 AC_DEFUN([_AX_CONDUIT_SUBST],[
 
-  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1])dnl
+  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1_available])dnl
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])dnl
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])dnl
 
