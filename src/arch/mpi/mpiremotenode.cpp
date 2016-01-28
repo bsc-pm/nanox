@@ -39,7 +39,6 @@ extern __attribute__((weak)) void *ompss_mpi_func_pointers_host[];
 extern __attribute__((weak)) void *ompss_mpi_func_pointers_dev[];
 
 
-
 bool MPIRemoteNode::executeTask(int taskId) {
     bool ret=false;
     if (taskId==TASK_END_PROCESS){
@@ -160,6 +159,10 @@ void MPIRemoteNode::nanosMPIFinalize() {
     if (!resul){
       //Free every node before finalizing
       DEEP_Booster_free(NULL,-1);
+
+      for (unsigned int i=0; i< _taskStructsCache.size(); i++)
+        MPI_Type_free(_taskStructsCache[i]);
+
       MPI_Finalize();
     }
 }
