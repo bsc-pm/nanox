@@ -155,6 +155,8 @@ void MPIRemoteNode::nanosMPIFinalize() {
         MPI_Type_free( *datatype_it );
         delete *datatype_it;
     }
+    MPI_Type_free( &MPIDevice::cacheStruct );
+    MPIDevice::cacheStruct = MPI_DATATYPE_NULL;
 
     int mpi_finalized;
     MPI_Finalized(&mpi_finalized);
@@ -163,6 +165,13 @@ void MPIRemoteNode::nanosMPIFinalize() {
     if (!mpi_finalized){
       //Free every node before finalizing
       DEEP_Booster_free(NULL,-1);
+
+      // In the case of slave processes,
+      // disconnect from parent communicator
+      MPI_Comm parent;
+      MPI_Comm_get_parent( &parent );
+      if( parent != MPI_COMM_NULL )
+         MPI_Comm_disconnect( &parent );
 
       MPI_Finalize();
     }
