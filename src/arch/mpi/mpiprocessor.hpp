@@ -36,7 +36,6 @@ using namespace nanos;
 using namespace ext;
     
 size_t MPIProcessor::_workers_per_process=0;
-nanos::mpi::HostInfo MPIProcessor::_defaultHostInfo = MPI_INFO_NULL;
 
 System::CachePolicyType MPIProcessor::_cachePolicy = System::WRITE_THROUGH;
 size_t MPIProcessor::_cacheDefaultSize = (size_t) -1;

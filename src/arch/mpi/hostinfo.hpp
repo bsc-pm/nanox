@@ -23,9 +23,9 @@ namespace mpi {
 class HostInfo {
 	MPI_Info info_;
 public:
-	static HostInfo const& defaultSettings();
-
-	HostInfo( MPI_Info info ) : info_(info) {}
+	HostInfo( MPI_Info info ) : info_(info)
+	{
+	}
 
 	HostInfo( HostInfo const& o ) : info_() {
 		int result = MPI_Info_dup( o.info_, &info_ );
@@ -33,24 +33,16 @@ public:
 	}
 
 	HostInfo() : info_() {
-		int result = MPI_Info_dup( HostInfo::defaultSettings().get(), &info_ );
+		int result = MPI_Info_create( &info_ );
 		assert( result == MPI_SUCCESS );
 	}
 
 	virtual ~HostInfo() {
-		int finalized;
-		MPI_Finalized( &finalized );
-		if( info_ != MPI_INFO_NULL && finalized == 0 ) {
-			int result = MPI_Info_free( &info_ );
-			assert( result == MPI_SUCCESS);
-		}
+		int result = MPI_Info_free( &info_ );
+		assert( result == MPI_SUCCESS);
 	}
 
-	void initialize() {
-		if( info_ == MPI_INFO_NULL ) {
-			MPI_Info_create( &info_ );
-		}
-	}
+	static HostInfo defaultSettings();
 
 	// Cast operator. Should be const to allow 
 	// implicit vector copies to be performed 

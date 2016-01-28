@@ -43,7 +43,6 @@ namespace nanos {
             static size_t _threadsStackSize;
             static std::string _mpiNodeType;
             static size_t _workers_per_process;
-            static nanos::mpi::HostInfo _defaultHostInfo;
             
             //MPI Node data
             static size_t _cacheDefaultSize;
