@@ -149,19 +149,20 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
 
 void MPIRemoteNode::nanosMPIFinalize() {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FINALIZE_EVENT);
-    for ( std::vector<MPI_Datatype*>::iterator it = _taskStructsCache.begin();
-            it!=_taskStructsCache.end(); ++it ) {
-        delete *it;
+    for ( std::vector<MPI_Datatype*>::iterator datatype_it = _taskStructsCache.begin();
+          datatype_it != _taskStructsCache.end(); datatype_it++ )
+    {
+        MPI_Type_free( *datatype_it );
+        delete *datatype_it;
     }
-    int resul;
-    MPI_Finalized(&resul);
+
+    int mpi_finalized;
+    MPI_Finalized(&mpi_finalized);
+
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-    if (!resul){
+    if (!mpi_finalized){
       //Free every node before finalizing
       DEEP_Booster_free(NULL,-1);
-
-      for (unsigned int i=0; i< _taskStructsCache.size(); i++)
-        MPI_Type_free(_taskStructsCache[i]);
 
       MPI_Finalize();
     }
