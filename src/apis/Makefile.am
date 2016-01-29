@@ -69,6 +69,7 @@ nanos_c_sources = \
 	c/nanos_reduction.cpp\
 	c/nanos_sched.cpp\
 	c/nanos_dependence.cpp\
+	c/iomp_symbols.cpp\
 	$(END) 
 
 
