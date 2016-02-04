@@ -40,7 +40,7 @@ void SMPTransfer::execute() {
    for ( std::size_t count = 0; count < _count; count += 1) {
       ::memcpy( _dst + count * _ld, _src + count * _ld, _len );
    }
-   //std::cerr << "Execueted op " << (void *) _dst  << " ops: " << (void *) _ops << " is in " << _in << std::endl; 
+   //*myThread->_file << "Execueted op " << (void *) _dst  << " ops: " << (void *) _ops << " is in " << _in << " content (dst): [" << ((double *)_dst)[0] << " " << ((double *)_dst)[1] << "]" << std::endl; 
    _ops->completeOp();
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( _in ? key_in : key_out, (nanos_event_value_t) 0 ); )
 }

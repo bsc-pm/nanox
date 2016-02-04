@@ -295,6 +295,7 @@ class SMPPlugin : public SMPBasePlugin
             memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
+            numaMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
 
@@ -381,7 +382,7 @@ class SMPPlugin : public SMPBasePlugin
          std::cerr << "memkind: SMP Xfer OUT (Replacements) bytes: " << sys.getSeparateMemory(1).getCache().getTransferredReplacedOutData() << std::endl;
       } else if ( _smpPrivateMemory ) {
          for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-            if ( (*it)->isActive() ) {
+            if ( (*it)->isActive() && (*it)->getMemorySpaceId() > 0 ) {
                std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getSoftInvalidationCount() << std::endl;
                std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getHardInvalidationCount() << std::endl;
             }
