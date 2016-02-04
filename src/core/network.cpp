@@ -32,6 +32,9 @@
 #include "addressspace.hpp"
 #include "globalregt.hpp"
 
+#include <limits>
+#include <iomanip>
+
 #define VERBOSE_COMPLETION 0
 
 using namespace nanos;
@@ -803,7 +806,7 @@ void Network::invalidateDataFromDevice( uint64_t addr, std::size_t len, std::siz
       //(*myThread->_file) << "[net] registered addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
       if ( reg.isLocatedInSeparateMemorySpaces() ) {
          //(*myThread->_file) << "[net] in devices! invalidate: " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
-         reg.setLocationAndVersion( NULL, 0, reg.getVersion()+1 );
+         reg.setLocationAndVersion( NULL, 0, reg.getVersion()+1 );//invalidateDataFromDevice
       }
       //else {
       //   (*myThread->_file) << "[net] already in host! " << (void *) addr << " len: " << len << " hostObject " << hostObject << std::endl;
@@ -844,7 +847,6 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
                } else {
                   outOps.getOtherOps().insert( thisOps );
                }
-               //regEntry->addAccess( 0, regEntry->getVersion() );
             }
          }
          outOps.issue( *( (WD *) NULL ) );
@@ -911,7 +913,7 @@ bool GetRequest::isCompleted() const {
 void GetRequest::clear() {
    ::memcpy( _hostAddr, _recvAddr, _size );
    if ( VERBOSE_COMPLETION ) {
-      (*myThread->_file) << "Completed copyOut request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
+      (*myThread->_file) << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " Completed copyOut request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
    }
    sys.getNetwork()->freeReceiveMemory( _recvAddr );
    _ops->completeOp();
@@ -930,7 +932,7 @@ void GetRequestStrided::clear() {
       ::memcpy( &_hostAddr[ j  * _ld ], &_recvAddr[ j * _size ], _size );
    }
    if ( VERBOSE_COMPLETION ) {
-      (*myThread->_file) << "Completed copyOutStrided request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
+      (*myThread->_file) << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " Completed copyOutStrided request, hostAddr="<< (void*)_hostAddr <<" ["<< *((double*) _hostAddr) <<"] ops=" << (void *) _ops << std::endl;
    }
    //NANOS_INSTRUMENT( inst2.close(); );
    _packer->free_pack( (uint64_t) _hostAddr, _size, _count, _recvAddr );
