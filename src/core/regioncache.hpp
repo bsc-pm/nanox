@@ -50,6 +50,10 @@ inline void AllocatedChunk::addReference( WD const &wd, unsigned int loc ) {
 }
 
 inline void AllocatedChunk::removeReference( WD const &wd ) {
+   //ensure(_refs > 0, "invalid removeReference, chunk has 0 references!");
+   if ( _refs == 0 ) {
+      *myThread->_file << " removeReference ON A CHUNK WITH 0 REFS!!!" << std::endl;
+   }
    _refs--;
    _refWdId[&wd]--;
    if ( _refWdId[&wd] == 0 ) {
