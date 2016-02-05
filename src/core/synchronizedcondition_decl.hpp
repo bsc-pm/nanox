@@ -20,10 +20,6 @@
 #ifndef _NANOS_SYNCHRONIZED_CONDITION_DECL
 #define _NANOS_SYNCHRONIZED_CONDITION_DECL
 
-#ifdef HAVE_CONFIG_H
-  #include <config.h>
-#endif
-
 #include <stdlib.h>
 #include <list>
 #include <vector>

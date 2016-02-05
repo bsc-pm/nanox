@@ -36,6 +36,7 @@ int OpenCLConfig::_prefetchNum = 1;
 unsigned int OpenCLConfig::_currNumDevices = 0;
 System::CachePolicyType OpenCLConfig::_cachePolicy = System::DEFAULT;
 //System::CachePolicyType OpenCLConfig::_cachePolicy = System::WRITE_BACK;
+bool OpenCLConfig::_enableProfiling = false;
 
 std::map<cl_device_id,cl_context>* OpenCLConfig::_devicesPtr=0;
 
@@ -129,11 +130,19 @@ void OpenCLConfig::prepare( Config &cfg )
    cfg.registerConfigOption ( "opencl-cache-policy", cachePolicyCfg, "Defines the cache policy for OpenCL architectures: write-through / write-back (wb by default)" );
    cfg.registerEnvOption ( "opencl-cache-policy", "NX_OPENCL_CACHE_POLICY" );
    cfg.registerArgOption( "opencl-cache-policy", "opencl-cache-policy" );
+
+   // Enable/disable Profiling.
+   const std::string openclProfilingOptName = "opencl-profiling";
+   cfg.registerConfigOption( openclProfilingOptName,
+                             NEW Config::FlagOption( _enableProfiling ),
+                             "Enable the OpenCL Profiling mode");
+   cfg.registerEnvOption( openclProfilingOptName, "NX_OPENCL_PROFILING" );
+   cfg.registerArgOption( openclProfilingOptName, openclProfilingOptName );
 }
 
-void OpenCLConfig::apply( OpenCLPlugin const* plugin ) {
-    std::string _devTy = plugin->getSelectedDeviceType();
-    _devicesPtr = plugin->getDevices();
+void OpenCLConfig::apply(const std::string devTypeIn, std::map<cl_device_id, cl_context>* devices) {
+    std::string devTyStr = devTypeIn;
+    _devicesPtr = devices;
     
     //ompss_uses_opencl pointer will be null if the compiler did not fill it (#1050)
     void * myself = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
@@ -174,16 +183,16 @@ void OpenCLConfig::apply( OpenCLPlugin const* plugin ) {
 
     cl_device_type devTy=0;
 
-    std::transform(_devTy.begin(), _devTy.end(), _devTy.begin(), ::toupper);
+    std::transform(devTyStr.begin(), devTyStr.end(), devTyStr.begin(), ::toupper);
     // Parse the requested device type.
-    if (_devTy == "" || _devTy.find("ALL") != std::string::npos)
+    if (devTyStr == "" || devTyStr.find("ALL") != std::string::npos)
             devTy = CL_DEVICE_TYPE_ALL;
     else {
-        if (_devTy.find("CPU") != std::string::npos)
+        if (devTyStr.find("CPU") != std::string::npos)
             devTy |= CL_DEVICE_TYPE_CPU;
-        if (_devTy.find("GPU") != std::string::npos)
+        if (devTyStr.find("GPU") != std::string::npos)
             devTy |= CL_DEVICE_TYPE_GPU;
-        if (_devTy.find("ACCELERATOR") != std::string::npos)
+        if (devTyStr.find("ACCELERATOR") != std::string::npos)
             devTy |= CL_DEVICE_TYPE_ACCELERATOR;
     }
 

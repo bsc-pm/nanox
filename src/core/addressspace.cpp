@@ -77,6 +77,10 @@ void HostAddressSpace::registerObject( nanos_copy_data_internal_t *obj ) {
    _directory.registerObject( obj );
 }
 
+void HostAddressSpace::unregisterObject( void *baseAddr ) {
+   _directory.unregisterObject( baseAddr );
+}
+
 SeparateAddressSpace::SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize ) : _cache( memorySpaceId, arch, allocWide ? RegionCache::ALLOC_WIDE : RegionCache::ALLOC_FIT, slabSize ), _nodeNumber( 0 ), _acceleratorNumber( 0 ), _isAccelerator( false ), _sdata( NULL ) {
 }
 

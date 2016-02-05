@@ -124,6 +124,15 @@ AC_DEFUN([AX_CHECK_CUDA],[
                        [cuda=no])
       ])dnl
 
+      # Look for cusparseDrotmg function in libcublas.so library
+      AS_IF([test x$cuda = xyes],[
+# Note: -lcudart might not be necessary, as it is already included in LIBS
+        AC_SEARCH_LIBS([cusparseDcsrmm],
+                       [cusparse],
+                       [cuda=yes],
+                       [cuda=no])
+      ])dnl
+
       cudalibs="$LIBS"
   
       AX_VAR_POPVALUE([CPPFLAGS])
