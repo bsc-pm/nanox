@@ -20,7 +20,8 @@
 #ifndef _NANOS_MPI_PROCESSOR_DECL
 #define _NANOS_MPI_PROCESSOR_DECL
 
-#include "mpi.h"
+#include <mpi.h>
+
 #include "atomic_decl.hpp"
 #include "config.hpp"
 #include "mpidevice.hpp"
@@ -29,6 +30,7 @@
 #include "cachedaccelerator.hpp"
 #include "copydescriptor_decl.hpp"
 #include "processingelement.hpp"
+#include "request.hpp"
 #include "mpiremotenode_decl.hpp"
 
 namespace nanos {
@@ -75,7 +77,7 @@ namespace nanos {
             Atomic<bool> _busy;
             WorkDescriptor* _currExecutingWd;
             int _currExecutingDD;
-            std::list<MPI_Request> _pendingReqs;
+            std::list<mpi::request> _pendingReqs;
             MPI_Comm _commOfParents;
 
             SMPProcessor* _core;
@@ -164,13 +166,27 @@ namespace nanos {
 
             void setCurrExecutingDD(int currExecutingDD);
             
-            void appendToPendingRequests(MPI_Request& req);
-            
+            void appendToPendingRequests( mpi::request const& req );
+
+				/**
+				 * Waits for all requests to be completed.
+				 * Then, it frees them all.
+             * Thread-unsafe function
+				 */
+				void waitAndClearRequests();
+
+				/**
+				 * Frees and erases all requests.
+             * Thread-unsafe function
+				 */
+				void clearAllRequests();
+
             /**
-             * Waits or clears all Pending Requests
-             * Non thread-safe function
+             * Waits for all pending Requests
+             * Thread-safe function
              */
-            void clearAllRequests();
+            void waitAllRequests();
+
             /**
              * Tests all pending requests
              * Thread-safe function

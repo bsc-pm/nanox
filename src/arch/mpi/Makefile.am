@@ -34,6 +34,10 @@ devinclude_HEADERS = \
 	mpidevice.hpp \
 	mpidd.hpp \
 	mpithread.hpp \
+	hostinfo.hpp \
+	info.hpp \
+	request.hpp \
+	status.hpp \
 	$(END)
 
 offload_sources= \
@@ -59,6 +63,10 @@ offload_sources= \
  mpiicpc_syms.cpp \
  hostinfo.hpp \
  hostinfo.cpp \
+ info.hpp \
+ request.hpp \
+ status.hpp \
+ cacheorder.hpp \
  $(END)
 
 EXTRA_DIST=$(offload_sources)

@@ -96,6 +96,7 @@ devinclude_HEADERS = \
 	pinnedallocator_decl.hpp \
 	genericevent_decl.hpp \
 	hwloc_decl.hpp \
+	memory/memoryaddress.hpp \
 	$(END) 
 
 support_sources = \
@@ -181,6 +182,8 @@ support_sources = \
 	genericevent.cpp \
 	hwloc_decl.hpp \
 	hwloc.cpp \
+	memory/memoryaddress.hpp \
+	memory/memoryaddress.cpp \
 	$(END) 
 
 debug_sources = \

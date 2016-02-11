@@ -708,8 +708,7 @@ void MPIRemoteNode::callMPISpawn(
             host=tokensHost.at(hostCounter);
             //If host is a file, give it to Intel, otherwise put the host in the spawn
             std::ifstream hostfile(host.c_str());
-            bool isfile=hostfile;
-            if (isfile){
+            if ( hostfile.is_open() ){
                 std::string line;
                 int number_of_lines_in_file=0;
                 while (std::getline(hostfile, line)) {

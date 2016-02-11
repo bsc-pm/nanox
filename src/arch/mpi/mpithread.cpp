@@ -176,7 +176,7 @@ inline void MPIThread::freeCurrExecutingWD(MPIProcessor* finishedPE){
     WD* previousWD = getCurrentWD();
     setCurrentWD(*wd);
     //Clear all async requests on this PE (they finished a while ago)
-    finishedPE->clearAllRequests();    
+    finishedPE->waitAndClearRequests();    
     wd->finish();
     //Set the PE as free so we can re-schedule work to it
     finishedPE->setBusy(false);
@@ -194,9 +194,11 @@ void MPIThread::checkCommunicationsCompletion() {
     while( iter!=_ranksWithPendingComms.end() ){
       int rank=*iter;
       if (_runningPEs[rank]->testAllRequests()) { 
-         iter=_ranksWithPendingComms.erase(iter);
+         _ranksWithPendingComms.erase(iter++);
+
          WD* previousWD = getCurrentWD();
          WD* wd=_runningPEs[rank]->getCurrExecutingWd();
+
          setCurrentWD(*wd);
          wd->releaseInputDependencies();
          setCurrentWD(*previousWD);
