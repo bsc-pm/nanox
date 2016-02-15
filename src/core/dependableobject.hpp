@@ -155,7 +155,7 @@ inline DependableObject::DependableObjectVector & DependableObject::getSuccessor
 inline bool DependableObject::addPredecessor ( DependableObject &depObj )
 {
    // Avoiding create cycles in dependence graph
-   if ( this == &depObj ) false;
+   if ( this == &depObj ) return false;
 
    bool inserted = false;
    {
@@ -169,7 +169,7 @@ inline bool DependableObject::addPredecessor ( DependableObject &depObj )
 inline bool DependableObject::addSuccessor ( DependableObject &depObj )
 {
    // Avoiding create cycles in dependence graph
-   if ( this == &depObj ) false;
+   if ( this == &depObj ) return false;
 
    //Maintain the list of predecessors
    if(sys.getPredecessorLists())

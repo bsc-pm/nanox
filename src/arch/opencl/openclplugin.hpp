@@ -76,10 +76,6 @@ public:
       return _devTy;
    }
 
-   virtual std::map<cl_device_id, cl_context>* getDevices() const {
-      return &_devices;
-   }
-
    virtual unsigned int getNumPEs() const {
       return _opencls->size();
    }

@@ -393,7 +393,6 @@ inline bool System::usingCluster( void ) const { return _usingCluster; }
 inline bool System::useNode2Node( void ) const { return _usingNode2Node; }
 inline bool System::usePacking( void ) const { return _usingPacking; }
 inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }
-inline void System::stopFirstThread( void ) { _workers[0]->stop(); }
 
 inline void System::setPMInterface(PMInterface *pm)
 {

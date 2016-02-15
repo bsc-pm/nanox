@@ -38,6 +38,7 @@
 #include "mpithread.cpp"
 #include "nanos-mpi.h"
 #include "mpi-api.cpp"
+#include "mpiicpc_syms.cpp"
 
 #endif	/* MPIALL_HPP */
 

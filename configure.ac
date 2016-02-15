@@ -144,6 +144,9 @@ AX_CHECK_CUDA
 # Check if OpenCL device has been selected
 AX_CHECK_OPENCL
 
+# Check if SQLite3 has been selected
+AX_CHECK_SQLITE3
+
 # Check hwloc availability
 AX_CHECK_HWLOC
 

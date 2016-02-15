@@ -51,27 +51,27 @@ debug_libcluster_la_SOURCES=$(cluster_sources)
 
 debug_LTLIBRARIES =
 
-if gasnet_ibv
+if gasnet_ibv_available
 debug_LTLIBRARIES += debug/libnanox-pe-cluster-ibv.la
 
 debug_libnanox_pe_cluster_ibv_la_CPPFLAGS=$(common_debug_CPPFLAGS) @gasnet_ibv_inc@
 debug_libnanox_pe_cluster_ibv_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+debug_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 debug_libnanox_pe_cluster_ibv_la_LIBADD=@gasnet_ibv_libs@
 debug_libnanox_pe_cluster_ibv_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_mpi
+if gasnet_mpi_available
 debug_LTLIBRARIES += debug/libnanox-pe-cluster-mpi.la
 
 debug_libnanox_pe_cluster_mpi_la_CPPFLAGS=$(common_debug_CPPFLAGS) @gasnet_mpi_inc@
 debug_libnanox_pe_cluster_mpi_la_CXXFLAGS=$(common_debug_CXXFLAGS)
-debug_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+debug_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 debug_libnanox_pe_cluster_mpi_la_LIBADD=@gasnet_mpi_libs@
 debug_libnanox_pe_cluster_mpi_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_smp
+if gasnet_smp_available
 debug_LTLIBRARIES += debug/libnanox-pe-cluster-smp.la
 
 debug_libnanox_pe_cluster_smp_la_CPPFLAGS=$(common_debug_CPPFLAGS) @gasnet_smp_inc@
@@ -81,7 +81,7 @@ debug_libnanox_pe_cluster_smp_la_LIBADD=@gasnet_smp_libs@
 debug_libnanox_pe_cluster_smp_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_udp
+if gasnet_udp_available
 debug_LTLIBRARIES += debug/libnanox-pe-cluster-udp.la
 
 debug_libnanox_pe_cluster_udp_la_CPPFLAGS=$(common_debug_CPPFLAGS) @gasnet_udp_inc@
@@ -102,27 +102,27 @@ instrumentation_debug_libcluster_la_SOURCES=$(cluster_sources)
 
 instrumentation_debug_LTLIBRARIES =
 
-if gasnet_ibv
+if gasnet_ibv_available
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-pe-cluster-ibv.la
 
 instrumentation_debug_libnanox_pe_cluster_ibv_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @gasnet_ibv_inc@
 instrumentation_debug_libnanox_pe_cluster_ibv_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+instrumentation_debug_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 instrumentation_debug_libnanox_pe_cluster_ibv_la_LIBADD=@gasnet_ibv_libs@
 instrumentation_debug_libnanox_pe_cluster_ibv_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_mpi
+if gasnet_mpi_available
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-pe-cluster-mpi.la
 
 instrumentation_debug_libnanox_pe_cluster_mpi_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @gasnet_mpi_inc@
 instrumentation_debug_libnanox_pe_cluster_mpi_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
-instrumentation_debug_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+instrumentation_debug_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 instrumentation_debug_libnanox_pe_cluster_mpi_la_LIBADD=@gasnet_mpi_libs@
 instrumentation_debug_libnanox_pe_cluster_mpi_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_smp
+if gasnet_smp_available
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-pe-cluster-smp.la
 
 instrumentation_debug_libnanox_pe_cluster_smp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @gasnet_smp_inc@
@@ -132,7 +132,7 @@ instrumentation_debug_libnanox_pe_cluster_smp_la_LIBADD=@gasnet_smp_libs@
 instrumentation_debug_libnanox_pe_cluster_smp_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_udp
+if gasnet_udp_available
 instrumentation_debug_LTLIBRARIES += instrumentation-debug/libnanox-pe-cluster-udp.la
 
 instrumentation_debug_libnanox_pe_cluster_udp_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS) @gasnet_udp_inc@
@@ -153,27 +153,27 @@ instrumentation_libcluster_la_SOURCES=$(cluster_sources)
 
 instrumentation_LTLIBRARIES =
 
-if gasnet_ibv
+if gasnet_ibv_available
 instrumentation_LTLIBRARIES += instrumentation/libnanox-pe-cluster-ibv.la
 
 instrumentation_libnanox_pe_cluster_ibv_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @gasnet_ibv_inc@
 instrumentation_libnanox_pe_cluster_ibv_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+instrumentation_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 instrumentation_libnanox_pe_cluster_ibv_la_LIBADD=@gasnet_ibv_libs@
 instrumentation_libnanox_pe_cluster_ibv_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_mpi
+if gasnet_mpi_available
 instrumentation_LTLIBRARIES += instrumentation/libnanox-pe-cluster-mpi.la
 
 instrumentation_libnanox_pe_cluster_mpi_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @gasnet_mpi_inc@
 instrumentation_libnanox_pe_cluster_mpi_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
-instrumentation_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+instrumentation_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 instrumentation_libnanox_pe_cluster_mpi_la_LIBADD=@gasnet_mpi_libs@
 instrumentation_libnanox_pe_cluster_mpi_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_smp
+if gasnet_smp_available
 instrumentation_LTLIBRARIES += instrumentation/libnanox-pe-cluster-smp.la
 
 instrumentation_libnanox_pe_cluster_smp_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @gasnet_smp_inc@
@@ -183,7 +183,7 @@ instrumentation_libnanox_pe_cluster_smp_la_LIBADD=@gasnet_smp_libs@
 instrumentation_libnanox_pe_cluster_smp_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_udp
+if gasnet_udp_available
 instrumentation_LTLIBRARIES += instrumentation/libnanox-pe-cluster-udp.la
 
 instrumentation_libnanox_pe_cluster_udp_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS) @gasnet_udp_inc@
@@ -204,27 +204,27 @@ performance_libcluster_la_SOURCES=$(cluster_sources)
 
 performance_LTLIBRARIES =
 
-if gasnet_ibv
+if gasnet_ibv_available
 performance_LTLIBRARIES += performance/libnanox-pe-cluster-ibv.la
 
 performance_libnanox_pe_cluster_ibv_la_CPPFLAGS=$(common_performance_CPPFLAGS) @gasnet_ibv_inc@
 performance_libnanox_pe_cluster_ibv_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+performance_libnanox_pe_cluster_ibv_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 performance_libnanox_pe_cluster_ibv_la_LIBADD=@gasnet_ibv_libs@
 performance_libnanox_pe_cluster_ibv_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_mpi
+if gasnet_mpi_available
 performance_LTLIBRARIES += performance/libnanox-pe-cluster-mpi.la
 
 performance_libnanox_pe_cluster_mpi_la_CPPFLAGS=$(common_performance_CPPFLAGS) @gasnet_mpi_inc@
 performance_libnanox_pe_cluster_mpi_la_CXXFLAGS=$(common_performance_CXXFLAGS)
-performance_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @gasnetlib@
+performance_libnanox_pe_cluster_mpi_la_LDFLAGS=$(AM_LDFLAGS) $(ld_plugin_flags) @mpilib@ @gasnetlib@
 performance_libnanox_pe_cluster_mpi_la_LIBADD=@gasnet_mpi_libs@
 performance_libnanox_pe_cluster_mpi_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_smp
+if gasnet_smp_available
 performance_LTLIBRARIES += performance/libnanox-pe-cluster-smp.la
 
 performance_libnanox_pe_cluster_smp_la_CPPFLAGS=$(common_performance_CPPFLAGS) @gasnet_smp_inc@
@@ -234,7 +234,7 @@ performance_libnanox_pe_cluster_smp_la_LIBADD=@gasnet_smp_libs@
 performance_libnanox_pe_cluster_smp_la_SOURCES=$(pe_cluster_sources)
 endif
 
-if gasnet_udp
+if gasnet_udp_available
 performance_LTLIBRARIES += performance/libnanox-pe-cluster-udp.la
 
 performance_libnanox_pe_cluster_udp_la_CPPFLAGS=$(common_performance_CPPFLAGS) @gasnet_udp_inc@

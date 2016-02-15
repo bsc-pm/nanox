@@ -20,10 +20,6 @@
 #ifndef _NANOS_LIST_DECL
 #define _NANOS_LIST_DECL
 
-#ifdef HAVE_CONFIG_H
-  #include <config.h>
-#endif
-
 #include "atomic_decl.hpp"
 #include <list>
 #include <limits.h>

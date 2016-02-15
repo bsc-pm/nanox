@@ -40,6 +40,11 @@ NANOS_API_DEF( cublasHandle_t, nanos_get_cublas_handle, ( void ) )
    return ( cublasHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUBLASHandle();
 }
 
+NANOS_API_DEF( cusparseHandle_t, nanos_get_cusparse_handle, ( void ) )
+{
+   return ( cusparseHandle_t ) ( ( nanos::ext::GPUThread * ) getMyThreadSafe() )->getCUSPARSEHandle();
+}
+
 NANOS_API_DEF( void *, nanos_malloc_pinned_cuda, ( size_t size ) )
 {
    return sys.getPinnedAllocatorCUDA().allocate( size );

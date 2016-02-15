@@ -97,7 +97,7 @@ done # for version
 
 cat << EOF
 compile_versions="${compile_versions}"
-$(@abs_top_srcdir@/tests/gens/config.py -a '--opencl-max-devices=1' -c 1 $*)
+$(@abs_top_srcdir@/tests/gens/config.py -a '--opencl-max-devices=1 --opencl-profiling' -c 1 $*)
 EOF
 
 else

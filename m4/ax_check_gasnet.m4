@@ -95,11 +95,9 @@ AS_IF([test "x$gasnet" = xyes],[
 
   AX_VAR_PUSHVALUE([CXX])
   AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS -DGASNET_PAR])
-  AX_VAR_PUSHVALUE([CXXFLAGS])
+  AX_VAR_PUSHVALUE([CXXFLAGS],[$CXXFLAGS $PTHREAD_CFLAGS])
   AX_VAR_PUSHVALUE([LIBS],[])
-  AX_VAR_PUSHVALUE([LDFLAGS])
-
-  AX_APPEND_FLAG([$PTHREAD_CFLAGS],[CXXFLAGS])
+  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $mpilib])
 
   # Do not print conduit check results in standard output
   AX_SILENT_MODE(on)
@@ -119,8 +117,8 @@ AS_IF([test "x$gasnet" = xyes],[
   gasnet_available_conduits=
   _AX_CHECK_GASNET_CONDUIT(smp,$CXX)
   _AX_CHECK_GASNET_CONDUIT(udp,$CXX,-lamudp)
-  _AX_CHECK_GASNET_CONDUIT(mpi,$MPICXX,-lammpi)
-  _AX_CHECK_GASNET_CONDUIT(ibv,$MPICXX,-libverbs,-DGASNET_CONDUIT_IBV)
+  _AX_CHECK_GASNET_CONDUIT(mpi,$MPICXX,-lammpi $mpilibs)
+  _AX_CHECK_GASNET_CONDUIT(ibv,$MPICXX,-libverbs $mpilibs,-DGASNET_CONDUIT_IBV)
 
   # Checks done. Disable silent mode again.
   AX_SILENT_MODE(off)
@@ -215,7 +213,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
     
   AS_IF([test "$conduit_available" = yes],[
     AS_VAR_APPEND([gasnet_available_conduits],[" $1"])
-    AS_VAR_SET([conduit_libs],["$conduit_prereq_libs $LIBS"])
+    AS_VAR_SET([conduit_libs],["$LIBS $conduit_prereq_libs"])
   ])
 
   AX_VAR_POPVALUE([CXX])
@@ -236,7 +234,7 @@ AC_DEFUN([_AX_CHECK_GASNET_CONDUIT],
 #   1) conduit name
 AC_DEFUN([_AX_CONDUIT_SUBST],[
 
-  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1])dnl
+  AS_VAR_PUSHDEF([conduit_available],[gasnet_$1_available])dnl
   AS_VAR_PUSHDEF([conduit_inc],  [gasnet_$1_inc])dnl
   AS_VAR_PUSHDEF([conduit_libs], [gasnet_$1_libs])dnl
 

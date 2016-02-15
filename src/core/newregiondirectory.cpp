@@ -840,3 +840,31 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
    }
    hb._lock.release();
 }
+
+
+void NewNewRegionDirectory::unregisterObject(void *baseAddr) {
+   uint64_t key = jen_hash( this->_getKey( (uint64_t)baseAddr ) ) & (HASH_BUCKETS-1);
+   HashBucket &hb = _objects[ key ];
+   hb._lock.acquire();
+   if ( hb._bobjects == NULL ) {
+      *(myThread->_file) << "Error, unregister object: object not registered " << baseAddr << std::endl;
+      printBt( *(myThread->_file) );
+      fatal("can not continue");
+   } else {
+      Object *o = hb._bobjects->getExactByAddress( (uint64_t) baseAddr );
+      if ( o == NULL ) {
+         *(myThread->_file) << "Error, unregister object: object not registered " << baseAddr << std::endl;
+         printBt( *(myThread->_file) );
+         fatal("can not continue");
+      } else {
+         GlobalRegionDictionary *dict = o->getGlobalRegionDictionary();
+         CopyData *rcd = o->getRegisteredObject();
+         delete dict;
+         delete rcd;
+         delete o;
+         hb._bobjects->eraseByAddress( (uint64_t) baseAddr );
+         _keys.eraseByAddress( (uint64_t) baseAddr );
+      }
+   }
+   hb._lock.release();
+}

@@ -374,7 +374,7 @@ void MemoryMap< _Type >::insertWithOverlap( const MemoryChunk &key, typename Bas
           *         ^------  added to result ----+
           */
          MemoryChunk::partitionEnd( leftChunk, rightChunk );
-         _hint = _thisMap.insert( _hint, typename BaseMap::value_type( rightChunk, ptr ) ); //add the leftChunk
+         _hint = _thisMap.insert( _hint, typename BaseMap::value_type( leftChunk, ptr ) ); //add the leftChunk
          _ptrList.push_back( MemChunkPair ( &( _hint->first ), &( _hint->second ) ) ); //return: leftChunk
          _ptrList.push_back( MemChunkPair ( rightChunkPtr, rightChunkDataPtr ) ); //return: rightChunk
       }
@@ -703,7 +703,7 @@ void MemoryMap< _Type >::insertWithOverlapButNotGenerateIntersects( const Memory
           *         ^------  added to result ----+
           */
          MemoryChunk::partitionEnd( leftChunk, rightChunk );
-         _hint = _thisMap.insert( _hint, typename BaseMap::value_type( rightChunk, ptr ) ); //add the leftChunk
+         _hint = _thisMap.insert( _hint, typename BaseMap::value_type( leftChunk, ptr ) ); //add the leftChunk
          _ptrList.push_back( MemChunkPair ( &( _hint->first ), &( _hint->second ) ) ); //return: leftChunk
          _ptrList.push_back( MemChunkPair ( rightChunkPtr, rightChunkDataPtr ) ); //return: rightChunk
       }

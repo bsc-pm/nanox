@@ -30,6 +30,7 @@
 #else
 #include <cublas.h>
 #include <cublas_v2.h>
+#include <cusparse_v2.h>
 #endif
 
 /*! \page cuda_main CUDA Documentation
@@ -48,6 +49,8 @@ NANOS_API_DECL(void *, nanos_gpu_factory,( void *args ));
 NANOS_API_DECL(cudaStream_t, nanos_get_kernel_execution_stream,());
 
 NANOS_API_DECL(cublasHandle_t, nanos_get_cublas_handle,());
+
+NANOS_API_DECL(cusparseHandle_t, nanos_get_cusparse_handle,());
 
 // Pinned memory
 NANOS_API_DECL( void *, nanos_malloc_pinned_cuda, ( size_t size ) );

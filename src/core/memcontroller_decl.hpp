@@ -57,6 +57,7 @@ public:
    };
    MemCacheCopy *_memCacheCopies;
    MemController( WD &wd );
+   ~MemController();
    bool hasVersionInfoForRegion( global_reg_t reg, unsigned int &version, NewLocationInfoList &locations );
    void getInfoFromPredecessor( MemController const &predecessorController );
    void preInit();

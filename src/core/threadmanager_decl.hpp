@@ -67,6 +67,7 @@ namespace nanos
          virtual void blockThread(BaseThread*) {}
          virtual void unblockThread(BaseThread*) {}
          virtual void unblockThreads(std::vector<BaseThread*>) {}
+         virtual void processMaskChanged() {}
    };
 
    //! BlockingThreadManager class
@@ -104,6 +105,7 @@ namespace nanos
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
          virtual void unblockThreads(std::vector<BaseThread*>);
+         virtual void processMaskChanged();
    };
 
    //! BusyWaitThreadManager class
@@ -142,6 +144,7 @@ namespace nanos
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
          virtual void unblockThreads(std::vector<BaseThread*>);
+         virtual void processMaskChanged();
    };
 
    //! DlbThreadManager class
@@ -175,6 +178,7 @@ namespace nanos
          virtual void blockThread(BaseThread*);
          virtual void unblockThread(BaseThread*);
          virtual void unblockThreads(std::vector<BaseThread*>);
+         virtual void processMaskChanged();
    };
 
    //! ThreadManagerConf class
