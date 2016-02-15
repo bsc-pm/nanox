@@ -58,8 +58,8 @@ AS_IF([test "x$with_hwloc" != xyes dnl
   hwlocinc="-I $with_hwloc/include"
   hwloc_h="$with_hwloc/include/hwloc.h"
   AS_IF([test -d $with_hwloc/lib64],
-    [hwloclib="-L$with_hwloc/lib64 -Wl,-rpath=$with_hwloc/lib64"],
-    [hwloclib="-L$with_hwloc/lib -Wl,-rpath=$with_hwloc/lib"])dnl
+    [hwloclib="-L$with_hwloc/lib64 -Wl,-rpath,$with_hwloc/lib64"],
+    [hwloclib="-L$with_hwloc/lib -Wl,-rpath,$with_hwloc/lib"])dnl
 ])dnl
 
 AS_IF([test "x$with_hwloc_include" != x],[
@@ -68,7 +68,7 @@ AS_IF([test "x$with_hwloc_include" != x],[
 ])dnl
 
 AS_IF([test "x$with_hwloc_lib" != x],[
-  hwloclib="-L$with_hwloc_lib"
+  hwloclib="-L$with_hwloc_lib -Wl,-rpath,$with_hwloc_lib"
 ])
 
 # This condition is satisfied even if $with_hwloc="yes" 
@@ -174,10 +174,13 @@ because cross-compilation mode has been detected.
 ])dnl with_hwloc
 
 AS_IF([test "$hwloc" = yes],[
-    OPTIONS="$OPTIONS hwloc"
-
-    AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])
-    AC_DEFINE([HWLOC],[],[Indicates the presence of hwloc library.])
+  OPTIONS="$OPTIONS hwloc"
+  AC_DEFINE_UNQUOTED([NANOS_HWLOC_VERSION],[$hwloc_version],[Version of the hwloc package specified by the user])
+  AC_DEFINE([HWLOC],[],[Indicates the presence of hwloc library.])
+],[
+  hwlocinc=
+  hwloclib=
+  hwloclibs=
 ])dnl
 
 AC_SUBST([hwloc])

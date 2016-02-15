@@ -42,6 +42,9 @@
 
 AC_DEFUN([AX_CHECK_CUDA],[
   AC_PREREQ(2.59)dnl for _AC_LANG_PREFIX
+
+  # Let the user specify CUDA compiler using an environment variable
+  AC_ARG_VAR(NVCC,[CUDA compiler command])
   
   #Check if an CUDA implementation is installed.
   AC_ARG_WITH(cuda,
@@ -74,8 +77,8 @@ AC_DEFUN([AX_CHECK_CUDA],[
     cudainc="-isystem $cuda_prefix/include"
     cuda_h="$cuda_prefix/include/cuda.h"
     AS_IF([test -d $cuda_prefix/lib64],
-      [cudalib="-L$cuda_prefix/lib64 -Wl,-rpath=$cuda_prefix/lib64"],
-      [cudalib="-L$cuda_prefix/lib -Wl,rpath=$cuda_prefix/lib"])dnl
+      [cudalib="-L$cuda_prefix/lib64 -Wl,-rpath,$cuda_prefix/lib64"],
+      [cudalib="-L$cuda_prefix/lib -Wl,rpath,$cuda_prefix/lib"])dnl
   ])dnl
 
   AS_IF([test "x$with_cuda_include" != x],[
@@ -84,7 +87,7 @@ AC_DEFUN([AX_CHECK_CUDA],[
   ])dnl
 
   AS_IF([test "x$with_cuda_lib" != x],[
-    cudalib="-L$with_cuda_lib"
+    cudalib="-L$with_cuda_lib -Wl,-rpath,$with_cuda_lib"
   ])dnl
   
   # This condition is satisfied even if $with_cuda="yes" 
@@ -106,22 +109,19 @@ AC_DEFUN([AX_CHECK_CUDA],[
 
       # Look for cudaMemcpy function in libcudart.so library
       AS_IF([test x$cuda = xyes],[
-        AC_CHECK_LIB([cudart],
-                       [cudaMemcpy],
-                       [cuda=yes
-                        LIBS="$LIBS -lcudart"],
+        AC_SEARCH_LIBS([cudaMemcpy],
+                       [cudart],
+                       [cuda=yes],
                        [cuda=no])
       ])dnl
 
       # Look for cublasDrotmg function in libcublas.so library
       AS_IF([test x$cuda = xyes],[
 # Note: -lcudart might not be necessary, as it is already included in LIBS
-        AC_CHECK_LIB([cublas],
-                       [cublasDrotmg],
-                       [cuda=yes
-                        LIBS="$LIBS -lcublas"],
-                       [cuda=no],
-                       [-lcudart])
+        AC_SEARCH_LIBS([cublasDrotmg],
+                       [cublas],
+                       [cuda=yes],
+                       [cuda=no])
       ])dnl
 
       cudalibs="$LIBS"

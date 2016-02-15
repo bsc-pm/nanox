@@ -401,7 +401,7 @@ class SMPPlugin : public SMPBasePlugin
       int available_cpus = 0; /* my cpu is unavailable, numthreads is 1 */
       int active_cpus = 0;
       for ( std::vector<SMPProcessor *>::iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-         available_cpus += ( (*it)->getNumThreads() == 0 && (*it)->isActive() );
+         available_cpus += ( (*it)->getNumThreads() == 0 && !((*it)->isReserved()) && (*it)->isActive() );
          active_cpus += (*it)->isActive();
       }
 

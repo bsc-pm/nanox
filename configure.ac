@@ -48,7 +48,7 @@ AS_IF([test -d "$srcdir/.git"],[
     build_version="\"unknown revision\""
   ])
 ])
-AC_SUBST([NANOX_VERSION],[$build_version])
+AC_SUBST([NANOX_BUILD_VERSION],[$build_version])
 AC_DEFINE_UNQUOTED([NANOX_BUILD_VERSION], [$build_version], [Build version])
 
 # Debian release

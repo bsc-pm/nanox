@@ -90,8 +90,8 @@ AS_IF([test x$mpi_path_provided = xyes],[
 
   mpiinc="-I$with_mpi/include"
   AS_IF([test -d $with_mpi/lib64],
-    [mpilib="-L$with_mpi/lib64 -Wl,-rpath=$with_mpi/lib64"],
-    [mpilib="-L$with_mpi/lib -Wl,-rpath=$with_mpi/lib"])dnl
+    [mpilib="-L$with_mpi/lib64 -Wl,-rpath,$with_mpi/lib64"],
+    [mpilib="-L$with_mpi/lib -Wl,-rpath,$with_mpi/lib"])dnl
 ])dnl
 
 AS_IF([test $with_mpi_include],[
@@ -99,7 +99,7 @@ AS_IF([test $with_mpi_include],[
 ])dnl
 
 AS_IF([test $with_mpi_lib],[
-  mpilib="-L$with_mpi_lib -Wl,-rpath=$with_mpi_lib"
+  mpilib="-L$with_mpi_lib -Wl,-rpath,$with_mpi_lib"
 ])dnl
 
 AS_IF([test $mpi = yes],[

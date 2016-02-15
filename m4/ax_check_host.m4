@@ -15,6 +15,7 @@ AC_CHECK_SIZEOF([size_t])
 # 2) Check host OS
 # Second case would be only check if it contains
 # linux inside triplet.
+ult_support=yes
 AS_CASE([$host],
   [x86_64-k1om-linux*|k1om-mpss-linux*],
   [
@@ -51,7 +52,6 @@ AS_CASE([$host],
   ],
   [aarch64-*-linux-gnu],
   [
-    ult_support=no
     OS=unix-os
     ARCHITECTURES="$ARCHITECTURES smp"
     SMP_ARCH=aarch64
