@@ -554,11 +554,9 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
    }
 
    if ( it == _taskReductions.rend() ) {
-
-	 // std::cout << "Registered new reduction: " << p_orig  << "," << sys._lazyPrivatizationEnabled << std::endl;
-      //! We must register p_orig as a new reduction
-       //NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
-       //NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
+       //! We must register p_orig as a new reduction
+       NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+       NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
        _taskReductions.push_back(
                new TaskReduction(
             		   p_orig,
@@ -578,7 +576,6 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
       void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ), void (*p_reducer_orig_var)( void *, void * ) )
 {
    //! Check if we have registered a reduction with this address
-   //std::cout << "Registered new reduction: " << p_orig  << "," << sys._lazyPrivatizationEnabled << std::endl;
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
       if ( (*it)->has( p_dep) ) break;
@@ -586,7 +583,7 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
 
    if ( it == _taskReductions.rend() ) {
       //! We must register p_orig as a new reduction
-   //  NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
+	  //  NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
 
      _taskReductions.push_back(
             new TaskReduction(

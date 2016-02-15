@@ -40,16 +40,14 @@ class TaskReduction {
       typedef std::vector<field_t> storage_t;
 
 
-      //FIXME REMOVE HERE
-      void           *_original;         //!< Original variable address
-      void           *_dependence;       //!< Related dependence
+
 
    private:
 
       // These two variables have the same value in almost all the cases. They
       // are only different when we are doing a Fortran Array Reduction
-      //void           *_original;         //!< Original variable address
-      //void           *_dependence;       //!< Related dependence
+      void           *_original;         //!< Original variable address
+      void           *_dependence;       //!< Related dependence
 
       unsigned        _depth;            //!< Reduction depth
       initializer_t   _initializer;      //!< Initialization function
@@ -85,7 +83,7 @@ class TaskReduction {
       {
     	  if(_isLazyPriv)
     	  {
-    		  //Currently renaming tracking for nested reductions not supported for lazy privatization
+    		  //Renaming tracking for nested reductions not supported for lazy privatization
     		  _min = (void*) 0;
     		  _max = (void*) 0;
 
@@ -118,7 +116,7 @@ class TaskReduction {
 
     	  if(_isLazyPriv)
     	  {
-    		  //Currently renaming tracking for nested reductions not supported for lazy privatization
+    		  //Renaming tracking for nested reductions not supported for lazy privatization
     		  _min = (void*) 0;
     		  _max = (void*) 0;
 
