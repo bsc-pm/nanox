@@ -555,8 +555,9 @@ void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t 
 
    if ( it == _taskReductions.rend() ) {
        //! We must register p_orig as a new reduction
-       NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
-       NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
+       //No padding now as this leads to incorrect number of elements for certain cases. Fix: compute total number of elements before padding and pass it to the construct below
+       //NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+       //NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
        _taskReductions.push_back(
                new TaskReduction(
             		   p_orig,
@@ -583,7 +584,7 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
 
    if ( it == _taskReductions.rend() ) {
       //! We must register p_orig as a new reduction
-	  //  NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
+      NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
 
      _taskReductions.push_back(
             new TaskReduction(

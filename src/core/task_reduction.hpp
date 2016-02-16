@@ -55,14 +55,15 @@ inline void * TaskReduction::finalize( void )
 	//find first private copy that was allocated during execution
 	size_t masterId = 0;
 	for ( size_t i=0; i<_num_threads; i++) {
-		if ( _storage[i].isInitialized ) masterId = i;
+		if ( _storage[i].isInitialized ){
+			masterId = i;
+			break;
+		}
 	}
 
 	//reduce all to masterId
-	for ( size_t i=0; i<_num_threads; i++) {
+	for ( size_t i = masterId + 1; i<_num_threads; i++) {
 	   if ( _storage[i].isInitialized ) {
-
-		  if (i == masterId) continue;
 
 		  if( _isFortranReduction )
 		  {
