@@ -240,9 +240,9 @@ namespace nanos {
             void findGPUNodes()
             {
                // Look for GPUs in all the nodes
-               for ( int i = 0; i < sys.getNumWorkers(); ++i )
-               {
-                  BaseThread *worker = sys.getWorker( i );
+               for (System::ThreadList::iterator it=sys.getWorkersBegin();
+                  it!=sys.getWorkersEnd(); it++) {
+                  BaseThread *worker = it->second;
 #ifdef GPU_DEV
                   //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
                   if ( &nanos::ext::GPU == worker->runningOn()->getDeviceType() )
@@ -539,9 +539,9 @@ namespace nanos {
                if ( sys.isSummaryEnabled() ){
                   message0( "====================== NUMA Summary ======================" );
                   message0( "=== Worker binding:" );
-                  for ( int i = 0; i < sys.getNumWorkers(); ++i )
-                  {
-                     const BaseThread * w = sys.getWorker( i );
+                  for (System::ThreadList::iterator it=sys.getWorkersBegin();
+                      it!=sys.getWorkersEnd(); it++) {
+                     const BaseThread * w = it->second;
                      
                      message0( "===  | Worker " << w->getId() << ", cpu id: " << w->getCpuId() << ", NUMA node " << w->runningOn()->getNumaNode() );
                   }
