@@ -118,10 +118,12 @@ devinclude_HEADERS = \
 	memcontroller_fwd.hpp  \
 	memcontroller_decl.hpp  \
 	memcachecopy_decl.hpp \
+	memcachecopy.hpp \
 	memcachecopy_fwd.hpp \
 	memoryops_decl.hpp \
 	memoryops_fwd.hpp \
 	globalregt_decl.hpp \
+	globalregt.hpp \
 	address_fwd.hpp \
 	address_decl.hpp \
 	address.hpp \
@@ -259,11 +261,13 @@ common_sources=\
 	memcontroller.cpp  \
 	memcachecopy_decl.hpp \
 	memcachecopy_fwd.hpp \
+	memcachecopy.hpp \
 	memcachecopy.cpp \
 	memoryops_decl.hpp \
 	memoryops_fwd.hpp \
 	memoryops.cpp \
 	globalregt_decl.hpp \
+	globalregt.hpp \
 	globalregt.cpp \
 	address_fwd.hpp \
 	address_decl.hpp \
