@@ -42,10 +42,12 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    PackInfo key( addr, len, count );
 
 #if 1 /* simple implementation */
+   _lock.acquire();
    if ( _allocator == NULL ) _allocator = sys.getNetwork()->getPackerAllocator();
    _allocator->lock();
    result = _allocator->allocate( len * count );
    _allocator->unlock();
+   _lock.release();
 #else
    _lock.acquire();
    //std::map< PackInfo, void *>::iterator it = _packs.lower_bound( key );
@@ -98,11 +100,16 @@ void * Packer::give_pack( uint64_t addr, std::size_t len, std::size_t count ) {
    return result;
 }
 
-void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count, void *allocAddr ) {
+bool Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count, void *allocAddr ) {
+   bool result = true;
 #if 1
+   _lock.acquire();
    _allocator->lock();
-   _allocator->free( allocAddr );
+   if ( _allocator->free( allocAddr ) == 0 ) {
+      result = false;
+   }
    _allocator->unlock();
+   _lock.release();
 #else
    PackInfo key( addr, len, count );
    _lock.acquire();
@@ -116,6 +123,7 @@ void Packer::free_pack( uint64_t addr, std::size_t len, std::size_t count, void 
    _allocator->unlock();
    _lock.release();
 #endif
+   return result;
 }
 
 void Packer::setAllocator( SimpleAllocator *alloc ) {
