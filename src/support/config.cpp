@@ -401,7 +401,7 @@ void Config::init ()
    parseFiles();
    parseEnvironment();
    parseArguments();
-   parseArgumentsFromCmdLine();
+   //parseArgumentsFromCmdLine();
 
    if ( _nanosHelp == NULL ) {
       _nanosHelp = NEW NanosHelp();
