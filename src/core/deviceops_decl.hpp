@@ -44,6 +44,7 @@ namespace nanos {
          bool addCacheOp( /* debug: */ WorkDescriptor const *wd, int loc = -1 );
          void completeCacheOp( /* debug: */WorkDescriptor const *wd );
          bool allCacheOpsCompleted();
+         friend std::ostream & operator<< (std::ostream &o, DeviceOps const &ops);
    };
 }
 #endif /* DEVICEOPS_DECL_HPP */
