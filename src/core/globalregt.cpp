@@ -127,8 +127,8 @@ memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t des
    memory_space_id_t selected;
    if ( entry->isLocatedIn( dest ) ) {
       selected = dest;
-      printBt(std::cerr);
-      fatal("Data already in destination.");
+      printBt(*myThread->_file);
+      //fatal("Data already in destination.");
    } else {
       selected = sys.getRouter().getSource( dest, entry->getLocations() );
    }
@@ -221,13 +221,6 @@ reg_t global_reg_t::getSlabRegionId( std::size_t slabSize ) const {
    return key->obtainRegionId( fitDimensions );
 }
 
-void global_reg_t::initializeGlobalEntryIfNeeded() const {
-   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
-   if ( entry == NULL ) {
-      NewNewRegionDirectory::initializeEntry( key, id );
-   }
-}
-
 void global_reg_t::setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const {
    NewNewRegionDirectory::addAccess( key, id, pe, loc, version );
 }
@@ -285,12 +278,6 @@ std::set< memory_space_id_t > const &global_reg_t::getLocations() const {
    ensure(entry != NULL, "invalid entry.");
    return entry->getLocations();
 }
-
-//void global_reg_t::setRooted() const {
-//   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
-//   ensure(entry != NULL, "invalid entry.");
-//   entry->setRooted();
-//}
 
 memory_space_id_t global_reg_t::getRootedLocation() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
