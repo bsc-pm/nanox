@@ -61,7 +61,7 @@ void Scheduler::submit ( WD &wd, bool force_queue )
    NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING, true) );
    BaseThread *mythread = myThread;
 
-   debug ( "submitting task " << wd.getId() << " " << ( wd.getDescription() != NULL ? wd.getDescription() : "")  );
+   debug ( "submitting task " << wd.getId() << " " << ( wd.getDescription() != NULL ? wd.getDescription() : "") << " team: " << mythread->getTeam() << " this thread is " << mythread );
 
    wd.submitted();
    wd.setReady();
@@ -374,7 +374,7 @@ inline void Scheduler::idleLoop ()
 
       thread->idle();
       //if ( sys.getNetwork()->getNodeNum() > 0 ) {
-         sys.getNetwork()->poll(0);
+      //   sys.getNetwork()->poll(0);
       //}
 
       if ( spins == 0 ) {
@@ -885,7 +885,8 @@ void Scheduler::workerClusterLoop ()
             myClusterThread->unlock();
          }
       }
-      sys.getNetwork()->poll(parent->getId());
+      //sys.getNetwork()->poll(parent->getId());
+      myThread->idle();
       current_thread = ( myThread = myThread->getNextThread() );
    }
 
