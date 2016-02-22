@@ -17,28 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef MPIALL_HPP
-#define MPIALL_HPP
+#ifndef OMPT_INITIALIZE_H_INCLUDED
+#define OMPT_INITIALIZE_H_INCLUDED
 
-#include "mpiplugin.cpp"
-#include "mpiprocessor_fwd.hpp"
-#include "mpiprocessor_decl.hpp"
-#include "mpiprocessor.hpp"
-#include "mpiprocessor.cpp"
-#include "mpiremotenode_fwd.hpp"
-#include "mpiremotenode_decl.hpp"
-#include "mpiremotenode.hpp"
-#include "mpiremotenode.cpp"
-#include "mpidevice_decl.hpp"
-#include "mpidevice.hpp"
-#include "mpidevice.cpp"
-#include "mpidd.hpp"
-#include "mpidd.cpp"
-#include "mpithread.hpp"
-#include "mpithread.cpp"
-#include "nanos-mpi.h"
-#include "mpi-api.cpp"
-#include "mpiicpc_syms.cpp"
+typedef void (*ompt_initialize_fn_t) (
+  ompt_function_lookup_t lookup,
+  const char *runtime_version,
+  unsigned int ompt_version
+);
 
-#endif	/* MPIALL_HPP */
-
+#endif /* OMPT_INITIALIZE_H_INCLUDED */

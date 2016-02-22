@@ -33,9 +33,9 @@ SharedMemAllocator::SharedMemAllocator() : _lock() {
 void SharedMemAllocator::initialize(){    
     if (!_init){
         _init=true;
-        int nThreads=sys.getNumWorkers();
-        for (int i=0; i< nThreads && _allocatingDevice==NULL; ++i){
-            BaseThread* bt=sys.getWorker(i);
+        for (System::ThreadList::iterator it=sys.getWorkersBegin();
+            it!=sys.getWorkersEnd() && _allocatingDevice==NULL; it++) {
+            BaseThread* bt = it->second;
             if( nanos::ext::OpenCLProcessor *myPE = dynamic_cast<nanos::ext::OpenCLProcessor *>( bt->runningOn() ) ){
                 cl_device_type devType;
                 myPE->getOpenCLDeviceType(devType);
@@ -43,8 +43,9 @@ void SharedMemAllocator::initialize(){
             }
         }        
         //If GPUs are not present, use a CPU
-        for (int i=0; i< nThreads && _allocatingDevice==NULL; ++i){
-            BaseThread* bt=sys.getWorker(i);
+        for (System::ThreadList::iterator it=sys.getWorkersBegin();
+            it!=sys.getWorkersEnd() && _allocatingDevice==NULL; it++) {
+            BaseThread* bt = it->second;
             if( nanos::ext::OpenCLProcessor *myPE = dynamic_cast<nanos::ext::OpenCLProcessor *>( bt->runningOn() ) ){
                 cl_device_type devType;
                 myPE->getOpenCLDeviceType(devType);

@@ -75,10 +75,11 @@ namespace nanos
          typedef void (*Init) ();
          //typedef std::vector<Accelerator *> AList;
 
+         typedef std::map<unsigned int, BaseThread *> ThreadList;
+
       private:
          // types
          typedef std::map<unsigned int, PE *>         PEList;
-         typedef std::map<unsigned int, BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
@@ -252,6 +253,7 @@ namespace nanos
          bool _invalControl;
          bool _cgAlloc;
          bool _inIdle;
+         bool _lazyPrivatizationEnabled;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -382,6 +384,9 @@ namespace nanos
           */
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
          
+         ThreadList::iterator getWorkersBegin();
+         ThreadList::iterator getWorkersEnd();
+
          BaseThread * getWorker( unsigned int n );
 
          void endTeam ( ThreadTeam *team );

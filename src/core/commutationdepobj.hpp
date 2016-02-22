@@ -36,7 +36,8 @@ inline void CommutationDO::dependenciesSatisfied ( )
       void *addr = _taskReduction->finalize();
       bool b = true; //!< delete reduction structure by default
       WD *parent = myThread->getCurrentWD()->getParent();
-      if ( parent ) b = parent->removeTaskReduction( addr, true );
+      if ( parent )
+    	  b = parent->removeTaskReduction( addr, true );
       myThread->getCurrentWD()->removeTaskReduction( addr, !b );
    }
    

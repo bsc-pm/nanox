@@ -98,10 +98,12 @@ Please, check that the provided directories are correct.
 ------------------------------])
   ])dnl
 
-  AX_VAR_PUSHVALUE([CPPFLAGS],[$CPPFLAGS $memkindinc])
-  AX_VAR_PUSHVALUE([CXXFLAGS])
-  AX_VAR_PUSHVALUE([LDFLAGS],[$LDFLAGS $memkindlib])
-  AX_VAR_PUSHVALUE([LIBS],[])
+  memkindlibs=$LIBS
+
+  AX_VAR_POPVALUE([CPPFLAGS])
+  AX_VAR_POPVALUE([CXXFLAGS])
+  AX_VAR_POPVALUE([LDFLAGS])
+  AX_VAR_POPVALUE([LIBS])
 
   AC_LANG_POP([C++])
 

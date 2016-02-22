@@ -54,8 +54,7 @@ VERSIONS=
 # Performance
 m4_define(is_performance_default,yes)
 performance_CPPFLAGS=
-performance_CXXFLAGS=$CXXFLAGS
-performance_CXXFLAGS+=" -O3"
+performance_CXXFLAGS="-O3"
 
 # Debug
 m4_define(is_debug_default,yes)

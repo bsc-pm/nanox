@@ -1000,16 +1000,21 @@ void Network::notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **
 
 void Network::processSyncRequests() {
    if ( !_syncReqs.empty() ) {
-      if ( _syncReqsLock.tryAcquire() ) {
-         while ( !_syncReqs.empty() ) {
-            SyncWDs const &s = _syncReqs.front();
-            for ( unsigned int idx = 0; idx < s.getNumWDs(); idx += 1 ) {
-               sys.getHostMemory().synchronize( *(s.getWDs()[idx]) );
+      while ( !_syncReqs.empty() ) {
+         if ( _syncReqsLock.tryAcquire() ) {
+            if ( !_syncReqs.empty() ) {
+               SyncWDs s = _syncReqs.front();
+               _syncReqs.pop_front();
+               _syncReqsLock.release();
+
+               for ( unsigned int idx = 0; idx < s.getNumWDs(); idx += 1 ) {
+                  sys.getHostMemory().synchronize( *(s.getWDs()[idx]) );
+               }
+               this->nodeBarrier(); //matches the call in synchronizeDirectory
+            } else {
+               _syncReqsLock.release();
             }
-            this->nodeBarrier(); //matches the call in synchronizeDirectory
-            _syncReqs.pop_front();
          }
-         _syncReqsLock.release();
       }
    }
 }

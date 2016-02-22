@@ -31,7 +31,7 @@ inline Router::~Router() {
 }
 
 inline void Router::initialize() {
-   unsigned int elems = sys.getSeparateMemoryAddressSpacesCount() + 1;
+   unsigned int elems = sys.getSeparateMemoryAddressSpacesCount() + 1; //remote nodes + master node
    _memSpaces.resize( elems );
    for ( unsigned int idx = 0; idx < elems; idx += 1) {
       _memSpaces[ idx ] = 0;

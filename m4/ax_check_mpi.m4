@@ -158,7 +158,7 @@ AS_IF([test $mpi = yes],[
 
   # Look for MPI::Comm::Comm() function in libmpicxx, libmpi_cxx or libmpichcxx libraries
   AS_IF([test x$mpi == xyes],[
-    AC_SEARCH_LIBS([_ZN3MPI4CommD0Ev],
+    AC_SEARCH_LIBS([_ZN3MPI4Comm10DisconnectEv],
                    [mpichcxx mpi_cxx],
                    [mpi=yes;break],
                    [mpi=no])dnl

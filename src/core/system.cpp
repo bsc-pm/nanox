@@ -145,6 +145,7 @@ System::System () :
       , _invalControl( false )
       , _cgAlloc( false )
       , _inIdle( false )
+	  , _lazyPrivatizationEnabled (false)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -458,6 +459,10 @@ void System::config ()
    cfg.registerConfigOption( "cg-alloc", NEW Config::FlagOption( _cgAlloc ),
                              "CG alloc." );
    cfg.registerArgOption( "cg-alloc", "cg-alloc" );
+
+   cfg.registerConfigOption ( "enable-lazy-privatization", NEW Config::BoolVar ( _lazyPrivatizationEnabled ),
+		   "Enable lazy reduction privatization" );
+   cfg.registerArgOption ( "enable-lazy-privatization", "enable-lazy-privatization" );
 
    _schedConf.config( cfg );
 
@@ -1067,6 +1072,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->tieToLocation( 0 );
    }
 
+   //Copy reduction data from parent
    if (uwg) wd->copyReductions((WorkDescriptor *)uwg);
 }
 

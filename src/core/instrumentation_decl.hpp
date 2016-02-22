@@ -666,9 +666,12 @@ namespace nanos {
             registerEventValue("in-xdma", "NANOS_FPGA_WAIT_OUTPUT_DMA_EVENT", "xdma wait out");                /* 7 */
             /* 68 */ registerEventKey("accelerator#", "Accelerator on which task is being executed", EVENT_ADVANCED);
 
-            /* 69 */ registerEventKey("network-transfer", "Network transfer to node ", false);
-            /* 70 */ registerEventKey("cache-evict", "Cache eviction", false);
-            /* 71 */ registerEventKey("copy-data-alloc","WD id that is copying data in");
+            /* 69 */ registerEventKey("reduction", "Reduction support", true, EVENT_DEVELOPER);
+            registerEventValue("reduction", "RED_REQUEST_NEW_STORAGE", "Allocating private storage" ); /* 1 */
+            registerEventValue("reduction", "RED_COMMIT_ALL", "Reducing private storages" );           /* 2 */
+            /* 70 */ registerEventKey("network-transfer", "Network transfer to node ", false, EVENT_ADVANCED);
+            /* 71 */ registerEventKey("cache-evict", "Cache eviction", false, EVENT_ADVANCED);
+            /* 72 */ registerEventKey("copy-data-alloc","Cache allocation", false, EVENT_ADVANCED);
 
             /* ** */ registerEventKey("debug","Debug Key", true, EVENT_ADVANCED ); /* Keep this key as the last one */
          }

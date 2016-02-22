@@ -73,11 +73,6 @@ pe_smp_sources = \
 	smpplugin.cpp \
 	$(END)
 
-if MEMKIND_SUPPORT
-memkind_support_ldflags=@MEMKIND_LDFLAGS@ @MEMKIND_LIBS@ @JEMALLOC_LIBS@
-memkind_support_cflags=-DNANOX_MEMKIND_SUPPORT @MEMKIND_CFLAGS@
-endif
-
 if SMP_SUPPORTS_ULT
   ult_sources= \
 @SMP_ARCH@/stack.cpp \

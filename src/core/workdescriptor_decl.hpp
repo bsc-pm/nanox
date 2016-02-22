@@ -708,7 +708,7 @@ typedef std::set<const Device *>  DeviceList;
 
          //! \brief This function registers a new task reduction over a
          //variable if it is not already registered.
-         void registerTaskReduction( void *p_orig, size_t p_size,
+         void registerTaskReduction( void *p_orig, size_t p_size, size_t elem_size,
                  void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) );
 
          //! \brief This function registers a new fortran task reduction over an

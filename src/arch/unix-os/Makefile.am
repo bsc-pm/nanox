@@ -51,6 +51,7 @@ if is_debug_enabled
 noinst_LTLIBRARIES += debug/libos.la
 
 
+debug_libos_la_CPPFLAGS=$(common_debug_CPPFLAGS)
 debug_libos_la_CXXFLAGS=$(common_debug_CXXFLAGS)
 debug_libos_la_SOURCES=$(os_sources)
 debug_libos_la_LIBADD=$(common_libadd)
@@ -60,6 +61,7 @@ if is_instrumentation_enabled
 noinst_LTLIBRARIES += instrumentation/libos.la
 
 
+instrumentation_libos_la_CPPFLAGS=$(common_instrumentation_CPPFLAGS)
 instrumentation_libos_la_CXXFLAGS=$(common_instrumentation_CXXFLAGS)
 instrumentation_libos_la_SOURCES=$(os_sources)
 instrumentation_libos_la_LIBADD=$(common_libadd)
@@ -69,6 +71,7 @@ if is_instrumentation_debug_enabled
 noinst_LTLIBRARIES += instrumentation-debug/libos.la
 
 
+instrumentation_debug_libos_la_CPPFLAGS=$(common_instrumentation_debug_CPPFLAGS)
 instrumentation_debug_libos_la_CXXFLAGS=$(common_instrumentation_debug_CXXFLAGS)
 instrumentation_debug_libos_la_SOURCES=$(os_sources)
 instrumentation_debug_libos_la_LIBADD=$(common_libadd)
@@ -78,6 +81,7 @@ if is_performance_enabled
 noinst_LTLIBRARIES += performance/libos.la
 
 
+performance_libos_la_CPPFLAGS=$(common_performance_CPPFLAGS)
 performance_libos_la_CXXFLAGS=$(common_performance_CXXFLAGS)
 performance_libos_la_SOURCES=$(os_sources)
 performance_libos_la_LIBADD=$(common_libadd)

@@ -17,28 +17,29 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef MPIALL_HPP
-#define MPIALL_HPP
+#ifndef SQLITE3DBMANAGER_HPP_
+#define SQLITE3DBMANAGER_HPP_
 
-#include "mpiplugin.cpp"
-#include "mpiprocessor_fwd.hpp"
-#include "mpiprocessor_decl.hpp"
-#include "mpiprocessor.hpp"
-#include "mpiprocessor.cpp"
-#include "mpiremotenode_fwd.hpp"
-#include "mpiremotenode_decl.hpp"
-#include "mpiremotenode.hpp"
-#include "mpiremotenode.cpp"
-#include "mpidevice_decl.hpp"
-#include "mpidevice.hpp"
-#include "mpidevice.cpp"
-#include "mpidd.hpp"
-#include "mpidd.cpp"
-#include "mpithread.hpp"
-#include "mpithread.cpp"
-#include "nanos-mpi.h"
-#include "mpi-api.cpp"
-#include "mpiicpc_syms.cpp"
+#include "dbmanager.hpp"
 
-#endif	/* MPIALL_HPP */
+namespace nanos {
 
+class SQLite3DbManager : public DbManager {
+public:
+   SQLite3DbManager();
+   bool openConnection(const std::string &databaseName);
+   bool openConnection();
+   bool closeConnection();
+   unsigned int prepareStmt(const std::string &stmt);
+   void bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value);
+   void bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value);
+   int getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex);
+   bool doStep(const unsigned int stmtNumber);
+private:
+   void sqlCheck(const int err, const std::string &msg);
+   void cleanPreparedStmts();
+};
+
+}
+
+#endif /* SQLITE3DBMANAGER_HPP_ */

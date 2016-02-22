@@ -21,7 +21,6 @@
  *  \brief 
  */
 #include "nanos.h"
-#include "config.h"
 #include "system.hpp"
 #include "instrumentationmodule_decl.hpp"
 

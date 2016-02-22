@@ -20,7 +20,6 @@
 #include "os.hpp"
 #include "plugin.hpp"
 #include "config.hpp"
-#include "config.h"
 #include "system.hpp"
 #include <string>
 #include <stdio.h>

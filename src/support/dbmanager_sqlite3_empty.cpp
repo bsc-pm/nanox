@@ -17,68 +17,67 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-/*
-<testinfo>
-test_generator=gens/opencl-generator
-test_generator_ENV='test_architecture=smp'
-test_schedule=bf
-</testinfo>
-*/
+#include "dbmanager_sqlite3.hpp"
+#include "debug.hpp"
 
-#include "assert.h"
-#include <iostream>
-#include <map>
-#include "openclprocessor.hpp"
-#include "openclprofiler.hpp"
-
-using namespace std;
 using namespace nanos;
-using namespace ext;
 
-int main()
+SQLite3DbManager::~SQLite3DbManager()
 {
-  // Class to check
-  ::OpenCLAdapter *openCLAdapter;
-  openCLAdapter = new ::OpenCLAdapter();
+   fatal0("SQLite3DbManager: empty class compiled")
+}
 
-  std::string kernel1 = "kernel1";
-  std::string kernel2 = "kernel2";
+bool SQLite3DbManager::openConnection(const std::string &databaseName)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
+}
 
-  Execution execution1(3,1,2,3,10,0,0,0,false,false);
-  Execution execution2(3,1,2,3,5,0,0,0,false,false);
+void SQLite3DbManager::cleanPreparedStmts()
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
 
-  std::map<std::string,DimsBest> bestExec;
-  std::map<std::string,DimsExecutions> nExec;
+bool SQLite3DbManager::openConnection()
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
+}
 
-  ::Dims dims1(3,2,4,8,1.0);
-  ::Dims dims2(3,8,4,2,1.0);
+void SQLite3DbManager::sqlCheck(const int err, const std::string &msg)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
 
-  DimsBest dims1Best;
+bool SQLite3DbManager::closeConnection()
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
+}
 
-  /* Begin testing */
+unsigned int SQLite3DbManager::prepareStmt(const std::string &stmt)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+   return 1;
+}
 
-  assert(openCLAdapter->getBestExec().size() == 0);
-  // Several kernels
-  openCLAdapter->updateProfStats(kernel1, dims1, execution1/* 10 */); // Add one execution
-  assert(openCLAdapter->getBestExec().size() == 1);
-  bestExec = openCLAdapter->getBestExec();
-  nExec = openCLAdapter->getExecutions();
-  dims1Best = bestExec[kernel1];
-  assert(dims1Best.size() == 1);
-  assert(dims1Best[dims1].getTime() == 10);
+void SQLite3DbManager::bindIntParameter(const unsigned int stmtNumber, const unsigned int parameterIndex, int value)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
 
-  openCLAdapter->updateProfStats(kernel2, dims2, execution2/* 5 */); // Add one execution
-  assert(openCLAdapter->getBestExec().size() == 2);
-  bestExec = openCLAdapter->getBestExec();
-  dims1Best = bestExec[kernel2];
-  assert(dims1Best[dims2].getTime() == 5);
+void SQLite3DbManager::bindInt64Parameter(const unsigned int stmtNumber, const unsigned int parameterIndex, long long int value)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
 
-  /* End testing */
+int SQLite3DbManager::getIntColumnValue(const unsigned int stmtNumber, const unsigned int columnIndex)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+}
 
-  // delete openCLAdapter;
-  /*
-   * OpenCLAdapter was not initialized, thus the destructor will try to release memory not allocated
-   */
-
-  return 0;
+bool SQLite3DbManager::doStep(const unsigned int stmtNumber)
+{
+   fatal0("SQLite3DbManager: empty class compiled")
+   return false;
 }

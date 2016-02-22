@@ -53,7 +53,7 @@ namespace ext {
 
    void OpenCLPlugin::init()
    {
-      OpenCLConfig::apply( this );
+      OpenCLConfig::apply( _devTy, &_devices );
       _opencls = NEW std::vector<nanos::ext::OpenCLProcessor *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLProcessor *) NULL); 
       _openclThreads = NEW std::vector<nanos::ext::OpenCLThread *>(nanos::ext::OpenCLConfig::getOpenCLDevicesCount(), (nanos::ext::OpenCLThread *) NULL); 
       for ( unsigned int openclC = 0; openclC < nanos::ext::OpenCLConfig::getOpenCLDevicesCount() ; openclC++ ) {

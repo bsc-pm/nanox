@@ -158,6 +158,9 @@ class CpuSet
       cpu_set_t& get_cpu_set() { return _mask; }
       const cpu_set_t& get_cpu_set() const { return _mask; }
 
+      cpu_set_t* get_cpu_set_pointer() { return &_mask; }
+      const cpu_set_t* get_cpu_set_pointer() const { return &_mask; }
+
       // verbose methods
       std::string toString() const;
 };

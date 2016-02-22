@@ -96,6 +96,9 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 
 inline int System::getNumCreatedPEs() const { return _pes.size(); }
 
+inline System::ThreadList::iterator System::getWorkersBegin() { return _workers.begin(); }
+inline System::ThreadList::iterator System::getWorkersEnd() { return _workers.end(); }
+
 //inline int System::getNumSockets() const { return _numSockets; }
 //inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 //
