@@ -143,6 +143,9 @@ namespace ext
          {
             return _totalThreads;
          }
+
+         void addThreadsFromPEs(unsigned int representingPEsCount, PE **representingPEs);
+         virtual bool canBlock() { return false;}
    };
 }
 }
