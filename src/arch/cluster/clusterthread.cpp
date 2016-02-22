@@ -259,7 +259,12 @@ void ClusterThread::clearCompletedWDsOCL2( ) {
 
 void ClusterThread::idle( bool debug )
 {
+   // poll the network as the parent thread
+   BaseThread *orig_myThread = myThread;
+   BaseThread *parent = myThread->getParent();
+   myThread = parent;
    sys.getNetwork()->poll(0);
+   myThread = orig_myThread;
 
    if ( !_pendingRequests.empty() ) {
       std::set<void *>::iterator it = _pendingRequests.begin();
