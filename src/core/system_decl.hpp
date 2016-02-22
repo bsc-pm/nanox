@@ -251,6 +251,7 @@ namespace nanos
          bool _predecessorCopyInfoDisabled;
          bool _invalControl;
          bool _cgAlloc;
+         bool _inIdle;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -703,6 +704,10 @@ global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t
          SMPDevice &_getSMPDevice();
          int initClusterMPI(int *argc, char ***argv);
          void finalizeClusterMPI();
+         void notifyIntoBlockingMPICall();
+         void notifyOutOfBlockingMPICall();
+         void notifyIdle( unsigned int node );
+         void disableHelperNodes();
    };
 
    extern System sys;

@@ -56,20 +56,13 @@ class ClusterMPIPlugin : public ArchPlugin
       virtual void init();
 
       void prepare( Config& cfg );
-      // void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      // void * getSegmentAddr( unsigned int idx );
-      // std::size_t getSegmentLen( unsigned int idx );
-      //void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      //void * getPinnedSegmentAddr( unsigned int idx ) const;
-      //std::size_t getPinnedSegmentLen( unsigned int idx ) const;
       std::size_t getNodeMem() const;
       int getGpuPresend() const;
       int getSmpPresend() const;
       System::CachePolicyType getCachePolicy ( void ) const;
-      RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
+      RemoteWorkDescriptor * getRemoteWorkDescriptor( unsigned int num_nodes, int archId );
       bool getAllocFit() const;
       bool unalignedNodeMemory() const;
-      //std::size_t getGASNetSegmentSize() const;
       virtual int initNetwork(int *argc, char ***argv);
 
 
@@ -85,6 +78,7 @@ class ClusterMPIPlugin : public ArchPlugin
       virtual unsigned int getMaxPEs() const;
       virtual unsigned int getNumWorkers() const;
       virtual unsigned int getMaxWorkers() const;
+      virtual BaseThread *getClusterThread() const;
 };
 
 }

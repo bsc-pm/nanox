@@ -3,6 +3,9 @@
 #include "regioncache.hpp"
 #include "system_decl.hpp"
 #include "globalregt.hpp"
+#include "os.hpp"
+#include <limits>
+#include <iomanip>
 
 InvalidationController::InvalidationController() : 
    _invalOps( NULL )
@@ -24,8 +27,13 @@ void InvalidationController::abort(WD const &wd) {
 //sys.getSeparateMemory(id).getCache().lock();
    for ( std::set< std::pair< AllocatedChunk **, AllocatedChunk * > >::iterator it = _chunksToInval.begin(); it != _chunksToInval.end(); it++ ) {
       if ( *it->first == (AllocatedChunk *) -1 ) {
-         it->second->removeReference( wd );
+         it->second->removeReference( wd ); //InvalidationController::abort
          *(it->first) = it->second;
+      }
+   }
+   if ( _invalChunkPtr != NULL ) {
+      if ( *_invalChunkPtr == (AllocatedChunk *) -2 ) {
+         *_invalChunkPtr = (AllocatedChunk *) NULL; 
       }
    }
    _chunksToInval.clear();
@@ -52,17 +60,13 @@ void InvalidationController::postIssueActions( memory_space_id_t id ) {
    }
    sys.getSeparateMemory(id).getCache().MAPunlock();
    sys.getSeparateMemory(id).getCache().unlock();
-   if ( _invalChunk ) {
-      uint64_t targetHostAddr = _allocatedRegion.getRealFirstAddress();
-      _invalChunk->increaseLruStamp();
-      _invalChunk->clearNewRegions( _allocatedRegion );
-      _invalChunk->setHostAddress( targetHostAddr );
-   }
 }
 
 void InvalidationController::waitOps( memory_space_id_t id, WD const &wd ) {
+   //*myThread->_file << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " invalidation for wd " << wd.getId() << " wait for ownOps: " << _invalOps->getOwnOps().size() << " otherOps: " << _invalOps->getOtherOps().size() << std::endl;
+   //_invalOps->print(*myThread->_file);
    while ( !_invalOps->isDataReady( wd, true ) ) { myThread->idle(); }
-   //std::cerr << "wait done _chunksToFree size= " << _chunksToFree.size() << " and _regions_to_remove_access.size= " << _regions_to_remove_access.size() << std::endl;
+   //*myThread->_file << std::setprecision(std::numeric_limits<double>::digits10) << OS::getMonotonicTime() << " invalidation for wd " << wd.getId() << " wait done _chunksToFree size= " << _chunksToFree.size() << " and _regions_to_remove_access.size= " << _regions_to_remove_access.size() << std::endl;
    postCompleteActions( id, wd );
 }
 
@@ -79,6 +83,12 @@ void InvalidationController::preIssueActions( memory_space_id_t id, WD const &wd
 }
 
 void InvalidationController::postCompleteActions( memory_space_id_t id, WD const &wd ) {
+   if ( _invalChunk ) {
+      uint64_t targetHostAddr = _allocatedRegion.getRealFirstAddress();
+      _invalChunk->increaseLruStamp();
+      _invalChunk->clearNewRegions( _allocatedRegion );
+      _invalChunk->setHostAddress( targetHostAddr );
+   }
    for ( std::set< AllocatedChunk * >::iterator it = _chunksToFree.begin(); it != _chunksToFree.end(); it++ ) {
       sys.getSeparateMemory(id).getCache().freeChunk( *it, wd );
    }

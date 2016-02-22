@@ -59,7 +59,7 @@ ClusterPlugin::ClusterPlugin() : ArchPlugin( "Cluster PE Plugin", 1 ),
    _pinnedSegmentLenList( NULL ), _extraPEsCount( 0 ), _conduit(""),
    _nodeMem( DEFAULT_NODE_MEM ), _allocFit( false ), _allowSharedThd( false ),
    _unalignedNodeMem( false ), _gpuPresend( 1 ), _smpPresend( 1 ),
-   _cachePolicy( System::DEFAULT ), _nodes( NULL ), _cpu( NULL ),
+   _cachePolicy( System::DEFAULT ), _remoteNodes( NULL ), _cpu( NULL ),
    _clusterThread( NULL ), _gasnetSegmentSize( 0 ) {
 }
 
@@ -71,10 +71,11 @@ void ClusterPlugin::config( Config& cfg )
 
 void ClusterPlugin::init()
 {
-   sys.getNetwork()->setAPI(_gasnetApi);
+   _gasnetApi->initialize( sys.getNetwork() );
+   //sys.getNetwork()->setAPI(_gasnetApi);
    _gasnetApi->setGASNetSegmentSize( _gasnetSegmentSize );
    _gasnetApi->setUnalignedNodeMemory( _unalignedNodeMem );
-   sys.getNetwork()->initialize();
+   sys.getNetwork()->initialize( _gasnetApi );
    sys.getNetwork()->setGpuPresend(this->getGpuPresend() );
    sys.getNetwork()->setSmpPresend(this->getSmpPresend() );
 
@@ -94,14 +95,18 @@ void ClusterPlugin::init()
          #ifdef OpenCL_DEV
          supported_archs[2] = &OpenCLDev;
          #endif
-         _nodes = NEW std::vector<nanos::ext::ClusterNode *>(_gasnetApi->getNumNodes(), (nanos::ext::ClusterNode *) NULL); 
-         for ( unsigned int nodeC = 1; nodeC < _gasnetApi->getNumNodes(); nodeC++ ) {
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ), 0 );
-            SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
-            nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) segmentAddr[ nodeC ], _nodeMem ) );
-            nodeMemory.setNodeNumber( nodeC );
-            nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id, supported_archs, num_supported_archs );
-            (*_nodes)[ node->getNodeNum() ] = node;
+         _remoteNodes = NEW std::vector<nanos::ext::ClusterNode *>(nodes - 1, (nanos::ext::ClusterNode *) NULL); 
+         unsigned int node_index = 0;
+         for ( unsigned int nodeC = 0; nodeC < nodes; nodeC++ ) {
+            if ( nodeC != _gasnetApi->getNodeNum() ) {
+               memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::Cluster, !( getAllocFit() ), 0 );
+               SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
+               nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) segmentAddr[ nodeC ], _nodeMem ) );
+               nodeMemory.setNodeNumber( nodeC );
+               nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id, supported_archs, num_supported_archs );
+               (*_remoteNodes)[ node_index ] = node;
+               node_index += 1;
+            }
          }
       }
       _cpu = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
@@ -219,7 +224,7 @@ void ClusterPlugin::startSupportThreads() {
    if ( _gasnetApi->getNumNodes() > 1 )
    {
       if ( _gasnetApi->getNodeNum() == 0 ) {
-         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( _gasnetApi->getNumNodes() - 1, (ProcessingElement **) &(*_nodes)[1] ) );
+         _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( _gasnetApi->getNumNodes() - 1, (ProcessingElement **) &(*_remoteNodes)[0] ) );
       } else {
          _clusterThread = dynamic_cast<ext::SMPMultiThread *>( &_cpu->startMultiWorker( 0, NULL ) );
          if ( sys.getPMInterface().getInternalDataSize() > 0 )
@@ -230,7 +235,7 @@ void ClusterPlugin::startSupportThreads() {
             /* This works, but it could happen that the cluster is initialized before the accelerators, and this call could return 0 */
             sys.getNetwork()->enableCheckingForDataInOtherAddressSpaces();
          }
-         _gasnetApi->_rwgSMP = getRemoteWorkDescriptor(1);
+         _gasnetApi->_rwgSMP = getRemoteWorkDescriptor(0);
          _gasnetApi->_rwgGPU = getRemoteWorkDescriptor(1);
          _gasnetApi->_rwgOCL = getRemoteWorkDescriptor(2);
       }
@@ -255,15 +260,15 @@ void ClusterPlugin::startWorkerThreads( std::map<unsigned int, BaseThread *> &wo
 void ClusterPlugin::finalize() {
    if ( _gasnetApi->getNodeNum() == 0 ) {
       //message0("Master: Created " << createdWds << " WDs.");
-      message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
+      //message0("Master: Failed to correctly schedule " << sys.getAffinityFailureCount() << " WDs.");
       int soft_inv = 0;
       int hard_inv = 0;
       unsigned int max_execd_wds = 0;
-      if ( _nodes ) {
-         for ( unsigned int idx = 1; idx < _nodes->size(); idx += 1 ) {
-            soft_inv += sys.getSeparateMemory( (*_nodes)[idx]->getMemorySpaceId() ).getSoftInvalidationCount();
-            hard_inv += sys.getSeparateMemory( (*_nodes)[idx]->getMemorySpaceId() ).getHardInvalidationCount();
-            max_execd_wds = max_execd_wds >= (*_nodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_nodes)[idx]->getExecutedWDs();
+      if ( _remoteNodes ) {
+         for ( unsigned int idx = 0; idx < _remoteNodes->size(); idx += 1 ) {
+            soft_inv += sys.getSeparateMemory( (*_remoteNodes)[idx]->getMemorySpaceId() ).getSoftInvalidationCount();
+            hard_inv += sys.getSeparateMemory( (*_remoteNodes)[idx]->getMemorySpaceId() ).getHardInvalidationCount();
+            max_execd_wds = max_execd_wds >= (*_remoteNodes)[idx]->getExecutedWDs() ? max_execd_wds : (*_remoteNodes)[idx]->getExecutedWDs();
             //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getSoftInvalidationCount() << " soft invalidations." );
             //message("Memory space " << idx <<  " has performed " << _separateAddressSpaces[idx]->getHardInvalidationCount() << " hard invalidations." );
          }
@@ -279,42 +284,42 @@ void ClusterPlugin::finalize() {
 
 
 void ClusterPlugin::addPEs( std::map<unsigned int, ProcessingElement *> &pes ) const {
-   if ( _nodes ) {
-      std::vector<ClusterNode *>::const_iterator it = _nodes->begin();
-      it++; //position 0 is null, node 0 does not have a ClusterNode object
-      for (; it != _nodes->end(); it++ ) {
+   if ( _remoteNodes ) {
+      std::vector<ClusterNode *>::const_iterator it = _remoteNodes->begin();
+      //NOT ANYMORE: it++; //position 0 is null, node 0 does not have a ClusterNode object
+      for (; it != _remoteNodes->end(); it++ ) {
          pes.insert( std::make_pair( (*it)->getId(), *it ) );
       }
    }
 }
 
 unsigned int ClusterPlugin::getNumPEs() const {
-   if ( _nodes ) {
-      return _nodes->size() - 1;
+   if ( _remoteNodes ) {
+      return _remoteNodes->size();
    } else {
       return 0;
    }
 }
 
 unsigned int ClusterPlugin::getMaxPEs() const {
-   if ( _nodes ) {
-      return _nodes->size() - 1;
+   if ( _remoteNodes ) {
+      return _remoteNodes->size();
    } else {
       return 0;
    }
 }
 
 unsigned int ClusterPlugin::getNumWorkers() const {
-   if ( _nodes ) {
-      return _nodes->size() - 1;
+   if ( _remoteNodes ) {
+      return _remoteNodes->size();
    } else {
       return 0;
    }
 }
 
 unsigned int ClusterPlugin::getMaxWorkers() const {
-   if ( _nodes ) {
-      return _nodes->size() - 1;
+   if ( _remoteNodes ) {
+      return _remoteNodes->size();
    } else {
       return 0;
    }

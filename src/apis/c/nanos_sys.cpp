@@ -141,3 +141,13 @@ NANOS_API_DEF(void, nanos_cmpi_finalize, (void))
 {
    sys.finalizeClusterMPI();
 }
+
+NANOS_API_DEF(void, nanos_into_blocking_mpi_call, (void))
+{
+   sys.notifyIntoBlockingMPICall();
+}
+
+NANOS_API_DEF(void, nanos_out_of_blocking_mpi_call, (void))
+{
+   sys.notifyOutOfBlockingMPICall();
+}

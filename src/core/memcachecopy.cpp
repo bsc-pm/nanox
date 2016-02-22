@@ -25,10 +25,12 @@
 #include "deviceops.hpp"
 #include "workdescriptor.hpp"
 #include "basethread.hpp"
+#include "regiondict.hpp"
 
 
 void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
    //NANOS_INSTRUMENT( InstrumentState inst4(NANOS_CC_CDIN_OP_GEN); );
+   _reg.key->lockObject();
    if ( input && output ) {
       //re read version, in case of this being a commutative or concurrent access
       if ( _reg.getVersion() > _version ) {
@@ -40,8 +42,11 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
    if ( ops.getPE()->getMemorySpaceId() != 0 ) {
       /* CACHE ACCESS */
       if ( input )  {
-         ops.lockSourceChunks( _reg, _version, _locations, ops.getPE()->getMemorySpaceId(), wd, copyIdx );
-         _chunk->NEWaddReadRegion2( ops, _reg.id, _version, _locations, wd, copyIdx );
+         if ( _policy == RegionCache::FPGA ) {
+            _chunk->copyRegionFromHost( ops, _reg.id, _version, wd, copyIdx );
+         } else {
+            _chunk->NEWaddReadRegion2( ops, _reg.id, _version, _locations, wd, copyIdx );
+         }
       } else if ( output ) {
          _chunk->NEWaddWriteRegion( _reg.id, _version, wd, copyIdx );
       } else {
@@ -54,4 +59,5 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
       }
    }
    //NANOS_INSTRUMENT( inst4.close(); );
+   _reg.key->unlockObject();
 }

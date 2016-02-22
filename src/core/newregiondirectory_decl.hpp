@@ -108,7 +108,7 @@ namespace nanos
                   NewNewDirectoryEntryData *entry = getDirectoryEntry( *_object, 1 );
                   if ( entry == NULL ) {
                      entry = NEW NewNewDirectoryEntryData();
-                     _object->setRegionData( 1, entry );
+                     _object->setRegionData( 1, entry ); //resetGlobalRegionDictionary
                   }
                }
             }
@@ -175,7 +175,6 @@ namespace nanos
          static NewNewDirectoryEntryData *getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id );
 
          static reg_t _getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
-         static reg_t tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe );
          static bool isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc );
@@ -193,10 +192,7 @@ namespace nanos
          static void setOps( RegionDirectoryKey dict, reg_t id, DeviceOps *ops );
 
 
-         static void tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
          static void __getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &loc, unsigned int &version, WD const &wd );
-         static void initializeEntry( RegionDirectoryKey dict, reg_t reg );
-         static void initializeEntryWithAnother( RegionDirectoryKey dict, reg_t reg, reg_t from );
          static void addRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );
          static reg_t getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t localId );
          static void addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId );

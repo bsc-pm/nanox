@@ -55,16 +55,17 @@ typedef std::set<const Device *>  DeviceList;
       private:
 
          const char *_name; /**< Identifies device type */
+         Atomic<unsigned int> _numOps;
 
       public:
 
          /*! \brief Device constructor
           */
-         Device ( const char *n ) : _name ( n ) {}
+         Device ( const char *n ) : _name ( n ), _numOps(0) {}
 
          /*! \brief Device copy constructor
           */
-         Device ( const Device &arch ) : _name ( arch._name ) {}
+         Device ( const Device &arch ) : _name ( arch._name ), _numOps( arch._numOps ) {}
 
          /*! \brief Device destructor
           */
@@ -72,7 +73,7 @@ typedef std::set<const Device *>  DeviceList;
 
          /*! \brief Device assignment operator
           */
-         const Device & operator= ( const Device &arch ) { _name = arch._name; return *this; }
+         const Device & operator= ( const Device &arch ) { _name = arch._name; _numOps = arch._numOps; return *this; }
 
          /*! \brief Device equals operator
           */
@@ -82,18 +83,19 @@ typedef std::set<const Device *>  DeviceList;
          /*! \brief Get device name
           */
          const char * getName ( void ) const { return _name; }
+         unsigned int increaseNumOps() { return _numOps++; }
 
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) = 0;
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) = 0;
          virtual void _canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes, unsigned int numChunks, std::size_t *remainingSizes ) = 0;
          virtual std::size_t getMemCapacity( SeparateMemoryAddressSpace &mem ) = 0;
 
-         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
-         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig, DeviceOps *ops, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
+         virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) = 0;
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem, SimpleAllocator::ChunkList &list ) = 0;
    };
 

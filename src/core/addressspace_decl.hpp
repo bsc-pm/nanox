@@ -32,32 +32,35 @@ class TransferListEntry {
    global_reg_t    _reg;
    unsigned int    _version;
    DeviceOps      *_ops;
-   AllocatedChunk *_chunk;
+   AllocatedChunk *_destinationChunk;
+   AllocatedChunk *_sourceChunk;
    unsigned int    _copyIndex;
    public:
-   TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, unsigned int copyIdx );
+   TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, unsigned int copyIdx );
    TransferListEntry( TransferListEntry const &t );
    TransferListEntry &operator=( TransferListEntry const &t );
    global_reg_t getRegion() const;
    unsigned int getVersion() const;
    DeviceOps *getDeviceOps() const;
-   AllocatedChunk *getChunk() const;
+   AllocatedChunk *getDestinationChunk() const;
+   AllocatedChunk *getSourceChunk() const;
    unsigned int getCopyIndex() const;
 };
 
-inline TransferListEntry::TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, unsigned int copyIdx ) :
-   _reg( reg ), _version( version ), _ops( ops ), _chunk( chunk ), _copyIndex( copyIdx ) {
+inline TransferListEntry::TransferListEntry( global_reg_t reg, unsigned int version, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, unsigned int copyIdx ) :
+   _reg( reg ), _version( version ), _ops( ops ), _destinationChunk( destinationChunk ), _sourceChunk( sourceChunk ), _copyIndex( copyIdx ) {
 }
 
 inline TransferListEntry::TransferListEntry( TransferListEntry const &t ) : 
-   _reg( t._reg ), _version( t._version ), _ops( t._ops ), _chunk( t._chunk ), _copyIndex( t._copyIndex ) {
+   _reg( t._reg ), _version( t._version ), _ops( t._ops ), _destinationChunk( t._destinationChunk ), _sourceChunk( t._sourceChunk ), _copyIndex( t._copyIndex ) {
 }
 
 inline TransferListEntry &TransferListEntry::operator=( TransferListEntry const &t ) {
    _reg = t._reg;
    _version = t._version;
    _ops = t._ops;
-   _chunk = t._chunk;
+   _destinationChunk = t._destinationChunk;
+   _sourceChunk = t._sourceChunk;
    _copyIndex = t._copyIndex;
    return *this;
 }
@@ -74,8 +77,12 @@ inline DeviceOps *TransferListEntry::getDeviceOps() const {
    return _ops;
 }
 
-inline AllocatedChunk *TransferListEntry::getChunk() const {
-   return _chunk;
+inline AllocatedChunk *TransferListEntry::getDestinationChunk() const {
+   return _destinationChunk;
+}
+
+inline AllocatedChunk *TransferListEntry::getSourceChunk() const {
+   return _sourceChunk;
 }
 
 inline unsigned int TransferListEntry::getCopyIndex() const {
@@ -90,7 +97,7 @@ class HostAddressSpace {
    public:
    HostAddressSpace( Device &arch );
 
-   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
+   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
    void getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations );
    void getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
@@ -116,8 +123,8 @@ class SeparateAddressSpace {
    SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize );
 
    void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk );
-   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
-   void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *chunk, bool inval );
+   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
+   void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void copyFromHost( TransferList &list, WD const &wd );
@@ -137,11 +144,6 @@ class SeparateAddressSpace {
    bool isAccelerator() const;
    void *getSpecificData() const;
    void setSpecificData( void *data );
-
-
-   void allocateOutputMemory( global_reg_t const &reg, ProcessingElement *pe, unsigned int version, WD const &wd, unsigned int copyIdx );
-   void copyInputData( BaseAddressSpaceInOps &ops, global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
-   void copyOutputData( SeparateAddressSpaceOutOps &ops, global_reg_t const &reg, unsigned int version, bool output, enum RegionCache::CachePolicy policy, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
 
    RegionCache &getCache();
    ProcessingElement &getPE();

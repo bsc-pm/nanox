@@ -133,7 +133,6 @@ inline void NewNewDirectoryEntryData::addAccess( ProcessingElement *pe, memory_s
    } else {
      //*myThread->_file << "FIXME: wrong case, current version is " << this->getVersion() << " and requested is " << version << " @location " << id <<std::endl;
    }
-   //printBt();
    //*myThread->_file << "+++++++++++++++++^ entry " << (void *) this << " ^++++++++++++++++++++++" << std::endl;
    _setLock.release();
 }
@@ -177,6 +176,9 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( ProcessingElement *pe, unsign
    while ( !_setLock.tryAcquire() ) {
       myThread->idle();
    }
+   if ( _location.empty() ) {
+      *myThread->_file << " Warning: empty _location set, it is likely that an invalidation is ongoing for this region. " << std::endl;
+   }
    result = ( version <= this->getVersion() && _location.count( pe->getMemorySpaceId() ) > 0 );
    _setLock.release();
    return result;
@@ -192,6 +194,9 @@ inline bool NewNewDirectoryEntryData::isLocatedIn( memory_space_id_t loc ) {
       myThread->idle();
    }
    result = ( _location.count( loc ) > 0 );
+   if ( !result && _location.size() == 0 ) { //locations.size = 0 means we are invalidating
+      result = (loc == 0);
+   }
    _setLock.release();
    return result;
 }
@@ -267,6 +272,13 @@ inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegio
 
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKey( uint64_t addr ) {
    return getRegionDictionary( addr );
+}
+
+inline void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
+{
+   dict->lockObject();
+   dict->registerRegion( reg, missingParts, version );
+   dict->unlockObject();
 }
 
 #endif

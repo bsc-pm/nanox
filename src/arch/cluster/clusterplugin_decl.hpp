@@ -44,7 +44,7 @@ class ClusterPlugin : public ArchPlugin
       int _gpuPresend;
       int _smpPresend;
       System::CachePolicyType _cachePolicy;
-      std::vector<ext::ClusterNode *> *_nodes;
+      std::vector<ext::ClusterNode *> *_remoteNodes;
       ext::SMPProcessor *_cpu;
       ext::SMPMultiThread *_clusterThread;
       std::size_t _gasnetSegmentSize;
@@ -55,12 +55,6 @@ class ClusterPlugin : public ArchPlugin
       virtual void init();
 
       void prepare( Config& cfg );
-      // void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      // void * getSegmentAddr( unsigned int idx );
-      // std::size_t getSegmentLen( unsigned int idx );
-      // void addPinnedSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-      // void * getPinnedSegmentAddr( unsigned int idx ) const;
-      // std::size_t getPinnedSegmentLen( unsigned int idx ) const;
       std::size_t getNodeMem() const;
       int getGpuPresend() const;
       int getSmpPresend() const;
@@ -68,8 +62,6 @@ class ClusterPlugin : public ArchPlugin
       RemoteWorkDescriptor * getRemoteWorkDescriptor( int archId );
       bool getAllocFit() const;
       bool unalignedNodeMemory() const;
-      //std::size_t getGASNetSegmentSize() const;
-
 
       virtual void startSupportThreads();
       virtual void startWorkerThreads( std::map<unsigned int, BaseThread *> &workers);

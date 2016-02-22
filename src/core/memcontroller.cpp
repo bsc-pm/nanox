@@ -73,7 +73,40 @@ void MemController::preInit( ) {
    if ( _VERBOSE_CACHE ) { 
       *(myThread->_file) << " (preinit)INITIALIZING MEMCONTROLLER for WD " << _wd.getId() << " " << (_wd.getDescription()!=NULL ? _wd.getDescription() : "n/a")  << " NUM COPIES " << _wd.getNumCopies() << std::endl;
    }
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
 
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 131 );)
+   // std::set<reg_key_t> dicts;
+   for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
+      new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
+   //    dicts.insert( _memCacheCopies[ index ]._reg.key );
+   }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 132 );)
+             for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
+                _memCacheCopies[ index ]._reg.id = _memCacheCopies[ index ]._reg.key->obtainRegionId( _wd.getCopies()[index], _wd, index );
+                NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) _memCacheCopies[ index ]._reg.key->getRegionData( _memCacheCopies[ index ]._reg.id );
+                if ( entry == NULL ) {
+                   entry = NEW NewNewDirectoryEntryData();
+                   _memCacheCopies[ index ]._reg.key->setRegionData( _memCacheCopies[ index ]._reg.id, entry ); //preInit memCacheCopy._reg
+                }
+             }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 133 );)
+   for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
+      uint64_t host_copy_addr = 0;
+      if ( _wd.getParent() != NULL /* && !_wd.getParent()->_mcontrol._mainWd */ ) {
+         for ( unsigned int parent_idx = 0; parent_idx < _wd.getParent()->getNumCopies(); parent_idx += 1 ) {
+            if ( _wd.getParent()->_mcontrol.getAddress( parent_idx ) == (uint64_t) _wd.getCopies()[ index ].getBaseAddress() ) {
+               host_copy_addr = (uint64_t) _wd.getParent()->getCopies()[ parent_idx ].getHostBaseAddress();
+               _wd.getCopies()[ index ].setHostBaseAddress( host_copy_addr );
+            }
+         }
+      }
+   }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 134 );)
    //std::ostream &o = (*myThread->_file);
    //o << "### preInit wd " << _wd.getId() << std::endl;
    for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
@@ -82,18 +115,6 @@ void MemController::preInit( ) {
       //
       //
       //
-
-   uint64_t host_copy_addr = 0;
-   if ( _wd.getParent() != NULL /* && !_wd.getParent()->_mcontrol._mainWd */ ) {
-      for ( unsigned int parent_idx = 0; parent_idx < _wd.getParent()->getNumCopies(); parent_idx += 1 ) {
-         if ( _wd.getParent()->_mcontrol.getAddress( parent_idx ) == (uint64_t) _wd.getCopies()[ index ].getBaseAddress() ) {
-            host_copy_addr = (uint64_t) _wd.getParent()->getCopies()[ parent_idx ].getHostBaseAddress();
-            //std::cerr << "TADAAAA this comes from a father's copy "<< std::hex << host_copy_addr << std::endl;
-            _wd.getCopies()[ index ].setHostBaseAddress( host_copy_addr );
-         }
-      }
-   }
-      new ( &_memCacheCopies[ index ] ) MemCacheCopy( _wd, index );
 
       // o << "## " << (_wd.getCopies()[index].isInput() ? "in" : "") << (_wd.getCopies()[index].isOutput() ? "out" : "") << " " <<  _wd.getCopies()[index] << std::endl; 
 
@@ -132,6 +153,7 @@ void MemController::preInit( ) {
          }
       }
    }
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
 
 
@@ -143,6 +165,43 @@ void MemController::preInit( ) {
    //        o << std::endl; 
    //     }
    //  }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 135 );)
+
+      for ( index = 0; index < _wd.getNumCopies(); index += 1 ) {
+         std::list< std::pair< reg_t, reg_t > > &missingParts = _memCacheCopies[index]._locations;
+         reg_key_t dict = _memCacheCopies[index]._reg.key;
+         for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
+            if ( it->first != it->second ) {
+               NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
+               NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
+               if ( firstEntry == NULL ) {
+                  if ( secondEntry != NULL ) {
+                     firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
+                  } else {
+                     firstEntry = NEW NewNewDirectoryEntryData();
+                     secondEntry = NEW NewNewDirectoryEntryData();
+                     dict->setRegionData( it->second, secondEntry ); // preInit fragment
+                  }
+                  dict->setRegionData( it->first, firstEntry ); //preInit fragment
+               } else {
+                  if ( secondEntry != NULL ) {
+                     *firstEntry = *secondEntry;
+                  } else {
+                     *myThread->_file << "Dunno what to do..."<<std::endl;
+                  }
+               }
+            } else {
+               NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
+               if ( entry == NULL ) {
+                  entry = NEW NewNewDirectoryEntryData();
+                  dict->setRegionData( it->first, entry ); //preInit fragment
+               } else {
+               }
+            }
+         }
+      }
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+
 
    memory_space_id_t rooted_loc = 0;
    if ( this->isRooted( rooted_loc ) ) {
@@ -161,9 +220,9 @@ void MemController::initialize( ProcessingElement &pe ) {
       //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
 
       if ( _pe->getMemorySpaceId() == 0 /* HOST_MEMSPACE_ID */) {
-         _inOps = NEW HostAddressSpaceInOps( _pe, true );
+         _inOps = NEW HostAddressSpaceInOps( _pe, false );
       } else {
-         _inOps = NEW SeparateAddressSpaceInOps( _pe, true, sys.getSeparateMemory( _pe->getMemorySpaceId() ) );
+         _inOps = NEW SeparateAddressSpaceInOps( _pe, false, sys.getSeparateMemory( _pe->getMemorySpaceId() ) );
       }
       _initialized = true;
    } else {
@@ -276,7 +335,7 @@ void MemController::copyDataIn() {
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       //if ( sys.getNetwork()->getNodeNum() == 0 ) {
          std::ostream &o = (*myThread->_file);
-         o << "### copyDataIn wd " << std::dec << _wd.getId() << " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") running on " << std::dec << _pe->getMemorySpaceId() << " ops: "<< (void *) _inOps << std::endl;
+         o << "### copyDataIn wd " << std::dec << _wd.getId() << " (" << (_wd.getDescription()!=NULL?_wd.getDescription():"[no desc]")<< ") numCopies "<< _wd.getNumCopies() << " running on " << std::dec << _pe->getMemorySpaceId() << " ops: "<< (void *) _inOps << std::endl;
          for ( unsigned int index = 0; index < _wd.getNumCopies(); index += 1 ) {
          NewNewDirectoryEntryData *d = NewNewRegionDirectory::getDirectoryEntry( *(_memCacheCopies[ index ]._reg.key), _memCacheCopies[ index ]._reg.id );
          o << "## " << (_wd.getCopies()[index].isInput() ? "in" : "") << (_wd.getCopies()[index].isOutput() ? "out" : "") << " "; _memCacheCopies[ index ]._reg.key->printRegion( o, _memCacheCopies[ index ]._reg.id ) ;
@@ -287,12 +346,18 @@ void MemController::copyDataIn() {
       //}
    }
    
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 333 );)
    //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataIn for wd " << _wd.getId() << std::endl;
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       _memCacheCopies[ index ].generateInOps( *_inOps, _wd.getCopies()[index].isInput(), _wd.getCopies()[index].isOutput(), _wd, index );
    }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 334 );)
    _inOps->issue( _wd );
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
          (*myThread->_file) << "### copyDataIn wd " << std::dec << _wd.getId() << " done" << std::endl;
@@ -312,6 +377,9 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
    //}
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) { *(myThread->_file) << "### copyDataOut wd " << std::dec << _wd.getId() << " metadata set, not released yet" << std::endl; }
 
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 444 );)
 
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       if ( _wd.getCopies()[index].isOutput() ) {
@@ -348,6 +416,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
       //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;
       _outOps->issue( _wd );
    }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 }
 
 uint64_t MemController::getAddress( unsigned int index ) const {
@@ -514,7 +583,7 @@ void MemController::setCacheMetaData() {
    for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {
       if ( _wd.getCopies()[index].isOutput() ) {
          unsigned int newVersion = _memCacheCopies[ index ].getVersion() + 1;
-         _memCacheCopies[ index ]._reg.setLocationAndVersion( _pe, _pe->getMemorySpaceId(), newVersion ); //update directory
+         _memCacheCopies[ index ]._reg.setLocationAndVersion( _pe, _pe->getMemorySpaceId(), newVersion ); //update directory, OUT copies, (upgrade version)
          //*myThread->_file << "setChildrenProducedVersion( " << newVersion << " ) for WD " << _wd.getId() << " : " << _wd.getDescription() << std::endl;
          _memCacheCopies[ index ].setChildrenProducedVersion( newVersion );
          if ( _pe->getMemorySpaceId() != 0 /* HOST_MEMSPACE_ID */) {

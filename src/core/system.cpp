@@ -144,6 +144,7 @@ System::System () :
       , _predecessorCopyInfoDisabled( false )
       , _invalControl( false )
       , _cgAlloc( false )
+      , _inIdle( false )
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -218,8 +219,11 @@ void System::loadArchitectures()
    } else if ( usingClusterMPI() ) {
       verbose0( "Loading ClusterMPI plugin (" + getNetworkConduit() + ")" ) ;
       _clusterMPIPlugin = (ext::ClusterMPIPlugin *) loadAndGetPlugin( "pe-clustermpi-"+getNetworkConduit() );
-      if ( _clusterMPIPlugin == NULL )
+      if ( _clusterMPIPlugin == NULL ) {
          fatal0 ( "Couldn't load ClusterMPI support" );
+      } else {
+         _clusterMPIPlugin->init();
+      }
    }
 #endif
 
@@ -562,14 +566,16 @@ void System::start ()
    }   
 
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
-      _clusterNodes.insert( it->second->getClusterNode() );
-      // If this PE is in a NUMA node and has workers
-      if ( it->second->isInNumaNode() && ( it->second->getNumThreads() > 0  ) ) {
-         // Add the node of this PE to the set of used NUMA nodes
-         unsigned node = it->second->getNumaNode() ;
-         _numaNodes.insert( node );
+      if ( it->second->isActive() ) {
+         _clusterNodes.insert( it->second->getClusterNode() );
+         // If this PE is in a NUMA node and has workers
+         if ( it->second->isInNumaNode() && ( it->second->getNumThreads() > 0  ) ) {
+            // Add the node of this PE to the set of used NUMA nodes
+            unsigned node = it->second->getNumaNode() ;
+            _numaNodes.insert( node );
+         }
+         _activeMemorySpaces.insert( it->second->getMemorySpaceId() );
       }
-      _activeMemorySpaces.insert( it->second->getMemorySpaceId() );
    }
    
    // gmiranda: was completeNUMAInfo() We must do this after the
@@ -663,11 +669,9 @@ void System::start ()
    }
 
    _router.initialize();
+   _net.setParentWD( &mainWD );
    if ( usingCluster() )
    {
-      if ( sys.getNetwork()->getNodeNum() > 0 ) {
-         sys.getNetwork()->setParentWD( &mainWD );
-      }
       _net.nodeBarrier();
    }
 
@@ -707,6 +711,8 @@ System::~System ()
 void System::finish ()
 {
    if ( _alreadyFinished ) return;
+
+   if ( usingClusterMPI() ) return;
 
    _alreadyFinished = true;
 
@@ -750,11 +756,11 @@ void System::finish ()
    verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
 
    if ( usingCluster() ) {
-      sys.getNetwork()->nodeBarrier();
+      _net.nodeBarrier();
    }
 
-   for ( unsigned int nodeCount = 0; nodeCount < sys.getNetwork()->getNumNodes(); nodeCount += 1 ) {
-      if ( sys.getNetwork()->getNodeNum() == nodeCount ) {
+   for ( unsigned int nodeCount = 0; nodeCount < _net.getNumNodes(); nodeCount += 1 ) {
+      if ( _net.getNodeNum() == nodeCount ) {
          for ( ArchitecturePlugins::const_iterator it = _archs.begin(); it != _archs.end(); ++it )
          {
             (*it)->finalize();
@@ -785,7 +791,7 @@ void System::finish ()
 #endif
       }
       if ( usingCluster() ) {
-         sys.getNetwork()->nodeBarrier();
+         _net.nodeBarrier();
       }
    }
 
@@ -1213,16 +1219,16 @@ void System::setupWD ( WD &work, WD *parent )
    /**************************************************/
    /*********** selective node executuion ************/
    /**************************************************/
-   //if (sys.getNetwork()->getNodeNum() == 0) work.tieTo(*_workers[ 1 + nanos::ext::GPUConfig::getGPUCount() + ( work.getId() % ( sys.getNetwork()->getNumNodes() - 1 ) ) ]);
+   //if (_net.getNodeNum() == 0) work.tieTo(*_workers[ 1 + nanos::ext::GPUConfig::getGPUCount() + ( work.getId() % ( _net.getNumNodes() - 1 ) ) ]);
    /**************************************************/
    /**************************************************/
 
    //  ext::SMPDD * workDD = dynamic_cast<ext::SMPDD *>( &work.getActiveDevice());
-   //if (sys.getNetwork()->getNodeNum() == 0)
+   //if (_net.getNodeNum() == 0)
    //         std::cerr << "wd " << work.getId() << " depth is: " << work.getDepth() << " @func: " << (void *) workDD->getWorkFct() << std::endl;
 #if 0
 #ifdef CLUSTER_DEV
-   if (sys.getNetwork()->getNodeNum() == 0)
+   if (_net.getNodeNum() == 0)
    {
       //std::cerr << "tie wd " << work.getId() << " to my thread" << std::endl;
       //ext::SMPDD * workDD = dynamic_cast<ext::SMPDD *>( &work.getActiveDevice());
@@ -1652,9 +1658,7 @@ void System::_distributeObject( global_reg_t &reg, unsigned int start_node, std:
       fragmented_reg.key->addFixedRegion( fragmented_reg.id );
       unsigned int version = 0;
       NewLocationInfoList missing_parts;
-      do {
-         NewNewRegionDirectory::tryGetLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version, *((WD *) 0) );
-      } while ( version == 0 );
+      NewNewRegionDirectory::__getLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version, *((WD *) 0) );
       memory_space_id_t loc = 0;
       for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
          if ( *it != NULL ) {
@@ -1738,14 +1742,58 @@ int System::initClusterMPI(int *argc, char ***argv) {
 }
 
 void System::finalizeClusterMPI() {
+   _clusterMPIPlugin->getClusterThread()->stop();
+   _clusterMPIPlugin->getClusterThread()->join();
    //! \note finalizing instrumentation (if active)
    NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
    NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
-   _net.finalizeNoBarrier();
-   std::cerr << "AFTER _net.finalizeNoBarrier()" << std::endl;
+   //_net.finalizeNoBarrier();
+   //std::cerr << "AFTER _net.finalizeNoBarrier()" << std::endl;
 }
 
 void System::stopFirstThread( void ) {
    //FIXME: this assumes that mainWD is tied to thread 0
    _workers[0]->stop();
+}
+
+void System::notifyIntoBlockingMPICall() {
+   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+   static int created = 0;
+   if ( _schedStats._createdTasks.value() > created ) {
+      _inIdle = true;
+      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 4444 );)
+      *myThread->_file << "created " << ( _schedStats._createdTasks.value() - created ) << " tasks. Send msg." << std::endl;
+      created = _schedStats._createdTasks.value();
+      //*myThread->_file << "Into blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;
+      _net.broadcastIdle();
+   }
+}
+
+void System::notifyOutOfBlockingMPICall() {
+   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+   if ( _inIdle ) {
+      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+      _inIdle = false;
+   }
+   //*myThread->_file << "Out of blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;
+}
+
+void System::notifyIdle( unsigned int node ) {
+#ifdef CLUSTER_DEV
+   if ( !_inIdle ) {
+      unsigned int friend_node = (_net.getNodeNum() + 1) % _net.getNumNodes();
+      if ( node == friend_node ) {
+         ext::SMPMultiThread *cluster_thd = (ext::SMPMultiThread *) _clusterMPIPlugin->getClusterThread();
+         unsigned int thd_idx = node > _net.getNodeNum() ? node - 1 : node;
+         ext::ClusterThread *node_thd = (ext::ClusterThread *) cluster_thd->getThreadVector()[ thd_idx ];
+         *myThread->_file << "Node " << node << ", my friend, is idle!! " << node_thd->runningOn()->getClusterNode() << std::endl;
+         acquireWorker( _mainTeam,  node_thd, true, false, false );
+         *myThread->_file << "Added to team " << _mainTeam << std::endl;
+         _mainTeam->addExpectedThread(node_thd);
+      }
+   }
+#endif
+}
+
+void System::disableHelperNodes() {
 }

@@ -85,12 +85,10 @@ unsigned int Network::getNodeNum () const
    return _nodeNum;
 }
 
-void Network::initialize()
+void Network::initialize( NetworkAPI *api )
 {
-   //   ensure ( _api != NULL, "No network api loaded." );
-   if ( _api != NULL )
-      _api->initialize( this );
-
+   ensure ( api != NULL, "No network api loaded." );
+   _api = api;
    _putRequestSequence = NEW Atomic<unsigned int>[ getNumNodes() ];
    for ( unsigned int i = 0; i < getNumNodes(); i += 1 ) {
       new ( &_putRequestSequence[ i ] ) Atomic<unsigned int>( 0 );
@@ -122,18 +120,19 @@ void Network::finalizeNoBarrier()
 
 void Network::poll( unsigned int id)
 {
-   //   ensure ( _api != NULL, "No network api loaded." );
-   checkDeferredWorkReqs();
-   processRequestsDelayedBySeqNumber();
-   if ( _nodeNum != MASTER_NODE_NUM && myThread->getId() == 0 ) {
-      processSyncRequests();
-   }
-   SendDataRequest * req = _dataSendRequests.tryFetch();
-   if ( req ) {
-      _api->processSendDataRequest( req );
-   }
-   if (_api != NULL /*&& (id >= _pollingMinThd && id <= _pollingMaxThd) */)
+   if ( _api != NULL ) {
+      //   ensure ( _api != NULL, "No network api loaded." );
+      checkDeferredWorkReqs();
+      processRequestsDelayedBySeqNumber();
+      if ( _nodeNum != MASTER_NODE_NUM && myThread->getId() == 0 ) {
+         processSyncRequests();
+      }
+      SendDataRequest * req = _dataSendRequests.tryFetch();
+      if ( req ) {
+         _api->processSendDataRequest( req );
+      }
       _api->poll();
+   }
 }
 
 void Network::sendExitMsg( unsigned int nodeNum )
@@ -154,23 +153,16 @@ void Network::sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigne
       {
          std::cerr << "ERROR: no work to send (work=NULL)" << std::endl;
       }
-      if ( _nodeNum == MASTER_NODE_NUM )
-      {
-         NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
-         NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) ) ; )
-         NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_WD_REMOTE, id, 0, 0, dest ); )
-      
-         std::size_t expectedData = _sentWdData.getSentData( wdId );
-         _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd, expectedData );
-      }
-      else
-      {
-         std::cerr << "tried to send work from a node != 0" << std::endl;
-      }
+      NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
+      NANOS_INSTRUMENT ( nanos_event_id_t id = ( ((nanos_event_id_t) wdId) ) ; )
+      NANOS_INSTRUMENT ( instr->raiseOpenPtPEvent( NANOS_WD_REMOTE, id, 0, 0, dest ); )
+
+      std::size_t expectedData = _sentWdData.getSentData( wdId );
+      _api->sendWorkMsg( dest, work, dataSize, wdId, numPe, argSize, arg, xlate, arch, remoteWd, expectedData );
    }
 }
 
-void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peId )
+void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr )
 {
    //  ensure ( _api != NULL, "No network api loaded." );
    if ( _api != NULL )
@@ -180,7 +172,7 @@ void Network::sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdAddr, int peI
       //NANOS_INSTRUMENT ( instr->raiseOpenPtPEventNkvs( NANOS_WD_REMOTE, id, 0, NULL, NULL, 0 ); )
       if ( _nodeNum != MASTER_NODE_NUM )
       {
-         _api->sendWorkDoneMsg( nodeNum, remoteWdAddr, peId );
+         _api->sendWorkDoneMsg( nodeNum, remoteWdAddr );
       }
    }
 }
@@ -388,7 +380,7 @@ const char * Network::getMasterHostname() const
 }
 
 
-void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId )
+void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
    {
@@ -414,11 +406,11 @@ void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int
          seq = checkMetadataSequenceNumber( dataDest );
       }
       // added
-      _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd, f, hostObject, hostRegId, 0 );
+      _api->sendRequestPut( dest, origAddr, dataDest, dstAddr, len, wdId, wd, hostObject, hostRegId, 0 );
    }
 }
 
-void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId )
+void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
    {
@@ -441,7 +433,7 @@ void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, uns
       } else {
          seq = checkMetadataSequenceNumber( dataDest );
       }
-      _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd, f, hostObject, hostRegId, 0 );
+      _api->sendRequestPutStrided1D( dest, origAddr, dataDest, dstAddr, len, count, ld, wdId, wd, hostObject, hostRegId, 0 );
    }
 }
 
@@ -744,8 +736,8 @@ void Network::processRequestsDelayedBySeqNumber() {
    }
 }
 
-SendDataRequest::SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) :
-   _api( api ), _seqNumber( seqNumber ), _origAddr( origAddr ), _destAddr( destAddr ), _len( len ), _count( count ), _ld( ld ), _destination( dst ), _wdId( wdId ), _hostObject( hostObject ), _hostRegId( hostRegId ), _metaSeq( metaSeq ) {
+SendDataRequest::SendDataRequest( NetworkAPI *api, unsigned int issueNode, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) :
+   _api( api ), _issueNode( issueNode ), _seqNumber( seqNumber ), _origAddr( origAddr ), _destAddr( destAddr ), _len( len ), _count( count ), _ld( ld ), _destination( dst ), _wdId( wdId ), _hostObject( hostObject ), _hostRegId( hostRegId ), _metaSeq( metaSeq ) {
 }
 
 SendDataRequest::~SendDataRequest() {
@@ -789,6 +781,10 @@ unsigned int SendDataRequest::getDestination() const {
    return _destination;
 }
 
+unsigned int SendDataRequest::getIssueNode() const {
+   return _issueNode;
+}
+
 unsigned int SendDataRequest::getWdId() const {
    return _wdId;
 }
@@ -830,7 +826,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
          std::list< std::pair< reg_t, reg_t > > missingParts;
          unsigned int version = 0;
 
-         thisReg.key->registerRegion(thisReg.id, missingParts, version, true);
+         thisReg.key->registerRegion(thisReg.id, missingParts, version );
          for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
             global_reg_t reg( mit->first, thisReg.key );
             if ( !reg.isLocatedIn( 0 ) ) {
@@ -886,15 +882,14 @@ unsigned int Network::updateMetadataSequenceNumber( unsigned int value )  {
    return _recvMetadataSeq.cswap( value, value+1 );
 }
 
-GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops, Functor *f ) : _complete(0),
-   _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ), _f( f ) {
+GetRequest::GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops ) : _complete(0),
+   _hostAddr( hostAddr ), _size( size ), _recvAddr( recvAddr ), _ops( ops ) {
 }
 
 GetRequest::~GetRequest() {
 }
 
 void GetRequest::complete() {
-   (*_f)();
 #ifdef HAVE_NEW_GCC_ATOMIC_OPS
    __atomic_store_n(&_complete, 1, __ATOMIC_RELEASE);
 #else
@@ -919,8 +914,8 @@ void GetRequest::clear() {
    _ops->completeOp();
 }
 
-GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Functor *f, Packer *packer ) :
-   GetRequest( hostAddr, size, recvAddr, ops, f ), _count( count ), _ld( ld ), _packer( packer ) {
+GetRequestStrided::GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer ) :
+   GetRequest( hostAddr, size, recvAddr, ops ), _count( count ), _ld( ld ), _packer( packer ) {
 }
 
 GetRequestStrided::~GetRequestStrided() {
@@ -957,31 +952,6 @@ void Network::notifyRegionMetaData( CopyData *cd, unsigned int seq ) {
    if ( seq ) updateMetadataSequenceNumber( seq );
 }
 
-void Network::addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize ) {
-   if ( _api != NULL )
-   {
-      _api->addSegments( numSegments, segmentAddr, segmentSize );
-   }
-}
-
-void *Network::getSegmentAddr( unsigned int idx ) {
-   void *addr = NULL;
-   if ( _api != NULL )
-   {
-      addr = _api->getSegmentAddr( idx );
-   }
-   return addr;
-}
-
-std::size_t Network::getSegmentLen( unsigned int idx ) {
-   std::size_t size = 0;
-   if ( _api != NULL )
-   {
-      size = _api->getSegmentLen( idx );
-   }
-   return size;
-}
-
 void Network::setGpuPresend(int p) {
    _gpuPresend = p;
 }
@@ -1016,6 +986,12 @@ void Network::synchronizeDirectory() {
    }
 }
 
+void Network::broadcastIdle() {
+   if ( _api != NULL ) {
+      _api->broadcastIdle();
+   }
+}
+
 void Network::notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds ) {
    _syncReqsLock.acquire();
    _syncReqs.push_back( SyncWDs( numWDs, wds ) );
@@ -1040,4 +1016,8 @@ void Network::processSyncRequests() {
 
 void Network::setParentWD(WD *wd) {
    _parentWD = wd;
+}
+
+void Network::notifyIdle( unsigned int node ) {
+   sys.notifyIdle( node );
 }

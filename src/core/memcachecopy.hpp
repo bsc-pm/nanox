@@ -46,8 +46,19 @@ inline void MemCacheCopy::getVersionInfo() {
 }
 
 inline void MemCacheCopy::generateOutOps( SeparateMemoryAddressSpace *from, SeparateAddressSpaceOutOps &ops, bool input, bool output, WD const &wd, unsigned int copyIdx ) {
-   //std::cerr << __FUNCTION__ << std::endl;
-   ops.copyOutputData( from, *this, output, wd, copyIdx );
+   if ( ops.getPE()->getMemorySpaceId() != 0 ) {
+      if ( _policy == RegionCache::FPGA ) { //emit copy for all data
+         if ( output ) {
+            _chunk->copyRegionToHost( ops, _reg.id, _version + (output ? 1 : 0), wd, copyIdx );
+         }
+      } else {
+         if ( output ) {
+            if ( _policy != RegionCache::WRITE_BACK ) {
+               _chunk->copyRegionToHost( ops, _reg.id, _version + 1, wd, copyIdx );
+            }
+         }
+      }
+   }
 }
 
 inline unsigned int MemCacheCopy::getVersion() const {
