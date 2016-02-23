@@ -1491,13 +1491,13 @@ void RegionCache::doOp( Op *opObj, global_reg_t const &hostMem, uint64_t devBase
       AllocatedChunk *_sourceChunk;
       public:
          LocalFunction( Op *op,  const global_reg_t &reg, nanos_region_dimension_internal_t *r,
-               unsigned int cutoff, std::size_t ccs, unsigned int loc, DeviceOps *ops,
-               WD const &wd, uint64_t devAddr, uint64_t hostAddr,
-               AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk ) :
+               unsigned int cutoff, std::size_t ccs, unsigned int loc, DeviceOps *devops,
+               WD const &w, uint64_t devAddr, uint64_t hostAddr,
+               AllocatedChunk *destChunk, AllocatedChunk *srcChunk ) :
             _opObj( op ), _hostMem( reg ), _region( r ), _cutoff( cutoff ),
-            _contiguousChunkSize( ccs ), _location( loc ), _ops( ops ), _wd( wd ),
+            _contiguousChunkSize( ccs ), _location( loc ), _ops( devops ), _wd( w ),
             _devBaseAddr( devAddr ), _hostBaseAddr( hostAddr ),
-            _destinationChunk( destinationChunk ), _sourceChunk( sourceChunk ) {
+            _destinationChunk( destChunk ), _sourceChunk( srcChunk ) {
          }
 
          void issueOpsRecursive( std::size_t offset, unsigned int current_dim, std::size_t current_top_ld )  {
