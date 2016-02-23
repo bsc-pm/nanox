@@ -140,6 +140,7 @@ devinclude_HEADERS = \
 	router_decl.hpp \
 	router.hpp \
 	invalidationcontroller_decl.hpp \
+	invalidationcontroller_fwd.hpp \
 	task_reduction_decl.hpp \
 	task_reduction.hpp \
 	$(END)
@@ -284,6 +285,7 @@ common_sources=\
 	regionset_decl.hpp \
 	regionset.cpp \
 	invalidationcontroller_decl.hpp \
+	invalidationcontroller_fwd.hpp \
 	invalidationcontroller.cpp \
 	threadmanager_decl.hpp \
 	threadmanager.cpp \
