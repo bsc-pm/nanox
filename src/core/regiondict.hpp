@@ -633,13 +633,13 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 							unsigned int own_version = 0;
 							for ( std::set<reg_t>::const_iterator sit = metadata_regs.begin(); sit != metadata_regs.end(); sit++ ) {
 								Version *entry = _currentDict.getRegionData( *sit );
-								unsigned int version = entry != NULL ? entry->getVersion() : 0;
+								unsigned int this_version = entry != NULL ? entry->getVersion() : 0;
 								if (*sit == this_id) {
 									//has_own_region = true;
-									own_version = version;
+									own_version = this_version;
 								}
-								if ( version > current_version ) {
-									current_version = version;
+								if ( this_version > current_version ) {
+									current_version = this_version;
 									max_version_reg = *sit;
 								}
 							}
@@ -673,8 +673,8 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 			}
 		}
 
-		void computeIntersections( reg_t id, std::map< reg_t, std::set< reg_t > > &resulting_regions ) {
-			RegionNode const *regNode = _currentDict.getRegionNode( id );
+		void computeIntersections( reg_t this_id, std::map< reg_t, std::set< reg_t > > &resulting_regions ) {
+			RegionNode const *regNode = _currentDict.getRegionNode( this_id );
 			MemoryMap< std::set< reg_t > >::MemChunkList results[ _currentDict.getNumDimensions() ];
 
 			for ( int idx = _currentDict.getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
@@ -693,12 +693,12 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
             std::cerr << "Invalid DICT: " << &_currentDict << std::endl;
          }
          ensure(_currentDict.getNumDimensions() > 0, "Invalid, object, 0 dimensions");
-			_recursive( id, _currentDict.getNumDimensions(), _currentDict.getNumDimensions() - 1, results, current_regions, current_sets, resulting_regions, true );
+			_recursive( this_id, _currentDict.getNumDimensions(), _currentDict.getNumDimensions() - 1, results, current_regions, current_sets, resulting_regions, true );
 
-			if ( id != 1 ) {
+			if ( this_id != 1 ) {
 				for ( int idx = _currentDict.getNumDimensions() - 1; idx >= 0; idx -= 1 ) {
 					for ( MemoryMap< std::set< reg_t > >::MemChunkList::const_iterator it = results[ idx ].begin(); it != results[ idx ].end(); it++ ) {
-						(*it->second)->insert( id );
+						(*it->second)->insert( this_id );
 					}
 				}
 			}

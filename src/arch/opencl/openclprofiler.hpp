@@ -89,7 +89,7 @@ public:
       return _time;
    }
 
-   bool operator<(const Execution& execution)
+   bool operator<(const Execution& execution) const
    {
       return _time<execution.getTime();
    }
