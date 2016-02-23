@@ -98,6 +98,8 @@ Please, check that the provided directories are correct.
 ------------------------------])
   ])dnl
 
+  memkindlibs=$LIBS
+
   AX_VAR_POPVALUE([CPPFLAGS])
   AX_VAR_POPVALUE([CXXFLAGS])
   AX_VAR_POPVALUE([LDFLAGS])

@@ -290,6 +290,108 @@ void Config::parseArguments ()
    }
 }
 
+void Config::parseArgumentsFromCmdLine ()
+{
+   std::size_t argv_total_len = 0;
+   for (unsigned int i = 0; i < OS::getArgc(); i+=1 ) {
+      argv_total_len += strlen(OS::getArg(i)) + 1;
+   }
+   char tmp[argv_total_len];
+   std::size_t current_arg_len = 0;
+   for (unsigned int i = 0; i < OS::getArgc(); i+=1 ) {
+      memcpy(&tmp[current_arg_len], OS::getArg(i), strlen(OS::getArg(i)));
+      current_arg_len += strlen(OS::getArg(i));
+      tmp[current_arg_len] = ' ';
+      current_arg_len += 1;
+   }
+   tmp[argv_total_len-1] = 0;
+
+   if ( tmp == NULL ) return;
+
+   char env[ strlen(tmp) + 1 ];
+   strcpy( &env[0], tmp );
+   char *arg = strtok( &env[0], " " );
+
+   while ( arg != NULL) {
+      char * value=0;
+      bool needValue=true;
+      bool hasNegation=false;
+
+      if ( arg[0] != '-' ) {
+         // gmiranda: everything that doesn't start with -  or -- is an error.
+         if( _orphanOptionsMap->count( std::string( arg ) ) == 0 )
+         {
+            (*_orphanOptionsMap)[ std::string( arg ) ] = false;
+         }
+         arg = strtok( NULL, " " );
+         continue;
+      }
+
+      arg++;
+
+      // support --args
+      if ( arg[0] == '-' ) arg++;
+
+      // Since this skips the negation prefix no other arguments
+      // are allowed to start with the negation prefix.
+      if ( strncmp( arg, "no-", 3 ) == 0) {
+         hasNegation=true;
+         arg+=3;
+      }
+
+      if ( ( value = strchr( arg,'=' ) ) != NULL ) {
+         // -arg=value form
+         *value = 0; // sepparate arg from value
+         value++; // point to the beginning of value
+         needValue = false;
+      } else {
+         // -arg value form
+      }
+
+      ConfigOptionMap::iterator obj = _argOptionsMap.find( std::string( arg ) );
+
+      if ( obj != _argOptionsMap.end() ) {
+         // Valid argument, mark so
+         (*Config::_orphanOptionsMap)[ std::string( arg ) ] = true;
+         
+         Option &opt = ( *obj ).second->getOption();
+
+         if ( needValue && opt.getType() != Option::FLAG ) {
+            value = strtok( NULL, " " );
+            if ( value == NULL)
+               throw InvalidOptionException( opt,"" );
+            (*Config::_orphanOptionsMap)[ std::string( value ) ] = true;
+         }
+         char yes[] = "yes";
+         char no[] = "no";
+
+         if ( opt.getType() == Option::FLAG ) {
+            if ( hasNegation )
+               value = no;
+            else
+               value = yes;
+         }
+
+         try {
+            opt.setName( std::string( arg ) );
+            opt.parse( value );
+         } catch ( InvalidOptionException &exception ) {
+            std::cerr << "WARNING:" << exception.what() << std::endl;
+         }
+      }
+      else
+      {
+         // If the argument was not recognised, check if it's in the orphan map
+         if( _orphanOptionsMap->count( std::string( arg ) ) == 0 )
+         {
+            // If it's not there, add it
+            (*_orphanOptionsMap)[ std::string( arg ) ] = false;
+         }
+      }
+      arg = strtok( NULL, " " );
+   }
+}
+
 void Config::init ()
 {
    if( _orphanOptionsMap == NULL )
@@ -299,6 +401,7 @@ void Config::init ()
    parseFiles();
    parseEnvironment();
    parseArguments();
+   //parseArgumentsFromCmdLine();
 
    if ( _nanosHelp == NULL ) {
       _nanosHelp = NEW NanosHelp();

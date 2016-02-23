@@ -19,6 +19,7 @@
 
 #include "smpbaseplugin_decl.hpp"
 #include "plugin.hpp"
+#include "basethread.hpp"
 #include "smpprocessor.hpp"
 #include "smpdd.hpp"
 #include "os.hpp"
@@ -84,6 +85,7 @@ class SMPPlugin : public SMPBasePlugin
 
    bool                         _memkindSupport;
    std::size_t                  _memkindMemorySize;
+   bool                         _asyncSMPTransfers;
 
    public:
    SMPPlugin() : SMPBasePlugin( "SMP PE Plugin", 1 )
@@ -111,6 +113,7 @@ class SMPPlugin : public SMPBasePlugin
                  , _bindings()
                  , _memkindSupport( false )
                  , _memkindMemorySize( 1024*1024*1024 ) // 1Gb
+                 , _asyncSMPTransfers( true )
    {}
 
    virtual unsigned int getNewSMPThreadId()
@@ -185,6 +188,10 @@ class SMPPlugin : public SMPBasePlugin
       cfg.registerArgOption( "smp-memkind-memory-size", "smp-memkind-memory-size" );
       cfg.registerEnvOption( "smp-memkind-memory-size", "NX_SMP_MEMKIND_MEMORY_SIZE" );
 #endif
+      cfg.registerConfigOption( "smp-sync-transfers", NEW Config::FlagOption( _asyncSMPTransfers, false ),
+            "SMP sync transfers." );
+      cfg.registerArgOption( "smp-sync-transfers", "smp-sync-transfers" );
+      cfg.registerEnvOption( "smp-sync-transfers", "NX_SMP_SYNC_TRANSFERS" );
    }
 
    virtual void init()
@@ -249,7 +256,7 @@ class SMPPlugin : public SMPBasePlugin
       memory_space_id_t mem_id = sys.getRootMemorySpaceId();
 #ifdef MEMKIND_SUPPORT
       if ( _memkindSupport ) {
-         mem_id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide, sys.getRegionCacheSlabSize() );
+         mem_id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
          SeparateMemoryAddressSpace &memkindMem = sys.getSeparateMemory( mem_id );
          void *addr = memkind_malloc(MEMKIND_HBW, _memkindMemorySize);
          if ( addr == NULL ) {
@@ -262,6 +269,7 @@ class SMPPlugin : public SMPBasePlugin
          }
          message0("Memkind address range: " << addr << " - " << (void *) ((uintptr_t)addr + _memkindMemorySize ));
          memkindMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) addr, _memkindMemorySize ) );
+         memkindMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
       }
 #endif
 
@@ -284,9 +292,10 @@ class SMPPlugin : public SMPBasePlugin
          
          if ( _smpPrivateMemory && count >= _smpHostCpus && !_memkindSupport ) {
             OSAllocator a;
-            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::SMP, _smpAllocWide, sys.getRegionCacheSlabSize() );
+            memory_space_id_t id = sys.addSeparateMemoryAddressSpace( ext::getSMPDevice(), _smpAllocWide, sys.getRegionCacheSlabSize() );
             SeparateMemoryAddressSpace &numaMem = sys.getSeparateMemory( id );
             numaMem.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) a.allocate(_smpPrivateMemorySize), _smpPrivateMemorySize ) );
+            numaMem.setAcceleratorNumber( sys.getNewAcceleratorId() );
             cpu = NEW SMPProcessor( *it, id, active, numaNode, socket );
          } else {
 
@@ -366,13 +375,16 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void finalize() {
       if ( _memkindSupport ) {
-         std::cerr << "memkind: SMP soft invalidations: " << sys.getSeparateMemory(1).getSoftInvalidationCount() << std::endl;
-         std::cerr << "memkind: SMP hard invalidations: " << sys.getSeparateMemory(1).getHardInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP soft replacements: " << sys.getSeparateMemory(1).getSoftInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP hard replacements: " << sys.getSeparateMemory(1).getHardInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP Xfer IN bytes: " << sys.getSeparateMemory(1).getCache().getTransferredInData() << std::endl;
+         std::cerr << "memkind: SMP Xfer OUT bytes: " << sys.getSeparateMemory(1).getCache().getTransferredOutData() << std::endl;
+         std::cerr << "memkind: SMP Xfer OUT (Replacements) bytes: " << sys.getSeparateMemory(1).getCache().getTransferredReplacedOutData() << std::endl;
       } else if ( _smpPrivateMemory ) {
          for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-            if ( (*it)->isActive() ) {
-               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft invalidations: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getSoftInvalidationCount() << std::endl;
-               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard invalidations: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getHardInvalidationCount() << std::endl;
+            if ( (*it)->isActive() && (*it)->getMemorySpaceId() > 0 ) {
+               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getSoftInvalidationCount() << std::endl;
+               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getHardInvalidationCount() << std::endl;
             }
          }
       }
@@ -1029,6 +1041,10 @@ private:
    {
       // A mask is valid if it shares at least 1 bit with the system mask
       return _cpuSystemMask.countCommon( mask ) > 0;
+   }
+
+   virtual bool asyncTransfersEnabled() const {
+      return _asyncSMPTransfers;
    }
 
 };

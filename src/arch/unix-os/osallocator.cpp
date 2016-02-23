@@ -29,6 +29,8 @@
 
 #include "osallocator_decl.hpp"
 
+#define MINIMUM_START_ADDRESS (0x10000)
+
 using namespace nanos;
 
 size_t OSAllocator::computeFreeSpace( uintptr_t start, uintptr_t end, char &unit ) const {
@@ -58,6 +60,7 @@ uintptr_t OSAllocator::lookForAlignedAddress( size_t len ) const {
    std::list< OSMemoryMap >::const_iterator it;
    for (it = freeMaps.begin(); it != freeMaps.end() && !found; it++ )
    {
+      if ( it->start < MINIMUM_START_ADDRESS ) continue;
       if ( len < ( it->end - it->start ) ) { //try to find a propper alignment
          uintptr_t possibleTarget = ( it->start & ~( alignedLen-1 ) ) + alignedLen;
          if ( ( possibleTarget + len ) <= it->end ) {

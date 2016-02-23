@@ -118,10 +118,12 @@ devinclude_HEADERS = \
 	memcontroller_fwd.hpp  \
 	memcontroller_decl.hpp  \
 	memcachecopy_decl.hpp \
+	memcachecopy.hpp \
 	memcachecopy_fwd.hpp \
 	memoryops_decl.hpp \
 	memoryops_fwd.hpp \
 	globalregt_decl.hpp \
+	globalregt.hpp \
 	address_fwd.hpp \
 	address_decl.hpp \
 	address.hpp \
@@ -137,6 +139,8 @@ devinclude_HEADERS = \
 	router_fwd.hpp \
 	router_decl.hpp \
 	router.hpp \
+	invalidationcontroller_decl.hpp \
+	invalidationcontroller_fwd.hpp \
 	task_reduction_decl.hpp \
 	task_reduction.hpp \
 	$(END)
@@ -258,11 +262,13 @@ common_sources=\
 	memcontroller.cpp  \
 	memcachecopy_decl.hpp \
 	memcachecopy_fwd.hpp \
+	memcachecopy.hpp \
 	memcachecopy.cpp \
 	memoryops_decl.hpp \
 	memoryops_fwd.hpp \
 	memoryops.cpp \
 	globalregt_decl.hpp \
+	globalregt.hpp \
 	globalregt.cpp \
 	address_fwd.hpp \
 	address_decl.hpp \
@@ -278,6 +284,9 @@ common_sources=\
 	taskexecutionexception.cpp \
 	regionset_decl.hpp \
 	regionset.cpp \
+	invalidationcontroller_decl.hpp \
+	invalidationcontroller_fwd.hpp \
+	invalidationcontroller.cpp \
 	threadmanager_decl.hpp \
 	threadmanager.cpp \
    task_reduction_decl.hpp \

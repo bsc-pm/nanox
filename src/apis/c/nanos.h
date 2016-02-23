@@ -264,7 +264,7 @@ NANOS_API_DECL(nanos_err_t, nanos_reduction_get_private_data, ( void **copy, voi
 
 NANOS_API_DECL(nanos_err_t, nanos_reduction_get, ( nanos_reduction_t **dest, void *original ) );
 
-NANOS_API_DECL(nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size,
+NANOS_API_DECL(nanos_err_t, nanos_task_reduction_register, ( void *orig, size_t size_target, size_t size_elem,
             void (*init)( void *, void * ), void (*reducer)( void *, void * ) ) );
 
 NANOS_API_DECL(nanos_err_t, nanos_task_fortran_array_reduction_register, ( void *orig, void *dep,
@@ -330,6 +330,7 @@ NANOS_API_DECL(nanos_err_t, nanos_get_num_sockets, ( int *num_sockets ));
 NANOS_API_DECL(nanos_err_t, nanos_malloc, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_memalign, ( void **p, size_t size, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_cmalloc, ( void **p, size_t size, unsigned int node, const char *file, int line ));
+NANOS_API_DECL(nanos_err_t, nanos_cmalloc_2dim_distributed, ( void **p, size_t rows, size_t cols, size_t elem_size, unsigned int start_node, size_t num_nodes, const char *file, int line ));
 NANOS_API_DECL(nanos_err_t, nanos_stick_to_producer, ( void *p, size_t size ));
 NANOS_API_DECL(nanos_err_t, nanos_free, ( void *p ));
 NANOS_API_DECL(void, nanos_free0, ( void *p )); 
@@ -412,6 +413,11 @@ do {\
 } while (0)
 
 void nanos_reduction_int_vop ( int, void *, void * );
+
+NANOS_API_DECL(int, nanos_cmpi_init, (int *argc, char **argv[]) );
+NANOS_API_DECL(void, nanos_cmpi_finalize, (void) );
+NANOS_API_DECL(void, nanos_into_blocking_mpi_call, (void) );
+NANOS_API_DECL(void, nanos_out_of_blocking_mpi_call, (void) );
 
 #ifdef __cplusplus
 }

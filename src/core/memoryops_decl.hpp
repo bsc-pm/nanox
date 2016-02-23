@@ -50,6 +50,8 @@ class BaseOps {
    BaseOps &operator=( BaseOps const &op );
    protected:
    std::set< AllocatedChunk * > _lockedChunks;
+   bool checkDataReady() const;
+   void cancelOwnOps(WD const &wd);
 
    public:
    BaseOps( ProcessingElement *pe, bool delayedCommit );
@@ -62,6 +64,7 @@ class BaseOps {
    std::size_t getAmountOfTransferredData() const;
    void addAmountTransferredData(std::size_t amount);
    void releaseLockedSourceChunks( WD const &wd );
+   void print( std::ostream &out ) const;
 };
 
 class BaseAddressSpaceInOps : public BaseOps {
@@ -73,16 +76,13 @@ class BaseAddressSpaceInOps : public BaseOps {
    BaseAddressSpaceInOps( ProcessingElement *pe, bool delayedCommit );
    virtual ~BaseAddressSpaceInOps();
 
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
-   void lockSourceChunks( global_reg_t const &reg, unsigned int version, NewLocationInfoList const &locations, memory_space_id_t thisLocation, WD const &wd, unsigned int copyIdx );
+   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, WD const &wd,  unsigned int copyIdx );
+   void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
    virtual void issue( WD const &wd );
 
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
-
-   virtual void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
-   virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
 };
 
 typedef BaseAddressSpaceInOps HostAddressSpaceInOps;
@@ -100,13 +100,10 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    virtual void issue( WD const &wd );
 
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
-
-   virtual void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
-   virtual void allocateOutputMemory( global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx );
 };
 
 class SeparateAddressSpaceOutOps : public BaseOps {
-   typedef std::map< SeparateMemoryAddressSpace *, TransferList > MapType;
+   typedef std::map< std::pair< memory_space_id_t, memory_space_id_t >, TransferList > MapType;
    bool _invalidation;
    MapType _transfers;
 
@@ -114,10 +111,12 @@ class SeparateAddressSpaceOutOps : public BaseOps {
    SeparateAddressSpaceOutOps( ProcessingElement *pe, bool delayedCommit, bool isInval );
    ~SeparateAddressSpaceOutOps();
 
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
-   void addOp( SeparateMemoryAddressSpace *from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx );
+   void addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
+   void addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx );
    void issue( WD const &wd );
    void copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
+   bool hasPendingOps() const;
+   void cancel( WD const &wd );
 };
 
 }

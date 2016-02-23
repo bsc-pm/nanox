@@ -20,13 +20,23 @@
 #ifndef ADDRESSSPACE_H
 #define ADDRESSSPACE_H
 #include "addressspace_decl.hpp"
+#include "newregiondirectory.hpp"
 namespace nanos {
 
 template < class T >
 void MemSpace< T >::copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const &wd, bool inval ) {
    for ( TransferList::const_iterator it = list.begin(); it != list.end(); it++ ) {
-      this->doOp( from, it->getRegion(), it->getVersion(), wd, it->getCopyIndex(), it->getDeviceOps(), it->getChunk(), inval );
+      this->doOp( from, it->getRegion(), it->getVersion(), wd, it->getCopyIndex(), it->getDeviceOps(), it->getDestinationChunk(), it->getSourceChunk(), inval );
    }
+}
+
+inline void HostAddressSpace::getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations ) {
+   NewNewRegionDirectory::__getLocation( reg.key, reg.id, locations, version, *((WD*)NULL) );
+}
+
+inline void HostAddressSpace::getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx ) {
+   reg.key = _directory.getRegionDirectoryKeyRegisterIfNeeded( cd, &wd );
+   //reg.id = reg.key->obtainRegionId( cd, wd, idx );
 }
 
 }

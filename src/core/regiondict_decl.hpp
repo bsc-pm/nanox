@@ -51,9 +51,11 @@ typedef unsigned int reg_t;
 
       public:
       RegionNode( RegionNode *parent, std::size_t value, reg_t id );
+      RegionNode( RegionNode const & rn );
+      RegionNode &operator=( RegionNode const & rn );
       ~RegionNode();
       reg_t getId() const;
-      reg_t addNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep, ContainerDense< RegionVectorEntry > &container, bool rogue);
+      reg_t addNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep, ContainerDense< RegionVectorEntry > &container );
       reg_t checkNode( nanos_region_dimension_internal_t const *dimensions, unsigned int numDimensions, unsigned int deep );
       std::size_t getValue() const;
       RegionNode *getParent() const;
@@ -85,10 +87,12 @@ typedef unsigned int reg_t;
       Atomic<reg_t>              _idSeed;
       std::vector< std::size_t > _dimensionSizes;
       RegionNode                 _root;
-      Lock                       _rogueLock;
-      RecursiveLock              _containerLock;
+      pthread_rwlock_t           _containerLock;
+
+
       Lock                       _invalidationsLock;
       std::map< reg_t, reg_t >   _masterIdToLocalId;
+      Lock                       _containerMi2LiLock;
       bool                       _keepAtOrigin;
       CopyData                  *_registeredObject;
       public:
@@ -96,21 +100,23 @@ typedef unsigned int reg_t;
       ContainerDense( CopyData const &cd );
       ~ContainerDense();
       RegionNode *getRegionNode( reg_t id );
-      void addRegionNode( RegionNode *leaf, bool rogue );
+      void addRegionNode( RegionNode *leaf );
       Version *getRegionData( reg_t id );
       void setRegionData( reg_t id, Version * );
       unsigned int getRegionNodeCount() const;
+      void lockContainer();
+      void releaseContainer();
 
       unsigned int getNumDimensions() const;
       reg_t getNewRegionId();
-      reg_t addRegion( nanos_region_dimension_internal_t const region[], bool rogue=false );
+      reg_t addRegion( nanos_region_dimension_internal_t const region[] );
       reg_t checkIfRegionExists( nanos_region_dimension_internal_t const region[] );
       reg_t getMaxRegionId() const;
       std::vector< std::size_t > const &getDimensionSizes() const;
       void invalLock();
       void invalUnlock();
       void addMasterRegionId( reg_t masterId, reg_t localId );
-      reg_t getLocalRegionIdFromMasterRegionId( reg_t masterId ) const;
+      reg_t getLocalRegionIdFromMasterRegionId( reg_t masterId );
       void setKeepAtOrigin( bool value );
       bool getKeepAtOrigin() const;
       void setRegisteredObject( CopyData *cd );
@@ -130,7 +136,6 @@ typedef unsigned int reg_t;
       ContainerSparse( RegionDictionary< ContainerDense > &orig );
       ~ContainerSparse();
       RegionNode *getRegionNode( reg_t id ) const;
-      void addRegionNode( RegionNode *leaf, bool rogue );
       Version *getRegionData( reg_t id );
       void setRegionData( reg_t id, Version * );
       unsigned int getRegionNodeCount() const;
@@ -162,20 +167,21 @@ typedef unsigned int reg_t;
       uint64_t _realBaseAddress;
       RecursiveLock _lock;
 
+      /* this should be on a different class, for global objects */
+      std::set< reg_t > _fixedRegions;
+
       public:
-      void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version, bool superPrecise = false, bool giveSubFragmentsWithSameVersion = false );
-      void lock();
-      bool tryLock();
-      void unlock();
+      void addRegionAndComputeIntersects( reg_t id, std::list< std::pair< reg_t, reg_t > > &finalParts, unsigned int &version );
+      void lockObject();
+      bool tryLockObject();
+      void unlockObject();
 
       typedef std::list< reg_t > RegionList;
 
       RegionDictionary( CopyData const &cd );
       RegionDictionary( GlobalRegionDictionary &dict );
       ~RegionDictionary();
-      //reg_t registerRegion( CopyData const &cd, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, WD const &wd, unsigned int idx );
-      reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
-      reg_t registerRegionReturnSameVersionSubparts( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version, bool superPrecise = false );
+      reg_t registerRegion( reg_t, std::list< std::pair< reg_t, reg_t > > &missingParts, unsigned int &version );
       reg_t obtainRegionId( CopyData const &cd, WorkDescriptor const &wd, unsigned int idx );
       reg_t obtainRegionId( nanos_region_dimension_internal_t region[] );
       //reg_t tryObtainRegionId( CopyData const &cd );
@@ -197,6 +203,9 @@ typedef unsigned int reg_t;
       reg_t isThisPartOf( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version );
       bool doTheseRegionsForm( reg_t target, std::map< reg_t, unsigned int >::const_iterator begin, std::map< reg_t, unsigned int >::const_iterator end, unsigned int &version ) ;
       bool doTheseRegionsForm( reg_t target, std::list< std::pair< reg_t, reg_t > >::const_iterator ibegin, std::list< std::pair< reg_t, reg_t > >::const_iterator iend, bool checkVersion ) ;
+
+      std::set< reg_t > const &getFixedRegions() const;
+      void addFixedRegion( reg_t id );
 
    };
    

@@ -36,6 +36,7 @@ class MemController {
    bool                        _inputDataReady;
    bool                        _outputDataReady;
    bool                        _memoryAllocated;
+   bool                        _invalidating;
    bool                        _mainWd;
    WD                         &_wd;
    ProcessingElement          *_pe;
@@ -76,12 +77,14 @@ public:
    std::size_t getAmountOfTransferredData() const;
    std::size_t getTotalAmountOfData() const;
    bool isRooted( memory_space_id_t &loc ) const ;
+   bool isMultipleRooted( std::list<memory_space_id_t> &locs ) const ;
    void setMainWD();
    void synchronize();
    bool isMemoryAllocated() const;
    void setCacheMetaData();
    bool ownsRegion( global_reg_t const &reg );
    bool hasObjectOfRegion( global_reg_t const &reg );
+   bool containsAllCopies( MemController const &target ) const;
 };
 
 }

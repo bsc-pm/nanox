@@ -1118,7 +1118,7 @@ cl_ulong OpenCLAdapter::singleExecKernel(void* oclKernel,
    return endTime-startTime;
 }
 
-void OpenCLAdapter::updateProfStats(std::string kernelName, Dims &dims, Execution &executionTmp)
+void OpenCLAdapter::updateProfStats(std::string kernelName, Dims &dims, Execution const &executionTmp)
 {
    NANOS_OPENCL_CREATE_IN_OCL_RUNTIME_EVENT( ext::NANOS_OPENCL_PROFILE_UPDATE_DATA );
    if ( _bestExec.count(kernelName) > 0 ) {

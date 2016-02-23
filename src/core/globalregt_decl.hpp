@@ -48,6 +48,7 @@ struct global_reg_t {
    unsigned int getNumDimensions() const;
    void fillDimensionData( nanos_region_dimension_internal_t region[]) const;
    bool operator<( global_reg_t const &reg ) const;
+   bool operator!=( global_reg_t const &reg ) const;
    memory_space_id_t getFirstLocation() const;
    memory_space_id_t getPreferedSourceLocation( memory_space_id_t dest ) const;
    unsigned int getVersion() const;
@@ -56,7 +57,7 @@ struct global_reg_t {
    reg_t getSlabRegionId( std::size_t slabSize ) const;
    uint64_t getRealBaseAddress() const;
    DeviceOps *getDeviceOps() const;
-   void initializeGlobalEntryIfNeeded() const;
+   DeviceOps *getHomeDeviceOps();
    void setLocationAndVersion( ProcessingElement *pe, memory_space_id_t loc, unsigned int version ) const;
    bool contains( global_reg_t const &reg ) const;
    bool isLocatedIn( memory_space_id_t loc ) const;

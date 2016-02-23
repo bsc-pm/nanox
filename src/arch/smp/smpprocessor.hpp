@@ -21,8 +21,8 @@
 #define _NANOS_SMP_PROCESSOR
 
 #include "config.hpp"
+#include "smpdevice_decl.hpp"
 #include "smpthread.hpp"
-#include "smpdevice.hpp"
 #include "processingelement.hpp"
 
 // xlc/icc compilers require the next include to emit the vtable of WDDeque

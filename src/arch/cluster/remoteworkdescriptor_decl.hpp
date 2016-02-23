@@ -26,9 +26,10 @@ namespace nanos
    class RemoteWorkDescriptor : public WorkDescriptor
    {
       private:
-         unsigned int _remoteId;
+         unsigned int _destinationNode;
       public:
-         RemoteWorkDescriptor(unsigned int rId);
+         RemoteWorkDescriptor();
+         RemoteWorkDescriptor(unsigned int destinatioNode);
          virtual void exitWork( WorkDescriptor &work );
    };
 

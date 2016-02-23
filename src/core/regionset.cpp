@@ -21,13 +21,17 @@
 #include "regiondict.hpp"
 #include "regionset_decl.hpp"
 #include "newregiondirectory.hpp"
+#include "addressspace.hpp"
+#include "globalregt.hpp"
 
 
 RegionSet::RegionSet() : _lock(), _set() {
 }
 
 void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    reg_set_t &regs = _set[ reg.key ];
    reg_set_t::iterator elem = regs.lower_bound( reg.id );
    //std::cerr << "Add region object " << reg.key <<", dict: " << this << std::endl;
@@ -48,7 +52,9 @@ void RegionSet::addRegion( global_reg_t const &reg, unsigned int version ) {
 
 
 bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    bool i_has_it = ( _set.find( reg.key ) != _set.end() );
    // std::cerr << "asking for " << reg.key << "  My Objects ( " << this << " ) : ";
    // for (object_set_t::iterator it = _set.begin(); it != _set.end(); it++ ) {
@@ -61,7 +67,9 @@ bool RegionSet::hasObjectOfRegion( global_reg_t const &reg ) {
 
 unsigned int RegionSet::hasRegion( global_reg_t const &reg ) {
    unsigned int version = (unsigned int) -1;
-   _lock.acquire();
+   while ( !_lock.tryAcquire() ) {
+      myThread->idle();
+   }
    _lock.release();
    return version;
 }
@@ -70,6 +78,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
    bool resultHIT = false;
    bool resultSUBR = false;
    bool resultSUPER = false;
+   //std::ostream &o = *myThread->_file;
    object_set_t::iterator wantedDir = _set.find( reg.key );
    if ( wantedDir != _set.end() ) {
       unsigned int versionHIT = 0;
@@ -121,7 +130,7 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
             locations.push_back( std::make_pair( reg.id, reg.id ) );
          } else {
             version = versionSUPER;
-            //std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
+            //o << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! VERSION INFO !!! CHUNKS COMES FROM A BIGGER!!! and version computed is " << version << std::endl;
             NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) wantedDir->first->getRegionData( reg.id );
             if ( firstEntry != NULL ) {
                locations.push_back( std::make_pair( reg.id, superPart ) );
@@ -129,7 +138,11 @@ bool RegionSet::hasVersionInfoForRegion( global_reg_t const &reg, unsigned int &
                if (secondEntry == NULL) std::cerr << "LOLWTF!"<< std::endl;
                *firstEntry = *secondEntry;
             } else {
-               sys.getHostMemory().getVersionInfo( reg, version, locations );
+               unsigned int tmpversion = 0;
+               sys.getHostMemory().getVersionInfo( reg, tmpversion, locations );
+               if ( tmpversion != 0 ) {
+                  version = tmpversion;
+               }
             }
          }
       }

@@ -71,9 +71,6 @@ void FPGAMemoryOutTransferList::syncTransfer(uint64_t hostAddress){
 
          }
          transfer->_copyDescriptor._ops->completeOp();
-         if ( transfer->_copyDescriptor._functor ) {
-             (*transfer->_copyDescriptor._functor)();
-         }
 
          delete transfer;
          return;
@@ -108,9 +105,6 @@ void FPGAMemoryOutTransferList::syncNTransfers(unsigned int n){
 
 
       transfer->_copyDescriptor._ops->completeOp();
-      if ( transfer->_copyDescriptor._functor ) {
-          (*transfer->_copyDescriptor._functor)();
-      }
 
       delete transfer;
 

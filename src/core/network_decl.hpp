@@ -38,6 +38,7 @@ namespace nanos {
    class SendDataRequest {
       protected:
          NetworkAPI *_api;
+         unsigned int _issueNode;
          unsigned int _seqNumber;
          void *_origAddr;
          void *_destAddr;
@@ -50,11 +51,12 @@ namespace nanos {
          reg_t _hostRegId;
          unsigned int _metaSeq;
       public:
-         SendDataRequest( NetworkAPI *api, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
+         SendDataRequest( NetworkAPI *api, unsigned int issueNode, unsigned int seqNumber, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int dst, unsigned int wdId, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          virtual ~SendDataRequest();
          void doSend();
          void *getOrigAddr() const;
          unsigned int getDestination() const;
+         unsigned int getIssueNode() const;
          unsigned int getWdId() const;
          unsigned int getSeqNumber() const;
          virtual void doSingleChunk() = 0;
@@ -71,9 +73,8 @@ namespace nanos {
       std::size_t _size;
       char* _recvAddr;
       DeviceOps *_ops;
-      Functor *_f;
 
-      GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops, Functor *f );
+      GetRequest( char* hostAddr, std::size_t size, char *recvAddr, DeviceOps *ops );
       virtual ~GetRequest();
 
       void complete();
@@ -86,7 +87,7 @@ namespace nanos {
       std::size_t _ld;
       Packer *_packer;
 
-      GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Functor *f, Packer *packer );
+      GetRequestStrided( char* hostAddr, std::size_t size, std::size_t count, std::size_t ld, char *recvAddr, DeviceOps *ops, Packer *packer );
       virtual ~GetRequestStrided();
 
       virtual void clear();
@@ -263,13 +264,14 @@ namespace nanos {
          void notifyWorkDone ( unsigned int nodeNum, void *remoteWdAddr, int peId );
          void notifyMalloc ( unsigned int nodeNum, void * result, mallocWaitObj *waitObjAddr );
 
-         void initialize ( void );
+         void initialize ( NetworkAPI *api );
          void finalize ( void );
+         void finalizeNoBarrier ( void );
          void poll ( unsigned int id );
          void sendExitMsg( unsigned int nodeNum );
          void sendWorkMsg( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *remoteWdAddr );
          bool isWorking( unsigned int dest, unsigned int numPe ) const;
-         void sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdaddr, int peId );
+         void sendWorkDoneMsg( unsigned int nodeNum, void *remoteWdaddr );
          void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
          void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, void *hostObject, reg_t hostRegId );
@@ -283,8 +285,8 @@ namespace nanos {
          void setMasterHostname( char *name );
          //const std::string & getMasterHostname( void ) const;
          const char * getMasterHostname( void ) const;
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, Functor *f, void *hostObject, reg_t hostRegId );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId );
          std::size_t getTotalBytes();
          void mallocSlaves ( void **addresses, std::size_t size );
 
@@ -308,6 +310,7 @@ namespace nanos {
          void notifyGet( SendDataRequest *req );
          void notifyRegionMetaData( CopyData *cd, unsigned int seq );
          void notifySynchronizeDirectory( unsigned int numWDs, WorkDescriptor **wds );
+         void notifyIdle( unsigned int node );
          void invalidateDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
          void getDataFromDevice( uint64_t addr, std::size_t len, std::size_t count, std::size_t ld, void *hostObject, reg_t hostRegId );
          unsigned int getPutRequestSequenceNumber( unsigned int dest );
@@ -316,9 +319,6 @@ namespace nanos {
          void processWaitRequestPut( void *addr, unsigned int seqNumber );
          void processRequestsDelayedBySeqNumber();
          void processSendDataRequest( SendDataRequest *req ) ;
-         void addSegments( unsigned int numSegments, void **segmentAddr, size_t *segmentSize );
-         void * getSegmentAddr( unsigned int idx );
-         std::size_t getSegmentLen( unsigned int idx );
          void setGpuPresend(int p);
          void setSmpPresend(int p);
          int getGpuPresend() const;
@@ -328,6 +328,7 @@ namespace nanos {
          unsigned int checkMetadataSequenceNumber( unsigned int dest );
          unsigned int updateMetadataSequenceNumber( unsigned int value );
          void synchronizeDirectory();
+         void broadcastIdle();
          void processSyncRequests();
          void setParentWD(WD *wd);
    };

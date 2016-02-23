@@ -27,9 +27,517 @@
 #include "regioncache.hpp"
 #include "newregiondirectory.hpp"
 #include "smpdd.hpp"
+#include "regiondict.hpp"
+#include "memcachecopy.hpp"
+#include "globalregt.hpp"
+
+#define PUSH_BACK_TO_READY_QUEUE( idx, wd ) \
+   do {                                     \
+      if ( !_useQueueSets ) {               \
+         tdata._readyQueues[ idx ].push_back( wd );\
+      } else {\
+         unsigned int num = tdata._pushCounter[ idx ]++ % tdata._thdsPerQueue[ idx ];\
+         tdata._readyQueueSets[ idx ][ num ].push_back( wd );\
+      }\
+   } while (0)
+
+#define READY_QUEUE( idx, tid ) ( (!_useQueueSets) ? tdata._readyQueues[ idx ] : tdata._readyQueueSets[ idx ][ ( tdata._popCounter[ idx ] + tid ) % tdata._thdsPerQueue[ idx ] ] )
 
 namespace nanos {
    namespace ext {
+
+      class WDMap {
+         typedef std::set< WD * > _wd_set_t;
+         typedef std::map< reg_t, _wd_set_t > _reg_map_t;
+         typedef std::map< GlobalRegionDictionary *, _reg_map_t > _wd_map_t;
+         _wd_map_t _wdMap;
+         std::size_t _wdCount;
+         Lock _lock;
+         WDDeque _noCopiesWDs;
+         WDDeque _fakeQueue;
+         WDDeque _topWDsQueue;
+         WDDeque _invWDsQueue;
+         _wd_set_t _invSet;
+         Atomic<unsigned int> _nextComputed;
+         Lock _nextComputedLock;
+         WDDeque _preQueue;
+         Atomic<int> _nextSetReady;
+         Atomic<int> _nextSetComputing;
+         //std::map< WD *, unsigned int > _wdCount;
+         //std::set< WD * > _topWDs;
+         WD *selected_wd;
+         WD *last_selected_wd;
+
+         public:
+         WDMap() : _wdMap(), _wdCount( 0 ), _lock(), _noCopiesWDs(), _fakeQueue(),
+                   _topWDsQueue(), _invWDsQueue(), _invSet(), _nextComputed(0),
+                   _nextComputedLock(),
+                   _preQueue(), _nextSetReady(0), _nextSetComputing(0), /*_wdCount(),*/
+                   /*_topWDs(),*/ selected_wd(NULL), last_selected_wd(NULL) {
+         }
+
+         ~WDMap() {
+         }
+
+         void _prepareToPush(BaseThread *thread, WD *wd) {
+            WD *next = NULL;
+            WDPool * wd_queue = wd->getMyQueue();
+            if ( wd_queue != NULL ) {
+               if ( wd_queue != &_fakeQueue ) {
+                  *myThread->_file << "queue error, != _fakeQueue for wd " << wd->getId() << std::endl;
+               }
+               if ( wd_queue->removeWD( thread, wd, &next ) ) {
+                  if ( next != wd ) {
+                     *myThread->_file << "2 removeWD failure! " << wd->getId() << std::endl;
+                  }
+               } else {
+                  *myThread->_file << "1 removeWD failure! " << wd->getId() << std::endl;
+               }
+            } else {
+               //*myThread->_file << "null queue for wd " << wd->getId() << std::endl;
+            }
+         }
+
+         void _insert( WD *wd ) {
+            //std::ostream &o = *myThread->_file;
+            //o << "insert wd " << wd->getId() << " copies " << wd->getNumCopies() << " wd is tied? " << (wd->isTied() ? wd->isTiedTo()->getId() : -1) << std::endl;
+            //ensure (wd->getNumCopies() > 0, "invalid wd, no copies");
+            if ( wd->getNumCopies() > 0 ) {
+               for ( unsigned int idx = 0; idx < wd->getNumCopies(); idx += 1 ) {
+                  GlobalRegionDictionary *key = wd->_mcontrol._memCacheCopies[idx]._reg.key;
+                  reg_t id = wd->_mcontrol._memCacheCopies[idx]._reg.id;
+                  if ( id == 0  ) {
+                     *myThread->_file << "reg 0 in wd " << wd->getId() << " copy idx "<< idx << std::endl;
+                     fatal("error");
+                  }
+                  _wdMap[ key ][ id ].insert( wd );
+               }
+               _wdCount += 1;
+               _fakeQueue.push_back(wd);
+               //*myThread->_file << myThread->getId() << " Inserted  wd " << wd->getId() << std::endl;
+            } else {
+               _noCopiesWDs.push_back(wd);
+            }
+         }
+
+         void _checkCopiesAndInsert( BaseThread *thread, WD *wd ) {
+            memory_space_id_t mem_id = thread->runningOn()->getMemorySpaceId();
+            std::map<GlobalRegionDictionary *, std::set<reg_t> > const &map = sys.getSeparateMemory(mem_id).getCache().getAllocatedRegionMap();
+            //*myThread->_file << "insert wd " << wd->getId() << " copies " << wd->getNumCopies() << " wd is tied? " << (wd->isTied() ? wd->isTiedTo()->getId() : -1) << std::endl;
+            //ensure (wd->getNumCopies() > 0, "invalid wd, no copies");
+            //std::ostream &o = *myThread->_file;
+            if ( wd->getNumCopies() > 0 ) {
+               bool all_copies_allocated = true;
+               unsigned int num_copies_found = 0;
+               std::size_t not_allocated_bytes = 0;
+               for ( unsigned int idx = 0; idx < wd->getNumCopies(); idx += 1 ) {
+                  GlobalRegionDictionary *key = wd->_mcontrol._memCacheCopies[idx]._reg.key;
+                  reg_t id = wd->_mcontrol._memCacheCopies[idx]._reg.id;
+                  if ( id == 0 ) {
+                     *myThread->_file << "reg 0 in wd " << wd->getId() << " copy idx "<< idx << std::endl;
+                     fatal("error");
+                  }
+                  std::map<GlobalRegionDictionary *, std::set<reg_t> >::const_iterator object = map.find( key );
+                  if ( object != map.end() ) {
+                     std::set< reg_t > const &regions = object->second;
+                     bool found = false;
+                     for ( std::set< reg_t >:: const_iterator sit = regions.begin(); sit != regions.end() && !found; sit++) {
+                        reg_t allocated_reg = *sit;
+                        if ( allocated_reg == 1 || allocated_reg == id ||
+                              ( key->checkIntersect( allocated_reg, id ) && key->computeIntersect( allocated_reg, id ) == id )
+                           ) {
+                           found = true;
+                           num_copies_found += 1;
+                        }
+                     }
+                     all_copies_allocated = all_copies_allocated && found;
+                     if ( !found ) {
+                        global_reg_t allocatable_reg;
+                        sys.getSeparateMemory(mem_id).getCache().getAllocatableRegion(wd->_mcontrol._memCacheCopies[idx]._reg, allocatable_reg);
+                        not_allocated_bytes += allocatable_reg.getDataSize();
+                     }
+                  } else {
+                     all_copies_allocated = false;
+                     global_reg_t allocatable_reg;
+                     sys.getSeparateMemory(mem_id).getCache().getAllocatableRegion(wd->_mcontrol._memCacheCopies[idx]._reg, allocatable_reg);
+                     not_allocated_bytes += allocatable_reg.getDataSize();
+                  }
+               }
+               if ( all_copies_allocated ) {
+                  //o << " all copies ok for wd " << wd->getId() << std::endl;
+                  _topWDsQueue.push_back( wd );
+               } else if ( not_allocated_bytes < sys.getSeparateMemory(mem_id).getCache().getUnallocatedBytes() ) {
+                  //not all copies are allocated, but there is space in the cache
+                  _topWDsQueue.push_back( wd );
+               } else {
+                  this->_insert(wd);
+               }
+            } else {
+               _noCopiesWDs.push_back(wd);
+            }
+         }
+
+         void _getWithWD( WD *wd, BaseThread *thread ) {
+            NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+            memory_space_id_t mem_id = thread->runningOn()->getMemorySpaceId();
+            //*myThread->_file << "computing WDs with base wd " << wd->getId() << " has numCopies " << wd->getNumCopies() << std::endl;
+            //std::ostream &o = *thread->_file;
+            if ( wd->getNumCopies() > 0 ) {
+               int count=0;
+               std::map< WD *, unsigned int > wd_count;
+               std::map< GlobalRegionDictionary *, std::set< reg_t > > wd_regions;
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 137 );)
+               for ( unsigned int idx = 0; idx < wd->getNumCopies(); idx += 1 ) {
+                  global_reg_t allocated_reg;
+                  sys.getSeparateMemory(mem_id).getCache().getAllocatableRegion(wd->_mcontrol._memCacheCopies[idx]._reg, allocated_reg);
+                  GlobalRegionDictionary *key = wd->_mcontrol._memCacheCopies[idx]._reg.key;
+                  if ( wd_regions[key].count( allocated_reg.id ) == 0 ) {
+                     wd_regions[key].insert( allocated_reg.id );
+                  } else {
+                     continue;
+                  }
+                  reg_t id = wd->_mcontrol._memCacheCopies[idx]._reg.id;
+                  //*myThread->_file << "allocated reg is " << allocated_reg.id << " orig reg is " << id << std::endl;
+                  if ( id == 0 ) {
+                     *myThread->_file << "reg 0 in wd " << wd->getId() << " copy idx "<< idx << std::endl;
+                     fatal("error");
+                  }
+                  _wd_map_t::iterator wd_map_it = _wdMap.find( key );
+                  if ( wd_map_it != _wdMap.end() ) {
+                     _reg_map_t &reg_map = wd_map_it->second;
+                     //*myThread->_file << "copy " << idx << " found " << std::endl;
+                     for ( _reg_map_t::iterator reg_map_it = reg_map.begin(); reg_map_it != reg_map.end(); ) {
+                        reg_t registered_reg = reg_map_it->first;
+                        _wd_set_t &wd_set = reg_map_it->second;
+                        reg_map_it++;
+                        if ( registered_reg == 1 || registered_reg == allocated_reg.id ||
+                              ( key->checkIntersect( allocated_reg.id, registered_reg ) && key->computeIntersect( allocated_reg.id, registered_reg ) == registered_reg )
+                           ) {
+                           //_invSet.insert(wd_set.begin(), wd_set.end());
+                           for ( _wd_set_t::iterator sit = wd_set.begin(); sit != wd_set.end(); ) { 
+                              WD *this_wd = *sit;
+                              if ( this_wd != wd ) {
+                                 unsigned int current_count = wd_count[ this_wd ] + 1;
+                                 if ( current_count == this_wd->getNumCopies() ) {
+                                    wd_count.erase( this_wd );
+                     //o << "\t insert in inv set wd: " << this_wd->getId() << std::endl;
+                                    _invSet.insert( this_wd );
+                                    count++;
+                                 } else {
+                                    wd_count[ this_wd ] = current_count;
+                                 }
+                              }
+                              sit++;
+                           //   this->_prepareToPush(thread, this_wd);
+                           //   this->_remove(this_wd);
+                           //   _invWDsQueue.push_back( this_wd );
+                           }
+                        }
+                     }
+                  }
+               }
+               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 9000000 + count );)
+               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+            }
+         }
+
+         void _tryComputeNextSet( BaseThread *thread ) {
+            if ( selected_wd != NULL ) {
+               //if ( _nextComputed.cswap( 0, 1 ) )
+               if ( _nextComputedLock.tryAcquire() )
+               {
+                  if ( _invSet.empty() ) {
+                     //std::ostream &o = *thread->_file;
+                     NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+                     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 134 );)
+                     this->_getWithWD( selected_wd, thread );
+                     for ( _wd_set_t::const_iterator invIt = _invSet.begin(); invIt != _invSet.end(); invIt++ ) {
+                        //this->_prepareToPush( thread, *invIt );
+                        this->_remove(*invIt);
+                     }
+                     //o << "computed the set of inv wds: " << _invSet.size() << " with wd " << selected_wd->getId() << std::endl;
+                     _invSet.insert(selected_wd);
+                     //this->_prepareToPush( thread, selected_wd );
+                     this->_remove(selected_wd);
+                     NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 0 );)
+                  }
+                  last_selected_wd = selected_wd;
+                  selected_wd = NULL;
+                  _nextComputedLock.release();
+               }// else {
+                //  *myThread->_file << "not computing next set: val is " << _nextComputed.value() << std::endl;
+                // }
+            }
+         }
+
+         void insert( WD *wd ) {
+            while ( !_lock.tryAcquire() ) { myThread->idle(); }
+            this->_insert(wd);
+            _lock.release();
+         }
+
+         void preQueue( WD *wd ) {
+            if ( wd->getNumCopies() > 0 ) {
+               _preQueue.push_back( wd );
+            } else {
+               _noCopiesWDs.push_back(wd);
+            }
+         }
+
+         WD *_getRandomWD() {
+            WD *wd = NULL;
+            for ( _wd_map_t::iterator it = _wdMap.begin(); it != _wdMap.end() && wd == NULL; it++ ) {
+               _reg_map_t &reg_map = it->second;
+               for( _reg_map_t::iterator rit = reg_map.begin(); rit != reg_map.end() && wd == NULL; rit++ ) {
+                  _wd_set_t &wd_set = rit->second;
+                  if ( !wd_set.empty() ) {
+                     wd = *(wd_set.begin());
+                  }
+               }
+            }
+            return wd;
+         }
+
+         WD *fetch( BaseThread *thread ) {
+            NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+            //std::ostream &o = *myThread->_file;
+            memory_space_id_t id = thread->runningOn()->getMemorySpaceId();
+            //o << "fetch for " << id << std::endl;
+            WD *top_wd = NULL;
+            //WD *inv_wd = NULL;
+            if ( _topWDsQueue.empty() ) {
+               if ( _lock.tryAcquire() ) {
+                  //std::map<GlobalRegionDictionary *, std::set<reg_t> > const &map = sys.getSeparateMemory(id).getCache().getAllocatedRegionMap();
+                  //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 131 );)
+                  while ( !_preQueue.empty() ) {
+                     WD *preWD = _preQueue.pop_front( thread );
+                     if ( preWD != NULL ) {
+                        this->_checkCopiesAndInsert(thread, preWD);
+                     } else {
+                        break;
+                     }
+                  }
+                  //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+                  _tryComputeNextSet( thread );
+
+                  // *myThread->_file << "topWDs queues: " << _topWDsQueue.size() << " invSet: " << _invSet.size() << std::endl;
+                  if ( _topWDsQueue.empty() && !_invSet.empty() ) {
+                     //if ( _nextComputed.cswap( 1, 0 ) ) 
+                     if ( _nextComputedLock.tryAcquire() ) 
+                     {
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 132 );)
+                        //o << "insert from invSet: { ";
+                        for ( _wd_set_t::const_iterator it = _invSet.begin(); it != _invSet.end(); it++ ) {
+                           WD *this_wd = *it;
+                           //o << this_wd << "," << this_wd->getId() << " ";
+                           this->_prepareToPush( thread, this_wd );
+            //*myThread->_file << myThread->getId() << " remove (from process _invSet) wd " << this_wd->getId() << std::endl;
+                           //this->_remove(this_wd);
+                           _topWDsQueue.push_back(this_wd);
+                        }
+                        //o << "}" << std::endl;
+                        _invSet.clear();
+                        NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+                        //*myThread->_file<<"done process inv set" << std::endl;
+                        _nextComputedLock.release();
+                     }
+                  }
+
+                  if ( _topWDsQueue.empty() && sys.getSeparateMemory(id).getCache().getCurrentAllocations() == 0 ) {
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 146 );)
+               _scan(thread);
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+                  }
+                  top_wd = _topWDsQueue.pop_front( thread );
+                  _lock.release();
+               } else {
+                  myThread->idle();
+               }
+               if ( top_wd == NULL ) {
+                  if ( _lock.tryAcquire() ) {
+                     _tryComputeNextSet( thread );
+                     _lock.release();
+                  }
+               }
+            } else {
+               if ( _lock.tryAcquire() ) {
+                  _tryComputeNextSet( thread );
+                  _lock.release();
+               }
+               top_wd = _topWDsQueue.pop_front( thread );
+               //*myThread->_file << thread->getId() << " fetch WD no lock, got wd " << (top_wd != NULL ? top_wd->getId() : -1 ) << std::endl;
+            }
+
+            if ( top_wd == NULL ) {
+               top_wd = _noCopiesWDs.pop_front( thread );
+            }
+
+            return top_wd;
+         }
+
+         void _scan( BaseThread *thread ) {
+            NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+            memory_space_id_t id = thread->runningOn()->getMemorySpaceId();
+            std::map<GlobalRegionDictionary *, std::set<reg_t> > const map = sys.getSeparateMemory(id).getCache().getAllocatedRegionMap();
+            int inserted_wds = 0;
+            //std::set< WD * > top_wds;
+            std::map< WD *, unsigned int > wd_count;
+            //std::ostream &o = *myThread->_file;
+            //_topWDs.clear();
+
+            //o << "allocd' objects " << map.size() << std::endl;
+            for( std::map<GlobalRegionDictionary *, std::set<reg_t> >::const_iterator it = map.begin();
+                  it != map.end(); it++ ) {
+               _reg_map_t &reg_map = _wdMap[ it->first ];
+               //it->first->lockContainer();
+               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 133 );)
+               //o << "\tobject " << it->first << " has regs: " <<  it->second.size() << std::endl;
+               for ( std::set<reg_t>::iterator rit = it->second.begin(); rit != it->second.end(); rit++ ) {
+                  //o << "\t\t"; it->first->printRegion(o, *rit ); o << std::endl;
+                  for ( _reg_map_t::iterator srit = reg_map.begin(); srit != reg_map.end(); ) 
+                  {
+
+                     //o << "\t"; it->first->printRegion(o, srit->first ); o << std::endl;
+                     if ( *rit == 1 || *rit == srit->first || ( it->first->checkIntersect( /*allocated reg*/ *rit, /*wd reg */ srit->first )
+                              && it->first->computeIntersect( /*allocated reg*/ *rit, /*wd reg */ srit->first ) == srit->first
+                              )
+                        ) {
+                        _wd_set_t &wd_set = srit->second;
+                        srit++;
+                        //o << "FUCKING HIT " << wd_set.size() << std::endl;
+
+                        //o << *rit << " & " << srit->first << " wds: " << wd_set.size() << std::endl;
+                        for ( _wd_set_t::iterator wit = wd_set.begin(); wit != wd_set.end(); ) {
+                           WD *wd = *wit;
+                           _wd_set_t::iterator this_it = wit;
+                           wit++;
+                           if ( wd->getNumCopies() == 1 ) {
+                              this->_prepareToPush(thread, wd);
+            //*myThread->_file << myThread->getId() << " remove (from scan) wd " << wd->getId() << std::endl;
+                              this->_remove(wd);
+                              //_wdCount -= 1;
+                              //wd_set.erase(this_it);
+            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 133 );)
+                              _topWDsQueue.push_back(wd);
+            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+                              inserted_wds += 1;
+                           } else {
+                              unsigned int current_count = wd_count[ wd ] + 1;
+                              if ( current_count == wd->getNumCopies() ) {
+                                 this->_prepareToPush(thread, wd);
+            //*myThread->_file << myThread->getId() << " remove (from scan(2)) wd " << wd->getId() << std::endl;
+                                 this->_remove(wd);
+                                 wd_count.erase( wd );
+            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 133 );)
+                                 _topWDsQueue.push_back(wd);
+            //NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+                                 inserted_wds += 1;
+                                 //_topWDs.erase( wd );
+                              } else {
+                                 wd_count[ wd ] = current_count;
+                                 //if ( wd->getNumCopies() > 1 && current_count == wd->getNumCopies() - 1 ) {
+                                 //   _topWDs.insert( wd );
+                                 //}
+                              }
+                           }
+                        }
+                     } else {
+                        srit++;
+                     }
+                  }
+               }
+               //it->first->releaseContainer();
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+            }
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 1000000 + inserted_wds );)
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+            if ( selected_wd == NULL ) {
+               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 140 );)
+               // if ( _topWDs.size() > 0 ) {
+               //    selected_wd = *_topWDs.begin();
+               // } else
+               if ( wd_count.size() > 0 ) {
+                  unsigned int min_diff = UINT_MAX;
+                  for (std::map<WD*, unsigned int>::const_iterator wdit = wd_count.begin(); wdit != wd_count.end(); wdit++) {
+                     unsigned int this_diff = ( wdit->first->getNumCopies() - wdit->second );
+                     if ( this_diff < min_diff ) {
+                        selected_wd = wdit->first;
+                  //o << "computed selected_wd w/count, wd "<< (selected_wd!=NULL ? selected_wd->getId() : 0) << std::endl;
+                        min_diff = this_diff;
+                     }
+                     //o << "[wd: " << wdit->first->getId() << "," << wdit->first->getNumCopies()<<","<< wdit->second <<"]";
+                  } //o << std::endl << " computed selected_wd to " << selected_wd << std::endl;
+                  //print();
+               } else {
+                  selected_wd = this->_getRandomWD();
+                  //o << "computed selected_wd w/random, wd "<< (selected_wd!=NULL ? selected_wd->getId() : 0) << std::endl;
+               }
+               NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+            }
+         }
+
+         void remove( WD *wd ) {
+            while ( !_lock.tryAcquire() ) {
+               myThread->idle();
+            }
+            //*myThread->_file << myThread->getId() << " remove (from remove) wd " << wd->getId() << std::endl;
+            this->_remove(wd);
+            _lock.release();
+         }
+
+         void _remove( WD *wd ) {
+            if ( wd->getNumCopies() > 0 ) {
+               _wdCount -= 1;
+               for ( unsigned int idx = 0; idx < wd->getNumCopies(); idx += 1 ) {
+                  GlobalRegionDictionary *key = wd->_mcontrol._memCacheCopies[idx]._reg.key;
+                  reg_t id = wd->_mcontrol._memCacheCopies[idx]._reg.id;
+                  _reg_map_t &reg_map = _wdMap[key];
+                  _reg_map_t::iterator it = reg_map.find(id);
+                  if ( it == reg_map.end() ) {
+                     *myThread->_file << "Warning, attempt to erase a WD without reg map. WD( " << wd << " ) id: "<< wd->getId() << std::endl;
+                  }
+                  _wd_set_t &wd_set = it->second;
+                  wd_set.erase(wd);
+                  if ( wd_set.empty() ) {
+                     reg_map.erase(it);
+                  }
+               }
+               //*myThread->_file << "Removed wd " << wd->getId() << std::endl;
+            }
+         }
+
+         void prefetch( BaseThread *thread, WD &wd ) {
+            NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+            if ( &wd == last_selected_wd ) {
+               //*myThread->_file << "could prefetch!!" << std::endl;
+               _lock.acquire();
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 144 );)
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+               last_selected_wd = NULL;
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( key, 145 );)
+               _scan(thread);
+            NANOS_INSTRUMENT(sys.getInstrumentation()->raiseCloseBurstEvent( key, 0 );)
+               _lock.release();
+            }
+         }
+
+         void print() const {
+            std::ostream &o = *myThread->_file;
+            for( _wd_map_t::const_iterator it = _wdMap.begin(); it != _wdMap.end(); it++ ) {
+               _reg_map_t const &reg_map = it->second;
+               o << "Object " << it->first << std::endl;
+               for ( _reg_map_t::const_iterator rit = reg_map.begin(); rit != reg_map.end(); rit++ ) {
+                  o << "\treg " << rit->first << ": ";
+                  _wd_set_t const &wd_set = rit->second;
+                  for ( _wd_set_t::const_iterator wit = wd_set.begin(); wit != wd_set.end(); wit++ ) {
+                     o << "[" << (*wit)->getId() << "," << (*wit)->getNumCopies() << "]";
+                  }
+                  o << std::endl;
+               }
+            }
+         }
+      };
 
       class CacheSchedPolicy : public SchedulePolicy
       {
@@ -40,6 +548,9 @@ namespace nanos {
                WDDeque            _globalReadyQueue;
                WDDeque            _unrankedQueue;
                WDDeque*           _readyQueues;
+               WDDeque**          _readyQueueSets;
+               unsigned int      *_pushCounter;
+               unsigned int      *_popCounter;
                WDDeque*           _readyQueuesAlreadyInit;
                WDDeque*           _bufferQueues;
                std::size_t*       _createdData;
@@ -57,6 +568,8 @@ namespace nanos {
                unsigned int       _lastNodeScheduled;
                std::vector< memory_space_id_t > *_nodeToMemSpace;
                std::vector< memory_space_id_t > *_queueToMemSpace;
+               unsigned int      *_thdsPerQueue;
+               WDMap _wdMap;
  
                TeamData ( unsigned int size ) : ScheduleTeamData(), _globalReadyQueue(), _unrankedQueue()
                {
@@ -68,9 +581,23 @@ namespace nanos {
                   _queueToMemSpace = NEW std::vector< memory_space_id_t >( _numQueues );
                   unsigned int queue_counter = 0;
 
+                  if ( _verbose ) {
+                     *myThread->_file << "active places: ";
+                     for( std::set<memory_space_id_t>::const_iterator locit = sys.getActiveMemorySpaces().begin(); locit != sys.getActiveMemorySpaces().end(); locit++ ) {
+                        *myThread->_file << *locit << " ";
+                     }
+                     *myThread->_file << std::endl;
+                  }
                   _holdTasks = false;
-                  if ( _numQueues > 1 ) {
+                  if ( _numQueues >= 1 ) {
                      _readyQueues = NEW WDDeque[_numQueues];
+                     if ( _verbose ) {
+                        *myThread->_file << "Creating ready queues: { ";
+                        for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
+                           *myThread->_file << &(_readyQueues[__i]) << " ";
+                        }
+                        *myThread->_file << "}" << std::endl;
+                     }
                      _readyQueuesAlreadyInit = NEW WDDeque[_numQueues];
                      _bufferQueues = NEW WDDeque[_numQueues];
                      _createdData = NEW std::size_t[_numQueues];
@@ -103,6 +630,35 @@ namespace nanos {
                      //    (*myThread->_file) << *it << " ";
                      // }
                      // (*myThread->_file) << "]" << std::endl;
+
+                     _readyQueueSets = NEW WDDeque*[_numQueues];
+                     _thdsPerQueue = NEW unsigned int[_numQueues];
+                     _pushCounter = NEW unsigned int[_numQueues];
+                     _popCounter = NEW unsigned int[_numQueues];
+                     for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
+                        _thdsPerQueue[__i] = 0;
+                        _pushCounter[__i] = 0;
+                     }
+                     for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
+                        //FIXME : maybe this should iterate workers, not PEs.
+                        for ( std::map<unsigned int, PE *>::const_iterator pit = sys.getPEs().begin(); pit != sys.getPEs().end(); pit++ ) {
+                           _thdsPerQueue[__i] += (*_queueToMemSpace)[__i] == pit->second->getMemorySpaceId();
+                        }
+                     }
+                     if ( _verbose ) {
+                        *myThread->_file << "ThdsPerQueue: { ";
+                        for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
+                           *myThread->_file << _thdsPerQueue[__i] << " ";
+                        }
+                        *myThread->_file << "}" << std::endl;
+                     }
+                     for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
+                        if ( _thdsPerQueue[__i] > 0 ){
+                           _readyQueueSets[__i] = NEW WDDeque[_thdsPerQueue[__i]];
+                        } else {
+                           _readyQueueSets[__i] = NULL;
+                        }
+                     }
                   }
                   _load = NEW unsigned int[_numQueues];
                   _feeding = NEW Atomic<int>[_numQueues];
@@ -120,7 +676,7 @@ namespace nanos {
 
                ~TeamData ()
                {
-                  if (_numQueues > 1 ) {
+                  if (_numQueues >= 1 ) {
                      delete[] _readyQueues;
                      delete[] _readyQueuesAlreadyInit;
                      delete[] _bufferQueues;
@@ -522,15 +1078,16 @@ namespace nanos {
             const CacheSchedPolicy & operator= ( const CacheSchedPolicy & );
 
 
-            enum DecisionType { /* 0 */ NOCONSTRAINT,
-                                /* 1 */ NOCOPY,
-                                /* 2 */ SICOPYSIMASTER,
-                                /* 3 */ SICOPYNOMASTER,
-                                /* 4 */ SICOPY,
-                                /* 5 */ SICOPYSIMASTERINIT,
-                                /* 6 */ SICOPYNOMASTERINIT,
-                                /* 7 */ SICOPYNOMASTERINIT_SELF,
-                                /* 8 */ ALREADYINIT };
+            enum DecisionType { /* 0 */ NOOP,
+                                /* 1 */ NOCONSTRAINT,
+                                /* 2 */ NOCOPY,
+                                /* 3 */ SICOPYSIMASTER,
+                                /* 4 */ SICOPYNOMASTER,
+                                /* 5 */ SICOPY,
+                                /* 6 */ SICOPYSIMASTERINIT,
+                                /* 7 */ SICOPYNOMASTERINIT,
+                                /* 8 */ SICOPYNOMASTERINIT_SELF,
+                                /* 9 */ ALREADYINIT };
 
          public:
             static bool _steal;
@@ -542,6 +1099,9 @@ namespace nanos {
             static bool _affinityInout;
             static bool _constraints;
             static bool _immediateSuccessor;
+            static bool _useQueueSets;
+            static bool _verbose;
+            static int _currentThd;
             // constructor
             CacheSchedPolicy() : SchedulePolicy ( "Cache" ) {}
 
@@ -576,37 +1136,55 @@ namespace nanos {
             virtual void queue ( BaseThread *thread, WD &wd )
             {
                //(*myThread->_file) << " queue wd " << wd.getId() << std::endl;
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t deb = ID->getEventKey("debug"); )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( deb, (nanos_event_value_t) 2 ); )
 #if 1
                ThreadData &data = ( ThreadData & ) *thread->getTeamData()->getScheduleData();
                data.initialize( thread );
                TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
               
                if ( tdata._numQueues == 1 ) {
-                  //(*myThread->_file) << " 1 queue, goto global" << std::endl;
-                  tdata._globalReadyQueue.push_front( &wd );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( deb, 0 ); )
+                  tdata._globalReadyQueue.push_back( &wd );
+                  return;
+               }
+
+               if ( sys.getActiveMemorySpaces().size() == 1 && *(sys.getActiveMemorySpaces().begin()) != 0 ) {
+                  memory_space_id_t target = *(sys.getActiveMemorySpaces().begin());
+                  for ( unsigned int idx = 0; idx < tdata._numQueues; idx += 1 ) {
+                     if ( (*tdata._queueToMemSpace)[ idx ] == target ) {
+                        //tdata._readyQueues[ idx ].push_back( &wd );
+                        //tdata._wdMap.insert( &wd );
+                        tdata._wdMap.preQueue( &wd );
+                        // PUSH_BACK_TO_READY_QUEUE( idx, &wd );
+                        //tdata._wdMap.print();
+                        break;
+                     }
+                  }
                   return;
                }
 
                if ( wd.getDepth() > 1 ) {
             //message("enqueue because of depth > 1 at queue 0 (this node) " << sys.getNetwork()->getNodeNum()<< " wd os " << wd.getId());
-                  tdata._readyQueues[0].push_front( &wd );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( deb, 0 ); )
+                  //tdata._readyQueues[0].push_back( &wd );
+                  PUSH_BACK_TO_READY_QUEUE( 0, &wd );
                   return;
                }
             //message("in queue node " << sys.getNetwork()->getNodeNum()<< " wd os " << wd.getId());
                if ( wd.isTied() ) {
                   unsigned int index = wd.isTiedTo()->runningOn()->getClusterNode();
-                  tdata._readyQueues[index].push_front ( &wd );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( deb, 0 ); )
+                  //tdata._readyQueues[index].push_back ( &wd );
+                  PUSH_BACK_TO_READY_QUEUE( index, &wd );
                   return;
                }
                memory_space_id_t rootedLocation;
                bool rooted = wd._mcontrol.isRooted( rootedLocation );
 
+               std::list< memory_space_id_t > locs;
+               bool lol = wd._mcontrol.isMultipleRooted( locs );
+               //*myThread->_file << "rooted=" << rooted << ", tiedToLocation=" << wd.isTiedToLocation() << ", multipleRooted=" << lol << std::endl;
+               if ( lol ) {
+                  memory_space_id_t frn = locs.front();
+                  unsigned int queue_idx = ( frn != 0 ? sys.getSeparateMemory( frn ).getNodeNumber() : 0 );
+                  PUSH_BACK_TO_READY_QUEUE( queue_idx, &wd );
+               } else
                if ( rooted ) { //it has to be executed on a given node
                   unsigned int tied_node = rootedLocation != 0 ? sys.getSeparateMemory( wd.isTiedToLocation() ).getNodeNumber() : 0; 
                   //FIXME take into account local accelerators
@@ -627,7 +1205,8 @@ namespace nanos {
                         //      (*myThread->_file) <<"not all data is available, pushed" << wd.getId() << std::endl;
                      }
                   } else {
-                     tdata._readyQueues[ tied_node ].push_back( &wd );
+                     //tdata._readyQueues[ tied_node ].push_back( &wd );
+                     PUSH_BACK_TO_READY_QUEUE( tied_node, &wd );
                   }
                } else {
 
@@ -661,7 +1240,7 @@ namespace nanos {
                         //for ( int i = winner - 1; i >= start; i -= 1 )
                         for ( int i = winner - 1; i >= start; i -= 1 )
                         {
-                           winner = ( tdata._createdData[ winner ] < tdata._createdData[ i ] ) ? winner : i ;
+                           winner = ( tdata._createdData[ winner ] <= tdata._createdData[ i ] ) ? winner : i ;
                         }
                         tdata._createdData[ winner ] += createdDataSize;
 //          *thread->_file << "Ranked init wd (id=" << wd.getId() << ", desc=" <<
@@ -672,8 +1251,9 @@ namespace nanos {
                         //if (sys.getNetwork()->getNodeNum() == 0) { message("init: queue " << (winner) << " for wd " << wd.getId() ); }
 
                         if ( winner == 0 && tdata._numLocalAccelerators > 0 ) {
-                           if ( wd.canRunIn( SMP ) ) {
-                              tdata._readyQueues[ winner ].push_back( &wd );
+                           if ( wd.canRunIn( getSMPDevice() ) ) {
+                              //tdata._readyQueues[ winner ].push_back( &wd );
+                              PUSH_BACK_TO_READY_QUEUE( winner, &wd );
                               //(*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Multiple nodes, node 0 won / multiple acc, SMP winner is " << winner << std::endl;
                            } else {
                               for ( unsigned int queue_idx = tdata._numNodes; queue_idx < tdata._numQueues; queue_idx += 1) {
@@ -686,34 +1266,44 @@ namespace nanos {
                               }
                               tdata._createdData[ winner ] += createdDataSize;
                               //(*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Multiple nodes, node 0 won / multiple acc, ACC winner is " << winner << std::endl;
-                              tdata._readyQueues[ winner ].push_back( &wd );
+                              //tdata._readyQueues[ winner ].push_back( &wd );
+                              PUSH_BACK_TO_READY_QUEUE( winner, &wd );
                            }
                         } else {
                            //(*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Multiple nodes, remote node won or no acc available, winner is " << winner << std::endl;
-                           tdata._readyQueues[ winner ].push_back( &wd );
+                           //tdata._readyQueues[ winner ].push_back( &wd );
+                           PUSH_BACK_TO_READY_QUEUE( winner, &wd );
                         }
                      } else {
                         //if (sys.getNetwork()->getNodeNum() == 0) { message("global queue for wd " << wd.getId() ); }
                         if ( tdata._numQueues > 1 ) {
                            //Single node with accelerators
                            //wd.canRunIn( sys.getSeparateMemory( loc ).getDevice() )
-                           if ( wd.canRunIn( SMP ) ) {
-                              //(*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Single node, acc avail, SMP winner global queue" << std::endl;
-                              tdata._globalReadyQueue.push_back( &wd );
-                           } else {
-                              int winner = 0;
-                              for ( unsigned int queue_idx = tdata._numNodes; queue_idx < tdata._numQueues; queue_idx += 1) {
-                                 if ( wd.canRunIn( sys.getSeparateMemory( (*tdata._queueToMemSpace)[ queue_idx ] ).getDevice() ) ) {
-                                    if (winner == 0) {
-                                       winner = queue_idx;
-                                    }
-                                    winner = ( tdata._createdData[ winner ] < tdata._createdData[ queue_idx ] ) ? winner : queue_idx ;
+                           int winner = 0;
+                           bool acc_avail = false;
+                           for ( unsigned int queue_idx = tdata._numNodes; queue_idx < tdata._numQueues; queue_idx += 1) {
+                              if ( wd.canRunIn( sys.getSeparateMemory( (*tdata._queueToMemSpace)[ queue_idx ] ).getDevice() ) ) {
+                                 acc_avail = true;
+                                 if (winner == 0) {
+                                    winner = queue_idx;
                                  }
+                                 winner = ( tdata._createdData[ winner ] < tdata._createdData[ queue_idx ] ) ? winner : queue_idx ;
                               }
-                              //(*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Single node, acc avail, acc winner is " << winner << std::endl;
+                           }
+                           if ( !acc_avail ) {
+                              if ( wd.canRunIn( getSMPDevice() ) ) {
+                                 (*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Single node, acc avail, SMP winner global queue" << std::endl;
+                                 tdata._globalReadyQueue.push_back( &wd );
+                              } else {
+                                 //unable to find a suitable accelerator && can not run on SMP
+                                 fatal("Can not queue WD: processor type not available");
+                              }
+                           } else {
+                              (*myThread->_file) << "[SC:aff] wd " << wd.getId() << " Single node, acc avail, acc winner is " << winner << std::endl;
                               tdata._createdData[ winner ] += createdDataSize;
-                              //(*myThread->_file) << "winner is " << winner << std::endl;
-                              tdata._readyQueues[ winner ].push_back( &wd );
+                              (*myThread->_file) << "winner is " << winner << std::endl;
+                              //tdata._readyQueues[ winner ].push_back( &wd );
+                              PUSH_BACK_TO_READY_QUEUE( winner, &wd );
                            }
                         } else {
                            //Single node, no accelerators
@@ -758,16 +1348,16 @@ namespace nanos {
                   }
                } else {
                   if ( tdata._numNodes > 1  && _noMaster && sys.getNetwork()->getNodeNum() == 0 ) {
-                     tdata._readyQueues[ 1 ].push_front( &wd );
+                     //tdata._readyQueues[ 1 ].push_back( &wd );
+                     PUSH_BACK_TO_READY_QUEUE( 1, &wd );
                      
                   } else {
-                     tdata._globalReadyQueue.push_front ( &wd );
+                     tdata._globalReadyQueue.push_back ( &wd );
                   }
                }
 
                } //not rooted wd
 #endif
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( deb, 0 ); )
             }
 
             /*!
@@ -794,9 +1384,20 @@ namespace nanos {
 
             WD * atPrefetch ( BaseThread *thread, WD &current )
             {
+               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
                WD * found = NULL;
                if ( _immediateSuccessor ) {
                   found = current.getImmediateSuccessor(*thread);
+                  if ( found ) {
+                     found->_mcontrol.preInit();
+                     if ( current._mcontrol.containsAllCopies( found->_mcontrol ) ) {
+                        //*myThread->_file << "wd " << found->getId() << "( " << (found->getDescription() != NULL ? found->getDescription() : "n/a") << ") is a good immediate successor! "<< std::endl;
+                     } else {
+                        tdata._wdMap.insert(found);
+                        found = NULL;// atIdle(thread);
+                        //*myThread->_file << "wd " << found->getId() << "( " << (found->getDescription() != NULL ? found->getDescription() : "n/a") << ") is NOT a good immediate successor! "<< std::endl;
+                     }
+                  }
                   //if ( found ) {
                   //   (*myThread->_file) << " atPrefetch (getImmediateSuccessor) returns wd " << found->getId() << std::endl;
                   //}
@@ -806,9 +1407,21 @@ namespace nanos {
          
             WD * atBeforeExit ( BaseThread *thread, WD &current, bool schedule )
             {
+               TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
                WD * found = NULL;
-               if ( schedule && _immediateSuccessor ) {
+               tdata._wdMap.prefetch( thread, current );
+               if ( _immediateSuccessor ) {
                   found = current.getImmediateSuccessor(*thread);
+                  if ( found ) {
+                     found->_mcontrol.preInit();
+                     if ( current._mcontrol.containsAllCopies( found->_mcontrol ) ) {
+                        //*myThread->_file << "wd " << found->getId() << "( " << (found->getDescription() != NULL ? found->getDescription() : "n/a") << ") is a good immediate successor! "<< std::endl;
+                     } else {
+                        tdata._wdMap.insert(found);
+                        found = NULL;
+                        //*myThread->_file << "wd " << found->getId() << "( " << (found->getDescription() != NULL ? found->getDescription() : "n/a") << ") is NOT a good immediate successor! "<< std::endl;
+                     }
+                  }
                   //if ( found ) {
                   //   (*myThread->_file) << " atBeforeExit (getImmediateSuccessor) returns wd " << found->getId() << std::endl;
                   //}
@@ -852,6 +1465,9 @@ namespace nanos {
                   bool result;
                   do {
                      result = wd->_mcontrol.allocateTaskMemory();
+                     if ( !result ) {
+                        myThread->idle();
+                     }
                   } while( result == false );
                   wd->init();
 
@@ -892,6 +1508,9 @@ namespace nanos {
                         bool result;
                         do {
                            result = wd->_mcontrol.allocateTaskMemory();
+                           if ( !result ) {
+                              myThread->idle();
+                           }
                         } while( result == false );
 
                         wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
@@ -933,6 +1552,9 @@ namespace nanos {
                      bool result;
                      do {
                         result = wd->_mcontrol.allocateTaskMemory();
+                        if ( !result ) {
+                           myThread->idle();
+                        }
                      } while( result == false );
                      wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
 
@@ -975,12 +1597,20 @@ namespace nanos {
             tdata._lastNodeScheduled = queueId;
          }
          NANOS_INSTRUMENT(static nanos_event_key_t key = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("sched-affinity-constraint");)
+         //NANOS_INSTRUMENT(static nanos_event_value_t val_def = 0;)
+         //NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val_def );)
          data._helped = 0;
          data._fetch = 0;
 
+         if ( sys.getActiveMemorySpaces().size() == 1 && *(sys.getActiveMemorySpaces().begin()) != 0 ) {
+            wd = tdata._wdMap.fetch( thread );
+            return wd;
+         }
+
 
          if ( !_constraints ) {
-            if ( ( wd = tdata._readyQueues[queueId].pop_front( thread ) ) != NULL ) {
+            //if ( ( wd = tdata._readyQueues[queueId].pop_front( thread ) ) != NULL ) {
+            if ( ( wd = READY_QUEUE(queueId, thread->getId() ).pop_front( thread ) ) != NULL ) {
                return wd;
             }
             if ( data._isLocalAccelerator ) { //check local node queue
@@ -995,44 +1625,47 @@ namespace nanos {
                if ( ( wd = tdata._readyQueuesAlreadyInit[queueId].pop_front( thread ) ) != NULL ) {
                   return wd;
                }
-               if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< NoCopy > ( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                } 
                if ( _invalAware ) {
-                  if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopyNoMaster > > ( thread ) ) != NULL ) {
+                  if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopyNoMaster > > ( thread ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     *myThread->_file << " returning an wd w/inval check AA!" << std::endl;
                      return wd;
                   }
-                  if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopySiMaster > > ( thread ) ) != NULL ) {
+                  if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< And < WouldNotTriggerInvalidation, SiCopySiMaster > > ( thread ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     *myThread->_file << " returning an wd w/inval check BB!" << std::endl;
                      return wd;
                   }
-                  if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
+                  if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< And < WouldNotTriggerInvalidation, Not< NoCopy > > > ( thread ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     *myThread->_file << " returning an wd w/inval check CC!" << std::endl;
                      return wd;
                   }
                }
-               if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< SiCopyNoMaster >( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< SiCopyNoMaster >( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                }
-               if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< SiCopySiMaster >( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< SiCopySiMaster >( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYSIMASTER;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                }
-               if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< Not< NoCopy > >( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< Not< NoCopy > >( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                }
-               if ( ( wd = tdata._readyQueues[queueId].pop_front( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).pop_front( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
@@ -1059,20 +1692,98 @@ namespace nanos {
                //   return wd;
                //}
                //wd = tdata._globalReadyQueue.popFrontWithConstraints< WouldNotRunOutOfMemory >( thread );
+            } else if ( data._isLocalAccelerator ) { // Local accelerator thread 
+               if ( ( wd = data._locaQueue.pop_front( thread ) ) != NULL ) {
+                  NANOS_INSTRUMENT(static nanos_event_value_t val = ALREADYINIT;)
+                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                  return wd;
+               } 
+               //NANOS_INSTRUMENT(val_dbg = 222; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints<NoCopy> ( thread ) ) != NULL ) {
+                  NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
+                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                  return wd;
+               } 
+               if ( _invalAware ) {
+                  if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMaster > >( thread ) ) != NULL ) {
+                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     //*myThread->_file << " returning an wd w/inval check 1!" << std::endl;
+                     return wd;
+                  }
+                  if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< And< WouldNotTriggerInvalidation, Not< NoCopy > > >( thread ) ) != NULL ) {
+                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     //*myThread->_file << " returning an wd w/inval check 2!" << std::endl;
+                     return wd;
+                  }
+ //                    *myThread->_file << " SMPThread  out of inval aware fetch!" << std::endl;
+               }
+               // NANOS_INSTRUMENT(val_dbg = 224; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints<SiCopyNoMaster> ( thread ) ) != NULL ) {
+                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                  return wd;
+               }
+              // NANOS_INSTRUMENT(val_dbg = 225; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< Not< NoCopy > > ( thread ) ) != NULL ) {
+                  NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                  return wd;
+               }
+               //if ( thread->getId() > 0 ) *thread->_file << "lol smp thread " << thread->getId() << " check queue " << queueId << " is acc? " << data._isLocalAccelerator << " acc " << data._acceleratorId << " nodeId " << data._nodeId << " elems in queue "  << tdata._readyQueues[data._nodeId].size() << std::endl;
+            //   NANOS_INSTRUMENT(val_dbg = 226; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).pop_front( thread ) ) != NULL ) {
+                  NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                  return wd;
+               }
+
+               if ( data._isLocalAccelerator ) { //check local node queue
+                  //NANOS_INSTRUMENT(val_dbg = 227; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+                  if ( ( wd = tdata._readyQueues[0].pop_front( thread ) ) != NULL ) {
+                     NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     return wd;
+                  }
+               }
+               //NANOS_INSTRUMENT(val_dbg = 228; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               if ( ( wd = tdata._globalReadyQueue.popFrontWithConstraints<NoCopy> ( thread ) ) != NULL ) {
+                  NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
+                  NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                  return wd;
+               } 
+               if ( _invalAware ) {
+                  if ( ( wd = tdata._globalReadyQueue.popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMaster > >( thread ) ) != NULL ) {
+                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
+                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     *myThread->_file << " returning an wd w/inval check 11!" << std::endl;
+                     return wd;
+                  }
+                  if ( ( wd = tdata._globalReadyQueue.popFrontWithConstraints< And< WouldNotTriggerInvalidation, Not< NoCopy > > >( thread ) ) != NULL ) {
+                     NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
+                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     *myThread->_file << " returning an wd w/inval check 22!" << std::endl;
+                     return wd;
+                  }
+ //                    *myThread->_file << " SMPThread  out of inval aware fetch!" << std::endl;
+               }
+               //NANOS_INSTRUMENT(val_dbg = 229; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               wd = tdata._globalReadyQueue.pop_front ( thread );
             } else { // SMP Thread 
                if ( ( wd = data._locaQueue.pop_front( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = ALREADYINIT;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                } 
-               NANOS_INSTRUMENT(val_dbg = 122; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
-               if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints<NoCopy> ( thread ) ) != NULL ) {
+               //NANOS_INSTRUMENT(val_dbg = 122; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints<NoCopy> ( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = NOCOPY;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   { 
                      WD *helpWD;
                      if ( _invalAware ) {
-                        if ( ( helpWD = tdata._readyQueues[ 0 ].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( thread ) ) != NULL ) {
+                        if ( ( helpWD = tdata._readyQueues[0].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMasterInit > > ( thread ) ) != NULL ) {
                            NANOS_INSTRUMENT(static nanos_event_value_t val2 = SICOPYNOMASTERINIT_SELF;)
                            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val2 );)
 
@@ -1080,15 +1791,19 @@ namespace nanos {
                            bool result;
                            do {
                               result = helpWD->_mcontrol.allocateTaskMemory();
+                              if ( !result ) {
+                                 myThread->idle();
+                              }
                            } while( result == false );
                            helpWD->init(); //WithPE( myThread->runningOn() );
 
                            data._locaQueue.push_back( helpWD );
                            data._helped++;
+                     *myThread->_file << " returning an wd w/inval check ZZ!" << std::endl;
                         }
                      } else {
                         NANOS_INSTRUMENT(val_dbg = 123; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
-                        if ( ( helpWD = tdata._readyQueues[ 0 ].popFrontWithConstraints< SiCopyNoMasterInit > ( thread ) ) != NULL ) {
+                        if ( ( helpWD = tdata._readyQueues[0].popFrontWithConstraints< SiCopyNoMasterInit > ( thread ) ) != NULL ) {
                            NANOS_INSTRUMENT(static nanos_event_value_t val2 = SICOPYNOMASTERINIT_SELF;)
                            NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val2 );)
 
@@ -1096,6 +1811,9 @@ namespace nanos {
                            bool result;
                            do {
                               result = helpWD->_mcontrol.allocateTaskMemory();
+                              if ( !result ) {
+                                 myThread->idle();
+                              }
                            } while( result == false );
                            helpWD->init(); //WithPE( myThread->runningOn() );
 
@@ -1107,46 +1825,55 @@ namespace nanos {
                   return wd;
                } 
                if ( _invalAware ) {
-                  if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMaster > >( thread ) ) != NULL ) {
+                  //if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMaster > >( thread ) ) != NULL ) {
+                  if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< And< WouldNotTriggerInvalidation, SiCopyNoMaster > >( thread ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     *myThread->_file << " returning an wd w/inval check 1!" << std::endl;
                      return wd;
                   }
-                  if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, Not< NoCopy > > >( thread ) ) != NULL ) {
+                  //if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< And< WouldNotTriggerInvalidation, Not< NoCopy > > >( thread ) ) != NULL ) {
+                  if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< And< WouldNotTriggerInvalidation, Not< NoCopy > > >( thread ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+                     *myThread->_file << " returning an wd w/inval check 2!" << std::endl;
                      return wd;
                   }
+ //                    *myThread->_file << " SMPThread  out of inval aware fetch!" << std::endl;
                }
-               NANOS_INSTRUMENT(val_dbg = 124; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
-               if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints<SiCopyNoMaster> ( thread ) ) != NULL ) {
+               //NANOS_INSTRUMENT(val_dbg = 124; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               //if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints<SiCopyNoMaster> ( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints<SiCopyNoMaster> ( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTER;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                }
-               NANOS_INSTRUMENT(val_dbg = 125; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
-               if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< Not< NoCopy > > ( thread ) ) != NULL ) {
+               //NANOS_INSTRUMENT(val_dbg = 125; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               //if ( ( wd = tdata._readyQueues[queueId].popFrontWithConstraints< Not< NoCopy > > ( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).popFrontWithConstraints< Not< NoCopy > > ( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPY;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                }
                //if ( thread->getId() > 0 ) *thread->_file << "lol smp thread " << thread->getId() << " check queue " << queueId << " is acc? " << data._isLocalAccelerator << " acc " << data._acceleratorId << " nodeId " << data._nodeId << " elems in queue "  << tdata._readyQueues[data._nodeId].size() << std::endl;
-               NANOS_INSTRUMENT(val_dbg = 126; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
-               if ( ( wd = tdata._readyQueues[queueId].pop_front( thread ) ) != NULL ) {
+               //NANOS_INSTRUMENT(val_dbg = 126; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               //if ( ( wd = tdata._readyQueues[queueId].pop_front( thread ) ) != NULL ) {
+               if ( ( wd = READY_QUEUE(queueId, thread->getId()).pop_front( thread ) ) != NULL ) {
                   NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
                   NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
                   return wd;
                }
 
-               if ( data._isLocalAccelerator ) { //check local node queue
-                  NANOS_INSTRUMENT(val_dbg = 127; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
-                  if ( ( wd = tdata._readyQueues[0].pop_front( thread ) ) != NULL ) {
-                     NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
-                     NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     return wd;
-                  }
-               }
-               NANOS_INSTRUMENT(val_dbg = 128; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               // if ( data._isLocalAccelerator ) { //check local node queue
+               //    NANOS_INSTRUMENT(val_dbg = 127; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
+               //    //if ( ( wd = tdata._readyQueues[0].pop_front( thread ) ) != NULL ) {
+               //    if ( ( wd = READY_QUEUE(0, thread->getId()).pop_front( thread ) ) != NULL ) {
+               //       NANOS_INSTRUMENT(static nanos_event_value_t val = NOCONSTRAINT;)
+               //       NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
+               //       return wd;
+               //    }
+               // }
+               //NANOS_INSTRUMENT(val_dbg = 128; sys.getInstrumentation()->raisePointEvents( 1, &key, &val_dbg );)
                wd = tdata._globalReadyQueue.pop_front ( thread );
             }
          } // constraints
@@ -1177,21 +1904,17 @@ namespace nanos {
          //       }
          //    }
          // }
-               if ( tdata._numQueues == 1 ) {
-                  wd = tdata._globalReadyQueue.pop_front( thread );
-                  return wd;
-               }
+         //      if ( tdata._numQueues == 1 ) {
+         //         wd = tdata._globalReadyQueue.pop_front( thread );
+         //         return wd;
+         //      }
          if ( thread->getId() == 0 ) {
             while ( !tdata._unrankedQueue.empty() ) {
                tryGetLocationData( thread );
             }
          }
 
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t deb = ID->getEventKey("debug"); )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( deb, (nanos_event_value_t) 1 ); )
          wd = fetchWD( thread, current ) ;
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( deb, 0 ); )
 
          if ( _steal )
          {
@@ -1233,10 +1956,10 @@ namespace nanos {
          TeamData &tdata = (TeamData &) *thread->getTeam()->getScheduleData();
          unsigned int queueId = data._isLocalAccelerator ? tdata._numNodes + data._acceleratorId : data._nodeId;
 
-         if ( tdata._numQueues == 1 ) {
-            wd = tdata._globalReadyQueue.pop_front( thread );
-            return wd;
-         }
+         //if ( tdata._numQueues == 1 ) {
+         //   wd = tdata._globalReadyQueue.pop_front( thread );
+         //   return wd;
+         //}
 
          if ( thread->getId() == 0 ) {
             while ( !tdata._unrankedQueue.empty() ) {
@@ -1300,11 +2023,7 @@ namespace nanos {
          } else {
          }
 #endif
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t deb = ID->getEventKey("debug"); )
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( deb, (nanos_event_value_t) 1 ); )
          wd = fetchWD( thread, NULL );
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( deb, 0 ); )
          // *thread->_file << "thread " << thread->getId() << " got wd " << wd << std::endl;
 
 
@@ -1324,13 +2043,15 @@ namespace nanos {
             if ( wd == NULL ) {
                for ( unsigned int i = queueId + 1; i < tdata._numNodes; i++ ) {
                   if ( tdata._readyQueues[i].size() > 1 ) {
-                     wd = tdata._readyQueues[i].pop_front( thread );
+                     //wd = tdata._readyQueues[i].pop_front( thread );
+                     wd = READY_QUEUE(i, thread->getId()).pop_front( thread );
                      return wd;
                   } 
                }
                for ( unsigned int i = 0; i < queueId; i++ ) {
                   if ( tdata._readyQueues[i].size() > 1 ) {
-                     wd = tdata._readyQueues[i].pop_front( thread );
+                     //wd = tdata._readyQueues[i].pop_front( thread );
+                     wd = READY_QUEUE(i, thread->getId()).pop_front( thread );
                      return wd;
                   } 
                }
@@ -1368,7 +2089,7 @@ namespace nanos {
                   rankWD( thread, *wd );
                //} else {
                //   (*myThread->_file) << "readd a wd delayed using "<< __FUNCTION__<<std::endl;
-               //   tdata._unrankedQueue.push_front( wd );
+               //   tdata._unrankedQueue.push_back( wd );
                //}
             }
          }
@@ -1386,11 +2107,11 @@ namespace nanos {
                      ) ) {
                NewLocationInfoList const &locs = wd._mcontrol._memCacheCopies[ i ]._locations;
                maxPossibleScore += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
-               //*myThread->_file << "Affinity score for region "; wd._mcontrol._memCacheCopies[ i ]._reg.key->printRegion( *myThread->_file, wd._mcontrol._memCacheCopies[ i ]._reg.id );
-               //{
-               //   NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
-               //   *myThread->_file << " " << *entry << std::endl;
-               //}
+               // *myThread->_file << "Affinity score for region "; wd._mcontrol._memCacheCopies[ i ]._reg.key->printRegion( *myThread->_file, wd._mcontrol._memCacheCopies[ i ]._reg.id );
+               // {
+               //    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *wd._mcontrol._memCacheCopies[ i ]._reg.key, wd._mcontrol._memCacheCopies[ i ]._reg.id );
+               //    *myThread->_file << " " << *entry << std::endl;
+               // }
                if ( locs.empty() ) {
                   //(*myThread->_file) << "empty list, version "<<  wd._mcontrol._memCacheCopies[ i ]._version << std::endl;
                   for ( std::set< memory_space_id_t >::const_iterator locIt = wd._mcontrol._memCacheCopies[ i ]._reg.getLocations().begin();
@@ -1407,29 +2128,31 @@ namespace nanos {
                         int accelerator_id = sys.getSeparateMemory( loc ).getAcceleratorNumber();
                         scores[ numNodes + accelerator_id ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
                      }
-                     if ( score_idx == 0 && !wd.canRunIn( SMP ) ) {
+                     if ( score_idx == 0 && !wd.canRunIn( getSMPDevice() ) ) {
                         scores[ 0 ] = 0;
                      }
 
                   }
                } else {
                   for ( NewLocationInfoList::const_iterator it = locs.begin(); it != locs.end(); it++ ) {
+                     global_reg_t data_source_reg( it->second, wd._mcontrol._memCacheCopies[ i ]._reg.key );
+                     global_reg_t region_shape( it->first, wd._mcontrol._memCacheCopies[ i ]._reg.key );
 
-                     for ( std::set< memory_space_id_t >::const_iterator locIt = wd._mcontrol._memCacheCopies[ i ]._reg.getLocations().begin();
-                           locIt != wd._mcontrol._memCacheCopies[ i ]._reg.getLocations().end(); locIt++ ) {
+                     for ( std::set< memory_space_id_t >::const_iterator locIt = data_source_reg.getLocations().begin();
+                           locIt != data_source_reg.getLocations().end(); locIt++ ) {
                         memory_space_id_t loc = *locIt;
 
                         unsigned int score_idx = ( loc != 0 ? sys.getSeparateMemory( loc ).getNodeNumber() : 0 );
-                        if (wd._mcontrol._memCacheCopies[ i ]._reg.isRooted()) {
+                        if (data_source_reg.isRooted()) {
                            scores[ score_idx ] = (std::size_t) -1;
                         } else if ( scores[ score_idx ] != (std::size_t) -1 ) {
-                           scores[ score_idx ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
+                           scores[ score_idx ] += region_shape.getDataSize();
                         }
                         if ( loc != 0 && sys.getSeparateMemory( loc ).isAccelerator()
                               && wd.canRunIn( sys.getSeparateMemory( loc ).getDevice() ) ) {
                            int accelerator_id = sys.getSeparateMemory( loc ).getAcceleratorNumber();
-                           scores[ numNodes + accelerator_id ] += wd._mcontrol._memCacheCopies[ i ]._reg.getDataSize();
-                           if ( score_idx == 0 && !wd.canRunIn( SMP ) ) {
+                           scores[ numNodes + accelerator_id ] += region_shape.getDataSize();
+                           if ( score_idx == 0 && !wd.canRunIn( getSMPDevice() ) ) {
                               scores[ 0 ] = 0;
                            }
                         }
@@ -1498,7 +2221,8 @@ namespace nanos {
          }
          //if (sys.getNetwork()->getNodeNum() == 0 ) { 
          //   (*myThread->_file) << "WD: " << wd.getId() << " ROcopies: "<<ro_copies << " WOcopies: " << wo_copies << " RWcopies: " << rw_copies << " Locality results: [ ";
-         //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) (*myThread->_file) << i << ": " << (scores[i] / (16*512*512)) << " "; 
+         //   (*myThread->_file) << "WD: " << wd.getId() << " Locality results: [ ";
+         //   for (unsigned int i = 0; i < tdata._numNodes ; i += 1) (*myThread->_file) << i << ": " << scores[i] << " "; 
          //   (*myThread->_file) <<"] ties " << ties << " winner " << winner << std::endl;
          //}
          //if (winner == -1) winner = start;
@@ -1510,15 +2234,18 @@ namespace nanos {
 
          /* end of rank by cluster node */
 
-         //(*myThread->_file) << "Winner is " << winner << std::endl;
+         // (*myThread->_file) << "Winner is " << winner << std::endl;
+         // printBt(*myThread->_file);
          if ( winner != 0 ) {
 //          *thread->_file << "Ranked wd (id=" << wd.getId() << ", desc=" <<
 //             (wd.getDescription() != NULL ? wd.getDescription() : "n/a") <<
 //             ") to queue " << winner << std::endl;
 
-            tdata._readyQueues[winner].push_back( &wd );
+            //tdata._readyQueues[winner].push_back( &wd );
+            PUSH_BACK_TO_READY_QUEUE( winner, &wd );
          } else {
-            tdata._readyQueues[winner].push_back( &wd );
+            //tdata._readyQueues[winner].push_back( &wd );
+            PUSH_BACK_TO_READY_QUEUE( winner, &wd );
 #if 0 /* WIP */
             /* rank for accelerators in node 0 */
             std::size_t local_scores[ tdata._numLocalAccelerators ];
@@ -1556,6 +2283,8 @@ namespace nanos {
       bool CacheSchedPolicy::_affinityInout = false;
       bool CacheSchedPolicy::_constraints = false;
       bool CacheSchedPolicy::_immediateSuccessor = false;
+      bool CacheSchedPolicy::_useQueueSets = false;
+      bool CacheSchedPolicy::_verbose = false;
 
       class CacheSchedPlugin : public Plugin
       {
@@ -1587,6 +2316,12 @@ namespace nanos {
 
                cfg.registerConfigOption ( "affinity-use-immediate-successor", NEW Config::FlagOption( CacheSchedPolicy::_immediateSuccessor ), "Use 'getImmediateSuccessor' to prefetch WDs.");
                cfg.registerArgOption( "affinity-use-immediate-successor", "affinity-use-immediate-successor" );
+
+               cfg.registerConfigOption ( "affinity-use-queue-sets", NEW Config::FlagOption( CacheSchedPolicy::_useQueueSets ), "Use queue sets to avoid contention.");
+               cfg.registerArgOption( "affinity-use-queue-sets", "affinity-use-queue-sets" );
+
+               cfg.registerConfigOption ( "affinity-verbose", NEW Config::FlagOption( CacheSchedPolicy::_verbose ), "Print verbose messages.");
+               cfg.registerArgOption( "affinity-verbose", "affinity-verbose" );
             }
 
             virtual void init() {

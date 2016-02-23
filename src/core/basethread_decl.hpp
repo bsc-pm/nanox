@@ -182,6 +182,7 @@ namespace nanos
          // Current/following tasks: 
          WD                     &_threadWD;      /**< Thread implicit WorkDescriptor */
          WD                     *_currentWD;     /**< Current WorkDescriptor the thread is executing */
+         WD                     *_heldWD;
          WDDeque                 _nextWDs;       /**< Queue with all the tasks that the thread is being run simultaneously */
          // Thread's Team info:
          TeamData               *_teamData;      /**< Current team data, thread is registered and also it has entered to the team */
@@ -222,6 +223,7 @@ namespace nanos
          const BaseThread & operator= ( const BaseThread & );
       public:
          std::ostream          *_file;
+         bool                   _gasnetAllowAM;
          std::set<void *> _pendingRequests;
          //! \brief BaseThread constructor
          BaseThread ( unsigned int osId, WD &wd, ProcessingElement *creator = 0, ext::SMPMultiThread *parent = NULL );
@@ -262,6 +264,8 @@ namespace nanos
          virtual bool canBlock() { return false; }
 
          // set/get methods
+         void setHeldWD ( WD *wd );
+         WD * getHeldWD () const;
          void setCurrentWD ( WD &current );
 
          WD * getCurrentWD () const;

@@ -42,8 +42,6 @@ inline memory_space_id_t Router::getSource( memory_space_id_t destination,
       std::set<memory_space_id_t> const &locs ) {
    memory_space_id_t selected;
    unsigned int destination_node = destination != 0 ? sys.getSeparateMemory( destination ).getNodeNumber() : 0;
-   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
-   NANOS_INSTRUMENT ( static nanos_event_key_t deb = ID->getEventKey("debug"); )
    if ( locs.size() > 1 ) {
 
       //clasify the locations in remote (remote nodes) or local (host memory or accelerators)
@@ -86,10 +84,8 @@ inline memory_space_id_t Router::getSource( memory_space_id_t destination,
             selected = ( _memSpaces[ tmp_locations[idx] ] < _memSpaces[selected] ) ? tmp_locations[idx] : selected;
          }
       }
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( deb, (nanos_event_value_t) selected ); )
    } else {
       selected = *locs.begin();
-   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( deb, (nanos_event_value_t) 100+selected ); )
    }
 
    unsigned int selected_node = selected != 0 ? sys.getSeparateMemory( selected ).getNodeNumber() : 0;

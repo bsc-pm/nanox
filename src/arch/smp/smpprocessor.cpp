@@ -33,7 +33,7 @@ System::CachePolicyType SMPProcessor::_cachePolicy = System::DEFAULT;
 size_t SMPProcessor::_cacheDefaultSize = 1048580;
 
 SMPProcessor::SMPProcessor( int bindingId, memory_space_id_t memId, bool active, unsigned int numaNode, unsigned int socket ) :
-   PE( &SMP, memId, 0 /* always local node */, numaNode, true, socket, true ),
+   PE( &getSMPDevice(), memId, 0 /* always local node */, numaNode, true, socket, true ),
    _bindingId( bindingId ), _reserved( false ), _active( active ), _futureThreads( 0 ) {}
 
 void SMPProcessor::prepareConfig ( Config &config )
@@ -81,7 +81,7 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
 
 BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
-   ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
+   ensure( helper.canRunIn( getSMPDevice() ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPThread( helper, this, this );
    th.stackSize( _threadsStackSize ).useUserThreads( _useUserThreads );
 
@@ -90,7 +90,7 @@ BaseThread &SMPProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread 
 
 BaseThread &SMPProcessor::createMultiThread ( WorkDescriptor &helper, unsigned int numPEs, PE **repPEs )
 {
-   ensure( helper.canRunIn( SMP ),"Incompatible worker thread" );
+   ensure( helper.canRunIn( getSMPDevice() ),"Incompatible worker thread" );
    SMPThread &th = *NEW SMPMultiThread( helper, this, numPEs, repPEs );
    th.stackSize(_threadsStackSize).useUserThreads(_useUserThreads);
 

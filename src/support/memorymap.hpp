@@ -1514,17 +1514,18 @@ void MemoryMap< _Type >::getChunk3( uint64_t addr, std::size_t len, ConstMemChun
 }
 
 template < typename _Type >
-void MemoryMap< _Type >::print() const
+void MemoryMap< _Type >::print(std::ostream &o) const
 {
    int i = 0;
    typename BaseMap::const_iterator it = this->begin();
-   std::cerr << "printing memory chunks" << std::endl;
+   o << "printing memory chunks" << std::endl;
    for (; it != this->end(); it++)
    {
-      std::cerr << "\tchunk: " << i++ << " addr=" << (void *) it->first.getAddress() <<"(" << (uint64_t)it->first.getAddress()<< ")" << " len=" << it->first.getLength() << " ptr val is " << it->second << " addr of ptr val is " << (void *) &(it->second) << " ";
-      it->second->print();
+      o << "\tchunk: " << i++ << " addr=" << (void *) it->first.getAddress() <<"(" << (uint64_t)it->first.getAddress()<< ")" << " len=" << it->first.getLength() << " ptr val is " << it->second << " addr of ptr val is " << (void *) &(it->second) << " ";
+      o << std::endl;
+      //it->second->print();
    } 
-   std::cerr << "end of memory chunks" << std::endl;
+   o << "end of memory chunks" << std::endl;
 }
 
 template < typename _Type >

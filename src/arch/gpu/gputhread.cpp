@@ -49,7 +49,7 @@ void GPUThread::runDependent ()
 {
    WD &work = getThreadWD();
    setCurrentWD( work );
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( ext::getSMPDevice() );
 
    while ( getTeam() == NULL ) { OS::nanosleep( 100 ); }
 
@@ -434,7 +434,10 @@ void GPUThread::raiseWDRunEvent ( WD * wd )
    if ( sys.getDefaultSchedulePolicy()->isCheckingWDRunTime() ) {
       wd->setRunTime( OS::getMonotonicTimeUs() );
    }
+}
 
+unsigned int GPUThread::getPrefetchedWDsCount() const {
+   return _prefetchedWDs;
 }
 
 void GPUThread::closeWDRunEvent ( WD * wd )

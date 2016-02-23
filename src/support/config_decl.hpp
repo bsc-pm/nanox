@@ -731,6 +731,7 @@ namespace nanos
          virtual void setDefaults();
          void parseFiles();
          void parseArguments();
+         void parseArgumentsFromCmdLine();
          void parseEnvironment();
          void clear();
          void copy( const Config &origin );

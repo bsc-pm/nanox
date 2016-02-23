@@ -43,6 +43,7 @@ EXTRA_DIST= \
 
 devinclude_HEADERS = \
 	smpdevice.hpp \
+	smpdevice_decl.hpp \
 	smpdd.hpp \
 	smpprocessor.hpp \
 	smpprocessor_fwd.hpp \
@@ -55,6 +56,9 @@ common_libadd=\
 
 smp_sources = \
 	smpdevice.hpp \
+	smpdevice_decl.hpp \
+	smptransferqueue.hpp \
+	smptransferqueue_decl.hpp \
 	smpdd.hpp \
 	smpdd.cpp \
 	smpprocessor.hpp \

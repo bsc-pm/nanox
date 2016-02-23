@@ -51,8 +51,8 @@ namespace nanos
             return 1024*1024*1024;
          }
          virtual void _copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len,
-               SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f,
-               WD const &wd, void *hostObject, reg_t hostRegionId );
+               SeparateMemoryAddressSpace &mem, DeviceOps *ops,
+               WD const &wd, void *hostObject, reg_t hostRegionId ) const;
 
          /*! \brief Copy from remoteSrc in the host to localDst in the device
           *        Returns true if the operation is synchronous
@@ -60,8 +60,8 @@ namespace nanos
          static bool copyIn( void *localDst, CopyDescriptor &remoteSrc, size_t size, ProcessingElement *pe );
 
          virtual void _copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len,
-               SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f,
-               WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId );
+               SeparateMemoryAddressSpace &mem, DeviceOps *ops,
+               WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const;
          /*! \brief Copy from localSrc in the device to remoteDst in the host
           *        Returns true if the operation is synchronous
           */
@@ -84,16 +84,16 @@ namespace nanos
 
          virtual bool _copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len,
                SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memorig,
-               DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject,
-               reg_t hostRegionId ) { std::cerr << "wrong copyDevToDev" <<std::endl; return false; }
+               DeviceOps *ops, WorkDescriptor const &wd, void *hostObject,
+               reg_t hostRegionId ) const { std::cerr << "wrong copyDevToDev" <<std::endl; return false; }
 
          virtual void _getFreeMemoryChunksList( SeparateMemoryAddressSpace &mem,
                SimpleAllocator::ChunkList &list ) { std::cerr << "wrong _getFreeMemoryChunksList()" <<std::endl; }
 
          //not supported
          virtual void _copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len,
-               std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem,
-               DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject,
+               std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace const &mem,
+               DeviceOps *ops, WorkDescriptor const &wd, void *hostObject,
                reg_t hostRegionId )
          {
             warning( "Strided fpga copies not implemented" );
@@ -102,7 +102,7 @@ namespace nanos
          //not supported
          virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len,
                std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem,
-               DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject,
+               DeviceOps *ops, WorkDescriptor const &wd, void *hostObject,
                reg_t hostRegionId )
          {
             warning( "Strided fpga copies not implemented" );
@@ -111,9 +111,9 @@ namespace nanos
          //not supported
          virtual bool _copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr,
                std::size_t len, std::size_t numChunks, std::size_t ld,
-               SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig,
-               DeviceOps *ops, Functor *f, WorkDescriptor const &wd, void *hostObject,
-               reg_t hostRegionId )
+               SeparateMemoryAddressSpace const &memDest, SeparateMemoryAddressSpace const &memOrig,
+               DeviceOps *ops, WorkDescriptor const &wd, void *hostObject,
+               reg_t hostRegionId ) const
          {
 
             warning( "Strided fpga copies not implemented" );

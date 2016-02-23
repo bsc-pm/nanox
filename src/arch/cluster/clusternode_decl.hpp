@@ -40,13 +40,11 @@ namespace nanos {
             // config variables
             static Atomic<int>      _deviceSeed; // Number of cluster devices assigned to threads
             unsigned int            _clusterNode; // Assigned cluster device Id
+            unsigned int _executedWorkDesciptors;
 
             // disable copy constructor and assignment operator
             ClusterNode( const ClusterNode &pe );
             const ClusterNode & operator= ( const ClusterNode &pe );
-
-            //SimpleAllocator _memSegment;
-            unsigned int _executedWorkDesciptors;
 
          public:
             // constructors

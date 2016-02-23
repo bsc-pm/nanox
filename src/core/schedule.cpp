@@ -61,7 +61,8 @@ void Scheduler::submit ( WD &wd, bool force_queue )
    NANOS_INSTRUMENT ( InstrumentState inst(NANOS_SCHEDULING, true) );
    BaseThread *mythread = myThread;
 
-   debug ( "submitting task " << wd.getId() );
+   debug ( "submitting task " << wd.getId() << " " << ( wd.getDescription() != NULL ? wd.getDescription() : "") << " team: " << mythread->getTeam() << " this thread is " << mythread );
+
    wd.submitted();
    wd.setReady();
 
@@ -373,7 +374,7 @@ inline void Scheduler::idleLoop ()
 
       thread->idle();
       //if ( sys.getNetwork()->getNodeNum() > 0 ) {
-         sys.getNetwork()->poll(0);
+      //   sys.getNetwork()->poll(0);
       //}
 
       if ( spins == 0 ) {
@@ -558,7 +559,6 @@ void Scheduler::workerClusterLoop ()
       if ( parent != current_thread ) // if parent == myThread, then there are no "soft" threads and just do nothing but polling.
       {
          ext::ClusterThread *myClusterThread = ( ext::ClusterThread * ) current_thread;
-
          if ( myClusterThread->tryLock() ) {
             ext::ClusterNode *thisNode = ( ext::ClusterNode * ) current_thread->runningOn();
             thisNode->setCurrentDevice( 0 );
@@ -885,7 +885,8 @@ void Scheduler::workerClusterLoop ()
             myClusterThread->unlock();
          }
       }
-      sys.getNetwork()->poll(parent->getId());
+      //sys.getNetwork()->poll(parent->getId());
+      myThread->idle();
       current_thread = ( myThread = myThread->getNextThread() );
    }
 
@@ -1142,9 +1143,16 @@ bool Scheduler::inlineWork ( WD *wd, bool schedule )
       if ( !wd->_mcontrol.isMemoryAllocated() ) {
          wd->_mcontrol.initialize( *(thread->runningOn()) );
          bool result;
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-alloc"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) wd->getId() ); )
          do {
             result = wd->_mcontrol.allocateTaskMemory();
+            if ( !result ) {
+               myThread->idle();
+            }
          } while( result == false );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
       }
       wd->init();
    }
@@ -1260,10 +1268,18 @@ void Scheduler::switchTo ( WD *to )
 
       if (!to->started()) {
          to->_mcontrol.initialize( *(myThread->runningOn()) );
+
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-alloc"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) to->getId() ); )
          bool result;
          do {
             result = to->_mcontrol.allocateTaskMemory();
+            if ( !result ) {
+               myThread->idle();
+            }
          } while( result == false );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
 
          to->init();
          to->start(WD::IsAUserLevelThread);
@@ -1350,9 +1366,16 @@ void Scheduler::exitTo ( WD *to )
     if (!to->started()) {
        to->_mcontrol.initialize( *(myThread->runningOn()) );
        bool result;
+   NANOS_INSTRUMENT ( static InstrumentationDictionary *ID = sys.getInstrumentation()->getInstrumentationDictionary(); )
+   NANOS_INSTRUMENT ( static nanos_event_key_t copy_data_in_key = ID->getEventKey("copy-data-alloc"); )
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseOpenBurstEvent( copy_data_in_key, (nanos_event_value_t) to->getId() ); )
        do {
           result = to->_mcontrol.allocateTaskMemory();
+         if ( !result ) {
+            myThread->idle();
+         }
        } while( result == false );
+   NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( copy_data_in_key, 0 ); )
 
        to->init();
        //       to->start(true,current);

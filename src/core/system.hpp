@@ -96,6 +96,9 @@ inline int System::getNumWorkers() const { return _workers.size(); }
 
 inline int System::getNumCreatedPEs() const { return _pes.size(); }
 
+inline System::ThreadList::iterator System::getWorkersBegin() { return _workers.begin(); }
+inline System::ThreadList::iterator System::getWorkersEnd() { return _workers.end(); }
+
 //inline int System::getNumSockets() const { return _numSockets; }
 //inline void System::setNumSockets ( int numSockets ) { _numSockets = numSockets; }
 //
@@ -390,6 +393,7 @@ inline void System::setDefaultArch( const std::string &arch ) { _defArch = arch;
 
 inline Network * System::getNetwork( void ) { return &_net; }
 inline bool System::usingCluster( void ) const { return _usingCluster; }
+inline bool System::usingClusterMPI( void ) const { return _usingClusterMPI; }
 inline bool System::useNode2Node( void ) const { return _usingNode2Node; }
 inline bool System::usePacking( void ) const { return _usingPacking; }
 inline const std::string & System::getNetworkConduit( void ) const { return _conduit; }
@@ -649,6 +653,36 @@ inline bool System::isImmediateSuccessorEnabled() const {
 
 inline bool System::usePredecessorCopyInfo() const {
    return !_predecessorCopyInfoDisabled;
+}
+
+inline bool System::invalControlEnabled() const {
+   return _invalControl;
+}
+
+inline std::set<memory_space_id_t> const &System::getActiveMemorySpaces() const {
+   return _activeMemorySpaces;
+}
+
+inline std::map<unsigned int, PE *> const &System::getPEs() const {
+   return _pes;
+}
+
+inline void System::allocLock() {
+   while ( !_allocLock.tryAcquire() ) {
+      myThread->idle();
+   }
+}
+
+inline void System::allocUnlock() {
+   _allocLock.release();
+}
+
+inline bool System::useFineAllocLock() const {
+   return !_cgAlloc;
+}
+
+inline SMPDevice &System::_getSMPDevice() {
+   return _SMP;
 }
 
 #endif

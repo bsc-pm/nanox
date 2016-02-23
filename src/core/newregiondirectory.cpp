@@ -44,6 +44,7 @@
 #include "hashfunction_decl.hpp"
 #include "regiondict.hpp"
 #include "os.hpp"
+#include "globalregt.hpp"
 
 #if VERBOSE_CACHE
  #define _VERBOSE_CACHE 1
@@ -61,6 +62,7 @@ std::ostream & nanos::operator<< (std::ostream &o, nanos::NewNewDirectoryEntryDa
    for ( std::set<memory_space_id_t>::iterator it = ent._location.begin(); it != ent._location.end(); it++ ) {
       o << *it << " ";
    }
+   o << "R: " << ent.getRootedLocation();
    return o;
 }
 
@@ -81,13 +83,17 @@ NewNewRegionDirectory::NewNewRegionDirectory() : _keys(), _keysSeed( 1 ),
 
 uint64_t NewNewRegionDirectory::_getKey( uint64_t addr, std::size_t len, WD const *wd ) {
    bool exact;
-   _keysLock.acquire();
+   while ( !_keysLock.tryAcquire() ) {
+      myThread->idle();
+   }
    uint64_t keyIfNotFound = ( _keysSeed + 1 == 0 ) ? 1 : _keysSeed + 1;
-   //std::cerr << __func__ << " with addr " << (void *) addr << " and size " << len << " wd " << ( wd != NULL ? wd->getId() : -1 ) << " [ " << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << " ] " << std::endl;
-   uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0 );
+   //*myThread->_file << __func__ << " with addr " << (void *) addr << " and size " << len << " wd " << ( wd != NULL ? wd->getId() : -1 ) << " [ " << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << " ] " << std::endl;
+   uint64_t conflict_addr = 0;
+   std::size_t conflict_size = 0;
+   uint64_t key = _keys.getExactOrFullyOverlappingInsertIfNotFound( addr, len, exact, keyIfNotFound, 0, conflict_addr, conflict_size );
    if ( key == 0 ) {
-      printBt(std::cerr);
-      fatal("invalid key, can not continue. Address " << (void *) addr << " w/len " << len << " [" << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << "]" );
+      printBt(*myThread->_file);
+      fatal("invalid key, can not continue. Address " << (void *) addr << " w/len " << len << " [" << ( wd != NULL ? ( ( wd->getDescription() != NULL) ? wd->getDescription() : "wd desc. not available" ) : "null WD, comming from nanos_register probably" ) << "] conflicts with address: " << (void *) conflict_addr << ", size: " << conflict_size );
    } else if ( key == keyIfNotFound ) {
       _keysSeed += 1;
    }
@@ -111,21 +117,10 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
    HashBucket &hb = _objects[ key ];
    GlobalRegionDictionary *dict = NULL;
 
-   hb._lock.acquire();
-
-#if 0
-   std::map< uint64_t, Object >::iterator it = hb._bobjects.lower_bound( key );
-   if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( key, it->first) ) {
-      it = hb._bobjects.insert( it, std::map< uint64_t, Object >::value_type( objectAddr, Object( NEW GlobalRegionDictionary( cd ) ) ) );
-      dict = it->second.getGlobalRegionDictionary();
-      NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
-      if ( entry == NULL ) {
-         entry = NEW NewNewDirectoryEntryData();
-         //entry->addAccess( 0, 1 );
-         dict->setRegionData( 1, entry );
-      }
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
    }
-#endif
+
    if ( hb._bobjects == NULL ) {
       hb._bobjects = NEW MemoryMap< Object >();
    }
@@ -138,8 +133,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
          NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
          if ( entry == NULL ) {
             entry = NEW NewNewDirectoryEntryData();
-            //entry->addAccess( 0, 1 );
-            dict->setRegionData( 1, entry );
+            dict->setRegionData( 1, entry ); //getRegionDictionaryRegisterIfNeeded
          }
       } else {
          /* already registered */
@@ -154,8 +148,7 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionaryRegisterIfNeed
             NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
             if ( entry == NULL ) {
                entry = NEW NewNewDirectoryEntryData();
-               //entry->addAccess( 0, 1 );
-               dict->setRegionData( 1, entry );
+               dict->setRegionData( 1, entry ); //getRegionDictionaryRegisterIfNeeded
             }
             (*o)->setGlobalRegionDictionary( dict );
          }
@@ -190,7 +183,9 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
      fatal("can not continue");
    }
 #endif
-   hb._lock.acquire();
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
+   }
    if ( hb._bobjects == NULL ) {
       *(myThread->_file) << "Error, CopyData object not registered in the RegionDictionary " << (void *) objectAddr << std::endl;
       printBt( *(myThread->_file) );
@@ -209,177 +204,11 @@ GlobalRegionDictionary *NewNewRegionDirectory::getRegionDictionary( uint64_t obj
    return dict;
 }
 
-// reg_t NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
-//    reg_t reg = 0;
-//    if ( dict->tryLock() ) {
-//    //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
-//     reg = _getLocation( dict, cd, missingParts, version, wd );
-//    //NANOS_INSTRUMENT( inst1.close(); );
-//       dict->unlock();
-//    }
-//    return reg;
-// }
-
-void NewNewRegionDirectory::tryGetLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd ) {
-   NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( reg );
-
-   if ( entry == NULL ) {
-      entry = NEW NewNewDirectoryEntryData();
-      NewNewDirectoryEntryData *fullRegEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( 1 );
-      if ( fullRegEntry->isRooted() ) {
-         entry->addRootedAccess( fullRegEntry->getRootedLocation(), fullRegEntry->getVersion() );
-      }
-      //entry->addAccess( 0, 1 );
-      dict->setRegionData( reg, entry );
-   }
-   if ( dict->getVersion() != entry->getVersion() || entry->getVersion() == 1 ) {
-      if ( dict->tryLock() ) {
-         //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_POST_OUTLINE_WORK2 ); );
-         __getLocation( dict, reg, missingParts, version, wd );
-         //NANOS_INSTRUMENT( inst1.close(); );
-         dict->unlock();
-      }
-   } else {
-      //std::cerr << "Avoid checking of global directory because dict Version == reg Version." << std::endl; 
-      missingParts.push_back( std::make_pair( reg, reg ) );
-      version = dict->getVersion();
-   }
-}
-
-// reg_t NewNewRegionDirectory::_getLocation( RegionDirectoryKey dict, CopyData const &cd, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
-// {
-//    reg_t reg = 0;
-//    ensure( missingParts.empty(), "Non empty list provided." );
-//    missingParts.clear();
-//    //sys.getMasterRegionDirectory().print();
-// 
-//    reg = dict->registerRegion( cd, missingParts, version );
-// 
-//    for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
-//       if ( it->first != it->second ) {
-//          NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
-//          NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
-//          if ( firstEntry == NULL ) {
-//             if ( secondEntry != NULL ) {
-//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
-//                firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
-//       //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, !null"<<std::endl;
-//           } else {
-//       //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, null"<<std::endl;
-//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"(null)"<<std::endl;
-//                firstEntry = NEW NewNewDirectoryEntryData();
-//                firstEntry->addAccess( 0, 1 );
-//                secondEntry = NEW NewNewDirectoryEntryData();
-//                secondEntry->addAccess( 0, 1 );
-//                dict->setRegionData( it->second, secondEntry );
-//             }
-//             dict->setRegionData( it->first, firstEntry );
-//          } else {
-//             if ( secondEntry != NULL ) {
-//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"("<<*firstEntry<<"),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
-//       //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, !null, !null"<<std::endl;
-// 
-//                *firstEntry = *secondEntry;
-//             } else {
-//                std::cerr << "Dunno what to do..."<<std::endl;
-//             }
-//          }
-//       } else {
-//       //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, same id"<<std::endl;
-//          NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
-//       //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"( " << (void*) entry << " ),"<< it->second <<"( )"<<std::endl;
-//          if ( entry == NULL ) {
-//             entry = NEW NewNewDirectoryEntryData();
-//             entry->addAccess( 0, 1 );
-//             dict->setRegionData( it->first, entry );
-//          }
-//       }
-//    }
-// 
-//    return reg;
-// }
-
-void NewNewRegionDirectory::__getLocation( RegionDirectoryKey dict, reg_t reg, NewLocationInfoList &missingParts, unsigned int &version, WD const &wd )
-{
-   if ( !missingParts.empty() ) {
-   printBt(std::cerr);
-   }
-   ensure( missingParts.empty(), "Non empty list provided." );
-   missingParts.clear();
-   //sys.getMasterRegionDirectory().print();
-
-   //std::cerr << "1. Leaf for reg " << reg << " leaf is " << (void*) dict->getRegionNode(reg) << " dict is "  << (void *) &dict << std::endl;
-   dict->registerRegion( reg, missingParts, version );
-   //std::cerr << "2. Leaf for reg " << reg << " leaf is " << (void*) dict->getRegionNode(reg) << " dict is "  << (void *) &dict << std::endl;
-
-   for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
-      if ( it->first != it->second ) {
-         NewNewDirectoryEntryData *firstEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
-         NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
-         if ( firstEntry == NULL ) {
-            if ( secondEntry != NULL ) {
-       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " USING REG " << it->second<< std::endl; }
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
-               firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
-      //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, !null"<<std::endl;
-          } else {
-       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " USING NEW VAL, second also " << it->second<< std::endl; }
-      //if( sys.getNetwork()->getNodeNum() ) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, null, null"<<std::endl;
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"(null),"<< it->second <<"(null)"<<std::endl;
-               firstEntry = NEW NewNewDirectoryEntryData();
-               //firstEntry->addAccess( 0, 1 );
-               secondEntry = NEW NewNewDirectoryEntryData();
-               //secondEntry->addAccess( 0, 1 );
-               dict->setRegionData( it->second, secondEntry );
-            }
-            dict->setRegionData( it->first, firstEntry );
-         } else {
-            if ( secondEntry != NULL ) {
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"("<<*firstEntry<<"),"<< it->second <<"("<< *secondEntry<<")"<<std::endl;
-      //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, !null, !null"<<std::endl;
-       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " COPY FROM " << it->second << std::endl; }
-
-               *firstEntry = *secondEntry;
-            } else {
-               std::cerr << "Dunno what to do..."<<std::endl;
-            }
-         }
-      } else {
-      //if( wd.getId() == 27) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] case, same id"<<std::endl;
-         NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->first );
-      //if( sys.getNetwork()->getNodeNum() == 0) std::cerr <<"["<<sys.getNetwork()->getNodeNum()<< "] getLocation: " << it->first <<"( " << (void*) entry << " ),"<< it->second <<"( )"<<std::endl;
-         if ( entry == NULL ) {
-       //if (1 ) { std::cerr << (void *)dict << " INIT DATA ENTRY FOR REG " << it->first << " USING NEW VAL, same second " << std::endl; }
-            entry = NEW NewNewDirectoryEntryData();
-            //entry->addAccess( 0, 1 );
-            dict->setRegionData( it->first, entry );
-         } else {
-       //if (1 ) { std::cerr << (void *)dict << " ENTRY EXISTS FOR REG " << it->first << std::endl; }
-         }
-      }
-   }
-
-   //if ( wd.getId() == 27 ) {
-   //std::cerr << "Git region " << reg << std::endl;
-   //for ( std::list< std::pair< reg_t, reg_t > >::iterator it = missingParts.begin(); it != missingParts.end(); it++ ) {
-   //   std::cerr << "\tPart " << it->first << " comes from " << it->second << " dict " << (void *) dict << std::endl;
-   //}
-   //std::cerr <<" end of getLocation "<< std::endl;
-   //}
-
-}
-
 void NewNewRegionDirectory::addAccess( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, memory_space_id_t loc, unsigned int version )
 {
    if (dict->getVersion() < version ) dict->setVersion( version );
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
-   //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "ADD ACCESS "<< (void*) dict << ":" << id << " to "<< memorySpaceId << std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
-   regEntry->addAccess( pe, loc, version );
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
+   regEntry->addAccess( pe, loc, version ); //addAccess IMPL
 }
 
 void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version )
@@ -388,50 +217,22 @@ void NewNewRegionDirectory::addRootedAccess( RegionDirectoryKey dict, reg_t id, 
    regEntry->addRootedAccess( loc, version );
 }
 
-//void NewNewRegionDirectory::addAccessRegisterIfNeeded( RegionDirectoryKey dict, reg_t id, unsigned int memorySpaceId, unsigned int version )
-//{
-//   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-//   if ( regEntry == NULL ) {
-//     regEntry = NEW NewNewDirectoryEntryData();
-//     dict->setRegionData( id, regEntry );
-//   }
-//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "ADD ACCESS if needed "<< (void*) dict << ":" << id << " to "<< memorySpaceId << std::endl;
-//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
-//   //if(sys.getNetwork()->getNodeNum() > 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
-//   regEntry->addAccess( memorySpaceId, version );
-//   //if(sys.getNetwork()->getNodeNum() == 0) { std::cerr << dict << " ADDING ACCESS reg " << id << " version " << version << " TO LOC " << memorySpaceId << " entry: " << *regEntry << std::endl; }
-//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << *regEntry<<std::endl;
-//   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
-//}
-
 NewNewDirectoryEntryData *NewNewRegionDirectory::getDirectoryEntry( GlobalRegionDictionary &dict, reg_t id ) {
-   NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict.getRegionData( id );
-   //if ( !entry ) {
-   //   entry = NEW NewNewDirectoryEntryData();
-   //   dict.setRegionData( id, entry );
-   //}
+   NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict.getRegionData( id ); //getDirectoryEntry
    return entry;
 }
 
 bool NewNewRegionDirectory::delAccess( RegionDirectoryKey dict, reg_t id, memory_space_id_t memorySpaceId ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    bool res;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "DEL ACCESS "<< (void*) dict << ":" << id << " from "<< memorySpaceId << std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
    res = regEntry->delAccess( memorySpaceId );
-   //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
    return res;
 }
 
 bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    bool res;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "DEL ACCESS "<< (void*) dict << ":" << id << " from "<< memorySpaceId << std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
    res = ( ( regEntry->isLocatedIn( pe ) ) && ( regEntry->getNumLocations() == 1 ) );
-   //if (sys.getNetwork()->getNodeNum() == 0 && regEntry )std::cerr << *regEntry<<std::endl;
-   //if (sys.getNetwork()->getNodeNum() == 0 )std::cerr << "---------" << std::endl;
    return res;
 }
 
@@ -442,16 +243,6 @@ bool NewNewRegionDirectory::isOnlyLocated( RegionDirectoryKey dict, reg_t id, me
    return res;
 }
 
-//void NewNewRegionDirectory::invalidate( RegionDirectoryKey dict, reg_t id ) {
-//   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-//   regEntry->invalidate();
-//}
-
-//bool NewNewRegionDirectory::hasBeenInvalidated( RegionDirectoryKey dict, reg_t id ) {
-//   NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-//   return regEntry->hasBeenInvalidated();
-//}
-
 void NewNewRegionDirectory::updateFromInvalidated( RegionDirectoryKey dict, reg_t id, reg_t from ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
    NewNewDirectoryEntryData *fromEntry = getDirectoryEntry( *dict, from );
@@ -459,23 +250,24 @@ void NewNewRegionDirectory::updateFromInvalidated( RegionDirectoryKey dict, reg_
 }
 
 void NewNewRegionDirectory::print() const {
-   // for ( std::vector< HashBucket >::const_iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
-   //    HashBucket const &hb = *bit;
-
-   // for ( std::map< uint64_t, Object >::const_iterator it = hb._bobjects.begin(); it != hb._bobjects.end(); it++ ) {
-   //    GlobalRegionDictionary *dict = it->second.getGlobalRegionDictionary();
-   //    std::cerr <<"Object "<< (void*)dict << std::endl;
-   //    for (reg_t i = 1; i < dict->getMaxRegionId(); i++ ) {
-   //       NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( i );
-   //       if ( !entry ) {
-   //          std::cerr << "\t" << i << " "; dict->printRegion( std::cerr, i ); std::cerr << " : null " << std::endl;
-   //       } else {
-   //          std::cerr << "\t" << i << " "; dict->printRegion( std::cerr, i ); std::cerr << " : ("<< entry <<") "<< *entry << std::endl;
-   //       }
-   //    }
-   // }
-
-   //}
+   for ( std::vector< HashBucket >::const_iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
+      HashBucket const &hb = *bit;
+      if ( hb._bobjects != NULL ) {
+         for ( MemoryMap<Object>::const_iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
+            GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
+            if ( dict == NULL ) continue;
+            *myThread->_file <<"Object "<< (void*)dict << std::endl;
+            for (reg_t i = 1; i < dict->getMaxRegionId(); i++ ) {
+               NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) dict->getRegionData( i ); //print
+               if ( !entry ) {
+                  *myThread->_file << "\t" << i << " "; dict->printRegion( *myThread->_file, i ); *myThread->_file << " : null " << std::endl;
+               } else {
+                  *myThread->_file << "\t" << i << " "; dict->printRegion( *myThread->_file, i ); *myThread->_file << " : ("<< entry <<") "<< *entry << std::endl;
+               }
+            }
+         }
+      }
+   }
 }
 
 
@@ -486,25 +278,18 @@ unsigned int NewNewRegionDirectory::getVersion( RegionDirectoryKey dict, reg_t i
 
 bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe, unsigned int version ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry << " version requested " << version<< std::endl;
    return regEntry->isLocatedIn( pe, version );
 }
 
-// bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc, unsigned int version ) {
-//    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-//    //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry << " version requested " << version<< std::endl;
-//    return regEntry->isLocatedIn( loc, version );
-// }
-
 bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, ProcessingElement *pe ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
+   //*myThread->_file << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
    return (regEntry) ? regEntry->isLocatedIn( pe ) : 0;
 }
 
 bool NewNewRegionDirectory::isLocatedIn( RegionDirectoryKey dict, reg_t id, memory_space_id_t loc ) {
    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-   //std::cerr << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
+   //*myThread->_file << dict << " IS LOCATED " << id << " in loc " << loc <<" entry is " <<*regEntry  << std::endl;
    return (regEntry) ? regEntry->isLocatedIn( loc ) : 0;
 }
 
@@ -513,16 +298,6 @@ unsigned int NewNewRegionDirectory::getFirstLocation( RegionDirectoryKey dict, r
    return regEntry->getFirstLocation();
 }
 
-// bool NewNewRegionDirectory::hasWriteLocation( RegionDirectoryKey dict, reg_t id ) {
-//    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-//    return regEntry->hasWriteLocation();
-// }
-
-// unsigned int NewNewRegionDirectory::getWriteLocation( RegionDirectoryKey dict, reg_t id ) {
-//    NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, id );
-//    return regEntry->getWriteLocation();
-// }
-
 GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd ) {
    return *getRegionDictionary( cd );
 }
@@ -530,7 +305,6 @@ GlobalRegionDictionary &NewNewRegionDirectory::getDictionary( CopyData const &cd
 void NewNewRegionDirectory::_invalidateObjectsFromDevices( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
    for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects.begin(); it != objects.end(); it++ ) {
       for ( memory_space_id_t id = 1; id <= sys.getSeparateMemoryAddressSpacesCount(); id++ ) {
-         //sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, (*it->second)[it->first].getGlobalRegionDictionary() ) );
          Object *o = it->second->getExactByAddress(it->first);
          sys.getSeparateMemory( id ).invalidate( global_reg_t( 1, o->getGlobalRegionDictionary() ) );
       }
@@ -568,17 +342,20 @@ void NewNewRegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< O
 }
 
 void NewNewRegionDirectory::synchronize( WD &wd ) {
-   //std::cerr << "SYNC DIR with wd " << wd.getId() << std::endl;
+   //*myThread->_file << "SYNC DIR with wd " << wd.getId() << std::endl;
    //int c = 0;
    //print();
 
+             NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
    if ( sys.getSeparateMemoryAddressSpacesCount() == 0 ) {
 
       std::map< uint64_t, MemoryMap< Object > * > objects_to_clear;
 
       for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
          HashBucket &hb = *bit;
-         hb._lock.acquire();
+         while ( !hb._lock.tryAcquire() ) {
+            myThread->idle();
+         }
          if ( hb._bobjects != NULL ) {
             for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
                GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
@@ -595,11 +372,12 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                std::list< std::pair< reg_t, reg_t > > missingParts;
                unsigned int version = 0;
                //double tini = OS::getMonotonicTime();
-               /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
+               /*reg_t lol =*/ dict->registerRegion(1, missingParts, version);
                objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
 
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 556 );)
                for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-                  //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
+                  //*myThread->_file << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
                   if ( mit->first == mit->second ) {
                      global_reg_t reg( mit->first, dict );
                      if ( reg.isRooted() ) { //ignore regions rooted to a certain location
@@ -613,14 +391,17 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                      }
                   }
                }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
             }
          }
          hb._lock.release();
       }
 
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 557 );)
       if ( wd.getDepth() == 0 ) {
          _unregisterObjects( objects_to_clear );
       }
+             NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
       return;
    }
 
@@ -631,12 +412,14 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
-      hb._lock.acquire();
+      while ( !hb._lock.tryAcquire() ) {
+         myThread->idle();
+      }
       if ( hb._bobjects != NULL ) {
          for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
-            //std::cerr << "==================  start object " << ++c << "("<< it->second <<") ================="<<std::endl;
+            //*myThread->_file << "==================  start object " << ++c << "("<< it->second <<") ================="<<std::endl;
             //if ( it->second->getKeepAtOrigin() ) {
-            //   std::cerr << "Object " << it->second << " Keep " << std::endl;
+            //   *myThread->_file << "Object " << it->second << " Keep " << std::endl;
             //}
             GlobalRegionDictionary *dict = it->second->getGlobalRegionDictionary();
             if ( dict == NULL ) continue;
@@ -653,41 +436,40 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
             std::list< std::pair< reg_t, reg_t > > missingParts;
             unsigned int version = 0;
             //double tini = OS::getMonotonicTime();
-            /*reg_t lol =*/ dict->registerRegion(1, missingParts, version, true);
+            /*reg_t lol =*/ dict->registerRegion(1, missingParts, version);
             //double tfini = OS::getMonotonicTime();
-            //std::cerr << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
-            //std::cerr << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
+            //*myThread->_file << __FUNCTION__ << " addRegion time " << (tfini-tini) << std::endl;
+            //*myThread->_file << "Missing parts are: (want version) "<< version << " got " << lol << " { ";
             //for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-            //   std::cerr <<"("<< mit->first << "," << mit->second << ") ";
+            //   *myThread->_file <<"("<< mit->first << "," << mit->second << ") ";
             //}
-            //std::cerr << "}"<<std::endl;
+            //*myThread->_file << "}"<<std::endl;
 
             objects_to_clear.insert( std::make_pair( objectAddr, hb._bobjects ) );
 
             for ( std::list< std::pair< reg_t, reg_t > >::iterator mit = missingParts.begin(); mit != missingParts.end(); mit++ ) {
-               //std::cerr << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
+               //*myThread->_file << "sync region " << mit->first << " : "<< ( void * ) dict->getRegionData( mit->first ) <<" with second reg " << mit->second << " : " << ( void * ) dict->getRegionData( mit->second )<< std::endl;
                if ( mit->first == mit->second ) {
                   global_reg_t reg( mit->first, dict );
                   if ( !reg.isRooted() ) { //ignore regions rooted to a certain location
                      if ( !reg.isLocatedIn( 0 ) ) {
                         DeviceOps *thisOps = reg.getDeviceOps();
                         if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  );
+                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) reg.key->getRegionData( reg.id  ); //synchronize
                            if ( _VERBOSE_CACHE ) {
-                              std::cerr << "f SYNC REGION! "; reg.key->printRegion( std::cerr, reg.id );
-                              if ( entry ) std::cerr << " " << *entry << std::endl;
-                              else std::cerr << " nil " << std::endl; 
+                              *myThread->_file << "f SYNC REGION! "; reg.key->printRegion( *myThread->_file, reg.id );
+                              if ( entry ) *myThread->_file << " " << *entry << std::endl;
+                              else *myThread->_file << " nil " << std::endl; 
                            }
-                           //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                           outOps.addOp( &sys.getSeparateMemory( reg.getFirstLocation() ), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
+                           outOps.addOutOp( 0 /* sync only non rooted objects */, reg.getFirstLocation(), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
                            outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
                         } else {
                            outOps.getOtherOps().insert( thisOps );
                         }
-                        //regEntry->addAccess( 0, regEntry->getVersion() );
                      }
                      // another mechanism to inval data: else if ( reg.getNumLocations() > 1 ) {
-                     // another mechanism to inval data:    //std::cerr << " have too upgrade host region" << std::endl;
+                     // another mechanism to inval data:    //*myThread->_file << " have too upgrade host region" << std::endl;
                      // another mechanism to inval data:    reg.setLocationAndVersion( 0, reg.getVersion()+1 ); //increase version to invalidate the device copy
                      // another mechanism to inval data: }
 
@@ -702,31 +484,34 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                   global_reg_t data_source( mit->second, dict );
                   if ( !data_source.isRooted() ) { //ignore regions rooted to a certain location
                      if ( !data_source.isLocatedIn( 0 ) ) {
-                        //std::cerr << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); std::cerr << std::endl;
-                        //std::cerr << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); std::cerr << std::endl;
-                        region_shape.initializeGlobalEntryIfNeeded();
-                        DeviceOps *thisOps = region_shape.getDeviceOps();
+                        //*myThread->_file << "FIXME: I should sync region! " << region_shape.id << " "; region_shape.key->printRegion( region_shape.id ); *myThread->_file << std::endl;
+                        //*myThread->_file << "FIXME: I should sync region! " << data_source.id << " "; data_source.key->printRegion( data_source.id ); *myThread->_file << std::endl;
+								NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *region_shape.key, region_shape.id );
+								if ( regEntry == NULL ) {
+									regEntry = NEW NewNewDirectoryEntryData();
+									region_shape.key->setRegionData( region_shape.id, regEntry );
+								}
+								DeviceOps *thisOps = regEntry->getOps();
                         if ( thisOps->addCacheOp( /* debug: */ &wd ) ) {
-                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  );
+                           NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) data_source.key->getRegionData( data_source.id  ); //synchronize
                            if ( _VERBOSE_CACHE ) {
-                              std::cerr << " SYNC REGION! "; region_shape.key->printRegion( std::cerr, region_shape.id );
-                              if ( entry ) std::cerr << " " << *entry << std::endl;
-                              else std::cerr << " nil " << std::endl; 
+                              *myThread->_file << " SYNC REGION! "; region_shape.key->printRegion( *myThread->_file, region_shape.id );
+                              if ( entry ) *myThread->_file << " " << *entry << std::endl;
+                              else *myThread->_file << " nil " << std::endl; 
                            }
-                           //std::cerr << " reg is in: " << reg.getFirstLocation() << std::endl;
-                           outOps.addOp( &sys.getSeparateMemory( data_source.getFirstLocation() ), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
+                           outOps.addOutOp( 0 /* sync only non rooted objects */, data_source.getFirstLocation(), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
                            outOps.insertOwnOp( thisOps, region_shape, data_source.getVersion()+1, 0 ); //increase version to invalidate the device copy
                         } else {
                            outOps.getOtherOps().insert( thisOps );
                         }
-                        //regEntry->addAccess( 0, regEntry->getVersion() );
                      }
                   } else {
                      objects_to_clear.erase( objectAddr );
                   }
                }
             }
-            //std::cerr << "=============================================================="<<std::endl;
+            //*myThread->_file << "=============================================================="<<std::endl;
          }
       }
       hb._lock.release();
@@ -734,7 +519,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
    outOps.issue( *( (WD *) NULL ) );
    while ( !outOps.isDataReady( wd ) ) { myThread->processTransfers(); }
 
-   //std::cerr << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
+   //*myThread->_file << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
    //printBt();
    if ( wd.getDepth() == 0 ) {
       // invalidate data on devices
@@ -742,11 +527,13 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
 
       //clear objects from directory
       _unregisterObjects( objects_to_clear );
-      sys.getNetwork()->synchronizeDirectory();
+      if ( sys.usingCluster() ) {
+         sys.getNetwork()->synchronizeDirectory();
+      }
    }
-   //std::cerr << "SYNC DIR DONE" << std::endl;
+   //*myThread->_file << "SYNC DIR DONE" << std::endl;
    //print();
-   //std::cerr << "SYNC DIR & PRINT DONE" << std::endl;
+   //*myThread->_file << "SYNC DIR & PRINT DONE" << std::endl;
 }
 
 DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
@@ -758,30 +545,12 @@ DeviceOps *NewNewRegionDirectory::getOps( RegionDirectoryKey dict, reg_t id ) {
    return ops;
 }
 
-void NewNewRegionDirectory::initializeEntry( RegionDirectoryKey dict, reg_t reg ) {
-   NewNewDirectoryEntryData *entry = NEW NewNewDirectoryEntryData();
-   dict->setRegionData( reg, entry );
-}
-void NewNewRegionDirectory::initializeEntryWithAnother( RegionDirectoryKey dict, reg_t reg, reg_t from ) {
-   NewNewDirectoryEntryData *from_entry = (NewNewDirectoryEntryData *) dict->getRegionData( from );
-   ensure( from_entry != NULL, "Invalid entry.");
-   NewNewDirectoryEntryData *entry = NEW NewNewDirectoryEntryData( *from_entry );
-   dict->setRegionData( reg, entry );
-}
-
 reg_t NewNewRegionDirectory::getLocalRegionId(void * hostObject, reg_t hostRegionId ) {
    GlobalRegionDictionary *dict = getRegionDictionary( (uint64_t) hostObject );
    return dict->getLocalRegionIdFromMasterRegionId( hostRegionId );
 }
 
-//reg_t NewNewRegionDirectory::getLocalRegionIdFromMasterRegionId( RegionDirectoryKey dict, reg_t masterId ) {
-//   //TODO
-//   return dict->getLocalRegionIdFromMasterRegionId( masterId );
-//}
-
 void NewNewRegionDirectory::addMasterRegionId( RegionDirectoryKey dict, reg_t masterId, reg_t localId ) {
-   //NewNewDirectoryEntryData *regEntry = getDirectoryEntry( *dict, localId );
-   //std::cerr << "Setting master region id " << masterId << " for reg [" << (void *) dict << " " << localId << "] regEntry: " << regEntry << std::endl;
    dict->addMasterRegionId( masterId, localId );
 }
 
@@ -806,7 +575,9 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
 #endif
    HashBucket &hb = _objects[ key ];
 
-   hb._lock.acquire();
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
+   }
 #if 0
    std::map< uint64_t, Object >::iterator it = hb._bobjects.lower_bound( objectAddr );
    if ( it == hb._bobjects.end() || hb._bobjects.key_comp()( objectAddr, it->first) ) {
@@ -827,8 +598,7 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
          NewNewDirectoryEntryData *entry = getDirectoryEntry( *dict, 1 );
          if ( entry == NULL ) {
             entry = NEW NewNewDirectoryEntryData();
-            //entry->addAccess( 0, 1 );
-            dict->setRegionData( 1, entry );
+            dict->setRegionData( 1, entry ); //registerObject
          }
       } else {
          /* already registered */
@@ -845,7 +615,9 @@ void NewNewRegionDirectory::registerObject(nanos_copy_data_internal_t *obj) {
 void NewNewRegionDirectory::unregisterObject(void *baseAddr) {
    uint64_t key = jen_hash( this->_getKey( (uint64_t)baseAddr ) ) & (HASH_BUCKETS-1);
    HashBucket &hb = _objects[ key ];
-   hb._lock.acquire();
+   while ( !hb._lock.tryAcquire() ) {
+      myThread->idle();
+   }
    if ( hb._bobjects == NULL ) {
       *(myThread->_file) << "Error, unregister object: object not registered " << baseAddr << std::endl;
       printBt( *(myThread->_file) );

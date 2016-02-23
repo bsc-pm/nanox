@@ -284,10 +284,11 @@ inline bool WDDeque::removeWDWithConstraints( BaseThread *thread, WorkDescriptor
          for ( it = _dq.begin(); it != _dq.end(); it++ ) {
             if ( *it == toRem ) {
                if ( ( *it )->dequeue( next ) ) {
+                  WD *this_wd = *it;
                   _dq.erase( it );
                   if ( _deviceCounter ) {
-                     for ( unsigned int i = 0; i < (*it)->getNumDevices(); i++ ) {
-                        _ndevs[( (*it)->getDevices()[i]->getDevice() )]--;
+                     for ( unsigned int i = 0; i < this_wd->getNumDevices(); i++ ) {
+                        _ndevs[( this_wd->getDevices()[i]->getDevice() )]--;
                      }
                   }
                   int tasks = --(sys.getSchedulerStats()._readyTasks);

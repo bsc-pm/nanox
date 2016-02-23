@@ -43,6 +43,7 @@ void * SimpleAllocator::allocate( std::size_t size )
 {
    SegmentMap::iterator mapIter = _freeChunks.begin();
    void * retAddr = (void *) 0;
+   ensure(size != 0, "Error, can't allocate 0 bytes.");
 
    while( mapIter != _freeChunks.end() && mapIter->second < size )
    {
@@ -65,7 +66,7 @@ void * SimpleAllocator::allocate( std::size_t size )
    }
    else {
       // Could not get a chunk of 'size' bytes
-      //std::cerr << __FUNCTION__ << " WARNING: Allocator is full, requested " << size << " bytes, remaining " << _remaining << " bytes." << std::endl;
+      //*myThread->_file << __FUNCTION__ << " WARNING: Allocator is full, requested " << size << " bytes, remaining " << _remaining << " bytes." << std::endl;
       //sys.printBt();
       return NULL;
    }
@@ -117,7 +118,7 @@ void * SimpleAllocator::allocateSizeAligned( std::size_t size )
    }
    else {
       // Could not get a chunk of 'size' bytes
-      std::cerr << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
+      *myThread->_file << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
       return NULL;
    }
 
@@ -126,6 +127,7 @@ void * SimpleAllocator::allocateSizeAligned( std::size_t size )
 
 std::size_t SimpleAllocator::free( void *address )
 {
+   ensure( !_allocatedChunks.empty(), "Empty _allocatedChunks!");
    //*(myThread->_file) << "SimpleAllocator::free " << (void *) address << std::endl;
    SegmentMap::iterator mapIter = _allocatedChunks.find( ( uint64_t ) address );
 
@@ -137,6 +139,7 @@ std::size_t SimpleAllocator::free( void *address )
 
    size_t size = mapIter->second;
    std::pair< SegmentMap::iterator, bool > ret;
+   ensure (size != 0, "Invalid entry in _allocatedChunks, size == 0");
 
    _allocatedChunks.erase( mapIter );
 
@@ -190,8 +193,10 @@ std::size_t SimpleAllocator::free( void *address )
       }
       //duplicate key, error
       else {
-         *(myThread->_file) << "Duplicate entry in segment map, addr " << address << "." << std::endl;
-         //printBt();
+         *(myThread->_file) << "Duplicate entry in segment map, addr " << address << ", size " << size << ". Got entry with size " << mapIter->second << ". Remaining: "<< _remaining << std::endl;
+         printBt(*(myThread->_file));
+         printMap(*(myThread->_file));
+         return 0;
       }
    }
    else {
@@ -202,29 +207,32 @@ std::size_t SimpleAllocator::free( void *address )
    return size;
 }
 
-void SimpleAllocator::printMap()
+void SimpleAllocator::printMap( std::ostream &o )
 {
    std::size_t totalAlloc = 0, totalFree = 0;
-   std::cerr << (void *) this <<" ALLOCATED CHUNKS" << std::endl;
+   o << (void *) this <<" ALLOCATED CHUNKS" << std::endl;
    for (SegmentMap::iterator it = _allocatedChunks.begin(); it != _allocatedChunks.end(); it++ ) {
-      std::cerr << "|... ";
-      std::cerr << (void *) it->first << " @ " << (std::size_t)it->second;
-      std::cerr << " ...";
+      o << "|... ";
+      o << (void *) it->first << " @ " << (std::size_t)it->second;
+      o << " ...";
       totalAlloc += it->second;
    }
-   std::cerr << "| total allocated bytes " << (std::size_t) totalAlloc << std::endl;
+   o << "| total allocated bytes " << (std::size_t) totalAlloc << std::endl;
 
-   std::cerr << (void *) this <<" FREE CHUNKS" << std::endl;
+   o << (void *) this <<" FREE CHUNKS" << std::endl;
    for (SegmentMap::iterator it = _freeChunks.begin(); it != _freeChunks.end(); it++ ) {
-      std::cerr << "|... ";
-      std::cerr << (void *) it->first << " @ " << (std::size_t) it->second;
-      std::cerr << " ...";
+      o << "|... ";
+      o << (void *) it->first << " @ " << (std::size_t) it->second;
+      o << " ...";
       totalFree += it->second;
    }
-   std::cerr << "| total free bytes "<< (std::size_t) totalFree << std::endl;
+   o << "| total free bytes "<< (std::size_t) totalFree << std::endl;
 }
 
 void SimpleAllocator::lock() {
+   //while ( !_lock.tryAcquire() ) {
+   //   myThread->idle();
+   //}
    _lock.acquire();
 }
 

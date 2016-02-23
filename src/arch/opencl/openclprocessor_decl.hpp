@@ -208,7 +208,7 @@ public:
    /**
     * @brief This function update the profiling data during the execution
     */
-   void updateProfStats(std::string kernelName, Dims& dims, Execution &execution);
+   void updateProfStats(std::string kernelName, Dims& dims, Execution const &execution);
 
 private:
    cl_int getDeviceInfo( cl_device_info key, size_t size, void *value );

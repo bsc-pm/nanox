@@ -35,7 +35,7 @@ using namespace nanos::ext;
 
 FPGADevice::FPGADevice ( const char *n ): Device( n ) {}
 
-void FPGADevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void FPGADevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) const {
 
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;
@@ -103,8 +103,8 @@ inline bool FPGADevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_
    return true; // true means sync transfer
 }
 void FPGADevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len,
-      SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f,
-      WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+      SeparateMemoryAddressSpace &mem, DeviceOps *ops,
+      WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) const {
 
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;

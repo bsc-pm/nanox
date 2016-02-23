@@ -43,8 +43,10 @@
 #include "hwloc_decl.hpp"
 #include "threadmanager_decl.hpp"
 #include "router_decl.hpp"
+#include "clustermpiplugin_fwd.hpp"
 
 #include "newregiondirectory_decl.hpp"
+#include "smpdevice_decl.hpp"
 
 #ifdef GPU_DEV
 #include "pinnedallocator_decl.hpp"
@@ -73,10 +75,11 @@ namespace nanos
          typedef void (*Init) ();
          //typedef std::vector<Accelerator *> AList;
 
+         typedef std::map<unsigned int, BaseThread *> ThreadList;
+
       private:
          // types
          typedef std::map<unsigned int, PE *>         PEList;
-         typedef std::map<unsigned int, BaseThread *> ThreadList;
          typedef std::map<std::string, Slicer *> Slicers;
          typedef std::map<std::string, WorkSharing *> WorkSharings;
          typedef std::multimap<std::string, std::string> ModulesPlugins;
@@ -95,6 +98,9 @@ namespace nanos
          Atomic<int> _atomicWDSeed;                   //!< \brief ID seed for new WD's
          Atomic<int> _threadIdSeed;                   //!< \brief ID seed for new threads
          Atomic<unsigned int> _peIdSeed;              //!< \brief ID seed for new PE's
+
+         // Devices
+         SMPDevice _SMP;
 
          // configuration variables
          size_t               _deviceStackSize;
@@ -160,6 +166,8 @@ namespace nanos
          /*! Cluster: system Network object */
          Network              _net;
          bool                 _usingCluster;
+         bool                 _usingClusterMPI;
+         ext::ClusterMPIPlugin *_clusterMPIPlugin;
          bool                 _usingNode2Node;
          bool                 _usingPacking;
          std::string          _conduit;
@@ -178,8 +186,6 @@ namespace nanos
          // Programming model interface
          PMInterface *        _pmInterface;
 
-         NewNewRegionDirectory _masterRegionDirectory;
-
          WD *slaveParentWD;
          BaseThread *_masterGpuThd;
 
@@ -192,6 +198,7 @@ namespace nanos
 
          std::set<unsigned int>                        _clusterNodes;
          std::set<unsigned int>                        _numaNodes;
+         std::set<memory_space_id_t>                   _activeMemorySpaces;
 
          unsigned int                                  _acceleratorCount;
          //! Maps from a physical NUMA node to a user-selectable node
@@ -238,10 +245,15 @@ namespace nanos
          bool _splitOutputForThreads;
          int _userDefinedNUMANode;
          Router _router;
+         Lock _allocLock;
       public:
          Hwloc _hwloc;
          bool _immediateSuccessorDisabled;
          bool _predecessorCopyInfoDisabled;
+         bool _invalControl;
+         bool _cgAlloc;
+         bool _inIdle;
+         bool _lazyPrivatizationEnabled;
 
       private:
          PE * createPE ( std::string pe_type, int pid, int uid );
@@ -295,10 +307,10 @@ namespace nanos
          */
          void setupWD( WD &work, WD *parent );
 
-         /*!
-          * \brief Method to get the device types of all the architectures running
-          */
-         DeviceList & getSupportedDevices();
+        /*!                                                                     
+         * \brief Method to get the device types of all the architectures running
+         */                                                                     
+        DeviceList & getSupportedDevices();
 
          void setDeviceStackSize ( size_t stackSize );
 
@@ -371,6 +383,9 @@ namespace nanos
           * \param[in] parallel Identifies the type of team, parallel code or single executor.
           */
          ThreadTeam * createTeam ( unsigned nthreads, void *constraints=NULL, bool reuse=true, bool enter=true, bool parallel=false );
+         
+         ThreadList::iterator getWorkersBegin();
+         ThreadList::iterator getWorkersEnd();
 
          BaseThread * getWorker( unsigned int n );
 
@@ -519,6 +534,7 @@ namespace nanos
 
          Network * getNetwork( void );
          bool usingCluster( void ) const;
+         bool usingClusterMPI( void ) const;
          bool usingNewCache( void ) const;
          bool useNode2Node( void ) const;
          bool usePacking( void ) const;
@@ -573,8 +589,8 @@ namespace nanos
          //Lock _graphRepListsLock;
       public:
          //std::list<GraphEntry *> *getGraphRepList();
-
-         NewNewRegionDirectory &getMasterRegionDirectory() { return _masterRegionDirectory; }
+         
+         NewNewRegionDirectory const &getMasterRegionDirectory() { return _hostMemory.getDirectory(); }
          ProcessingElement &getPEWithMemorySpaceId( memory_space_id_t id );;
 
          void setValidPlugin ( const std::string &module,  const std::string &plugin );
@@ -639,7 +655,7 @@ namespace nanos
           */
          void ompss_nanox_main_end ();
 
-         void _registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len);
+         global_reg_t _registerMemoryChunk(void *addr, std::size_t len);
          void registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len);
          void stickToProducer(void *addr, std::size_t len);
          void setCreateLocalTasks(bool value);
@@ -683,6 +699,22 @@ namespace nanos
          void switchToThread( unsigned int thid );
          bool isImmediateSuccessorEnabled() const;
          bool usePredecessorCopyInfo() const;
+         bool invalControlEnabled() const;
+         std::set<memory_space_id_t> const &getActiveMemorySpaces() const;
+         PEList const &getPEs() const;
+         void allocLock();
+         void allocUnlock();
+         bool useFineAllocLock() const;
+void _distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t num_nodes );
+global_reg_t _registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size);
+
+         SMPDevice &_getSMPDevice();
+         int initClusterMPI(int *argc, char ***argv);
+         void finalizeClusterMPI();
+         void notifyIntoBlockingMPICall();
+         void notifyOutOfBlockingMPICall();
+         void notifyIdle( unsigned int node );
+         void disableHelperNodes();
    };
 
    extern System sys;

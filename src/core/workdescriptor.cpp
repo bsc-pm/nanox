@@ -541,21 +541,35 @@ void WorkDescriptor::exitWork ( WorkDescriptor &work )
    _componentsSyncCond.unreference();
 }
 
-void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size,
+void WorkDescriptor::registerTaskReduction( void *p_orig, size_t p_size, size_t p_el_size,
       void (*p_init)( void *, void * ), void (*p_reducer)( void *, void * ) )
 {
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->have( p_orig, 0 ) ) break;
+      if ( (*it)->has( p_orig) )
+      {
+    	  return;
+      }
    }
 
    if ( it == _taskReductions.rend() ) {
-      //! We must register p_orig as a new reduction
-       NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+       //! We must register p_orig as a new reduction
+       //No padding now as this leads to incorrect number of elements for certain cases. Fix: compute total number of elements before padding and pass it to the construct below
+       //NANOS_ARCHITECTURE_PADDING_SIZE(p_size);
+       //NANOS_ARCHITECTURE_PADDING_SIZE(p_el_size);
        _taskReductions.push_back(
-               new TaskReduction( p_orig, p_init, p_reducer,
-                   p_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+               new TaskReduction(
+            		   p_orig,
+					   p_init,
+					   p_reducer,
+					   p_size,
+					   p_el_size,
+					   myThread->getTeam()->getFinalSize(),
+					   myThread->getCurrentWD()->getDepth(),
+					   sys._lazyPrivatizationEnabled
+					   )
+       );
    }
 }
 
@@ -565,15 +579,26 @@ void WorkDescriptor::registerFortranArrayTaskReduction( void *p_orig, void *p_de
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->have( p_dep, 0 ) ) break;
+      if ( (*it)->has( p_dep) ) break;
    }
 
    if ( it == _taskReductions.rend() ) {
       //! We must register p_orig as a new reduction
       NANOS_ARCHITECTURE_PADDING_SIZE(array_descriptor_size);
-      _taskReductions.push_back(
-            new TaskReduction( p_orig, p_dep, p_init, p_reducer, p_reducer_orig_var,
-               array_descriptor_size, myThread->getTeam()->getFinalSize(), myThread->getCurrentWD()->getDepth() ) );
+
+     _taskReductions.push_back(
+            new TaskReduction(
+            		p_orig,
+					p_dep,
+					p_init,
+					p_reducer,
+					p_reducer_orig_var,
+					array_descriptor_size,
+					myThread->getTeam()->getFinalSize(),
+					myThread->getCurrentWD()->getDepth(),
+					sys._lazyPrivatizationEnabled
+					)
+     );
    }
 }
 
@@ -582,11 +607,36 @@ void * WorkDescriptor::getTaskReductionThreadStorage( void *p_addr, size_t id )
    //! Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      void *ptr = (*it)->have( p_addr, id );
-      if ( ptr != NULL ) return ptr;
+      if((*it)->has( p_addr )) break;
    }
 
-   // If this address is not associated to a reduction, we return NULL
+   if ( it != _taskReductions.rend() ) {
+	  void * ptr = (*it)->get(id);
+
+      if ( ptr != NULL ) {
+    	  if((*it)->isInitialized(id))
+    	  {
+    		  //std::cout << "1:" << ptr << ",WD:"<<this <<", "<< _taskReductions[0]->_original<< "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
+			  return ptr;
+      	  }
+      	  else
+      	  {
+      		//std::cout << "2:" << ptr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
+      		return (*it)->initialize(id);
+      	  }
+      }else
+      {
+    	  //allocate memory
+    	  //std::cout << "3:" << ptr << ",WD:"<<this<<", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
+		  (*it)->allocate(id);
+		  return (*it)->initialize(id);
+      }
+   }
+
+   if(isFinal()) return NULL;
+  // std::cout << "4:" << p_addr << ",WD:"<<this<< ", "<< _taskReductions[0]->_original << "," << _taskReductions[0]->_original << "," << _taskReductions[0]  << std::endl;
+
+   //this should never be reached
    return NULL;
 }
 
@@ -595,7 +645,7 @@ bool WorkDescriptor::removeTaskReduction( void *p_dep, bool del )
    // Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      if ( (*it)->have( p_dep, 0 ) ) break;
+      if ( (*it)->has( p_dep ) ) break;
    }
 
    if ( it != _taskReductions.rend() ) {
@@ -613,8 +663,7 @@ TaskReduction * WorkDescriptor::getTaskReduction( const void *p_dep )
    // Check if we have registered a reduction with this address
    task_reduction_vector_t::reverse_iterator it;
    for ( it = _taskReductions.rbegin(); it != _taskReductions.rend(); it++) {
-      void *ptr = (*it)->have( p_dep, 0 );
-      if ( ptr != NULL ) return (*it);
+	   if ( (*it)->has( p_dep ) ) return (*it);
    }
    return NULL;
 }

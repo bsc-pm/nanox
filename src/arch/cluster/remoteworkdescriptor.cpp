@@ -23,7 +23,10 @@
 
 using namespace nanos;
 
-RemoteWorkDescriptor::RemoteWorkDescriptor( unsigned int rId ) : WorkDescriptor( 0, NULL ), _remoteId ( rId ) {
+RemoteWorkDescriptor::RemoteWorkDescriptor() : WorkDescriptor( 0, NULL ), _destinationNode ( (unsigned int) -1 ) {
+}
+
+RemoteWorkDescriptor::RemoteWorkDescriptor( unsigned int destinationNode ) : WorkDescriptor( 0, NULL ), _destinationNode ( destinationNode ) {
    if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
       char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
       sys.getPMInterface().initInternalData( data );
@@ -33,5 +36,5 @@ RemoteWorkDescriptor::RemoteWorkDescriptor( unsigned int rId ) : WorkDescriptor(
 
 void RemoteWorkDescriptor::exitWork( WorkDescriptor &work ) { 
    WorkDescriptor::exitWork( work );
-   sys.getNetwork()->sendWorkDoneMsg( Network::MASTER_NODE_NUM, work.getRemoteAddr() , _remoteId );
+   sys.getNetwork()->sendWorkDoneMsg( _destinationNode, work.getRemoteAddr() );
 }

@@ -41,6 +41,8 @@
 #include "smpprocessor.hpp"
 #include "location.hpp"
 #include "router.hpp"
+#include "addressspace.hpp"
+#include "globalregt.hpp"
 
 #ifdef SPU_DEV
 #include "spuprocessor.hpp"
@@ -50,9 +52,46 @@
 #include "clusternode_decl.hpp"
 #include "clusterthread_decl.hpp"
 #endif
+#include "clustermpiplugin_decl.hpp"
 
 #include "addressspace.hpp"
 
+
+// extern "C" {
+// 
+//    // MPI INTERCEPTION
+// 
+//    int MPI_Init(int *argc, char ***argv);
+//    int MPI_Init(int *argc, char ***argv) 
+//    {
+//       //fprintf(stderr ,"Calling MPI_Init\n");
+//       //int result = MPI_Init_C_Wrapper(argc, argv);
+//       //int result = PMPI_Init( argc, argv );
+//       printf("Just called MPI_Init\n");
+//       sys.initClusterMPI(argc, argv);
+//       return 0;
+//    }
+// 
+//    int MPI_Init_thread( int *argc, char ***argv, int required, int *provided );
+//    int MPI_Init_thread( int *argc, char ***argv, int required, int *provided )
+//    {
+//       //fprintf(stderr,"Calling MPI_Init_thread\n");
+//       //int result = MPI_Init_thread_C_Wrapper(argc, argv, required, provided);
+//       //int result = PMPI_Init_thread( argc, argv, required, provided );
+//       printf("Just called MPI_Init_thread\n");
+//       sys.initClusterMPI(argc, argv);
+//       return 0;
+//    }
+// 
+//    // int MPI_Finalize() 
+//    // {
+//    //    //printf("Calling MPI_Finalize\n");
+//    //    FTI_Finalize();
+//    //    int result = PMPI_Finalize();
+//    //    //printf("Just called MPI_Finalize\n");
+//    //    return result;
+//    // }
+// }
 
 using namespace nanos;
 
@@ -68,7 +107,7 @@ namespace PMInterfaceType
 
 // default system values go here
 System::System () :
-      _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ),
+      _atomicWDSeed( 1 ), _threadIdSeed( 0 ), _peIdSeed( 0 ), _SMP("SMP"),
       /*jb _numPEs( INT_MAX ), _numThreads( 0 ),*/ _deviceStackSize( 0 ), _profile( false ),
       _instrument( false ), _verboseMode( false ), _summary( false ), _executionMode( DEDICATED ), _initialMode( POOL ),
       _untieMaster( true ), _delayedStart( false ), _synchronizedStart( true ), _alreadyFinished( false ),
@@ -77,11 +116,11 @@ System::System () :
       _defBarr( "centralized" ), _defInstr ( "empty_trace" ), _defDepsManager( "plain" ), _defArch( "smp" ),
       _initializedThreads ( 0 ), /*_targetThreads ( 0 ),*/ _pausedThreads( 0 ),
       _pausedThreadsCond(), _unpausedThreadsCond(),
-      _net(), _usingCluster( false ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
+      _net(), _usingCluster( false ), _usingClusterMPI( false ), _clusterMPIPlugin( NULL ), _usingNode2Node( true ), _usingPacking( true ), _conduit( "udp" ),
       _instrumentation ( NULL ), _defSchedulePolicy( NULL ), _dependenciesManager( NULL ),
-      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::SMP ),
-      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(), _acceleratorCount(0),
-      _numaNodeMap(), _threadManagerConf(), _threadManager( NULL )
+      _pmInterface( NULL ), _masterGpuThd( NULL ), _separateMemorySpacesCount(1), _separateAddressSpaces(1024), _hostMemory( ext::getSMPDevice() ),
+      _regionCachePolicy( RegionCache::WRITE_BACK ), _regionCachePolicyStr(""), _regionCacheSlabSize(0), _clusterNodes(), _numaNodes(),
+      _activeMemorySpaces(), _acceleratorCount(0), _numaNodeMap(), _threadManagerConf(), _threadManager( NULL )
 #ifdef GPU_DEV
       , _pinnedMemoryCUDA( NEW CUDAPinnedMemoryManager() )
 #endif
@@ -98,6 +137,10 @@ System::System () :
       , _hwloc()
       , _immediateSuccessorDisabled( false )
       , _predecessorCopyInfoDisabled( false )
+      , _invalControl( false )
+      , _cgAlloc( false )
+      , _inIdle( false )
+	  , _lazyPrivatizationEnabled (false)
 {
    verbose0 ( "NANOS++ initializing... start" );
 
@@ -163,11 +206,20 @@ void System::loadArchitectures()
 #endif
 
 #ifdef CLUSTER_DEV
-   if ( usingCluster() )
-   {
+   if ( usingCluster() && usingClusterMPI() ) {
+      fatal0("Can't use --cluster and --cluster-mpi at the same time,");
+   } else if ( usingCluster() ) {
       verbose0( "Loading Cluster plugin (" + getNetworkConduit() + ")" ) ;
       if ( !loadPlugin( "pe-cluster-"+getNetworkConduit() ) )
          fatal0 ( "Couldn't load Cluster support" );
+   } else if ( usingClusterMPI() ) {
+      verbose0( "Loading ClusterMPI plugin (" + getNetworkConduit() + ")" ) ;
+      _clusterMPIPlugin = (ext::ClusterMPIPlugin *) loadAndGetPlugin( "pe-clustermpi-"+getNetworkConduit() );
+      if ( _clusterMPIPlugin == NULL ) {
+         fatal0 ( "Couldn't load ClusterMPI support" );
+      } else {
+         _clusterMPIPlugin->init();
+      }
    }
 #endif
 
@@ -346,6 +398,8 @@ void System::config ()
    cfg.registerConfigOption ( "enable-cluster", NEW Config::FlagOption ( _usingCluster, true ), "Enables the usage of Nanos++ Cluster" );
    cfg.registerArgOption ( "enable-cluster", "cluster" );
    //cfg.registerEnvOption ( "enable-cluster", "NX_ENABLE_CLUSTER" );
+   cfg.registerConfigOption ( "enable-cluster-mpi", NEW Config::FlagOption ( _usingClusterMPI, true ), "Enables the usage of Nanos++ Cluster with MPI applications" );
+   cfg.registerArgOption ( "enable-cluster-mpi", "cluster-mpi" );
 
    cfg.registerConfigOption ( "no-node2node", NEW Config::FlagOption ( _usingNode2Node, false ), "Disables the usage of Slave-to-Slave transfers" );
    cfg.registerArgOption ( "no-node2node", "disable-node2node" );
@@ -393,6 +447,17 @@ void System::config ()
    cfg.registerConfigOption( "disable-predecessor-info", NEW Config::FlagOption( _predecessorCopyInfoDisabled ),
                              "Disables sending the copy_data info to successor WDs." );
    cfg.registerArgOption( "disable-predecessor-info", "disable-predecessor-info" );
+   cfg.registerConfigOption( "inval-control", NEW Config::FlagOption( _invalControl ),
+                             "Inval control." );
+   cfg.registerArgOption( "inval-control", "inval-control" );
+
+   cfg.registerConfigOption( "cg-alloc", NEW Config::FlagOption( _cgAlloc ),
+                             "CG alloc." );
+   cfg.registerArgOption( "cg-alloc", "cg-alloc" );
+
+   cfg.registerConfigOption ( "enable-lazy-privatization", NEW Config::BoolVar ( _lazyPrivatizationEnabled ),
+		   "Enable lazy reduction privatization" );
+   cfg.registerArgOption ( "enable-lazy-privatization", "enable-lazy-privatization" );
 
    _schedConf.config( cfg );
 
@@ -501,12 +566,15 @@ void System::start ()
    }   
 
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
-      _clusterNodes.insert( it->second->getClusterNode() );
-      // If this PE is in a NUMA node and has workers
-      if ( it->second->isInNumaNode() && ( it->second->getNumThreads() > 0  ) ) {
-         // Add the node of this PE to the set of used NUMA nodes
-         unsigned node = it->second->getNumaNode() ;
-         _numaNodes.insert( node );
+      if ( it->second->isActive() ) {
+         _clusterNodes.insert( it->second->getClusterNode() );
+         // If this PE is in a NUMA node and has workers
+         if ( it->second->isInNumaNode() && ( it->second->getNumThreads() > 0  ) ) {
+            // Add the node of this PE to the set of used NUMA nodes
+            unsigned node = it->second->getNumaNode() ;
+            _numaNodes.insert( node );
+         }
+         _activeMemorySpaces.insert( it->second->getMemorySpaceId() );
       }
    }
    
@@ -601,11 +669,9 @@ void System::start ()
    }
 
    _router.initialize();
+   _net.setParentWD( &mainWD );
    if ( usingCluster() )
    {
-      if ( sys.getNetwork()->getNodeNum() > 0 ) {
-         sys.getNetwork()->setParentWD( &mainWD );
-      }
       _net.nodeBarrier();
    }
 
@@ -645,6 +711,8 @@ System::~System ()
 void System::finish ()
 {
    if ( _alreadyFinished ) return;
+
+   if ( usingClusterMPI() ) return;
 
    _alreadyFinished = true;
 
@@ -687,10 +755,12 @@ void System::finish ()
    verbose ( "NANOS++ statistics");
    verbose ( std::dec << (unsigned int) getCreatedTasks() << " tasks has been executed" );
 
-   sys.getNetwork()->nodeBarrier();
+   if ( usingCluster() ) {
+      _net.nodeBarrier();
+   }
 
-   for ( unsigned int nodeCount = 0; nodeCount < sys.getNetwork()->getNumNodes(); nodeCount += 1 ) {
-      if ( sys.getNetwork()->getNodeNum() == nodeCount ) {
+   for ( unsigned int nodeCount = 0; nodeCount < _net.getNumNodes(); nodeCount += 1 ) {
+      if ( _net.getNodeNum() == nodeCount ) {
          for ( ArchitecturePlugins::const_iterator it = _archs.begin(); it != _archs.end(); ++it )
          {
             (*it)->finalize();
@@ -720,7 +790,9 @@ void System::finish ()
          }
 #endif
       }
-      sys.getNetwork()->nodeBarrier();
+      if ( usingCluster() ) {
+         _net.nodeBarrier();
+      }
    }
 
    //! \note Master leaves team and finalizes thread structures (before insrumentation ends)
@@ -995,6 +1067,7 @@ void System::createWD ( WD **uwd, size_t num_devices, nanos_device_t *devices, s
       wd->tieToLocation( 0 );
    }
 
+   //Copy reduction data from parent
    if (uwg) wd->copyReductions((WorkDescriptor *)uwg);
 }
 
@@ -1147,16 +1220,16 @@ void System::setupWD ( WD &work, WD *parent )
    /**************************************************/
    /*********** selective node executuion ************/
    /**************************************************/
-   //if (sys.getNetwork()->getNodeNum() == 0) work.tieTo(*_workers[ 1 + nanos::ext::GPUConfig::getGPUCount() + ( work.getId() % ( sys.getNetwork()->getNumNodes() - 1 ) ) ]);
+   //if (_net.getNodeNum() == 0) work.tieTo(*_workers[ 1 + nanos::ext::GPUConfig::getGPUCount() + ( work.getId() % ( _net.getNumNodes() - 1 ) ) ]);
    /**************************************************/
    /**************************************************/
 
    //  ext::SMPDD * workDD = dynamic_cast<ext::SMPDD *>( &work.getActiveDevice());
-   //if (sys.getNetwork()->getNodeNum() == 0)
+   //if (_net.getNodeNum() == 0)
    //         std::cerr << "wd " << work.getId() << " depth is: " << work.getDepth() << " @func: " << (void *) workDD->getWorkFct() << std::endl;
 #if 0
 #ifdef CLUSTER_DEV
-   if (sys.getNetwork()->getNodeNum() == 0)
+   if (_net.getNodeNum() == 0)
    {
       //std::cerr << "tie wd " << work.getId() << " to my thread" << std::endl;
       //ext::SMPDD * workDD = dynamic_cast<ext::SMPDD *>( &work.getActiveDevice());
@@ -1233,6 +1306,9 @@ void System::inlineWork ( WD &work )
       bool result;
       do {
          result = work._mcontrol.allocateTaskMemory();
+         if ( !result ) {
+            myThread->idle();
+         }
       } while( result == false );
       Scheduler::inlineWork( &work, /*schedule*/ false );
    }
@@ -1530,7 +1606,7 @@ void System::ompss_nanox_main_end()
 #endif
 }
 
-void System::_registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t len) {
+global_reg_t System::_registerMemoryChunk(void *addr, std::size_t len) {
    CopyData cd;
    nanos_region_dimension_internal_t dim;
    dim.lower_bound = 0;
@@ -1541,20 +1617,73 @@ void System::_registerMemoryChunk(memory_space_id_t loc, void *addr, std::size_t
    cd.setNumDimensions( 1 );
    global_reg_t reg;
    getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
-   reg.setOwnedMemory(loc);
-   //not really needed.., *it->registerOwnedMemory( reg );
+   return reg;
+}
+
+global_reg_t System::_registerMemoryChunk_2dim(void *addr, std::size_t rows, std::size_t cols, std::size_t elem_size) {
+   CopyData cd;
+   nanos_region_dimension_internal_t dim[2];
+   dim[0].lower_bound = 0;
+   dim[0].size = cols * elem_size;
+   dim[0].accessed_length = cols * elem_size;
+   dim[1].lower_bound = 0;
+   dim[1].size = rows;
+   dim[1].accessed_length = rows;
+   cd.setBaseAddress( addr );
+   cd.setDimensions( &dim[0] );
+   cd.setNumDimensions( 2 );
+   global_reg_t reg;
+   getHostMemory().getRegionId( cd, reg, *((WD *) 0), 0 );
+   return reg;
+}
+
+void System::_distributeObject( global_reg_t &reg, unsigned int start_node, std::size_t num_nodes ) {
+   CopyData cd;
+   std::size_t num_dims = reg.getNumDimensions();
+   nanos_region_dimension_internal_t dims[num_dims];
+   cd.setBaseAddress( (void *) reg.getRealFirstAddress() );
+   cd.setDimensions( &dims[0] );
+   cd.setNumDimensions( 2 );
+   reg.fillDimensionData( dims );
+   std::size_t size_per_node = dims[ num_dims-1 ].size / num_nodes;
+   std::size_t rest_size = dims[ num_dims -1 ].size % num_nodes;
+
+   std::size_t assigned_size = 0;
+   for ( std::size_t node_idx = 0; node_idx < num_nodes; node_idx += 1 ) {
+      dims[ num_dims-1 ].lower_bound = assigned_size;
+      dims[ num_dims-1 ].accessed_length = size_per_node + (node_idx < rest_size);
+      assigned_size += size_per_node + (node_idx < rest_size);
+      global_reg_t fragmented_reg;
+      getHostMemory().getRegionId( cd, fragmented_reg, *((WD *) 0), 0 );
+      std::cerr << "fragment " << node_idx << " is "; fragmented_reg.key->printRegion(std::cerr, fragmented_reg.id); std::cerr << std::endl;
+      fragmented_reg.key->addFixedRegion( fragmented_reg.id );
+      unsigned int version = 0;
+      NewLocationInfoList missing_parts;
+      NewNewRegionDirectory::__getLocation( fragmented_reg.key, fragmented_reg.id, missing_parts, version, *((WD *) 0) );
+      memory_space_id_t loc = 0;
+      for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
+         if ( *it != NULL ) {
+            if ((*it)->getNodeNumber() == (start_node + node_idx) ) {
+               fragmented_reg.setOwnedMemory(loc);
+            }
+         }
+         loc++;
+      }
+   }
 }
 
 void System::registerNodeOwnedMemory(unsigned int node, void *addr, std::size_t len) {
    memory_space_id_t loc = 0;
    if ( node == 0 ) {
-      _registerMemoryChunk( loc, addr, len );
+      global_reg_t reg = _registerMemoryChunk( addr, len );
+      reg.setOwnedMemory(loc);
    } else {
       //_separateAddressSpaces[0] is always NULL (because loc = 0 is the local node memory)
       for ( std::vector<SeparateMemoryAddressSpace *>::iterator it = _separateAddressSpaces.begin(); it != _separateAddressSpaces.end(); it++ ) {
          if ( *it != NULL ) {
             if ((*it)->getNodeNumber() == node) {
-               _registerMemoryChunk( loc, addr, len );
+               global_reg_t reg = _registerMemoryChunk( addr, len );
+               reg.setOwnedMemory(loc);
             }
          }
          loc++;
@@ -1609,7 +1738,63 @@ void System::switchToThread( unsigned int thid )
    Scheduler::switchToThread(_workers[thid]);
 }
 
+int System::initClusterMPI(int *argc, char ***argv) {
+   return _clusterMPIPlugin->initNetwork(argc, argv);
+}
+
+void System::finalizeClusterMPI() {
+   _clusterMPIPlugin->getClusterThread()->stop();
+   _clusterMPIPlugin->getClusterThread()->join();
+   //! \note finalizing instrumentation (if active)
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->raiseCloseStateEvent() );
+   NANOS_INSTRUMENT ( sys.getInstrumentation()->finalize() );
+   //_net.finalizeNoBarrier();
+   //std::cerr << "AFTER _net.finalizeNoBarrier()" << std::endl;
+}
+
 void System::stopFirstThread( void ) {
    //FIXME: this assumes that mainWD is tied to thread 0
    _workers[0]->stop();
+}
+
+void System::notifyIntoBlockingMPICall() {
+   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+   static int created = 0;
+   if ( _schedStats._createdTasks.value() > created ) {
+      _inIdle = true;
+      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 4444 );)
+      *myThread->_file << "created " << ( _schedStats._createdTasks.value() - created ) << " tasks. Send msg." << std::endl;
+      created = _schedStats._createdTasks.value();
+      //*myThread->_file << "Into blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;
+      _net.broadcastIdle();
+   }
+}
+
+void System::notifyOutOfBlockingMPICall() {
+   NANOS_INSTRUMENT(static nanos_event_key_t ikey = sys.getInstrumentation()->getInstrumentationDictionary()->getEventKey("debug");)
+   if ( _inIdle ) {
+      NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
+      _inIdle = false;
+   }
+   //*myThread->_file << "Out of blocking mpi call: " << "[Created: " << _schedStats._createdTasks.value() << " Ready: " << _schedStats._readyTasks.value() << " Total: " << _schedStats._totalTasks.value() << "]" << std::endl;
+}
+
+void System::notifyIdle( unsigned int node ) {
+#ifdef CLUSTER_DEV
+   if ( !_inIdle ) {
+      unsigned int friend_node = (_net.getNodeNum() + 1) % _net.getNumNodes();
+      if ( node == friend_node ) {
+         ext::SMPMultiThread *cluster_thd = (ext::SMPMultiThread *) _clusterMPIPlugin->getClusterThread();
+         unsigned int thd_idx = node > _net.getNodeNum() ? node - 1 : node;
+         ext::ClusterThread *node_thd = (ext::ClusterThread *) cluster_thd->getThreadVector()[ thd_idx ];
+         *myThread->_file << "Node " << node << ", my friend, is idle!! " << node_thd->runningOn()->getClusterNode() << std::endl;
+         acquireWorker( _mainTeam,  node_thd, true, false, false );
+         *myThread->_file << "Added to team " << _mainTeam << std::endl;
+         _mainTeam->addExpectedThread(node_thd);
+      }
+   }
+#endif
+}
+
+void System::disableHelperNodes() {
 }

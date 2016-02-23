@@ -332,6 +332,9 @@ inline bool nanos::compareAndSwap( volatile T *ptr, T oldval, T  newval )
 inline LockBlock::LockBlock ( Lock & lock ) : _lock(lock)
 {
    acquire();
+   //while( !_lock.tryAcquire() ) {
+   //   myThread->idle();
+   //}
 }
 
 inline LockBlock::~LockBlock ( )

@@ -47,7 +47,7 @@ void SMPThread::runDependent ()
    WD &work = getThreadWD();
    setCurrentWD( work );
 
-   SMPDD &dd = ( SMPDD & ) work.activateDevice( SMP );
+   SMPDD &dd = ( SMPDD & ) work.activateDevice( getSMPDevice() );
 
    dd.execute( work );
 }
@@ -55,6 +55,7 @@ void SMPThread::runDependent ()
 void SMPThread::idle( bool debug )
 {
    if ( sys.getNetwork()->getNumNodes() > 1 ) {
+      if ( this->_gasnetAllowAM ) {
       sys.getNetwork()->poll(0);
 
       if ( !_pendingRequests.empty() ) {
@@ -72,7 +73,9 @@ void SMPThread::idle( bool debug )
             }
          }
       }
+      }
    }
+   getSMPDevice().tryExecuteTransfer();
 }
 
 void SMPThread::wait()
@@ -221,11 +224,23 @@ int SMPThread::getCpuId() const {
    return _pthread.getCpuId();
 }
 
-SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe, unsigned int representingPEsCount, PE **representingPEs ) : SMPThread ( w, pe, pe ), _current( 0 ), _totalThreads( representingPEsCount ) {
+SMPMultiThread::SMPMultiThread( WD &w, SMPProcessor *pe,
+      unsigned int representingPEsCount, PE **representingPEs ) :
+   SMPThread ( w, pe, pe ),
+   _current( 0 ),
+   _totalThreads( representingPEsCount ) {
    setCurrentWD( w );
+   if ( representingPEsCount > 0 ) {
+      addThreadsFromPEs( representingPEsCount, representingPEs );
+   }
+}
+
+void SMPMultiThread::addThreadsFromPEs(unsigned int representingPEsCount, PE **representingPEs) 
+{
    _threads.reserve( representingPEsCount );
    for ( unsigned int i = 0; i < representingPEsCount; i++ )
    {
       _threads[ i ] = &( representingPEs[ i ]->startWorker( this ) );
    }
+   _totalThreads = representingPEsCount;
 }
