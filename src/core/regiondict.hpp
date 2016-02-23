@@ -597,7 +597,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 		public:
 		LocalFunction( RegionDictionary &dict ) : _currentDict( dict ) { } 
 
-		void _recursive ( reg_t id, unsigned int total_dims, unsigned int dim, MemoryMap< std::set< reg_t > >::MemChunkList results[], nanos_region_dimension_internal_t current_regions[], std::set<reg_t> *current_sets[], std::map<reg_t, std::set< reg_t > > &resulting_regions, bool compute_region ) {
+		void _recursive ( reg_t this_id, unsigned int total_dims, unsigned int dim, MemoryMap< std::set< reg_t > >::MemChunkList results[], nanos_region_dimension_internal_t current_regions[], std::set<reg_t> *current_sets[], std::map<reg_t, std::set< reg_t > > &resulting_regions, bool compute_region ) {
 			if ( dim == 0 ) {
 				for ( MemoryMap< std::set< reg_t > >::MemChunkList::const_iterator it = results[ dim ].begin(); it != results[ dim ].end(); it++ ) {
 					if ( *(it->second) == NULL ) {
@@ -607,7 +607,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 					current_regions[dim].accessed_length = it->first->getLength();
 					current_sets[dim] = *it->second;
 					bool this_compute_region = ( compute_region && current_sets[dim] != NULL && !current_sets[dim]->empty() );
-					reg_t parent_reg = id;
+					reg_t parent_reg = this_id;
 					if ( this_compute_region ) {
 						std::set<reg_t> metadata_regs;
 						for ( std::set<reg_t>::const_iterator sit = current_sets[0]->begin(); sit != current_sets[0]->end(); sit++ ) {
@@ -634,7 +634,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 							for ( std::set<reg_t>::const_iterator sit = metadata_regs.begin(); sit != metadata_regs.end(); sit++ ) {
 								Version *entry = _currentDict.getRegionData( *sit );
 								unsigned int version = entry != NULL ? entry->getVersion() : 0;
-								if (*sit == id) {
+								if (*sit == this_id) {
 									//has_own_region = true;
 									own_version = version;
 								}
@@ -644,14 +644,14 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 								}
 							}
 							//if ( metadata_regs.size() > 1 && max_version_reg != 0 ) {
-							//	*myThread->_file << "[w/id " << id << "] Selected region (by version: " << current_version <<") : " << max_version_reg << " own_version: " << own_version << std::endl;
+							//	*myThread->_file << "[w/id " << this_id << "] Selected region (by version: " << current_version <<") : " << max_version_reg << " own_version: " << own_version << std::endl;
 							//	for ( std::set<reg_t>::const_iterator sit = metadata_regs.begin(); sit != metadata_regs.end(); sit++ ) {
 							//		*myThread->_file << *sit << " ";
 							//	}
 							//	*myThread->_file << std::endl;
 							//}
 							if ( own_version == current_version && max_version_reg != 0 ) {
-								max_version_reg = id;
+								max_version_reg = this_id;
 							}
 							parent_reg = ( max_version_reg != 0 ) ? max_version_reg : parent_reg;
 						}
@@ -668,7 +668,7 @@ void RegionDictionary< Sparsity >::addRegionAndComputeIntersects( reg_t id, std:
 					current_regions[dim].accessed_length = it->first->getLength();
 					current_sets[dim] = *it->second;
 					bool this_compute_region = ( compute_region && current_sets[dim] != NULL && !current_sets[dim]->empty() );
-					_recursive( id, total_dims, dim - 1, results, current_regions, current_sets, resulting_regions, this_compute_region );
+					_recursive( this_id, total_dims, dim - 1, results, current_regions, current_sets, resulting_regions, this_compute_region );
 				}
 			}
 		}

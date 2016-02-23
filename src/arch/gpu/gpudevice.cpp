@@ -399,7 +399,6 @@ bool GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
 {
    CopyDescriptor cd( 0xdeaddead );
    cd._ops = ops;
-   cd._functor = f;
 
    ext::GPUMemorySpace *gpuMemDataOrig = ( ext::GPUMemorySpace * ) memOrig.getSpecificData();
    ext::GPUMemorySpace *gpuMemDataDest = ( ext::GPUMemorySpace * ) memDest.getSpecificData();
@@ -464,7 +463,6 @@ void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::siz
 bool GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
    CopyDescriptor cd( 0xdeaddead );
    cd._ops = ops;
-   cd._functor = f;
 
    ext::GPUMemorySpace *gpuMemDataOrig = ( ext::GPUMemorySpace * ) memOrig.getSpecificData();
    ext::GPUMemorySpace *gpuMemDataDest = ( ext::GPUMemorySpace * ) memDest.getSpecificData();

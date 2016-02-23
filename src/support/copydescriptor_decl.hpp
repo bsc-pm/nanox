@@ -36,15 +36,14 @@ namespace nanos {
 
       public:
          DeviceOps *_ops;
-         Functor *_functor;
         /*! \brief Default constructor
          */
-         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0 ): _tag(tag), _dirVersion(dirVersion), _ops (NULL), _functor( NULL ){}
+         CopyDescriptor( uint64_t tag, unsigned int dirVersion = 0 ): _tag(tag), _dirVersion(dirVersion), _ops (NULL) {}
 
         /*! \brief Copy constructor
          *  \param Another CopyDescriptor
          */
-         CopyDescriptor( const CopyDescriptor &cd ): _tag( cd._tag ), _dirVersion( cd._dirVersion ), _ops( cd._ops ) , _functor( cd._functor ) {}
+         CopyDescriptor( const CopyDescriptor &cd ): _tag( cd._tag ), _dirVersion( cd._dirVersion ), _ops( cd._ops ) {}
 
         /* \brief Destructor
          */

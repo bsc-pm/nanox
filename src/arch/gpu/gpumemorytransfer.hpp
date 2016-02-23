@@ -31,10 +31,6 @@ using namespace nanos::ext;
 void GPUMemoryTransfer::completeTransfer()
 {
    _hostAddress._ops->completeOp();
-   if ( _hostAddress._functor ) {
-      ( *_hostAddress._functor ) ();
-   }
-
    delete this;
 }
 
