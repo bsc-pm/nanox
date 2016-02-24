@@ -410,7 +410,7 @@ namespace nanos {
                         //o << *rit << " & " << srit->first << " wds: " << wd_set.size() << std::endl;
                         for ( _wd_set_t::iterator wit = wd_set.begin(); wit != wd_set.end(); ) {
                            WD *wd = *wit;
-                           _wd_set_t::iterator this_it = wit;
+                           //_wd_set_t::iterator this_it = wit;
                            wit++;
                            if ( wd->getNumCopies() == 1 ) {
                               this->_prepareToPush(thread, wd);
