@@ -293,12 +293,12 @@ void Config::parseArguments ()
 void Config::parseArgumentsFromCmdLine ()
 {
    std::size_t argv_total_len = 0;
-   for (unsigned int i = 0; i < OS::getArgc(); i+=1 ) {
+   for ( long i = 0; i < OS::getArgc(); i+=1 ) {
       argv_total_len += strlen(OS::getArg(i)) + 1;
    }
    char tmp[argv_total_len];
    std::size_t current_arg_len = 0;
-   for (unsigned int i = 0; i < OS::getArgc(); i+=1 ) {
+   for ( long i = 0; i < OS::getArgc(); i+=1 ) {
       memcpy(&tmp[current_arg_len], OS::getArg(i), strlen(OS::getArg(i)));
       current_arg_len += strlen(OS::getArg(i));
       tmp[current_arg_len] = ' ';
