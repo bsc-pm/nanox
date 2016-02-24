@@ -157,7 +157,7 @@ WD & FPGAProcessor::getMasterWD () const
 
 BaseThread & FPGAProcessor::createThread ( WorkDescriptor &helper, SMPMultiThread *parent )
 {
-   ensure( helper.canRunIn( SMP ), "Incompatible worker thread" );
+   ensure( helper.canRunIn( getSMPDevice() ), "Incompatible worker thread" );
    FPGAThread &th = *NEW FPGAThread( helper, this, _core, _fpgaDevice );
    return th;
 }

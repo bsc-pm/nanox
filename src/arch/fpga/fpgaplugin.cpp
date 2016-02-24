@@ -79,11 +79,14 @@ class FPGAPlugin : public ArchPlugin
             //get a core to run the helper thread. First one available
             for ( int i = 0; i<FPGAConfig::getNumFPGAThreads(); i++ ) {
 
-               memory_space_id_t memSpaceId = sys.getNewSeparateMemoryAddressSpaceId();
-               SeparateMemoryAddressSpace *fpgaAddressSpace =
-                  NEW SeparateMemoryAddressSpace( memSpaceId, nanos::ext::FPGA, true );
-               sys.addSeparateMemory( memSpaceId, fpgaAddressSpace );
-               fpgaAddressSpace->setNodeNumber( 0 ); //there is only 1 node on this machine
+//               memory_space_id_t memSpaceId = sys.getNewSeparateMemoryAddressSpaceId();
+//               SeparateMemoryAddressSpace *fpgaAddressSpace =
+//                  NEW SeparateMemoryAddressSpace( memSpaceId, nanos::ext::FPGA, true );
+
+               memory_space_id_t memSpaceId = sys.addSeparateMemoryAddressSpace(
+                     nanos::ext::FPGA, true, 0 );
+               SeparateMemoryAddressSpace &fpgaAddressSpace = sys.getSeparateMemory( memSpaceId );
+               fpgaAddressSpace.setNodeNumber( 0 ); //there is only 1 node on this machine
                ext::SMPProcessor *core;
                core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
                if ( !core ) {
