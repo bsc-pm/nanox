@@ -152,8 +152,14 @@ void MPIRemoteNode::nanosMPIFinalize() {
     for ( std::vector<MPI_Datatype*>::iterator datatype_it = _taskStructsCache.begin();
           datatype_it != _taskStructsCache.end(); datatype_it++ )
     {
-        MPI_Type_free( *datatype_it );
-        delete *datatype_it;
+        // If some offload tasks were not used by this process,
+        // some entries may be null.
+        // A possible fix would be to use a map/unordered_map
+        // instead of a vector of MPI_Datatype*
+        if( *datatype_it != NULL ) {
+            MPI_Type_free( *datatype_it );
+            delete *datatype_it;
+        }
     }
     MPI_Type_free( &MPIDevice::cacheStruct );
     MPIDevice::cacheStruct = MPI_DATATYPE_NULL;
