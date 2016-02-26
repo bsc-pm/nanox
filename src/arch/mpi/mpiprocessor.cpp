@@ -159,19 +159,16 @@ BaseThread &MPIProcessor::createThread(WorkDescriptor &helper, SMPMultiThread *p
 }
 
 void MPIProcessor::waitAllRequests() {
-    nanos::mpi::wait_all( _pendingReqs.begin(), _pendingReqs.end() );
+    nanos::mpi::request::wait_all( _pendingReqs.begin(), _pendingReqs.end() );
 }
 
 void MPIProcessor::clearAllRequests() {
-    std::list<mpi::request>::iterator reqIt;
-    for( reqIt = _pendingReqs.begin(); reqIt != _pendingReqs.end(); reqIt++ ) {
-        reqIt->free();
-    }
     _pendingReqs.clear();
 }
 
 void MPIProcessor::waitAndClearRequests() {
     waitAllRequests();
+    clearAllRequests();
 }
 
 bool MPIProcessor::testAllRequests() {
@@ -180,7 +177,7 @@ bool MPIProcessor::testAllRequests() {
     if (!_pendingReqs.empty()) {
         _peLock.acquire();
         if (!_pendingReqs.empty()) {
-            completed = mpi::test_all( _pendingReqs.begin(), _pendingReqs.end() );           
+            completed = mpi::request::test_all( _pendingReqs.begin(), _pendingReqs.end() );
             if ( completed ) {
                 _pendingReqs.clear();
             }

@@ -58,22 +58,21 @@ class request
 			other._value = MPI_REQUEST_NULL;
 			return *this;
 		}
-
+	
 		bool test()
 		{
-			return test_impl( *this );
-		}
-	
-		template < StatusKind kind >
-		bool test( status<kind> &st )
-		{
-			return test_impl( *this, st );
+			int flag;
+			MPI_Test(
+						&_value,
+						&flag,
+						MPI_STATUS_IGNORE
+					);
+			return flag == 1;
 		}
 
-		void free()
+		bool isNull() const
 		{
-			if( _value != MPI_REQUEST_NULL )
-				MPI_Request_free( &_value );
+			return _value == MPI_REQUEST_NULL;
 		}
 	
 		value_type* data()
@@ -95,74 +94,97 @@ class request
 		{
 			return &_value;
 		}
+
+		template <typename Iterator>
+		static void wait_all( Iterator begin, Iterator end );
+
+		template <typename Iterator>
+		static bool test_all( Iterator begin, Iterator end );
 };
 
-class scoped_request : public request
+class persistent_request : public request
 {
 	public:
-		scoped_request() :
+		persistent_request() :
 			request()
 		{
 		}
 
-		scoped_request( request const& o ) :
+		persistent_request( request const& o ) :
 			request( o )
 		{
 		}
 
-		virtual ~scoped_request()
+		virtual ~persistent_request()
 		{
-			free();
+			if( !isNull() ) {
+				bool completed = test();
+
+				if( !completed )
+					cancel();
+
+				free();
+			}
 		}
+
+		void free()
+		{
+			MPI_Request_free( data() );
+		}
+
+		void start()
+		{
+			MPI_Start( data() );
+		}
+
+		void cancel()
+		{
+			MPI_Cancel( data() );
+		}
+
+		template< typename Iterator >
+		static void start_all( Iterator begin, Iterator end );
 
 	private:
 		/** Prior to C++11, deleting
 		 * a copy constructor is only
 		 * possible with privatization
 		 */
-		scoped_request( scoped_request const& o ) :
+		persistent_request( persistent_request const& o ) :
 			request( o )
 		{
 		}
 };
 
-inline bool test_impl( request &req )
-{
-	int flag;
-	MPI_Test(
-				req.data(),
-				&flag,
-				MPI_STATUS_IGNORE
-			);
-	return flag;
-}
-
-template < StatusKind kind >
-inline bool test_impl( request &req, status<kind> &st )
-{
-	int flag;
-	MPI_Test(
-				req.data(),
-				&flag,
-				static_cast<typename status<kind>::value_type*>(st)
-			);
-	return flag;
-}
-
 template < typename Iterator >
-inline void wait_all( Iterator begin, Iterator end )
+void request::wait_all( Iterator begin, Iterator end )
 {
 	std::vector<MPI_Request> requests( begin, end );
 	MPI_Waitall( requests.size(), &requests[0], MPI_STATUSES_IGNORE );
 }
 
 template < typename Iterator >
-inline bool test_all( Iterator begin, Iterator end )
+bool request::test_all( Iterator begin, Iterator end )
 {
 	int flag;
 	std::vector<MPI_Request> requests( begin, end );
 	MPI_Testall( requests.size(), &requests[0], &flag, MPI_STATUSES_IGNORE );
 	return flag == 1;
+}
+
+template < typename Iterator >
+void persistent_request::start_all( Iterator begin, Iterator end )
+{
+	std::vector<MPI_Request> requests( begin, end );
+	MPI_Startall( requests.size(), &requests[0] );
+}
+
+template <>
+void persistent_request::start_all( std::vector<persistent_request>::iterator begin,
+                                    std::vector<persistent_request>::iterator end )
+{
+	size_t size = std::distance(begin,end);
+	MPI_Startall( size, *begin );
 }
 
 } // namespace mpi

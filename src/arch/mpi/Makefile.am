@@ -66,7 +66,24 @@ offload_sources= \
  info.hpp \
  request.hpp \
  status.hpp \
- cacheorder.hpp \
+ rmi/allocate.hpp \
+ rmi/cachecommand.cpp \
+ rmi/cachecommand.hpp \
+ rmi/cachepayload.hpp \
+ rmi/command.cpp \
+ rmi/command.hpp \
+ rmi/commanddispatcher.hpp \
+ rmi/commandchannel.hpp \
+ rmi/commandrequestor.hpp \
+ rmi/commandservant.hpp \
+ rmi/copydevtodev.hpp \
+ rmi/copyin.hpp \
+ rmi/copyout.hpp \
+ rmi/createauxthread.hpp \
+ rmi/finish.hpp \
+ rmi/free.hpp \
+ rmi/init.hpp \
+ rmi/realloc.hpp \
  $(END)
 
 EXTRA_DIST=$(offload_sources)

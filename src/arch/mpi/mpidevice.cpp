@@ -30,7 +30,9 @@
 #include <unistd.h>
 #include "deviceops.hpp"
 #include "request.hpp"
-#include "cacheorder.hpp"
+
+#include "cachecommand.hpp"
+#include "allocate.hpp"
 
 //TODO: check for errors in communications
 //TODO: Depending on multithread level, wait for answers or not
@@ -60,13 +62,13 @@ void * MPIDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ALLOC_EVENT);
     //std::cerr << "Inicio allocate\n";
 
-    mpi::command::Allocate order( reinterpret_cast<MPIProcessor const&>(mem.getConstPE()), size );
-    order.execute();
+    mpi::command::Allocate::Requestor order( static_cast<MPIProcessor const&>(mem.getConstPE()), size );
+    order.dispatch();
 
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     //std::cerr << "Fin allocate\n";
 
-    return order.getDeviceAddress(); // May be null
+    return order.getData().getDeviceAddress(); // May be null
 }
 
 /* \brief free address
@@ -78,8 +80,8 @@ void MPIDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
     //std::cerr << "Inicio free\n";
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FREE_EVENT);
 
-    mpi::command::Free order( reinterpret_cast<MPIProcessor const&>(mem.getConstPE()), address );
-    order.execute();
+    mpi::command::Free order( static_cast<MPIProcessor const&>(mem.getConstPE()), addr );
+    order.dispatch();
 
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
     //std::cerr << "Fin free\n";
@@ -96,14 +98,14 @@ void * MPIDevice::realloc(void *address, size_t size, size_t old_size, Processin
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_REALLOC_EVENT);
     //std::cerr << "Inicio REALLOC\n";
 
-    mpi::command::Realloc order( reinterpret_cast<MPIProcessor const&>(mem.getConstPE()), address, size );
-    order.execute();
+    mpi::command::Realloc::Requestor order( static_cast<MPIProcessor const&>(*pe), address, size );
+    order.dispatch();
 
     //std::cerr << "Fin realloc\n";
     //printf("Copiado de %p\n",(void *) order.devAddr);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 
-    return order.getDeviceAddress();
+    return order.getData().getDeviceAddress();
 }
 
 /* \brief Copy from remoteSrc in the host to localDst in the device
@@ -113,8 +115,8 @@ void MPIDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYIN_SYNC_EVENT);
     //std::cerr << "Inicio copyin\n";
 
-    mpi::command::CopyIn order( reinterpret_cast<MPIProcessor const&>(mem.getConstPE()), hostAddr, devAddr, len );
-    order.execute();
+    mpi::command::CopyIn order( static_cast<MPIProcessor&>(mem.getPE()), hostAddr, devAddr, len );
+    order.dispatch();
 
     //std::cerr << "Fin copyin\n";
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -126,17 +128,17 @@ void MPIDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
 void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYOUT_SYNC_EVENT);
 
-    MPIProcessor &destination = reinterpret_cast<MPIProcessor &>( mem.getPE() );
+    MPIProcessor &destination = static_cast<MPIProcessor &>( mem.getPE() );
     //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
     if ( destination.getCurrExecutingWd() != NULL && !destination.getHasWorkerThread()) {        
     	  mpi::command::CreateAuxiliaryThread createThread( destination );
-		  createThread.execute();
+		  createThread.dispatch();
 
         destination.setHasWorkerThread(true);
     }
 
-    mpi::command::CopyOut copyOrder( reinterpret_cast<MPIProcessor const&>(mem.getConstPE()), hostAddr, devAddr, len );
-    copyOrder.execute();
+    mpi::command::CopyOut copyOrder( static_cast<MPIProcessor const&>(mem.getConstPE()), hostAddr, devAddr, len );
+    copyOrder.dispatch();
 
     //std::cerr << "Fin copyout\n";
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -163,25 +165,25 @@ void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
 bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, Functor *f, WD const &wd, void *hostObject, reg_t hostRegionId ) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYDEV2DEV_SYNC_EVENT);
     //This will never be another PE type which is not MPI (or something is broken in core :) )
-    MPIProcessor &src = reinterpret_cast<MPIProcessor &>( memOrig.getPE() );
-    MPIProcessor &dst = reinterpret_cast<MPIProcessor &>( memDest.getPE() );
-    int res;
-    MPI_Comm_compare(src.getCommunicator(), dst.getCommunicator(), &res);
+    MPIProcessor &source = static_cast<MPIProcessor &>( memOrig.getPE() );
+    MPIProcessor &destination = static_cast<MPIProcessor &>( memDest.getPE() );
+    int result;
+    MPI_Comm_compare(source.getCommunicator(), destination.getCommunicator(), &result);
     //If both devices are in the same comunicator, they can do a dev2dev communication, otherwise go through host
-    if (res == MPI_IDENT){
+    if (result == MPI_IDENT){
         ops->addOp();
 
         //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
         if ( destination.getCurrExecutingWd() != NULL && !destination.getHasWorkerThread()) {        
         	   mpi::command::CreateAuxiliaryThread createThread( destination );
-	         createThread.execute();
+	         createThread.dispatch();
 
             destination.setHasWorkerThread(true);
         }
 
         //Send the destination rank together with DEV2DEV OPID (we'll substract it on remote node)
-        mpi::command::CopyDeviceToDevice order( src, dst, devOrigAddr, devDstAddr, len );
-        order.execute();
+        mpi::command::CopyDeviceToDevice order( source, destination, devOrigAddr, devDestAddr, len );
+        order.dispatch();
 
         ops->completeOp(); 
         if ( f ) {
@@ -222,218 +224,15 @@ void MPIDevice::remoteNodeCacheWorker() {
     //myThread = myThread->getNextThread();
     MPI_Comm parentcomm; /* intercommunicator */
     MPI_Comm_get_parent(&parentcomm);    
-    const size_t alignThreshold = MPIProcessor::getAlignThreshold();
-    const size_t alignment = MPIProcessor::getAlignment();
+
     //If this process was not spawned, we don't need this daemon-thread
     if (parentcomm != 0 && parentcomm != MPI_COMM_NULL) {
-        MPI_Status status;
-        //short ans=1;
-        cacheOrder order;  
-        int parentRank=0;
-        int firstParent=-1;
-        while(1) {
-                if (_createdExtraWorkerThread) {
-                    int flag=0;
-                    //When this is not the executer thread, perform async probes
-                    //as performing sync probes will lock MPI implementation (at least @ IMPI)
-                    while (flag==0 && !MPIRemoteNode::getDisconnectedFromParent()) {
-                        MPI_Iprobe(MPI_ANY_SOURCE,TAG_M2S_ORDER,parentcomm,&flag,MPI_STATUS_IGNORE);
-                        if (flag==0) usleep(50000);
-                    }
-                }
-                
-                if (!MPIRemoteNode::getDisconnectedFromParent())
-                    MPI_Recv(&order, 1, cacheStruct, MPI_ANY_SOURCE, TAG_M2S_ORDER, parentcomm, &status);
-                else
-                    order.opId=OPID_FINISH;
- 
-                parentRank=status.MPI_SOURCE;
-                switch (order.opId) {
-                    case OPID_TASK_INIT:
-                    {
-                        int task_id=(int)order.hostAddr; 
-                        //If our node is used by more than one parent
-                        //create the worker thread as we may have cache orders from
-                        //one node while executing tasks from the other node
-                        if (firstParent!=parentRank && !_createdExtraWorkerThread) {
-                            if (firstParent==-1) {
-                                firstParent=parentRank;
-                            } else {
-                                _createdExtraWorkerThread=true;  
-                                createExtraCacheThread();
-                                //Create extra thread which controls the cache, add current task to queue and become executor
-                                MPIRemoteNode::addTaskToQueue(task_id,parentRank);
-                                MPIRemoteNode::nanosMPIWorker();
-                                return;
-                            }
-                        }
-                        if (_createdExtraWorkerThread) {
-                            //Add task to execution queue
-                            MPIRemoteNode::addTaskToQueue(task_id,parentRank);
-                        } else {                       
-                            //Execute the task in current thread
-                            MPIRemoteNode::setCurrentTaskParent(parentRank);
-                            MPIRemoteNode::executeTask(task_id);
-                        }
-                        break;
-                    }
-                    case OPID_CREATEAUXTHREAD: 
-                    {
-                        //Only create once (multiple requests may come
-                        //since different parents do not query the status of the thread)
-                        //ignore extra ones
-                        if (!_createdExtraWorkerThread) {
-                            _createdExtraWorkerThread=true;  
-                            createExtraCacheThread();
-                            MPIRemoteNode::nanosMPIWorker();
-                            return;
-                        }
-                        break;
-                    }
-                    case OPID_FINISH:    
-                    {
-                        if (_createdExtraWorkerThread) {
-                           //Add finish task to execution queue
-                           MPIRemoteNode::addTaskToQueue(TASK_END_PROCESS,parentRank);   
-                           MPIRemoteNode::getTaskLock().acquire(); 
-                           MPIRemoteNode::getTaskLock().acquire(); 
-                        } else {							
-                           //Execute in current thread
-                           MPIRemoteNode::setCurrentTaskParent(parentRank);
-                           MPIRemoteNode::executeTask(TASK_END_PROCESS);   
-                        }
-                        return;
-                    }
-                    case OPID_UNIFIED_MEM_REQ:
-                    {
-                        MPIRemoteNode::unifiedMemoryMallocRemote(order, parentRank, parentcomm);
-                        break;
-                    }
-                    case OPID_COPYIN:
-                    {    
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYIN_EVENT);
-                        MPIRemoteNode::nanosMPIRecv((void*) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_IN, parentcomm, MPI_STATUS_IGNORE );
-                        //                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-//                            if (ent != NULL) 
-//                            { 
-//                               if (ent->getOwner() != NULL) {
-//                                  ent->getOwner()->invalidate( *_masterDir, (uint64_t) order.devAddr, ent);
-//                               } else {
-//                                  ent->increaseVersion();
-//                               }
-//                            }
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    case OPID_COPYOUT:
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYOUT_EVENT);
-//                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-//                            if (ent != NULL) 
-//                            {
-//                               if (ent->getOwner() != NULL )
-//                                  if ( !ent->isInvalidated() )
-//                                  {
-//                                     std::list<uint64_t> tagsToInvalidate;
-//                                     tagsToInvalidate.push_back( ( uint64_t ) order.devAddr );
-//                                     _masterDir->synchronizeHost( tagsToInvalidate );
-//                                  }
-//                            }
-                        MPIRemoteNode::nanosMPISend((void *) order.devAddr, order.size, MPI_BYTE, parentRank, TAG_CACHE_DATA_OUT, parentcomm);
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    case OPID_FREE:
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
-                        std::free((char *) order.devAddr);
-                        //printf("Dir free%p\n",(char*) order.devAddr);    
-    //                    DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-    //                    if (ent != NULL) 
-    //                    {
-    //                        ent->setInvalidated(true);
-    //                    }
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    case OPID_ALLOCATE:           
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_ALLOC_EVENT);
-                        char* ptr;
-						ptr = NULL;
-                        if (order.size<alignThreshold){
-                           ptr = (char*) malloc(order.size);
-                        } else {
-                           posix_memalign((void**)&ptr,alignment,order.size);
-                        }
-                        order.devAddr = (uint64_t) ptr;    
-                        MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_ALLOC, parentcomm);
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }    
-                    case OPID_REALLOC:           
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_REALLOC_EVENT);
-                        std::free((char *) order.devAddr);
-                        char* ptr;
-						ptr = NULL;                        
-                        if (order.size<alignThreshold){
-                           ptr = (char*) malloc(order.size);
-                        } else {
-                           posix_memalign((void**)&ptr,alignment,order.size);
-                        }
-//                            DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) ptr );
-//                            if (ent != NULL) 
-//                            { 
-//                               if (ent->getOwner() != NULL) 
-//                               {
-//                                  ent->getOwner()->deleteEntry((uint64_t) ptr, order.size);
-//                               }
-//                            }
-                        order.devAddr = (uint64_t) ptr;
-                        MPIRemoteNode::nanosMPISend(&order, 1, cacheStruct, parentRank, TAG_CACHE_ANSWER_REALLOC, parentcomm);
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    case OPID_COPYLOCAL:
-                    {
-                        NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYLOCAL_EVENT);
-                        memcpy((void*) order.devAddr, (void*) order.hostAddr, order.size);
-                        NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        break;
-                    }
-                    //If not a fixed code, its a dev2dev copy
-                    default:
-                    {
-                        //Opid >= DEV2DEV (largest OPID) is dev2dev+rank and im source
-                        if (order.opId>=OPID_DEVTODEV){
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_OUT_EVENT);
-                            //Get the rank
-                            int dstRank=order.opId-OPID_DEVTODEV;
-                            //MPI_Comm_get_parent(&parentcomm);
-                            MPIRemoteNode::nanosMPISend((void *) order.hostAddr, order.size, MPI_BYTE, dstRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD);
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        //Opid <= 0 (smallest OPID) is -rank (in a dev2dev communication) and im destination
-                        } else if (order.opId<=0) {
-                            NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_DEV2DEV_IN_EVENT);
-//                                DirectoryEntry *ent = _masterDir->findEntry( (uint64_t) order.devAddr );
-//                                if (ent != NULL) 
-//                                { 
-//                                   if (ent->getOwner() != NULL) {
-//                                      ent->getOwner()->invalidate( *_masterDir, (uint64_t) order.devAddr, ent);
-//                                   } else {
-//                                      ent->increaseVersion();
-//                                   }
-//                                }
-                            //Do the inverse operation of the host
-                            int srcRank=-order.opId;
 
-                            MPIRemoteNode::nanosMPIRecv((void *) order.devAddr, order.size, MPI_BYTE, srcRank, TAG_CACHE_DEV2DEV, MPI_COMM_WORLD, MPI_STATUS_IGNORE );                        
-                            NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
-                        }
-                        break;
-                  }
-           }
+        mpi::Dispatcher dispatcher(parentcomm, 10 ); // reserve space for 10 elements of each generic command type
+        while( ! MPIDevice::finished() ) {
+            dispatcher.waitForCommands();
+            dispatcher.queueAvailableCommands();
+				dispatcher.executeCommands();
         }
     }
 }

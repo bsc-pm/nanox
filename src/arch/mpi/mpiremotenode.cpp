@@ -28,6 +28,9 @@
 #include <unistd.h>
 #include "mpi.h"
 
+#include "cachecommand.hpp"
+#include "cachepayload.hpp"
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -143,6 +146,7 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
 
 
     nanos::MPIDevice::initMPICacheStruct();
+    nanos::mpi::command::CachePayload::initDataType();
 
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
@@ -155,6 +159,8 @@ void MPIRemoteNode::nanosMPIFinalize() {
         MPI_Type_free( *datatype_it );
         delete *datatype_it;
     }
+
+    nanos::mpi::command::CachePayload::freeDataType();
     MPI_Type_free( &MPIDevice::cacheStruct );
     MPIDevice::cacheStruct = MPI_DATATYPE_NULL;
 
