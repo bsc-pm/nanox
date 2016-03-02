@@ -49,7 +49,8 @@ MemController::MemController( WD &wd ) :
    , _affinityScore( 0 )
    , _maxAffinityScore( 0 )
    , _ownedRegions()
-   , _parentRegions() {
+   , _parentRegions()
+   , _memCacheCopies( NULL ) {
    if ( _wd.getNumCopies() > 0 ) {
       _memCacheCopies = NEW MemCacheCopy[ wd.getNumCopies() ];
    }
@@ -58,6 +59,7 @@ MemController::MemController( WD &wd ) :
 MemController::~MemController() {
    delete _inOps;
    delete _outOps;
+   delete[] _memCacheCopies;
 }
 
 bool MemController::ownsRegion( global_reg_t const &reg ) {
@@ -176,7 +178,8 @@ void MemController::preInit( ) {
                NewNewDirectoryEntryData *secondEntry = ( NewNewDirectoryEntryData * ) dict->getRegionData( it->second );
                if ( firstEntry == NULL ) {
                   if ( secondEntry != NULL ) {
-                     firstEntry = NEW NewNewDirectoryEntryData( *secondEntry );
+                     firstEntry = NEW NewNewDirectoryEntryData();
+                     *firstEntry = *secondEntry;
                   } else {
                      firstEntry = NEW NewNewDirectoryEntryData();
                      secondEntry = NEW NewNewDirectoryEntryData();
@@ -215,6 +218,7 @@ void MemController::preInit( ) {
 }
 
 void MemController::initialize( ProcessingElement &pe ) {
+   ensure( _preinitialized == true, "MemController not preinitialized!");
    if ( !_initialized ) {
       _pe = &pe;
       //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_CC_CDIN); );
@@ -232,6 +236,8 @@ void MemController::initialize( ProcessingElement &pe ) {
 
 bool MemController::allocateTaskMemory() {
    bool result = true;
+   ensure( _preinitialized == true, "MemController not preinitialized!");
+   ensure( _initialized == true, "MemController not initialized!");
    //std::ostream &o = (*myThread->_file);
    if ( _pe->getMemorySpaceId() != 0 ) {
       bool pending_invalidation = false;
@@ -329,7 +335,7 @@ bool MemController::allocateTaskMemory() {
 }
 
 void MemController::copyDataIn() {
-   ensure( _preinitialized == true, "MemController not initialized!");
+   ensure( _preinitialized == true, "MemController not preinitialized!");
    ensure( _initialized == true, "MemController not initialized!");
   
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
@@ -367,7 +373,7 @@ void MemController::copyDataIn() {
 }
 
 void MemController::copyDataOut( MemControllerPolicy policy ) {
-   ensure( _preinitialized == true, "MemController not initialized!");
+   ensure( _preinitialized == true, "MemController not preinitialized!");
    ensure( _initialized == true, "MemController not initialized!");
 
    //for ( unsigned int index = 0; index < _wd.getNumCopies(); index++ ) {

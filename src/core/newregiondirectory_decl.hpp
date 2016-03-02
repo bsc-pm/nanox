@@ -67,6 +67,8 @@ namespace nanos
          void setBaseAddress(uint64_t addr);
          uint64_t getBaseAddress() const;
          memory_space_id_t getHome() const;
+         void lock();
+         void unlock();
          friend std::ostream & operator<< (std::ostream &o, NewNewDirectoryEntryData const &entry);
    };
 
@@ -92,17 +94,27 @@ namespace nanos
                this->_registeredObject = o._registeredObject;
                return *this;
             }
+            ~Object() {
+               destroyDictionary();
+               delete _registeredObject;
+            }
             GlobalRegionDictionary *getGlobalRegionDictionary() const {
                return _object;
             }
             CopyData *getRegisteredObject() const {
                return _registeredObject;
             }
-            void resetGlobalRegionDictionary() {
+            void destroyDictionary() {
+               for ( unsigned int reg_id = 1; reg_id < _object->getRegionNodeCount()+1; reg_id += 1 ) {
+                  NewNewDirectoryEntryData *entry = ( NewNewDirectoryEntryData * ) _object->getRegionData( reg_id );
+                  delete entry;
+               }
                delete _object;
-               if ( _registeredObject == NULL ) {
-                  _object = NULL;
-               } else {
+               _object = NULL;
+            }
+            void resetGlobalRegionDictionary() {
+               destroyDictionary();
+               if ( _registeredObject != NULL ) {
                   _object = NEW GlobalRegionDictionary( *_registeredObject );
                   _object->setRegisteredObject( _registeredObject );
                   NewNewDirectoryEntryData *entry = getDirectoryEntry( *_object, 1 );
@@ -163,7 +175,7 @@ namespace nanos
 
          /*! \brief NewDirectory destructor
           */
-         ~NewNewRegionDirectory() {};
+         ~NewNewRegionDirectory();
 
          void invalidate( CacheRegionDictionary *regions, unsigned int from );
 

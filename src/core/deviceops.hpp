@@ -47,7 +47,7 @@ inline bool DeviceOps::allCompleted() {
 
 inline bool DeviceOps::addCacheOp( /* debug: */ WorkDescriptor const *wd, int loc ) {
    bool b = _pendingCacheOp.tryAcquire();
-      ensure( wd != NULL, "Invalid WD adding a Cache Op.")
+      ensure( wd != NULL, "Invalid WD adding a Cache Op.");
       if ( b ) {
          if ( VERBOSE_CACHE_OPS ) {
             *(myThread->_file) << "[" << myThread->getId() << "] " << OS::getMonotonicTime() << " " << (void *)this << " Added an op by " << wd->getId() << " at loc " << loc << std::endl;

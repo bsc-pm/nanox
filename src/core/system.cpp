@@ -527,11 +527,6 @@ void System::start ()
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
    mainWD._mcontrol.setMainWD();
-   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
-      char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
-      sys.getPMInterface().initInternalData( data );
-      mainWD.setInternalData( data );
-   }
 
    if ( _pmInterface->getInternalDataSize() > 0 ) {
       char *data = NEW char[_pmInterface->getInternalDataSize()];
@@ -841,6 +836,10 @@ void System::finish ()
       if ( it->first != (unsigned int)myThread->runningOn()->getId() ) {
          delete it->second;
       }
+   }
+   
+   for ( unsigned int idx = 1; idx < _separateMemorySpacesCount; idx += 1 ) {
+      delete _separateAddressSpaces[ idx ];
    }
    
    //! \note unload modules

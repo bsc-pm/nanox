@@ -94,14 +94,14 @@ void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::
    char *packedAddr = NULL;
    ops->addOp();
    //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_STRIDED_COPY_PACK); );
-      *myThread->_file << "Allocate " << len * count << " to pack data (len=" << len << " count=" << count << " ld=" <<ld << ")"<< std::endl;
+      //*myThread->_file << "Allocate " << len * count << " to pack data (len=" << len << " count=" << count << " ld=" <<ld << ")"<< std::endl;
    do {
       packedAddr = (char *) _packer.give_pack( hostAddr, len, count );
       if (!packedAddr ) {
          myThread->idle( true );
       }
    } while ( packedAddr == NULL );
-      *myThread->_file << "Got address " << (void *)packedAddr << std::endl;
+      //*myThread->_file << "Got address " << (void *)packedAddr << std::endl;
 
    if ( packedAddr != NULL) { 
       for ( unsigned int i = 0; i < count; i += 1 ) {

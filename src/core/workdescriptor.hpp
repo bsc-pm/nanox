@@ -402,6 +402,7 @@ inline WorkDescriptor * WorkDescriptor::getImmediateSuccessor ( BaseThread &thre
       if ( found ) {
          WD *successor = found->getWD();
          //successor->predecessorFinished( this );
+         successor->_mcontrol.preInit();
          return successor;
       } else {
          return NULL;

@@ -105,7 +105,7 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
       typedef std::map< MemoryChunk, _Type * > BaseMap;
       typedef std::pair< const MemoryChunk *, _Type ** > MemChunkPair;
       typedef std::list< MemChunkPair > MemChunkList;
-      typedef std::pair< const MemoryChunk *, _Type * const * > ConstMemChunkPair;
+      typedef std::pair< MemoryChunk, _Type * > ConstMemChunkPair;
       typedef std::list< ConstMemChunkPair > ConstMemChunkList;
       typedef typename BaseMap::iterator iterator;
       typedef typename BaseMap::const_iterator const_iterator;
@@ -121,13 +121,11 @@ class MemoryMap : public std::map< MemoryChunk, _Type * > {
    private:
       void insertWithOverlap( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
       void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, MemChunkList &ptrList );
-      void getWithOverlap( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
       void getWithOverlapNoExactKey( const MemoryChunk &key, const_iterator &hint, ConstMemChunkList &ptrList ) const;
    public:
       void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
-      void getOrAddChunk2( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
-      void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
-      void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
+      void getOrAddChunkDoNotFragment( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
+      void getChunk( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       void print(std::ostream &o) const;
       bool canPack() const;
       void removeChunks( uint64_t addr, std::size_t len );
@@ -143,10 +141,7 @@ class MemoryMap<uint64_t> : public std::map< MemoryChunk, uint64_t > {
    public:
       MemoryMap( const MemoryMap &mm ) : std::map< MemoryChunk, uint64_t> () { }
       const MemoryMap & operator=( const MemoryMap &mm );// { return *this; }
-      //typedef enum { MEM_CHUNK_FOUND, MEM_CHUNK_NOT_FOUND, MEM_CHUNK_NOT_FOUND_BUT_ALLOCATED } QueryResult;
       typedef std::map< MemoryChunk, uint64_t > BaseMap;
-      //typedef std::pair< const MemoryChunk *, uint64_t > MemChunkPair;
-      //typedef std::list< MemChunkPair > MemChunkList;
       typedef BaseMap::iterator iterator;
       typedef BaseMap::const_iterator const_iterator;
 
@@ -156,10 +151,7 @@ class MemoryMap<uint64_t> : public std::map< MemoryChunk, uint64_t > {
    private:
       void insertWithOverlapButNotGenerateIntersects( const MemoryChunk &key, iterator &hint, uint64_t data );
    public:
-      //void getOrAddChunk( uint64_t addr, std::size_t len, MemChunkList &resultEntries );
       void addChunk( uint64_t addr, std::size_t len, uint64_t value );
-      //void getChunk2( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
-      //void getChunk3( uint64_t addr, std::size_t len, ConstMemChunkList &resultEntries ) const;
       //void print() const;
       uint64_t getExactOrFullyOverlappingInsertIfNotFound( uint64_t addr, std::size_t len, bool &exact, uint64_t valIfNotFound, uint64_t valIfNotValid, uint64_t &conflictAddr, std::size_t &conflictSize );
       uint64_t getExactInsertIfNotFound( uint64_t addr, std::size_t len, uint64_t valIfNotFound, uint64_t valIfNotValid );

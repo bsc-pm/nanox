@@ -262,6 +262,16 @@ inline memory_space_id_t NewNewDirectoryEntryData::getHome() const {
    return _home;
 }
 
+inline void NewNewDirectoryEntryData::lock() {
+   while ( !_setLock.tryAcquire() ) {
+      myThread->idle();
+   }
+}
+
+inline void NewNewDirectoryEntryData::unlock() {
+   _setLock.release();
+}
+
 inline NewNewRegionDirectory::RegionDirectoryKey NewNewRegionDirectory::getRegionDirectoryKeyRegisterIfNeeded( CopyData const &cd, WD const *wd ) {
    return getRegionDictionaryRegisterIfNeeded( cd, wd );
 }

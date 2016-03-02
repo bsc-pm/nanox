@@ -46,7 +46,7 @@ typedef unsigned int reg_t;
       RegionNode  *_parent;
       std::size_t  _value;
       reg_t _id;
-      std::map<std::size_t, RegionNode> *_sons;
+      std::map<std::size_t, RegionNode *> *_sons;
       reg_t *_memoIntersectInfo;
 
       public:

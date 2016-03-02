@@ -311,13 +311,25 @@ void NewNewRegionDirectory::_invalidateObjectsFromDevices( std::map< uint64_t, M
    }
 }
 
+NewNewRegionDirectory::~NewNewRegionDirectory() {
+   for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
+      HashBucket &hb = *bit;
+      if ( hb._bobjects != NULL ) {
+         for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
+            delete it->second;
+         }
+      }
+      delete hb._bobjects;
+   }
+}
+
 void NewNewRegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< Object > * > &objects ) {
    for ( std::map< uint64_t, MemoryMap< Object > * >::iterator it = objects.begin(); it != objects.end(); it++ ) {
       Object *o = it->second->getExactByAddress(it->first);
       sys.getNetwork()->deleteDirectoryObject( o->getGlobalRegionDictionary() );
-      o->resetGlobalRegionDictionary();
       it->second->eraseByAddress( it->first );
       if ( o->getRegisteredObject() != NULL ) {
+         o->resetGlobalRegionDictionary();
          CopyData *cd = o->getRegisteredObject();
          Object **dict_o = it->second->getExactInsertIfNotFound( (uint64_t) cd->getBaseAddress(), cd->getMaxSize() );
          if ( dict_o != NULL ) {
@@ -337,6 +349,7 @@ void NewNewRegionDirectory::_unregisterObjects( std::map< uint64_t, MemoryMap< O
          }
       } else {
          _keys.eraseByAddress( it->first );
+         delete o;
       }
    }
 }
@@ -462,7 +475,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                               else *myThread->_file << " nil " << std::endl; 
                            }
                            //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
-                           outOps.addOutOp( 0 /* sync only non rooted objects */, reg.getFirstLocation(), reg, reg.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           outOps.addOutOp( 0 /* sync only non rooted objects */, reg.getFirstLocation(), reg, reg.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
                            outOps.insertOwnOp( thisOps, reg, reg.getVersion()+1, 0 ); //increase version to invalidate the device copy
                         } else {
                            outOps.getOtherOps().insert( thisOps );
@@ -500,7 +513,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
                               else *myThread->_file << " nil " << std::endl; 
                            }
                            //*myThread->_file << " reg is in: " << reg.getFirstLocation() << std::endl;
-                           outOps.addOutOp( 0 /* sync only non rooted objects */, data_source.getFirstLocation(), region_shape, data_source.getVersion(), thisOps, NULL, (unsigned int)0xdeadbeef ); //Out op synchronize
+                           outOps.addOutOp( 0 /* sync only non rooted objects */, data_source.getFirstLocation(), region_shape, data_source.getVersion(), thisOps, wd, (unsigned int)0xdeadbeef ); //Out op synchronize
                            outOps.insertOwnOp( thisOps, region_shape, data_source.getVersion()+1, 0 ); //increase version to invalidate the device copy
                         } else {
                            outOps.getOtherOps().insert( thisOps );
@@ -516,7 +529,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       }
       hb._lock.release();
    }
-   outOps.issue( *( (WD *) NULL ) );
+   outOps.issue( wd );
    while ( !outOps.isDataReady( wd ) ) { myThread->processTransfers(); }
 
    //*myThread->_file << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;

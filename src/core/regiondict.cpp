@@ -33,23 +33,23 @@ reg_t RegionNode::addNode( nanos_region_dimension_internal_t const *dimensions, 
    std::size_t value = ( ( deep & 1 ) == 0 ) ? dimensions[ (deep >> 1) ].lower_bound : dimensions[ (deep >> 1) ].accessed_length;
    //std::cerr << "this node value is "<< _value << " gonna add value " << value << " this deep " << deep<< std::endl;
    if ( !_sons ) {
-      _sons = new std::map<std::size_t, RegionNode>();
+      _sons = new std::map<std::size_t, RegionNode *>();
    }
 
-   std::map<std::size_t, RegionNode>::iterator it = _sons->lower_bound( value );
+   std::map<std::size_t, RegionNode *>::iterator it = _sons->lower_bound( value );
    bool haveToInsert = ( it == _sons->end() || _sons->key_comp()(value, it->first) );
    reg_t newId = ( lastNode && haveToInsert ) ? container.getNewRegionId() : 0;
    reg_t retId = 0;
 
    if ( haveToInsert ) {
-      it = _sons->insert( it, std::map<std::size_t, RegionNode>::value_type( value, RegionNode( this, value, newId ) ) );
-      if ( lastNode ) container.addRegionNode( &(it->second) );
+      it = _sons->insert( it, std::map<std::size_t, RegionNode *>::value_type( value, NEW RegionNode( this, value, newId ) ) );
+      if ( lastNode ) container.addRegionNode( it->second );
    }
 
    if ( lastNode ) {
-      retId = it->second.getId();
+      retId = it->second->getId();
    } else {
-      retId = it->second.addNode( dimensions, numDimensions, deep + 1, container );
+      retId = it->second->addNode( dimensions, numDimensions, deep + 1, container );
    }
    return retId;
 }
@@ -62,7 +62,7 @@ reg_t RegionNode::checkNode( nanos_region_dimension_internal_t const *dimensions
       return 0;
    }
 
-   std::map<std::size_t, RegionNode>::iterator it = _sons->lower_bound( value );
+   std::map<std::size_t, RegionNode *>::iterator it = _sons->lower_bound( value );
    bool haveToInsert = ( it == _sons->end() || _sons->key_comp()(value, it->first) );
    reg_t retId = 0;
 
@@ -71,9 +71,9 @@ reg_t RegionNode::checkNode( nanos_region_dimension_internal_t const *dimensions
    }
 
    if ( lastNode ) {
-      retId = it->second.getId();
+      retId = it->second->getId();
    } else {
-      retId = it->second.checkNode( dimensions, numDimensions, deep + 1 );
+      retId = it->second->checkNode( dimensions, numDimensions, deep + 1 );
    }
    return retId;
 }

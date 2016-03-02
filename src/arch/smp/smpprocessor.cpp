@@ -52,7 +52,8 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
    DeviceData **dd_ptr = NEW DeviceData*[1];
    dd_ptr[0] = (DeviceData*)dd;
 
-   WD *wd = NEW WD( 1, dd_ptr );
+   WD * wd = NEW WD( 1, dd_ptr, 0, 1, 0, 0, NULL, NULL, "SMP Worker" );
+   wd->_mcontrol.preInit();
 
    return *wd;
 }
@@ -64,7 +65,9 @@ WorkDescriptor & SMPProcessor::getMultiWorkerWD () const
 #else
    SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )NULL); //this is an error if we are not runnig with cluster
 #endif
-   WD *wd = NEW WD( dd );
+   WD *wd = NEW WD( dd, 0, 1, 0, 0, NULL, NULL, "SMP MultiWorker" );
+   wd->_mcontrol.preInit();
+
    return *wd;
 }
 
@@ -74,7 +77,8 @@ WorkDescriptor & SMPProcessor::getMasterWD () const
    DeviceData **dd_ptr = NEW DeviceData*[1];
    dd_ptr[0] = (DeviceData*)dd;
 
-   WD * wd = NEW WD( 1, dd_ptr );
+   WD * wd = NEW WD( 1, dd_ptr, 0, 1, 0, 0, NULL, NULL, "SMP Main" );
+   wd->_mcontrol.preInit();
 
    return *wd;
 }
