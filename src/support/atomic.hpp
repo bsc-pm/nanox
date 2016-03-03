@@ -135,6 +135,7 @@ inline T Atomic<T>::operator-= ( const Atomic<T> &val )
    return subAndFetch(val.value());
 }
 
+#if 0 // Deprecated
 template<typename T>
 inline bool Atomic<T>::operator== ( const Atomic<T> &val )
 {
@@ -170,6 +171,7 @@ inline bool Atomic<T>::operator>= ( const Atomic<T> &val )
 {
    return value() >= val.value();
 }
+#endif
 
 template<typename T>
 inline bool Atomic<T>::cswap ( const Atomic<T> &oldval, const Atomic<T> &newval )

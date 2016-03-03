@@ -62,6 +62,8 @@ namespace nanos
          T subAndFetch ( const T& val=1 );
          T value() const;
 
+         operator T() const { return value(); }
+
          //! pre-increment ++
          T operator++ ();
          T operator-- ();
@@ -77,6 +79,7 @@ namespace nanos
          T operator-= ( const T val );
          T operator-= ( const Atomic<T> &val );
 
+#if 0 // Deprecated
          //! equal operator
          bool operator== ( const Atomic<T> &val );
          bool operator!= ( const Atomic<T> &val );
@@ -85,6 +88,7 @@ namespace nanos
          bool operator> ( const Atomic<T> &val ) const;
          bool operator<= ( const Atomic<T> &val );
          bool operator>= ( const Atomic<T> &val );
+#endif
 
          // other atomic operations
 
