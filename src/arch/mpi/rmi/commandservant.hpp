@@ -6,14 +6,31 @@ namespace nanos {
 namespace mpi {
 namespace command {
 
+struct BaseServant {
+	/**
+	 * Perform action on the remote process
+	 * To be defined by each specific operation
+	 */
+	virtual void serve() = 0;
+
+	template < typename Payload >
+	static BaseServant* createSpecific( Payload const& data );
+};
+
 template< int command_id, typename Payload, typename Channel >
-class CommandServant : public Channel {
+class CommandServant : public BaseServant {
 	private:
 		Payload _data;
+		Channel _channel;
 	public:
-		CommandServant() :
-			Channel(),
-			_data( command_id )
+		CommandServant( Channel const& channel ) :
+			_data( command_id ),
+			_channel( channel )
+		{
+		}
+
+		CommandServant( Channel const& channel, Payload const& data ) :
+			_data( data ), _channel( channel )
 		{
 		}
 
@@ -31,11 +48,7 @@ class CommandServant : public Channel {
 			return _data;
 		}
 
-		/**
-		 * Perform action on the remote process
-		 * To be defined by each specific operation
-		 */
-		void serve();
+		virtual void serve();
 };
 
 } // namespace command

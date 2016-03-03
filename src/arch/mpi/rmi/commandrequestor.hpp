@@ -10,16 +10,17 @@ namespace mpi {
 namespace command {
 
 template< int command_id, typename Payload, typename Channel >
-class CommandRequestor : public Channel {
+class CommandRequestor {
 	private:
 		Payload _data;
+		Channel _channel;
 
 	public:
-		CommandRequestor() :
-			Channel(),
-			_data( command_id )
+		CommandRequestor( Channel const& channel ) :
+			_data( command_id ),
+			_channel( channel )
 		{
-			send( _data );
+			_channel.send( _data );
 		}
 
 		virtual ~CommandRequestor()
@@ -34,6 +35,11 @@ class CommandRequestor : public Channel {
 		Payload const& getData() const
 		{
 			return _data;
+		}
+
+		Channel const& getChannel() const
+		{
+			return _channel;
 		}
 
 		/**

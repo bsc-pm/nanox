@@ -3,13 +3,31 @@
 #define COMMAND_SENDER_HPP
 
 #include <mpi.h>
+#include "memoryaddress.hpp"
 
 namespace nanos {
 namespace mpi {
 namespace command {
 
+/**
+ * This struct represents a payload of contiguous
+ * memory. It is analogous to MPI_BYTE.
+ */
+class RawPayload {
+	private:
+		utils::Address _address;
+	public:
+		RawPayload( utils::Address const& address ) :
+			_address( address )
+		{
+		}
 
-// Inputchannel (only recv), Outputchannel (only send), InoutChannel (both)??
+		void* operator&() { return static_cast<void*>(_address); }
+
+		const void* operator&() const { return static_cast<const void*>(_address); }
+
+		static MPI_Datatype getDataType() { return MPI_BYTE; }
+};
 
 template< int command_id, typename Payload, int channel_tag >
 class CommandChannel {
@@ -37,6 +55,26 @@ class CommandChannel {
 		{
 		}
 
+		CommandChannel( MPIProcessor const& destination ) :
+			_source( MPI_ANY_SOURCE ), _destination( destination.getRank() ),
+			_communicator( destination.getCommunicator() )
+		{
+		}
+
+		CommandChannel( MPIProcessor const& source, MPIProcessor const& destination ) :
+			_source( source.getRank() ), _destination( destination.getRank() ),
+			_communicator( source.getCommunicator() )
+		{
+			// TODO: ensure both source and destination communicators are the same
+		}
+
+		template < typename OldPayload, int other_tag >
+		CommandChannel( CommandChannel<command_id,OldPayload,other_tag> const& other ) :
+			_source( other._source ), _destination( other._destination ),
+			_communicator( other._communicator )
+		{
+		}
+
 		int getSource() const
 		{
 			return _source;
@@ -57,23 +95,34 @@ class CommandChannel {
 			return channel_tag;
 		}
 
-		void receive( Payload &data );
+		request isend( Payload const& data, size_t n = 1 );
 
-		void send( Payload const& data );
+		void receive( Payload &data, size_t n = 1 );
+
+		void send( Payload const& data, size_t n = 1 );
 };
 
 template< int command_id, typename Payload, int tag >
-void CommandChannel<command_id,Payload,tag>::receive( Payload &data )
+void CommandChannel<command_id,Payload,tag>::receive( Payload &data, size_t n )
 {
-	MPIRemoteNode::nanosMPIRecv( &data, 1, Payload::getDataType(),
+	MPIRemoteNode::nanosMPIRecv( &data, n, Payload::getDataType(),
 	        getSource(), getTag(), getCommunicator() );
 }
 
 template< int command_id, typename Payload, int tag >
-void CommandChannel<command_id,Payload,tag>::send( Payload const& data )
+void CommandChannel<command_id,Payload,tag>::send( Payload const& data, size_t n )
 {
-	MPIRemoteNode::nanosMPISend( &data, 1, Payload::getDataType(),
+	MPIRemoteNode::nanosMPISend( &data, n, Payload::getDataType(),
 	        getDestination(), getTag(), getCommunicator() );
+}
+
+template< int command_id, typename Payload, int tag >
+request CommandChannel<command_id,Payload,tag>::isend( Payload const& data, size_t n )
+{
+	request result;
+	MPIRemoteNode::nanosMPIIsend( &data, n, Payload::getDataType(),
+	        getDestination(), getTag(), getCommunicator(), result );
+	return result;
 }
 
 } // namespace command

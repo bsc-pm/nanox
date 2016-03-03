@@ -2,6 +2,8 @@
 #ifndef COMMAND_HPP
 #define COMMAND_HPP
 
+#include "commandpayload.hpp"
+
 #include "memoryaddress.hpp"
 #include "mpidevice_decl.hpp"
 #include "mpiprocessor_decl.hpp"
@@ -12,94 +14,59 @@ namespace command {
 
 using namespace ext;
 
-class GenericCommand {
+template < int id, typename Channel >
+class CommandRequestor< id, CommandPayload, Channel > {
 	private:
-		int _id;   //!< Used to identify which command is being received
-		int _code; //!< Additional code number. Its usage is optional.
-		MPIProcessor const& _destination; // Only works from the point of view of the sender
-
-		/**
-		 * Custom MPI datatype for GenericCommand
-		 * This is necessary since we must compute
-		 * the displacement of the attributes
-		 * with respect to the object's base address
-		 */
-		static MPI_Datatype _type;
+		CommandPayload _data;
+		Channel        _channel;
 
 	public:
-		GenericCommand( int id, MPIProcessor const& destination ) :
-			_id(id), _code(0), _destination( destination )
+		CommandRequestor( MPIProcessor const& destination ) :
+			_data(id), _channel( destination )
+		{
+			_channel.sendCommand( _data );
+		}
+
+		CommandRequestor( int code, MPIProcessor const& destination ) :
+			_data(id, code), _channel( destination )
+		{
+			_channel.sendCommand( _data );
+		}
+
+		virtual ~CommandRequestor()
 		{
 		}
 
-		GenericCommand( int id, int code, MPIProcessor const& destination ) :
-			_id(id), _code(code), _destination( destination )
+		CommandPayload &getData()
 		{
+			return _data;
 		}
 
-		virtual ~GenericCommand()
+		CommandPayload const& getData() const
 		{
+			return _data;
 		}
 
-		int getDestinationRank() const
-		{
-			return _destination.getRank();
-		}
-
-		MPI_Comm getCommunicator() const
-		{
-			return _destination.getCommunicator();
-		}
-
-		int getId() const
-		{
-			return _id;
-		}
-
-		int getCode() const
-		{
-			return _code;
-		}
-
-		static void initDataType()
-		{
-			int blocklen  = 1;
-			MPI_Aint disp = offsetof(GenericCommand,_id);
-
-			MPI_Type_create_hindexed(1, &blocklen, &disp, MPI_INT, &_type );
-			MPI_Type_commit( &_type );
-		}
-
-		static void freeDataType()
-		{
-			MPI_Type_free( &_type );
-		}
-
-		static MPI_Datatype getDataType()
-		{
-			return _type;
-		}
-
-		static GenericCommand* createSpecific( GenericCommand &command );
+		// To be defined by each operation
+		void dispatch();
 };
 
 /**
  * Pairs Requestor and Servant types for each operation id
  */
-template < int op_id >
+template < int op_id, int tag = TAG_M2S_ORDER >
 struct Command {
-	static id = op_id;
+	static const int id;
 
-   /* 
-	 * Base Requestor/Servant should only be used on
-	 * partial template specializations of Requestor/Servant
-	 */
-	typedef RequestorBase< op_id, GenericCommand > RequestorBase;
-	typedef ServantBase< op_id, GenericCommand > ServantBase;
+	typedef CommandPayload	                           payload_type;
+	typedef CommandChannel<op_id, CommandPayload, tag> main_channel_type;
 
-	typedef Requestor< op_id, GenericCommand > Requestor;
-	typedef Servant  < op_id, GenericCommand > Servant;
+	typedef CommandRequestor< op_id, payload_type, main_channel_type > Requestor;
+	typedef CommandServant  < op_id, payload_type, main_channel_type > Servant;
 };
+
+template< int op_id, int tag >
+const int Command<op_id,tag>::id = op_id;
 
 } // namespace command
 } // namespace mpi

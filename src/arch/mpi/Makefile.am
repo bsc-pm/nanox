@@ -66,12 +66,14 @@ offload_sources= \
  info.hpp \
  request.hpp \
  status.hpp \
+ pagealignedallocator.hpp \
  rmi/allocate.hpp \
  rmi/cachecommand.cpp \
  rmi/cachecommand.hpp \
  rmi/cachepayload.hpp \
  rmi/command.cpp \
  rmi/command.hpp \
+ rmi/commandpayload.hpp \
  rmi/commanddispatcher.hpp \
  rmi/commandchannel.hpp \
  rmi/commandrequestor.hpp \

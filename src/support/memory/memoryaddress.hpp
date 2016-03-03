@@ -30,6 +30,9 @@
 #   define nanos_constexpr
 #endif
 
+namespace nanos {
+namespace utils {
+
 /*
  * \brief Abstraction layer for memory addresses.
  * \defails Address provides an easy to use wrapper
@@ -142,8 +145,17 @@ class Address {
 			return reinterpret_cast<T*>(value);
 		}
 
+		template< typename T >
+		operator const T*() const {
+			return reinterpret_cast<const T*>(value);
+		}
+
 		operator void*() {
 			return reinterpret_cast<void*>(value);
+		}
+
+		operator const void*() const {
+			return reinterpret_cast<const void*>(value);
 		}
 
 		/*! @returns whether this address fulfills an
@@ -258,6 +270,9 @@ bool is_properly_aligned( Address address, size_t alignment_constraint )
  *  \details String representation of an address in hexadecimal.
  */
 std::ostream& operator<<(std::ostream& out, Address const &entry);
+
+} // namespace utils
+} // namespaec nanos
 
 #endif // ADDRESS_HPP
 

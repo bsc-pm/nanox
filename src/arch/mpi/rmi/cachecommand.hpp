@@ -66,30 +66,31 @@ using namespace ext;
  * arguments.
  */
 template < int id, typename Channel >
-class CommandRequestor< id, CachePayload, Channel > : public Channel {
+class CommandRequestor< id, CachePayload, Channel > {
 	private:
 		CachePayload _data;
+		Channel      _channel;
 
 	public:
 		CommandRequestor( MPIProcessor const& destination ) :
-			Channel( destination ),
-			_data( id )
+			_data( id ),
+			_channel( destination )
 		{
-			Channel::sendCommand( _data );
+			_channel.sendCommand( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination, size_t size ) :
-			Channel( destination ),
-			_data( id, size )
+			_data( id, size ),
+			_channel( destination )
 		{
-			Channel::sendCommand( _data );
+			_channel.sendCommand( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination, CachePayload const& data ) :
-			Channel( destination ),
-			_data( data )
+			_data( data ),
+			_channel( destination )
 		{
-			Channel::sendCommand( _data );
+			_channel.sendCommand( _data );
 		}
 
 		virtual ~CommandRequestor()
@@ -115,12 +116,16 @@ class CommandRequestor< id, CachePayload, Channel > : public Channel {
  */
 template < int op_id, int tag = TAG_M2S_ORDER >
 struct CacheCommand {
+	static const int id;
 	typedef CachePayload                             payload_type;
-	typedef CommandChannel<op_id, CachePayload, tag> main_channel;
+	typedef CommandChannel<op_id, CachePayload, tag> main_channel_type;
 
-	typedef CommandRequestor< op_id, payload_type, main_channel > Requestor;
-	typedef CommandServant  < op_id, payload_type, main_channel > Servant;
+	typedef CommandRequestor< op_id, payload_type, main_channel_type > Requestor;
+	typedef CommandServant  < op_id, payload_type, main_channel_type > Servant;
 };
+
+template< int op_id, int tag >
+const int CacheCommand<op_id,tag>::id = op_id;
 
 } // namespace command
 } // namespace mpi

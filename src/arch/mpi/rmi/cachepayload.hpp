@@ -11,38 +11,38 @@ namespace command {
 
 class CachePayload {
 	private:
-		int		_id;
-		int      _source;
-      int      _destination;
-		Address  _hostAddress;
-		Address  _deviceAddress;
-		size_t   _size;
+		int             _id;
+		int             _source;
+      int             _destination;
+		utils::Address  _hostAddress;
+		utils::Address  _deviceAddress;
+		size_t          _size;
 
 		static MPI_Datatype _type;
 
 	public:
 		CachePayload() :
 			_id( OPID_INVALID ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
-			_hostAddress( Address::uninitialized() ), _deviceAddress( Address::uninitialized() ),
+			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
 			_size( 0 )
 		{
 		}
 
 		CachePayload( int id ) :
 			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
-			_hostAddress( Address::uninitialized() ), _deviceAddress( Address::uninitialized() ),
+			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
 			_size( 0 )
 		{
 		}
 
 		CachePayload( int id, size_t size ) :
 			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
-			_hostAddress( Address::uninitialized() ), _deviceAddress( Address::uninitialized() ),
+			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
 			_size( size )
 		{
 		}
 
-		CachePayload( int id, int source, int destination, Address hostAddress, Address deviceAddress, size_t size ) :
+		CachePayload( int id, int source, int destination, utils::Address hostAddress, utils::Address deviceAddress, size_t size ) :
 			_id( id ), _source( source ), _destination( destination ),
 			_hostAddress( hostAddress ), _deviceAddress( deviceAddress ), _size( size )
 		{
@@ -68,22 +68,22 @@ class CachePayload {
 			_destination = destination;
 		}
 
-		Address getHostAddress () const
+		utils::Address getHostAddress () const
 		{
 			return _hostAddress;
 		}
 
-		void setHostAddress ( Address address )
+		void setHostAddress ( utils::Address address )
 		{
 			_hostAddress = address;
 		}
 
-		Address getDeviceAddress() const
+		utils::Address getDeviceAddress() const
 		{
 			return _deviceAddress;
 		}
 
-		void setDeviceAddress ( Address address )
+		void setDeviceAddress ( utils::Address address )
 		{
 			_deviceAddress = address;
 		}
@@ -117,7 +117,7 @@ class CachePayload {
 
 			int blocklen[3] = {
 					3,
-					2*sizeof(Address),
+					2*sizeof(utils::Address),
 					sizeof(size_t) };
 
 			MPI_Aint disp[3] = { 
@@ -133,8 +133,6 @@ class CachePayload {
 		{
 			MPI_Type_free( &_type );
 		}
-
-		static CachePayload* createSpecific( CachePayload &genericCommand );
 };
 
 } // namespace command

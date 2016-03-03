@@ -3,6 +3,7 @@
 #define FREE_HPP
 
 #include "cachecommand.hpp"
+#include "pagealignedallocator.hpp"
 
 namespace nanos {
 namespace mpi {
@@ -26,7 +27,8 @@ void Free::Servant::serve()
 {
 	NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_FREE_EVENT);
 
-	std::free( getData().getDeviceAddress() );
+	PageAlignedAllocator<> allocator;
+	allocator.deallocate( getData().getDeviceAddress(), getData().size() );
 
 //	TODO: this might need an update to nanos cache v0.9
 //
