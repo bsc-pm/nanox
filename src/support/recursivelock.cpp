@@ -46,6 +46,19 @@ void RecursiveLock::operator-- ( int )
 
 void RecursiveLock::acquire ( )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if ( __atomic_load_n(&_holderThread, __ATOMIC_ACQUIRE) == getMyThreadSafe() )
+   {
+      __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_ACQ_REL);
+      return;
+   }
+
+   while (__atomic_exchange_n( &state_, NANOS_LOCK_BUSY, __ATOMIC_ACQ_REL) == NANOS_LOCK_BUSY ) { }
+
+   __atomic_store_n(&_holderThread, getMyThreadSafe(), __ATOMIC_RELEASE);
+   __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_ACQ_REL);
+
+#else
    if ( _holderThread == getMyThreadSafe() )
    {
       _recursionCount++;
@@ -56,13 +69,39 @@ spin:
    while ( state_ == NANOS_LOCK_BUSY ) {}
 
    if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
-   
+
    _holderThread = getMyThreadSafe();
    _recursionCount++;
+#endif
 }
 
 bool RecursiveLock::tryAcquire ( )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if ( __atomic_load_n(&_holderThread, __ATOMIC_ACQUIRE) == getMyThreadSafe() )
+   {
+      __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_ACQ_REL);
+      return true;
+   }
+
+   if ( __atomic_load_n(&state_, __ATOMIC_ACQUIRE) == NANOS_LOCK_FREE )
+   {
+      if ( __atomic_exchange_n( &state_, NANOS_LOCK_BUSY, __ATOMIC_ACQ_REL ) == NANOS_LOCK_BUSY )
+      {
+         return false;
+      }
+      else
+      {
+         __atomic_store_n(&_holderThread, getMyThreadSafe(), __ATOMIC_RELEASE);
+         __atomic_add_fetch(&_recursionCount, 1, __ATOMIC_ACQ_REL);
+         return true;
+      }
+   }
+   else
+   {
+      return false;
+   }
+#else
    if ( _holderThread == getMyThreadSafe() ) {
       _recursionCount++;
       return true;
@@ -77,16 +116,25 @@ bool RecursiveLock::tryAcquire ( )
          return true;
       }
    } else return false;
+#endif
 }
 
 void RecursiveLock::release ( )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if ( __atomic_sub_fetch(&_recursionCount, 1, __ATOMIC_ACQ_REL) == 0 )
+   {
+      _holderThread = 0UL;
+      __atomic_store_n(&state_, NANOS_LOCK_FREE, __ATOMIC_RELEASE);
+   }
+#else
    _recursionCount--;
    if ( _recursionCount == 0UL )
    {
       _holderThread = 0UL;
       __sync_lock_release( &state_ );
    }
+#endif
 }
 
 RecursiveLockBlock::RecursiveLockBlock ( RecursiveLock & lock ) : _lock(lock)
