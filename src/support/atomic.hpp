@@ -21,6 +21,11 @@
 #define _NANOS_ATOMIC
 
 #include "atomic_decl.hpp"
+#include "basethread_decl.hpp"
+#include "compatibility.hpp"
+#include "nanos-int.h"
+#include <algorithm> // for min/max
+#include "instrumentationmodule_decl.hpp"
 
 /* TODO: move to configure
 #include <ext/atomicity.h>
@@ -214,13 +219,25 @@ inline Atomic<T> & Atomic<T>::operator= ( const Atomic<T> &val )
 
 inline void memoryFence ()
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_thread_fence(__ATOMIC_ACQ_REL);
+#else
 #ifndef __MIC__
     __sync_synchronize();
 #else
     __asm__ __volatile__("" ::: "memory");
 #endif
+#endif
 }
 
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+template<typename T>
+inline bool compareAndSwap( T *ptr, T oldval, T  newval )
+{
+   return __atomic_compare_exchange_n(ptr, &oldval, newval,
+         /* weak */ false, __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE );
+}
+#else
 template<typename T>
 inline bool compareAndSwap( volatile T *ptr, T oldval, T  newval )
 {
@@ -423,6 +440,8 @@ inline SyncRecursiveLockBlock::~SyncRecursiveLockBlock ( )
 {
    memoryFence();
 }
+#endif
 
-}
+} // namespace nanos
+
 #endif

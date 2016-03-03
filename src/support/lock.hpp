@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2009 Barcelona Supercomputing Center                               */
+/*      Copyright 2015 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -27,12 +27,16 @@ namespace nanos {
 
 inline Lock::state_t Lock::operator* () const
 {
-   return state_;
+   return getState();
 }
 
 inline Lock::state_t Lock::getState () const
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   return __atomic_load_n(&state_, __ATOMIC_ACQUIRE);
+#else
    return state_;
+#endif
 }
 
 inline void Lock::operator++ ( int val )
@@ -47,38 +51,62 @@ inline void Lock::operator-- ( int val )
 
 inline void Lock::acquire ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   acquire_noinst();
+#else
    if ( (state_ == NANOS_LOCK_FREE) &&  !__sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return;
 
    // Disabling lock instrumentation; do not remove follow code which can be reenabled for testing purposes
    // NANOS_INSTRUMENT( InstrumentState inst(NANOS_ACQUIRING_LOCK) )
-
 spin:
-
    while ( state_ == NANOS_LOCK_BUSY ) {}
 
    if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
 
    // NANOS_INSTRUMENT( inst.close() )
+#endif
 }
 
 inline void Lock::acquire_noinst ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   while (__atomic_exchange_n( &state_, NANOS_LOCK_BUSY, __ATOMIC_ACQ_REL) == NANOS_LOCK_BUSY ) { }
+#else
 spin:
    while ( state_ == NANOS_LOCK_BUSY ) {}
    if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) goto spin;
+#endif
 }
 
 inline bool Lock::tryAcquire ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   if (__atomic_load_n(&state_, __ATOMIC_ACQUIRE) == NANOS_LOCK_FREE)
+   {
+      if (__atomic_exchange_n(&state_, NANOS_LOCK_BUSY, __ATOMIC_ACQ_REL) == NANOS_LOCK_BUSY)
+         return false;
+      else // will return NANOS_LOCK_FREE
+         return true;
+   }
+   else
+   {
+      return false;
+   }
+#else
    if ( state_ == NANOS_LOCK_FREE ) {
       if ( __sync_lock_test_and_set( &state_,NANOS_LOCK_BUSY ) ) return false;
       else return true;
    } else return false;
+#endif
 }
 
 inline void Lock::release ( void )
 {
+#ifdef HAVE_NEW_GCC_ATOMIC_OPS
+   __atomic_store_n(&state_, 0, __ATOMIC_RELEASE);
+#else
    __sync_lock_release( &state_ );
+#endif
 }
 
 inline LockBlock::LockBlock ( Lock & lock ) : _lock(lock)
