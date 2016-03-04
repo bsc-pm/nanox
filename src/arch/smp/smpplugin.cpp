@@ -115,6 +115,11 @@ class SMPPlugin : public SMPBasePlugin
                  , _asyncSMPTransfers( true )
    {}
 
+   ~SMPPlugin() {
+      delete _cpus;
+      delete _cpusByCpuId;
+   }
+
    virtual unsigned int getNewSMPThreadId()
    {
       return _idSeed++;

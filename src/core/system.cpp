@@ -816,6 +816,7 @@ void System::finish ()
 
    //! \note deleting main work descriptor
    delete ( WorkDescriptor * ) ( getMyThreadSafe()->getCurrentWD() );
+   delete ( WorkDescriptor * ) &( getMyThreadSafe()->getThreadWD() );
 
    //! \note deleting loaded slicers
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {

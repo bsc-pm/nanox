@@ -314,11 +314,6 @@ void NewNewRegionDirectory::_invalidateObjectsFromDevices( std::map< uint64_t, M
 NewNewRegionDirectory::~NewNewRegionDirectory() {
    for ( std::vector< HashBucket >::iterator bit = _objects.begin(); bit != _objects.end(); bit++ ) {
       HashBucket &hb = *bit;
-      if ( hb._bobjects != NULL ) {
-         for ( MemoryMap<Object>::iterator it = hb._bobjects->begin(); it != hb._bobjects->end(); it++ ) {
-            delete it->second;
-         }
-      }
       delete hb._bobjects;
    }
 }

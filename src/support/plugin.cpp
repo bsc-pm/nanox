@@ -108,3 +108,9 @@ Plugin * PluginManager::loadAndGetPlugin( const char *name, const bool initPlugi
 
    return plugin;
 }
+void PluginManager::unloadPlugins() {
+   for (PluginMap::iterator it = _activePlugins.begin();
+         it != _activePlugins.end(); it++ ) {
+      delete it->second;
+   }
+}
