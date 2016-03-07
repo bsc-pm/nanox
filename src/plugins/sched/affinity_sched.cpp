@@ -1510,7 +1510,7 @@ namespace nanos {
             
             ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
 
-            if ( actualClusterThread->acceptsWDsSMP() ) {
+            if ( actualClusterThread->acceptsWDs( 0 ) ) {
                if ( actualClusterThread->tryLock() ) {
 
                   if ( data._fetch < 1 ) {
@@ -1543,7 +1543,7 @@ namespace nanos {
                   if ( ( wd = tdata._readyQueuesAlreadyInit[selectedNode].pop_front( actualThreadNC ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     actualClusterThread->addRunningWDSMP( wd );
+                     actualClusterThread->addRunningWD( 0, wd );
                      Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
 
                      actualClusterThread->preOutlineWorkDependent( *wd );
@@ -1575,7 +1575,7 @@ namespace nanos {
                      wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
 
                      //(*myThread->_file) << "add running wd "<<std::endl;
-                     actualClusterThread->addRunningWDSMP( wd );
+                     actualClusterThread->addRunningWD( 0, wd );
                      //(*myThread->_file) << "ore outline with thd "<<std::endl;
                      Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
                      //(*myThread->_file) << "start wd at "<< selectedNode <<std::endl;
