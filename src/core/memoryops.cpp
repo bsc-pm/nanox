@@ -200,7 +200,7 @@ void BaseAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned int
    *myThread->_file << "Error, can not send data from myself." << std::endl; 
 }
 
-void BaseAddressSpaceInOps::issue( WD const &wd ) {
+void BaseAddressSpaceInOps::issue( WD const *wd ) {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE, true); );
    for ( MapType::iterator it = _separateTransfers.begin(); it != _separateTransfers.end(); it++ ) {
      sys.getHostMemory().copy( *(it->first) /* mem space */, it->second /* regions */, wd );
@@ -280,7 +280,7 @@ void SeparateAddressSpaceInOps::addOpFromHost( global_reg_t const &reg, unsigned
    _hostTransfers.push_back( TransferListEntry( reg, version, NULL, chunk, /* source chunk */ (AllocatedChunk *) NULL, copyIdx ) );
 }
 
-void SeparateAddressSpaceInOps::issue( WD const &wd ) {
+void SeparateAddressSpaceInOps::issue( WD const *wd ) {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE, true); );
    for ( MapType::iterator it = _separateTransfers.begin(); it != _separateTransfers.end(); it++ ) {
       _destination.copy( *(it->first) /* mem space */, it->second /* list of regions */, wd );
@@ -323,7 +323,7 @@ void SeparateAddressSpaceOutOps::addOutOp( memory_space_id_t to, memory_space_id
    list.push_back( TransferListEntry( reg, version, ops, /* destination */ (AllocatedChunk *) NULL, chunk, copyIdx ) );
 }
 
-void SeparateAddressSpaceOutOps::issue( WD const &wd ) {
+void SeparateAddressSpaceOutOps::issue( WD const *wd ) {
    NANOS_INSTRUMENT( InstrumentState inst(NANOS_MEM_TRANSFER_ISSUE, true); );
    for ( MapType::iterator it = _transfers.begin(); it != _transfers.end(); it++ ) {
       if (it->first.first == 0 ) {

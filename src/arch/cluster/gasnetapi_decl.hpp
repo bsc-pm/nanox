@@ -182,8 +182,8 @@ namespace ext {
          void sendWorkMsg ( unsigned int dest, void ( *work ) ( void * ), unsigned int arg0, unsigned int arg1, unsigned int numPe, std::size_t argSize, char * arg, void ( *xlate ) ( void *, void * ), int arch, void *wd, std::size_t expectedData );
          void sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr );
          void _sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr );
-         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
-         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
+         void put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
+         void putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          void get ( void *localAddr, unsigned int remoteNode, uint64_t remoteAddr, std::size_t size, GetRequest *req, CopyData const &cd );
          void getStrided1D ( void *packedAddr, unsigned int remoteNode, uint64_t remoteTag, uint64_t remoteAddr, std::size_t size, std::size_t count, std::size_t ld, GetRequestStrided *req, CopyData const &cd );
          void malloc ( unsigned int remoteNode, std::size_t size, void *waitObjAddr );
@@ -192,8 +192,8 @@ namespace ext {
          void nodeBarrier( void );
          
          void sendMyHostName( unsigned int dest );
-         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
-         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
+         void sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
+         void sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          void sendRegionMetadata( unsigned int dest, CopyData *cd, unsigned int seq );
 
          std::size_t getMaxGetStridedLen() const;
@@ -214,8 +214,8 @@ namespace ext {
          void setUnalignedNodeMemory(bool flag);
 
       private:
-         void _put ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
-         void _putStrided1D ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
+         void _put ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
+         void _putStrided1D ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq );
          void sendFreeTmpBuffer( unsigned int dest, void *addr, WD const *wd );
          void sendWaitForRequestPut( unsigned int dest, uint64_t addr, unsigned int wdId );
          static void print_copies( WD const *wd, int deps );

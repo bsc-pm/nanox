@@ -231,15 +231,15 @@ DeviceOps *global_reg_t::getDeviceOps() const {
    return NewNewRegionDirectory::getOps( key, id );
 }
 
-DeviceOps *global_reg_t::getHomeDeviceOps() {
+DeviceOps *global_reg_t::getHomeDeviceOps( WD const &wd, unsigned int copyIdx ) {
    DeviceOps *ops = NULL;
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    memory_space_id_t home = (entry->getRootedLocation() == (unsigned int) -1) ? 0 : entry->getRootedLocation();
    if ( home == 0 ) {
       ops = NewNewRegionDirectory::getOps( key, id );
    } else {
-      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk( *this, *((WD *)NULL), (unsigned int)-1 );
-      ops = chunk->getDeviceOps(*this, *((WD *)NULL), (unsigned int)-1 );
+      AllocatedChunk *chunk = sys.getSeparateMemory( home ).getCache().getAllocatedChunk( *this, wd, copyIdx );
+      ops = chunk->getDeviceOps( *this, &wd, copyIdx );
       chunk->unlock();
    }
    return ops;

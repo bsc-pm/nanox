@@ -42,7 +42,7 @@ ClusterDevice::ClusterDevice ( const ClusterDevice &arch ) : Device ( arch ) {
 ClusterDevice::~ClusterDevice() {
 }
 
-void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx) {
+void * ClusterDevice::memAllocate( size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const *wd, unsigned int copyIdx) {
    void *retAddr = NULL;
 
    SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
@@ -59,13 +59,13 @@ void ClusterDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
    allocator->unlock();
 }
 
-void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void ClusterDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    ops->addOp();
-   sys.getNetwork()->put( mem.getNodeNumber(),  devAddr, ( void * ) hostAddr, len, wd.getId(), wd, hostObject, hostRegionId );
+   sys.getNetwork()->put( mem.getNodeNumber(),  devAddr, ( void * ) hostAddr, len, wd->getId(), wd, hostObject, hostRegionId );
    ops->completeOp();
 }
 
-void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
 
    char *recvAddr = NULL;
    do { 
@@ -82,14 +82,14 @@ void ClusterDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t l
    sys.getNetwork()->get( ( void * ) recvAddr, mem.getNodeNumber(), devAddr, len, newreq, hostObject, hostRegionId );
 }
 
-bool ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+bool ClusterDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    ops->addOp();
-   sys.getNetwork()->sendRequestPut( memOrig.getNodeNumber(), devOrigAddr, memDest.getNodeNumber(), devDestAddr, len, wd.getId(), wd, hostObject, hostRegionId );
+   sys.getNetwork()->sendRequestPut( memOrig.getNodeNumber(), devOrigAddr, memDest.getNodeNumber(), devDestAddr, len, wd->getId(), wd, hostObject, hostRegionId );
    ops->completeOp();
    return true;
 }
 
-void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    char *hostAddrPtr = (char *) hostAddr;
    char *packedAddr = NULL;
    ops->addOp();
@@ -109,14 +109,14 @@ void ClusterDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::
       }
    } else { std::cerr << "copyInStrided ERROR!!! could not get a packet to gather data." << std::endl; }
    //NANOS_INSTRUMENT( inst2.close(); );
-   sys.getNetwork()->putStrided1D( mem.getNodeNumber(),  devAddr, ( void * ) hostAddr, packedAddr, len, count, ld, wd.getId(), wd, hostObject, hostRegionId );
+   sys.getNetwork()->putStrided1D( mem.getNodeNumber(),  devAddr, ( void * ) hostAddr, packedAddr, len, count, ld, wd->getId(), wd, hostObject, hostRegionId );
    if ( _packer.free_pack( hostAddr, len, count, packedAddr ) == false ) {
-      *myThread->_file << "Error freeing pack after sending copyIn to node " << mem.getNodeNumber() << " HostAddr " << (void *) hostAddr << " wd: " << wd.getId() << " region: " << (void *) hostObject << ":" << hostRegionId << std::endl;
+      *myThread->_file << "Error freeing pack after sending copyIn to node " << mem.getNodeNumber() << " HostAddr " << (void *) hostAddr << " wd: " << wd->getId() << " region: " << (void *) hostObject << ":" << hostRegionId << std::endl;
    }
    ops->completeOp();
 }
 
-void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    char * hostAddrPtr = (char *) hostAddr;
    //std::cerr << "ClusterDevice::_copyOutStrided1D with count " << count << " and len " << len << " sys.getNetwork()->getMaxGetStridedLen() is " << sys.getNetwork()->getMaxGetStridedLen()<< std::endl;
    std::size_t maxCount = ( ( len * count ) <= sys.getNetwork()->getMaxGetStridedLen() ) ? count : ( sys.getNetwork()->getMaxGetStridedLen() / len );
@@ -157,9 +157,9 @@ void ClusterDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std:
    }
 }
 
-bool ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+bool ClusterDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    ops->addOp();
-   sys.getNetwork()->sendRequestPutStrided1D( memOrig.getNodeNumber(), devOrigAddr, memDest.getNodeNumber(), devDestAddr, len, count, ld, wd.getId(), wd, hostObject, hostRegionId );
+   sys.getNetwork()->sendRequestPutStrided1D( memOrig.getNodeNumber(), devOrigAddr, memDest.getNodeNumber(), devDestAddr, len, count, ld, wd->getId(), wd, hostObject, hostRegionId );
    ops->completeOp();
    return true;
 }

@@ -219,12 +219,12 @@ GASNetAPI::SendDataPutRequest::~SendDataPutRequest() {
 
 void GASNetAPI::SendDataPutRequest::doSingleChunk() {
     //(myThread != NULL ? (*myThread->_file) : std::cerr) << "process request for wd " << _wdId << " to node " << getDestination() << " dstAddr is " << (void *) _destAddr << std::endl;
-   _gasnetApi->_put( getIssueNode(), getDestination(), (uint64_t) _destAddr, _origAddr, _len, _tmpBuffer, _wdId, *_wd, _hostObject, _hostRegId, _metaSeq );
+   _gasnetApi->_put( getIssueNode(), getDestination(), (uint64_t) _destAddr, _origAddr, _len, _tmpBuffer, _wdId, _wd, _hostObject, _hostRegId, _metaSeq );
 }
 
 void GASNetAPI::SendDataPutRequest::doStrided( void *localAddr ) {
     //(myThread != NULL ? (*myThread->_file) : std::cerr) << "process strided request for wd " << _wdId << " to node " << getDestination() << " dstAddr is " << (void *) _destAddr << std::endl;
-   _gasnetApi->_putStrided1D( getIssueNode(), getDestination(), (uint64_t) _destAddr, _origAddr, localAddr, _len, _count, _ld, _tmpBuffer, _wdId, *_wd, _hostObject, _hostRegId, _metaSeq );
+   _gasnetApi->_putStrided1D( getIssueNode(), getDestination(), (uint64_t) _destAddr, _origAddr, localAddr, _len, _count, _ld, _tmpBuffer, _wdId, _wd, _hostObject, _hostRegId, _metaSeq );
 }
 
 GASNetAPI::SendDataGetRequest::SendDataGetRequest( GASNetAPI *api, unsigned int seqNumber, unsigned int dest, void *origAddr, void *destAddr, std::size_t len, std::size_t count, std::size_t ld, GetRequest *req, CopyData const &cd, nanos_region_dimension_internal_t *dims ) :
@@ -1283,7 +1283,7 @@ void GASNetAPI::_sendWorkDoneMsg ( unsigned int dest, void *remoteWdAddr )
    VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amWorkDone done" << std::endl; );
 }
 
-void GASNetAPI::_put ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
+void GASNetAPI::_put ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, void *remoteTmpBuffer, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
 {
    std::size_t sent = 0, thisReqSize;
    _txBytes += size;
@@ -1319,8 +1319,8 @@ void GASNetAPI::_put ( unsigned int issueNode, unsigned int remoteNode, uint64_t
                      ARG_LO( size ),
                      ARG_HI( size ),
                      wdId,
-                     ARG_LO( &wd ),
-                     ARG_HI( &wd ),
+                     ARG_LO( wd ),
+                     ARG_HI( wd ),
                      metaSeq,
                      ( ( sent + thisReqSize ) == size ),
                      ARG_LO( hostObject ),
@@ -1341,7 +1341,7 @@ void GASNetAPI::_put ( unsigned int issueNode, unsigned int remoteNode, uint64_t
    }
 }
 
-void GASNetAPI::_putStrided1D ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
+void GASNetAPI::_putStrided1D ( unsigned int issueNode, unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, void *remoteTmpBuffer, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
 {
    std::size_t sent = 0, thisReqSize;
    std::size_t realSize = size * count;
@@ -1377,8 +1377,8 @@ void GASNetAPI::_putStrided1D ( unsigned int issueNode, unsigned int remoteNode,
                      count,
                      ld,
                      wdId,
-                     ARG_LO( &wd ),
-                     ARG_HI( &wd ),
+                     ARG_LO( wd ),
+                     ARG_HI( wd ),
                      metaSeq,
                      ( ( sent + thisReqSize ) == realSize ),
                      ARG_LO( hostObject ),
@@ -1398,7 +1398,7 @@ void GASNetAPI::_putStrided1D ( unsigned int issueNode, unsigned int remoteNode,
    NANOS_INSTRUMENT( sys.getInstrumentation()->raiseCloseBurstEvent( network_transfer_key, 0 ); )
 }
 
-void GASNetAPI::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) {
+void GASNetAPI::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq ) {
    //if ( gasnet_mynode() != 0 ) fatal0("Error, cant use ::put from node != than 0"); 
    void *tmp = NULL;
    while( tmp == NULL ) {
@@ -1411,7 +1411,7 @@ void GASNetAPI::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, voi
    _putStrided1D( gasnet_mynode(), remoteNode, remoteAddr, localAddr, localPack, size, count, ld, tmp, wdId, wd, hostObject, hostRegId, metaSeq );
 }
 
-void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
+void GASNetAPI::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
 {
    //if ( gasnet_mynode() != 0 ) fatal0("Error, cant use ::put from node != than 0"); 
    void *tmp = NULL;
@@ -1557,10 +1557,10 @@ void GASNetAPI::sendMyHostName( unsigned int dest )
    VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amMasterHostname done" << std::endl; );
 }
 
-void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
+void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
 {
    _totalBytes += len;
-   sendWaitForRequestPut( dataDest, dstAddr, wd.getHostId() );
+   sendWaitForRequestPut( dataDest, dstAddr, wd->getHostId() );
 
    unsigned int seq_number = sys.getNetwork()->getPutRequestSequenceNumber( dest );
 
@@ -1572,7 +1572,7 @@ void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned i
       if ( tmpBuffer == NULL ) _net->poll(0);
    }
 
-   SendDataPutRequestPayload msg( gasnet_mynode(), seq_number, (void *) origAddr, (void*) dstAddr, len, 1, 0, dataDest, wdId, tmpBuffer, &wd, hostObject, hostRegId, metaSeq );
+   SendDataPutRequestPayload msg( gasnet_mynode(), seq_number, (void *) origAddr, (void*) dstAddr, len, 1, 0, dataDest, wdId, tmpBuffer, wd, hostObject, hostRegId, metaSeq );
 
    if ( _emitPtPEvents ) {
       NANOS_INSTRUMENT ( static Instrumentation *instr = sys.getInstrumentation(); )
@@ -1590,11 +1590,11 @@ void GASNetAPI::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned i
    VERBOSE_AM( (myThread != NULL ? (*myThread->_file) : std::cerr) << __FUNCTION__ << " send amRequestPut done" << std::endl; );
 }
 
-void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
+void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId, unsigned int metaSeq )
 {
    _totalBytes += ( len * count );
    //NANOS_INSTRUMENT( InstrumentState inst0(NANOS_SEND_WAIT_FOR_REQ_PUT); );
-   sendWaitForRequestPut( dataDest, dstAddr, wd.getHostId() );
+   sendWaitForRequestPut( dataDest, dstAddr, wd->getHostId() );
    //NANOS_INSTRUMENT( inst0.close(); );
    //NANOS_INSTRUMENT( InstrumentState inst1(NANOS_GET_PINNED_ADDR); );
    unsigned int seq_number = sys.getNetwork()->getPutRequestSequenceNumber( dest );
@@ -1610,7 +1610,7 @@ void GASNetAPI::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, u
 
    //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_SEND_PUT_REQ); );
 
-   SendDataPutRequestPayload msg( gasnet_mynode(), seq_number, (void *) origAddr, (void *) dstAddr, len, count, ld, dataDest, wdId, tmpBuffer, &wd, hostObject, hostRegId, metaSeq );
+   SendDataPutRequestPayload msg( gasnet_mynode(), seq_number, (void *) origAddr, (void *) dstAddr, len, count, ld, dataDest, wdId, tmpBuffer, wd, hostObject, hostRegId, metaSeq );
    
 
    if ( _emitPtPEvents ) {

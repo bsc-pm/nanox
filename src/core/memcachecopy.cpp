@@ -48,7 +48,7 @@ void MemCacheCopy::generateInOps( BaseAddressSpaceInOps &ops, bool input, bool o
             _chunk->NEWaddReadRegion2( ops, _reg.id, _version, _locations, wd, copyIdx );
          }
       } else if ( output ) {
-         _chunk->NEWaddWriteRegion( _reg.id, _version, wd, copyIdx );
+         _chunk->NEWaddWriteRegion( _reg.id, _version, &wd, copyIdx );
       } else {
          fatal("invalid path");
       }

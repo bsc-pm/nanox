@@ -348,7 +348,7 @@ void GPUDevice::copyOutAsyncToHost ( void * dst, void * src, size_t len, size_t 
 //   //std::cerr << "GPU memAllocate( " << size << " )  returns: " << mem << std::endl;
 //   return mem;
 //}
-void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WorkDescriptor const &wd, unsigned int copyIdx )
+void * GPUDevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem, WD const *wd, unsigned int copyIdx )
 {
    void * address = NULL;
 
@@ -373,7 +373,7 @@ void GPUDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem )
 }
 
 void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops,
-      WD const &wd, void *hostObject, reg_t hostRegionId )
+      WD const *wd, void *hostObject, reg_t hostRegionId )
 {
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;
@@ -384,7 +384,7 @@ void GPUDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
 }
 
 void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops,
-      WD const &wd, void *hostObject, reg_t hostRegionId ) 
+      WD const *wd, void *hostObject, reg_t hostRegionId ) 
 {
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;
@@ -395,7 +395,7 @@ void GPUDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
 }
 
 bool GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, SeparateMemoryAddressSpace &memDest,
-      SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) 
+      SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) 
 {
    CopyDescriptor cd( 0xdeaddead );
    cd._ops = ops;
@@ -442,7 +442,7 @@ bool GPUDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
    return true;
 }
 
-void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;
    ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
@@ -451,7 +451,7 @@ void GPUDevice::_copyInStrided1D( uint64_t devAddr, uint64_t hostAddr, std::size
    ( myThread->runningOn() == gpu ) ? isMycopyIn( ( void * ) devAddr, cd, len, count, ld, mem, gpu ) : isNotMycopyIn( ( void * ) devAddr, cd, len, count, ld, mem, gpu );
 }
 
-void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;
    ext::GPUMemorySpace *gpuMemData = ( ext::GPUMemorySpace * ) mem.getSpecificData();
@@ -460,7 +460,7 @@ void GPUDevice::_copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::siz
    ( myThread->runningOn() == gpu ) ? isMycopyOut( cd, (void *) devAddr, len, count, ld, mem, gpu ) : isNotMycopyOut( cd, (void *) devAddr, len, count, ld, mem, gpu );
 }
 
-bool GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+bool GPUDevice::_copyDevToDevStrided1D( uint64_t devDestAddr, uint64_t devOrigAddr, std::size_t len, std::size_t count, std::size_t ld, SeparateMemoryAddressSpace &memDest, SeparateMemoryAddressSpace &memOrig, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
    CopyDescriptor cd( 0xdeaddead );
    cd._ops = ops;
 

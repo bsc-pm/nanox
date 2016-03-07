@@ -80,7 +80,7 @@ class BaseAddressSpaceInOps : public BaseOps {
    void copyInputData( MemCacheCopy const &memCopy, WD const &wd, unsigned int copyIdx );
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
-   virtual void issue( WD const &wd );
+   virtual void issue( WD const *wd );
 
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 };
@@ -97,7 +97,7 @@ class SeparateAddressSpaceInOps : public BaseAddressSpaceInOps {
    ~SeparateAddressSpaceInOps();
 
    virtual void addOpFromHost( global_reg_t const &reg, unsigned int version, AllocatedChunk *chunk, unsigned int copyIdx );
-   virtual void issue( WD const &wd );
+   virtual void issue( WD const *wd );
 
    virtual unsigned int getVersionNoLock( global_reg_t const &reg, WD const &wd, unsigned int copyIdx );
 };
@@ -113,7 +113,7 @@ class SeparateAddressSpaceOutOps : public BaseOps {
 
    void addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, AllocatedChunk *chunk, WD const &wd, unsigned int copyIdx );
    void addOutOp( memory_space_id_t to, memory_space_id_t from, global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx );
-   void issue( WD const &wd );
+   void issue( WD const *wd );
    void copyOutputData( SeparateMemoryAddressSpace *from, MemCacheCopy const &memCopy, bool output, WD const &wd, unsigned int copyIdx );
    bool hasPendingOps() const;
    void cancel( WD const &wd );

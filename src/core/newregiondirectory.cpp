@@ -524,7 +524,7 @@ void NewNewRegionDirectory::synchronize( WD &wd ) {
       }
       hb._lock.release();
    }
-   outOps.issue( wd );
+   outOps.issue( &wd );
    while ( !outOps.isDataReady( wd ) ) { myThread->processTransfers(); }
 
    //*myThread->_file << "taskwait flush, wd (" << wd.getId() << ") depth is " << wd.getDepth() << " this node is " <<  sys.getNetwork()->getNodeNum() << std::endl;
