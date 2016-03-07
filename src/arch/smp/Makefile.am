@@ -49,6 +49,8 @@ devinclude_HEADERS = \
 	smpprocessor_fwd.hpp \
 	smpthread.hpp \
 	smpthread_fwd.hpp \
+	smptransferqueue_decl.hpp \
+	smptransferqueue.hpp \
 	$(END) 
 
 common_libadd=\
