@@ -737,11 +737,12 @@ void System::finish ()
    }
    getMyThreadSafe()->getCurrentWD()->tied().tieTo(*_workers[0]);
    Scheduler::switchToThread(_workers[0]);
-   myThread->getTeam()->getSchedulePolicy().atShutdown();
-   
-   ensure( getMyThreadSafe()->isMainThread(), "Main thread is not finishing the application!");
+   BaseThread *mythread = getMyThreadSafe();
+   mythread->getTeam()->getSchedulePolicy().atShutdown();
 
-   ThreadTeam* team = getMyThreadSafe()->getTeam();
+   ensure( mythread->isMainThread(), "Main thread is not finishing the application!");
+
+   ThreadTeam* team = mythread->getTeam();
    while ( !(team->isStable()) ) memoryFence();
 
    //! \note stopping all threads
@@ -815,8 +816,8 @@ void System::finish ()
    delete[] _lockPool;
 
    //! \note deleting main work descriptor
-   delete ( WorkDescriptor * ) ( getMyThreadSafe()->getCurrentWD() );
-   delete ( WorkDescriptor * ) &( getMyThreadSafe()->getThreadWD() );
+   delete ( WorkDescriptor * ) ( mythread->getCurrentWD() );
+   delete ( WorkDescriptor * ) &( mythread->getThreadWD() );
 
    //! \note deleting loaded slicers
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
@@ -836,7 +837,7 @@ void System::finish ()
 
    //! \note deleting processing elements (but main pe)
    for ( PEList::iterator it = _pes.begin(); it != _pes.end(); it++ ) {
-      if ( it->first != (unsigned int)myThread->runningOn()->getId() ) {
+      if ( it->first != (unsigned int)mythread->runningOn()->getId() ) {
          delete it->second;
       }
    }
@@ -852,7 +853,7 @@ void System::finish ()
    delete _dependenciesManager;
 
    //! \note deleting last processing element
-   delete _pes[ myThread->runningOn()->getId() ];
+   delete _pes[mythread->runningOn()->getId() ];
 
    //! \note deleting allocator (if any)
    if ( allocator != NULL ) free (allocator);
