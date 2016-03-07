@@ -23,6 +23,7 @@
 #include "nanos_atomic.h"
 
 #include "atomic.hpp"
+#include "lock.hpp"
 
 #include <stdint.h>
 #include <math.h>

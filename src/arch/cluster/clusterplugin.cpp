@@ -31,6 +31,9 @@
 #ifdef GPU_DEV
 #include "gpudd.hpp"
 #endif
+#ifdef FPGA_DEV
+#include "fpgadd.hpp"
+#endif
 
 #if defined(__SIZEOF_SIZE_T__) 
    #if  __SIZEOF_SIZE_T__ == 8
@@ -87,13 +90,16 @@ void ClusterPlugin::init()
          sys.getNetwork()->mallocSlaves( &segmentAddr[ 1 ], _nodeMem );
          segmentAddr[ 0 ] = NULL;
 
-         const Device * supported_archs[3] = { &getSMPDevice(), NULL, NULL };
-         int num_supported_archs = 3;
+         const Device * supported_archs[4] = { &getSMPDevice(), NULL, NULL, NULL };
+         int num_supported_archs = 4;
          #ifdef GPU_DEV
          supported_archs[1] = &GPU;
          #endif
          #ifdef OpenCL_DEV
          supported_archs[2] = &OpenCLDev;
+         #endif
+         #ifdef FPGA_DEV
+         supported_archs[3] = &FPGA;
          #endif
          _remoteNodes = NEW std::vector<nanos::ext::ClusterNode *>(nodes - 1, (nanos::ext::ClusterNode *) NULL); 
          unsigned int node_index = 0;
@@ -238,6 +244,7 @@ void ClusterPlugin::startSupportThreads() {
          _gasnetApi->_rwgSMP = getRemoteWorkDescriptor(0);
          _gasnetApi->_rwgGPU = getRemoteWorkDescriptor(1);
          _gasnetApi->_rwgOCL = getRemoteWorkDescriptor(2);
+         _gasnetApi->_rwgFPGA = getRemoteWorkDescriptor(3);
       }
    }
 }

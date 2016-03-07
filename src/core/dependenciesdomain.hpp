@@ -25,6 +25,8 @@
 #include <vector>
 #include "dependenciesdomain_decl.hpp"
 #include "atomic.hpp"
+#include "recursivelock_decl.hpp"
+#include "lock.hpp"
 #include "dependableobject.hpp"
 #include "trackableobject.hpp"
 #include "dataaccess_decl.hpp"

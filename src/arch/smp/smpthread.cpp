@@ -17,21 +17,27 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#include "os.hpp"
-#include "smpprocessor.hpp"
-#include "pthread.hpp"
-#include "schedule.hpp"
-#include "debug.hpp"
-#include "system.hpp"
 #include <iostream>
 #include <unistd.h>
 #include <signal.h>
 #include <assert.h>
-#include "smp_ult.hpp"
-#include "basethread.hpp"
+
+#include "debug.hpp"
+#include "instrumentationmodule_decl.hpp"
 #include "instrumentation.hpp"
+
+#include "os.hpp"
+#include "pthread.hpp"
+
+#include "basethread.hpp"
+#include "schedule.hpp"
+
+#include "smp_ult.hpp"
+#include "smpprocessor.hpp"
+
+#include "system.hpp"
+
 //#include "clusterdevice_decl.hpp"
-//#include "taskexecutionexception_decl.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;

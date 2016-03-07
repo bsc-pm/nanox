@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,44 +17,78 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_LIB_QUEUE_DECL
-#define _NANOS_LIB_QUEUE_DECL
+#ifndef _NANOS_RECURSIVELOCK_DECL
+#define _NANOS_RECURSIVELOCK_DECL
 
-#include <queue>
-#include "atomic_decl.hpp"
-#include "lock_decl.hpp"
-#include "debug.hpp"
+#include "nanos-int.h"
 
 namespace nanos
 {
+   /** \brief Forwared declaration required by RecursiveLock */
+   class BaseThread;
 
-// FIX: implement own queue without coherence problems? lock-free?
-
-   template<typename T> class Queue
+   class RecursiveLock : public nanos_lock_t
    {
 
       private:
-         typedef std::queue<T>   BaseContainer;
-         Lock                    _qLock;
-         BaseContainer           _q;
+         BaseThread *_holderThread;
+         std::size_t _recursionCount;
+         
+         typedef nanos_lock_state_t state_t;
 
          // disable copy constructor and assignment operator
-         Queue( Queue &orig );
-         const Queue & operator= ( const Queue &orig );
+         RecursiveLock( const RecursiveLock &lock );
+         const RecursiveLock & operator= ( const RecursiveLock& );
 
       public:
-         // constructors
-         Queue() {}
+         // constructor
+         RecursiveLock( state_t init=NANOS_LOCK_FREE )
+            : nanos_lock_t( init ), _holderThread( 0 ), _recursionCount( 0UL )
+         {};
 
          // destructor
-         ~Queue() {}
+         ~RecursiveLock() {}
 
-         void push( T data );
-         T    pop ( void );
-         bool try_pop ( T& result );
+         void acquire ( void );
+         bool tryAcquire ( void );
+         void release ( void );
+
+         state_t operator* () const;
+
+         state_t getState () const;
+
+         void operator++ ( int );
+
+         void operator-- ( int );
+   };
+
+   class RecursiveLockBlock
+   {
+     private:
+       RecursiveLock & _lock;
+
+       // disable copy-constructor
+       explicit RecursiveLockBlock ( const RecursiveLock & );
+
+     public:
+       RecursiveLockBlock ( RecursiveLock & lock );
+       ~RecursiveLockBlock ( );
+
+       void acquire();
+       void release();
+   };
+
+   class SyncRecursiveLockBlock : public RecursiveLockBlock
+   {
+     private:
+       // disable copy-constructor
+       explicit SyncRecursiveLockBlock ( const SyncRecursiveLockBlock & );
+
+     public:
+       SyncRecursiveLockBlock ( RecursiveLock & lock );
+       ~SyncRecursiveLockBlock ( );
    };
 
 };
 
 #endif
-

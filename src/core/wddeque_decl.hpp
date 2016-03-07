@@ -23,10 +23,14 @@
 #include <list>
 #include <functional>
 #include <map>
-#include "atomic_decl.hpp"
+
 #include "debug.hpp"
-#include "workdescriptor_decl.hpp"
+#include "atomic_decl.hpp"
+#include "lock_decl.hpp"
+
 #include "basethread_fwd.hpp"
+
+#include "workdescriptor_decl.hpp"
 
 #define NANOS_ABA_MASK (15)
 #define NANOS_ABA_PTR(x) ((volatile WDNode *)(((uintptr_t)(x))& ~(uintptr_t)NANOS_ABA_MASK))

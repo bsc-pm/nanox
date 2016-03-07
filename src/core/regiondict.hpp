@@ -22,6 +22,7 @@
 
 #include "regiondict_decl.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 #include "memorymap.hpp"
 #include "system_decl.hpp"
 #include "os.hpp"
@@ -85,7 +86,15 @@ inline RegionNode &RegionNode::operator=( RegionNode const& rn ) {
 }
 
 inline RegionNode::~RegionNode() {
-   delete _sons;
+   if ( _sons != NULL ) {
+      for (std::map<std::size_t, RegionNode *>::const_iterator it = _sons->begin();
+            it != _sons->end(); it++ ) {
+         delete it->second;
+      }
+      delete _sons;
+   }
+   delete[] _memoIntersectInfo;
+   _memoIntersectInfo = NULL;
 }
 
 inline reg_t RegionNode::getId() const {
@@ -239,7 +248,17 @@ reg_t ContainerDense< T >::getNewRegionId() {
 
 template <class T>
 reg_t ContainerDense< T >::checkIfRegionExists( nanos_region_dimension_internal_t const region[] ) {
-   return _root.checkNode( region, _dimensionSizes.size(), 0 );
+   bool result;
+   if ( pthread_rwlock_rdlock(&_containerLock) ) {
+      message0("lock error ");
+      fatal("can not continue");
+   }
+   result = _root.checkNode( region, _dimensionSizes.size(), 0 );
+   if ( pthread_rwlock_unlock(&_containerLock) ) {
+      message0("lock error " );
+      fatal("can not continue");
+   }
+   return result;
 }
 
 template <class T>

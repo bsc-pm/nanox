@@ -17,23 +17,22 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <iostream>
+
+#include "atomic.hpp"
+#include "debug.hpp"
 #include "smpbaseplugin_decl.hpp"
 #include "plugin.hpp"
-#include "basethread.hpp"
 #include "smpprocessor.hpp"
-#include "smpdd.hpp"
 #include "os.hpp"
 #include "osallocator_decl.hpp"
-#include "system.hpp"
-#include "basethread.hpp"
+
 #include "cpuset.hpp"
 #include <limits>
 
 #ifdef HAVE_MEMKIND_H
 #include <memkind.h>
 #endif
-
-//#include <numa.h>
 
 namespace nanos {
 namespace ext {
@@ -115,6 +114,11 @@ class SMPPlugin : public SMPBasePlugin
                  , _memkindMemorySize( 1024*1024*1024 ) // 1Gb
                  , _asyncSMPTransfers( true )
    {}
+
+   ~SMPPlugin() {
+      delete _cpus;
+      delete _cpusByCpuId;
+   }
 
    virtual unsigned int getNewSMPThreadId()
    {
@@ -375,18 +379,35 @@ class SMPPlugin : public SMPBasePlugin
 
    virtual void finalize() {
       if ( _memkindSupport ) {
-         std::cerr << "memkind: SMP soft replacements: " << sys.getSeparateMemory(1).getSoftInvalidationCount() << std::endl;
-         std::cerr << "memkind: SMP hard replacements: " << sys.getSeparateMemory(1).getHardInvalidationCount() << std::endl;
-         std::cerr << "memkind: SMP Xfer IN bytes: " << sys.getSeparateMemory(1).getCache().getTransferredInData() << std::endl;
-         std::cerr << "memkind: SMP Xfer OUT bytes: " << sys.getSeparateMemory(1).getCache().getTransferredOutData() << std::endl;
-         std::cerr << "memkind: SMP Xfer OUT (Replacements) bytes: " << sys.getSeparateMemory(1).getCache().getTransferredReplacedOutData() << std::endl;
+         SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( 1 );
+         std::cerr << "memkind: SMP soft replacements: " << mem.getSoftInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP hard replacements: " << mem.getHardInvalidationCount() << std::endl;
+         std::cerr << "memkind: SMP Xfer IN bytes: " << mem.getCache().getTransferredInData() << std::endl;
+         std::cerr << "memkind: SMP Xfer OUT bytes: " << mem.getCache().getTransferredOutData() << std::endl;
+         std::cerr << "memkind: SMP Xfer OUT (Replacements) bytes: " << mem.getCache().getTransferredReplacedOutData() << std::endl;
+         SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
+         delete allocator;
       } else if ( _smpPrivateMemory ) {
+         std::size_t total_in = 0;
+         std::size_t total_out = 0;
          for ( std::vector<SMPProcessor *>::const_iterator it = _cpus->begin(); it != _cpus->end(); it++ ) {
-            if ( (*it)->isActive() && (*it)->getMemorySpaceId() > 0 ) {
-               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getSoftInvalidationCount() << std::endl;
-               std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard replacements: " << sys.getSeparateMemory((*it)->getMemorySpaceId()).getHardInvalidationCount() << std::endl;
+            if ( (*it)->getMemorySpaceId() > 0 ) {
+               SeparateMemoryAddressSpace &mem = sys.getSeparateMemory( (*it)->getMemorySpaceId() );
+               if ( (*it)->isActive() ) {
+                  std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP soft replacements: " << mem.getSoftInvalidationCount() << std::endl;
+                  std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " SMP hard replacements: " << mem.getHardInvalidationCount() << std::endl;
+                  std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " Xfer IN bytes: " << mem.getCache().getTransferredInData() << std::endl;
+                  std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " Xfer OUT bytes: " << mem.getCache().getTransferredOutData() << std::endl;
+                  std::cerr << "PrivateMem: cpu " << (*it)->getId()  << " Xfer OUT (Replacements) bytes: " << mem.getCache().getTransferredReplacedOutData() << std::endl;
+                  total_in += mem.getCache().getTransferredInData();
+                  total_out += mem.getCache().getTransferredOutData();
+               }
+               SimpleAllocator *allocator = (SimpleAllocator *) mem.getSpecificData();
+               delete allocator;
             }
          }
+         std::cerr << "Total IN bytes: " << total_in << std::endl;
+         std::cerr << "Total OUT bytes: " << total_out << std::endl;
       }
    }
 

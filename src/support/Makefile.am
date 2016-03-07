@@ -34,6 +34,10 @@ devinclude_HEADERS = \
 	allocator.hpp\
 	atomic_decl.hpp\
 	atomic.hpp\
+	atomic_flag.hpp\
+	lock_decl.hpp\
+	lock.hpp\
+	recursivelock_decl.hpp\
 	lazy.hpp\
 	lazy_decl.hpp\
 	compatibility.hpp\
@@ -107,6 +111,11 @@ support_sources = \
 	allocator.cpp\
 	atomic_decl.hpp\
 	atomic.hpp\
+	atomic_flag.hpp\
+	lock_decl.hpp\
+	lock.hpp\
+	recursivelock_decl.hpp\
+	recursivelock.cpp\
 	lazy.hpp\
 	lazy_decl.hpp\
 	compatibility.hpp\

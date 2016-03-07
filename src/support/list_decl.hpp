@@ -21,6 +21,7 @@
 #define _NANOS_LIST_DECL
 
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
 #include <list>
 #include <limits.h>
 #include <iterator>

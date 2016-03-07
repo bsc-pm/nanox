@@ -29,6 +29,8 @@
 #include "copydata.hpp"
 #include "memorymap_decl.hpp"
 #include "atomic_decl.hpp"
+#include "lock_decl.hpp"
+#include "recursivelock_decl.hpp"
 #include "version_decl.hpp"
 #include "workdescriptor_fwd.hpp"
 
@@ -46,7 +48,7 @@ typedef unsigned int reg_t;
       RegionNode  *_parent;
       std::size_t  _value;
       reg_t _id;
-      std::map<std::size_t, RegionNode> *_sons;
+      std::map<std::size_t, RegionNode *> *_sons;
       reg_t *_memoIntersectInfo;
 
       public:

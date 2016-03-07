@@ -69,7 +69,9 @@ namespace nanos {
             bool throttleIn( void );
             void throttleOut ( void );
 
-            ~HysteresisThrottle() {}
+            ~HysteresisThrottle() {
+               delete _syncCond;
+            }
       };
 
       bool HysteresisThrottle::throttleIn ( void )

@@ -631,7 +631,7 @@ namespace nanos {
                      // }
                      // (*myThread->_file) << "]" << std::endl;
 
-                     _readyQueueSets = NEW WDDeque*[_numQueues];
+                     _readyQueueSets = _useQueueSets ? NEW WDDeque*[_numQueues] : NULL;
                      _thdsPerQueue = NEW unsigned int[_numQueues];
                      _pushCounter = NEW unsigned int[_numQueues];
                      _popCounter = NEW unsigned int[_numQueues];
@@ -652,11 +652,13 @@ namespace nanos {
                         }
                         *myThread->_file << "}" << std::endl;
                      }
-                     for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
-                        if ( _thdsPerQueue[__i] > 0 ){
-                           _readyQueueSets[__i] = NEW WDDeque[_thdsPerQueue[__i]];
-                        } else {
-                           _readyQueueSets[__i] = NULL;
+                     if ( _useQueueSets ) {
+                        for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
+                           if ( _thdsPerQueue[__i] > 0 ){
+                              _readyQueueSets[__i] = NEW WDDeque[_thdsPerQueue[__i]];
+                           } else {
+                              _readyQueueSets[__i] = NULL;
+                           }
                         }
                      }
                   }
@@ -681,8 +683,22 @@ namespace nanos {
                      delete[] _readyQueuesAlreadyInit;
                      delete[] _bufferQueues;
                      delete[] _createdData;
+                     delete _nodeToMemSpace;
+                     delete _queueToMemSpace;
+                     delete[] _thdsPerQueue;
+                     delete[] _pushCounter;
+                     delete[] _popCounter;
+                     if ( _useQueueSets ) {
+                        for ( unsigned int __i = 0; __i < _numQueues; __i++ ) {
+                           delete[] _readyQueueSets[__i];
+                        }
+                        delete[] _readyQueueSets;
+                     }
                   }
                   /* TODO add delete for new members */
+                  delete[] _load;
+                  delete[] _feeding;
+                  delete[] _feedingVector;
                }
             };
 
@@ -1494,7 +1510,7 @@ namespace nanos {
             
             ext::ClusterThread *actualClusterThread = dynamic_cast< ext::ClusterThread * >( actualThreadNC );
 
-            if ( actualClusterThread->acceptsWDsSMP() ) {
+            if ( actualClusterThread->acceptsWDs( 0 ) ) {
                if ( actualClusterThread->tryLock() ) {
 
                   if ( data._fetch < 1 ) {
@@ -1527,7 +1543,7 @@ namespace nanos {
                   if ( ( wd = tdata._readyQueuesAlreadyInit[selectedNode].pop_front( actualThreadNC ) ) != NULL ) {
                      NANOS_INSTRUMENT(static nanos_event_value_t val = SICOPYNOMASTERINIT;)
                      NANOS_INSTRUMENT(sys.getInstrumentation()->raisePointEvents( 1, &key, &val );)
-                     actualClusterThread->addRunningWDSMP( wd );
+                     actualClusterThread->addRunningWD( 0, wd );
                      Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
 
                      actualClusterThread->preOutlineWorkDependent( *wd );
@@ -1559,7 +1575,7 @@ namespace nanos {
                      wd->initWithPE( sys.getSeparateMemory( (*tdata._nodeToMemSpace)[ selectedNode ] ).getPE() );
 
                      //(*myThread->_file) << "add running wd "<<std::endl;
-                     actualClusterThread->addRunningWDSMP( wd );
+                     actualClusterThread->addRunningWD( 0, wd );
                      //(*myThread->_file) << "ore outline with thd "<<std::endl;
                      Scheduler::preOutlineWorkWithThread( actualClusterThread, wd );
                      //(*myThread->_file) << "start wd at "<< selectedNode <<std::endl;

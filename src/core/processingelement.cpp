@@ -166,6 +166,12 @@ void ProcessingElement::stopAllThreads ()
       if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
       thread->join();
    }
+
+   for ( it = _threads.begin(); it != _threads.end(); it++ ) {
+      thread = *it;
+      if ( thread->isMainThread() ) continue; /* Protection for main thread/s */
+      delete thread->getCurrentWD();
+   }
 }
 
 Device const *ProcessingElement::getCacheDeviceType() const {

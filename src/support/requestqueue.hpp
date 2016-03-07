@@ -22,6 +22,7 @@
 
 #include "requestqueue_decl.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 
 template <class T>
 RequestQueue<T>::RequestQueue() : _queue(), _lock() {

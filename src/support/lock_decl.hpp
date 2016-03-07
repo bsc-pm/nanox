@@ -1,5 +1,5 @@
 /*************************************************************************************/
-/*      Copyright 2015 Barcelona Supercomputing Center                               */
+/*      Copyright 2009 Barcelona Supercomputing Center                               */
 /*                                                                                   */
 /*      This file is part of the NANOS++ library.                                    */
 /*                                                                                   */
@@ -17,44 +17,87 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
-#ifndef _NANOS_LIB_QUEUE_DECL
-#define _NANOS_LIB_QUEUE_DECL
+#ifndef _NANOS_LOCK_DECL
+#define _NANOS_LOCK_DECL
 
-#include <queue>
-#include "atomic_decl.hpp"
-#include "lock_decl.hpp"
-#include "debug.hpp"
+#include "nanos-int.h"
 
 namespace nanos
 {
 
-// FIX: implement own queue without coherence problems? lock-free?
-
-   template<typename T> class Queue
+   class Lock : public nanos_lock_t
    {
-
       private:
-         typedef std::queue<T>   BaseContainer;
-         Lock                    _qLock;
-         BaseContainer           _q;
+         typedef nanos_lock_state_t state_t;
 
          // disable copy constructor and assignment operator
-         Queue( Queue &orig );
-         const Queue & operator= ( const Queue &orig );
+         Lock( const Lock &lock );
+         const Lock & operator= ( const Lock& );
 
       public:
-         // constructors
-         Queue() {}
+         // constructor
+         Lock( state_t init=NANOS_LOCK_FREE ) : nanos_lock_t( init ) {};
 
          // destructor
-         ~Queue() {}
+         ~Lock() {}
 
-         void push( T data );
-         T    pop ( void );
-         bool try_pop ( T& result );
+         void acquire ( void );
+         void acquire_noinst ( void );
+         bool tryAcquire ( void );
+         void release ( void );
+
+         state_t operator* () const;
+
+         state_t getState () const;
+
+         void operator++ ( int val );
+
+         void operator-- ( int val );
    };
 
-};
+   class LockBlock
+   {
+     private:
+       Lock & _lock;
+
+       // disable copy-constructor
+       explicit LockBlock ( const LockBlock & );
+
+     public:
+       LockBlock ( Lock & lock );
+       ~LockBlock ( );
+
+       void acquire();
+       void release();
+   };
+
+   class LockBlock_noinst
+   {
+     private:
+       Lock & _lock;
+
+       // disable copy-constructor
+       explicit LockBlock_noinst ( const LockBlock_noinst & );
+
+     public:
+       LockBlock_noinst ( Lock & lock );
+       ~LockBlock_noinst ( );
+
+       void acquire();
+       void release();
+   };
+
+   class SyncLockBlock : public LockBlock
+   {
+     private:
+       // disable copy-constructor
+       explicit SyncLockBlock ( const SyncLockBlock & );
+
+     public:
+       SyncLockBlock ( Lock & lock );
+       ~SyncLockBlock ( );
+   };
+
+}
 
 #endif
-

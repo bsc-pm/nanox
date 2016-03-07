@@ -17,6 +17,13 @@
 /*      along with NANOS++.  If not, see <http://www.gnu.org/licenses/>.             */
 /*************************************************************************************/
 
+#include <assert.h>
+#include <string.h>
+#include <signal.h>
+#include <set>
+#include <climits>
+
+#include "atomic.hpp"
 #include "system.hpp"
 #include "config.hpp"
 #include "plugin.hpp"
@@ -31,11 +38,6 @@
 #include "basethread.hpp"
 #include "allocator.hpp"
 #include "debug.hpp"
-#include <assert.h>
-#include <string.h>
-#include <signal.h>
-#include <set>
-#include <climits>
 #include "smpthread.hpp"
 #include "regiondict.hpp"
 #include "smpprocessor.hpp"
@@ -522,11 +524,6 @@ void System::start ()
    //Setup MainWD
    WD &mainWD = *myThread->getCurrentWD();
    mainWD._mcontrol.setMainWD();
-   if ( sys.getPMInterface().getInternalDataSize() > 0 ) {
-      char *data = NEW char[sys.getPMInterface().getInternalDataSize()];
-      sys.getPMInterface().initInternalData( data );
-      mainWD.setInternalData( data );
-   }
 
    if ( _pmInterface->getInternalDataSize() > 0 ) {
       char *data = NEW char[_pmInterface->getInternalDataSize()];
@@ -814,6 +811,7 @@ void System::finish ()
 
    //! \note deleting main work descriptor
    delete ( WorkDescriptor * ) ( getMyThreadSafe()->getCurrentWD() );
+   delete ( WorkDescriptor * ) &( getMyThreadSafe()->getThreadWD() );
 
    //! \note deleting loaded slicers
    for ( Slicers::const_iterator it = _slicers.begin(); it !=   _slicers.end(); it++ ) {
@@ -836,6 +834,10 @@ void System::finish ()
       if ( it->first != (unsigned int)myThread->runningOn()->getId() ) {
          delete it->second;
       }
+   }
+   
+   for ( unsigned int idx = 1; idx < _separateMemorySpacesCount; idx += 1 ) {
+      delete _separateAddressSpaces[ idx ];
    }
    
    //! \note unload modules

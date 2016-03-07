@@ -130,7 +130,9 @@ memory_space_id_t global_reg_t::getPreferedSourceLocation( memory_space_id_t des
       printBt(*myThread->_file);
       //fatal("Data already in destination.");
    } else {
+      entry->lock();
       selected = sys.getRouter().getSource( dest, entry->getLocations() );
+      entry->unlock();
    }
    return selected;
 }
@@ -298,7 +300,7 @@ void global_reg_t::setOwnedMemory(memory_space_id_t loc) const {
 unsigned int global_reg_t::getNumLocations() const {
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
-   return entry->getLocations().size();
+   return entry->getNumLocations();
 }
 
 ProcessingElement *global_reg_t::getFirstWriterPE() const {
@@ -308,8 +310,12 @@ ProcessingElement *global_reg_t::getFirstWriterPE() const {
 }
 
 bool global_reg_t::isLocatedInSeparateMemorySpaces() const {
+   bool res;
    NewNewDirectoryEntryData *entry = NewNewRegionDirectory::getDirectoryEntry( *key, id );
    ensure(entry != NULL, "invalid entry.");
+   entry->lock();
    std::set< memory_space_id_t > const &locs = entry->getLocations();
-   return ( locs.size() > 1 || locs.count(0) == 0 ); 
+   res = ( locs.size() > 1 || locs.count(0) == 0 );
+   entry->unlock();
+   return res;
 }

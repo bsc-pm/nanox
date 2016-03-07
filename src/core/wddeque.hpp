@@ -24,7 +24,9 @@
 #include "schedule.hpp"
 #include "instrumentation.hpp"
 #include "atomic.hpp"
+#include "lock.hpp"
 #include "basethread.hpp"
+#include "workdescriptor.hpp"
 
 using namespace nanos;
 
@@ -393,6 +395,7 @@ inline bool WDLFQueue::empty ( void ) const
 inline size_t WDLFQueue::size() const
 {
    fatal0("Calling size method is not allowed using WDLFQueue's"); /*XXX*/
+   return 0;
 }
 
 inline void WDLFQueue::push_front ( WorkDescriptor *wd )
@@ -499,6 +502,7 @@ inline WorkDescriptor * WDLFQueue::pop_front ( BaseThread *thread )
 inline WorkDescriptor * WDLFQueue::pop_back ( BaseThread *thread )
 {
    fatal0("Calling pop_back method is not allowed using WDLFQueue's"); /*XXX*/
+   return NULL;
 }
 
 inline bool WDLFQueue::removeWD( BaseThread *thread, WorkDescriptor *toRem, WorkDescriptor **next )

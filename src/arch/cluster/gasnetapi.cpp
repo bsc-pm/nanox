@@ -77,6 +77,16 @@ void * local_nanos_ocl_factory( void *args )
    return ( void * )new ext::OpenCLDD( smp->outline );
 }
 #endif
+#ifdef FPGA_DEV
+#include "fpgadd.hpp"
+#include "fpgadevice_decl.hpp"
+void * local_nanos_fpga_factory( void *args );
+void * local_nanos_fpga_factory( void *args )
+{
+   nanos_smp_args_t *smp = ( nanos_smp_args_t * ) args;
+   return ( void * )new ext::FPGADD( smp->outline );
+}
+#endif
 
 #ifndef __SIZEOF_POINTER__
 #   error This compiler does not define __SIZEOF_POINTER__ :( 
@@ -411,16 +421,15 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
 #ifdef OpenCL_DEV
    nanos_device_t newDeviceOCL = { local_nanos_ocl_factory, (void *) &smp_args } ;
 #endif
+#ifdef FPGA_DEV
+   nanos_device_t newDeviceFPGA = { local_nanos_fpga_factory, (void *) &smp_args } ;
+#endif
    nanos_device_t *devPtr = NULL;
 
    if (arch == 0)
    {
       //SMP
       devPtr = &newDeviceSMP;
-
-      //if (getInstance()->_rwgSMP == NULL) 
-      //   getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
-
       rwg = (WorkDescriptor *) &(getInstance()->_rwgSMP[src_node]);
    }
 #ifdef GPU_DEV
@@ -428,10 +437,6 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    {
       //FIXME: GPU support
       devPtr = &newDeviceGPU;
-
-      //if (getInstance()->_rwgGPU == NULL)
-      //   getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
-
       rwg = (WorkDescriptor *) &(getInstance()->_rwgGPU[src_node]);
    }
 #endif
@@ -440,11 +445,15 @@ void GASNetAPI::amWork(gasnet_token_t token, void *arg, std::size_t argSize,
    {
       //FIXME: OCL support
       devPtr = &newDeviceOCL;
-
-      //if (getInstance()->_rwgOCL == NULL)
-      //   getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
-
       rwg = (WorkDescriptor *) &(getInstance()->_rwgOCL[src_node]);
+   }
+#endif
+#ifdef FPGA_DEV
+   else if (arch == 3)
+   {
+      //FIXME: FPGA support
+      devPtr = &newDeviceFPGA;
+      rwg = (WorkDescriptor *) &(getInstance()->_rwgFPGA[src_node]);
    }
 #endif
    else
@@ -1017,18 +1026,6 @@ void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
       fprintf(stderr, "gasnet: Error obtaining node information.\n");
    }
 
-//   if (getInstance()->_rwgSMP == NULL) 
-//      getInstance()->_rwgSMP = getInstance()->_plugin.getRemoteWorkDescriptor( 0 );
-//
-//#ifdef GPU_DEV
-//   if (getInstance()->_rwgGPU == NULL) 
-//      getInstance()->_rwgGPU = getInstance()->_plugin.getRemoteWorkDescriptor( 1 );
-//#endif
-//#ifdef OpenCL_DEV
-//   if (getInstance()->_rwgOCL == NULL) 
-//      getInstance()->_rwgOCL = getInstance()->_plugin.getRemoteWorkDescriptor( 2 );
-//#endif
-
    wds[numWDs] = (WorkDescriptor *) &(getInstance()->_rwgSMP[src_node]);
    numWDs += 1;
 #ifdef GPU_DEV
@@ -1037,6 +1034,10 @@ void GASNetAPI::amSynchronizeDirectory(gasnet_token_t token) {
 #endif
 #ifdef OpenCL_DEV
    wds[numWDs] = (WorkDescriptor *) &(getInstance()->_rwgOCL[src_node]);
+   numWDs += 1;
+#endif
+#ifdef FPGA_DEV
+   wds[numWDs] = (WorkDescriptor *) &(getInstance()->_rwgFPGA[src_node]);
    numWDs += 1;
 #endif
    getInstance()->_net->notifySynchronizeDirectory( numWDs, wds );
