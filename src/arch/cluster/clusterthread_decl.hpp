@@ -76,17 +76,10 @@ namespace ext
       virtual void preOutlineWorkDependent ( WD &wd );
       virtual void outlineWorkDependent ( WD &wd );
 
-      void addRunningWDSMP( WorkDescriptor *wd );
-      unsigned int numRunningWDsSMP() const;
-      void clearCompletedWDsSMP2( );
-
-      void addRunningWDGPU( WorkDescriptor *wd );
-      unsigned int numRunningWDsGPU() const;
-      void clearCompletedWDsGPU2( );
-
-      void addRunningWDOCL( WorkDescriptor *wd );
-      unsigned int numRunningWDsOCL() const;
-      void clearCompletedWDsOCL2( );
+      void addRunningWD( unsigned int archId, WorkDescriptor *wd );
+      unsigned int numRunningWDs( unsigned int archId ) const;
+      void clearCompletedWDs( unsigned int archId );
+      bool acceptsWDs( unsigned int archId ) const;
 
       virtual void join();
       virtual void start();
@@ -107,11 +100,6 @@ namespace ext
          virtual void switchToNextThread();
 
       virtual void setupSignalHandlers();
-
-
-      bool acceptsWDsSMP() const;
-      bool acceptsWDsGPU() const;
-      bool acceptsWDsOCL() const;
 
       bool hasAPendingWDToInit() const;
       WD *getPendingInitWD();

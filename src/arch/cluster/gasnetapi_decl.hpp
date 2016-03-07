@@ -170,6 +170,7 @@ namespace ext {
          RemoteWorkDescriptor *_rwgGPU;
          RemoteWorkDescriptor *_rwgSMP;
          RemoteWorkDescriptor *_rwgOCL;
+         RemoteWorkDescriptor *_rwgFPGA;
 
          GASNetAPI();
          ~GASNetAPI();

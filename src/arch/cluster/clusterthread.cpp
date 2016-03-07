@@ -166,6 +166,12 @@ void ClusterThread::outlineWorkDependent ( WD &wd )
       arch = 2;
    }
 #endif
+#ifdef FPGA_DEV
+   else if (wd.canRunIn( FPGA ) )
+   {
+      arch = 3;
+   }
+#endif
    else {
       fatal("unsupported architecture");
    }
@@ -217,44 +223,46 @@ void ClusterThread::notifyOutlinedCompletionDependent( WD *completedWD ) {
       arch = 2;
    }
 #endif
+#ifdef FPGA_DEV
+   else if ( completeWD->canRunIn( FPGA ) )
+   {
+      arch = 3;
+   }
+#endif
    else { 
       fatal("Unsupported architecture");
    }
    _runningWDs[ arch ].completeWD( completedWD );
 }
-
-void ClusterThread::addRunningWDSMP( WorkDescriptor *wd ) { 
-   _runningWDs[0].addRunningWD( wd );
+void ClusterThread::addRunningWD( unsigned int archId, WorkDescriptor *wd ) { 
+   _runningWDs[archId].addRunningWD( wd );
 }
-unsigned int ClusterThread::numRunningWDsSMP() const {
-   return _runningWDs[0].numRunningWDs();
+unsigned int ClusterThread::numRunningWDs( unsigned int archId ) const {
+   return _runningWDs[archId].numRunningWDs();
 }
-void ClusterThread::clearCompletedWDsSMP2( ) {
-   _runningWDs[0].clearCompletedWDs( this );
+void ClusterThread::clearCompletedWDs( unsigned int archId ) {
+   _runningWDs[archId].clearCompletedWDs( this );
 }
-
-void ClusterThread::addRunningWDGPU( WorkDescriptor *wd ) { 
-   _runningWDs[1].addRunningWD( wd );
-}
-
-unsigned int ClusterThread::numRunningWDsGPU() const {
-   return _runningWDs[1].numRunningWDs();
-}
-
-void ClusterThread::clearCompletedWDsGPU2( ) {
-   _runningWDs[1].clearCompletedWDs( this );
-}
-
-void ClusterThread::addRunningWDOCL( WorkDescriptor *wd ) { 
-   _runningWDs[2].addRunningWD( wd );
-}
-
-unsigned int ClusterThread::numRunningWDsOCL() const {
-   return _runningWDs[2].numRunningWDs();
-}
-
-void ClusterThread::clearCompletedWDsOCL2( ) {
-   _runningWDs[2].clearCompletedWDs( this );
+bool ClusterThread::acceptsWDs( unsigned int archId ) const {
+   unsigned int presend_setting = 0;
+   switch (archId) {
+      case 0: //SMP
+         presend_setting = sys.getNetwork()->getSmpPresend();
+         break;
+      case 1: //GPU
+         presend_setting = sys.getNetwork()->getGpuPresend();
+         break;
+      case 2: //OCL
+         presend_setting = sys.getNetwork()->getGpuPresend(); //FIXME
+         break;
+      case 3: //FPGA
+         presend_setting = sys.getNetwork()->getGpuPresend(); //FIXME
+         break;
+      default:
+         fatal("Impossible path");
+         break;
+   }
+   return ( numRunningWDs(archId) < presend_setting );
 }
 
 void ClusterThread::idle( bool debug )
@@ -283,15 +291,6 @@ void ClusterThread::idle( bool debug )
    }
 }
 
-bool ClusterThread::acceptsWDsGPU() const {
-   return ( ( (int) numRunningWDsGPU() ) < sys.getNetwork()->getGpuPresend() );
-}
-
-bool ClusterThread::acceptsWDsOCL() const {
-   return ( ( (int) numRunningWDsOCL() ) < sys.getNetwork()->getGpuPresend() );
-}
-
-
 bool ClusterThread::isCluster() {
    return true;
 }
@@ -309,10 +308,6 @@ void ClusterThread::unlock() {
 
 bool ClusterThread::tryLock() {
    return _lock.tryAcquire();
-}
-
-bool ClusterThread::acceptsWDsSMP() const {
-   return ( ( (int) numRunningWDsSMP() ) < sys.getNetwork()->getSmpPresend() );
 }
 
 bool ClusterThread::hasAPendingWDToInit() const {
