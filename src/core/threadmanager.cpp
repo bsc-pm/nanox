@@ -209,12 +209,8 @@ bool ThreadManager::lastActiveThread()
    CpuSet mine_and_active = *_cpuProcessMask & *_cpuActiveMask;
    bool last = mine_and_active.size() == 1 && mine_and_active.isSet(my_cpu);
 
-   // If we get here, my_cpu is the last active, but we must support thread oversubscription
-   if ( last ) {
-      // getRunningThreads counts this thread as not running because it's already tagged,
-      // so unless all threads in a PE are tagged, this thread will not be the last one
-      last = thread->runningOn()->getRunningThreads() == 0;
-   }
+   // Watch out if we have oversubscription
+   last &= thread->runningOn()->getRunningThreads() <= 1;
    return last;
 }
 
