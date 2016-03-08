@@ -131,11 +131,19 @@ AS_IF([test $mpi = yes],[
   AX_VAR_PUSHVALUE([ac_cv_cxx_compiler_gnu],[])
   AX_VAR_PUSHVALUE([ac_cv_prog_cxx_g],[])
   AX_VAR_PUSHVALUE([am_cv_CXX_dependencies_compiler_type],[])
+  unset CXXCPP
+  unset CXX
+  unset ac_cv_prog_CXXCPP
+  unset ac_cv_prog_CXX
+  unset ac_cv_prog_ac_ct_CXX
+  unset ac_cv_cxx_compiler_gnu
+  unset ac_cv_prog_cxx_g
+  unset am_cv_CXX_dependencies_compiler_type
   
   AC_LANG_PUSH([C++])
   
   # Check for a valid MPI compiler
-  AC_PROG_CXX([$MPICXX $with_mpi/mpiicpc $with_mpi/mpicxx mpiicpc mpicxx])
+  AC_PROG_CXX([$MPICXX $mpibin/mpiicpc $mpibin/mpicxx $mpibin/mpic++ mpiicpc mpicxx mpic++])
   AC_PROG_CXXCPP()
 
   # Check if mpi.h and mpicxx.h header files exists and compiles
@@ -144,9 +152,15 @@ AS_IF([test $mpi = yes],[
   # Check if the provided MPI implementation is Intel MPI
   # Multithread support will be provided if the flag -mt_mpi is used
   # or if we link against libmpi_mt library.
-  AX_CHECK_LINK_FLAG([-mt-mpi],[
-    AX_APPEND_FLAG([ -mt_mpi],[LDFLAGS])
-  ])dnl
+  # Newer versions of Intel MPI favor the option -link_mpi=opt_mt,
+  # meanwhile -mt_mpi option has been deprecated.
+  AX_CHECK_LINK_FLAG([-link_mpi=opt_mt],[
+    AX_APPEND_FLAG([ -link_mpi=opt_mt],[LDFLAGS])
+  ],[
+    AX_CHECK_LINK_FLAG([-mt_mpi],[
+      AX_APPEND_FLAG([ -mt_mpi],[LDFLAGS])
+    ])
+  ])
   
   # Look for MPI_Init_thread function in libmpi_mt, libmpi or libmpich libraries
   AS_IF([test x$mpi == xyes],[
@@ -278,6 +292,8 @@ Maximun multithread level supported: $ac_cv_mpi_mt
   MPICXX="$CXX"
   mpilib="$LDFLAGS"
   mpilibs="$LIBS"
+
+  ARCHITECTURES="$ARCHITECTURES mpi"
 
   # Restore variables to its original state
   AX_VAR_POPVALUE([CPPFLAGS])
