@@ -8,24 +8,27 @@ namespace nanos {
 namespace mpi {
 namespace command {
 
-typedef CacheCommand<OPID_COPYOUT> CopyOut;
+struct CopyOut : public CacheCommand<OPID_COPYOUT> {
+	typedef CommandChannel<OPID_COPYOUT, RawPayload, TAG_CACHE_DATA_OUT> transfer_channel_type;
+};
 
 /**
  * Receive tasks's output data from the remote process
  */
 template<>
-void CopyOut::dispatch()
+void CopyOut::Requestor::dispatch()
 {
-	MPIRemoteNode::nanosMPIRecv( getHostAddress(), size(), MPI_BYTE,
-	                    getDestinationRank(), TAG_CACHE_DATA_OUT,
-	                    getCommunicator(), MPI_STATUS_IGNORE );
+	CopyOut::transfer_channel_type transfer_channel( _channel );
+
+	RawPayload sourceData( _data.getDeviceAddress() );
+	request req = transfer_channel.isend( sourceData, _data.size() );
 }
 
 /**
  * Send task's output data back to the master process
  */
 template<>
-void CopyOut::serve()
+void CopyOut::Servant::serve()
 {
 	NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_RNODE_COPYOUT_EVENT);
 
@@ -43,8 +46,10 @@ void CopyOut::serve()
 //	      }
 //	}
 
-	MPIRemoteNode::nanosMPISend( getDeviceAddress(), size(), MPI_BYTE,
-	                    getSourceRank(), TAG_CACHE_DATA_OUT, getCommunicator() );
+	CopyOut::transfer_channel_type transfer_channel( _channel );
+
+	RawPayload destinationData( _data.getHostAddress() );
+	transfer_channel.receive( destinationData, _data.size() );
 
 	NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }

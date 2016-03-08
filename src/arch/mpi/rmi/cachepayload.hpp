@@ -3,7 +3,9 @@
 #define CACHE_PAYLOAD_HPP
 
 #include "memoryaddress.hpp"
-#include "mpidevice_decl.hpp"
+#include "commandid.hpp"
+
+#include <mpi.h>
 
 namespace nanos {
 namespace mpi {
@@ -38,6 +40,13 @@ class CachePayload {
 		CachePayload( int id, size_t size ) :
 			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
 			_hostAddress( utils::Address::uninitialized() ), _deviceAddress( utils::Address::uninitialized() ),
+			_size( size )
+		{
+		}
+
+		CachePayload( int id, utils::Address hostAddr, utils::Address deviceAddr, size_t size ) :
+			_id( id ), _source( MPI_ANY_SOURCE ), _destination( MPI_PROC_NULL ),
+			_hostAddress( hostAddr ), _deviceAddress( deviceAddr ),
 			_size( size )
 		{
 		}

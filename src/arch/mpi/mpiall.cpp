@@ -40,6 +40,8 @@
 #include "mpi-api.cpp"
 #include "mpiicpc_syms.cpp"
 #include "hostinfo.cpp"
+#include "command.cpp"
+#include "cachecommand.cpp"
 
 #endif	/* MPIALL_HPP */
 

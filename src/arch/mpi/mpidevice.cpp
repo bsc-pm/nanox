@@ -33,6 +33,16 @@
 
 #include "cachecommand.hpp"
 #include "allocate.hpp"
+#include "free.hpp"
+#include "realloc.hpp"
+#include "copyin.hpp"
+#include "copyout.hpp"
+#include "copydevtodev.hpp"
+#include "createauxthread.hpp"
+#include "commanddispatcher.hpp"
+#include "finish.hpp"
+
+#include <iostream>
 
 //TODO: check for errors in communications
 //TODO: Depending on multithread level, wait for answers or not
@@ -80,7 +90,7 @@ void MPIDevice::memFree( uint64_t addr, SeparateMemoryAddressSpace &mem ) {
     //std::cerr << "Inicio free\n";
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_FREE_EVENT);
 
-    mpi::command::Free order( static_cast<MPIProcessor const&>(mem.getConstPE()), addr );
+    mpi::command::Free::Requestor order( static_cast<MPIProcessor const&>(mem.getConstPE()), addr );
     order.dispatch();
 
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
@@ -98,14 +108,17 @@ void * MPIDevice::realloc(void *address, size_t size, size_t old_size, Processin
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_REALLOC_EVENT);
     //std::cerr << "Inicio REALLOC\n";
 
+#if 0
+    // Realloc is currently not supported by nanos cache
     mpi::command::Realloc::Requestor order( static_cast<MPIProcessor const&>(*pe), address, size );
     order.dispatch();
+#endif
 
     //std::cerr << "Fin realloc\n";
     //printf("Copiado de %p\n",(void *) order.devAddr);
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 
-    return order.getData().getDeviceAddress();
+    return NULL;//order.getData().getDeviceAddress();
 }
 
 /* \brief Copy from remoteSrc in the host to localDst in the device
@@ -115,7 +128,7 @@ void MPIDevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, S
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYIN_SYNC_EVENT);
     //std::cerr << "Inicio copyin\n";
 
-    mpi::command::CopyIn order( static_cast<MPIProcessor&>(mem.getPE()), hostAddr, devAddr, len );
+    mpi::command::CopyIn::Requestor order( static_cast<MPIProcessor&>(mem.getPE()), hostAddr, devAddr, len );
     order.dispatch();
 
     //std::cerr << "Fin copyin\n";
@@ -129,15 +142,16 @@ void MPIDevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len, 
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_COPYOUT_SYNC_EVENT);
 
     MPIProcessor &destination = static_cast<MPIProcessor &>( mem.getPE() );
-    //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
+    // If PE is executing something, this means an extra cache-thread could be useful
+    // Send creation signal
     if ( destination.getCurrExecutingWd() != NULL && !destination.getHasWorkerThread()) {        
-    	  mpi::command::CreateAuxiliaryThread createThread( destination );
+    	  mpi::command::CreateAuxiliaryThread::Requestor createThread( destination );
 		  createThread.dispatch();
 
         destination.setHasWorkerThread(true);
     }
 
-    mpi::command::CopyOut copyOrder( static_cast<MPIProcessor const&>(mem.getConstPE()), hostAddr, devAddr, len );
+    mpi::command::CopyOut::Requestor copyOrder( static_cast<MPIProcessor const&>(mem.getConstPE()), hostAddr, devAddr, len );
     copyOrder.dispatch();
 
     //std::cerr << "Fin copyout\n";
@@ -175,14 +189,14 @@ bool MPIDevice::_copyDevToDev( uint64_t devDestAddr, uint64_t devOrigAddr, std::
 
         //if PE is executing something, this means an extra cache-thread could be usefull, send creation signal
         if ( destination.getCurrExecutingWd() != NULL && !destination.getHasWorkerThread()) {        
-        	   mpi::command::CreateAuxiliaryThread createThread( destination );
+        	   mpi::command::CreateAuxiliaryThread::Requestor createThread( destination );
 	         createThread.dispatch();
 
             destination.setHasWorkerThread(true);
         }
 
         //Send the destination rank together with DEV2DEV OPID (we'll substract it on remote node)
-        mpi::command::CopyDeviceToDevice order( source, destination, devOrigAddr, devDestAddr, len );
+        mpi::command::CopyDeviceToDevice::Requestor order( source, destination, devOrigAddr, devDestAddr, len );
         order.dispatch();
 
         ops->completeOp(); 
@@ -206,7 +220,7 @@ void MPIDevice::initMPICacheStruct() {
     }
 }
 
-static void createExtraCacheThread(){    
+void MPIDevice::createExtraCacheThread(){    
     //Create extra worker thread
     MPI_Comm mworld= MPI_COMM_WORLD;
     ext::SMPProcessor *core = sys.getSMPPlugin()->getLastFreeSMPProcessorAndReserve();
@@ -228,11 +242,13 @@ void MPIDevice::remoteNodeCacheWorker() {
     //If this process was not spawned, we don't need this daemon-thread
     if (parentcomm != 0 && parentcomm != MPI_COMM_NULL) {
 
-        mpi::Dispatcher dispatcher(parentcomm, 10 ); // reserve space for 10 elements of each generic command type
-        while( ! MPIDevice::finished() ) {
+        mpi::command::Dispatcher dispatcher(parentcomm, 10 ); // reserve space for 10 elements of each generic command type
+        while( !mpi::command::CreateAuxiliaryThread::Servant::isCreated()
+               && !mpi::command::Finish::Servant::isFinished() ) {
             dispatcher.waitForCommands();
             dispatcher.queueAvailableCommands();
 				dispatcher.executeCommands();
+				std::cout << "cache worker loop" << std::endl;
         }
     }
 }

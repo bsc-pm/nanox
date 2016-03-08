@@ -24,13 +24,13 @@ class CommandRequestor< id, CommandPayload, Channel > {
 		CommandRequestor( MPIProcessor const& destination ) :
 			_data(id), _channel( destination )
 		{
-			_channel.sendCommand( _data );
+			_channel.send( _data );
 		}
 
 		CommandRequestor( int code, MPIProcessor const& destination ) :
 			_data(id, code), _channel( destination )
 		{
-			_channel.sendCommand( _data );
+			_channel.send( _data );
 		}
 
 		virtual ~CommandRequestor()

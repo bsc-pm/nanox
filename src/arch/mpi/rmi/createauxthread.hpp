@@ -2,11 +2,11 @@
 #ifndef CREATE_AUX_THREAD_HPP
 #define CREATE_AUX_THREAD_HPP
 
-#include "atomic.hpp"
+#include "atomic_flag.hpp"
 #include "command.hpp"
 #include "commandchannel.hpp"
 
-#include "mpidevice_decl.hpp" // OPID definitions
+#include "mpidevice.hpp"
 
 namespace nanos {
 namespace mpi {
@@ -21,19 +21,22 @@ class CommandServant<
     CreateAuxiliaryThread::main_channel_type
                       > : public BaseServant {
 	private:
-		CreateAuxiliartyThread::payload_type      _data;
-		CreateAuxiliartyThread::main_channel_type _channel;
+		typedef CreateAuxiliaryThread::payload_type payload_type;
+		typedef CreateAuxiliaryThread::main_channel_type main_channel_type;
 
-		static Atomic<bool>                       _alreadyCreated;
+		payload_type       _data;
+		main_channel_type  _channel;
+
+		static atomic_flag _alreadyCreated;
 
 	public:
-		CommandServant( Channel const& channel ) :
-			_data( command_id ),
+		CommandServant( const main_channel_type& channel ) :
+			_data( CreateAuxiliaryThread::id ),
 			_channel( channel )
 		{
 		}
 
-		CommandServant( Channel const& channel, Payload const& data ) :
+		CommandServant( const main_channel_type& channel, const payload_type& data ) :
 			_data( data ), _channel( channel )
 		{
 		}
@@ -42,18 +45,25 @@ class CommandServant<
 		{
 		}
 
-		Payload &getData()
+		payload_type &getData()
 		{
 			return _data;
 		}
 
-		Payload const& getData() const
+		payload_type const& getData() const
 		{
 			return _data;
 		}
 
 		virtual void serve();
+
+		static bool isCreated()
+		{
+			return _alreadyCreated.load();
+		}
 };
+
+atomic_flag CreateAuxiliaryThread::Servant::_alreadyCreated;
 
 template<>
 void CreateAuxiliaryThread::Requestor::dispatch()
@@ -66,13 +76,10 @@ void CreateAuxiliaryThread::Requestor::dispatch()
  * The thread is created only once. However, multiple request
  * may come from different masters.
  */
-template<>
 void CreateAuxiliaryThread::Servant::serve()
 {
-	bool created = _alreadyCreated. 
-	if( !_alreadyCreated ) {
-		_alreadyCreated = true;
-
+	bool alreadyCreated = _alreadyCreated.test_and_set();
+	if( !alreadyCreated ) {
 		MPIDevice::createExtraCacheThread();
 		MPIRemoteNode::nanosMPIWorker();
 	}

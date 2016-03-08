@@ -14,7 +14,7 @@ struct BaseServant {
 	virtual void serve() = 0;
 
 	template < typename Payload >
-	static BaseServant* createSpecific( Payload const& data );
+	static BaseServant* createSpecific( int source, MPI_Comm communicator, Payload const& data );
 };
 
 template< int command_id, typename Payload, typename Channel >

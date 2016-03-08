@@ -257,13 +257,13 @@ namespace nanos {
             static int nanosMPIRecvDatastruct(void *buf, int count, MPI_Datatype datatype, int source,
                     MPI_Comm comm, MPI_Status *status);
 
-            static int nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+            static int nanosMPISend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                     MPI_Comm comm);
             
             static int nanosMPISsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                     MPI_Comm comm);
             
-            static int nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+            static int nanosMPIIsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
                     MPI_Comm comm,MPI_Request *req);
 
             static int nanosMPIRecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,

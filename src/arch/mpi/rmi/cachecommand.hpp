@@ -76,21 +76,30 @@ class CommandRequestor< id, CachePayload, Channel > {
 			_data( id ),
 			_channel( destination )
 		{
-			_channel.sendCommand( _data );
+			_channel.send( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination, size_t size ) :
 			_data( id, size ),
 			_channel( destination )
 		{
-			_channel.sendCommand( _data );
+			_channel.send( _data );
+		}
+
+		CommandRequestor( MPIProcessor const& destination,
+		                  utils::Address hostAddr, utils::Address deviceAddr,
+		                  size_t size ) :
+			_data( id, hostAddr, deviceAddr, size ),
+			_channel( destination )
+		{
+			_channel.send( _data );
 		}
 
 		CommandRequestor( MPIProcessor const& destination, CachePayload const& data ) :
 			_data( data ),
 			_channel( destination )
 		{
-			_channel.sendCommand( _data );
+			_channel.send( _data );
 		}
 
 		virtual ~CommandRequestor()

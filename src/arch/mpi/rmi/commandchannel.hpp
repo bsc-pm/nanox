@@ -70,8 +70,8 @@ class CommandChannel {
 
 		template < typename OldPayload, int other_tag >
 		CommandChannel( CommandChannel<command_id,OldPayload,other_tag> const& other ) :
-			_source( other._source ), _destination( other._destination ),
-			_communicator( other._communicator )
+			_source( other.getSource() ), _destination( other.getDestination() ),
+			_communicator( other.getCommunicator() )
 		{
 		}
 
@@ -80,9 +80,19 @@ class CommandChannel {
 			return _source;
 		}
 
+		void setSource( int source )
+		{
+			_source = source;
+		}
+
 		int getDestination() const
 		{
 			return _destination;
+		}
+
+		void setDestination( int destination )
+		{
+			_destination = destination;
 		}
 
 		MPI_Comm getCommunicator() const
@@ -106,7 +116,7 @@ template< int command_id, typename Payload, int tag >
 void CommandChannel<command_id,Payload,tag>::receive( Payload &data, size_t n )
 {
 	MPIRemoteNode::nanosMPIRecv( &data, n, Payload::getDataType(),
-	        getSource(), getTag(), getCommunicator() );
+	        getSource(), getTag(), getCommunicator(), MPI_STATUS_IGNORE );
 }
 
 template< int command_id, typename Payload, int tag >

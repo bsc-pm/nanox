@@ -73,6 +73,7 @@ offload_sources= \
  rmi/cachepayload.hpp \
  rmi/command.cpp \
  rmi/command.hpp \
+ rmi/commandid.hpp \
  rmi/commandpayload.hpp \
  rmi/commanddispatcher.hpp \
  rmi/commandchannel.hpp \

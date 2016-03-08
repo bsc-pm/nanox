@@ -2,9 +2,9 @@
 #ifndef REQUEST_H
 #define REQUEST_H
 
-#include <mpi.h>
-
 #include "status.hpp"
+
+#include <mpi.h>
 
 namespace nanos {
 namespace mpi {
@@ -115,16 +115,13 @@ class persistent_request : public request
 		{
 		}
 
+		persistent_request( persistent_request const& o ) :
+			request( o )
+		{
+		}
+
 		virtual ~persistent_request()
 		{
-			if( !isNull() ) {
-				bool completed = test();
-
-				if( !completed )
-					cancel();
-
-				free();
-			}
 		}
 
 		void free()
@@ -142,18 +139,13 @@ class persistent_request : public request
 			MPI_Cancel( data() );
 		}
 
+		operator MPI_Request* ()
+		{
+			return request::data();
+		}
+
 		template< typename Iterator >
 		static void start_all( Iterator begin, Iterator end );
-
-	private:
-		/** Prior to C++11, deleting
-		 * a copy constructor is only
-		 * possible with privatization
-		 */
-		persistent_request( persistent_request const& o ) :
-			request( o )
-		{
-		}
 };
 
 template < typename Iterator >

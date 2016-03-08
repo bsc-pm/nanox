@@ -39,7 +39,7 @@ struct PageAlignedAllocator {
 		T* result;
 		size_t bytes = n*sizeof(T);
 		if( bytes > threshold ) {
-			posix_memalign( &result, _NANOS_PAGESIZE, bytes );
+			posix_memalign( reinterpret_cast<void**>(&result), _NANOS_PAGESIZE, bytes );
 		} else {
 			//result = static_cast<T*>(::new(bytes));
 			//posix_memalign( &result, alignof(T), bytes );
@@ -52,7 +52,7 @@ struct PageAlignedAllocator {
 			return result;
 	}
 	
-	void deallocate (T* p, std::size_t n)
+	void deallocate (T* p, std::size_t n = 0)
 	{
 		std::free( p );
 	}

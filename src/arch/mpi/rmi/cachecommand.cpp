@@ -8,29 +8,61 @@
 #include "free.hpp"
 #include "realloc.hpp"
 
-using namespace nanos::mpi::command;
+#include "debug.hpp"
+
+#include <mpi.h>
+
+namespace nanos {
+namespace mpi {
+namespace command {
 
 MPI_Datatype CachePayload::_type = 0;
 
 template <> 
-BaseServant* BaseServant::createSpecific( CachePayload const& data )
+BaseServant* BaseServant::createSpecific( int source, MPI_Comm communicator, CachePayload const& data )
 {
+	int destination;
+	MPI_Comm_rank( communicator, &destination );
+
 	switch( data.getId() ) {
 		case Allocate::id:
-			return new Allocate::Servant( data );
+		{
+			Allocate::main_channel_type channel( source, destination, communicator );
+			return new Allocate::Servant( channel, data );
+		}
 		case CopyDeviceToDevice::id:
-			return new CopyDeviceToDevice::Servant( data );
+		{
+			CopyDeviceToDevice::main_channel_type channel( source, destination, communicator );
+			return new CopyDeviceToDevice::Servant( channel, data );
+		}
 		case CopyIn::id:
-			return new CopyIn::Servant( data );
+		{
+			CopyIn::main_channel_type channel( source, destination, communicator );
+			return new CopyIn::Servant( channel, data );
+		}
 		case CopyOut::id:
-			return new CopyOut::Servant( data );
+		{
+			CopyOut::main_channel_type channel( source, destination, communicator );
+			return new CopyOut::Servant( channel, data );
+		}
 		case Free::id:
-			return new Free::Servant( data );
+		{
+			Free::main_channel_type channel( source, destination, communicator );
+			return new Free::Servant( channel, data );
+		}
 		case Realloc::id:
-			return new Realloc::Servant( data );
+		{
+			Realloc::main_channel_type channel( source, destination, communicator );
+			return new Realloc::Servant( channel, data );
+		}
 		default:
-			fatal_error0( "Invalid nanos::mpi::CacheCommand id" );
+			fatal0( "Invalid nanos::mpi::CacheCommand id" );
 	}
+	// This point should never be reached
 	return NULL;
 }
+
+} // namespace command
+} // namespace mpi
+} // namespace nanos
 

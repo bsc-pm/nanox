@@ -5,21 +5,44 @@
 #include "finish.hpp"
 #include "init.hpp"
 
-using namespace nanos::mpi::command;
+#include "debug.hpp"
 
-GenericCommand::_type = 0;
+namespace nanos {
+namespace mpi {
+namespace command {
 
-GenericCommand* GenericCommand::createSpecific( GenericCommand &command )
+MPI_Datatype CommandPayload::_type = 0;
+
+template <>
+BaseServant* BaseServant::createSpecific( int source, MPI_Comm communicator, CommandPayload const& data )
 {
-	switch( command.getId() ) {
+	int destination;
+	MPI_Comm_rank( communicator, &destination );
+
+	switch( data.getId() ) {
 		case CreateAuxiliaryThread::id:
-			return new CreateAuxiliaryThread::Servant( command );
+		{
+			CreateAuxiliaryThread::main_channel_type channel( source, destination, communicator );
+			return new CreateAuxiliaryThread::Servant( channel, data );
+		}
 		case Finish::id:
-			return new Finish::Servant( command );
+		{
+			Finish::main_channel_type channel( source, destination, communicator );
+			return new Finish::Servant( channel, data );
+		}
 		case Init::id:
-			return new Init::Servant( command );
-		case OPID_INVALID:
+		{
+			Init::main_channel_type channel( source, destination, communicator );
+			return new Init::Servant( channel, data );
+		}
 		default:
-			fatal_error0( "Invalid nanos::mpi::Command id" );
+			fatal0( "Invalid nanos::mpi::Command id" );
 	}
+	// This point should never be reached
+	return NULL;
 }
+
+} // namespace command
+} // namespace mpi
+} // namespace nanos
+

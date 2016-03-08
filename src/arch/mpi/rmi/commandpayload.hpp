@@ -2,6 +2,10 @@
 #ifndef COMMAND_PAYLOAD_HPP
 #define COMMAND_PAYLOAD_HPP
 
+#include "commandid.hpp"
+
+#include <mpi.h>
+
 namespace nanos {
 namespace mpi {
 namespace command {
@@ -53,6 +57,11 @@ class CommandPayload {
 		int getId() const
 		{
 			return _id;
+		}
+
+		int getCode() const
+		{
+			return _code;
 		}
 
 		static void initDataType()

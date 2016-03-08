@@ -30,6 +30,7 @@
 
 #include "cachecommand.hpp"
 #include "cachepayload.hpp"
+#include "commandpayload.hpp"
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -147,6 +148,7 @@ void MPIRemoteNode::nanosMPIInit(int *argc, char ***argv, int userRequired, int*
 
     nanos::MPIDevice::initMPICacheStruct();
     nanos::mpi::command::CachePayload::initDataType();
+    nanos::mpi::command::CommandPayload::initDataType();
 
     NANOS_MPI_CLOSE_IN_MPI_RUNTIME_EVENT;
 }
@@ -161,6 +163,7 @@ void MPIRemoteNode::nanosMPIFinalize() {
     }
 
     nanos::mpi::command::CachePayload::freeDataType();
+    nanos::mpi::command::CommandPayload::freeDataType();
     MPI_Type_free( &MPIDevice::cacheStruct );
     MPIDevice::cacheStruct = MPI_DATATYPE_NULL;
 
@@ -954,7 +957,7 @@ void MPIRemoteNode::nanosMPITypeCacheGet( int taskId, MPI_Datatype **newtype ) {
     *newtype=_taskStructsCache[taskId];
 }
 
-int MPIRemoteNode::nanosMPISend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIRemoteNode::nanosMPISend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_SEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
@@ -969,7 +972,7 @@ int MPIRemoteNode::nanosMPISend(void *buf, int count, MPI_Datatype datatype, int
     return err;
 }
 
-int MPIRemoteNode::nanosMPIIsend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+int MPIRemoteNode::nanosMPIIsend(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
         MPI_Comm comm,MPI_Request *req) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_ISEND_EVENT);
     if (dest==UNKOWN_RANKSRCDST){
