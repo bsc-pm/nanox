@@ -23,6 +23,9 @@
 #include "config.hpp"
 #include "basethread.hpp"
 #include <iostream>
+#ifdef CLUSTER_DEV
+#include "clusterthread_decl.hpp"
+#endif
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -61,7 +64,7 @@ WorkDescriptor & SMPProcessor::getWorkerWD () const
 WorkDescriptor & SMPProcessor::getMultiWorkerWD () const
 {
 #ifdef CLUSTER_DEV
-   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )Scheduler::workerClusterLoop );
+   SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )ClusterThread::workerClusterLoop );
 #else
    SMPDD * dd = NEW SMPDD( ( SMPDD::work_fct )NULL); //this is an error if we are not runnig with cluster
 #endif

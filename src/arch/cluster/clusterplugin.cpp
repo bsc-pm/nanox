@@ -90,8 +90,9 @@ void ClusterPlugin::init()
          sys.getNetwork()->mallocSlaves( &segmentAddr[ 1 ], _nodeMem );
          segmentAddr[ 0 ] = NULL;
 
-         const Device * supported_archs[4] = { &getSMPDevice(), NULL, NULL, NULL };
-         int num_supported_archs = 4;
+         ClusterNode::ClusterSupportedArchMap supported_archs;
+         supported_archs[0] = &getSMPDevice();
+
          #ifdef GPU_DEV
          supported_archs[1] = &GPU;
          #endif
@@ -101,6 +102,15 @@ void ClusterPlugin::init()
          #ifdef FPGA_DEV
          supported_archs[3] = &FPGA;
          #endif
+
+         const Device * supported_archs_array[supported_archs.size()];
+         unsigned int arch_idx = 0;
+         for ( ClusterNode::ClusterSupportedArchMap::const_iterator it = supported_archs.begin();
+               it != supported_archs.end(); it++ ) {
+            supported_archs_array[arch_idx] = it->second;
+            arch_idx += 1;
+         }
+
          _remoteNodes = NEW std::vector<nanos::ext::ClusterNode *>(nodes - 1, (nanos::ext::ClusterNode *) NULL); 
          unsigned int node_index = 0;
          for ( unsigned int nodeC = 0; nodeC < nodes; nodeC++ ) {
@@ -109,7 +119,7 @@ void ClusterPlugin::init()
                SeparateMemoryAddressSpace &nodeMemory = sys.getSeparateMemory( id );
                nodeMemory.setSpecificData( NEW SimpleAllocator( ( uintptr_t ) segmentAddr[ nodeC ], _nodeMem ) );
                nodeMemory.setNodeNumber( nodeC );
-               nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id, supported_archs, num_supported_archs );
+               nanos::ext::ClusterNode *node = new nanos::ext::ClusterNode( nodeC, id, supported_archs, supported_archs_array );
                (*_remoteNodes)[ node_index ] = node;
                node_index += 1;
             }

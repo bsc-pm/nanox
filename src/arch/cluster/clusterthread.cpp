@@ -75,8 +75,8 @@ void ClusterThread::RunningWDQueue::completeWD( void *remoteWdAddr ) {
    _numRunning--;
 }
 
-//ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : SMPThread( w, pe, parent ), _clusterNode( device ) {
-ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) : BaseThread( (unsigned int) -1, w, pe, parent ), _clusterNode( device ), _lock(), _pendingInitWD( NULL ) {
+ClusterThread::ClusterThread( WD &w, PE *pe, SMPMultiThread *parent, int device ) 
+   : BaseThread( (unsigned int) -1, w, pe, parent ), _clusterNode( device ), _lock() {
    setCurrentWD( w );
 }
 
@@ -310,32 +310,55 @@ bool ClusterThread::tryLock() {
    return _lock.tryAcquire();
 }
 
-bool ClusterThread::hasAPendingWDToInit() const {
+bool ClusterThread::hasAPendingWDToInit( unsigned int arch_id ) const {
+   return _runningWDs[arch_id].hasAPendingWDToInit();
+}
+
+bool ClusterThread::RunningWDQueue::hasAPendingWDToInit() const {
    return _pendingInitWD != NULL;
 }
 
-WD *ClusterThread::getPendingInitWD() {
+WD *ClusterThread::getPendingInitWD( unsigned int arch_id ) {
+   return _runningWDs[arch_id].getPendingInitWD();
+}
+
+WD *ClusterThread::RunningWDQueue::getPendingInitWD() {
    WD *wd = _pendingInitWD;
    _pendingInitWD = NULL;
    return wd;
 }
 
-void ClusterThread::setPendingInitWD( WD *wd ) {
+void ClusterThread::setPendingInitWD( unsigned int arch_id, WD *wd ) {
+   _runningWDs[arch_id].setPendingInitWD( wd );
+}
+
+void ClusterThread::RunningWDQueue::setPendingInitWD( WD *wd ) {
    _pendingInitWD = wd;
 }
 
-bool ClusterThread::hasWaitingDataWDs() const {
+bool ClusterThread::RunningWDQueue::hasWaitingDataWDs() const {
    return !_waitingDataWDs.empty();
 }
 
-WD *ClusterThread::getWaitingDataWD() {
+bool ClusterThread::hasWaitingDataWDs( unsigned int archId ) const {
+   return _runningWDs[archId].hasWaitingDataWDs();
+}
+WD* ClusterThread::getWaitingDataWD( unsigned int archId ) {
+   return _runningWDs[archId].getWaitingDataWD();
+}
+
+WD *ClusterThread::RunningWDQueue::getWaitingDataWD() {
    WD *wd = _waitingDataWDs.front();
    _waitingDataWDs.pop_front();
 //std::cerr << "popped a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
    return wd;
 }
 
-void ClusterThread::addWaitingDataWD( WD *wd ) {
+void ClusterThread::addWaitingDataWD( unsigned int archId, WD *wd ) {
+   _runningWDs[archId].addWaitingDataWD( wd );
+}
+
+void ClusterThread::RunningWDQueue::addWaitingDataWD( WD *wd ) {
    _waitingDataWDs.push_back( wd );
 //std::cerr << "Added a wd ( " << wd << " )" << wd->getId() << ", count is " << _waitingDataWDs.size() << std::endl;
 }
@@ -344,3 +367,160 @@ void ClusterThread::setupSignalHandlers() {
    std::cerr << __FUNCTION__ << ": unimplemented in ClusterThread." << std::endl;
 }
 
+
+WD * ClusterThread::getClusterWD( BaseThread *thread )
+{
+   WD * wd = NULL;
+   if ( thread->getTeam() != NULL ) {
+      wd = thread->getNextWD();
+      if ( wd ) {
+         if ( !wd->canRunIn( *thread->runningOn()->getDeviceType() ) ) 
+         { // found a non compatible wd in "nextWD", ignore it
+            wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
+            //if(wd!=NULL)std::cerr << "GN got a wd with depth " <<wd->getDepth() << std::endl;
+         } else {
+            //thread->resetNextWD();
+           // std::cerr << "FIXME" << std::endl;
+         }
+      } else {
+         wd = thread->getTeam()->getSchedulePolicy().atIdle ( thread, 0 );
+         //if(wd!=NULL)std::cerr << "got a wd with depth " <<wd->getDepth() << std::endl;
+      }
+   }
+   return wd;
+}
+
+void ClusterThread::workerClusterLoop ()
+{
+   BaseThread *parent = myThread;
+   BaseThread *current_thread = ( myThread = myThread->getNextThread() );
+
+   for ( ; ; ) {
+      if ( !parent->isRunning() ) break;
+
+      if ( parent != current_thread ) // if parent == myThread, then there are no "soft" threads and just do nothing but polling.
+      {
+         ClusterThread *myClusterThread = ( ClusterThread * ) current_thread;
+         if ( myClusterThread->tryLock() ) {
+            ClusterNode *thisNode = ( ClusterNode * ) current_thread->runningOn();
+
+            ClusterNode::ClusterSupportedArchMap const &archs = thisNode->getSupportedArchs();
+            for ( ClusterNode::ClusterSupportedArchMap::const_iterator it = archs.begin();
+                  it != archs.end(); it++ ) {
+               unsigned int arch_id = it->first;
+               thisNode->setCurrentDevice( arch_id );
+               myClusterThread->clearCompletedWDs( arch_id );
+               if ( myClusterThread->hasWaitingDataWDs( arch_id ) ) {
+                  WD * wd_waiting = myClusterThread->getWaitingDataWD( arch_id );
+                  if ( wd_waiting->isInputDataReady() ) {
+                     myClusterThread->addRunningWD( arch_id, wd_waiting );
+                     Scheduler::outlineWork( current_thread, wd_waiting );
+                  } else {
+                     myClusterThread->addWaitingDataWD( arch_id, wd_waiting );
+
+
+                     // Try to get a WD normally, this is needed because otherwise we will keep only checking the WaitingData WDs
+                     if ( myClusterThread->hasAPendingWDToInit( arch_id ) ) {
+                        WD * wd = myClusterThread->getPendingInitWD( arch_id );
+                        if ( Scheduler::tryPreOutlineWork(wd) ) {
+                           current_thread->preOutlineWorkDependent( *wd );
+                           //std::cerr << "GOT A PENDIGN WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                           if ( wd->isInputDataReady() ) {
+                              myClusterThread->addRunningWD( arch_id, wd );
+                              //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
+                              Scheduler::outlineWork( current_thread, wd );
+                              //NANOS_INSTRUMENT( inst2.close(); );
+                           } else {
+                              myClusterThread->addWaitingDataWD( arch_id, wd );
+                           }
+                        } else {
+                           //std::cerr << "REPEND WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                           myClusterThread->setPendingInitWD( arch_id, wd );
+                        }
+                     } else {
+                        if ( myClusterThread->acceptsWDs( arch_id ) )
+                        {
+                           WD * wd = getClusterWD( current_thread );
+                           if ( wd )
+                           {
+                              Scheduler::prePreOutlineWork(wd); 
+                              if ( Scheduler::tryPreOutlineWork(wd) ) {
+                                 current_thread->preOutlineWorkDependent( *wd );
+                                 if ( wd->isInputDataReady() ) {
+                                    //std::cerr << "SUCCED WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                                    myClusterThread->addRunningWD( arch_id, wd );
+                                    //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
+                                    Scheduler::outlineWork( current_thread, wd );
+                                    //NANOS_INSTRUMENT( inst2.close(); );
+                                 } else {
+                                    myClusterThread->addWaitingDataWD( arch_id, wd );
+                                 }
+                              } else {
+                                 //std::cerr << "ADDED A PENDIGN WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                                 myClusterThread->setPendingInitWD( arch_id, wd );
+                              }
+                           }
+                        }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+                     }
+                  }
+               } else {
+                  if ( myClusterThread->hasAPendingWDToInit( arch_id ) ) {
+                     WD * wd = myClusterThread->getPendingInitWD( arch_id );
+                     if ( Scheduler::tryPreOutlineWork(wd) ) {
+                        current_thread->preOutlineWorkDependent( *wd );
+                        //std::cerr << "GOT A PENDIGN WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                        if ( wd->isInputDataReady() ) {
+                           myClusterThread->addRunningWD( arch_id, wd );
+                           //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
+                           Scheduler::outlineWork( current_thread, wd );
+                           //NANOS_INSTRUMENT( inst2.close(); );
+                        } else {
+                           myClusterThread->addWaitingDataWD( arch_id, wd );
+                        }
+                     } else {
+                        //std::cerr << "REPEND WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                        myClusterThread->setPendingInitWD( arch_id, wd );
+                     }
+                  } else {
+                     if ( myClusterThread->acceptsWDs( arch_id ) )
+                     {
+                        WD * wd = getClusterWD( current_thread );
+                        if ( wd )
+                        {
+                           Scheduler::prePreOutlineWork(wd); 
+                           if ( Scheduler::tryPreOutlineWork(wd) ) {
+                              current_thread->preOutlineWorkDependent( *wd );
+                              if ( wd->isInputDataReady() ) {
+                                 //std::cerr << "SUCCED WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                                 myClusterThread->addRunningWD( arch_id, wd );
+                                 //NANOS_INSTRUMENT( InstrumentState inst2(NANOS_OUTLINE_WORK, true); );
+                                 Scheduler::outlineWork( current_thread, wd );
+                                 //NANOS_INSTRUMENT( inst2.close(); );
+                              } else {
+                                 myClusterThread->addWaitingDataWD( arch_id, wd );
+                              }
+                           } else {
+                              //std::cerr << "ADDED A PENDIGN WD for thd " << current_thread->getId() <<" wd is " << wd->getId() << std::endl;
+                              myClusterThread->setPendingInitWD( arch_id, wd );
+                           }
+                        }
+                     }// else { std::cerr << "Max presend reached "<<myClusterThread->getId()  << std::endl; }
+                  }
+               }
+            }
+            myClusterThread->unlock();
+         }
+      }
+      //sys.getNetwork()->poll(parent->getId());
+      myThread->idle();
+      current_thread = ( myThread = myThread->getNextThread() );
+   }
+
+   SMPMultiThread *parentM = ( SMPMultiThread * ) parent;
+   for ( unsigned int i = 0; i < parentM->getNumThreads(); i += 1 ) {
+      myThread = parentM->getThreadVector()[ i ];
+      myThread->leaveTeam();
+      myThread->joined();
+   }
+   myThread = parent;
+}
