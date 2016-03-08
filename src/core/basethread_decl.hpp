@@ -209,15 +209,9 @@ namespace nanos
          virtual void switchHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual void exitHelperDependent( WD* oldWD, WD* newWD, void *arg ) = 0;
          virtual bool inlineWorkDependent (WD &work) = 0;
-         virtual void outlineWorkDependent (WD &work) = 0;
-         virtual void preOutlineWorkDependent (WD &work) = 0;
          virtual void switchTo( WD *work, SchedulerHelper *helper ) = 0;
          virtual void exitTo( WD *work, SchedulerHelper *helper ) = 0;
 
-      protected:
-         /*! \brief Must be called by children classes after the join operation (protected)
-          */ 
-         void joined ( void ); 
       private:
          //! \brief BaseThread default constructor (private)
          BaseThread ();
@@ -259,8 +253,13 @@ namespace nanos
          virtual void processTransfers();
          virtual void yield() {};
 
+         /*! \brief Must be called by children classes after the join operation (protected)
+          */ 
+         void joined ( void ); 
          virtual void join() = 0;
          virtual void bind() {};
+         virtual void outlineWorkDependent (WD &work) = 0;
+         virtual void preOutlineWorkDependent (WD &work) = 0;
 
          virtual void wait();
          virtual void resume();

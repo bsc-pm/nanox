@@ -72,7 +72,6 @@ namespace nanos
 
          static void workerLoop ( void );
          static void asyncWorkerLoop ( void );
-         static void workerClusterLoop ( void );
          static void yield ( void );
 
          static void exit ( void );
@@ -87,7 +86,6 @@ namespace nanos
 
          /*! \brief checks if a WD is elegible to run in a given thread */
          static bool checkBasicConstraints ( WD &wd, BaseThread const &thread );
-	 static WD * getClusterWD( BaseThread *thread, int inGPU );
    };
 
    class SchedulerConf

@@ -39,7 +39,7 @@ namespace nanos
          FPGADevice ( const char *n );
 
          virtual void *memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem,
-                 WorkDescriptor const &wd, unsigned int copyIdx);
+                 WD const *wd, unsigned int copyIdx);
          virtual void memFree( uint64_t addr, SeparateMemoryAddressSpace &mem );
 
          virtual void _canAllocate( SeparateMemoryAddressSpace &mem, std::size_t *sizes,
@@ -102,7 +102,7 @@ namespace nanos
          //not supported
          virtual void _copyOutStrided1D( uint64_t hostAddr, uint64_t devAddr, std::size_t len,
                std::size_t numChunks, std::size_t ld, SeparateMemoryAddressSpace &mem,
-               DeviceOps *ops, WorkDescriptor const &wd, void *hostObject,
+               DeviceOps *ops, WD const *wd, void *hostObject,
                reg_t hostRegionId )
          {
             warning( "Strided fpga copies not implemented" );

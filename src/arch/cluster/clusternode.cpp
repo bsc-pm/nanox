@@ -29,13 +29,13 @@ using namespace nanos::ext;
 
 
 ClusterNode::ClusterNode( int nodeId, memory_space_id_t memId,
-   const Device **archs, unsigned int numArchs ) :
-   ProcessingElement( archs, numArchs, memId, nodeId,
+   ClusterSupportedArchMap const &archs, const Device **archsArray ) :
+   ProcessingElement( archsArray, archs.size(), memId, nodeId,
    0, /* TODO: should be NumaNode, use HWLoc to get the correct value (NIC numa node) */
    true,
    0,
    false ),
-   _clusterNode ( nodeId ), _executedWorkDesciptors ( 0 ) {
+   _clusterNode ( nodeId ), _executedWorkDesciptors ( 0 ), _supportedArchsById( archs ) {
 }
 
 ClusterNode::~ClusterNode() {
@@ -100,4 +100,8 @@ void ClusterNode::clusterWorker() {
       Scheduler::workerLoop();
       exit(0);
    }
+}
+
+ClusterNode::ClusterSupportedArchMap const &ClusterNode::getSupportedArchs() const {
+   return _supportedArchsById;
 }

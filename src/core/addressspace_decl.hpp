@@ -97,7 +97,7 @@ class HostAddressSpace {
    public:
    HostAddressSpace( Device &arch );
 
-   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
+   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const *wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
    void getVersionInfo( global_reg_t const &reg, unsigned int &version, NewLocationInfoList &locations );
    void getRegionId( CopyData const &cd, global_reg_t &reg, WD const &wd, unsigned int idx );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
@@ -122,12 +122,12 @@ class SeparateAddressSpace {
    public:
    SeparateAddressSpace( memory_space_id_t memorySpaceId, Device &arch, bool allocWide, std::size_t slabSize );
 
-   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const &wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk );
-   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
-   void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const &wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
+   void copyOut( global_reg_t const &reg, unsigned int version, DeviceOps *ops, WD const *wd, unsigned int copyIdx, bool inval, AllocatedChunk *origChunk );
+   void doOp( MemSpace<SeparateAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const *wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
+   void doOp( MemSpace<HostAddressSpace> &from, global_reg_t const &reg, unsigned int version, WD const *wd, unsigned int copyIdx, DeviceOps *ops, AllocatedChunk *destinationChunk, AllocatedChunk *sourceChunk, bool inval );
    void failToLock( MemSpace< SeparateAddressSpace > &from, global_reg_t const &reg, unsigned int version );
    void failToLock( MemSpace< HostAddressSpace > &from, global_reg_t const &reg, unsigned int version );
-   void copyFromHost( TransferList &list, WD const &wd );
+   void copyFromHost( TransferList &list, WD const *wd );
 
    void releaseRegions( MemCacheCopy *memCopies, unsigned int numCopies, WD const &wd );
    //void releaseRegion( global_reg_t const &reg, WD const &wd, unsigned int copyIdx, enum RegionCache::CachePolicy policy );
@@ -164,7 +164,7 @@ class MemSpace : public T {
    public:
    MemSpace<T>( Device &d );
    MemSpace<T>( memory_space_id_t memSpaceId, Device &d, bool allocWide, std::size_t slabSize );
-   void copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const &wd, bool inval = false );
+   void copy( MemSpace< SeparateAddressSpace > &from, TransferList &list, WD const *wd, bool inval = false );
 };
 
 typedef MemSpace<SeparateAddressSpace> SeparateMemoryAddressSpace;

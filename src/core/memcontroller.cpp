@@ -362,7 +362,7 @@ void MemController::copyDataIn() {
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 334 );)
-   _inOps->issue( _wd );
+   _inOps->issue( &_wd );
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
    if ( _VERBOSE_CACHE || sys.getVerboseCopies() ) {
       if ( sys.getNetwork()->getNodeNum() == 0 ) {
@@ -420,7 +420,7 @@ void MemController::copyDataOut( MemControllerPolicy policy ) {
       }
 
       //if( sys.getNetwork()->getNodeNum()== 0)std::cerr << "MemController::copyDataOut for wd " << _wd.getId() << std::endl;
-      _outOps->issue( _wd );
+      _outOps->issue( &_wd );
    }
              NANOS_INSTRUMENT(sys.getInstrumentation()->raiseOpenBurstEvent( ikey, 0 );)
 }

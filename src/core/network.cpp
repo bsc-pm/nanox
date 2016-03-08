@@ -186,7 +186,7 @@ void Network::notifyWorkDone ( unsigned int nodeNum, void *remoteWdAddr, int peI
    ( (WD *) remoteWdAddr )->notifyOutlinedCompletion();
 }
 
-void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId )
+void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, std::size_t size, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
    {
@@ -214,7 +214,7 @@ void Network::put ( unsigned int remoteNode, uint64_t remoteAddr, void *localAdd
    }
 }
 
-void Network::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId )
+void Network::putStrided1D ( unsigned int remoteNode, uint64_t remoteAddr, void *localAddr, void *localPack, std::size_t size, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
    {
@@ -380,7 +380,7 @@ const char * Network::getMasterHostname() const
 }
 
 
-void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId )
+void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
    {
@@ -410,7 +410,7 @@ void Network::sendRequestPut( unsigned int dest, uint64_t origAddr, unsigned int
    }
 }
 
-void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const &wd, void *hostObject, reg_t hostRegId )
+void Network::sendRequestPutStrided1D( unsigned int dest, uint64_t origAddr, unsigned int dataDest, uint64_t dstAddr, std::size_t len, std::size_t count, std::size_t ld, unsigned int wdId, WD const *wd, void *hostObject, reg_t hostRegId )
 {
    if ( _api != NULL )
    {
@@ -845,7 +845,7 @@ void Network::getDataFromDevice( uint64_t addr, std::size_t len, std::size_t cou
                }
             }
          }
-         outOps.issue( *( (WD *) NULL ) );
+         outOps.issue( NULL );
          while ( !outOps.isDataReady( myThread->getThreadWD()) ) { myThread->processTransfers(); }
          //(*myThread->_file) << "[net] ops completed, addr: " << (void *) addr << " len: " << len << " hostObject " << hostObject << " data is [" << *((double *)addr) << "]" <<std::endl;
       } 
