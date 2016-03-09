@@ -54,6 +54,10 @@ class CommandPayload {
 		{
 		}
 
+		~CommandPayload()
+		{
+		}
+
 		int getId() const
 		{
 			return _id;

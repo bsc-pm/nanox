@@ -123,7 +123,7 @@ class CommandRequestor< id, CachePayload, Channel > {
 /**
  * Pairs Requestor and Servant types for each operation id
  */
-template < int op_id, int tag = TAG_M2S_ORDER >
+template < int op_id, int tag = TAG_M2S_CACHE_COMMAND >
 struct CacheCommand {
 	static const int id;
 	typedef CachePayload                             payload_type;

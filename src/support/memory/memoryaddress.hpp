@@ -263,7 +263,7 @@ bool is_properly_aligned( Address address, size_t alignment_constraint );
 nanos_constexpr
 bool is_properly_aligned( Address address, size_t alignment_constraint )
 {
-   return ( reinterpret_cast<uintptr_t>(address) & (alignment_constraint-1) ) == 0;
+   return ( static_cast<uintptr_t>(address) & (alignment_constraint-1) ) == 0;
 }
 
 /*! \brief Prints an address object to an output stream.

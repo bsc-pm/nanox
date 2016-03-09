@@ -11,10 +11,12 @@ namespace command {
 
 typedef Command<OPID_TASK_INIT> Init;
 
+template<>
+void Init::Requestor::dispatch()
+{
+}
+
 /**
- * FIXME: Currently, GenericCommand does not have any member
- *        that can hold the task id that has to be executed.
- *
  * Executes a task given its identification number.
  */
 template<>

@@ -73,7 +73,7 @@ iterator_range<Iterator> make_range( Iterator const& begin, size_t size )
 	return iterator_range<Iterator>(begin,size);
 }
 
-template < class CommandPayload >
+template < class CommandPayload, int tag >
 class SingleDispatcher {
 	private:
 		typedef std::vector<persistent_request>      request_storage;
@@ -100,10 +100,9 @@ class SingleDispatcher {
 			typename buffer_storage::iterator buffer_it = _bufferedCommands.begin();
 			request_storage::iterator request_it;
 			for( request_it = _requests.begin(); request_it != _requests.end(); request_it++ ) {
-				std::cout << "MPI_Recv_init request: " << std::hex << &(*request_it) << " buffer: 0x" << std::hex << &(*buffer_it) << " oldvalue: " << *request_it;
+				std::cout << "MPI_Recv_init" << std::endl;
 				MPI_Recv_init( &(*buffer_it), 1, CommandPayload::getDataType(),
-				                   MPI_ANY_SOURCE, TAG_M2S_ORDER, _communicator, *request_it );
-				std::cout << " newvalue: " << *request_it << std::endl;
+				                   MPI_ANY_SOURCE, tag, _communicator, *request_it );
 				buffer_it++;
 			}
 		}
@@ -127,12 +126,15 @@ class SingleDispatcher {
 		{
 			Iterator it;
 			for( it = indices.begin(); it != indices.end(); it++ ) {
-				CommandPayload& order = _bufferedCommands.at( *it );
+				// FIXME: maybe the computed index (using modulo operator) is not correct
+				CommandPayload& order = _bufferedCommands.at( (*it)%_bufferedCommands.size() );
+				// FIXME This is not correct. Iterator does not use at()
 				MPI_Status& status = _statuses.at(*it);
 
 				_pendingCommands.push_back(
 				             BaseServant::createSpecific( status.MPI_SOURCE, _communicator, order ) );
 
+				// FIXME This is not correct. Iterator does not use at()
 				_requests.at(*it).start();
 			}
 		}
@@ -141,6 +143,8 @@ class SingleDispatcher {
 		{
 			std::list<BaseServant*>::iterator order_it = _pendingCommands.begin();
 			while( order_it != _pendingCommands.end() ) {
+				// FIXME: better get the pointer and delete, then call serve()
+				// In case we need locks this will reduce the time we keep the lock
 				(*order_it)->serve();
 				_pendingCommands.erase( order_it++ );
 			}
@@ -155,8 +159,8 @@ class Dispatcher {
 		typedef std::vector<MPI_Status>                       status_storage;
 		typedef std::vector<int>                              index_storage;
 
-		typedef detail::SingleDispatcher<CachePayload>        command_dispatcher;
-		typedef detail::SingleDispatcher<CommandPayload>      cache_dispatcher;
+		typedef detail::SingleDispatcher<CachePayload,TAG_M2S_CACHE_ORDER> command_dispatcher;
+		typedef detail::SingleDispatcher<CommandPayload,TAG_M2S_COMMAND>   cache_dispatcher;
 
 		MPI_Comm                         _communicator;
 		int                              _size;
@@ -189,6 +193,7 @@ class Dispatcher {
 			           detail::make_range( _requests.begin()+size, size ),
 			           detail::make_range( _statuses.begin()+size, size ))
 		{
+			persistent_request::start_all( _requests.begin(), _requests.end() );
 		}
 
 		virtual ~Dispatcher()
@@ -208,26 +213,36 @@ class Dispatcher {
 		{
 			std::cout << "Wait some" << std::endl;
 			MPI_Waitsome( _size*num_command_types, _requests[0], &_readyRequestNumber, &_readyRequestIndices[0], &_statuses[0] );
+			assert( _readyRequestNumber != MPI_UNDEFINED );
 		}
 
 		void queueAvailableCommands()
 		{
-			index_storage::iterator ready_it = _readyRequestIndices.begin();
+			// This could be done clearer if we had a tuple of Single dispatchers
+			index_storage::iterator start_ready_it = _readyRequestIndices.begin();
+			index_storage::iterator end_ready_it = _readyRequestIndices.begin();
 
 			int split_point = 0;
-			// Search for the split point
-			// _readyRequestNumber value will always be lower readyRequestIndices size
-			while( (split_point < _readyRequestNumber) && (*ready_it < _size) ) {
-				ready_it++;
+			while( end_ready_it != _readyRequestIndices.end()
+			       && split_point < _readyRequestNumber
+			       && split_point < _size ) {
 				split_point++;
+				end_ready_it++;
 			}
 
 			_commands.queuePendingCommands(
-			                     detail::make_range( _readyRequestIndices.begin(),
-			                                         _readyRequestIndices.begin()+split_point ) );
+			                     detail::make_range( start_ready_it, end_ready_it ) );
+
+			start_ready_it = end_ready_it;
+			while( end_ready_it != _readyRequestIndices.end()
+			       && split_point < _readyRequestNumber
+			       /* && split_point < 2*_size */ ) {
+				split_point++;
+				end_ready_it++;
+			}
+
 			_cacheCommands.queuePendingCommands(
-			                     detail::make_range( _readyRequestIndices.begin()+split_point,
-			                                         _readyRequestIndices.begin()+_readyRequestNumber ));
+			                     detail::make_range( start_ready_it, end_ready_it ));
 		}
 
 		void executeCommands()

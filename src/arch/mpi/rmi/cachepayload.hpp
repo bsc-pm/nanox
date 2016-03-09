@@ -57,6 +57,10 @@ class CachePayload {
 		{
 		}
 
+		~CachePayload()
+		{
+		}
+
 		int getSource() const
 		{
 			return _source;

@@ -2,9 +2,9 @@
 #ifndef FINISH_HPP
 #define FINISH_HPP
 
-#include "atomic.hpp"
+#include "atomic_flag.hpp"
 #include "command.hpp"
-#include "mpiremotenode.hpp"
+#include "createauxthread.hpp"
 
 namespace nanos {
 namespace mpi {

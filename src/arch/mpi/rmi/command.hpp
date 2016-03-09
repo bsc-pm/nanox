@@ -27,8 +27,14 @@ class CommandRequestor< id, CommandPayload, Channel > {
 			_channel.send( _data );
 		}
 
-		CommandRequestor( int code, MPIProcessor const& destination ) :
+		CommandRequestor( MPIProcessor const& destination, int code ) :
 			_data(id, code), _channel( destination )
+		{
+			_channel.send( _data );
+		}
+
+		CommandRequestor( int destination, MPI_Comm communicator, int code ) :
+			_data(id, code), _channel( destination, communicator )
 		{
 			_channel.send( _data );
 		}
@@ -54,7 +60,7 @@ class CommandRequestor< id, CommandPayload, Channel > {
 /**
  * Pairs Requestor and Servant types for each operation id
  */
-template < int op_id, int tag = TAG_M2S_ORDER >
+template < int op_id, int tag = TAG_M2S_COMMAND >
 struct Command {
 	static const int id;
 

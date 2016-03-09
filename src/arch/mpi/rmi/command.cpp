@@ -36,7 +36,7 @@ BaseServant* BaseServant::createSpecific( int source, MPI_Comm communicator, Com
 			return new Init::Servant( channel, data );
 		}
 		default:
-			fatal0( "Invalid nanos::mpi::Command id" );
+			fatal0( "Invalid nanos::mpi::Command id " << data.getId() );
 	}
 	// This point should never be reached
 	return NULL;

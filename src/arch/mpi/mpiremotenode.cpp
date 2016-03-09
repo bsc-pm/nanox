@@ -22,15 +22,19 @@
 #include "debug.hpp"
 #include "config.hpp"
 #include "mpithread.hpp"
-#include <stdlib.h>
-#include <iostream>
-#include <fstream>
-#include <unistd.h>
-#include "mpi.h"
 
 #include "cachecommand.hpp"
 #include "cachepayload.hpp"
 #include "commandpayload.hpp"
+
+#include "finish.hpp"
+#include "init.hpp"
+
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <unistd.h>
+#include <mpi.h>
 
 using namespace nanos;
 using namespace nanos::ext;
@@ -357,8 +361,7 @@ uint64_t MPIRemoteNode::getFreeChunk(int arraysLength, uint64_t** arrOfPtr,
 
 void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
     NANOS_MPI_CREATE_IN_MPI_RUNTIME_EVENT(ext::NANOS_MPI_DEEP_BOOSTER_FREE_EVENT);
-    cacheOrder order;
-    order.opId = OPID_FINISH;
+
     int nThreads=sys.getNumWorkers();
     //Now sleep the threads which represent the remote processes
     int res=MPI_IDENT;
@@ -404,8 +407,9 @@ void MPIRemoteNode::DEEP_Booster_free(MPI_Comm *intercomm, int rank) {
                 //Only owner will send kill signal to the worker
                 if ( (*it)->getOwner() )
                 {
-                    nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, *intercomm);
-                    //After sending finalization signals, we are not the owners anymore
+                    mpi::command::Finish::Requestor finishCommand( *(*it) );
+                    finishCommand.dispatch();
+                    //After sending finalization signal, we are not the owners anymore
                     //This way we prevent finalizing them multiple times if more than one thread uses them
                     (*it)->setOwner(false);
                 }
@@ -832,10 +836,12 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
             nanosMPISend(ompss_mpi_file_sizes, arrSize, MPI_UNSIGNED, rank, TAG_FP_SIZE_SYNC, *intercomm);
             //If user defined multithread cache behaviour, send the creation order
             if (nanos::ext::MPIProcessor::isUseMultiThread()) {
-                cacheOrder order;
-                order.opId = OPID_CREATEAUXTHREAD;
-                nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, rank, TAG_M2S_ORDER, *intercomm);
-                ((MPIProcessor*)pes[rank])->setHasWorkerThread(true);
+                MPIProcessor &destination = static_cast<MPIProcessor &>(*pes[rank]);
+
+                mpi::command::CreateAuxiliaryThread::Requestor createThread( destination );
+                createThread.dispatch();
+
+                destination.setHasWorkerThread(true);
             }
         } else {
             pes[rank]=NEW nanos::ext::MPIProcessor( intercomm, rank,0/*uid++*/, false, shared, comm, core, id);
@@ -884,15 +890,11 @@ void MPIRemoteNode::createNanoxStructures(MPI_Comm comm, MPI_Comm* intercomm, in
     nanos::ext::MPIDD::setSpawnDone(true);
 }
 
-int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, MPI_Datatype datatype, int dest,
-        MPI_Comm comm) {
-    cacheOrder order;
-    order.opId = OPID_TASK_INIT;
-    int* intbuf=(int*)buf;
-    //Values of intbuf will be positive (using integer for conveniece with Fortran)
-    order.hostAddr = *intbuf;
-    //Send task init order (hostAddr=taskIdentifier)
-    return nanosMPISend(&order, 1, nanos::MPIDevice::cacheStruct, dest, TAG_M2S_ORDER, comm);
+int MPIRemoteNode::nanosMPISendTaskinit(void *buf, int count, int dest, MPI_Comm comm) {
+
+    mpi::command::Init::Requestor taskInit( dest, comm, *static_cast<int*>(buf) );
+    taskInit.dispatch();
+    return MPI_SUCCESS; // TODO: add some sort of error report for commands
 }
 
 int MPIRemoteNode::nanosMPIRecvTaskinit(void *buf, int count, MPI_Datatype datatype, int source,

@@ -56,7 +56,7 @@ BaseServant* BaseServant::createSpecific( int source, MPI_Comm communicator, Cac
 			return new Realloc::Servant( channel, data );
 		}
 		default:
-			fatal0( "Invalid nanos::mpi::CacheCommand id" );
+			fatal0( "Invalid nanos::mpi::CacheCommand id: " << data.getId() );
 	}
 	// This point should never be reached
 	return NULL;

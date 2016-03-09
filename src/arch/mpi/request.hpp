@@ -39,7 +39,16 @@ class request
 		{
 		}
 
-		virtual ~request()
+		/**
+		 * Destructor for class request
+		 * Note: it cannot be virtual.
+		 * Otherwise this class will not be standard
+		 * layout and can not be represented in memory
+		 * just by the MPI_Request itself (there will be
+		 * gaps or some extra things that the compiler will
+		 * need for rtti stuff).
+		 */
+		~request()
 		{
 		}
 	
@@ -120,7 +129,11 @@ class persistent_request : public request
 		{
 		}
 
-		virtual ~persistent_request()
+		/**
+		 * This destructor cannot be virtual
+		 * \see request::~request()
+		 */
+		~persistent_request()
 		{
 		}
 
