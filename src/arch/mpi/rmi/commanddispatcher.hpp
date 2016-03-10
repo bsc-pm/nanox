@@ -127,9 +127,9 @@ class SingleDispatcher {
 			Iterator it;
 			for( it = indices.begin(); it != indices.end(); it++ ) {
 				// FIXME: maybe the computed index (using modulo operator) is not correct
-				CommandPayload& order = _bufferedCommands.at( (*it)%_bufferedCommands.size() );
+				CommandPayload& order = _bufferedCommands.at( *it );
 				// FIXME This is not correct. Iterator does not use at()
-				MPI_Status& status = _statuses.at(*it);
+				MPI_Status& status = *(_statuses.begin()+(*it));
 
 				_pendingCommands.push_back(
 				             BaseServant::createSpecific( status.MPI_SOURCE, _communicator, order ) );
@@ -159,7 +159,7 @@ class Dispatcher {
 		typedef std::vector<MPI_Status>                       status_storage;
 		typedef std::vector<int>                              index_storage;
 
-		typedef detail::SingleDispatcher<CachePayload,TAG_M2S_CACHE_ORDER> command_dispatcher;
+		typedef detail::SingleDispatcher<CachePayload,TAG_M2S_CACHE_COMMAND> command_dispatcher;
 		typedef detail::SingleDispatcher<CommandPayload,TAG_M2S_COMMAND>   cache_dispatcher;
 
 		MPI_Comm                         _communicator;
@@ -237,6 +237,7 @@ class Dispatcher {
 			while( end_ready_it != _readyRequestIndices.end()
 			       && split_point < _readyRequestNumber
 			       /* && split_point < 2*_size */ ) {
+				(*end_ready_it) -= _size; // Decrease index to fit with the new command buffers
 				split_point++;
 				end_ready_it++;
 			}

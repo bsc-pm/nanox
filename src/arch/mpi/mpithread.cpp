@@ -29,6 +29,8 @@
 #include "instrumentation.hpp"
 #include <os.hpp>
 
+#include "finish.hpp"
+
 using namespace nanos;
 using namespace nanos::ext;
 
@@ -283,14 +285,13 @@ void MPIThread::finish() {
           checkTaskEnd();
         }
         if ( _groupTotRunningWds == &_selfTotRunningWds ) {
-            cacheOrder order;
-            order.opId = OPID_FINISH;
             std::vector<MPIProcessor*>& myPEs = getRunningPEs();
             for (std::vector<MPIProcessor*>::iterator it = myPEs.begin(); it!=myPEs.end() ; ++it) {
                 //Only release if we are the owner of the process (once released, we are not the owner anymore)
                 if ( (*it)->getOwner() ) 
                 {
-                    nanos::ext::MPIRemoteNode::nanosMPISsend(&order, 1, nanos::MPIDevice::cacheStruct, (*it)->getRank(), TAG_M2S_ORDER, (*it)->getCommunicator());
+                    mpi::command::Finish::Requestor command( *(*it) );
+                    command.dispatch();
                     (*it)->setOwner(false);
                 }
             }
