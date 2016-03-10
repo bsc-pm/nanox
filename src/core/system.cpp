@@ -418,9 +418,11 @@ void System::config ()
    cfg.registerArgOption ( "conduit", "cluster-network" );
    cfg.registerEnvOption ( "conduit", "NX_CLUSTER_NETWORK" );
 
+#if 0 /* _defDeviceName and _defDevice seem unused */
    cfg.registerConfigOption ( "device-priority", NEW Config::StringVar ( _defDeviceName ), "Defines the default device to use");
    cfg.registerArgOption ( "device-priority", "--use-device");
    cfg.registerEnvOption ( "device-priority", "NX_USE_DEVICE");
+#endif
    cfg.registerConfigOption( "simulator", NEW Config::FlagOption ( _simulator ),
                              "Nanos++ will be executed by a simulator (disabled as default)" );
    cfg.registerArgOption( "simulator", "simulator" );
@@ -636,6 +638,7 @@ void System::start ()
 
    }
 
+#if 0 /* _defDeviceName and _defDevice seem unused */
    if ( !_defDeviceName.empty() ) 
    {
        PEList::iterator it;
@@ -647,6 +650,7 @@ void System::start ()
                  _defDevice = pe->getDeviceType();
        }
    }
+#endif
 
 #ifdef NANOS_RESILIENCY_ENABLED
    // Setup signal handlers
@@ -1402,7 +1406,9 @@ int System::getNumWorkers( DeviceData *arch )
    int n = 0;
 
    for ( ThreadList::iterator it = _workers.begin(); it != _workers.end(); it++ ) {
-      if ( arch->isCompatible( *(it->second->runningOn()->getDeviceType() ) ), it->second->runningOn() ) n++;
+      if ( it->second->runningOn()->supports( *arch->getDevice() ) ) {
+         n++;
+      }
    }
    return n;
 }

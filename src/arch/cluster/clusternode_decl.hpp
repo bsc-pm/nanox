@@ -63,7 +63,6 @@ namespace nanos {
 
             // capability query functions
             virtual bool supportsUserLevelThreads () const;
-            //virtual bool supportsDirectTransfersWith( ProcessingElement const &pe ) const;
             virtual unsigned int getMyNodeNumber() const;
 
             unsigned int getClusterNodeNum() const;

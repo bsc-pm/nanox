@@ -245,7 +245,7 @@ namespace nanos {
                   BaseThread *worker = it->second;
 #ifdef GPU_DEV
                   //if ( dynamic_cast<GPUDevice*>( worker->runningOn()->getDeviceType() ) == 0 )
-                  if ( &nanos::ext::GPU == worker->runningOn()->getDeviceType() )
+                  if ( worker->runningOn()->supports( nanos::ext::GPU ) )
                   {
                      int node = worker->runningOn()->getNumaNode();
                      // Convert to virtual

@@ -108,7 +108,7 @@ void WorkDescriptor::start (ULTFlag isUserLevelThread, WorkDescriptor *previous)
 
    // If there is no active device, choose a compatible one
    ProcessingElement *pe = myThread->runningOn();
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *( pe->getDeviceType() ) );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *( pe->getDeviceTypes()[0] ) );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
@@ -143,7 +143,7 @@ void WorkDescriptor::preStart (ULTFlag isUserLevelThread, WorkDescriptor *previo
    ProcessingElement *pe = myThread->runningOn();
 
    // If there is no active device, choose a compatible one
-   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceType()) );
+   if ( _activeDeviceIdx == _numDevices ) activateDevice ( *(pe->getDeviceTypes()[0]) );
 
    // Initializing devices
    _devices[_activeDeviceIdx]->lazyInit( *this, isUserLevelThread, previous );
@@ -226,13 +226,13 @@ DeviceData & WorkDescriptor::activateDevice ( unsigned int deviceIdx )
    return *_devices[_activeDeviceIdx];
 }
 
-bool WorkDescriptor::canRunIn( const Device &device , const ProcessingElement * pe) const
+bool WorkDescriptor::canRunIn( const Device &device ) const
 {
-   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device , pe);
+   if ( _activeDeviceIdx != _numDevices ) return _devices[_activeDeviceIdx]->isCompatible( device );
 
    unsigned int i;
    for ( i = 0; i < _numDevices; i++ ) {
-       if (_devices[i]->isCompatible( device , pe)){
+       if (_devices[i]->isCompatible( device )){
             return true;           
        }
    }
@@ -242,15 +242,16 @@ bool WorkDescriptor::canRunIn( const Device &device , const ProcessingElement * 
 
 bool WorkDescriptor::canRunIn ( const ProcessingElement &pe ) const
 {
-   bool result;
+   bool result = false;
    if ( started() && !pe.supportsUserLevelThreads() ) return false;
 
-  // if ( pe.getDeviceType() == NULL )  result = canRunIn( *pe.getSubDeviceType(), &pe );
-  // else 
-   result = canRunIn( *pe.getDeviceType(), &pe ) ;
+   std::vector<const Device *> const &pe_archs = pe.getDeviceTypes();
+   for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+         it != pe_archs.end() && !result; it++ ) {
+      result = canRunIn( *(*it) ) ;
+   }
 
    return result;   
-   //return ( canRunIn( pe.getDeviceType() )  || ( pe.getSubDeviceType() != NULL && canRunIn( *pe.getSubDeviceType() ) ));
 }
 
 void WorkDescriptor::submit( bool force_queue )

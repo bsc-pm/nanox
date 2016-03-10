@@ -136,8 +136,13 @@ namespace ext {
    
    void OpenCLPlugin::addDevices( DeviceList &devices ) const
    {
-      if ( !_opencls->empty() )
-         devices.insert( ( *_opencls->begin() )->getDeviceType() );
+      if ( !_opencls->empty() ) {
+         std::vector<const Device *> const &pe_archs = ( *_opencls->begin() )->getDeviceTypes();
+         for ( std::vector<const Device *>::const_iterator it = pe_archs.begin();
+               it != pe_archs.end(); it++ ) {
+            devices.insert( *it );
+         }
+      }
    }
    
    

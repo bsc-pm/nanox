@@ -42,11 +42,7 @@ namespace nanos
          int                                  _id;
          //! Unique ID
          int                                  _uid;
-         std::vector<const Device *>          _supportedDevices;
-         const Device *                       _device;
-//         const Device *                       _subDevice;
-//         const Device *                       _deviceNo;
-//         const Device *                       _subDeviceNo;
+         std::vector<const Device *>          _devices;
          ThreadList                           _threads;
          unsigned int                         _memorySpaceId;
 
@@ -80,9 +76,8 @@ namespace nanos
          /* get/put methods */
          int getId() const;
          
-         const Device * getDeviceType () const;
-         const Device * getSubDeviceType () const;
-         virtual const Device * getCacheDeviceType () const;
+         std::vector<Device const *> const &getDeviceTypes () const;
+         bool supports( Device const &dev ) const;
 
          ThreadList &getThreads();
 
@@ -97,9 +92,6 @@ namespace nanos
          BaseThread & startWorker ( ext::SMPMultiThread *parent=NULL );
          BaseThread & startMultiWorker ( unsigned int numPEs, ProcessingElement **repPEs );
 
-         void setCurrentDevice( int idx ) {
-            _device = _supportedDevices[ idx ];
-         }
          void stopAll();
          void stopAllThreads();
 

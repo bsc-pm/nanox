@@ -42,16 +42,11 @@ inline ProcessingElement::ThreadList &ProcessingElement::getThreads() {
    return _threads;
 }
 
-inline const Device * ProcessingElement::getDeviceType () const
+inline std::vector<const Device*> const &ProcessingElement::getDeviceTypes () const
 {
-   return _device;
+   return _devices;
 }
 
-//inline const Device * ProcessingElement::getSubDeviceType () const
-//{
-//   return _subDevice;
-//}
- 
 inline std::size_t ProcessingElement::getNumThreads() const { return _threads.size(); }
 
 #endif
