@@ -103,7 +103,7 @@ AS_IF([test "x$gasnet" = xyes],[
   #AX_SILENT_MODE(on)
 
   # Check available GASNet conduits that are supported.
-  # Supported conduits: smp, udp, mpi, ibv
+  # Supported conduits: smp, udp, mpi, ibv, mxm, aries
 
   # Special requirements for supported conduits
   # SMP: no special requirements
@@ -120,6 +120,7 @@ AS_IF([test "x$gasnet" = xyes],[
   _AX_CHECK_GASNET_CONDUIT(mpi,$MPICXX,-lammpi $mpilibs)
   _AX_CHECK_GASNET_CONDUIT(ibv,$MPICXX,-libverbs $mpilibs,-DGASNET_CONDUIT_IBV)
   _AX_CHECK_GASNET_CONDUIT(mxm,$MPICXX,-lmxm -L/opt/mellanox/mxm/lib $mpilibs)
+  _AX_CHECK_GASNET_CONDUIT(aries,$CXX)
 
   # Checks done. Disable silent mode again.
   #AX_SILENT_MODE(off)
