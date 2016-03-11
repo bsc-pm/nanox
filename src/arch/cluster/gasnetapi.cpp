@@ -106,7 +106,7 @@ void * local_nanos_fpga_factory( void *args )
 #      define MAX_LONG_REQUEST (gasnet_AMMaxLongRequest() / 2) //Montblanc
 #      define VERBOSE_AM( x )
 #      define _this_exit _exit
-#      define DEFAULT_SEGMENT_SIZE (512*1024*1024)
+#      define DEFAULT_SEGMENT_SIZE gasnet_getMaxLocalSegmentSize()
 #   endif
 #endif
 
