@@ -35,7 +35,7 @@ using namespace nanos::ext;
 
 FPGADevice::FPGADevice ( const char *n ): Device( n ) {}
 
-void FPGADevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const &wd, void *hostObject, reg_t hostRegionId ) {
+void FPGADevice::_copyIn( uint64_t devAddr, uint64_t hostAddr, std::size_t len, SeparateMemoryAddressSpace &mem, DeviceOps *ops, WD const *wd, void *hostObject, reg_t hostRegionId ) {
 
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;
@@ -104,7 +104,7 @@ inline bool FPGADevice::copyIn( void *localDst, CopyDescriptor &remoteSrc, size_
 }
 void FPGADevice::_copyOut( uint64_t hostAddr, uint64_t devAddr, std::size_t len,
       SeparateMemoryAddressSpace &mem, DeviceOps *ops,
-      WorkDescriptor const &wd, void *hostObject, reg_t hostRegionId ) {
+      WorkDescriptor const *wd, void *hostObject, reg_t hostRegionId ) {
 
    CopyDescriptor cd( hostAddr );
    cd._ops = ops;
@@ -172,7 +172,7 @@ bool FPGADevice::copyOut( CopyDescriptor &remoteDst, void *localSrc, size_t size
 }
 
 void *FPGADevice::memAllocate( std::size_t size, SeparateMemoryAddressSpace &mem,
-        WorkDescriptor const &wd, unsigned int copyIdx){
+        WorkDescriptor const *wd, unsigned int copyIdx){
    //empty as we cannot allocate memory inside the fpga
    return (void *) 0xdeadbeef;
 }
